@@ -1303,3 +1303,7 @@ export function slugify(text: string): string {
         .replace(/[\s_-]+/g, '-') // Replace spaces, underscores, and multiple hyphens with single hyphen
         .replace(/^-+|-+$/g, '') // Remove leading and trailing hyphens
 }
+
+export const generateInvitesShareText = (inviteLink: string) => {
+    return `I’m using Peanut, an invite-only app for easy payments. With it you can pay friends, use merchants, and move money in and out of your bank, even cross-border. Here’s my invite: ${inviteLink}`
+}

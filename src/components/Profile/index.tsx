@@ -7,7 +7,7 @@ import NavHeader from '../Global/NavHeader'
 import ProfileHeader from './components/ProfileHeader'
 import ProfileMenuItem from './components/ProfileMenuItem'
 import { useRouter } from 'next/navigation'
-import { checkIfInternalNavigation } from '@/utils'
+import { checkIfInternalNavigation, generateInvitesShareText } from '@/utils'
 import ActionModal from '../Global/ActionModal'
 import { useState } from 'react'
 import Card from '../Global/Card'
@@ -173,11 +173,7 @@ export const Profile = () => {
                             />
                         </div>
                         <ShareButton
-                            generateText={() =>
-                                Promise.resolve(
-                                    `I’m using Peanut, an invite-only app for easy payments. With it you can pay friends, use merchants, and move money in and out of your bank, even cross-border. Here’s my invite: ${inviteLink}`
-                                )
-                            }
+                            generateText={() => Promise.resolve(generateInvitesShareText(inviteLink))}
                             title="Share your invite link"
                         >
                             Share Invite link

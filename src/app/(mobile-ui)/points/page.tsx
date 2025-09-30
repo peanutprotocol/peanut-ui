@@ -12,6 +12,7 @@ import { VerifiedUserLabel } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
 import { invitesApi } from '@/services/invites'
 import { Invite } from '@/services/services.types'
+import { generateInvitesShareText } from '@/utils'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 
@@ -46,14 +47,10 @@ const PointsPage = () => {
                     <CopyToClipboard type="button" textToCopy={inviteCode} />
                 </div>
 
-                {invites?.length && invites.length > 0 && (
+                {invites && invites.length > 0 && (
                     <>
                         <ShareButton
-                            generateText={() =>
-                                Promise.resolve(
-                                    `I’m using Peanut, an invite-only app for easy payments. With it you can pay friends, use merchants, and move money in and out of your bank, even cross-border. Here’s my invite: ${inviteLink}`
-                                )
-                            }
+                            generateText={() => Promise.resolve(generateInvitesShareText(inviteLink))}
                             title="Share your invite link"
                         >
                             Share Invite link
@@ -87,7 +84,6 @@ const PointsPage = () => {
                         </div>
                     </>
                 )}
-
                 {invites?.length === 0 && (
                     <Card className="flex flex-col items-center justify-center gap-4 py-4">
                         <div className="flex items-center justify-center rounded-full bg-primary-1 p-2">
@@ -99,11 +95,7 @@ const PointsPage = () => {
                             Earn points for every action you take on Peanut and when your invites create an account.
                         </p>
                         <ShareButton
-                            generateText={() =>
-                                Promise.resolve(
-                                    `I’m using Peanut, an invite-only app for easy payments. With it you can pay friends, use merchants, and move money in and out of your bank, even cross-border. Here’s my invite: ${inviteLink}`
-                                )
-                            }
+                            generateText={() => Promise.resolve(generateInvitesShareText(inviteLink))}
                             title="Share your invite link"
                         >
                             Share Invite link
