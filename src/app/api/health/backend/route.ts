@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server'
 import { PEANUT_API_URL } from '@/constants'
 import { fetchWithSentry } from '@/utils'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+export const fetchCache = 'force-no-store'
+
 /**
  * Health check for Peanut API backend
  * Tests connectivity to the main peanut-api-ts backend service
@@ -30,6 +34,8 @@ export async function GET() {
             headers: {
                 'Content-Type': 'application/json',
             },
+            cache: 'no-store',
+            next: { revalidate: 0 },
         })
 
         const backendResponseTime = Date.now() - backendTestStart
@@ -41,26 +47,37 @@ export async function GET() {
 
         const totalResponseTime = Date.now() - startTime
 
-        return NextResponse.json({
-            status: 'healthy',
-            service: 'backend',
-            timestamp: new Date().toISOString(),
-            responseTime: totalResponseTime,
-            details: {
-                apiConnectivity: {
-                    status: 'healthy',
-                    responseTime: backendResponseTime,
-                    httpStatus: backendResponse.status,
-                    apiUrl: PEANUT_API_URL,
-                    testEndpoint: '/users/username/hugo',
-                    message: backendResponse.ok
-                        ? 'Backend responding normally'
-                        : backendResponse.status === 404
-                          ? 'Backend accessible (user not found as expected)'
-                          : 'Backend accessible',
+        return NextResponse.json(
+            {
+                status: 'healthy',
+                service: 'backend',
+                timestamp: new Date().toISOString(),
+                responseTime: totalResponseTime,
+                details: {
+                    apiConnectivity: {
+                        status: 'healthy',
+                        responseTime: backendResponseTime,
+                        httpStatus: backendResponse.status,
+                        apiUrl: PEANUT_API_URL,
+                        testEndpoint: '/users/username/hugo',
+                        message: backendResponse.ok
+                            ? 'Backend responding normally'
+                            : backendResponse.status === 404
+                              ? 'Backend accessible (user not found as expected)'
+                              : 'Backend accessible',
+                    },
                 },
             },
-        })
+            {
+                status: 200,
+                headers: {
+                    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+                    Pragma: 'no-cache',
+                    Expires: '0',
+                    'Surrogate-Control': 'no-store',
+                },
+            }
+        )
     } catch (error) {
         const totalResponseTime = Date.now() - startTime
 
@@ -72,7 +89,15 @@ export async function GET() {
                 error: error instanceof Error ? error.message : 'Unknown error',
                 responseTime: totalResponseTime,
             },
-            { status: 500 }
+            {
+                status: 500,
+                headers: {
+                    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+                    Pragma: 'no-cache',
+                    Expires: '0',
+                    'Surrogate-Control': 'no-store',
+                },
+            }
         )
     }
 }

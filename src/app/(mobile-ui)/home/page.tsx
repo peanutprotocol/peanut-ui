@@ -263,6 +263,8 @@ export default function Home() {
                         />
                     </ActionButtonGroup>
                 </div>
+                {/* note: fix before merging to staging */}
+                {/* <HomeBanners /> */}
 
                 {showPermissionModal && <SetupNotificationsModal />}
                 {showReminderBanner && (
