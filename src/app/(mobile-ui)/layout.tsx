@@ -80,7 +80,14 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     // Allow access to public paths without authentication
     const isPublicPath = publicPathRegex.test(pathName)
 
-    if (!isReady || (isFetchingUser && !user && !hasToken && !isPublicPath)) {
+    // redirect to setup if user is not logged in
+    useEffect(() => {
+        if (!isFetchingUser && !user) {
+            router.push('/setup')
+        }
+    }, [user, isFetchingUser, router])
+
+    if (!isReady || !user || (isFetchingUser && !hasToken && !isPublicPath)) {
         return (
             <div className="flex h-[100dvh] w-full flex-col items-center justify-center">
                 <PeanutLoading />
