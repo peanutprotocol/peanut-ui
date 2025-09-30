@@ -5,7 +5,14 @@ import { TransactionDetailsDrawer } from '@/components/TransactionDetails/Transa
 import { TransactionDirection } from '@/components/TransactionDetails/TransactionDetailsHeaderCard'
 import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
-import { formatNumberForDisplay, printableAddress, getAvatarUrl, getTransactionSign, isStableCoin } from '@/utils'
+import {
+    formatNumberForDisplay,
+    printableAddress,
+    getAvatarUrl,
+    getTransactionSign,
+    isStableCoin,
+    shortenStringLong,
+} from '@/utils'
 import React from 'react'
 import Image from 'next/image'
 import StatusPill, { StatusPillType } from '../Global/StatusPill'
@@ -65,6 +72,12 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     const isLinkTx = transaction.extraDataForDrawer?.isLinkTransaction ?? false
     const userNameForAvatar = transaction.fullName || transaction.userName
     const avatarUrl = getAvatarUrl(transaction)
+    let displayName = name
+    if (isAddress(displayName)) {
+        displayName = printableAddress(displayName)
+    } else if (displayName.length > 19) {
+        displayName = shortenStringLong(displayName, 0, 16)
+    }
 
     const sign = getTransactionSign(transaction)
     let usdAmount = amount
@@ -116,7 +129,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                 {isPending && <div className="h-2 w-2 animate-pulsate rounded-full bg-primary-1" />}
                                 <div className="min-w-0 flex-1 truncate font-roboto text-[16px] font-medium">
                                     <VerifiedUserLabel
-                                        name={isAddress(name) ? printableAddress(name) : name}
+                                        name={displayName}
                                         isVerified={transaction.isVerified}
                                         haveSentMoneyToUser={haveSentMoneyToUser}
                                     />
