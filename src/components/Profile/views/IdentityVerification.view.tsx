@@ -46,6 +46,11 @@ const IdentityVerificationView = () => {
         }
     }
 
+    const handleBridgeKycSuccess = useCallback(async () => {
+        await fetchUser()
+        handleRedirect()
+    }, [])
+
     const {
         iframeOptions,
         handleInitiateKyc,
@@ -55,11 +60,7 @@ const IdentityVerificationView = () => {
         error: kycError,
         isLoading: isKycLoading,
     } = useBridgeKycFlow({
-        onKycSuccess: async () => {
-            await fetchUser()
-            // wait for the user to be updated
-            setTimeout(() => handleRedirect(), 500)
-        },
+        onKycSuccess: handleBridgeKycSuccess,
     })
 
     const initialUserDetails: Partial<UserDetailsFormData> = useMemo(
