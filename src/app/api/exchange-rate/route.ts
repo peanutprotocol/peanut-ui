@@ -61,7 +61,18 @@ export async function GET(request: NextRequest) {
             }
 
             // Use Frankfurter for all other pairs or as fallback
-            return await fetchFromFrankfurter(fromUc, toUc)
+            const frankfurterRate = await fetchFromFrankfurter(fromUc, toUc)
+            if (frankfurterRate !== null) {
+                return NextResponse.json(
+                    { rate: frankfurterRate },
+                    {
+                        headers: {
+                            'Cache-Control': 's-maxage=300, stale-while-revalidate=600',
+                        },
+                    }
+                )
+            }
+            return NextResponse.json({ error: 'Failed to fetch exchange rates' }, { status: 500 })
         }
 
         // For non-USD pairs, convert through USD: from → USD → to
@@ -101,9 +112,7 @@ async function getExchangeRate(from: string, to: string): Promise<number | null>
         }
 
         // Use Frankfurter for all other pairs or as fallback
-        const frankfurterResult = await fetchFromFrankfurter(from, to)
-        const data = await frankfurterResult.json()
-        return data.rate
+        return await fetchFromFrankfurter(from, to)
     } catch (error) {
         console.error(`Failed to get exchange rate for ${from}-${to}:`, error)
         return null
@@ -116,10 +125,18 @@ async function fetchFromCurrencyPrice(from: string, to: string): Promise<number 
         if (from === 'USD' && (MANTECA_CURRENCIES.has(to) || ['EUR', 'MXN'].includes(to))) {
             // USD → other currency: use sell rate (selling USD to get other currency)
             const { sell } = await getCurrencyPrice(to)
+            if (!isFinite(sell) || sell <= 0) {
+                console.error(`Invalid sell rate from getCurrencyPrice for ${to}: ${sell}`)
+                return null
+            }
             return sell
         } else if ((MANTECA_CURRENCIES.has(from) || ['EUR', 'MXN'].includes(from)) && to === 'USD') {
             // Other currency → USD: use buy rate (buying USD with other currency)
             const { buy } = await getCurrencyPrice(from)
+            if (!isFinite(buy) || buy <= 0) {
+                console.error(`Invalid buy rate from getCurrencyPrice for ${from}: ${buy}`)
+                return null
+            }
             return 1 / buy
         } else if (
             (MANTECA_CURRENCIES.has(from) || ['EUR', 'MXN'].includes(from)) &&
@@ -128,6 +145,11 @@ async function fetchFromCurrencyPrice(from: string, to: string): Promise<number 
             // Other currency → Other currency: convert through USD
             const fromPrices = await getCurrencyPrice(from)
             const toPrices = await getCurrencyPrice(to)
+
+            if (!isFinite(fromPrices.buy) || fromPrices.buy <= 0 || !isFinite(toPrices.sell) || toPrices.sell <= 0) {
+                console.error(`Invalid prices for ${from}-${to}: buy=${fromPrices.buy}, sell=${toPrices.sell}`)
+                return null
+            }
 
             // from → USD → to
             const fromToUsd = 1 / fromPrices.buy
@@ -144,29 +166,47 @@ async function fetchFromCurrencyPrice(from: string, to: string): Promise<number 
     }
 }
 
-async function fetchFromFrankfurter(from: string, to: string): Promise<NextResponse> {
-    const url = `https://api.frankfurter.app/latest?from=${from}&to=${to}`
-    const options: RequestInit & { next?: { revalidate?: number } } = {
-        method: 'GET',
-        next: { revalidate: 300 }, // Cache for 5 minutes
+async function fetchFromFrankfurter(from: string, to: string): Promise<number | null> {
+    try {
+        // If either currency is USD, do direct conversion
+        if (from === 'USD' || to === 'USD') {
+            return await fetchDirectFromFrankfurter(from, to)
+        }
+
+        // For non-USD pairs, convert through USD: from → USD → to
+        const fromToUsdRate = await fetchDirectFromFrankfurter(from, 'USD')
+        const usdToToRate = await fetchDirectFromFrankfurter('USD', to)
+
+        if (!fromToUsdRate || !usdToToRate) {
+            return null
+        }
+
+        return fromToUsdRate * usdToToRate
+    } catch (error) {
+        console.error(`Frankfurter API exception for ${from}-${to}:`, error)
+        return null
     }
+}
 
-    const response = await fetch(url, options)
+async function fetchDirectFromFrankfurter(from: string, to: string): Promise<number | null> {
+    try {
+        const url = `https://api.frankfurter.app/latest?from=${from}&to=${to}`
+        const options: RequestInit & { next?: { revalidate?: number } } = {
+            method: 'GET',
+            next: { revalidate: 300 }, // Cache for 5 minutes
+        }
 
-    if (!response.ok) {
-        console.error(`Frankfurter API error: ${response.status} ${response.statusText}`)
-        return NextResponse.json({ error: 'Failed to fetch exchange rates from API' }, { status: response.status })
+        const response = await fetch(url, options)
+
+        if (!response.ok) {
+            console.error(`Frankfurter API error: ${response.status} ${response.statusText}`)
+            return null
+        }
+
+        const data = await response.json()
+        return data.rates[to] * 0.995 // Subtract 50bps
+    } catch (error) {
+        console.error(`Frankfurter direct API exception for ${from}-${to}:`, error)
+        return null
     }
-
-    const data = await response.json()
-
-    const exchangeRate: ExchangeRateResponse = {
-        rate: data.rates[to] * 0.995, // Subtract 50bps
-    }
-
-    return NextResponse.json(exchangeRate, {
-        headers: {
-            'Cache-Control': 's-maxage=300, stale-while-revalidate=600',
-        },
-    })
 }
