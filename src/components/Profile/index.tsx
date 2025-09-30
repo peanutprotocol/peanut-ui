@@ -141,7 +141,6 @@ export const Profile = () => {
 
             <ActionModal
                 visible={showInitiateKycModal}
-                // visible={true}
                 onClose={() => setShowInitiateKycModal(false)}
                 title="Verification, Only If You Need It"
                 description="No need to verify unless you want to move money to or from your bank."
