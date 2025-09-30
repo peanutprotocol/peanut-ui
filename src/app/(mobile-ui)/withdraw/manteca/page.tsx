@@ -196,7 +196,7 @@ export default function MantecaWithdrawFlow() {
                 userOpHash = result.userOpHash
                 receipt = result.receipt
             } catch (error) {
-                if ((error as Error).toString().includes('The operation either timed out or was not allowed')) {
+                if ((error as Error).toString().includes('not allowed')) {
                     setErrorMessage('Please confirm the transaction.')
                 } else {
                     captureException(error)
