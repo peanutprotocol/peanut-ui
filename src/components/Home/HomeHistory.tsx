@@ -177,8 +177,8 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
         Sentry.captureException(error)
         return (
             <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
-                <h2 className="text-base font-bold">Recent Transactions</h2>{' '}
-                <EmptyState icon="alert" title="Error loading transactions!" description="Please contact Support." />
+                <h2 className="text-base font-bold">Activity</h2>{' '}
+                <EmptyState icon="alert" title="Error loading activity!" description="Please contact Support." />
             </div>
         )
     }
@@ -187,11 +187,11 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
     if (!isLoading && !combinedEntries.length) {
         return (
             <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
+                <h2 className="text-base font-bold">Activity</h2>
                 {isSameUser &&
-                    (user?.user.bridgeKycStatus !== 'not_started' ||
+                    ((user?.user.bridgeKycStatus && user?.user.bridgeKycStatus !== 'not_started') ||
                         (user?.user.kycVerifications && user?.user.kycVerifications.length > 0)) && (
                         <div className="space-y-3">
-                            <h2 className="text-base font-bold">Activity</h2>
                             {user?.user.bridgeKycStatus && user?.user.bridgeKycStatus !== 'not_started' && (
                                 <KycStatusItem
                                     position="single"
@@ -214,14 +214,11 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
 
                 {!user?.user.bridgeKycStatus &&
                     (!user?.user.kycVerifications || user?.user.kycVerifications.length === 0) && (
-                        <>
-                            <h2 className="text-base font-bold">Recent Transactions</h2>
-                            <EmptyState
-                                icon="txn-off"
-                                title="No transactions yet!"
-                                description="Start by sending or requesting money"
-                            />
-                        </>
+                        <EmptyState
+                            icon="txn-off"
+                            title="No activity yet!"
+                            description="Start by sending or requesting money"
+                        />
                     )}
             </div>
         )
