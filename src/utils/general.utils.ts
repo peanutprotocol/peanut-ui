@@ -43,9 +43,9 @@ export const shortenStringLong = (s?: string, chars?: number, firstChars?: numbe
     if (!s) return ''
 
     // Default values
-    const defaultChars = chars || 6
-    const firstBitLength = firstChars || defaultChars
-    const lastBitLength = lastChars || defaultChars
+    const defaultChars = chars ?? 6
+    const firstBitLength = firstChars ?? defaultChars
+    const lastBitLength = lastChars ?? defaultChars
 
     const firstBit = s.substring(0, firstBitLength)
     const endingBit = s.substring(s.length - lastBitLength, s.length)
