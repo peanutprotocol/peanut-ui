@@ -235,7 +235,6 @@ export interface User {
     bridgeCustomerId: string | null
     fullName: string
     telegram: string | null
-    hasPwAccess: boolean
     hasAppAccess: boolean
     showFullName: boolean
     createdAt: string
