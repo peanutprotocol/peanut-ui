@@ -35,6 +35,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const isHistory = pathName === '/history'
     const isSupport = pathName === '/support'
     const alignStart = isHome || isHistory || isSupport
+    const router = useRouter()
 
     useEffect(() => {
         // check for JWT token
