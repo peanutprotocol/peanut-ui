@@ -253,7 +253,7 @@ export function completeHistoryEntry(entry: HistoryEntry): HistoryEntry {
         extraData: {
             ...extraData,
             link,
-            usdAmount: `$${formatAmount(usdAmount)}`,
+            usdAmount,
         },
     }
 }

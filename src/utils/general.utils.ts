@@ -331,7 +331,10 @@ export function formatAmountWithDecimals({ amount, decimals }: { amount: number;
 // The caller is responsible for prepending the correct currency symbol.
 // @dev todo: For true internationalization of read-only amounts, consider a dedicated service or util
 // that uses specific locales (e.g., 'es-AR' for '1.234,56'). This function standardizes on en-US for parsable input display.
-export const formatNumberForDisplay = (valueStr: string | undefined, options?: { maxDecimals?: number }): string => {
+export const formatNumberForDisplay = (
+    valueStr: string | undefined,
+    options?: { maxDecimals?: number; minDecimals?: number }
+): string => {
     if (valueStr === undefined || valueStr === null || valueStr.trim() === '') return ''
 
     // Preserve the original string if it just ends with a decimal or is just a decimal for intermediate input.
@@ -357,7 +360,7 @@ export const formatNumberForDisplay = (valueStr: string | undefined, options?: {
     if (isNaN(num)) return ''
 
     const maxDecimals = options?.maxDecimals ?? 0 // Default to 0 if not specified, to avoid .00 for whole numbers
-    let minDecimals = 0
+    let minDecimals = options?.minDecimals ?? 0
     const parts = valueStr.split('.')
 
     if (parts.length === 2 && parts[1].length > 0) {
@@ -372,11 +375,12 @@ export const formatNumberForDisplay = (valueStr: string | undefined, options?: {
     return num.toLocaleString('en-US', {
         minimumFractionDigits: minDecimals,
         maximumFractionDigits: maxDecimals,
+        roundingMode: 'trunc',
     })
 }
 
 export function formatCurrency(valueStr: string | undefined): string {
-    return formatNumberForDisplay(valueStr, { maxDecimals: 2 })
+    return formatNumberForDisplay(valueStr, { maxDecimals: 2, minDecimals: 2 })
 }
 
 /**

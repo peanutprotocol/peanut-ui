@@ -7,6 +7,7 @@ import { TransactionDetails } from '@/components/TransactionDetails/transactionT
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import {
     formatNumberForDisplay,
+    formatCurrency,
     printableAddress,
     getAvatarUrl,
     getTransactionSign,
@@ -84,7 +85,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     if (!isStableCoin(transaction.tokenSymbol ?? 'USDC')) {
         usdAmount = Number(transaction.currency?.amount ?? amount)
     }
-    const formattedAmount = formatNumberForDisplay(Math.abs(usdAmount).toString(), { maxDecimals: 2 })
+    const formattedAmount = formatCurrency(Math.abs(usdAmount).toString())
     const displayAmount = `${sign}$${formattedAmount}`
 
     let currencyDisplayAmount: string | undefined
