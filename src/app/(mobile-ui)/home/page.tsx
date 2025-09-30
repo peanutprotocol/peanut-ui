@@ -133,7 +133,7 @@ export default function Home() {
 
     // effect for showing balance warning modal
     useEffect(() => {
-        if (isFetchingBalance || balance === undefined) return
+        if (isFetchingBalance || balance === undefined || !user) return
 
         if (typeof window !== 'undefined') {
             const hasSeenBalanceWarning = getFromLocalStorage(`${user!.user.userId}-hasSeenBalanceWarning`)
@@ -153,7 +153,7 @@ export default function Home() {
                 setShowBalanceWarningModal(true)
             }
         }
-    }, [balance, isFetchingBalance, showIOSPWAInstallModal, showAddMoneyPromptModal])
+    }, [balance, isFetchingBalance, showIOSPWAInstallModal, showAddMoneyPromptModal, user])
 
     // effect for showing balance warning modal
     useEffect(() => {
