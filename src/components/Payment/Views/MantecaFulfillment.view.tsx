@@ -3,19 +3,19 @@ import { CountryData } from '@/components/AddMoney/consts'
 import MantecaDepositShareDetails from '@/components/AddMoney/components/MantecaDepositShareDetails'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import NavHeader from '@/components/Global/NavHeader'
-import { InitiateMantecaKYCModal } from '@/components/Kyc/InitiateMantecaKYCModal'
+import { MantecaGeoSpecificKycModal } from '@/components/Kyc/InitiateMantecaKYCModal'
 import { useAuth } from '@/context/authContext'
 import { useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
-import useKycStatus from '@/hooks/useKycStatus'
 import { usePaymentStore } from '@/redux/hooks'
 import { mantecaApi } from '@/services/manteca'
 import { useQuery } from '@tanstack/react-query'
+import useKycStatus from '@/hooks/useKycStatus'
 
 const MantecaFulfillment = () => {
     const { setFulfillUsingManteca, selectedCountry, setSelectedCountry } = useRequestFulfillmentFlow()
     const { requestDetails, chargeDetails } = usePaymentStore()
     const [isKYCModalOpen, setIsKYCModalOpen] = useState(false)
-    const { isUserMantecaKycApproved } = useKycStatus()
+    const { isUserMantecaKycApproved, isUserBridgeKycApproved } = useKycStatus()
     const { fetchUser } = useAuth()
 
     const currency = selectedCountry?.currency || 'ARS'
@@ -71,8 +71,10 @@ const MantecaFulfillment = () => {
             {depositData?.data && <MantecaDepositShareDetails source={'bank'} depositDetails={depositData.data} />}
 
             {isKYCModalOpen && (
-                <InitiateMantecaKYCModal
-                    isOpen={isKYCModalOpen}
+                <MantecaGeoSpecificKycModal
+                    isUserBridgeKycApproved={isUserBridgeKycApproved}
+                    isMantecaModalOpen={isKYCModalOpen}
+                    setIsMantecaModalOpen={setIsKYCModalOpen}
                     onClose={handleKycCancel}
                     onManualClose={handleKycCancel}
                     onKycSuccess={() => {
@@ -80,7 +82,7 @@ const MantecaFulfillment = () => {
                         setIsKYCModalOpen(false)
                         fetchUser()
                     }}
-                    country={selectedCountry || argentinaCountryData}
+                    selectedCountry={selectedCountry || argentinaCountryData}
                 />
             )}
         </div>

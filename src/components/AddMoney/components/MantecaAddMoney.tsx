@@ -5,7 +5,7 @@ import InputAmountStep from '@/components/AddMoney/components/InputAmountStep'
 import { useParams, useRouter } from 'next/navigation'
 import { CountryData, countryData } from '@/components/AddMoney/consts'
 import { MantecaDepositResponseData } from '@/types/manteca.types'
-import { InitiateMantecaKYCModal } from '@/components/Kyc/InitiateMantecaKYCModal'
+import { MantecaGeoSpecificKycModal } from '@/components/Kyc/InitiateMantecaKYCModal'
 import { useMantecaKycFlow } from '@/hooks/useMantecaKycFlow'
 import { useCurrency } from '@/hooks/useCurrency'
 import { useAuth } from '@/context/authContext'
@@ -14,6 +14,7 @@ import { mantecaApi } from '@/services/manteca'
 import { PEANUT_WALLET_TOKEN_DECIMALS, TRANSACTIONS } from '@/constants'
 import { parseUnits } from 'viem'
 import { useQueryClient } from '@tanstack/react-query'
+import useKycStatus from '@/hooks/useKycStatus'
 
 interface MantecaAddMoneyProps {
     source: 'bank' | 'regionalMethod'
@@ -41,6 +42,7 @@ const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
         return countryData.find((country) => country.type === 'country' && country.path === selectedCountryPath)
     }, [selectedCountryPath])
     const { isMantecaKycRequired } = useMantecaKycFlow({ country: selectedCountry as CountryData })
+    const { isUserBridgeKycApproved } = useKycStatus()
     const currencyData = useCurrency(selectedCountry?.currency ?? 'ARS')
     const { user, fetchUser } = useAuth()
 
@@ -142,8 +144,10 @@ const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
                     currencyData={currencyData}
                 />
                 {isKycModalOpen && (
-                    <InitiateMantecaKYCModal
-                        isOpen={isKycModalOpen}
+                    <MantecaGeoSpecificKycModal
+                        isUserBridgeKycApproved={isUserBridgeKycApproved}
+                        isMantecaModalOpen={isKycModalOpen}
+                        setIsMantecaModalOpen={setIsKycModalOpen}
                         onClose={handleKycCancel}
                         onManualClose={handleKycCancel}
                         onKycSuccess={() => {
@@ -151,7 +155,7 @@ const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
                             setIsKycModalOpen(false)
                             fetchUser()
                         }}
-                        country={selectedCountry}
+                        selectedCountry={selectedCountry}
                     />
                 )}
             </>

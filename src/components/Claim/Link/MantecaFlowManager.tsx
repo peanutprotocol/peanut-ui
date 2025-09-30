@@ -12,7 +12,7 @@ import MantecaReviewStep from './views/MantecaReviewStep'
 import { Button } from '@/components/0_Bruddle'
 import { useRouter } from 'next/navigation'
 import useKycStatus from '@/hooks/useKycStatus'
-import { InitiateMantecaKYCModal } from '@/components/Kyc/InitiateMantecaKYCModal'
+import { MantecaGeoSpecificKycModal } from '@/components/Kyc/InitiateMantecaKYCModal'
 import { useAuth } from '@/context/authContext'
 import { CountryData } from '@/components/AddMoney/consts'
 
@@ -38,7 +38,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
         iso3: 'ARG',
     } as CountryData
 
-    const { isUserMantecaKycApproved } = useKycStatus()
+    const { isUserMantecaKycApproved, isUserBridgeKycApproved } = useKycStatus()
     const { fetchUser } = useAuth()
 
     const isSuccess = currentStep === MercadoPagoStep.SUCCESS
@@ -127,8 +127,10 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                 {renderStepDetails()}
 
                 {isKYCModalOpen && (
-                    <InitiateMantecaKYCModal
-                        isOpen={isKYCModalOpen}
+                    <MantecaGeoSpecificKycModal
+                        isUserBridgeKycApproved={isUserBridgeKycApproved}
+                        isMantecaModalOpen={isKYCModalOpen}
+                        setIsMantecaModalOpen={setIsKYCModalOpen}
                         onClose={handleKycCancel}
                         onManualClose={handleKycCancel}
                         onKycSuccess={() => {
@@ -136,7 +138,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                             setIsKYCModalOpen(false)
                             fetchUser()
                         }}
-                        country={selectedCountry || argentinaCountryData}
+                        selectedCountry={selectedCountry || argentinaCountryData}
                     />
                 )}
             </div>

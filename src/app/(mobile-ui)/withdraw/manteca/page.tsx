@@ -24,7 +24,7 @@ import { formatUnits, parseUnits } from 'viem'
 import type { TransactionReceipt, Hash } from 'viem'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { useMantecaKycFlow } from '@/hooks/useMantecaKycFlow'
-import { InitiateMantecaKYCModal } from '@/components/Kyc/InitiateMantecaKYCModal'
+import { MantecaGeoSpecificKycModal } from '@/components/Kyc/InitiateMantecaKYCModal'
 import { useAuth } from '@/context/authContext'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useSupportModalContext } from '@/context/SupportModalContext'
@@ -39,6 +39,7 @@ import Select from '@/components/Global/Select'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { useQueryClient } from '@tanstack/react-query'
 import { captureException } from '@sentry/nextjs'
+import useKycStatus from '@/hooks/useKycStatus'
 
 type MantecaWithdrawStep = 'amountInput' | 'bankDetails' | 'review' | 'success' | 'failure'
 
@@ -66,6 +67,7 @@ export default function MantecaWithdrawFlow() {
     const { user, fetchUser } = useAuth()
     const { setIsSupportModalOpen } = useSupportModalContext()
     const queryClient = useQueryClient()
+    const { isUserBridgeKycApproved } = useKycStatus()
 
     // Get method and country from URL parameters
     const selectedMethodType = searchParams.get('method') // mercadopago, pix, bank-transfer, etc.
@@ -512,8 +514,10 @@ export default function MantecaWithdrawFlow() {
 
                     {/* KYC Modal */}
                     {isKycModalOpen && selectedCountry && (
-                        <InitiateMantecaKYCModal
-                            isOpen={isKycModalOpen}
+                        <MantecaGeoSpecificKycModal
+                            isUserBridgeKycApproved={isUserBridgeKycApproved}
+                            isMantecaModalOpen={isKycModalOpen}
+                            setIsMantecaModalOpen={setIsKycModalOpen}
                             onClose={() => setIsKycModalOpen(false)}
                             onManualClose={() => setIsKycModalOpen(false)}
                             onKycSuccess={() => {
@@ -521,7 +525,7 @@ export default function MantecaWithdrawFlow() {
                                 fetchUser()
                                 setStep('review')
                             }}
-                            country={selectedCountry}
+                            selectedCountry={selectedCountry}
                         />
                     )}
                 </div>

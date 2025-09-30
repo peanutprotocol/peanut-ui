@@ -20,7 +20,7 @@ interface Props {
     footer?: React.ReactNode
 }
 
-export const InitiateMantecaKYCModal = ({
+const InitiateMantecaKYCModal = ({
     isOpen,
     onClose,
     onKycSuccess,
@@ -75,12 +75,16 @@ export const MantecaGeoSpecificKycModal = ({
     setIsMantecaModalOpen,
     isMantecaModalOpen,
     onKycSuccess,
+    onClose,
+    onManualClose,
 }: {
     isUserBridgeKycApproved: boolean
     selectedCountry: { id: string; title: string }
     setIsMantecaModalOpen: (isOpen: boolean) => void
     isMantecaModalOpen: boolean
     onKycSuccess: () => void
+    onClose?: () => void
+    onManualClose?: () => void
 }) => {
     return (
         <InitiateMantecaKYCModal
@@ -114,12 +118,18 @@ export const MantecaGeoSpecificKycModal = ({
             }
             ctaText="Start Verification"
             isOpen={isMantecaModalOpen}
-            onClose={() => setIsMantecaModalOpen(false)}
+            onClose={() => {
+                setIsMantecaModalOpen(false)
+                onClose?.()
+            }}
             onKycSuccess={() => {
                 setIsMantecaModalOpen(false)
                 onKycSuccess?.()
             }}
-            onManualClose={() => setIsMantecaModalOpen(false)}
+            onManualClose={() => {
+                setIsMantecaModalOpen(false)
+                onManualClose?.()
+            }}
             country={{ id: selectedCountry.id, title: selectedCountry.title, type: 'country', path: '' }}
         />
     )
