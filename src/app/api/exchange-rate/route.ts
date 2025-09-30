@@ -1,18 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { mantecaApi } from '@/services/manteca'
+import { getCurrencyPrice } from '@/app/actions/currency'
 
 interface ExchangeRateResponse {
     rate: number
 }
-
-interface BridgeExchangeRateResponse {
-    midmarket_rate: string
-    buy_rate: string
-    sell_rate: string
-}
-
-// Currency pairs that should use Bridge API (USD to these currencies only)
-const BRIDGE_PAIRS = new Set(['USD-EUR', 'USD-MXN', 'USD-BRL'])
 
 // LATAM currencies that should use Manteca API
 const MANTECA_CURRENCIES = new Set(['ARS', 'BRL', 'COP', 'CRC', 'PUSD', 'GTQ', 'PHP', 'BOB'])
@@ -46,14 +37,18 @@ export async function GET(request: NextRequest) {
         // If either currency is USD, handle direct conversion
         if (fromUc === 'USD' || toUc === 'USD') {
             const pairKey = `${fromUc}-${toUc}`
-            const reversePairKey = `${toUc}-${fromUc}`
 
-            // Check if either currency is a LATAM currency that uses Manteca
-            if (MANTECA_CURRENCIES.has(fromUc) || MANTECA_CURRENCIES.has(toUc)) {
-                const mantecaRate = await fetchFromManteca(fromUc, toUc)
-                if (mantecaRate !== null) {
+            // Check if either currency uses getCurrencyPrice (Manteca or Bridge currencies)
+            if (
+                MANTECA_CURRENCIES.has(fromUc) ||
+                MANTECA_CURRENCIES.has(toUc) ||
+                ['EUR', 'MXN'].includes(fromUc) ||
+                ['EUR', 'MXN'].includes(toUc)
+            ) {
+                const currencyPriceRate = await fetchFromCurrencyPrice(fromUc, toUc)
+                if (currencyPriceRate !== null) {
                     return NextResponse.json(
-                        { rate: mantecaRate },
+                        { rate: currencyPriceRate },
                         {
                             headers: {
                                 'Cache-Control': 's-maxage=300, stale-while-revalidate=600',
@@ -61,30 +56,8 @@ export async function GET(request: NextRequest) {
                         }
                     )
                 }
-                // Fall back to other providers if Manteca fails
-                console.warn(`Manteca failed for ${pairKey}, falling back to other providers`)
-            }
-
-            // Check if we should use Bridge for this pair or its reverse
-            const shouldUseBridge = BRIDGE_PAIRS.has(pairKey)
-            const shouldUseBridgeReverse = BRIDGE_PAIRS.has(reversePairKey)
-
-            if (shouldUseBridge || shouldUseBridgeReverse) {
-                // For Bridge pairs, we need to determine which rate to use
-                let bridgeResult
-                if (shouldUseBridge) {
-                    // Direct pair (e.g., USD→EUR): use sell_rate
-                    bridgeResult = await fetchFromBridge(fromUc, toUc, 'sell_rate', false)
-                } else {
-                    // Reverse pair (e.g., EUR→USD): fetch USD→EUR and use buy_rate, then invert
-                    bridgeResult = await fetchFromBridge(toUc, fromUc, 'buy_rate', true)
-                }
-
-                if (bridgeResult) {
-                    return bridgeResult
-                }
-                // Fall back to Frankfurter if Bridge fails
-                console.warn(`Bridge failed for ${pairKey}, falling back to Frankfurter`)
+                // Fall back to other providers if getCurrencyPrice fails
+                console.warn(`getCurrencyPrice failed for ${pairKey}, falling back to other providers`)
             }
 
             // Use Frankfurter for all other pairs or as fallback
@@ -117,35 +90,14 @@ export async function GET(request: NextRequest) {
 
 async function getExchangeRate(from: string, to: string): Promise<number | null> {
     try {
-        const pairKey = `${from}-${to}`
-        const reversePairKey = `${to}-${from}`
-
-        // Check if either currency is a LATAM currency that uses Manteca
-        if (MANTECA_CURRENCIES.has(from) || MANTECA_CURRENCIES.has(to)) {
-            return await fetchFromManteca(from, to)
-        }
-
-        // Check if we should use Bridge for this pair or its reverse
-        const shouldUseBridge = BRIDGE_PAIRS.has(pairKey)
-        const shouldUseBridgeReverse = BRIDGE_PAIRS.has(reversePairKey)
-
-        if (shouldUseBridge || shouldUseBridgeReverse) {
-            // For Bridge pairs, we need to determine which rate to use
-            let bridgeResult
-            if (shouldUseBridge) {
-                // Direct pair (e.g., USD→EUR): use sell_rate
-                bridgeResult = await fetchFromBridge(from, to, 'sell_rate', false)
-            } else {
-                // Reverse pair (e.g., EUR→USD): fetch USD→EUR and use buy_rate, then invert
-                bridgeResult = await fetchFromBridge(to, from, 'buy_rate', true)
-            }
-
-            if (bridgeResult) {
-                const data = await bridgeResult.json()
-                return data.rate
-            }
-            // Fall back to Frankfurter if Bridge fails
-            console.warn(`Bridge failed for ${pairKey}, falling back to Frankfurter`)
+        // Check if either currency uses getCurrencyPrice (Manteca or Bridge currencies)
+        if (
+            MANTECA_CURRENCIES.has(from) ||
+            MANTECA_CURRENCIES.has(to) ||
+            ['EUR', 'MXN'].includes(from) ||
+            ['EUR', 'MXN'].includes(to)
+        ) {
+            return await fetchFromCurrencyPrice(from, to)
         }
 
         // Use Frankfurter for all other pairs or as fallback
@@ -158,95 +110,36 @@ async function getExchangeRate(from: string, to: string): Promise<number | null>
     }
 }
 
-async function fetchFromManteca(from: string, to: string): Promise<number | null> {
-    console.log('Fetching from manteca')
+async function fetchFromCurrencyPrice(from: string, to: string): Promise<number | null> {
+    console.log('Fetching from getCurrencyPrice')
     try {
-        // Manteca API provides rates against USDC, so we need to handle different scenarios
-        if (from === 'USD' && MANTECA_CURRENCIES.has(to)) {
-            // USD → LATAM currency: use sell rate (selling USD to get LATAM currency)
-            const response = await mantecaApi.getPrices({ asset: 'USDC', against: to })
-            return Number(response.effectiveSell)
-        } else if (MANTECA_CURRENCIES.has(from) && to === 'USD') {
-            // LATAM currency → USD: use buy rate (buying USD with LATAM currency)
-            const response = await mantecaApi.getPrices({ asset: 'USDC', against: from })
-            return 1 / Number(response.effectiveBuy)
-        } else if (MANTECA_CURRENCIES.has(from) && MANTECA_CURRENCIES.has(to)) {
-            // LATAM currency → LATAM currency: convert through USD
-            const fromResponse = await mantecaApi.getPrices({ asset: 'USDC', against: from })
-            const toResponse = await mantecaApi.getPrices({ asset: 'USDC', against: to })
+        if (from === 'USD' && (MANTECA_CURRENCIES.has(to) || ['EUR', 'MXN'].includes(to))) {
+            // USD → other currency: use sell rate (selling USD to get other currency)
+            const { sell } = await getCurrencyPrice(to)
+            return sell
+        } else if ((MANTECA_CURRENCIES.has(from) || ['EUR', 'MXN'].includes(from)) && to === 'USD') {
+            // Other currency → USD: use buy rate (buying USD with other currency)
+            const { buy } = await getCurrencyPrice(from)
+            return 1 / buy
+        } else if (
+            (MANTECA_CURRENCIES.has(from) || ['EUR', 'MXN'].includes(from)) &&
+            (MANTECA_CURRENCIES.has(to) || ['EUR', 'MXN'].includes(to))
+        ) {
+            // Other currency → Other currency: convert through USD
+            const fromPrices = await getCurrencyPrice(from)
+            const toPrices = await getCurrencyPrice(to)
 
             // from → USD → to
-            const fromToUsd = 1 / Number(fromResponse.effectiveBuy)
-            const usdToTo = Number(toResponse.effectiveSell)
+            const fromToUsd = 1 / fromPrices.buy
+            const usdToTo = toPrices.sell
             return fromToUsd * usdToTo
         } else {
-            // One currency is LATAM, the other is not USD - this shouldn't happen in our flow
-            // but we'll return null to fall back to other providers
-            console.warn(`Unsupported Manteca conversion: ${from} → ${to}`)
+            // Unsupported conversion
+            console.warn(`Unsupported getCurrencyPrice conversion: ${from} → ${to}`)
             return null
         }
     } catch (error) {
-        console.error(`Manteca API error for ${from}-${to}:`, error)
-        return null
-    }
-}
-
-async function fetchFromBridge(
-    from: string,
-    to: string,
-    rateType: 'buy_rate' | 'sell_rate',
-    shouldInvert: boolean
-): Promise<NextResponse | null> {
-    const bridgeAPIKey = process.env.BRIDGE_API_KEY
-
-    if (!bridgeAPIKey) {
-        console.warn('Bridge API key not set')
-        return null
-    }
-
-    try {
-        const url = `https://api.bridge.xyz/v0/exchange_rates?from=${from.toLowerCase()}&to=${to.toLowerCase()}`
-        const options: RequestInit & { next?: { revalidate?: number } } = {
-            method: 'GET',
-            // Bridge expects header name 'Api-Key'
-            headers: { 'Api-Key': bridgeAPIKey },
-            next: { revalidate: 300 }, // Cache for 5 minutes
-        }
-
-        const response = await fetch(url, options)
-
-        if (!response.ok) {
-            console.error(`Bridge API error: ${response.status} ${response.statusText}`)
-            return null
-        }
-
-        const bridgeData: BridgeExchangeRateResponse = await response.json()
-
-        // Validate the response structure
-        if (!bridgeData[rateType]) {
-            console.error(`Invalid Bridge response: missing ${rateType}`)
-            return null
-        }
-
-        let rate = parseFloat(bridgeData[rateType])
-
-        // If we fetched the reverse pair (e.g., fetched USD→EUR for EUR→USD request),
-        // we need to invert the rate
-        if (shouldInvert) {
-            rate = 1 / rate
-        }
-
-        const exchangeRate: ExchangeRateResponse = {
-            rate,
-        }
-
-        return NextResponse.json(exchangeRate, {
-            headers: {
-                'Cache-Control': 's-maxage=300, stale-while-revalidate=600',
-            },
-        })
-    } catch (error) {
-        console.error('Bridge API exception:', error)
+        console.error(`getCurrencyPrice error for ${from}-${to}:`, error)
         return null
     }
 }
