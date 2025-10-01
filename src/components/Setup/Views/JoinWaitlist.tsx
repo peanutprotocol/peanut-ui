@@ -13,12 +13,14 @@ import { setupActions } from '@/redux/slices/setup-slice'
 import { invitesApi } from '@/services/invites'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { getFromLocalStorage, sanitizeRedirectURL } from '@/utils'
+import ErrorAlert from '@/components/Global/ErrorAlert'
 
 const JoinWaitlist = () => {
     const [inviteCode, setInviteCode] = useState('')
     const [isValid, setIsValid] = useState(false)
     const [isChanging, setIsChanging] = useState(false)
     const [isLoading, setisLoading] = useState(false)
+    const [error, setError] = useState('')
 
     const { handleLogin, isLoggingIn } = useZeroDev()
     const toast = useToast()
@@ -28,10 +30,20 @@ const JoinWaitlist = () => {
     const searchParams = useSearchParams()
 
     const validateInviteCode = async (inviteCode: string): Promise<boolean> => {
-        setisLoading(true)
-        const res = await invitesApi.validateInviteCode(inviteCode)
-        setisLoading(false)
-        return res.success
+        try {
+            setError('')
+            setisLoading(true)
+            const res = await invitesApi.validateInviteCode(inviteCode)
+            setisLoading(false)
+            const isValid = res.success
+            if (!isValid) {
+                setError('Invalid invite code')
+            }
+            return isValid
+        } catch (e) {
+            setError('Invalid invite code')
+            return false
+        }
     }
 
     const handleError = (error: any) => {
@@ -102,6 +114,12 @@ const JoinWaitlist = () => {
                     Next
                 </Button>
             </div>
+
+            {error && (
+                <div className="pb-1">
+                    <ErrorAlert description={error} className="gap-2 text-xs" iconSize={14} />
+                </div>
+            )}
 
             {!isValid && (
                 <Button onClick={() => handleNext()} shadowSize="4">
