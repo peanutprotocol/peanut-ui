@@ -76,7 +76,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     let displayName = name
     if (isAddress(displayName)) {
         displayName = printableAddress(displayName)
-    } else if (displayName.length > 19) {
+    } else if (type === 'pay' && displayName.length > 19) {
         displayName = shortenStringLong(displayName, 0, 16)
     }
 
