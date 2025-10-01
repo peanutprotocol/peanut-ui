@@ -177,7 +177,13 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
             <div className="flex items-center gap-3">
                 {avatarUrl ? (
                     <div className="flex h-16 w-16 items-center justify-center rounded-full">
-                        <Image src={avatarUrl} alt="Icon" className="size-16 object-contain" width={35} height={35} />
+                        <Image
+                            src={avatarUrl}
+                            alt="Icon"
+                            className="size-full rounded-full object-cover"
+                            width={160}
+                            height={160}
+                        />
                     </div>
                 ) : (
                     <TransactionAvatarBadge
