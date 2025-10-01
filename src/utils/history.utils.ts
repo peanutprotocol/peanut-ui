@@ -1,6 +1,6 @@
 import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
 import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
-import { getFromLocalStorage, formatAmount } from '@/utils'
+import { getFromLocalStorage } from '@/utils'
 import { PEANUT_WALLET_TOKEN_DECIMALS, BASE_URL } from '@/constants'
 import { formatUnits } from 'viem'
 import { Hash } from 'viem'
