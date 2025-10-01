@@ -8,12 +8,15 @@ import { useCallback, useEffect, useState } from 'react'
 import type { Hex, Address } from 'viem'
 import { erc20Abi, parseUnits, encodeFunctionData } from 'viem'
 import { useZeroDev } from '../useZeroDev'
+import { useAuth } from '@/context/authContext'
+import { AccountType } from '@/interfaces'
 
 export const useWallet = () => {
     const dispatch = useAppDispatch()
     const { address, isKernelClientReady, handleSendUserOpEncoded } = useZeroDev()
     const [isFetchingBalance, setIsFetchingBalance] = useState(true)
     const { balance } = useWalletStore()
+    const { user } = useAuth()
 
     const sendMoney = useCallback(
         async (toAddress: Address, amountInUsd: string) => {
@@ -53,6 +56,14 @@ export const useWallet = () => {
             console.warn('Cannot fetch balance, address is undefined.')
             return
         }
+
+        const userAddress = user?.accounts.find((account) => account.type === AccountType.PEANUT_WALLET)?.identifier
+
+        if (userAddress?.toLowerCase() !== address.toLowerCase()) {
+            console.warn('Skipping fetch balance, address is not the same as the user address.')
+            return
+        }
+
         await peanutPublicClient
             .readContract({
                 address: PEANUT_WALLET_TOKEN,
@@ -68,7 +79,7 @@ export const useWallet = () => {
                 console.error('Error fetching balance:', error)
                 setIsFetchingBalance(false)
             })
-    }, [address, dispatch])
+    }, [address, dispatch, user])
 
     useEffect(() => {
         if (!address) return
