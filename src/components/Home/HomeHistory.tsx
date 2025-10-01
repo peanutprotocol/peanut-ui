@@ -14,8 +14,7 @@ import { twMerge } from 'tailwind-merge'
 import Card, { CardPosition, getCardPosition } from '../Global/Card'
 import EmptyState from '../Global/EmptyStates/EmptyState'
 import { KycStatusItem } from '../Kyc/KycStatusItem'
-import { isKycStatusItem, KycHistoryEntry } from '@/hooks/useKycFlow'
-import { BridgeKycStatus } from '@/utils'
+import { isKycStatusItem, KycHistoryEntry } from '@/hooks/useBridgeKycFlow'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 
@@ -36,7 +35,6 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
         isError,
         error,
     } = useTransactionHistory({ mode, limit, username, filterMutualTxs, enabled: isLoggedIn })
-    const bridgeKycStatus: BridgeKycStatus = user?.user?.bridgeKycStatus || 'not_started'
     // check if the username is the same as the current user
     const isSameUser = username === user?.user.username
     const { fetchBalance } = useWallet()
@@ -82,7 +80,7 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
     const { interactions } = useUserInteractions(userIds)
 
     useEffect(() => {
-        if (historyData?.entries) {
+        if (!isLoading && historyData?.entries) {
             // Start with the fetched entries
             const entries: Array<HistoryEntry | KycHistoryEntry> = [...historyData.entries]
 
@@ -117,17 +115,22 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
 
             // Add KYC status item if applicable and not on a public page
             // and the user is viewing their own history
-            if (
-                isSameUser &&
-                user?.user?.bridgeKycStatus &&
-                user.user.bridgeKycStatus !== 'not_started' &&
-                user.user.bridgeKycStartedAt &&
-                !isPublic
-            ) {
-                entries.push({
-                    isKyc: true,
-                    timestamp: user.user.bridgeKycStartedAt,
-                    uuid: 'kyc-status-item',
+            if (isSameUser && !isPublic) {
+                if (user?.user?.bridgeKycStatus && user.user.bridgeKycStatus !== 'not_started') {
+                    entries.push({
+                        isKyc: true,
+                        timestamp: user.user.bridgeKycStartedAt ?? new Date(0).toISOString(),
+                        uuid: 'bridge-kyc-status-item',
+                        bridgeKycStatus: user.user.bridgeKycStatus,
+                    })
+                }
+                user?.user.kycVerifications?.forEach((verification) => {
+                    entries.push({
+                        isKyc: true,
+                        timestamp: verification.approvedAt ?? new Date(0).toISOString(),
+                        uuid: verification.providerUserId ?? `${verification.provider}-${verification.mantecaGeo}`,
+                        verification,
+                    })
                 })
             }
 
@@ -141,7 +144,7 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
             // Limit to the most recent entries
             setCombinedEntries(entries.slice(0, isPublic ? 20 : 5))
         }
-    }, [historyData, wsHistoryEntries, isPublic, user])
+    }, [historyData, wsHistoryEntries, isPublic, user, isLoading])
 
     const pendingRequests = useMemo(() => {
         if (!combinedEntries.length) return []
@@ -174,29 +177,49 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
         Sentry.captureException(error)
         return (
             <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
-                <h2 className="text-base font-bold">Recent Transactions</h2>{' '}
-                <EmptyState icon="alert" title="Error loading transactions!" description="Please contact Support." />
+                <h2 className="text-base font-bold">Activity</h2>{' '}
+                <EmptyState icon="alert" title="Error loading activity!" description="Please contact Support." />
             </div>
         )
     }
 
     // show empty state if no transactions exist
-    if (!combinedEntries.length) {
+    if (!isLoading && !combinedEntries.length) {
         return (
             <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
-                {isSameUser && bridgeKycStatus !== 'not_started' && (
-                    <div className="space-y-3">
-                        <h2 className="text-base font-bold">Activity</h2>
-                        <KycStatusItem position="single" />
-                    </div>
-                )}
+                <h2 className="text-base font-bold">Activity</h2>
+                {isSameUser &&
+                    ((user?.user.bridgeKycStatus && user?.user.bridgeKycStatus !== 'not_started') ||
+                        (user?.user.kycVerifications && user?.user.kycVerifications.length > 0)) && (
+                        <div className="space-y-3">
+                            {user?.user.bridgeKycStatus && user?.user.bridgeKycStatus !== 'not_started' && (
+                                <KycStatusItem
+                                    position="single"
+                                    bridgeKycStatus={user.user.bridgeKycStatus}
+                                    bridgeKycStartedAt={user.user.bridgeKycStartedAt}
+                                />
+                            )}
+                            {user?.user.kycVerifications?.map((verification) => (
+                                <KycStatusItem
+                                    key={
+                                        verification.providerUserId ??
+                                        `${verification.provider}-${verification.mantecaGeo}`
+                                    }
+                                    position="single"
+                                    verification={verification}
+                                />
+                            ))}
+                        </div>
+                    )}
 
-                <h2 className="text-base font-bold">Recent Transactions</h2>
-                <EmptyState
-                    icon="txn-off"
-                    title="No transactions yet!"
-                    description="Start by sending or requesting money"
-                />
+                {!user?.user.bridgeKycStatus &&
+                    (!user?.user.kycVerifications || user?.user.kycVerifications.length === 0) && (
+                        <EmptyState
+                            icon="txn-off"
+                            title="No activity yet!"
+                            description="Start by sending or requesting money"
+                        />
+                    )}
             </div>
         )
     }
@@ -256,7 +279,17 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
 
                         // Render KYC status item if it's its turn in the sorted list
                         if (isKycStatusItem(item)) {
-                            return <KycStatusItem key={item.uuid} position={position} />
+                            return (
+                                <KycStatusItem
+                                    key={item.uuid}
+                                    position={position}
+                                    verification={item.verification}
+                                    bridgeKycStatus={item.bridgeKycStatus}
+                                    bridgeKycStartedAt={
+                                        item.bridgeKycStatus ? user?.user.bridgeKycStartedAt : undefined
+                                    }
+                                />
+                            )
                         }
 
                         // map the raw history entry to the format needed by the ui components

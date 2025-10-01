@@ -4,11 +4,12 @@ import { DepositMethod, DepositMethodList } from '@/components/AddMoney/componen
 import NavHeader from '@/components/Global/NavHeader'
 import { RecentMethod, getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { useRouter } from 'next/navigation'
-import { FC, useEffect, useState } from 'react'
+import { FC, useEffect, useState, useCallback } from 'react'
 import { useUserStore } from '@/redux/hooks'
 import { AccountType, Account } from '@/interfaces'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useOnrampFlow } from '@/context/OnrampFlowContext'
+import { isMantecaCountry } from '@/constants/manteca.consts'
 import Card from '@/components/Global/Card'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { CountryList } from '../Common/CountryList'
@@ -25,6 +26,27 @@ interface AddWithdrawRouterViewProps {
 
 const MAX_RECENT_METHODS = 5
 
+function saveRecentMethod(userId: string, method: DepositMethod, path?: string) {
+    const newRecentMethod: RecentMethod = {
+        id: method.id,
+        type: method.type as 'crypto' | 'country',
+        title: method.title,
+        description: method.description,
+        iconUrl: method.iconUrl,
+        currency: method.currency,
+        path: path ?? method.path,
+    }
+
+    const prefs = getUserPreferences(userId) || {}
+    const currentRecentList = prefs.recentAddMethods || []
+
+    const filteredList = currentRecentList.filter((m) => m.id !== newRecentMethod.id)
+
+    const updatedRecentList = [newRecentMethod, ...filteredList].slice(0, MAX_RECENT_METHODS)
+
+    updateUserPreferences(userId, { ...prefs, recentAddMethods: updatedRecentList })
+}
+
 export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
     flow,
     pageTitle,
@@ -33,7 +55,8 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
 }) => {
     const router = useRouter()
     const { user } = useUserStore()
-    const { setSelectedBankAccount, showAllWithdrawMethods, setShowAllWithdrawMethods } = useWithdrawFlow()
+    const { setSelectedBankAccount, showAllWithdrawMethods, setShowAllWithdrawMethods, setSelectedMethod } =
+        useWithdrawFlow()
     const onrampFlowContext = useOnrampFlow()
     const { setFromBankSelected } = onrampFlowContext
     const [recentMethodsState, setRecentMethodsState] = useState<RecentMethod[]>([])
@@ -55,7 +78,10 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
             const bankAccounts =
                 user?.accounts.filter(
                     (acc) =>
-                        acc.type === AccountType.IBAN || acc.type === AccountType.US || acc.type === AccountType.CLABE
+                        acc.type === AccountType.IBAN ||
+                        acc.type === AccountType.US ||
+                        acc.type === AccountType.CLABE ||
+                        acc.type === AccountType.MANTECA
                 ) ?? []
 
             if (bankAccounts.length > 0) {
@@ -66,7 +92,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
             }
         } else {
             // 'add' flow logic
-            const prefs = getUserPreferences()
+            const prefs = user ? getUserPreferences(user.user.userId) : undefined
             const currentRecentMethods = prefs?.recentAddMethods ?? []
             if (currentRecentMethods.length > 0) {
                 setRecentMethodsState(currentRecentMethods)
@@ -78,52 +104,45 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
         setIsLoadingPreferences(false)
     }, [flow, user, setShouldShowAllMethods])
 
-    const handleMethodSelected = (method: DepositMethod) => {
-        // Handle "From Bank" specially for add flow
-        if (flow === 'add' && method.id === 'bank-transfer-add') {
-            setFromBankSelected(true)
-            return
-        }
+    const handleMethodSelected = useCallback(
+        (method: DepositMethod) => {
+            if (flow === 'add' && user) {
+                saveRecentMethod(user.user.userId, method)
+            }
 
-        if (flow === 'add' && method.id === 'crypto') {
-            setIsDrawerOpen(true)
-            return
-        }
+            // Handle "From Bank" specially for add flow
+            if (flow === 'add' && method.id === 'bank-transfer-add') {
+                setFromBankSelected(true)
+                return
+            }
 
-        const newRecentMethod: RecentMethod = {
-            id: method.id,
-            type: method.type as 'crypto' | 'country',
-            title: method.title,
-            description: method.description,
-            iconUrl: method.iconUrl,
-            currency: method.currency,
-            path: method.path,
-        }
+            if (flow === 'add' && method.id === 'crypto') {
+                setIsDrawerOpen(true)
+                return
+            }
 
-        const prefs = getUserPreferences() || {}
-        let currentRecentList: RecentMethod[] = []
-        if (flow === 'add') {
-            currentRecentList = prefs.recentAddMethods || []
-        } else {
-            currentRecentList = prefs.recentWithdrawMethods || []
-        }
+            // NEW: For withdraw flow, set selected method in context instead of navigating
+            if (flow === 'withdraw') {
+                const methodType =
+                    method.type === 'crypto' ? 'crypto' : isMantecaCountry(method.path) ? 'manteca' : 'bridge'
 
-        const filteredList = currentRecentList.filter(
-            (m) => !(m.id === newRecentMethod.id && m.type === newRecentMethod.type)
-        )
+                setSelectedMethod({
+                    type: methodType,
+                    countryPath: method.path,
+                    currency: method.currency,
+                    title: method.title,
+                })
 
-        const updatedRecentList = [newRecentMethod, ...filteredList].slice(0, MAX_RECENT_METHODS)
+                // Don't navigate - let the main withdraw page handle the flow
+                return
+            }
 
-        if (flow === 'add') {
-            updateUserPreferences({ ...prefs, recentAddMethods: updatedRecentList })
-        } else {
-            // for withdraw, we don't save to recents from the 'all methods' list, we show saved accounts
-        }
-
-        if (method.path) {
-            router.push(method.path)
-        }
-    }
+            if (method.path) {
+                router.push(method.path)
+            }
+        },
+        [flow, user]
+    )
 
     const defaultBackNavigation = () => router.push('/home')
 
@@ -168,6 +187,20 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                 savedAccounts={savedAccounts}
                 onAccountClick={(account, path) => {
                     setSelectedBankAccount(account)
+
+                    // FIXED: For withdraw flow, route to saved account path
+                    if (flow === 'withdraw') {
+                        if (account.type === AccountType.MANTECA) {
+                            router.push(
+                                `/withdraw/manteca?country=${account.details.countryName}&destination=${account.identifier}`
+                            )
+                        } else {
+                            router.push(path)
+                        }
+                        return
+                    }
+
+                    // Original add flow
                     router.push(path)
                 }}
                 onSelectNewMethodClick={() => setShouldShowAllMethods(true)}
@@ -234,14 +267,22 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                 viewMode="add-withdraw"
                 onCountryClick={(country) => {
                     const countryPath = `${baseRoute}/${country.path}`
+                    if (flow === 'add' && user) {
+                        saveRecentMethod(user.user.userId, country, countryPath)
+                    }
                     router.push(countryPath)
                 }}
                 onCryptoClick={() => {
                     if (flow === 'add') {
                         setIsDrawerOpen(true)
                     } else {
-                        const cryptoPath = `${baseRoute}/crypto`
-                        router.push(cryptoPath)
+                        // Set crypto method and navigate to main page for amount input
+                        setSelectedMethod({
+                            type: 'crypto',
+                            countryPath: 'crypto',
+                            title: 'Crypto',
+                        })
+                        router.push('/withdraw')
                     }
                 }}
                 flow={flow}

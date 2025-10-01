@@ -9,9 +9,8 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { useUserStore } from '@/redux/hooks'
 import { chargesApi } from '@/services/charges'
 import { sendLinksApi } from '@/services/sendLinks'
-import { formatAmount, formatDate, getInitialsFromName } from '@/utils'
-import { formatIban, printableAddress, shortenAddress, shortenAddressLong, slugify } from '@/utils/general.utils'
-import { getDisplayCurrencySymbol } from '@/utils/currency'
+import { formatAmount, formatDate, getInitialsFromName, isStableCoin, formatCurrency, getAvatarUrl } from '@/utils'
+import { formatIban, printableAddress, shortenAddress, shortenStringLong, slugify } from '@/utils/general.utils'
 import { cancelOnramp } from '@/app/actions/onramp'
 import { captureException } from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
@@ -31,6 +30,14 @@ import { isAddress } from 'viem'
 import { getBankAccountLabel, TransactionDetailsRowKey, transactionDetailsRowKeys } from './transaction-details.utils'
 import { useSupportModalContext } from '@/context/SupportModalContext'
 import { useRouter } from 'next/navigation'
+import { countryData } from '@/components/AddMoney/consts'
+import {
+    MANTECA_COUNTRIES_CONFIG,
+    MANTECA_ARG_DEPOSIT_CUIT,
+    MANTECA_ARG_DEPOSIT_NAME,
+} from '@/constants/manteca.consts'
+import { mantecaApi } from '@/services/manteca'
+import { getReceiptUrl } from '@/utils/history.utils'
 
 export const TransactionDetailsReceipt = ({
     transaction,
@@ -42,6 +49,8 @@ export const TransactionDetailsReceipt = ({
     className,
     isModalOpen = false,
     setIsModalOpen,
+    avatarUrl,
+    isPublic = false,
 }: {
     transaction: TransactionDetails | null
     onClose?: () => void
@@ -52,6 +61,8 @@ export const TransactionDetailsReceipt = ({
     className?: HTMLDivElement['className']
     isModalOpen?: boolean
     setIsModalOpen?: (isModalOpen: boolean) => void
+    avatarUrl?: string
+    isPublic?: boolean
 }) => {
     // ref for the main content area to calculate dynamic height
     const { user } = useUserStore()
@@ -120,8 +131,9 @@ export const TransactionDetailsReceipt = ({
             ),
             fee: transaction.fee !== undefined,
             exchangeRate: !!(
-                transaction.direction === 'bank_deposit' &&
-                transaction.status === 'completed' &&
+                (transaction.direction === 'bank_deposit' ||
+                    transaction.direction === 'qr_payment' ||
+                    transaction.direction === 'bank_withdraw') &&
                 transaction.currency?.code &&
                 transaction.currency.code.toUpperCase() !== 'USD'
             ),
@@ -142,8 +154,17 @@ export const TransactionDetailsReceipt = ({
             comment: !!transaction.memo?.trim(),
             networkFee: !!(transaction.networkFeeDetails && transaction.sourceView === 'status'),
             attachment: !!transaction.attachmentUrl,
+            mantecaDepositInfo:
+                !isPublic &&
+                transaction.extraDataForDrawer?.originalType === EHistoryEntryType.MANTECA_ONRAMP &&
+                transaction.status === 'pending',
         }
     }, [transaction, isPendingBankRequest])
+
+    const country = useMemo(() => {
+        if (!transaction?.currency?.code) return undefined
+        return countryData.find((c) => c.currency === transaction.currency?.code)
+    }, [transaction?.currency?.code])
 
     const visibleRows = useMemo(() => {
         // filter rowkeys to only include visible rows, maintaining the order
@@ -185,8 +206,17 @@ export const TransactionDetailsReceipt = ({
     }, [transaction])
 
     const shouldShowShareReceipt = useMemo(() => {
+        if (isPublic) return false
         if (!transaction || isPendingSentLink || isPendingRequester || isPendingRequestee) return false
         if (transaction?.txHash && transaction.direction !== 'receive' && transaction.direction !== 'request_sent')
+            return true
+        if (
+            [
+                EHistoryEntryType.MANTECA_QR_PAYMENT,
+                EHistoryEntryType.MANTECA_OFFRAMP,
+                EHistoryEntryType.MANTECA_ONRAMP,
+            ].includes(transaction.extraDataForDrawer!.originalType)
+        )
             return true
         return false
     }, [transaction, isPendingSentLink, isPendingRequester, isPendingRequestee])
@@ -230,37 +260,8 @@ export const TransactionDetailsReceipt = ({
 
     if (!transaction) return null
 
-    // format data for display
-    let amountDisplay = ''
-
-    if (transactionAmount) {
-        amountDisplay = transactionAmount.replace(/[+-]/g, '').replace(/\$/, '$ ')
-    } else if (transaction.extraDataForDrawer?.rewardData) {
-        amountDisplay = transaction.extraDataForDrawer.rewardData.formatAmount(transaction.amount)
-    } else if (
-        (transaction.direction === 'bank_deposit' || transaction.direction === 'bank_request_fulfillment') &&
-        transaction.currency?.code &&
-        transaction.currency.code.toUpperCase() !== 'USD'
-    ) {
-        const isCompleted = transaction.status === 'completed'
-
-        if (isCompleted) {
-            // For completed bank_deposit: show USD amount (amount is already in USD)
-            amountDisplay = `$ ${formatAmount(transaction.amount as number)}`
-        } else {
-            // For non-completed bank_deposit: show original currency
-            const currencyAmount = transaction.currency?.amount || transaction.amount.toString()
-            const currencySymbol = getDisplayCurrencySymbol(transaction.currency.code)
-            amountDisplay = `${currencySymbol} ${formatAmount(Number(currencyAmount))}`
-        }
-    } else {
-        // default: use currency amount if provided, otherwise fallback to raw amount - never show token value, only USD
-        if (transaction.currency?.amount) {
-            amountDisplay = `$ ${formatAmount(Number(transaction.currency.amount))}`
-        } else {
-            amountDisplay = `$ ${formatAmount(transaction.amount as number)}`
-        }
-    }
+    const usdAmount = transactionAmount?.replace(/[\+\-\$]/g, '') ?? transaction.amount
+    const amountDisplay = `$ ${formatCurrency(usdAmount.toString())}`
     const feeDisplay = transaction.fee !== undefined ? formatAmount(transaction.fee as number) : 'N/A'
 
     // determine if the qr code and sharing section should be shown
@@ -310,7 +311,7 @@ export const TransactionDetailsReceipt = ({
                 isVerified={transaction.isVerified}
                 isLinkTransaction={transaction.extraDataForDrawer?.isLinkTransaction}
                 transactionType={transaction.extraDataForDrawer?.transactionCardType}
-                avatarUrl={transaction.extraDataForDrawer?.rewardData?.avatarUrl}
+                avatarUrl={avatarUrl ?? getAvatarUrl(transaction)}
                 haveSentMoneyToUser={transaction.haveSentMoneyToUser}
             />
 
@@ -346,47 +347,52 @@ export const TransactionDetailsReceipt = ({
                         transaction.tokenDisplayDetails &&
                         tokenData?.icon &&
                         tokenData?.symbol && (
-                            <PaymentInfoRow
-                                label="Token and network"
-                                value={
-                                    isTokenDataLoading ? (
-                                        <div className="h-6 w-32 animate-pulse rounded bg-gray-200" />
-                                    ) : (
-                                        <div className="flex items-center gap-2">
-                                            <div className="relative flex h-6 w-6 min-w-[24px] items-center justify-center">
-                                                {/* Main token icon */}
-                                                <DisplayIcon
-                                                    iconUrl={tokenData.icon}
-                                                    altText={tokenData.symbol || 'token'}
-                                                    fallbackName={tokenData.symbol || 'T'}
-                                                    sizeClass="h-6 w-6"
-                                                />
-                                                {/* Smaller chain icon, absolutely positioned */}
-                                                {transaction.tokenDisplayDetails.chainIconUrl && (
-                                                    <div className="absolute -bottom-1 -right-1">
-                                                        <DisplayIcon
-                                                            iconUrl={transaction.tokenDisplayDetails.chainIconUrl}
-                                                            altText={
-                                                                transaction.tokenDisplayDetails.chainName || 'chain'
-                                                            }
-                                                            fallbackName={
-                                                                transaction.tokenDisplayDetails.chainName || 'C'
-                                                            }
-                                                            sizeClass="h-3.5 w-3.5 text-[7px]"
-                                                            className="rounded-full border-2 border-white dark:border-grey-4"
-                                                        />
-                                                    </div>
-                                                )}
+                            <>
+                                {!isStableCoin(transaction.tokenSymbol ?? 'USDC') && (
+                                    <PaymentInfoRow label="Token amount" value={transaction.amount} />
+                                )}
+                                <PaymentInfoRow
+                                    label="Token and network"
+                                    value={
+                                        isTokenDataLoading ? (
+                                            <div className="h-6 w-32 animate-pulse rounded bg-gray-200" />
+                                        ) : (
+                                            <div className="flex items-center gap-2">
+                                                <div className="relative flex h-6 w-6 min-w-[24px] items-center justify-center">
+                                                    {/* Main token icon */}
+                                                    <DisplayIcon
+                                                        iconUrl={tokenData.icon}
+                                                        altText={tokenData.symbol || 'token'}
+                                                        fallbackName={tokenData.symbol || 'T'}
+                                                        sizeClass="h-6 w-6"
+                                                    />
+                                                    {/* Smaller chain icon, absolutely positioned */}
+                                                    {transaction.tokenDisplayDetails.chainIconUrl && (
+                                                        <div className="absolute -bottom-1 -right-1">
+                                                            <DisplayIcon
+                                                                iconUrl={transaction.tokenDisplayDetails.chainIconUrl}
+                                                                altText={
+                                                                    transaction.tokenDisplayDetails.chainName || 'chain'
+                                                                }
+                                                                fallbackName={
+                                                                    transaction.tokenDisplayDetails.chainName || 'C'
+                                                                }
+                                                                sizeClass="h-3.5 w-3.5 text-[7px]"
+                                                                className="rounded-full border-2 border-white dark:border-grey-4"
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <span>
+                                                    {tokenData.symbol.toUpperCase()} on{' '}
+                                                    {transaction.tokenDisplayDetails.chainName}
+                                                </span>
                                             </div>
-                                            <span>
-                                                {tokenData.symbol.toUpperCase()} on{' '}
-                                                {transaction.tokenDisplayDetails.chainName}
-                                            </span>
-                                        </div>
-                                    )
-                                }
-                                hideBottomBorder={shouldHideBorder('tokenAndNetwork')}
-                            />
+                                        )
+                                    }
+                                    hideBottomBorder={shouldHideBorder('tokenAndNetwork')}
+                                />
+                            </>
                         )}
 
                     {rowVisibilityConfig.txId && transaction.txHash && (
@@ -400,12 +406,12 @@ export const TransactionDetailsReceipt = ({
                                         rel="noopener noreferrer"
                                         className="flex items-center gap-2 hover:underline"
                                     >
-                                        <span>{shortenAddressLong(transaction.txHash)}</span>
+                                        <span>{shortenStringLong(transaction.txHash)}</span>
                                         <Icon name="external-link" size={12} />
                                     </Link>
                                 ) : (
                                     <div className="flex items-center gap-2">
-                                        <span>{shortenAddressLong(transaction.txHash)}</span>
+                                        <span>{shortenStringLong(transaction.txHash)}</span>
                                         <CopyToClipboard textToCopy={transaction.txHash} iconSize="4" />
                                     </div>
                                 )
@@ -452,22 +458,51 @@ export const TransactionDetailsReceipt = ({
                         <PaymentInfoRow label="Fee" value={feeDisplay} hideBottomBorder={shouldHideBorder('fee')} />
                     )}
 
+                    {rowVisibilityConfig.mantecaDepositInfo && (
+                        <>
+                            {transaction.extraDataForDrawer?.receipt?.depositDetails?.depositAddress && (
+                                <PaymentInfoRow
+                                    label={
+                                        country
+                                            ? (MANTECA_COUNTRIES_CONFIG[country.id]?.depositAddressLabel ??
+                                              'Deposit Address')
+                                            : 'Deposit Address'
+                                    }
+                                    value={transaction.extraDataForDrawer.receipt.depositDetails.depositAddress}
+                                    allowCopy
+                                />
+                            )}
+
+                            {transaction.extraDataForDrawer?.receipt?.depositDetails?.depositAlias && (
+                                <PaymentInfoRow
+                                    label="Alias"
+                                    value={transaction.extraDataForDrawer.receipt.depositDetails.depositAlias}
+                                    allowCopy
+                                />
+                            )}
+                            {country?.id === 'AR' && (
+                                <>
+                                    <PaymentInfoRow label="Razón Social" value={MANTECA_ARG_DEPOSIT_NAME} />
+                                    <PaymentInfoRow label="CUIT" value={MANTECA_ARG_DEPOSIT_CUIT} />
+                                </>
+                            )}
+                        </>
+                    )}
+
                     {/* Exchange rate and original currency for completed bank_deposit transactions */}
                     {rowVisibilityConfig.exchangeRate && (
                         <>
-                            <PaymentInfoRow
-                                label="Original amount"
-                                value={(() => {
-                                    const currencyAmount = transaction.currency?.amount || transaction.amount.toString()
-                                    const currencySymbol = getDisplayCurrencySymbol(transaction.currency!.code)
-                                    return `${currencySymbol} ${formatAmount(Number(currencyAmount))}`
-                                })()}
-                                hideBottomBorder={false}
-                            />
+                            {transaction.extraDataForDrawer?.receipt?.exchange_rate && (
+                                <PaymentInfoRow
+                                    label={`Value in ${transaction.currency!.code}`}
+                                    value={`${transaction.currency!.code} ${formatCurrency(transaction.currency!.amount)}`}
+                                />
+                            )}
+                            {/* TODO: stop using snake_case!!!!! */}
                             {transaction.extraDataForDrawer?.receipt?.exchange_rate && (
                                 <PaymentInfoRow
                                     label="Exchange rate"
-                                    value={`1 ${transaction.currency!.code?.toUpperCase()} = $${formatAmount(Number(transaction.extraDataForDrawer.receipt.exchange_rate))}`}
+                                    value={`1 USD = ${transaction.currency!.code?.toUpperCase()} ${formatCurrency(transaction.extraDataForDrawer.receipt.exchange_rate)}`}
                                     hideBottomBorder={shouldHideBorder('exchangeRate')}
                                 />
                             )}
@@ -753,7 +788,7 @@ export const TransactionDetailsReceipt = ({
                     {rowVisibilityConfig.peanutFee && (
                         <PaymentInfoRow
                             label="Peanut fee"
-                            value={'$ 0'}
+                            value={'Sponsored by Peanut!'}
                             hideBottomBorder={shouldHideBorder('peanutFee')}
                         />
                     )}
@@ -920,9 +955,9 @@ export const TransactionDetailsReceipt = ({
                 </div>
             )}
 
-            {shouldShowShareReceipt && transaction.extraDataForDrawer?.link && (
+            {shouldShowShareReceipt && !!getReceiptUrl(transaction) && (
                 <div className="pr-1">
-                    <ShareButton url={transaction.extraDataForDrawer.link}>Share Receipt</ShareButton>
+                    <ShareButton url={getReceiptUrl(transaction)!}>Share Receipt</ShareButton>
                 </div>
             )}
 
@@ -960,6 +995,44 @@ export const TransactionDetailsReceipt = ({
                                     throw new Error(result.error)
                                 }
 
+                                // Invalidate queries and close drawer
+                                queryClient
+                                    .invalidateQueries({
+                                        queryKey: [TRANSACTIONS],
+                                    })
+                                    .then(() => {
+                                        setIsLoading(false)
+                                        onClose()
+                                    })
+                            } catch (error) {
+                                captureException(error)
+                                console.error('Error canceling deposit:', error)
+                                setIsLoading(false)
+                            }
+                        }}
+                        variant={'primary-soft'}
+                        className="flex w-full items-center gap-1"
+                        shadowSize="4"
+                    >
+                        <div className="flex items-center">
+                            <Icon name="cancel" className="mr-0.5 min-w-3 rounded-full border border-black p-0.5" />
+                        </div>
+                        <span>Cancel deposit</span>
+                    </Button>
+                )}
+            {transaction.extraDataForDrawer?.originalType === EHistoryEntryType.MANTECA_ONRAMP &&
+                transaction.status === 'pending' &&
+                setIsLoading &&
+                onClose && (
+                    <Button
+                        disabled={isLoading}
+                        onClick={async () => {
+                            setIsLoading(true)
+                            try {
+                                const result = await mantecaApi.cancelDeposit(transaction.id)
+                                if (result.error) {
+                                    throw new Error(result.error)
+                                }
                                 // Invalidate queries and close drawer
                                 queryClient
                                     .invalidateQueries({
