@@ -323,3 +323,14 @@ export interface Invite {
         fullName: string | null
     }
 }
+
+export interface TierInfo {
+    userId: string
+    directPoints: number
+    transitivePoints: number
+    totalPoints: number
+    currentTier: number
+    leaderboardRank: number
+    nextTierThreshold: number
+    pointsToNextTier: number
+}
