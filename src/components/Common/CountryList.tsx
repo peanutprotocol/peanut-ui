@@ -6,7 +6,7 @@ import { SearchResultCard } from '@/components/SearchUsers/SearchResultCard'
 import Image from 'next/image'
 import { useMemo, useState, useDeferredValue } from 'react'
 import { getCardPosition } from '../Global/Card'
-import { useGeoLocaion } from '@/hooks/useGeoLocaion'
+import { useGeoLocation } from '@/hooks/useGeoLocation'
 import { CountryListSkeleton } from './CountryListSkeleton'
 import AvatarWithBadge from '../Profile/AvatarWithBadge'
 import StatusBadge from '../Global/Badges/StatusBadge'
@@ -35,7 +35,7 @@ export const CountryList = ({ inputTitle, viewMode, onCountryClick, onCryptoClic
     const [searchTerm, setSearchTerm] = useState('')
     // use deferred value to prevent blocking ui during search
     const deferredSearchTerm = useDeferredValue(searchTerm)
-    const { countryCode: userGeoLocationCountryCode, isLoading: isGeoLoading } = useGeoLocaion()
+    const { countryCode: userGeoLocationCountryCode, isLoading: isGeoLoading } = useGeoLocation()
     // track which country is being clicked to show loading state
     const [clickedCountryId, setClickedCountryId] = useState<string | null>(null)
 

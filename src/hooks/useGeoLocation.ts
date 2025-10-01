@@ -14,7 +14,7 @@ let memoryCache: { countryCode: string | null; timestamp: number } | null = null
  * caches result in sessionStorage and memory to avoid refetching on every mount
  * @returns {object} an object containing the country code, whether the request is loading, and any error that occurred
  */
-export const useGeoLocaion = () => {
+export const useGeoLocation = () => {
     const [countryCode, setCountryCode] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
