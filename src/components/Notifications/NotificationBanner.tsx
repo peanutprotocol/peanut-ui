@@ -67,16 +67,19 @@ const NotificationBanner = ({
             {showPermissionDeniedModal && (
                 <ActionModal
                     visible={showPermissionDeniedModal}
-                    title="Notifications are turned off"
+                    title="Turn notifications back on"
                     description={
                         <p>
-                            <span>To start getting alerts, open Settings, go to Notifications, and select Peanut.</span>
+                            <span>To keep getting updates, you'll need to reinstall the app on your home screen. </span>
+                            <br />
+                            <span>Don't worry, your account and data are safe. It only takes a minute.</span>
                         </p>
                     }
                     icon="bell"
                     onClose={() => {
                         setShowPermissionDeniedModal(false)
                     }}
+                    ctaClassName="md:flex-col gap-4"
                     ctas={[
                         {
                             text: 'Got it!',
@@ -85,6 +88,14 @@ const NotificationBanner = ({
                             },
                             shadowSize: '4',
                             variant: 'purple',
+                        },
+                        {
+                            text: 'Not now',
+                            onClick: () => {
+                                setShowPermissionDeniedModal(false)
+                            },
+                            variant: 'transparent',
+                            className: 'underline h-6',
                         },
                     ]}
                 />

@@ -39,22 +39,15 @@ import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
 import SetupNotificationsModal from '@/components/Notifications/SetupNotificationsModal'
-import NotificationBanner from '@/components/Notifications/NotificationBanner'
 import { useNotifications } from '@/hooks/useNotifications'
 import NotificationNavigation from '@/components/Notifications/NotificationNavigation'
+import HomeBanners from '@/components/Home/HomeBanners'
 
 const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
 const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_EXPIRY ?? '1814400') // 21 days in seconds
 
 export default function Home() {
-    const {
-        showPermissionModal,
-        showReminderBanner,
-        requestPermission,
-        snoozeReminderBanner,
-        afterPermissionAttempt,
-        isPermissionDenied,
-    } = useNotifications()
+    const { showPermissionModal } = useNotifications()
     const { balance, address, isFetchingBalance } = useWallet()
     const { resetFlow: resetClaimBankFlow } = useClaimBankFlow()
     const { resetWithdrawFlow } = useWithdrawFlow()
@@ -263,22 +256,9 @@ export default function Home() {
                         />
                     </ActionButtonGroup>
                 </div>
-                {/* note: fix before merging to staging */}
-                {/* <HomeBanners /> */}
+                <HomeBanners />
 
                 {showPermissionModal && <SetupNotificationsModal />}
-                {showReminderBanner && (
-                    <NotificationBanner
-                        isPermissionDenied={isPermissionDenied}
-                        onClick={async () => {
-                            await requestPermission()
-                            await afterPermissionAttempt()
-                        }}
-                        onClose={() => {
-                            snoozeReminderBanner()
-                        }}
-                    />
-                )}
 
                 <HomeHistory username={username ?? undefined} />
                 {/* Render the new Rewards Modal
