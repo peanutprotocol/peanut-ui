@@ -186,12 +186,12 @@ export default function NotificationsPage() {
                                             <Card
                                                 key={notif.id}
                                                 position={position}
-                                                className="px-5 py-2"
+                                                className="flex min-h-16 w-full items-center justify-center px-5 py-2"
                                                 data-notification-id={notif.id}
                                             >
                                                 <Link
                                                     href={href ?? ''}
-                                                    className="relative flex items-start gap-3"
+                                                    className="relative flex w-full items-center gap-3"
                                                     data-notification-id={notif.id}
                                                 >
                                                     <Image
@@ -199,7 +199,7 @@ export default function NotificationsPage() {
                                                         alt="icon"
                                                         width={32}
                                                         height={32}
-                                                        className="size-8 self-center"
+                                                        className="size-8 min-w-8 self-center"
                                                     />
 
                                                     <div className="flex min-w-0 flex-col">
