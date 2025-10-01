@@ -197,6 +197,7 @@ export default function ActionList({
                             <ActionListDaimoPayButton
                                 handleContinueWithPeanut={handleContinueWithPeanut}
                                 key={method.id}
+                                showConfirmModal={isInviteLink && !userHasAppAccess}
                             />
                         )
                     }

@@ -11,7 +11,12 @@ import { ACTION_METHODS } from '@/constants/actionlist.consts'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import ConfirmInviteModal from '../Global/ConfirmInviteModal'
 
-const ActionListDaimoPayButton = ({ handleContinueWithPeanut }: { handleContinueWithPeanut: () => void }) => {
+interface ActionListDaimoPayButtonProps {
+    handleContinueWithPeanut: () => void
+    showConfirmModal: boolean
+}
+
+const ActionListDaimoPayButton = ({ handleContinueWithPeanut, showConfirmModal }: ActionListDaimoPayButtonProps) => {
     const dispatch = useAppDispatch()
     const searchParams = useSearchParams()
     const method = ACTION_METHODS.find((method) => method.id === 'exchange-or-wallet')
@@ -137,7 +142,7 @@ const ActionListDaimoPayButton = ({ handleContinueWithPeanut }: { handleContinue
                 toAddress={parsedPaymentData.recipient.resolvedAddress}
                 onPaymentCompleted={handleCompleteDaimoPayment}
                 onBeforeShow={() => {
-                    if (!confirmLoseInvite) {
+                    if (!confirmLoseInvite && showConfirmModal) {
                         setShowInviteModal(true)
                         return false
                     }
