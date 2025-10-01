@@ -64,10 +64,6 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         }
     }, [user?.user.bridgeKycStatus])
 
-    useEffect(() => {
-        fetchUser()
-    }, [])
-
     const countryPathParts = Array.isArray(params.country) ? params.country : [params.country]
     const isBankPage = countryPathParts[countryPathParts.length - 1] === 'bank'
     const countrySlugFromUrl = isBankPage ? countryPathParts.slice(0, -1).join('-') : countryPathParts.join('-')

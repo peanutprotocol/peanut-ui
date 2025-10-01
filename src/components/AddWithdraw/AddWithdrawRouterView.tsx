@@ -4,7 +4,7 @@ import { DepositMethod, DepositMethodList } from '@/components/AddMoney/componen
 import NavHeader from '@/components/Global/NavHeader'
 import { RecentMethod, getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { useRouter } from 'next/navigation'
-import { FC, useEffect, useState } from 'react'
+import { FC, useEffect, useState, useTransition } from 'react'
 import { useUserStore } from '@/redux/hooks'
 import { AccountType, Account } from '@/interfaces'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
@@ -41,6 +41,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
     // local flag only for add flow; for withdraw we derive from context
     const [localShowAllMethods, setLocalShowAllMethods] = useState<boolean>(false)
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+    const [, startTransition] = useTransition()
 
     // determine if we should show the full list of methods (countries/crypto) instead of the default view
     const shouldShowAllMethods = flow === 'withdraw' ? showAllWithdrawMethods : localShowAllMethods
@@ -234,14 +235,19 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                 viewMode="add-withdraw"
                 onCountryClick={(country) => {
                     const countryPath = `${baseRoute}/${country.path}`
-                    router.push(countryPath)
+                    // use transition for smoother navigation, keeps ui responsive during route change
+                    startTransition(() => {
+                        router.push(countryPath)
+                    })
                 }}
                 onCryptoClick={() => {
                     if (flow === 'add') {
                         setIsDrawerOpen(true)
                     } else {
                         const cryptoPath = `${baseRoute}/crypto`
-                        router.push(cryptoPath)
+                        startTransition(() => {
+                            router.push(cryptoPath)
+                        })
                     }
                 }}
                 flow={flow}

@@ -4,12 +4,13 @@ import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { SearchInput } from '@/components/SearchUsers/SearchInput'
 import { SearchResultCard } from '@/components/SearchUsers/SearchResultCard'
 import Image from 'next/image'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useDeferredValue } from 'react'
 import { getCardPosition } from '../Global/Card'
 import { useGeoLocaion } from '@/hooks/useGeoLocaion'
 import { CountryListSkeleton } from './CountryListSkeleton'
 import AvatarWithBadge from '../Profile/AvatarWithBadge'
 import StatusBadge from '../Global/Badges/StatusBadge'
+import Loading from '../Global/Loading'
 
 interface CountryListViewProps {
     inputTitle: string
@@ -32,7 +33,11 @@ interface CountryListViewProps {
  */
 export const CountryList = ({ inputTitle, viewMode, onCountryClick, onCryptoClick, flow }: CountryListViewProps) => {
     const [searchTerm, setSearchTerm] = useState('')
+    // use deferred value to prevent blocking ui during search
+    const deferredSearchTerm = useDeferredValue(searchTerm)
     const { countryCode: userGeoLocationCountryCode, isLoading: isGeoLoading } = useGeoLocaion()
+    // track which country is being clicked to show loading state
+    const [clickedCountryId, setClickedCountryId] = useState<string | null>(null)
 
     const supportedCountries = useMemo(() => {
         return countryData.filter((country) => country.type === 'country')
@@ -56,16 +61,16 @@ export const CountryList = ({ inputTitle, viewMode, onCountryClick, onCryptoClic
         })
     }, [supportedCountries, userGeoLocationCountryCode, isGeoLoading])
 
-    // filter countries based on search term
+    // filter countries based on deferred search term to prevent blocking ui
     const filteredCountries = useMemo(() => {
-        if (!searchTerm) return sortedCountries
+        if (!deferredSearchTerm) return sortedCountries
 
         return sortedCountries.filter(
             (country) =>
-                country.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                country.currency?.toLowerCase().includes(searchTerm.toLowerCase())
+                country.title.toLowerCase().includes(deferredSearchTerm.toLowerCase()) ||
+                country.currency?.toLowerCase().includes(deferredSearchTerm.toLowerCase())
         )
-    }, [searchTerm, sortedCountries])
+    }, [deferredSearchTerm, sortedCountries])
 
     return (
         <div className="flex h-full w-full flex-1 flex-col justify-start gap-4">
@@ -115,11 +120,21 @@ export const CountryList = ({ inputTitle, viewMode, onCountryClick, onCryptoClic
                                 <SearchResultCard
                                     key={country.id}
                                     title={country.title}
-                                    rightContent={!isSupported && <StatusBadge status="soon" />}
+                                    rightContent={
+                                        clickedCountryId === country.id ? (
+                                            <Loading />
+                                        ) : !isSupported ? (
+                                            <StatusBadge status="soon" />
+                                        ) : undefined
+                                    }
                                     description={country.currency}
-                                    onClick={() => onCountryClick(country)}
+                                    onClick={() => {
+                                        // set loading state immediately for visual feedback
+                                        setClickedCountryId(country.id)
+                                        onCountryClick(country)
+                                    }}
                                     position={position}
-                                    isDisabled={!isSupported}
+                                    isDisabled={!isSupported || clickedCountryId === country.id}
                                     leftIcon={
                                         <div className="relative h-8 w-8">
                                             <Image
@@ -128,6 +143,9 @@ export const CountryList = ({ inputTitle, viewMode, onCountryClick, onCryptoClic
                                                 width={80}
                                                 height={80}
                                                 className="h-8 w-8 rounded-full object-cover"
+                                                // priority load first 10 flags for better perceived performance
+                                                priority={index < 10}
+                                                loading={index < 10 ? 'eager' : 'lazy'}
                                                 onError={(e) => {
                                                     e.currentTarget.style.display = 'none'
                                                 }}
