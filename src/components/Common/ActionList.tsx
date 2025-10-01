@@ -25,9 +25,10 @@ import ActionListDaimoPayButton from './ActionListDaimoPayButton'
 import { ACTION_METHODS, PaymentMethod } from '@/constants/actionlist.consts'
 import useClaimLink from '../Claim/useClaimLink'
 import { setupActions } from '@/redux/slices/setup-slice'
-import starImage from '@/assets/icons/star.png'
+import starStraightImage from '@/assets/icons/starStraight.svg'
 import { useAuth } from '@/context/authContext'
 import { EInviteType } from '@/services/services.types'
+import ConfirmInviteModal from '../Global/ConfirmInviteModal'
 interface IActionListProps {
     flow: 'claim' | 'request'
     claimLinkData?: ClaimLinkData
@@ -183,16 +184,21 @@ export default function ActionList({
             )}
             {isInviteLink && !userHasAppAccess && username && (
                 <div className="!mt-6 flex w-full items-center justify-between">
-                    <Image src={starImage.src} alt="star" width={20} height={20} />{' '}
+                    <Image src={starStraightImage.src} alt="star" width={20} height={20} />{' '}
                     <p className="text-center text-sm">Invited by {username}, you have early access to Peanut!</p>
-                    <Image src={starImage.src} alt="star" width={20} height={20} />
+                    <Image src={starStraightImage.src} alt="star" width={20} height={20} />
                 </div>
             )}
             <Divider text="or" />
             <div className="space-y-2">
                 {sortedActionMethods.map((method) => {
                     if (flow === 'request' && method.id === 'exchange-or-wallet') {
-                        return <ActionListDaimoPayButton key={method.id} />
+                        return (
+                            <ActionListDaimoPayButton
+                                handleContinueWithPeanut={handleContinueWithPeanut}
+                                key={method.id}
+                            />
+                        )
                     }
 
                     return (
@@ -233,45 +239,21 @@ export default function ActionList({
 
             {/* Invites modal */}
 
-            <ActionModal
-                visible={showInviteModal}
-                title="Don’t lose your invite!"
-                titleClassName=" font-extrabold text-lg"
-                description={`This link unlocks Peanut. Using ${selectedMethod?.title} will skip your invite.`}
+            <ConfirmInviteModal
+                method={selectedMethod?.title ?? ''}
+                handleContinueWithPeanut={handleContinueWithPeanut}
+                handleLoseInvite={() => {
+                    if (selectedMethod) {
+                        handleMethodClick(selectedMethod)
+                        setShowInviteModal(false)
+                        setSelectedMethod(null)
+                    }
+                }}
+                isOpen={showInviteModal}
                 onClose={() => {
                     setShowInviteModal(false)
                     setSelectedMethod(null)
                 }}
-                ctaClassName="flex-col sm:flex-col"
-                ctas={[
-                    {
-                        text: '',
-                        onClick: handleContinueWithPeanut,
-                        shadowSize: '4',
-                        className: 'sm:py-3',
-                        children: (
-                            <>
-                                <div>Join</div>
-                                <div className="flex items-center gap-1">
-                                    <Image src={PEANUTMAN_LOGO} alt="Peanut Logo" className="size-5" />
-                                    <Image src={PEANUT_LOGO_BLACK} alt="Peanut Logo" />
-                                </div>
-                            </>
-                        ),
-                    },
-                    {
-                        text: `Continue with ${selectedMethod?.title}`,
-                        onClick: () => {
-                            if (selectedMethod) {
-                                handleMethodClick(selectedMethod)
-                                setShowInviteModal(false)
-                                setSelectedMethod(null)
-                            }
-                        },
-                        variant: 'transparent',
-                        className: 'underline text-sm !font-normal w-full !transform-none !pt-2',
-                    },
-                ]}
             />
         </div>
     )

@@ -33,7 +33,7 @@ const CopyToClipboard = ({ textToCopy, fill, className, iconSize = '6', type = '
                 shadowSize="4"
                 variant="primary-soft"
             >
-                <p className="text-xs"> Copy code</p>
+                <p className="text-sm"> Copy code</p>
             </Button>
         )
     }
