@@ -26,7 +26,7 @@ interface AddWithdrawRouterViewProps {
 
 const MAX_RECENT_METHODS = 5
 
-function saveRecentMethod(userId: string, method: DepositMethod) {
+function saveRecentMethod(userId: string, method: DepositMethod, path?: string) {
     const newRecentMethod: RecentMethod = {
         id: method.id,
         type: method.type as 'crypto' | 'country',
@@ -34,7 +34,7 @@ function saveRecentMethod(userId: string, method: DepositMethod) {
         description: method.description,
         iconUrl: method.iconUrl,
         currency: method.currency,
-        path: `/add-money/${method.path}`,
+        path: path ?? method.path,
     }
 
     const prefs = getUserPreferences(userId) || {}
@@ -266,17 +266,10 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                 inputTitle={mainHeading}
                 viewMode="add-withdraw"
                 onCountryClick={(country) => {
-                    if (flow === 'withdraw') {
-                        const countryPath = `${baseRoute}/${country.path}`
-                        router.push(countryPath)
-                        return
-                    }
-
-                    //Add
-                    if (user) {
-                        saveRecentMethod(user.user.userId, country)
-                    }
                     const countryPath = `${baseRoute}/${country.path}`
+                    if (flow === 'add' && user) {
+                        saveRecentMethod(user.user.userId, country, countryPath)
+                    }
                     router.push(countryPath)
                 }}
                 onCryptoClick={() => {
