@@ -24,7 +24,7 @@ import {
 } from '@/utils'
 import { useDisconnect } from '@reown/appkit/react'
 import Link from 'next/link'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { useAccount } from 'wagmi'
 import AddMoneyPromptModal from '@/components/Home/AddMoneyPromptModal'
@@ -49,15 +49,15 @@ export default function Home() {
     const { resetFlow: resetClaimBankFlow } = useClaimBankFlow()
     const { resetWithdrawFlow } = useWithdrawFlow()
     const { deviceType } = useDeviceType()
+    const { user } = useUserStore()
     const [isBalanceHidden, setIsBalanceHidden] = useState(() => {
-        const prefs = getUserPreferences()
+        const prefs = user ? getUserPreferences(user.user.userId) : undefined
         return prefs?.balanceHidden ?? false
     })
     const { isConnected: isWagmiConnected } = useAccount()
     const { disconnect: disconnectWagmi } = useDisconnect()
 
     const { isFetchingUser, addAccount } = useAuth()
-    const { user } = useUserStore()
     const { isUserKycApproved } = useKycStatus()
     const username = user?.user.username
 
@@ -72,14 +72,19 @@ export default function Home() {
         return user.user.fullName
     }, [user])
 
-    const handleToggleBalanceVisibility = (e: React.MouseEvent<HTMLButtonElement>) => {
-        e.stopPropagation()
-        setIsBalanceHidden((prev: boolean) => {
-            const newValue = !prev
-            updateUserPreferences({ balanceHidden: newValue })
-            return newValue
-        })
-    }
+    const handleToggleBalanceVisibility = useCallback(
+        (e: React.MouseEvent<HTMLButtonElement>) => {
+            e.stopPropagation()
+            setIsBalanceHidden((prev: boolean) => {
+                const newValue = !prev
+                if (user) {
+                    updateUserPreferences(user.user.userId, { balanceHidden: newValue })
+                }
+                return newValue
+            })
+        },
+        [user]
+    )
 
     const isLoading = isFetchingUser && !username
 

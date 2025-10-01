@@ -1,5 +1,5 @@
 'use client'
-import React, { createContext, useEffect, useState } from 'react'
+import React, { createContext, useEffect, useState, useCallback } from 'react'
 
 import { getSquidChainsAndTokens } from '@/app/actions/squid'
 import { fetchTokenPrice } from '@/app/actions/tokens'
@@ -15,10 +15,10 @@ import {
 } from '@/constants'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { type ITokenPriceData } from '@/interfaces'
-import { getUserPreferences } from '@/utils'
 import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
 import * as Sentry from '@sentry/nextjs'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
+import { useAuth } from '@/context/authContext'
 
 export const tokenSelectorContext = createContext({
     selectedTokenAddress: '',
@@ -51,6 +51,7 @@ export const tokenSelectorContext = createContext({
  */
 export const TokenContextProvider = ({ children }: { children: React.ReactNode }) => {
     const { isConnected: isPeanutWallet } = useWallet()
+    const { user } = useAuth()
 
     const peanutWalletTokenData = {
         price: 1,
@@ -77,10 +78,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
                 decimals: PEANUT_WALLET_TOKEN_DECIMALS,
             }
         }
-
-        const { lastUsedToken } = getUserPreferences() ?? {}
-        // if no peanut wallet and no last used token, defailt to none
-        return lastUsedToken ?? emptyTokenData
+        return emptyTokenData
     })()
 
     const [selectedTokenAddress, setSelectedTokenAddress] = useState(initialTokenData.address)
@@ -103,22 +101,21 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
         setSelectedChainID(chainID)
     }
 
-    const resetTokenContextProvider = () => {
-        const { lastUsedToken } = getUserPreferences() ?? {}
+    const resetTokenContextProvider = useCallback(() => {
         const tokenData = isPeanutWallet
             ? {
                   address: PEANUT_WALLET_TOKEN,
                   chainId: PEANUT_WALLET_CHAIN.id.toString(),
                   decimals: PEANUT_WALLET_TOKEN_DECIMALS,
               }
-            : (lastUsedToken ?? emptyTokenData)
+            : emptyTokenData
 
         setSelectedChainID(tokenData.chainId)
         setSelectedTokenAddress(tokenData.address)
         setSelectedTokenDecimals(tokenData.decimals)
         setSelectedTokenPrice(isPeanutWallet ? 1 : undefined)
         setSelectedTokenData(isPeanutWallet ? peanutWalletTokenData : undefined)
-    }
+    }, [isPeanutWallet])
 
     useEffect(() => {
         let isCurrent = true // flag to check if the component is still mounted

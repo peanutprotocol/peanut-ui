@@ -801,17 +801,20 @@ export type UserPreferences = {
     isPwaInstalled?: boolean
 }
 
-export const updateUserPreferences = (partialPrefs: Partial<UserPreferences>): UserPreferences | undefined => {
+export const updateUserPreferences = (
+    userId: string,
+    partialPrefs: Partial<UserPreferences>
+): UserPreferences | undefined => {
     try {
         if (typeof localStorage === 'undefined') return
 
-        const currentPrefs = getUserPreferences() || {}
+        const currentPrefs = getUserPreferences(userId) || {}
         const newPrefs: UserPreferences = {
             ...currentPrefs,
             ...partialPrefs,
         }
 
-        localStorage.setItem('user-preferences', JSON.stringify(newPrefs))
+        localStorage.setItem(`${userId}:user-preferences`, JSON.stringify(newPrefs))
         return newPrefs
     } catch (error) {
         Sentry.captureException(error)
@@ -819,11 +822,11 @@ export const updateUserPreferences = (partialPrefs: Partial<UserPreferences>): U
     }
 }
 
-export const getUserPreferences = (): UserPreferences | undefined => {
+export const getUserPreferences = (userId: string): UserPreferences | undefined => {
     try {
         if (typeof localStorage === 'undefined') return
 
-        const storedData = localStorage.getItem('user-preferences')
+        const storedData = localStorage.getItem(`${userId}:user-preferences`)
         if (!storedData) return undefined
 
         return JSON.parse(storedData) as UserPreferences
