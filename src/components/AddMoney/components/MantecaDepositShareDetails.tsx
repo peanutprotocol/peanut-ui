@@ -15,14 +15,16 @@ import {
     MANTECA_ARG_DEPOSIT_NAME,
     MANTECA_COUNTRIES_CONFIG,
 } from '@/constants/manteca.consts'
-import { shortenStringLong, formatNumberForDisplay } from '@/utils'
+import { shortenStringLong, formatCurrency } from '@/utils'
 
 const MantecaDepositShareDetails = ({
     depositDetails,
     source,
+    currencyAmount,
 }: {
     depositDetails: MantecaDepositResponseData
     source: 'bank' | 'regionalMethod'
+    currencyAmount?: string | undefined
 }) => {
     const router = useRouter()
     const params = useParams()
@@ -52,10 +54,17 @@ const MantecaDepositShareDetails = ({
     const depositAddress = depositDetails.details.depositAddress
     const shortenedAddress = depositAddress.length > 30 ? shortenStringLong(depositAddress, 10) : depositAddress
     const depositAlias = depositDetails.details.depositAlias
-    const depositAmount = depositDetails.stages['1'].thresholdAmount
-    const usdAmount = depositDetails.stages['3'].amount
+    const depositAmount = currencyAmount ?? depositDetails.stages['1'].thresholdAmount
+    let usdAmount = depositDetails.stages['3'].amount
     const currencySymbol = depositDetails.stages['1'].asset
     const exchangeRate = depositDetails.details.price
+    let networkFees = depositDetails.details.withdrawCostInAsset
+    usdAmount = (Number(usdAmount) - Number(networkFees)).toString()
+    if (Number(networkFees) < 0.01) {
+        networkFees = '< 0.01 USD'
+    } else {
+        networkFees = `${formatCurrency(networkFees)} USD`
+    }
 
     const generateShareText = () => {
         const textParts = []
@@ -97,11 +106,9 @@ const MantecaDepositShareDetails = ({
                                 <Icon name="arrow-down" size={10} /> You're adding
                             </p>
                             <p className="text-2xl font-bold">
-                                {currencySymbol} {formatNumberForDisplay(depositAmount, { maxDecimals: 2 })}
+                                {currencySymbol} {formatCurrency(depositAmount)}
                             </p>
-                            <div className="text-lg font-bold">
-                                ≈ {formatNumberForDisplay(usdAmount, { maxDecimals: 2 })} USD
-                            </div>
+                            <div className="text-lg font-bold">≈ {formatCurrency(usdAmount)} USD</div>
                         </div>
                     </div>
                 </Card>
@@ -123,6 +130,7 @@ const MantecaDepositShareDetails = ({
                         </>
                     )}
                     <PaymentInfoRow label="Exchange Rate" value={`1 USD = ${exchangeRate} ${currencySymbol}`} />
+                    <PaymentInfoRow label="Network fees" value={networkFees} />
                     <PaymentInfoRow label="Peanut fee" value="Sponsored by Peanut!" hideBottomBorder />
                 </Card>
             </div>

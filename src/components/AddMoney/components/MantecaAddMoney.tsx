@@ -31,6 +31,7 @@ const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
     const [step, setStep] = useState<stepType>('inputAmount')
     const [isCreatingDeposit, setIsCreatingDeposit] = useState(false)
     const [tokenAmount, setTokenAmount] = useState('')
+    const [currencyAmount, setCurrencyAmount] = useState<string | undefined>()
     const [usdAmount, setUsdAmount] = useState('')
     const [error, setError] = useState<string | null>(null)
     const [depositDetails, setDepositDetails] = useState<MantecaDepositResponseData>()
@@ -142,6 +143,7 @@ const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
                     error={error}
                     setUsdAmount={setUsdAmount}
                     currencyData={currencyData}
+                    setCurrencyAmount={setCurrencyAmount}
                 />
                 {isKycModalOpen && (
                     <MantecaGeoSpecificKycModal
@@ -163,7 +165,13 @@ const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
     }
 
     if (step === 'depositDetails' && depositDetails) {
-        return <MantecaDepositShareDetails source={source} depositDetails={depositDetails} />
+        return (
+            <MantecaDepositShareDetails
+                source={source}
+                depositDetails={depositDetails}
+                currencyAmount={currencyAmount}
+            />
+        )
     }
 
     return null

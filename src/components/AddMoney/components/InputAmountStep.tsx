@@ -17,6 +17,7 @@ interface InputAmountStepProps {
     setTokenAmount: React.Dispatch<React.SetStateAction<string>>
     setUsdAmount: React.Dispatch<React.SetStateAction<string>>
     error: string | null
+    setCurrencyAmount: (amount: string | undefined) => void
     currencyData?: ICurrency
 }
 
@@ -28,6 +29,7 @@ const InputAmountStep = ({
     error,
     setUsdAmount,
     currencyData,
+    setCurrencyAmount,
 }: InputAmountStepProps) => {
     const router = useRouter()
 
@@ -54,6 +56,7 @@ const InputAmountStep = ({
                               }
                             : undefined
                     }
+                    setCurrencyAmount={setCurrencyAmount}
                     hideBalance
                 />
                 <div className="flex items-center gap-2 text-xs text-grey-1">
