@@ -111,8 +111,13 @@ export const ErrorHandler = (error: any) => {
             return "You don't have enough balance."
         } else if (error.toString().includes('The operation either timed out or was not allowed')) {
             return 'Please confirm the transaction.'
-        } else if (error.toString().includes('Wrong password or invalid transaction.')) {
+        } else if (
+            error.toString().includes('Wrong password or invalid transaction.') ||
+            error.toString().includes('transaction may fail')
+        ) {
             return 'Could not claim link, please refresh page. If problem persist confirm link with sender'
+        } else if (error.toString().includes('Send link already claimed')) {
+            return 'Send link already claimed'
         } else {
             return 'There was an issue with your request. Please contact support.'
         }

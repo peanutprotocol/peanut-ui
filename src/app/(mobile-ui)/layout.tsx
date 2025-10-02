@@ -77,7 +77,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     // Allow access to public paths without authentication
     const isPublicPath = publicPathRegex.test(pathName)
 
-    if (!isReady || !user || (isFetchingUser && !hasToken && !isPublicPath)) {
+    if (!isReady || (isFetchingUser && !user && !hasToken && !isPublicPath)) {
         return (
             <div className="flex h-[100dvh] w-full flex-col items-center justify-center">
                 <PeanutLoading />
