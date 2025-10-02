@@ -93,9 +93,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     } = useClaimBankFlow()
     const { setLoadingState, isLoading } = useContext(loadingStateContext)
     const {
-        selectedChainID,
         setSelectedChainID,
-        selectedTokenAddress,
         setSelectedTokenAddress,
         selectedTokenData,
         refetchXchainRoute,
@@ -151,6 +149,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
 
     const handleClaimLink = useCallback(
         async (bypassModal = false, autoClaim = false) => {
+            if (!selectedTokenData) return
             if (!isPeanutWallet && !bypassModal) {
                 setShowConfirmationModal(true)
                 return
@@ -179,17 +178,14 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
                 } else {
                     // Check if cross-chain claiming is needed
-                    const needsXChain =
-                        selectedChainID !== claimLinkData.chainId ||
-                        !areEvmAddressesEqual(selectedTokenAddress, claimLinkData.tokenAddress)
 
                     let claimTxHash: string
-                    if (needsXChain) {
+                    if (isXChain) {
                         claimTxHash = await claimLinkXchain({
                             address: recipient.address,
                             link: claimLinkData.link,
-                            destinationChainId: selectedChainID,
-                            destinationToken: selectedTokenAddress,
+                            destinationChainId: selectedTokenData.chainId,
+                            destinationToken: selectedTokenData.address,
                         })
                         setClaimType('claimxchain')
                     } else {
@@ -235,13 +231,13 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             user,
             claimLink,
             claimLinkXchain,
-            selectedChainID,
-            selectedTokenAddress,
+            selectedTokenData,
             onCustom,
             setLoadingState,
             setClaimType,
             setTransactionHash,
             queryClient,
+            isXChain,
         ]
     )
 
@@ -383,9 +379,10 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     }, [recipient.address])
 
     useEffect(() => {
+        if (!selectedTokenData) return
         if (
-            selectedChainID === claimLinkData.chainId &&
-            areEvmAddressesEqual(selectedTokenAddress, claimLinkData.tokenAddress)
+            selectedTokenData.chainId === claimLinkData.chainId &&
+            areEvmAddressesEqual(selectedTokenData.address, claimLinkData.tokenAddress)
         ) {
             setIsXChain(false)
             setSelectedRoute(undefined)
@@ -393,7 +390,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         } else {
             setIsXChain(true)
         }
-    }, [selectedChainID, selectedTokenAddress, claimLinkData.chainId, claimLinkData.tokenAddress])
+    }, [selectedTokenData, claimLinkData.chainId, claimLinkData.tokenAddress])
 
     // We may need this when we re add rewards via specific tokens
     // If not, feel free to remove
@@ -403,7 +400,11 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
 
     const fetchRoute = useCallback(
         async (toToken?: string, toChain?: string) => {
-            if ((!toChain || !toToken) && !selectedTokenData) return
+            if ((!toChain || !toToken) && !selectedTokenData) {
+                setIsXchainLoading(false)
+                setLoadingState('Idle')
+                return
+            }
             const chainId = toChain ?? selectedTokenData!.chainId
             const tokenAddress = toToken ?? selectedTokenData!.address
             try {
@@ -504,6 +505,11 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             fetchRoute().finally(() => {
                 if (isMounted) {
                     setRefetchXchainRoute(false)
+                } else {
+                    setErrorState({
+                        showError: false,
+                        errorMessage: '',
+                    })
                 }
             })
         }
@@ -540,27 +546,37 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
 
     // handle xchain claim states
     useEffect(() => {
-        if (selectedChainID && selectedTokenAddress) {
+        if (selectedTokenData) {
             const isXChainTransfer =
-                selectedChainID !== claimLinkData.chainId ||
-                !areEvmAddressesEqual(selectedTokenAddress, claimLinkData.tokenAddress)
+                selectedTokenData.chainId !== claimLinkData.chainId ||
+                !areEvmAddressesEqual(selectedTokenData.address, claimLinkData.tokenAddress)
 
             setIsXChain(isXChainTransfer)
 
-            // if selectedRoute or cross-chain transfer with valid addresses is present
-            if (selectedRoute || (isXChainTransfer && recipient.address && isValidRecipient)) {
-                setHasFetchedRoute(true)
-                // if no route yet, fetch it
-                if (!selectedRoute) {
+            if (isXChainTransfer) {
+                if (selectedRoute) {
+                    const routeChainId = selectedRoute.rawResponse.route.params.toChain
+                    const routeTokenAddress = selectedRoute.rawResponse.route.estimate.toToken.address
+                    if (
+                        routeChainId !== selectedTokenData.chainId ||
+                        !areEvmAddressesEqual(routeTokenAddress, selectedTokenData.address)
+                    ) {
+                        setRefetchXchainRoute(true)
+                    } else {
+                        setRefetchXchainRoute(false)
+                        setHasFetchedRoute(true)
+                    }
+                } else {
+                    setHasFetchedRoute(false)
                     setRefetchXchainRoute(true)
                 }
-            } else if (isXChainTransfer && !hasFetchedRoute) {
-                setRefetchXchainRoute(true)
+            } else {
+                setHasFetchedRoute(false)
+                setRefetchXchainRoute(false)
             }
         }
     }, [
-        selectedChainID,
-        selectedTokenAddress,
+        selectedTokenData,
         claimLinkData.chainId,
         claimLinkData.tokenAddress,
         selectedRoute,
