@@ -32,6 +32,11 @@ export const pointsApi = {
     }: CalculatePointsRequest): Promise<{ estimatedPoints: number }> => {
         try {
             const jwtToken = Cookies.get('jwt-token')
+
+            if (!jwtToken) {
+                throw new Error('No JWT token found')
+            }
+
             const body: { actionType: PointsAction; usdAmount: number; otherUserId?: string } = {
                 actionType,
                 usdAmount,

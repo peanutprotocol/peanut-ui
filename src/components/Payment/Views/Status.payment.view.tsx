@@ -24,6 +24,7 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { ReactNode, useEffect, useMemo } from 'react'
 import { useDispatch } from 'react-redux'
+import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 
 type DirectSuccessViewProps = {
     user?: ApiUser
@@ -37,6 +38,7 @@ type DirectSuccessViewProps = {
     isWithdrawFlow?: boolean
     redirectTo?: string
     onComplete?: () => void
+    points?: number
 }
 
 const DirectSuccessView = ({
@@ -51,6 +53,7 @@ const DirectSuccessView = ({
     isWithdrawFlow,
     redirectTo = '/home',
     onComplete,
+    points,
 }: DirectSuccessViewProps) => {
     const router = useRouter()
     const { chargeDetails, parsedPaymentData, usdAmount, paymentDetails } = usePaymentStore()
@@ -230,6 +233,13 @@ const DirectSuccessView = ({
                         )}
                     </div>
                 </Card>
+
+                {points && (
+                    <div className="flex justify-center gap-2">
+                        <Image src={STAR_STRAIGHT_ICON} alt="star" width={20} height={20} />
+                        <p className="text-sm font-medium text-black"> You&apos;ve earned {points} points!</p>
+                    </div>
+                )}
 
                 <div className="w-full space-y-5">
                     {!!authUser?.user.userId ? (
