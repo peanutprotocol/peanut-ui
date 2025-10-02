@@ -97,6 +97,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         setSelectedChainID,
         selectedTokenAddress,
         setSelectedTokenAddress,
+        selectedTokenData,
         refetchXchainRoute,
         setRefetchXchainRoute,
         isXChain,
@@ -402,6 +403,9 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
 
     const fetchRoute = useCallback(
         async (toToken?: string, toChain?: string) => {
+            if ((!toChain || !toToken) && !selectedTokenData) return
+            const chainId = toChain ?? selectedTokenData!.chainId
+            const tokenAddress = toToken ?? selectedTokenData!.address
             try {
                 const existingRoute = routes.find(
                     (route) =>
@@ -410,11 +414,8 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                             route.rawResponse.route.estimate.fromToken.address,
                             claimLinkData.tokenAddress
                         ) &&
-                        route.rawResponse.route.estimate.toToken.chainId === (toChain || selectedChainID) &&
-                        areEvmAddressesEqual(
-                            route.rawResponse.route.estimate.toToken.address,
-                            toToken || selectedTokenAddress
-                        )
+                        route.rawResponse.route.estimate.toToken.chainId === chainId &&
+                        areEvmAddressesEqual(route.rawResponse.route.estimate.toToken.address, tokenAddress)
                 )
 
                 if (existingRoute) {
@@ -445,8 +446,8 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                                 recipientType === 'us' || recipientType === 'iban'
                                     ? '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C'
                                     : (recipient.address as Address) || '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
-                            tokenAddress: (toToken ? toToken : selectedTokenAddress) as Address,
-                            chainId: toChain ? toChain : selectedChainID,
+                            tokenAddress: tokenAddress as Address,
+                            chainId,
                         },
                         fromAmount: tokenAmount,
                     },
@@ -475,16 +476,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 setLoadingState('Idle')
             }
         },
-        [
-            claimLinkData,
-            isXChain,
-            selectedChainID,
-            selectedTokenAddress,
-            setLoadingState,
-            recipient,
-            recipientType,
-            routes,
-        ]
+        [claimLinkData, isXChain, selectedTokenData, setLoadingState, recipient, recipientType, routes]
     )
 
     useEffect(() => {
