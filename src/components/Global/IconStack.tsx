@@ -5,9 +5,10 @@ interface IconStackProps {
     icons: string[]
     iconSize?: number
     iconClassName?: string
+    imageClassName?: string
 }
 
-const IconStack: React.FC<IconStackProps> = ({ icons, iconSize = 24, iconClassName = '' }) => {
+const IconStack: React.FC<IconStackProps> = ({ icons, iconSize = 24, iconClassName = '', imageClassName }) => {
     return (
         <div className="flex items-center -space-x-2">
             {icons.map((icon, index) => (
@@ -24,7 +25,7 @@ const IconStack: React.FC<IconStackProps> = ({ icons, iconSize = 24, iconClassNa
                         alt={`icon-${index}`}
                         width={iconSize}
                         height={iconSize}
-                        className="min-h-6 min-w-6 rounded-full"
+                        className={twMerge('min-h-6 min-w-6 rounded-full', imageClassName)}
                     />
                 </div>
             ))}

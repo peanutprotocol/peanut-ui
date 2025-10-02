@@ -1,6 +1,7 @@
 import { useRouter } from 'next/navigation'
 import ActionModal from '@/components/Global/ActionModal'
 import { Icon, IconName } from '@/components/Global/Icons/Icon'
+import { twMerge } from 'tailwind-merge'
 
 interface KycVerificationInProgressModalProps {
     isOpen: boolean
@@ -43,12 +44,16 @@ export const KycVerificationInProgressModal = ({ isOpen, onClose }: KycVerificat
             ]}
             preventClose
             hideModalCloseButton
-            footer={
-                <div className="flex items-center gap-2 text-[11px] text-grey-1">
-                    <Icon name="info" className="h-3 w-3" />
-                    <span>Peanut doesn't store any personal information</span>
-                </div>
-            }
+            footer={<PeanutDoesntStoreAnyPersonalInformation />}
         />
+    )
+}
+
+export const PeanutDoesntStoreAnyPersonalInformation = ({ className }: { className?: string }) => {
+    return (
+        <div className={twMerge('flex items-center gap-2 text-[11px] text-grey-1', className)}>
+            <Icon name="info" className="h-3 w-3" />
+            <span>Peanut doesn't store any personal information</span>
+        </div>
     )
 }

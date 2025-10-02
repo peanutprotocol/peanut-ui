@@ -77,7 +77,7 @@ export async function createOnrampForGuest(
     try {
         const { currency, paymentRail } = getCurrencyConfig(params.country.id, 'onramp')
         const price = await getCurrencyPrice(currency)
-        const amount = (Number(params.amount) * price).toFixed(2)
+        const amount = (Number(params.amount) * price.buy).toFixed(2)
 
         const response = await fetchWithSentry(`${apiUrl}/bridge/onramp/create-for-guest`, {
             method: 'POST',

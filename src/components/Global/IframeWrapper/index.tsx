@@ -146,7 +146,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                         />
                         <div className="flex h-[15%] w-full flex-col items-center justify-center gap-4 px-5">
                             <Button
-                                variant={'purple'}
+                                variant={'stroke'}
                                 className={`max-w-md`}
                                 onClick={() => {
                                     setModalVariant('stop-verification')

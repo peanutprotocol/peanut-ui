@@ -5,7 +5,7 @@ import { useAuth } from '@/context/authContext'
 import { Button } from '@/components/0_Bruddle/Button'
 import { AddBankAccountPayload, BridgeAccountOwnerType, BridgeAccountType } from '@/app/actions/types/users.types'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
-import { countryCodeMap } from '@/components/AddMoney/consts'
+import { BRIDGE_ALPHA3_TO_ALPHA2, ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
 import { useParams, useRouter } from 'next/navigation'
 import { validateIban, validateBic, isValidRoutingNumber } from '@/utils/bridge-accounts.utils'
 import ErrorAlert from '@/components/Global/ErrorAlert'
@@ -20,7 +20,7 @@ import { bankFormActions } from '@/redux/slices/bank-form-slice'
 import { useDebounce } from '@/hooks/useDebounce'
 
 const isIBANCountry = (country: string) => {
-    return countryCodeMap[country.toUpperCase()] !== undefined
+    return BRIDGE_ALPHA3_TO_ALPHA2[country.toUpperCase()] !== undefined
 }
 
 export type IBankAccountDetails = {
@@ -266,7 +266,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         )
 
         const countryCodeForFlag = useMemo(() => {
-            return countryCodeMap[country.toUpperCase()] ?? country.toUpperCase()
+            return ALL_COUNTRIES_ALPHA3_TO_ALPHA2[country.toUpperCase()] ?? country.toUpperCase()
         }, [country])
 
         return (
