@@ -131,7 +131,7 @@ const MantecaDepositShareDetails = ({
                     )}
                     <PaymentInfoRow label="Exchange Rate" value={`1 USD = ${exchangeRate} ${currencySymbol}`} />
                     <PaymentInfoRow
-                        label="Network fees"
+                        label="Provider fees"
                         value={networkFees}
                         moreInfoText="Our providers and the blockchain charge a small fee for every transaction. This fee is already accounted for in the amount you see."
                     />

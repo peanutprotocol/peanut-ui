@@ -8,6 +8,7 @@ import { getPublicClient, type ChainId } from '@/app/actions/clients'
 import { fetchTokenDetails } from '@/app/actions/tokens'
 import { getLinkFromReceipt, fetchWithSentry, jsonParse } from '@/utils'
 import { PEANUT_API_URL, PEANUT_WALLET_CHAIN } from '@/constants'
+import type { SendLink } from '@/services/services.types'
 
 export const getLinkDetails = unstable_cache(
     async (link: string): Promise<any> => {
@@ -82,7 +83,11 @@ export async function getNextDepositIndex(contractVersion: string): Promise<numb
     })) as number
 }
 
-export async function claimSendLink(pubKey: string, recipient: string, password: string) {
+export async function claimSendLink(
+    pubKey: string,
+    recipient: string,
+    password: string
+): Promise<SendLink | { error: string }> {
     const response = await fetchWithSentry(`${PEANUT_API_URL}/send-links/${pubKey}/claim`, {
         method: 'POST',
         headers: {
@@ -97,9 +102,9 @@ export async function claimSendLink(pubKey: string, recipient: string, password:
     if (!response.ok) {
         const body = await response.json()
         if (!!body.error || !!body.message) {
-            throw new Error(body.message ?? body.error)
+            return { error: body.message ?? body.error }
         }
-        throw new Error(`HTTP error! status: ${response.status}`)
+        return { error: `HTTP error! status: ${response.status}` }
     }
-    return jsonParse(await response.text())
+    return jsonParse(await response.text()) as SendLink
 }
