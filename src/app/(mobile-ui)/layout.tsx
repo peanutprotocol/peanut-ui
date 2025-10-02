@@ -1,7 +1,6 @@
 'use client'
 
 import { MarqueeWrapper } from '@/components/Global/MarqueeWrapper'
-import { useRouter } from 'next/navigation'
 import { HandThumbsUp } from '@/assets'
 import Image from 'next/image'
 import GuestLoginModal from '@/components/Global/GuestLoginModal'
@@ -78,13 +77,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
     // Allow access to public paths without authentication
     const isPublicPath = publicPathRegex.test(pathName)
-
-    // redirect to setup if user is not logged in
-    useEffect(() => {
-        if (!isFetchingUser && !user) {
-            router.push('/setup')
-        }
-    }, [user, isFetchingUser, router])
 
     if (!isReady || !user || (isFetchingUser && !hasToken && !isPublicPath)) {
         return (
