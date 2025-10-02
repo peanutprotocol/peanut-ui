@@ -5,6 +5,7 @@ import { PEANUT_WALLET_TOKEN_DECIMALS, BASE_URL } from '@/constants'
 import { formatUnits } from 'viem'
 import { Hash } from 'viem'
 import { getTokenDetails } from '@/utils'
+import { getCurrencyPrice } from '@/app/actions/currency'
 
 export enum EHistoryEntryType {
     REQUEST = 'REQUEST',
@@ -19,6 +20,7 @@ export enum EHistoryEntryType {
     MANTECA_QR_PAYMENT = 'MANTECA_QR_PAYMENT',
     MANTECA_OFFRAMP = 'MANTECA_OFFRAMP',
     MANTECA_ONRAMP = 'MANTECA_ONRAMP',
+    BRIDGE_GUEST_OFFRAMP = 'BRIDGE_GUEST_OFFRAMP',
 }
 export function historyTypeToNumber(type: EHistoryEntryType): number {
     return Object.values(EHistoryEntryType).indexOf(type)
@@ -183,7 +185,7 @@ export function getTransactionSign(transaction: Pick<TransactionDetails, 'direct
 }
 
 /** Completes a history entry by adding additional data and formatting the amount. */
-export function completeHistoryEntry(entry: HistoryEntry): HistoryEntry {
+export async function completeHistoryEntry(entry: HistoryEntry): Promise<HistoryEntry> {
     const extraData = entry.extraData ?? {}
     let link: string = ''
     let tokenSymbol: string = ''
@@ -230,12 +232,30 @@ export function completeHistoryEntry(entry: HistoryEntry): HistoryEntry {
             }
             break
         }
-        case EHistoryEntryType.WITHDRAW:
-        case EHistoryEntryType.BRIDGE_OFFRAMP:
-        case EHistoryEntryType.BRIDGE_ONRAMP:
-        case EHistoryEntryType.BANK_SEND_LINK_CLAIM: {
+        case EHistoryEntryType.BRIDGE_ONRAMP: {
             tokenSymbol = entry.tokenSymbol
             usdAmount = entry.amount.toString()
+            if (entry.currency?.code) {
+                entry.currency.code = entry.currency.code.toUpperCase()
+            }
+            if (usdAmount === entry.currency?.amount && entry.currency?.code && entry.currency?.code !== 'USD') {
+                const price = await getCurrencyPrice(entry.currency.code)
+                usdAmount = (Number(entry.currency.amount) * price.sell).toString()
+            }
+            break
+        }
+        case EHistoryEntryType.BRIDGE_OFFRAMP:
+        case EHistoryEntryType.BRIDGE_GUEST_OFFRAMP:
+        case EHistoryEntryType.BANK_SEND_LINK_CLAIM: {
+            tokenSymbol = entry.tokenSymbol
+            usdAmount = entry.amount
+            if (entry.currency?.code) {
+                entry.currency.code = entry.currency.code.toUpperCase()
+            }
+            if (usdAmount === entry.currency?.amount && entry.currency?.code && entry.currency?.code !== 'USD') {
+                const price = await getCurrencyPrice(entry.currency.code)
+                entry.currency.amount = (Number(entry.amount) * price.buy).toString()
+            }
             break
         }
         default: {

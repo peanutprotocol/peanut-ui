@@ -89,9 +89,9 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     const displayAmount = `${sign}$${formattedAmount}`
 
     let currencyDisplayAmount: string | undefined
-    if (transaction.currency && transaction.currency.code !== 'USD') {
+    if (transaction.currency && transaction.currency.code.toUpperCase() !== 'USD') {
         const formattedCurrencyAmount = formatNumberForDisplay(transaction.currency.amount, { maxDecimals: 2 })
-        currencyDisplayAmount = `≈ ${transaction.currency.code} ${formattedCurrencyAmount}`
+        currencyDisplayAmount = `≈ ${transaction.currency.code.toUpperCase()} ${formattedCurrencyAmount}`
     }
 
     return (
