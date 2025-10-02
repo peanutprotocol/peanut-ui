@@ -334,3 +334,29 @@ export interface TierInfo {
     nextTierThreshold: number
     pointsToNextTier: number
 }
+
+export interface PointsInvite {
+    inviteeId: string
+    username: string
+    fullName: string | null
+    invitedAt: string
+    kycStatus: BridgeKycStatus | null
+    kycVerified: boolean
+    directPoints: number
+    totalPoints: number
+    contributedPoints: number
+    hasInvitedOthers: boolean
+    inviteesCount: number
+}
+
+export interface PointsInvitesResponse {
+    invitees: PointsInvite[]
+    summary: {
+        multiplier: number
+        pendingInvites: number
+        totalContributedPoints: number
+        totalDirectPoints: number
+        totalInvites: number
+        verifiedInvites: number
+    }
+}

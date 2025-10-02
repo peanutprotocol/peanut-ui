@@ -11,7 +11,7 @@ import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionA
 import { VerifiedUserLabel } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
 import { invitesApi } from '@/services/invites'
-import { Invite } from '@/services/services.types'
+import { Invite, PointsInvite } from '@/services/services.types'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
@@ -94,7 +94,7 @@ const PointsPage = () => {
                     <CopyToClipboard type="button" textToCopy={inviteCode} />
                 </div>
 
-                {invites?.length && invites.length > 0 && (
+                {invites?.invitees?.length && invites.invitees.length > 0 && (
                     <>
                         <ShareButton
                             generateText={() =>
@@ -108,12 +108,12 @@ const PointsPage = () => {
                         </ShareButton>
                         <h2 className="!mt-8 font-bold">People you invited</h2>
                         <div>
-                            {invites?.map((invite: Invite, i: number) => {
-                                const username = invite.invitee.username
-                                const fullName = invite.invitee.fullName
-                                const isVerified = invite.invitee.bridgeKycStatus === 'approved'
+                            {invites.invitees?.map((invite: PointsInvite, i: number) => {
+                                const username = invite.username
+                                const fullName = invite.fullName
+                                const isVerified = invite.kycStatus === 'approved'
                                 return (
-                                    <Card key={invite.id} position={getCardPosition(i, invites.length)}>
+                                    <Card key={invite.inviteeId} position={getCardPosition(i, invites.invitees.length)}>
                                         <div className="flex items-center justify-between gap-4">
                                             <div className="flex items-center gap-3">
                                                 <TransactionAvatarBadge
@@ -128,7 +128,7 @@ const PointsPage = () => {
                                             <div className="min-w-0 flex-1 truncate font-roboto text-[16px] font-medium">
                                                 <VerifiedUserLabel name={username} isVerified={isVerified} />
                                             </div>
-                                            <p className="text-grey-1">+10 pts</p>
+                                            <p className="text-grey-1">+{invite.totalPoints} pts</p>
                                         </div>
                                     </Card>
                                 )
@@ -137,7 +137,7 @@ const PointsPage = () => {
                     </>
                 )}
 
-                {invites?.length === 0 && (
+                {invites?.invitees?.length === 0 && (
                     <Card className="flex flex-col items-center justify-center gap-4 py-4">
                         <div className="flex items-center justify-center rounded-full bg-primary-1 p-2">
                             <Icon name="trophy" />
