@@ -38,7 +38,7 @@ const PointsPage = () => {
             <NavHeader title="Invites" onPrev={() => router.back()} />
 
             <section className="mx-auto mb-auto mt-10 w-full space-y-4">
-                <h1 className="font-bold">Refer friends</h1>
+                <h1 className="font-bold">Invite friends</h1>
                 <div className="flex w-full items-center justify-between gap-3">
                     <Card className="flex w-1/2 items-center justify-center py-3.5">
                         <p className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-bold md:text-base">{`${inviteCode}`}</p>

@@ -156,7 +156,7 @@ export const Profile = () => {
             <ActionModal
                 visible={isInviteFriendsModalOpen}
                 onClose={() => setIsInviteFriendsModalOpen(false)}
-                title="Refer friends!"
+                title="Invite friends!"
                 description="Earn points when your referrals create an account in Peanut and also pocket 20% of the points they make!"
                 icon="user-plus"
                 content={
