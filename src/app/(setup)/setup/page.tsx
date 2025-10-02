@@ -12,7 +12,7 @@ import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal
 import { isLikelyWebview, isDeviceOsSupported, getDeviceTypeForLogic } from '@/components/Setup/Setup.utils'
 
 function SetupPageContent() {
-    const { steps } = useSetupStore()
+    const { steps, inviteCode } = useSetupStore()
     const { step, handleNext, handleBack } = useSetupFlow()
     const [direction, setDirection] = useState(0)
     const [currentStepIndex, setCurrentStepIndex] = useState(0)
@@ -111,7 +111,11 @@ function SetupPageContent() {
                 determinedSetupInitialStepId = 'pwa-install'
             }
 
-            if (determinedSetupInitialStepId) {
+            // If invite code is present, set the step to the signup screen
+            if (determinedSetupInitialStepId && inviteCode) {
+                const signupScreenIndex = steps.findIndex((s: ISetupStep) => s.screenId === 'signup')
+                dispatch(setupActions.setStep(signupScreenIndex + 1))
+            } else if (determinedSetupInitialStepId) {
                 const initialStepIndex = steps.findIndex((s: ISetupStep) => s.screenId === determinedSetupInitialStepId)
                 if (initialStepIndex !== -1) {
                     dispatch(setupActions.setStep(initialStepIndex + 1))
