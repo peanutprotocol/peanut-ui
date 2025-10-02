@@ -7,6 +7,10 @@ export const pointsApi = {
     getTierInfo: async (): Promise<{ success: boolean; data: TierInfo | null }> => {
         try {
             const jwtToken = Cookies.get('jwt-token')
+            if (!jwtToken) {
+                return { success: false, data: null }
+            }
+
             const response = await fetchWithSentry(`${PEANUT_API_URL}/points`, {
                 method: 'GET',
                 headers: {

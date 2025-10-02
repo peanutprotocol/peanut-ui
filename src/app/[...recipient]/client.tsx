@@ -79,12 +79,12 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         queryFn: () =>
             pointsApi.calculatePoints({
                 actionType: PointsAction.P2P_REQUEST_PAYMENT,
-                usdAmount: Number(chargeDetails?.tokenAmount),
+                usdAmount: Number(currencyAmount),
                 otherUserId: chargeDetails?.requestLink.recipientAccount.userId,
             }),
         // Pre fetch points when in confirm view.
         // Fetch only for logged in users.
-        enabled: !!(user?.user.userId && currentView === 'CONFIRM' && flow === 'request_pay'),
+        enabled: !!(user?.user.userId && currencyAmount && currentView === 'CONFIRM' && flow === 'request_pay'),
         refetchOnWindowFocus: false,
     })
 

@@ -42,9 +42,8 @@ export const invitesApi = {
             if (!response.ok) {
                 throw new Error('Failed to fetch invites')
             }
-            const invitesRes = await response.json().catch(() => ({}))
-
-            return invitesRes as PointsInvitesResponse
+            const invitesRes: PointsInvitesResponse = await response.json()
+            return invitesRes
         } catch (e) {
             console.log(e)
             throw new Error('Failed to fetch invites')

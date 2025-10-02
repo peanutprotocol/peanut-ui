@@ -142,8 +142,10 @@ export const SuccessClaimLinkView = ({
     }
 
     useEffect(() => {
-        shootDoubleStarConfetti({ origin: { x: 0.5, y: 0.6 } })
-    }, [])
+        if (pointsData?.estimatedPoints) {
+            shootDoubleStarConfetti({ origin: { x: 0.5, y: 0.6 } })
+        }
+    }, [pointsData?.estimatedPoints])
 
     const renderButtons = () => {
         if (authUser?.user.userId) {
