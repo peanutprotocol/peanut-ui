@@ -82,12 +82,12 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
     // redirect to setup if user is not logged in
     useEffect(() => {
-        if (!isFetchingUser && !user) {
+        if (!isPublicPath && !isFetchingUser && !user) {
             router.push('/setup')
         }
     }, [user, isFetchingUser, router])
 
-    if (!isReady || !user || (isFetchingUser && !hasToken && !isPublicPath)) {
+    if (!isReady || isFetchingUser || (!hasToken && !isPublicPath)) {
         return (
             <div className="flex h-[100dvh] w-full flex-col items-center justify-center">
                 <PeanutLoading />
