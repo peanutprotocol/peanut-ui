@@ -360,3 +360,18 @@ export interface PointsInvitesResponse {
         verifiedInvites: number
     }
 }
+
+export enum PointsAction {
+    BRIDGE_TRANSFER = 'BRIDGE_TRANSFER',
+    MANTECA_TRANSFER = 'MANTECA_TRANSFER',
+    MANTECA_QR_PAYMENT = 'MANTECA_QR_PAYMENT',
+    P2P_SEND_LINK = 'P2P_SEND_LINK',
+    P2P_REQUEST_PAYMENT = 'P2P_REQUEST_PAYMENT',
+    INVITE_KYC_VERIFIED = 'INVITE_KYC_VERIFIED',
+}
+
+export interface CalculatePointsRequest {
+    actionType: PointsAction
+    usdAmount: number
+    otherUserId?: string
+}
