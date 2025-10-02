@@ -334,3 +334,58 @@ export interface CreateQrPaymentResponse {
     qrPayment: QrPaymentResponse
     charge: TRequestChargeResponse
 }
+
+export enum ESendLinkStatus {
+    creating = 'creating',
+    completed = 'completed',
+    CLAIMING = 'CLAIMING',
+    CLAIMED = 'CLAIMED',
+    CANCELLED = 'CANCELLED',
+    FAILED = 'FAILED',
+}
+
+export type SendLinkStatus = `${ESendLinkStatus}`
+
+export type SendLink = {
+    pubKey: string
+    depositIdx: number
+    chainId: string
+    contractVersion: string
+    textContent?: string
+    fileUrl?: string
+    status: SendLinkStatus
+    createdAt: Date
+    senderAddress: string
+    amount: bigint
+    tokenAddress: string
+    sender: {
+        userId: string
+        username: string
+        fullName: string
+        bridgeKycStatus: string
+        accounts: {
+            identifier: string
+            type: string
+        }[]
+    }
+    claim?: {
+        amount: string
+        txHash: string
+        tokenAddress: string
+        recipientAddress?: string
+        recipient?: {
+            userId: string
+            username: string
+            fullName: string
+            bridgeKycStatus: string
+            accounts: {
+                identifier: string
+                type: string
+            }[]
+        }
+    }
+    events: {
+        timestamp: Date
+        status: SendLinkStatus
+    }[]
+}

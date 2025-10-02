@@ -19,6 +19,7 @@ import { twMerge } from 'tailwind-merge'
 import '../../styles/globals.css'
 import SupportDrawer from '@/components/Global/SupportDrawer'
 import { useSupportModalContext } from '@/context/SupportModalContext'
+import { useRouter } from 'next/navigation'
 
 // Allow access to some public paths without authentication
 const publicPathRegex = /^\/(request\/pay|claim|pay\/.+$|support)/
@@ -34,6 +35,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const isHistory = pathName === '/history'
     const isSupport = pathName === '/support'
     const alignStart = isHome || isHistory || isSupport
+    const router = useRouter()
 
     useEffect(() => {
         // check for JWT token
@@ -76,6 +78,12 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
     // Allow access to public paths without authentication
     const isPublicPath = publicPathRegex.test(pathName)
+
+    useEffect(() => {
+        if (!isPublicPath && !isFetchingUser && !user) {
+            router.push('/setup')
+        }
+    }, [user, isFetchingUser])
 
     if (!isReady || (isFetchingUser && !user && !hasToken && !isPublicPath)) {
         return (

@@ -7,6 +7,7 @@ import { useMantecaKycFlow } from '@/hooks/useMantecaKycFlow'
 import { CountryData } from '@/components/AddMoney/consts'
 import { Button } from '../0_Bruddle'
 import { PeanutDoesntStoreAnyPersonalInformation } from './KycVerificationInProgressModal'
+import { useEffect } from 'react'
 
 interface Props {
     isOpen: boolean
@@ -37,6 +38,20 @@ const InitiateMantecaKYCModal = ({
         onManualClose,
         country,
     })
+
+    useEffect(() => {
+        const handleMessage = (event: MessageEvent) => {
+            if (event.data.source === 'peanut-kyc-success') {
+                onKycSuccess?.()
+            }
+        }
+
+        window.addEventListener('message', handleMessage)
+
+        return () => {
+            window.removeEventListener('message', handleMessage)
+        }
+    }, [])
 
     return (
         <>
