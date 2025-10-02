@@ -40,11 +40,17 @@ const InitiateMantecaKYCModal = ({
     })
 
     useEffect(() => {
-        window.addEventListener('message', (event) => {
+        const handleMessage = (event: MessageEvent) => {
             if (event.data.source === 'peanut-kyc-success') {
                 onKycSuccess?.()
             }
-        })
+        }
+
+        window.addEventListener('message', handleMessage)
+
+        return () => {
+            window.removeEventListener('message', handleMessage)
+        }
     }, [])
 
     return (
