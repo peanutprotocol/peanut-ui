@@ -8,6 +8,8 @@ import { useBanners } from '@/hooks/useBanners'
 const HomeBanners = () => {
     const { banners, setBanners } = useBanners()
 
+    if (!banners.length) return null
+
     return (
         <Carousel>
             {banners.map((banner) => (
