@@ -47,6 +47,7 @@ import { PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
 import { GuestVerificationModal } from '@/components/Global/GuestVerificationModal'
 import useKycStatus from '@/hooks/useKycStatus'
 import MantecaFlowManager from './MantecaFlowManager'
+import ErrorAlert from '@/components/Global/ErrorAlert'
 
 export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     const {
@@ -687,6 +688,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     message={attachment.message}
                     fileUrl={attachment.attachmentUrl}
                 />
+                {errorState.showError && <ErrorAlert description={errorState.errorMessage} />}
 
                 {/* Token Selector
                  * We don't want to show this if we're claiming to peanut wallet. Else its okay
@@ -711,12 +713,16 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                                     setRecipientType('address')
                                     // Reset loading state when input is cleared
                                     setLoadingState('Idle')
+                                    setErrorState({
+                                        showError: false,
+                                        errorMessage: '',
+                                    })
                                 } else {
                                     setRecipientType(update.type)
                                 }
                                 setIsValidRecipient(update.isValid)
                                 setErrorState({
-                                    showError: !update.isValid,
+                                    showError: !update.isChanging && !update.isValid,
                                     errorMessage: update.errorMessage,
                                 })
                                 setInputChanging(update.isChanging)

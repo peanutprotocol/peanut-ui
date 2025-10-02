@@ -95,6 +95,10 @@ export async function claimSendLink(pubKey: string, recipient: string, password:
         }),
     })
     if (!response.ok) {
+        const body = await response.json()
+        if (!!body.error || !!body.message) {
+            throw new Error(body.message ?? body.error)
+        }
         throw new Error(`HTTP error! status: ${response.status}`)
     }
     return jsonParse(await response.text())
