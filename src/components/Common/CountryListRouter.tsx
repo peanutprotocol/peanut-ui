@@ -9,7 +9,7 @@ import { formatUnits } from 'viem'
 import { formatTokenAmount, printableAddress } from '@/utils/general.utils'
 import { CountryList } from '@/components/Common/CountryList'
 import { ClaimLinkData } from '@/services/sendLinks'
-import { CountryData } from '@/components/AddMoney/consts'
+import { CountryData, MantecaSupportedExchanges } from '@/components/AddMoney/consts'
 import useSavedAccounts from '@/hooks/useSavedAccounts'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
 import { useCallback, useMemo } from 'react'
@@ -41,12 +41,18 @@ export const CountryListRouter = ({
     requestLinkData,
     inputTitle,
 }: ICountryListRouterViewProps) => {
-    const { setFlowStep: setClaimBankFlowStep, setSelectedCountry } = useClaimBankFlow()
+    const {
+        setFlowStep: setClaimBankFlowStep,
+        setSelectedCountry,
+        setClaimToMercadoPago,
+        setFlowStep,
+    } = useClaimBankFlow()
     const {
         setFlowStep: setRequestFulfilmentBankFlowStep,
         setShowRequestFulfilmentBankFlowManager,
         setSelectedCountry: setSelectedCountryForRequest,
         setShowVerificationModal,
+        setFulfillUsingManteca,
     } = useRequestFulfillmentFlow()
     const savedAccounts = useSavedAccounts()
     const { chargeDetails } = usePaymentStore()
@@ -54,12 +60,21 @@ export const CountryListRouter = ({
     const { user } = useAuth()
 
     const handleCountryClick = (country: CountryData) => {
+        const isMantecaSupportedCountry = Object.keys(MantecaSupportedExchanges).includes(country.id)
         if (flow === 'claim') {
             setSelectedCountry(country)
-            setClaimBankFlowStep(ClaimBankFlowStep.BankDetailsForm)
+            if (isMantecaSupportedCountry) {
+                setFlowStep(null) // reset the flow step to initial view first
+                setClaimToMercadoPago(true)
+            } else {
+                setClaimBankFlowStep(ClaimBankFlowStep.BankDetailsForm)
+            }
         } else if (flow === 'request') {
+            if (isMantecaSupportedCountry) {
+                setShowRequestFulfilmentBankFlowManager(false)
+                setFulfillUsingManteca(true)
+            }
             setSelectedCountryForRequest(country)
-
             if (requestType === BankRequestType.PayerKycNeeded) {
                 if (user && (!user.user.fullName || !user.user.email)) {
                     setRequestFulfilmentBankFlowStep(RequestFulfillmentBankFlowStep.CollectUserDetails)

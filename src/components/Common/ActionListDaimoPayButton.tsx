@@ -51,7 +51,7 @@ const ActionListDaimoPayButton = () => {
                 ? {
                       code: currencyCode,
                       symbol: currencySymbol || '',
-                      price: currencyPrice || 0,
+                      price: currencyPrice?.buy || 0,
                   }
                 : undefined,
             currencyAmount: usdAmount,

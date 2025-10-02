@@ -5,11 +5,16 @@ import { TransactionDetailsDrawer } from '@/components/TransactionDetails/Transa
 import { TransactionDirection } from '@/components/TransactionDetails/TransactionDetailsHeaderCard'
 import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
-import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
-import { formatNumberForDisplay, printableAddress } from '@/utils'
-import { getDisplayCurrencySymbol } from '@/utils/currency'
+import {
+    formatNumberForDisplay,
+    formatCurrency,
+    printableAddress,
+    getAvatarUrl,
+    getTransactionSign,
+    isStableCoin,
+    shortenStringLong,
+} from '@/utils'
 import React from 'react'
-import { STABLE_COINS } from '@/constants'
 import Image from 'next/image'
 import StatusPill, { StatusPillType } from '../Global/StatusPill'
 import { VerifiedUserLabel } from '../UserHeader'
@@ -27,6 +32,7 @@ export type TransactionType =
     | 'bank_request_fulfillment'
     | 'claim_external'
     | 'bank_claim'
+    | 'pay'
 
 interface TransactionCardProps {
     type: TransactionType
@@ -66,79 +72,26 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
 
     const isLinkTx = transaction.extraDataForDrawer?.isLinkTransaction ?? false
     const userNameForAvatar = transaction.fullName || transaction.userName
-    const avatarUrl = transaction.extraDataForDrawer?.rewardData?.avatarUrl
-
-    let finalDisplayAmount = ''
-    const actualCurrencyCode = transaction.currency?.code
-    const defaultDisplayDecimals = actualCurrencyCode === 'JPY' ? 0 : 2 // JPY has 0, others default to 2
-
-    // Special handling for bank_deposit transactions with non-USD currency
-    if (
-        (type === 'bank_deposit' || type === 'bank_request_fulfillment') &&
-        actualCurrencyCode &&
-        actualCurrencyCode.toUpperCase() !== 'USD'
-    ) {
-        const isCompleted = transaction.status === 'completed'
-
-        if (isCompleted) {
-            // For completed transactions: show USD amount (amount is already in USD)
-            finalDisplayAmount = `$${formatNumberForDisplay(Math.abs(amount).toString(), { maxDecimals: defaultDisplayDecimals })}`
-        } else {
-            // For non-completed transactions: show original currency
-            const currencyAmount = transaction.currency?.amount || amount.toString()
-            const currencySymbol = getDisplayCurrencySymbol(actualCurrencyCode.toUpperCase())
-            finalDisplayAmount = `${currencySymbol}${formatNumberForDisplay(currencyAmount, { maxDecimals: defaultDisplayDecimals })}`
-        }
-    } else if (actualCurrencyCode === 'ARS' && transaction.currency?.amount) {
-        let arsSign = ''
-        const originalType = transaction.extraDataForDrawer?.originalType as EHistoryEntryType | undefined
-        const originalUserRole = transaction.extraDataForDrawer?.originalUserRole as EHistoryUserRole | undefined
-
-        if (
-            originalUserRole === EHistoryUserRole.SENDER &&
-            (originalType === EHistoryEntryType.SEND_LINK ||
-                originalType === EHistoryEntryType.DIRECT_SEND ||
-                originalType === EHistoryEntryType.CASHOUT)
-        ) {
-            arsSign = '-'
-        } else if (
-            originalUserRole === EHistoryUserRole.RECIPIENT &&
-            (originalType === EHistoryEntryType.DEPOSIT ||
-                originalType === EHistoryEntryType.SEND_LINK ||
-                originalType === EHistoryEntryType.DIRECT_SEND)
-        ) {
-            arsSign = '+'
-        }
-        finalDisplayAmount = `${arsSign}${getDisplayCurrencySymbol('ARS')}${formatNumberForDisplay(transaction.currency.amount, { maxDecimals: defaultDisplayDecimals })}`
+    const avatarUrl = getAvatarUrl(transaction)
+    let displayName = name
+    if (isAddress(displayName)) {
+        displayName = printableAddress(displayName)
+    } else if (type === 'pay' && displayName.length > 19) {
+        displayName = shortenStringLong(displayName, 0, 16)
     }
-    // keep currency as $ because we will always receive in USDC
-    else if (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.DEPOSIT) {
-        finalDisplayAmount = `+$${formatNumberForDisplay(Math.abs(amount).toString(), { maxDecimals: defaultDisplayDecimals })}`
-    } else {
-        const isStableCoin = transaction.tokenSymbol && STABLE_COINS.includes(transaction.tokenSymbol)
-        const displaySymbol =
-            transaction.tokenSymbol && !isStableCoin && !actualCurrencyCode // If it's a token amount not a fiat currency
-                ? '' // No currency symbol prefix for tokens like ETH, BNB, just the amount and then tokenSymbol
-                : transaction.currencySymbol || getDisplayCurrencySymbol(actualCurrencyCode) // Use provided sign+symbol or derive symbol
 
-        let amountString = Math.abs(amount).toString()
-        if (transaction.currency?.code === 'USD' && isStableCoin) {
-            amountString = transaction.currency?.amount
-        }
-        // If it's a token and not USD/ARS, transaction.tokenSymbol should be displayed after amount.
-        // And `displayDecimals` might need to come from token itself if available, else default.
-        const decimalsForDisplay = actualCurrencyCode // If it's a known currency (USD, ARS)
-            ? defaultDisplayDecimals
-            : transaction.extraDataForDrawer?.originalType === EHistoryEntryType.SEND_LINK // Example: check token specific decimals if available
-              ? ((transaction.extraDataForDrawer as any)?.tokenDecimalsForDisplay ?? 6) // Fallback to 6 for tokens
-              : 6 // General fallback for other tokens
+    const sign = getTransactionSign(transaction)
+    let usdAmount = amount
+    if (!isStableCoin(transaction.tokenSymbol ?? 'USDC')) {
+        usdAmount = Number(transaction.currency?.amount ?? amount)
+    }
+    const formattedAmount = formatCurrency(Math.abs(usdAmount).toString())
+    const displayAmount = `${sign}$${formattedAmount}`
 
-        finalDisplayAmount = `${displaySymbol}${formatNumberForDisplay(amountString, { maxDecimals: decimalsForDisplay })}`
-        if (!isStableCoin && !actualCurrencyCode) {
-            // Append token symbol if it's a token transaction
-
-            finalDisplayAmount = `${displaySymbol}${finalDisplayAmount} ${transaction.tokenSymbol}`
-        }
+    let currencyDisplayAmount: string | undefined
+    if (transaction.currency && transaction.currency.code !== 'USD') {
+        const formattedCurrencyAmount = formatNumberForDisplay(transaction.currency.amount, { maxDecimals: 2 })
+        currencyDisplayAmount = `≈ ${transaction.currency.code} ${formattedCurrencyAmount}`
     }
 
     return (
@@ -149,15 +102,11 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                     <div className="flex items-center gap-3">
                         {/* txn avatar component handles icon/initials/colors */}
                         {avatarUrl ? (
-                            <div
-                                className={
-                                    'relative flex h-12 w-12 items-center justify-center rounded-full border border-black bg-white py-2.5 pl-3.5 pr-0.5'
-                                }
-                            >
+                            <div className={'relative flex h-12 w-12 items-center justify-center rounded-full'}>
                                 <Image
                                     src={avatarUrl}
                                     alt="Icon"
-                                    className="size-6 object-contain"
+                                    className="size-12 object-contain"
                                     width={30}
                                     height={30}
                                 />
@@ -181,23 +130,26 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                 {isPending && <div className="h-2 w-2 animate-pulsate rounded-full bg-primary-1" />}
                                 <div className="min-w-0 flex-1 truncate font-roboto text-[16px] font-medium">
                                     <VerifiedUserLabel
-                                        name={isAddress(name) ? printableAddress(name) : name}
+                                        name={displayName}
                                         isVerified={transaction.isVerified}
                                         haveSentMoneyToUser={haveSentMoneyToUser}
                                     />
                                 </div>
                             </div>
                             {/* display the action icon and type text */}
-                            <div className="flex items-center gap-1 text-gray-500">
+                            <div className="flex items-center gap-1 text-sm font-medium text-gray-1">
                                 {getActionIcon(type, transaction.direction)}
-                                <span className="text-[14px] capitalize">{getActionText(type)}</span>
+                                <span className="capitalize">{getActionText(type)}</span>
                             </div>
                         </div>
                     </div>
 
                     {/* amount and status on the right side */}
-                    <div className="flex flex-col items-end space-y-1">
-                        <span className="font-roboto text-[16px] font-medium">{finalDisplayAmount}</span>
+                    <div className="flex flex-col items-end">
+                        <span className="font-semibold">{displayAmount}</span>
+                        {currencyDisplayAmount && (
+                            <span className="text-sm font-medium text-gray-1">{currencyDisplayAmount}</span>
+                        )}
                     </div>
                 </div>
             </Card>
@@ -207,7 +159,8 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                 isOpen={isDrawerOpen && selectedTransaction?.id === transaction.id}
                 onClose={closeTransactionDetails}
                 transaction={selectedTransaction}
-                transactionAmount={finalDisplayAmount}
+                transactionAmount={displayAmount}
+                avatarUrl={avatarUrl}
             />
         </>
     )
@@ -237,6 +190,7 @@ function getActionIcon(type: TransactionType, direction: TransactionDirection): 
         case 'cashout':
         case 'claim_external':
         case 'bank_claim':
+        case 'pay':
             iconName = 'arrow-up'
             iconSize = 8
             break

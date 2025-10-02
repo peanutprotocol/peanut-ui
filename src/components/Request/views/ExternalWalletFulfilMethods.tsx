@@ -23,7 +23,7 @@ const methods: PaymentMethod[] = [
 ]
 
 export default function ExternalWalletFulfilMethods({ onBack }: { onBack: () => void }) {
-    const { setExternalWalletFulfilMethod } = useRequestFulfillmentFlow()
+    const { setExternalWalletFulfillMethod } = useRequestFulfillmentFlow()
 
     return (
         <div className="flex h-full min-h-[inherit] w-full flex-1 flex-col justify-start gap-4">
@@ -35,7 +35,7 @@ export default function ExternalWalletFulfilMethods({ onBack }: { onBack: () => 
                         key={method.id}
                         method={method}
                         onClick={() => {
-                            setExternalWalletFulfilMethod(method.id as ExternalWalletFulfilMethod)
+                            setExternalWalletFulfillMethod(method.id as ExternalWalletFulfilMethod)
                         }}
                     />
                 ))}

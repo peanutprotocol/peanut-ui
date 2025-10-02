@@ -8,15 +8,14 @@ import ProfileHeader from './components/ProfileHeader'
 import ProfileMenuItem from './components/ProfileMenuItem'
 import { useRouter } from 'next/navigation'
 import { checkIfInternalNavigation } from '@/utils'
-import ActionModal from '../Global/ActionModal'
-import { useState } from 'react'
+import useKycStatus from '@/hooks/useKycStatus'
 import Card from '../Global/Card'
 import ShowNameToggle from './components/ShowNameToggle'
 
 export const Profile = () => {
     const { logoutUser, isLoggingOut, user } = useAuth()
-    const [isKycApprovedModalOpen, setIsKycApprovedModalOpen] = useState(false)
     const router = useRouter()
+    const { isUserKycApproved } = useKycStatus()
 
     const logout = async () => {
         await logoutUser()
@@ -24,8 +23,6 @@ export const Profile = () => {
 
     const fullName = user?.user.fullName || user?.user?.username || 'Anonymous User'
     const username = user?.user.username || 'anonymous'
-
-    const isKycApproved = user?.user.bridgeKycStatus === 'approved'
 
     return (
         <div className="h-full w-full bg-background">
@@ -43,7 +40,7 @@ export const Profile = () => {
                 }}
             />
             <div className="space-y-8">
-                <ProfileHeader name={fullName || username} username={username} isVerified={isKycApproved} />
+                <ProfileHeader name={fullName || username} username={username} isVerified={isUserKycApproved} />
                 <div className="space-y-4">
                     {/* Menu Item - Invite Entry */}
                     {/* Enable with Invites project. */}
@@ -62,15 +59,11 @@ export const Profile = () => {
                             label="Identity Verification"
                             href="/profile/identity-verification"
                             onClick={() => {
-                                if (isKycApproved) {
-                                    setIsKycApprovedModalOpen(true)
-                                } else {
-                                    router.push('/profile/identity-verification')
-                                }
+                                router.push('/profile/identity-verification')
                             }}
                             position="middle"
-                            endIcon={isKycApproved ? 'check' : undefined}
-                            endIconClassName={isKycApproved ? 'text-success-3 size-4' : undefined}
+                            endIcon={isUserKycApproved ? 'check' : undefined}
+                            endIconClassName={isUserKycApproved ? 'text-success-3 size-4' : undefined}
                             showTooltip
                             toolTipText="No need to verify unless you want to move money to or from your bank."
                         />
@@ -123,22 +116,6 @@ export const Profile = () => {
                     </div>
                 </div>
             </div>
-
-            <ActionModal
-                visible={isKycApprovedModalOpen}
-                onClose={() => setIsKycApprovedModalOpen(false)}
-                title="You’re already verified"
-                description="Your identity has already been successfully verified. No further action is needed."
-                icon="shield"
-                ctas={[
-                    {
-                        text: 'Go back',
-                        shadowSize: '4',
-                        className: 'md:py-2',
-                        onClick: () => setIsKycApprovedModalOpen(false),
-                    },
-                ]}
-            />
         </div>
     )
 }

@@ -26,7 +26,6 @@ const publicPathRegex = /^\/(request\/pay|claim|pay\/.+$|support)/
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     const pathName = usePathname()
-    const router = useRouter()
     const { isFetchingUser, user } = useAuth()
     const [isReady, setIsReady] = useState(false)
     const [hasToken, setHasToken] = useState(false)
@@ -36,6 +35,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const isHistory = pathName === '/history'
     const isSupport = pathName === '/support'
     const alignStart = isHome || isHistory || isSupport
+    const router = useRouter()
 
     useEffect(() => {
         // check for JWT token

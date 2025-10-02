@@ -45,6 +45,8 @@ import { Button } from '@/components/0_Bruddle'
 import Image from 'next/image'
 import { PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
 import { GuestVerificationModal } from '@/components/Global/GuestVerificationModal'
+import useKycStatus from '@/hooks/useKycStatus'
+import MantecaFlowManager from './MantecaFlowManager'
 
 export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     const {
@@ -85,6 +87,8 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         setShowVerificationModal,
         setClaimToExternalWallet,
         resetFlow: resetClaimBankFlow,
+        claimToMercadoPago,
+        setClaimToMercadoPago,
     } = useClaimBankFlow()
     const { setLoadingState, isLoading } = useContext(loadingStateContext)
     const {
@@ -105,6 +109,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     const searchParams = useSearchParams()
     const prevRecipientType = useRef<string | null>(null)
     const prevUser = useRef(user)
+    const { isUserBridgeKycApproved } = useKycStatus()
 
     useEffect(() => {
         if (!prevUser.current && user) {
@@ -318,7 +323,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     recipient: recipient.name ?? recipient.address,
                     password: '',
                 })
-                if (user?.user.bridgeKycStatus === 'approved') {
+                if (isUserBridgeKycApproved) {
                     const account = user.accounts.find(
                         (account) =>
                             account.identifier.replaceAll(/\s/g, '').toLowerCase() ===
@@ -615,14 +620,34 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
 
     useEffect(() => {
         const stepFromURL = searchParams.get('step')
-        if (user && claimLinkData.status !== 'CLAIMED' && stepFromURL === 'claim' && isPeanutWallet) {
+        if (user && claimLinkData.status !== 'CLAIMED') {
             removeParamStep()
-            handleClaimLink(false, true)
+            if (stepFromURL === 'claim' && isPeanutWallet) {
+                handleClaimLink(false, true)
+            } else if (stepFromURL === 'regional-claim') {
+                setClaimToMercadoPago(true)
+            }
         }
     }, [user, searchParams, isPeanutWallet])
 
     if (claimBankFlowStep) {
         return <BankFlowManager {...props} />
+    }
+
+    if (claimToMercadoPago) {
+        return (
+            <MantecaFlowManager
+                claimLinkData={claimLinkData}
+                attachment={attachment}
+                amount={
+                    isReward
+                        ? formatTokenAmount(Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)))!
+                        : (formatTokenAmount(
+                              Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)) * tokenPrice
+                          ) ?? '')
+                }
+            />
+        )
     }
 
     return (

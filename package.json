@@ -140,7 +140,8 @@
             "^@/(.*)$": "<rootDir>/src/$1",
             "^wagmi/chains$": "<rootDir>/src/utils/__mocks__/wagmi.ts",
             "^@squirrel-labs/peanut-sdk$": "<rootDir>/src/utils/__mocks__/peanut-sdk.ts",
-            "^next/cache$": "<rootDir>/src/utils/__mocks__/next-cache.ts"
+            "^next/cache$": "<rootDir>/src/utils/__mocks__/next-cache.ts",
+            "\\.(svg|png|jpg|jpeg|gif)$": "jest-transform-stub"
         },
         "setupFilesAfterEnv": [
             "<rootDir>/jest.setup.ts"

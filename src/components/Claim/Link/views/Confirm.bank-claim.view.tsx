@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle'
-import { countryCodeMap } from '@/components/AddMoney/consts'
+import { ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
 import Card from '@/components/Global/Card'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
@@ -50,7 +50,7 @@ export function ConfirmBankClaimView({
     }, [bankDetails])
 
     const countryCodeForFlag = useMemo(() => {
-        return countryCodeMap[bankDetails?.country?.toUpperCase()] ?? bankDetails.country.toUpperCase()
+        return ALL_COUNTRIES_ALPHA3_TO_ALPHA2[bankDetails?.country?.toUpperCase()] ?? bankDetails.country.toUpperCase()
     }, [bankDetails.country])
 
     // amount in USD from claim link data
