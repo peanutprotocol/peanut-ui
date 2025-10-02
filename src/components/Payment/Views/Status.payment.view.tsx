@@ -25,6 +25,7 @@ import { useRouter } from 'next/navigation'
 import { ReactNode, useEffect, useMemo } from 'react'
 import { useDispatch } from 'react-redux'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
+import { shootDoubleStarConfetti } from '@/utils/confetti'
 
 type DirectSuccessViewProps = {
     user?: ApiUser
@@ -165,6 +166,12 @@ const DirectSuccessView = ({
         // invalidate queries to refetch history
         queryClient?.invalidateQueries({ queryKey: [TRANSACTIONS] })
     }, [queryClient])
+
+    useEffect(() => {
+        if (points) {
+            shootDoubleStarConfetti({ origin: { x: 0.5, y: 0.6 } })
+        }
+    }, [points])
 
     const handleDone = () => {
         onComplete?.()

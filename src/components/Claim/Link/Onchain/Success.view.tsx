@@ -1,3 +1,4 @@
+'use client'
 import { Button } from '@/components/0_Bruddle'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
@@ -20,6 +21,7 @@ import CreateAccountButton from '@/components/Global/CreateAccountButton'
 import { pointsApi } from '@/services/points'
 import { PointsAction } from '@/services/services.types'
 import PeanutLoading from '@/components/Global/PeanutLoading'
+import { shootDoubleStarConfetti } from '@/utils/confetti'
 
 export const SuccessClaimLinkView = ({
     transactionHash,
@@ -138,6 +140,10 @@ export const SuccessClaimLinkView = ({
             : `from ${claimLinkData.sender?.username || printableAddress(claimLinkData.senderAddress)}`,
         title: isBankClaim ? 'You will receive' : 'You claimed',
     }
+
+    useEffect(() => {
+        shootDoubleStarConfetti({ origin: { x: 0.5, y: 0.6 } })
+    }, [])
 
     const renderButtons = () => {
         if (authUser?.user.userId) {
