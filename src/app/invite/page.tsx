@@ -52,7 +52,6 @@ export async function generateMetadata({
         if (!siteUrl) {
             console.error('Error: Unable to determine site origin')
         } else {
-            console.log('ogUrl', ogUrl.toString())
             ogImageUrl = ogUrl.toString()
         }
     }

@@ -71,8 +71,6 @@ export async function GET(req: NextRequest) {
     const isPeanutUsername = searchParams.get('isPeanutUsername') || 'false'
     const isInvite = searchParams.get('isInvite') || 'false'
 
-    console.log(isInvite, 'isInvite')
-
     // create an object with all arrow SVG paths
     const arrowSrcs = {
         topLeft: `${origin}/arrows/top-left-arrows.svg`,
