@@ -10,6 +10,7 @@ import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { formatAmount } from '@/utils'
+import { getCountryFromAccount } from '@/utils/bridge.utils'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState, useRef, useContext } from 'react'
 import { formatUnits } from 'viem'
@@ -27,12 +28,12 @@ export default function WithdrawPage() {
         error,
         setUsdAmount,
         selectedMethod,
+        selectedBankAccount,
         setSelectedMethod,
         setShowAllWithdrawMethods,
     } = useWithdrawFlow()
 
-    // FIXED FLOW: Only crypto gets amount input on main page, countries route directly
-    const initialStep: WithdrawStep = selectedMethod ? 'inputAmount' : 'selectMethod'
+    const initialStep: WithdrawStep = selectedMethod || selectedBankAccount ? 'inputAmount' : 'selectMethod'
 
     const [step, setStep] = useState<WithdrawStep>(initialStep)
 
@@ -179,7 +180,14 @@ export default function WithdrawPage() {
             setUsdAmount(usdVal.toString())
 
             // Route based on selected method type
-            if (selectedMethod.type === 'crypto') {
+            if (selectedBankAccount) {
+                const country = getCountryFromAccount(selectedBankAccount)
+                if (country) {
+                    router.push(`/withdraw/${country.path}/bank`)
+                } else {
+                    throw new Error('Failed to get country from bank account')
+                }
+            } else if (selectedMethod.type === 'crypto') {
                 router.push('/withdraw/crypto')
             } else if (selectedMethod.type === 'manteca') {
                 // Route directly to Manteca with method and country params
