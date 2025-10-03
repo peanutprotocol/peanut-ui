@@ -7,13 +7,16 @@ import { useAuth } from '@/context/authContext'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useUserStore } from '@/redux/hooks'
 import { ESendLinkStatus, sendLinksApi } from '@/services/sendLinks'
-import { formatTokenAmount, getTokenDetails, printableAddress, shortenAddressLong } from '@/utils'
+import { formatTokenAmount, getTokenDetails, printableAddress, shortenStringLong } from '@/utils'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo } from 'react'
 import type { Hash } from 'viem'
 import { formatUnits } from 'viem'
 import * as _consts from '../../Claim.consts'
+import Image from 'next/image'
+import { PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
+import CreateAccountButton from '@/components/Global/CreateAccountButton'
 
 export const SuccessClaimLinkView = ({
     transactionHash,
@@ -78,13 +81,13 @@ export const SuccessClaimLinkView = ({
 
     const maskedAccountNumber = useMemo(() => {
         if (bankDetails?.iban) {
-            return `to ${shortenAddressLong(bankDetails.iban)}`
+            return `to ${shortenStringLong(bankDetails.iban)}`
         }
         if (bankDetails?.clabe) {
-            return `to ${shortenAddressLong(bankDetails.clabe)}`
+            return `to ${shortenStringLong(bankDetails.clabe)}`
         }
         if (bankDetails?.accountNumber) {
-            return `to ${shortenAddressLong(bankDetails.accountNumber)}`
+            return `to ${shortenStringLong(bankDetails.accountNumber)}`
         }
         return 'to your bank account'
     }, [bankDetails])
@@ -129,11 +132,7 @@ export const SuccessClaimLinkView = ({
                 </Button>
             )
         }
-        return (
-            <Button icon="user-plus" onClick={() => router.push('/setup')} shadowSize="4">
-                Create Account
-            </Button>
-        )
+        return <CreateAccountButton onClick={() => router.push('/setup')} />
     }
 
     return (

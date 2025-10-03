@@ -1,14 +1,5 @@
 import * as consts from '@/constants'
-import {
-    PEANUT_WALLET_SUPPORTED_TOKENS,
-    PINTA_WALLET_CHAIN,
-    PINTA_WALLET_TOKEN,
-    PINTA_WALLET_TOKEN_DECIMALS,
-    PINTA_WALLET_TOKEN_NAME,
-    PINTA_WALLET_TOKEN_SYMBOL,
-    STABLE_COINS,
-    USER_OPERATION_REVERT_REASON_TOPIC,
-} from '@/constants'
+import { PEANUT_WALLET_SUPPORTED_TOKENS, STABLE_COINS, USER_OPERATION_REVERT_REASON_TOPIC } from '@/constants'
 import * as interfaces from '@/interfaces'
 import { AccountType } from '@/interfaces'
 import * as Sentry from '@sentry/nextjs'
@@ -48,28 +39,23 @@ export const shortenAddress = (address?: string, chars?: number) => {
     return firstBit + '...'
 }
 
-export const shortenAddressLong = (
-    address?: string,
-    chars?: number,
-    firstChars?: number,
-    lastChars?: number
-): string => {
-    if (!address) return ''
+export const shortenStringLong = (s?: string, chars?: number, firstChars?: number, lastChars?: number): string => {
+    if (!s) return ''
 
     // Default values
-    const defaultChars = chars || 6
-    const firstBitLength = firstChars || defaultChars
-    const lastBitLength = lastChars || defaultChars
+    const defaultChars = chars ?? 6
+    const firstBitLength = firstChars ?? defaultChars
+    const lastBitLength = lastChars ?? defaultChars
 
-    const firstBit = address.substring(0, firstBitLength)
-    const endingBit = address.substring(address.length - lastBitLength, address.length)
+    const firstBit = s.substring(0, firstBitLength)
+    const endingBit = s.substring(s.length - lastBitLength, s.length)
 
     return firstBit + '...' + endingBit
 }
 
 export const printableAddress = (address: string, firstCharsLen?: number, lastCharsLen?: number): string => {
     if (!isAddress(address)) return address
-    return shortenAddressLong(address, undefined, firstCharsLen, lastCharsLen)
+    return shortenStringLong(address, undefined, firstCharsLen, lastCharsLen)
 }
 
 /**
@@ -345,7 +331,10 @@ export function formatAmountWithDecimals({ amount, decimals }: { amount: number;
 // The caller is responsible for prepending the correct currency symbol.
 // @dev todo: For true internationalization of read-only amounts, consider a dedicated service or util
 // that uses specific locales (e.g., 'es-AR' for '1.234,56'). This function standardizes on en-US for parsable input display.
-export const formatNumberForDisplay = (valueStr: string | undefined, options?: { maxDecimals?: number }): string => {
+export const formatNumberForDisplay = (
+    valueStr: string | undefined,
+    options?: { maxDecimals?: number; minDecimals?: number }
+): string => {
     if (valueStr === undefined || valueStr === null || valueStr.trim() === '') return ''
 
     // Preserve the original string if it just ends with a decimal or is just a decimal for intermediate input.
@@ -371,7 +360,7 @@ export const formatNumberForDisplay = (valueStr: string | undefined, options?: {
     if (isNaN(num)) return ''
 
     const maxDecimals = options?.maxDecimals ?? 0 // Default to 0 if not specified, to avoid .00 for whole numbers
-    let minDecimals = 0
+    let minDecimals = options?.minDecimals ?? 0
     const parts = valueStr.split('.')
 
     if (parts.length === 2 && parts[1].length > 0) {
@@ -386,7 +375,12 @@ export const formatNumberForDisplay = (valueStr: string | undefined, options?: {
     return num.toLocaleString('en-US', {
         minimumFractionDigits: minDecimals,
         maximumFractionDigits: maxDecimals,
+        roundingMode: 'trunc',
     })
+}
+
+export function formatCurrency(valueStr: string | undefined): string {
+    return formatNumberForDisplay(valueStr, { maxDecimals: 2, minDecimals: 2 })
 }
 
 /**
@@ -807,17 +801,20 @@ export type UserPreferences = {
     isPwaInstalled?: boolean
 }
 
-export const updateUserPreferences = (partialPrefs: Partial<UserPreferences>): UserPreferences | undefined => {
+export const updateUserPreferences = (
+    userId: string,
+    partialPrefs: Partial<UserPreferences>
+): UserPreferences | undefined => {
     try {
         if (typeof localStorage === 'undefined') return
 
-        const currentPrefs = getUserPreferences() || {}
+        const currentPrefs = getUserPreferences(userId) || {}
         const newPrefs: UserPreferences = {
             ...currentPrefs,
             ...partialPrefs,
         }
 
-        localStorage.setItem('user-preferences', JSON.stringify(newPrefs))
+        localStorage.setItem(`${userId}:user-preferences`, JSON.stringify(newPrefs))
         return newPrefs
     } catch (error) {
         Sentry.captureException(error)
@@ -825,11 +822,11 @@ export const updateUserPreferences = (partialPrefs: Partial<UserPreferences>): U
     }
 }
 
-export const getUserPreferences = (): UserPreferences | undefined => {
+export const getUserPreferences = (userId: string): UserPreferences | undefined => {
     try {
         if (typeof localStorage === 'undefined') return
 
-        const storedData = localStorage.getItem('user-preferences')
+        const storedData = localStorage.getItem(`${userId}:user-preferences`)
         if (!storedData) return undefined
 
         return JSON.parse(storedData) as UserPreferences
@@ -1011,13 +1008,6 @@ export function getTokenDetails({ tokenAddress, chainId }: { tokenAddress: Addre
           decimals: number
       }
     | undefined {
-    if (chainId === PINTA_WALLET_CHAIN.id.toString() && areEvmAddressesEqual(tokenAddress, PINTA_WALLET_TOKEN)) {
-        return {
-            symbol: PINTA_WALLET_TOKEN_SYMBOL,
-            name: PINTA_WALLET_TOKEN_NAME,
-            decimals: PINTA_WALLET_TOKEN_DECIMALS,
-        }
-    }
     const chainTokens = consts.peanutTokenDetails.find((c) => c.chainId === chainId)?.tokens
     if (!chainTokens) return undefined
     const tokenDetails = chainTokens.find((token) => areEvmAddressesEqual(token.address, tokenAddress))
@@ -1185,9 +1175,6 @@ export function getRequestLink(
 
 // for now it works
 export function getTokenLogo(tokenSymbol: string): string {
-    if (tokenSymbol.toLowerCase() === 'pnt') {
-        return 'https://polygonscan.com/token/images/pintatoken_32.png'
-    }
     return `https://raw.githubusercontent.com/0xsquid/assets/main/images/tokens/${tokenSymbol.toLowerCase()}.svg`
 }
 
@@ -1213,7 +1200,32 @@ export function isStableCoin(tokenSymbol: string): boolean {
 
 export const saveRedirectUrl = () => {
     const currentUrl = new URL(window.location.href)
-    saveToLocalStorage('redirect', `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`)
+    const relativeUrl = currentUrl.href.replace(currentUrl.origin, '')
+    saveToLocalStorage('redirect', relativeUrl)
+}
+
+export const getRedirectUrl = () => {
+    return getFromLocalStorage('redirect')
+}
+
+export const clearRedirectUrl = () => {
+    if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem('redirect')
+    }
+}
+
+export const sanitizeRedirectURL = (redirectUrl: string): string => {
+    try {
+        const u = new URL(redirectUrl, window.location.origin)
+        if (u.origin === window.location.origin) {
+            return u.pathname + u.search + u.hash
+        }
+    } catch {
+        if (redirectUrl.startsWith('/')) {
+            return redirectUrl
+        }
+    }
+    return redirectUrl
 }
 
 export const formatPaymentStatus = (status: string): string => {

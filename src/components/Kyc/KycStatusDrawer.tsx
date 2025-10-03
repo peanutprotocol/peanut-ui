@@ -4,59 +4,81 @@ import { KycFailed } from './states/KycFailed'
 import { KycProcessing } from './states/KycProcessing'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { Drawer, DrawerContent } from '../Global/Drawer'
-import { KYCStatus } from '@/utils'
+import { BridgeKycStatus } from '@/utils'
 import { getKycDetails } from '@/app/actions/users'
-import { useKycFlow } from '@/hooks/useKycFlow'
-import IFrameWrapper from '../Global/IframeWrapper'
+import { IUserKycVerification, MantecaKycStatus } from '@/interfaces'
+import { useUserStore } from '@/redux/hooks'
+import { useBridgeKycFlow } from '@/hooks/useBridgeKycFlow'
+import { useMantecaKycFlow } from '@/hooks/useMantecaKycFlow'
+import { CountryData, countryData } from '@/components/AddMoney/consts'
+import IFrameWrapper from '@/components/Global/IframeWrapper'
 
 // a helper to categorize the kyc status from the user object
-const getKycStatusCategory = (kycStatus: KYCStatus): 'processing' | 'completed' | 'failed' => {
-    let category: 'processing' | 'completed' | 'failed'
-    switch (kycStatus) {
-        // note: not_started status is handled explicitly in KycStatusItem component
+const getKycStatusCategory = (status: BridgeKycStatus | MantecaKycStatus): 'processing' | 'completed' | 'failed' => {
+    switch (status) {
         case 'approved':
-            category = 'completed'
-            break
+        case MantecaKycStatus.ACTIVE:
+            return 'completed'
         case 'rejected':
-            category = 'failed'
-            break
+        case MantecaKycStatus.INACTIVE:
+            return 'failed'
         case 'under_review':
         case 'incomplete':
+        case MantecaKycStatus.ONBOARDING:
         default:
-            category = 'processing'
-            break
+            return 'processing'
     }
-    return category
 }
 
 interface KycStatusDrawerProps {
     isOpen: boolean
     onClose: () => void
-    kycStatus: KYCStatus
-    kycStartedAt?: string
-    kycApprovedAt?: string
-    kycRejectedAt?: string
+    verification?: IUserKycVerification
+    bridgeKycStatus?: BridgeKycStatus
 }
 
 // this component determines which kyc state to show inside the drawer and fetches rejection reasons if the kyc has failed.
-export const KycStatusDrawer = ({
-    isOpen,
-    onClose,
-    kycStatus,
-    kycStartedAt,
-    kycApprovedAt,
-    kycRejectedAt,
-}: KycStatusDrawerProps) => {
+export const KycStatusDrawer = ({ isOpen, onClose, verification, bridgeKycStatus }: KycStatusDrawerProps) => {
     const [rejectionReason, setRejectionReason] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(false)
-    const {
-        handleInitiateKyc,
-        iframeOptions,
-        handleIframeClose,
-        isLoading: isKycFlowLoading,
-    } = useKycFlow({ onKycSuccess: onClose })
+    const { user } = useUserStore()
 
-    const statusCategory = getKycStatusCategory(kycStatus)
+    const status = verification ? verification.status : bridgeKycStatus
+    const statusCategory = status ? getKycStatusCategory(status) : undefined
+    const countryCode = verification ? verification.mantecaGeo || verification.bridgeGeo : null
+    const isBridgeKyc = !verification && !!bridgeKycStatus
+    const provider = verification ? verification.provider : 'BRIDGE'
+
+    const {
+        handleInitiateKyc: initiateBridgeKyc,
+        iframeOptions: bridgeIframeOptions,
+        handleIframeClose: handleBridgeIframeClose,
+        isLoading: isBridgeLoading,
+    } = useBridgeKycFlow({ onKycSuccess: onClose, onManualClose: onClose })
+
+    const country = countryCode ? countryData.find((c) => c.id.toUpperCase() === countryCode.toUpperCase()) : undefined
+
+    const {
+        openMantecaKyc,
+        iframeOptions: mantecaIframeOptions,
+        handleIframeClose: handleMantecaIframeClose,
+        isLoading: isMantecaLoading,
+    } = useMantecaKycFlow({
+        onSuccess: onClose,
+        onClose: onClose,
+        onManualClose: onClose,
+        country: country as CountryData,
+    })
+
+    const onRetry = async () => {
+        if (provider === 'MANTECA') {
+            await openMantecaKyc(country as CountryData)
+        } else {
+            await initiateBridgeKyc()
+        }
+    }
+
+    const isLoadingKyc = isBridgeLoading || isMantecaLoading
 
     useEffect(() => {
         // if the drawer is open and the kyc has failed, fetch the reason
@@ -96,32 +118,49 @@ export const KycStatusDrawer = ({
 
         switch (statusCategory) {
             case 'processing':
-                return <KycProcessing kycStartedAt={kycStartedAt} />
+                return (
+                    <KycProcessing
+                        bridgeKycStartedAt={verification?.createdAt ?? user?.user?.bridgeKycStartedAt}
+                        countryCode={countryCode ?? undefined}
+                        isBridge={isBridgeKyc}
+                    />
+                )
             case 'completed':
-                return <KycCompleted kycApprovedAt={kycApprovedAt} />
+                return (
+                    <KycCompleted
+                        bridgeKycApprovedAt={verification?.approvedAt ?? user?.user?.bridgeKycApprovedAt}
+                        countryCode={countryCode ?? undefined}
+                        isBridge={isBridgeKyc}
+                    />
+                )
             case 'failed':
-                return <KycFailed reason={rejectionReason} kycRejectedAt={kycRejectedAt} onRetry={handleInitiateKyc} />
+                return (
+                    <KycFailed
+                        reason={rejectionReason}
+                        bridgeKycRejectedAt={verification?.updatedAt ?? user?.user?.bridgeKycRejectedAt}
+                        countryCode={countryCode ?? undefined}
+                        isBridge={isBridgeKyc}
+                        onRetry={onRetry}
+                        isLoading={isLoadingKyc}
+                    />
+                )
             default:
                 return null
         }
     }
 
     // don't render the drawer if the kyc status is unknown or not started
-    if (kycStatus === 'not_started') {
+    if (status === 'not_started' || !status) {
         return null
     }
 
     return (
         <>
             <Drawer open={isOpen} onOpenChange={onClose}>
-                <DrawerContent className="p-5">{renderContent()}</DrawerContent>
+                <DrawerContent className="p-5 pb-12">{renderContent()}</DrawerContent>
             </Drawer>
-            <IFrameWrapper
-                visible={iframeOptions.visible || isKycFlowLoading}
-                src={iframeOptions.src}
-                onClose={handleIframeClose}
-                closeConfirmMessage={iframeOptions.closeConfirmMessage}
-            />
+            <IFrameWrapper {...bridgeIframeOptions} onClose={handleBridgeIframeClose} />
+            <IFrameWrapper {...mantecaIframeOptions} onClose={handleMantecaIframeClose} />
         </>
     )
 }

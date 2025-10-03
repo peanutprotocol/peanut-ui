@@ -23,6 +23,7 @@ export type TransactionDirection =
     | 'bank_deposit'
     | 'bank_request_fulfillment'
     | 'claim_external'
+    | 'qr_payment'
 
 interface TransactionDetailsHeaderCardProps {
     direction: TransactionDirection
@@ -110,6 +111,15 @@ const getTitle = (
                     titleText = `Claiming to ${displayName}`
                 }
                 break
+            case 'qr_payment':
+                if (status === 'completed') {
+                    titleText = `Paid to ${displayName}`
+                } else if (status === 'failed') {
+                    titleText = `Payment to ${displayName}`
+                } else {
+                    titleText = `Paying to ${displayName}`
+                }
+                break
             default:
                 titleText = displayName
                 break
@@ -127,6 +137,7 @@ const getIcon = (direction: TransactionDirection, isLinkTransaction?: boolean): 
     switch (direction) {
         case 'send':
         case 'bank_request_fulfillment':
+        case 'qr_payment':
             return 'arrow-up-right'
         case 'request_sent':
         case 'receive':
@@ -165,8 +176,14 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
         <Card className="relative p-4 md:p-6" position="single">
             <div className="flex items-center gap-3">
                 {avatarUrl ? (
-                    <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-black py-1 pl-4">
-                        <Image src={avatarUrl} alt="Icon" className="object-contain" width={35} height={35} />
+                    <div className="flex h-16 w-16 items-center justify-center rounded-full">
+                        <Image
+                            src={avatarUrl}
+                            alt="Icon"
+                            className="size-full rounded-full object-cover"
+                            width={160}
+                            height={160}
+                        />
                     </div>
                 ) : (
                     <TransactionAvatarBadge

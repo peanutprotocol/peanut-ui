@@ -9,7 +9,7 @@ import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
 import { useOnrampFlow } from '@/context/OnrampFlowContext'
 import { useRouter, useParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo } from 'react'
-import { countryCodeMap, CountryData, countryData } from '@/components/AddMoney/consts'
+import { ALL_COUNTRIES_ALPHA3_TO_ALPHA2, CountryData, countryData } from '@/components/AddMoney/consts'
 import { formatCurrencyAmount } from '@/utils/currency'
 import { formatBankAccountDisplay } from '@/utils/format.utils'
 import Icon from '@/components/Global/Icon'
@@ -93,7 +93,7 @@ export default function AddMoneyBankDetails({ flow = 'add-money' }: IAddMoneyBan
 
     const countryCodeForFlag = useMemo(() => {
         const countryId = currentCountryDetails?.id || 'USA'
-        const countryCode = countryCodeMap[countryId] || countryId // if countryId is not in countryCodeMap, use countryId because for some countries countryId is of 2 digit and countryCodeMap is a mapping of 3 digit to 2 digit country codes
+        const countryCode = ALL_COUNTRIES_ALPHA3_TO_ALPHA2[countryId] || countryId // if countryId is not in countryCodeMap, use countryId because for some countries countryId is of 2 digit and countryCodeMap is a mapping of 3 digit to 2 digit country codes
         return countryCode?.toLowerCase() || 'us'
     }, [currentCountryDetails])
 

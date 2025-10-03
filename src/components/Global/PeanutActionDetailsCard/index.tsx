@@ -9,7 +9,7 @@ import Attachment from '../Attachment'
 import Card from '../Card'
 import { Icon, IconName } from '../Icons/Icon'
 import RouteExpiryTimer from '../RouteExpiryTimer'
-import Image from 'next/image'
+import Image, { type StaticImageData } from 'next/image'
 import Loading from '../Loading'
 
 export type PeanutActionDetailsCardTransactionType =
@@ -22,6 +22,7 @@ export type PeanutActionDetailsCardTransactionType =
     | 'WITHDRAW'
     | 'WITHDRAW_BANK_ACCOUNT'
     | 'ADD_MONEY_BANK_ACCOUNT'
+    | 'REGIONAL_METHOD_CLAIM'
 
 export type PeanutActionDetailsCardRecipientType = RecipientType | 'BANK_ACCOUNT'
 
@@ -47,6 +48,7 @@ export interface PeanutActionDetailsCardProps {
     disableTimerRefetch?: boolean
     timerError?: string | null
     isLoading?: boolean
+    logo?: StaticImageData
 }
 
 export default function PeanutActionDetailsCard({
@@ -70,6 +72,7 @@ export default function PeanutActionDetailsCard({
     countryCodeForFlag,
     currencySymbol,
     isLoading = false,
+    logo,
 }: PeanutActionDetailsCardProps) {
     const renderRecipient = () => {
         if (recipientType === 'ADDRESS') return printableAddress(recipientName)
@@ -82,7 +85,12 @@ export default function PeanutActionDetailsCard({
         if (transactionType === 'ADD_MONEY' || transactionType === 'CLAIM_LINK_BANK_ACCOUNT') return 'arrow-down'
         if (transactionType === 'REQUEST' || transactionType === 'RECEIVED_LINK') return 'arrow-down-left'
         if (transactionType === 'CLAIM_LINK') return viewType !== 'SUCCESS' ? 'arrow-down' : undefined
-        if (transactionType === 'WITHDRAW' || transactionType === 'WITHDRAW_BANK_ACCOUNT') return 'arrow-up'
+        if (
+            transactionType === 'WITHDRAW' ||
+            transactionType === 'WITHDRAW_BANK_ACCOUNT' ||
+            transactionType === 'REGIONAL_METHOD_CLAIM'
+        )
+            return 'arrow-up'
     }
 
     const getTitle = () => {
@@ -95,7 +103,7 @@ export default function PeanutActionDetailsCard({
             if (viewType === 'SUCCESS') title = `You just claimed`
             else title = `${renderRecipient()} sent you`
         }
-        if (transactionType === 'ADD_MONEY') title = `You're adding`
+        if (transactionType === 'ADD_MONEY' || transactionType === 'ADD_MONEY_BANK_ACCOUNT') title = `You're adding`
         if (transactionType === 'WITHDRAW' || transactionType === 'WITHDRAW_BANK_ACCOUNT') title = `You're withdrawing`
         if (transactionType === 'CLAIM_LINK_BANK_ACCOUNT') {
             if (viewType === 'SUCCESS') {
@@ -104,6 +112,7 @@ export default function PeanutActionDetailsCard({
                 title = `You're about to receive`
             }
         }
+        if (transactionType === 'REGIONAL_METHOD_CLAIM') title = recipientName // Render the string as is for regional method
         return (
             <h1 className="flex items-center gap-2 overflow-hidden text-ellipsis whitespace-nowrap text-base font-normal text-grey-1">
                 {icon && <Icon name={icon} size={10} className="min-w-fit" />} {title}
@@ -156,23 +165,27 @@ export default function PeanutActionDetailsCard({
     const isWithdrawBankAccount = transactionType === 'WITHDRAW_BANK_ACCOUNT' && recipientType === 'BANK_ACCOUNT'
     const isAddBankAccount = transactionType === 'ADD_MONEY_BANK_ACCOUNT'
     const isClaimLinkBankAccount = transactionType === 'CLAIM_LINK_BANK_ACCOUNT' && recipientType === 'BANK_ACCOUNT'
+    const isRegionalMethodClaim = transactionType === 'REGIONAL_METHOD_CLAIM'
 
     const withdrawBankIcon = () => {
-        if (isWithdrawBankAccount || isAddBankAccount || isClaimLinkBankAccount)
+        const imgSrc = logo ? logo : `https://flagcdn.com/w320/${countryCodeForFlag}.png`
+        if (isWithdrawBankAccount || isAddBankAccount || isClaimLinkBankAccount || isRegionalMethodClaim)
             return (
                 <div className="relative mr-1 h-12 w-12">
-                    {countryCodeForFlag && (
+                    {(countryCodeForFlag || logo) && (
                         <Image
-                            src={`https://flagcdn.com/w320/${countryCodeForFlag}.png`}
+                            src={imgSrc}
                             alt={`${countryCodeForFlag} flag`}
                             width={160}
                             height={160}
                             className="h-12 w-12 rounded-full object-cover"
                         />
                     )}
-                    <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-yellow-400 p-1.5">
-                        <Icon name="bank" className="h-full w-full text-black" />
-                    </div>
+                    {!isRegionalMethodClaim && (
+                        <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-yellow-400 p-1.5">
+                            <Icon name="bank" className="h-full w-full text-black" />
+                        </div>
+                    )}
                 </div>
             )
         return undefined
@@ -182,7 +195,8 @@ export default function PeanutActionDetailsCard({
         <Card className={twMerge('p-4', className)}>
             <div className="flex items-center gap-3">
                 <div className="flex items-center gap-3">
-                    {viewType !== 'SUCCESS' && (isWithdrawBankAccount || isAddBankAccount || isClaimLinkBankAccount) ? (
+                    {viewType !== 'SUCCESS' &&
+                    (isWithdrawBankAccount || isAddBankAccount || isClaimLinkBankAccount || isRegionalMethodClaim) ? (
                         withdrawBankIcon()
                     ) : (
                         <AvatarWithBadge
@@ -193,6 +207,7 @@ export default function PeanutActionDetailsCard({
                                 backgroundColor: getAvatarBackgroundColor(),
                                 color: getAvatarTextColor(),
                             }}
+                            logo={logo}
                         />
                     )}
                 </div>
@@ -216,13 +231,7 @@ export default function PeanutActionDetailsCard({
                                 transactionType !== 'ADD_MONEY' &&
                                 !isClaimLinkBankAccount &&
                                 !(transactionType === 'CLAIM_LINK_BANK_ACCOUNT' && viewType === 'SUCCESS') &&
-                                ` ${
-                                    tokenSymbol.toLowerCase() === 'pnt'
-                                        ? Number(amount) === 1
-                                            ? 'Beer'
-                                            : 'Beers'
-                                        : tokenSymbol
-                                }`}
+                                ` ${tokenSymbol}`}
                         </h2>
                     )}
 

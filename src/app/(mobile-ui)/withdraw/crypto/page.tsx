@@ -89,13 +89,10 @@ export default function WithdrawCryptoPage() {
     }, [dispatch, resetPaymentInitiator])
 
     useEffect(() => {
-        if (!amountToWithdraw) {
-            console.error('Amount not available in WithdrawFlowContext for withdrawal, redirecting.')
-            router.push('/withdraw')
-            return
+        if (amountToWithdraw) {
+            clearErrors()
+            dispatch(paymentActions.setChargeDetails(null))
         }
-        clearErrors()
-        dispatch(paymentActions.setChargeDetails(null))
     }, [amountToWithdraw])
 
     useEffect(() => {
@@ -281,7 +278,6 @@ export default function WithdrawCryptoPage() {
     // reset withdraw flow when this component unmounts
     useEffect(() => {
         return () => {
-            resetWithdrawFlow()
             resetPaymentInitiator()
             resetTokenContextProvider() // reset token selector context to make sure previously selected token is not cached
         }
@@ -318,6 +314,8 @@ export default function WithdrawCryptoPage() {
     }, [xChainRoute])
 
     if (!amountToWithdraw) {
+        // Redirect to main withdraw page for amount input
+        router.push('/withdraw')
         return <PeanutLoading />
     }
 
@@ -367,6 +365,9 @@ export default function WithdrawCryptoPage() {
                                 address={withdrawData.address}
                             />
                         }
+                        onComplete={() => {
+                            resetWithdrawFlow()
+                        }}
                     />
                 </>
             )}

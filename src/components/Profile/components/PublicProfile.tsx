@@ -16,6 +16,8 @@ import { useRouter } from 'next/navigation'
 import Card from '@/components/Global/Card'
 import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
 import { checkIfInternalNavigation } from '@/utils'
+import { useAuth } from '@/context/authContext'
+import { MantecaKycStatus } from '@/interfaces'
 
 interface PublicProfileProps {
     username: string
@@ -29,6 +31,8 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
     const [fullName, setFullName] = useState<string>(username)
     const [isKycVerified, setIsKycVerified] = useState<boolean>(false)
     const router = useRouter()
+    const { user } = useAuth()
+    const isSelfProfile = user?.user.username?.toLowerCase() === username.toLowerCase()
 
     // Handle send button click
     const handleSend = () => {
@@ -42,7 +46,14 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
     useEffect(() => {
         usersApi.getByUsername(username).then((user) => {
             if (user?.fullName) setFullName(user.fullName)
-            if (user?.kycStatus === 'approved') setIsKycVerified(true)
+            if (
+                user?.bridgeKycStatus === 'approved' ||
+                user?.kycVerifications?.some((v) => v.status === MantecaKycStatus.ACTIVE)
+            ) {
+                setIsKycVerified(true)
+            } else {
+                setIsKycVerified(false)
+            }
             // to check if the logged in user has sent money to the profile user,
             // we check the amount that the profile user has received from the logged in user.
             if (user?.totalUsdReceivedFromCurrentUser) {
@@ -92,32 +103,34 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                 />
 
                 {/* Action Buttons */}
-                <div className="flex items-center justify-normal gap-4">
-                    <Button
-                        onClick={handleSend}
-                        variant="purple"
-                        shadowSize="4"
-                        className="flex w-1/2 items-center justify-center gap-2 rounded-full py-3"
-                    >
-                        <div className="flex size-5 items-center justify-center">
-                            <Icon name="arrow-up-right" size={8} fill="black" />
-                        </div>
-                        <span className="font-bold">Send</span>
-                    </Button>
-
-                    <Link href={`/request/${username}`} className="w-1/2">
+                {!isSelfProfile && (
+                    <div className="flex items-center justify-normal gap-4">
                         <Button
+                            onClick={handleSend}
                             variant="purple"
                             shadowSize="4"
-                            className="flex items-center justify-center gap-2 rounded-full py-3"
+                            className="flex w-1/2 items-center justify-center gap-2 rounded-full py-3"
                         >
                             <div className="flex size-5 items-center justify-center">
-                                <Icon name="arrow-down-left" size={8} fill="black" />
+                                <Icon name="arrow-up-right" size={8} fill="black" />
                             </div>
-                            <span className="font-bold">Request</span>
+                            <span className="font-bold">Send</span>
                         </Button>
-                    </Link>
-                </div>
+
+                        <Link href={`/request/${username}`} className="w-1/2">
+                            <Button
+                                variant="purple"
+                                shadowSize="4"
+                                className="flex items-center justify-center gap-2 rounded-full py-3"
+                            >
+                                <div className="flex size-5 items-center justify-center">
+                                    <Icon name="arrow-down-left" size={8} fill="black" />
+                                </div>
+                                <span className="font-bold">Request</span>
+                            </Button>
+                        </Link>
+                    </div>
+                )}
 
                 {/* Show create account box to guest users */}
                 {!isLoggedIn && (

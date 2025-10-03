@@ -12,7 +12,6 @@ import Divider from '../0_Bruddle/Divider'
 import { Button } from '../0_Bruddle'
 import { PEANUT_LOGO_BLACK } from '@/assets/illustrations'
 import Image from 'next/image'
-import { saveRedirectUrl } from '@/utils'
 import { useRouter } from 'next/navigation'
 import { PEANUTMAN_LOGO } from '@/assets/peanut'
 import { BankClaimType, useDetermineBankClaimType } from '@/hooks/useDetermineBankClaimType'
@@ -24,6 +23,10 @@ import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermi
 import { GuestVerificationModal } from '../Global/GuestVerificationModal'
 import ActionListDaimoPayButton from './ActionListDaimoPayButton'
 import { ACTION_METHODS, PaymentMethod } from '@/constants/actionlist.consts'
+import useClaimLink from '../Claim/useClaimLink'
+import { useAuth } from '@/context/authContext'
+import { useGeoLocation } from '@/hooks/useGeoLocation'
+import Loading from '../Global/Loading'
 
 interface IActionListProps {
     flow: 'claim' | 'request'
@@ -42,7 +45,13 @@ interface IActionListProps {
  */
 export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLinkData }: IActionListProps) {
     const router = useRouter()
-    const { setClaimToExternalWallet, setFlowStep: setClaimBankFlowStep, setShowVerificationModal } = useClaimBankFlow()
+    const {
+        setClaimToExternalWallet,
+        setFlowStep: setClaimBankFlowStep,
+        setShowVerificationModal,
+        setClaimToMercadoPago,
+        setRegionalMethodType,
+    } = useClaimBankFlow()
     const [showMinAmountError, setShowMinAmountError] = useState(false)
     const { claimType } = useDetermineBankClaimType(claimLinkData?.sender?.userId ?? '')
     const { chargeDetails } = usePaymentStore()
@@ -50,17 +59,23 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
     const { requestType } = useDetermineBankRequestType(requesterUserId)
     const savedAccounts = useSavedAccounts()
     const { usdAmount } = usePaymentStore()
+    const { addParamStep } = useClaimLink()
     const {
         setShowRequestFulfilmentBankFlowManager,
-        setShowExternalWalletFulfilMethods,
+        setShowExternalWalletFulfillMethods,
         setFlowStep: setRequestFulfilmentBankFlowStep,
+        setFulfillUsingManteca,
+        setRegionalMethodType: setRequestFulfillmentRegionalMethodType,
     } = useRequestFulfillmentFlow()
     const [isGuestVerificationModalOpen, setIsGuestVerificationModalOpen] = useState(false)
+    const { user } = useAuth()
+
+    const { countryCode: userGeoLocationCountryCode, isLoading: isGeoLoading } = useGeoLocation()
 
     const handleMethodClick = async (method: PaymentMethod) => {
         if (flow === 'claim' && claimLinkData) {
             const amountInUsd = parseFloat(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals))
-            if (method.id === 'bank' && amountInUsd < 2) {
+            if (method.id === 'bank' && amountInUsd < 5) {
                 setShowMinAmountError(true)
                 return
             }
@@ -68,6 +83,7 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
                 case 'bank':
                     {
                         if (claimType === BankClaimType.GuestKycNeeded) {
+                            addParamStep('bank')
                             setShowVerificationModal(true)
                         } else {
                             if (savedAccounts.length) {
@@ -79,7 +95,15 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
                     }
                     break
                 case 'mercadopago':
-                    break // soon tag, so no action needed
+                case 'pix':
+                    if (!user) {
+                        addParamStep('regional-claim')
+                        setShowVerificationModal(true)
+                        return
+                    }
+                    setRegionalMethodType(method.id)
+                    setClaimToMercadoPago(true)
+                    break
                 case 'exchange-or-wallet':
                     setClaimToExternalWallet(true)
                     break
@@ -93,6 +117,7 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
             switch (method.id) {
                 case 'bank':
                     if (requestType === BankRequestType.GuestKycNeeded) {
+                        addParamStep('bank')
                         setIsGuestVerificationModalOpen(true)
                     } else {
                         setShowRequestFulfilmentBankFlowManager(true)
@@ -100,13 +125,34 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
                     }
                     break
                 case 'mercadopago':
-                    break // soon tag, so no action needed
+                case 'pix':
+                    if (!user) {
+                        addParamStep('regional-req-fulfill')
+                        setIsGuestVerificationModalOpen(true)
+                        return
+                    }
+                    setRequestFulfillmentRegionalMethodType(method.id)
+                    setFulfillUsingManteca(true)
+                    break
                 case 'exchange-or-wallet':
-                    setShowExternalWalletFulfilMethods(true)
+                    setShowExternalWalletFulfillMethods(true)
                     break
             }
         }
     }
+
+    const geolocatedMethods = useMemo(() => {
+        // show pix in brazil and mercado pago in other countries
+        return ACTION_METHODS.filter((method) => {
+            if (userGeoLocationCountryCode === 'BR' && method.id === 'mercadopago') {
+                return false
+            }
+            if (userGeoLocationCountryCode !== 'BR' && method.id === 'pix') {
+                return false
+            }
+            return true
+        })
+    }, [userGeoLocationCountryCode])
 
     const requiresVerification = useMemo(() => {
         if (flow === 'claim') {
@@ -119,7 +165,7 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
     }, [claimType, requestType, flow])
 
     const sortedActionMethods = useMemo(() => {
-        return [...ACTION_METHODS].sort((a, b) => {
+        return [...geolocatedMethods].sort((a, b) => {
             const aIsUnavailable = a.soon || (a.id === 'bank' && requiresVerification)
             const bIsUnavailable = b.soon || (b.id === 'bank' && requiresVerification)
 
@@ -130,13 +176,21 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
         })
     }, [requiresVerification])
 
+    if (isGeoLoading) {
+        return (
+            <div className="flex w-full items-center justify-center py-8">
+                <Loading />
+            </div>
+        )
+    }
+
     return (
         <div className="space-y-2">
             {!isLoggedIn && (
                 <Button
                     shadowSize="4"
                     onClick={() => {
-                        saveRedirectUrl()
+                        addParamStep('claim')
                         // push to setup page with redirect uri, to prevent the user from losing the flow context
                         const redirectUri = encodeURIComponent(
                             window.location.pathname + window.location.search + window.location.hash
@@ -173,7 +227,7 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
                 visible={showMinAmountError}
                 onClose={() => setShowMinAmountError(false)}
                 title="Minimum Amount "
-                description={'The minimum amount for a bank transaction is $2. Please try a different method.'}
+                description={'The minimum amount for a bank transaction is $5. Please try a different method.'}
                 icon="alert"
                 ctas={[{ text: 'Close', shadowSize: '4', onClick: () => setShowMinAmountError(false) }]}
                 iconContainerClassName="bg-yellow-400"
@@ -185,6 +239,7 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
                 isOpen={isGuestVerificationModalOpen}
                 onClose={() => setIsGuestVerificationModalOpen(false)}
                 description="To fulfill this request using bank account, please create an account and verify your identity."
+                redirectToVerification
             />
         </div>
     )

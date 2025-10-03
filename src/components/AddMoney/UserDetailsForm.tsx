@@ -5,8 +5,7 @@ import BaseInput from '@/components/0_Bruddle/BaseInput'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 
 export type UserDetailsFormData = {
-    firstName: string
-    lastName: string
+    fullName: string
     email: string
 }
 
@@ -18,20 +17,19 @@ interface UserDetailsFormProps {
 }
 
 export const UserDetailsForm = forwardRef<{ handleSubmit: () => void }, UserDetailsFormProps>(
-    ({ onSubmit, isSubmitting, onValidChange, initialData }, ref) => {
+    ({ onSubmit, onValidChange, initialData }, ref) => {
         const [submissionError, setSubmissionError] = useState<string | null>(null)
 
         const {
             control,
             handleSubmit,
-            formState: { errors, isValid, isValidating },
+            formState: { errors, isValid },
         } = useForm<UserDetailsFormData>({
             defaultValues: {
-                firstName: initialData?.firstName ?? '',
-                lastName: initialData?.lastName ?? '',
+                fullName: initialData?.fullName ?? '',
                 email: initialData?.email ?? '',
             },
-            mode: 'onBlur',
+            mode: 'all',
         })
 
         useEffect(() => {
@@ -94,8 +92,7 @@ export const UserDetailsForm = forwardRef<{ handleSubmit: () => void }, UserDeta
                         className="space-y-4"
                     >
                         <div className="w-full space-y-4">
-                            {renderInput('firstName', 'First Name', { required: 'First name is required' })}
-                            {renderInput('lastName', 'Last Name', { required: 'Last name is required' })}
+                            {renderInput('fullName', 'Full Name', { required: 'Full name is required' })}
                             {renderInput('email', 'E-mail', {
                                 required: 'Email is required',
                                 pattern: {

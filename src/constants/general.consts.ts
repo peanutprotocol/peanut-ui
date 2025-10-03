@@ -46,6 +46,8 @@ export const PEANUT_API_URL = (
     'https://api.peanut.me'
 ).replace(/\/$/, '') // remove any accidental trailing slash
 
+export const PEANUT_API_KEY = process.env.PEANUT_API_KEY!
+
 export const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://peanut.me'
 export const next_proxy_url = '/api/proxy'
 
@@ -201,4 +203,4 @@ export const pathTitles: { [key: string]: string } = {
 export const STABLE_COINS = ['USDC', 'USDT', 'DAI', 'BUSD']
 
 export const ROUTE_NOT_FOUND_ERROR =
-    'No route found for this token pair. You can try with a different token pair, or try again later'
+    'No route found for this token pair. You can try with a different token pair, or contact support.'

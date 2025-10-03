@@ -1,0 +1,587 @@
+'use client'
+
+import { useWallet } from '@/hooks/wallet/useWallet'
+import { useState, useMemo, useContext, useEffect, useCallback } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Button } from '@/components/0_Bruddle/Button'
+import { Card } from '@/components/0_Bruddle/Card'
+import NavHeader from '@/components/Global/NavHeader'
+import ErrorAlert from '@/components/Global/ErrorAlert'
+import { Icon } from '@/components/Global/Icons/Icon'
+import PeanutLoading from '@/components/Global/PeanutLoading'
+import { mantecaApi } from '@/services/manteca'
+import { useCurrency } from '@/hooks/useCurrency'
+import { isTxReverted } from '@/utils/general.utils'
+import { loadingStateContext } from '@/context'
+import { countryData } from '@/components/AddMoney/consts'
+import Image from 'next/image'
+import { formatAmount, formatNumberForDisplay } from '@/utils'
+import { validateCbuCvuAlias } from '@/utils/withdraw.utils'
+import ValidatedInput from '@/components/Global/ValidatedInput'
+import TokenAmountInput from '@/components/Global/TokenAmountInput'
+import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
+import { formatUnits, parseUnits } from 'viem'
+import type { TransactionReceipt, Hash } from 'viem'
+import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
+import { useMantecaKycFlow } from '@/hooks/useMantecaKycFlow'
+import { MantecaGeoSpecificKycModal } from '@/components/Kyc/InitiateMantecaKYCModal'
+import { useAuth } from '@/context/authContext'
+import { useWebSocket } from '@/hooks/useWebSocket'
+import { useSupportModalContext } from '@/context/SupportModalContext'
+import {
+    MantecaAccountType,
+    MANTECA_COUNTRIES_CONFIG,
+    MantecaBankCode,
+    MANTECA_DEPOSIT_ADDRESS,
+    TRANSACTIONS,
+} from '@/constants'
+import Select from '@/components/Global/Select'
+import { SoundPlayer } from '@/components/Global/SoundPlayer'
+import { useQueryClient } from '@tanstack/react-query'
+import { captureException } from '@sentry/nextjs'
+import useKycStatus from '@/hooks/useKycStatus'
+
+type MantecaWithdrawStep = 'amountInput' | 'bankDetails' | 'review' | 'success' | 'failure'
+
+const MAX_WITHDRAW_AMOUNT = '2000'
+const MIN_WITHDRAW_AMOUNT = '1'
+
+export default function MantecaWithdrawFlow() {
+    const [amount, setAmount] = useState<string | undefined>(undefined)
+    const [currencyAmount, setCurrencyAmount] = useState<string | undefined>(undefined)
+    const [usdAmount, setUsdAmount] = useState<string | undefined>(undefined)
+    const [step, setStep] = useState<MantecaWithdrawStep>('amountInput')
+    const [balanceErrorMessage, setBalanceErrorMessage] = useState<string | null>(null)
+    const searchParams = useSearchParams()
+    const paramAddress = searchParams.get('destination')
+    const [destinationAddress, setDestinationAddress] = useState<string>(paramAddress ?? '')
+    const [selectedBank, setSelectedBank] = useState<MantecaBankCode | null>(null)
+    const [accountType, setAccountType] = useState<MantecaAccountType | null>(null)
+    const [errorMessage, setErrorMessage] = useState<string | null>(null)
+    const [isKycModalOpen, setIsKycModalOpen] = useState(false)
+    const [isDestinationAddressValid, setIsDestinationAddressValid] = useState(false)
+    const [isDestinationAddressChanging, setIsDestinationAddressChanging] = useState(false)
+    const router = useRouter()
+    const { sendMoney, balance } = useWallet()
+    const { isLoading, loadingState, setLoadingState } = useContext(loadingStateContext)
+    const { user, fetchUser } = useAuth()
+    const { setIsSupportModalOpen } = useSupportModalContext()
+    const queryClient = useQueryClient()
+    const { isUserBridgeKycApproved } = useKycStatus()
+
+    // Get method and country from URL parameters
+    const selectedMethodType = searchParams.get('method') // mercadopago, pix, bank-transfer, etc.
+    const countryFromUrl = searchParams.get('country') // argentina, brazil, etc.
+
+    // Determine country and currency from URL params or context
+    const countryPath = countryFromUrl || 'argentina'
+
+    // Map country path to CountryData for KYC
+    const selectedCountry = useMemo(() => {
+        return countryData.find((country) => country.type === 'country' && country.path === countryPath)
+    }, [countryPath])
+
+    const countryConfig = useMemo(() => {
+        if (!selectedCountry) return undefined
+        return MANTECA_COUNTRIES_CONFIG[selectedCountry.id]
+    }, [selectedCountry])
+
+    const {
+        code: currencyCode,
+        symbol: currencySymbol,
+        price: currencyPrice,
+        isLoading: isCurrencyLoading,
+    } = useCurrency(selectedCountry?.currency!)
+
+    // Initialize KYC flow hook
+    const { isMantecaKycRequired } = useMantecaKycFlow({ country: selectedCountry })
+
+    // WebSocket listener for KYC status updates
+    useWebSocket({
+        username: user?.user.username ?? undefined,
+        autoConnect: !!user?.user.username,
+        onMantecaKycStatusUpdate: (newStatus) => {
+            if (newStatus === 'ACTIVE' || newStatus === 'WIDGET_FINISHED') {
+                fetchUser()
+                setIsKycModalOpen(false)
+                setStep('review') // Proceed to review after successful KYC
+            }
+        },
+    })
+
+    // Get country flag code
+    const countryFlagCode = useMemo(() => {
+        return selectedCountry?.iso2?.toLowerCase()
+    }, [selectedCountry])
+
+    // Get method display info
+    const methodDisplayInfo = useMemo(() => {
+        const methodNames: { [key: string]: string } = {
+            mercadopago: 'MercadoPago',
+            pix: 'Pix',
+            'bank-transfer': 'Bank Transfer',
+        }
+
+        return {
+            name: methodNames[selectedMethodType || 'bank-transfer'] || 'Bank Transfer',
+        }
+    }, [selectedMethodType])
+
+    const validateDestinationAddress = async (value: string) => {
+        value = value.trim()
+        if (!value) {
+            return false
+        }
+
+        let isValid = false
+        switch (countryPath) {
+            case 'argentina':
+                const { valid, message } = validateCbuCvuAlias(value)
+                isValid = valid
+                if (!valid) {
+                    setErrorMessage(message!)
+                }
+                break
+            default:
+                isValid = true
+                break
+        }
+
+        return isValid
+    }
+
+    const isCompleteBankDetails = useMemo<boolean>(() => {
+        return (
+            !!destinationAddress.trim() &&
+            (!countryConfig?.needsBankCode || selectedBank != null) &&
+            (!countryConfig?.needsAccountType || accountType != null)
+        )
+    }, [selectedBank, accountType, countryConfig, destinationAddress])
+
+    const handleBankDetailsSubmit = useCallback(() => {
+        if (!destinationAddress.trim()) {
+            setErrorMessage('Please enter your account address')
+            return
+        }
+        if ((countryConfig?.needsBankCode && !selectedBank) || (countryConfig?.needsAccountType && !accountType)) {
+            setErrorMessage('Please complete the bank details')
+            return
+        }
+        setErrorMessage(null)
+
+        // Check if we still need to determine KYC status
+        if (isMantecaKycRequired === null) {
+            // still loading/determining KYC status, don't proceed yet
+            return
+        }
+
+        // Check KYC status before proceeding to review
+        if (isMantecaKycRequired === true) {
+            setIsKycModalOpen(true)
+            return
+        }
+
+        setStep('review')
+    }, [selectedBank, accountType, destinationAddress, countryConfig?.needsBankCode, countryConfig?.needsAccountType])
+
+    const handleWithdraw = async () => {
+        if (!destinationAddress || !usdAmount || !currencyCode) return
+
+        try {
+            setLoadingState('Preparing transaction')
+            let userOpHash: Hash
+            let receipt: TransactionReceipt | null
+
+            try {
+                // Send crypto to Manteca address
+                const result = await sendMoney(MANTECA_DEPOSIT_ADDRESS, usdAmount)
+                userOpHash = result.userOpHash
+                receipt = result.receipt
+            } catch (error) {
+                if ((error as Error).toString().includes('not allowed')) {
+                    setErrorMessage('Please confirm the transaction.')
+                } else {
+                    captureException(error)
+                    setErrorMessage('Could not sign the transaction.')
+                }
+                setLoadingState('Idle')
+                return
+            }
+
+            if (receipt !== null && isTxReverted(receipt)) {
+                setErrorMessage('Transaction reverted by the network.')
+                return
+            }
+
+            const txHash = receipt?.transactionHash ?? userOpHash
+            setLoadingState('Withdrawing')
+
+            // Call Manteca withdraw API
+            const result = await mantecaApi.withdraw({
+                amount: usdAmount,
+                destinationAddress: destinationAddress.toLowerCase(),
+                bankCode: selectedBank?.code,
+                accountType: accountType ?? undefined,
+                txHash,
+                currency: currencyCode,
+            })
+
+            if (result.error) {
+                if (result.error === 'Unexpected error') {
+                    setErrorMessage('Withdraw failed unexpectedly. If problem persists contact support')
+                    setStep('failure')
+                } else {
+                    setErrorMessage(result.message ?? result.error)
+                }
+                return
+            }
+
+            setStep('success')
+        } catch (error) {
+            console.error('Manteca withdraw error:', error)
+            setErrorMessage('Withdraw failed unexpectedly. If problem persists contact support')
+            setStep('failure')
+        } finally {
+            setLoadingState('Idle')
+        }
+    }
+
+    const resetState = () => {
+        setStep('amountInput')
+        setAmount(undefined)
+        setCurrencyAmount(undefined)
+        setUsdAmount(undefined)
+        setDestinationAddress(paramAddress ?? '')
+        setSelectedBank(null)
+        setAccountType(null)
+        setErrorMessage(null)
+        setIsKycModalOpen(false)
+        setIsDestinationAddressValid(false)
+        setIsDestinationAddressChanging(false)
+        setBalanceErrorMessage(null)
+    }
+
+    useEffect(() => {
+        resetState()
+    }, [])
+
+    useEffect(() => {
+        if (!usdAmount || usdAmount === '0.00' || isNaN(Number(usdAmount)) || balance === undefined) {
+            setBalanceErrorMessage(null)
+            return
+        }
+        const paymentAmount = parseUnits(usdAmount.replace(/,/g, ''), PEANUT_WALLET_TOKEN_DECIMALS)
+        if (paymentAmount < parseUnits(MIN_WITHDRAW_AMOUNT, PEANUT_WALLET_TOKEN_DECIMALS)) {
+            setBalanceErrorMessage(`Withdraw amount must be at least $${MIN_WITHDRAW_AMOUNT}`)
+        } else if (paymentAmount > parseUnits(MAX_WITHDRAW_AMOUNT, PEANUT_WALLET_TOKEN_DECIMALS)) {
+            setBalanceErrorMessage(`Withdraw amount exceeds maximum limit of $${MAX_WITHDRAW_AMOUNT}`)
+        } else if (paymentAmount > balance) {
+            setBalanceErrorMessage('Not enough balance to complete withdrawal.')
+        } else {
+            setBalanceErrorMessage(null)
+        }
+    }, [usdAmount, balance])
+
+    useEffect(() => {
+        if (step === 'success') {
+            queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+        }
+    }, [step])
+
+    if (isCurrencyLoading || !currencyPrice || !selectedCountry) {
+        return <PeanutLoading />
+    }
+
+    if (step === 'success') {
+        return (
+            <div className="flex min-h-[inherit] flex-col gap-8">
+                <SoundPlayer sound="success" />
+                <NavHeader title="Withdraw" />
+                <div className="my-auto flex h-full flex-col justify-center space-y-4">
+                    <Card className="flex flex-row items-center gap-3 p-4">
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-12 w-12 min-w-12 items-center justify-center rounded-full bg-success-3 font-bold">
+                                <Icon name="check" size={24} />
+                            </div>
+                        </div>
+                        <div className="space-y-1">
+                            <h1 className="text-sm font-normal text-grey-1">You just withdrew</h1>
+                            <div className="text-2xl font-extrabold">
+                                {currencyCode} {formatNumberForDisplay(currencyAmount, { maxDecimals: 2 })}
+                            </div>
+                            <div className="text-lg font-bold">
+                                ≈ ${formatNumberForDisplay(usdAmount, { maxDecimals: 2 })} USD
+                            </div>
+                            <h1 className="text-sm font-normal text-grey-1">to {destinationAddress}</h1>
+                        </div>
+                    </Card>
+                    <div className="w-full space-y-5">
+                        <Button
+                            onClick={() => {
+                                router.push('/home')
+                                resetState()
+                            }}
+                            shadowSize="4"
+                        >
+                            Back to home
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
+    if (step === 'failure') {
+        return (
+            <div className="flex min-h-[inherit] flex-col gap-8">
+                <NavHeader title="Withdraw" />
+                <div className="my-auto flex h-full flex-col justify-center space-y-4">
+                    <Card className="shadow-4">
+                        <Card.Header>
+                            <Card.Title>Something went wrong!</Card.Title>
+                            <Card.Description>{errorMessage}</Card.Description>
+                        </Card.Header>
+                        <Card.Content className="flex flex-col gap-3">
+                            <Button onClick={resetState} variant="purple">
+                                Try again
+                            </Button>
+                            <Button
+                                onClick={() => setIsSupportModalOpen(true)}
+                                variant="transparent"
+                                className="text-sm underline"
+                            >
+                                Contact Support
+                            </Button>
+                        </Card.Content>
+                    </Card>
+                </div>
+            </div>
+        )
+    }
+    return (
+        <div className="flex min-h-[inherit] flex-col gap-8">
+            <NavHeader
+                title="Withdraw"
+                onPrev={() => {
+                    if (step === 'review') {
+                        setStep('bankDetails')
+                    } else if (step === 'bankDetails') {
+                        setStep('amountInput')
+                    } else {
+                        router.back()
+                        setTimeout(() => {
+                            router.replace(`/withdraw/${selectedCountry?.path}`)
+                        }, 100)
+                    }
+                }}
+            />
+
+            {step === 'amountInput' && (
+                <div className="my-auto flex h-full flex-col justify-center space-y-4">
+                    <div className="text-xl font-bold">Amount to withdraw</div>
+                    <TokenAmountInput
+                        tokenValue={amount}
+                        setTokenValue={setAmount}
+                        setCurrencyAmount={setCurrencyAmount}
+                        setUsdValue={setUsdAmount}
+                        currency={{
+                            code: currencyCode!,
+                            symbol: currencySymbol!,
+                            price: currencyPrice!.sell,
+                        }}
+                        walletBalance={
+                            balance ? formatAmount(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS)) : undefined
+                        }
+                    />
+                    <Button
+                        variant="purple"
+                        shadowSize="4"
+                        onClick={() => {
+                            if (usdAmount) {
+                                setStep('bankDetails')
+                            }
+                        }}
+                        disabled={!Number(usdAmount) || !!balanceErrorMessage}
+                        className="w-full"
+                    >
+                        Continue
+                    </Button>
+                    {balanceErrorMessage && <ErrorAlert description={balanceErrorMessage} />}
+                </div>
+            )}
+
+            {step === 'bankDetails' && (
+                <div className="my-auto flex h-full flex-col justify-center space-y-4">
+                    {/* Amount Display Card */}
+                    <Card className="p-4">
+                        <div className="flex items-center space-x-3">
+                            <div className="relative h-12 w-12">
+                                <Image
+                                    src={`https://flagcdn.com/w160/${countryFlagCode}.png`}
+                                    alt={`flag`}
+                                    width={48}
+                                    height={48}
+                                    className="h-12 w-12 rounded-full object-cover"
+                                />
+                                <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-yellow-1">
+                                    <Icon name="bank" size={12} />
+                                </div>
+                            </div>
+                            <div>
+                                <p className="flex items-center gap-1 text-center text-sm text-gray-600">
+                                    <Icon name="arrow-up" size={10} /> You're withdrawing
+                                </p>
+                                <p className="text-2xl font-bold">
+                                    {currencyCode} {formatNumberForDisplay(currencyAmount, { maxDecimals: 2 })}
+                                </p>
+                                <div className="text-lg font-bold">
+                                    ≈ {formatNumberForDisplay(usdAmount, { maxDecimals: 2 })} USD
+                                </div>
+                            </div>
+                        </div>
+                    </Card>
+
+                    {/* Bank Details Form */}
+                    <div className="space-y-4">
+                        <h2 className="text-lg font-bold">Enter {methodDisplayInfo.name} details</h2>
+                        {selectedCountry?.id === 'BR' && (
+                            <div className="flex items-center gap-2 text-sm text-red">
+                                <Icon name="info" size={16} />
+                                <span>If withdrawing to a phone pix key please include +55</span>
+                            </div>
+                        )}
+
+                        <div className="space-y-2">
+                            <ValidatedInput
+                                value={destinationAddress}
+                                placeholder={countryConfig!.accountNumberLabel}
+                                onUpdate={(update) => {
+                                    setDestinationAddress(update.value)
+                                    setIsDestinationAddressValid(update.isValid)
+                                    setIsDestinationAddressChanging(update.isChanging)
+                                    if (update.isValid || update.value === '') {
+                                        setErrorMessage(null)
+                                    }
+                                }}
+                                validate={validateDestinationAddress}
+                            />
+                            {countryConfig?.needsAccountType && (
+                                <Select
+                                    value={accountType ? { id: accountType, title: accountType } : null}
+                                    onChange={(item) => {
+                                        setAccountType(MantecaAccountType[item.id as keyof typeof MantecaAccountType])
+                                    }}
+                                    items={countryConfig.validAccountTypes.map((type) => ({ id: type, title: type }))}
+                                    placeholder="Select account type"
+                                    className="w-full"
+                                />
+                            )}
+                            {countryConfig?.needsBankCode && (
+                                <Select
+                                    value={selectedBank ? { id: selectedBank.code, title: selectedBank.name } : null}
+                                    onChange={(item) => {
+                                        setSelectedBank({ code: item.id, name: item.title })
+                                    }}
+                                    items={countryConfig.validBankCodes.map((bank) => ({
+                                        id: bank.code,
+                                        title: bank.name,
+                                    }))}
+                                    placeholder="Select bank"
+                                    className="w-full"
+                                />
+                            )}
+
+                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                                <Icon name="info" size={16} />
+                                <span>You can only withdraw to accounts under your name.</span>
+                            </div>
+                        </div>
+
+                        <Button
+                            onClick={handleBankDetailsSubmit}
+                            disabled={
+                                !isCompleteBankDetails || isDestinationAddressChanging || !isDestinationAddressValid
+                            }
+                            loading={isDestinationAddressChanging}
+                            className="w-full"
+                            shadowSize="4"
+                        >
+                            Review
+                        </Button>
+
+                        {errorMessage && <ErrorAlert description={errorMessage} />}
+                    </div>
+
+                    {/* KYC Modal */}
+                    {isKycModalOpen && selectedCountry && (
+                        <MantecaGeoSpecificKycModal
+                            isUserBridgeKycApproved={isUserBridgeKycApproved}
+                            isMantecaModalOpen={isKycModalOpen}
+                            setIsMantecaModalOpen={setIsKycModalOpen}
+                            onClose={() => setIsKycModalOpen(false)}
+                            onManualClose={() => setIsKycModalOpen(false)}
+                            onKycSuccess={() => {
+                                setIsKycModalOpen(false)
+                                fetchUser()
+                                setStep('review')
+                            }}
+                            selectedCountry={selectedCountry}
+                        />
+                    )}
+                </div>
+            )}
+
+            {step === 'review' && (
+                <div className="my-auto flex h-full flex-col justify-center space-y-4">
+                    <Card className="p-4">
+                        <div className="flex items-center space-x-3">
+                            <div className="relative h-12 w-12">
+                                <Image
+                                    src={`https://flagcdn.com/w160/${countryFlagCode}.png`}
+                                    alt={`flag`}
+                                    width={48}
+                                    height={48}
+                                    className="h-12 w-12 rounded-full object-cover"
+                                />
+                                <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-yellow-1">
+                                    <Icon name="bank" size={12} />
+                                </div>
+                            </div>
+                            <div>
+                                <p className="flex items-center gap-1 text-center text-sm text-gray-600">
+                                    <Icon name="arrow-up" size={10} /> You're withdrawing
+                                </p>
+                                <p className="text-2xl font-bold">
+                                    {currencyCode} {formatNumberForDisplay(currencyAmount, { maxDecimals: 2 })}
+                                </p>
+                                <div className="text-lg font-bold">
+                                    ≈ {formatNumberForDisplay(usdAmount, { maxDecimals: 2 })} USD
+                                </div>
+                            </div>
+                        </div>
+                    </Card>
+                    {/* Review Summary */}
+                    <Card className="space-y-0 px-4">
+                        <PaymentInfoRow label={countryConfig!.accountNumberLabel} value={destinationAddress} />
+                        <PaymentInfoRow
+                            label="Exchange Rate"
+                            value={`1 USD = ${currencyPrice!.sell} ${currencyCode!.toUpperCase()}`}
+                        />
+                        <PaymentInfoRow label="Peanut fee" value="Sponsored by Peanut!" hideBottomBorder />
+                    </Card>
+
+                    <Button
+                        icon="arrow-up"
+                        onClick={handleWithdraw}
+                        loading={isLoading}
+                        disabled={!!errorMessage || isLoading}
+                        shadowSize="4"
+                    >
+                        {isLoading ? loadingState : 'Withdraw'}
+                    </Button>
+                    {errorMessage && <ErrorAlert description={errorMessage} />}
+                </div>
+            )}
+        </div>
+    )
+}

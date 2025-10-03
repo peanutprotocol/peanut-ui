@@ -12,15 +12,13 @@ import { useTransactionHistory } from '@/hooks/useTransactionHistory'
 import { useUserStore } from '@/redux/hooks'
 import { formatGroupHeaderDate, getDateGroup, getDateGroupKey } from '@/utils/dateGrouping.utils'
 import * as Sentry from '@sentry/nextjs'
-import { usePathname } from 'next/navigation'
-import { isKycStatusItem } from '@/hooks/useKycFlow'
+import { isKycStatusItem } from '@/hooks/useBridgeKycFlow'
 import React, { useEffect, useMemo, useRef } from 'react'
 
 /**
  * displays the user's transaction history with infinite scrolling and date grouping.
  */
 const HistoryPage = () => {
-    const pathname = usePathname()
     const loaderRef = useRef<HTMLDivElement>(null)
     const { user } = useUserStore()
 
@@ -63,13 +61,27 @@ const HistoryPage = () => {
     const allEntries = useMemo(() => historyData?.pages.flatMap((page) => page.entries) ?? [], [historyData])
 
     const combinedAndSortedEntries = useMemo(() => {
+        if (isLoading) {
+            return []
+        }
         const entries: Array<any> = [...allEntries]
 
-        if (user?.user?.kycStatus && user.user.kycStatus !== 'not_started' && user.user.kycStartedAt) {
-            entries.push({
-                isKyc: true,
-                timestamp: user.user.kycStartedAt,
-                uuid: 'kyc-status-item',
+        if (user) {
+            if (user.user?.bridgeKycStatus && user.user.bridgeKycStatus !== 'not_started') {
+                entries.push({
+                    isKyc: true,
+                    timestamp: user.user.bridgeKycStartedAt ?? new Date(0).toISOString(),
+                    uuid: 'bridge-kyc-status-item',
+                    bridgeKycStatus: user.user.bridgeKycStatus,
+                })
+            }
+            user.user.kycVerifications?.forEach((verification) => {
+                entries.push({
+                    isKyc: true,
+                    timestamp: verification.approvedAt ?? new Date(0).toISOString(),
+                    uuid: verification.providerUserId ?? `${verification.provider}-${verification.mantecaGeo}`,
+                    verification,
+                })
             })
         }
 
@@ -80,7 +92,7 @@ const HistoryPage = () => {
         })
 
         return entries
-    }, [allEntries, user])
+    }, [allEntries, user, isLoading])
 
     if (isLoading && combinedAndSortedEntries.length === 0) {
         return <PeanutLoading />
@@ -92,12 +104,12 @@ const HistoryPage = () => {
         return (
             <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
                 <h2 className="text-base font-bold">Transactions</h2>{' '}
-                <EmptyState icon="alert" title="Error loading transactions!" description="Please try again later" />
+                <EmptyState icon="alert" title="Error loading transactions!" description="Please contact support." />
             </div>
         )
     }
 
-    if (combinedAndSortedEntries.length === 0) {
+    if (!isLoading && combinedAndSortedEntries.length === 0) {
         return (
             <div className="flex h-[80dvh] flex-col items-center justify-center">
                 <NavHeader title={'Activity'} />
@@ -147,7 +159,14 @@ const HistoryPage = () => {
                                 </div>
                             )}
                             {isKycStatusItem(item) ? (
-                                <KycStatusItem position={position} />
+                                <KycStatusItem
+                                    position={position}
+                                    verification={item.verification}
+                                    bridgeKycStatus={item.bridgeKycStatus}
+                                    bridgeKycStartedAt={
+                                        item.bridgeKycStatus ? user?.user.bridgeKycStartedAt : undefined
+                                    }
+                                />
                             ) : (
                                 (() => {
                                     const { transactionDetails, transactionCardType } =

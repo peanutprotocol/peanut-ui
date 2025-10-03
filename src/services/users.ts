@@ -5,7 +5,7 @@ import {
     PEANUT_WALLET_TOKEN_DECIMALS,
     PEANUT_WALLET_TOKEN_SYMBOL,
 } from '@/constants'
-import { AccountType } from '@/interfaces'
+import { AccountType, IUserKycVerification } from '@/interfaces'
 import { IAttachmentOptions } from '@/redux/types/send-flow.types'
 import { fetchWithSentry } from '@/utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
@@ -27,10 +27,11 @@ export type ApiUser = {
     lastName: string
     totalUsdSentToCurrentUser: string
     totalUsdReceivedFromCurrentUser: string
-    kycStatus: string
+    bridgeKycStatus: string
+    kycVerifications?: IUserKycVerification[]
 }
 
-export type RecentUser = Pick<ApiUser, 'userId' | 'username' | 'fullName' | 'kycStatus'>
+export type RecentUser = Pick<ApiUser, 'userId' | 'username' | 'fullName' | 'bridgeKycStatus'>
 
 export interface UserSearchResponse {
     users: Array<ApiUser>

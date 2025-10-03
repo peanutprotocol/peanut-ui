@@ -10,6 +10,7 @@ import AvatarWithBadge from '../AvatarWithBadge'
 import { Drawer, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
 import { VerifiedUserLabel } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
+import useKycStatus from '@/hooks/useKycStatus'
 
 interface ProfileHeaderProps {
     name: string
@@ -29,12 +30,12 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     haveSentMoneyToUser = false,
 }) => {
     const { user: authenticatedUser } = useAuth()
-    const isAuthenticatedUserVerified = authenticatedUser?.user.kycStatus === 'approved'
+    const { isUserKycApproved } = useKycStatus()
+    const isAuthenticatedUserVerified = isUserKycApproved && authenticatedUser?.user.username === username
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+    const isSelfProfile = authenticatedUser?.user.username?.toLowerCase() === username.toLowerCase()
 
     const profileUrl = `${BASE_URL}/${username}`
-
-    console.log('isVerified', isVerified)
 
     return (
         <>
@@ -49,7 +50,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                     className="text-2xl font-bold"
                     iconSize={20}
                     haveSentMoneyToUser={haveSentMoneyToUser}
-                    isAuthenticatedUserVerified={isAuthenticatedUserVerified}
+                    isAuthenticatedUserVerified={isAuthenticatedUserVerified && isSelfProfile} // can be true only for self profile
                 />
                 {/* Username with share drawer */}
                 {showShareButton && (

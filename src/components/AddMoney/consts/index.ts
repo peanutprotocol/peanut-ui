@@ -1,8 +1,22 @@
-import { APPLE_PAY, GOOGLE_PAY, MERCADO_PAGO, SOLANA_ICON, TRON_ICON } from '@/assets'
+import { APPLE_PAY, GOOGLE_PAY, MERCADO_PAGO, SOLANA_ICON, TRON_ICON, PIX } from '@/assets'
 import { BINANCE_LOGO, LEMON_LOGO, RIPIO_LOGO } from '@/assets/exchanges'
 import { METAMASK_LOGO, RAINBOW_LOGO, TRUST_WALLET_LOGO } from '@/assets/wallets'
 import { IconName } from '@/components/Global/Icons/Icon'
 import { StaticImageData } from 'next/image'
+
+// ref: https://docs.manteca.dev/cripto/key-concepts/exchanges-multi-country#Available-Exchanges
+export const MantecaSupportedExchanges = {
+    AR: 'ARGENTINA',
+    CL: 'CHILE',
+    BR: 'BRAZIL',
+    CO: 'COLOMBIA',
+    PA: 'PANAMA',
+    CR: 'COSTA_RICA',
+    GT: 'GUATEMALA',
+    // MX: 'MEXICO', // manteca supports MEXICO, but mercado pago doesnt support qr payments for mexico
+    PH: 'PHILIPPINES',
+    BO: 'BOLIVIA',
+}
 
 export interface CryptoSource {
     id: string
@@ -144,6 +158,7 @@ export interface CountryData {
     description?: string
     path: string
     iso2?: string
+    iso3?: string
 }
 
 export interface DepositMethods extends CountryData {
@@ -161,16 +176,26 @@ export const UPDATED_DEFAULT_ADD_MONEY_METHODS: SpecificPaymentMethod[] = [
     {
         id: 'crypto-add',
         icon: 'wallet-outline' as IconName,
+        path: '/add-money/crypto',
         title: 'From Crypto',
         description: 'Usually arrives instantly',
         isSoon: false,
     },
     {
         id: 'mercado-pago-add',
+        path: '/add-money/argentina/manteca',
         icon: MERCADO_PAGO,
         title: 'Mercado Pago',
-        description: 'Popular in LATAM',
-        isSoon: true,
+        description: 'Instant transfers',
+        isSoon: false,
+    },
+    {
+        id: 'pix-add',
+        icon: PIX,
+        path: '/add-money/brazil/manteca',
+        title: 'Pix',
+        description: 'Instant transfers',
+        isSoon: false,
     },
     {
         id: 'apple-pay-add',
@@ -216,11 +241,18 @@ export const DEFAULT_WITHDRAW_METHODS: SpecificPaymentMethod[] = [
 
 const countrySpecificWithdrawMethods: Record<
     string,
-    Array<{ title: string; description: string; icon?: IconName | string }>
+    Array<{ title: string; description: string; icon?: IconName | string; isSoon?: boolean }>
 > = {
     India: [{ title: 'UPI', description: 'Unified Payments Interface, ~17B txns/month, 84% of digital payments.' }],
-    Brazil: [{ title: 'Pix', description: '75%+ population use it, 40% e-commerce share.' }],
-    Argentina: [{ title: 'MercadoPago', description: 'Dominant wallet in LATAM, supports QR and bank transfers.' }],
+    Brazil: [{ title: 'Pix', description: 'Instant transfers', icon: PIX, isSoon: false }],
+    Argentina: [
+        {
+            title: 'Mercado Pago',
+            description: 'Instant transfers',
+            icon: MERCADO_PAGO,
+            isSoon: false,
+        },
+    ],
     Mexico: [{ title: 'CoDi', description: 'Central bank-backed RTP, adoption growing.' }],
     Kenya: [{ title: 'M-Pesa', description: 'Over 90% penetration, also in Tanzania, Mozambique, etc.' }],
     Portugal: [{ title: 'MB WAY', description: 'Popular for QR payments, instant transfers.' }],
@@ -267,6 +299,8 @@ export const countryData: CountryData[] = [
         title: 'Andorra',
         currency: 'EUR',
         path: 'andorra',
+        iso2: 'AD',
+        iso3: 'AND',
     },
     {
         id: 'AE',
@@ -274,6 +308,8 @@ export const countryData: CountryData[] = [
         title: 'United Arab Emirates',
         currency: 'AED',
         path: 'united-arab-emirates',
+        iso2: 'AE',
+        iso3: 'ARE',
     },
     {
         id: 'AG',
@@ -281,6 +317,8 @@ export const countryData: CountryData[] = [
         title: 'Antigua and Barbuda',
         currency: 'XCD',
         path: 'antigua-and-barbuda',
+        iso2: 'AG',
+        iso3: 'ATG',
     },
     {
         id: 'AI',
@@ -288,6 +326,8 @@ export const countryData: CountryData[] = [
         title: 'Anguilla',
         currency: 'XCD',
         path: 'anguilla',
+        iso2: 'AI',
+        iso3: 'AIA',
     },
     {
         id: 'AL',
@@ -295,6 +335,8 @@ export const countryData: CountryData[] = [
         title: 'Albania',
         currency: 'ALL',
         path: 'albania',
+        iso2: 'AL',
+        iso3: 'ALB',
     },
     {
         id: 'AM',
@@ -302,6 +344,8 @@ export const countryData: CountryData[] = [
         title: 'Armenia',
         currency: 'AMD',
         path: 'armenia',
+        iso2: 'AM',
+        iso3: 'ARM',
     },
     {
         id: 'AO',
@@ -309,6 +353,8 @@ export const countryData: CountryData[] = [
         title: 'Angola',
         currency: 'AOA',
         path: 'angola',
+        iso2: 'AO',
+        iso3: 'AGO',
     },
     {
         id: 'AQ',
@@ -316,6 +362,8 @@ export const countryData: CountryData[] = [
         title: 'Antarctica',
         currency: '',
         path: 'antarctica',
+        iso2: 'AQ',
+        iso3: 'ATA',
     },
     {
         id: 'AR',
@@ -323,6 +371,8 @@ export const countryData: CountryData[] = [
         title: 'Argentina',
         currency: 'ARS',
         path: 'argentina',
+        iso2: 'AR',
+        iso3: 'ARG',
     },
     {
         id: 'AS',
@@ -330,6 +380,8 @@ export const countryData: CountryData[] = [
         title: 'American Samoa',
         currency: 'USD',
         path: 'american-samoa',
+        iso2: 'AS',
+        iso3: 'ASM',
     },
     {
         id: 'AUT',
@@ -337,6 +389,8 @@ export const countryData: CountryData[] = [
         title: 'Austria',
         currency: 'EUR',
         path: 'austria',
+        iso2: 'AT',
+        iso3: 'AUT',
     },
     {
         id: 'AU',
@@ -344,6 +398,8 @@ export const countryData: CountryData[] = [
         title: 'Australia',
         currency: 'AUD',
         path: 'australia',
+        iso2: 'AU',
+        iso3: 'AUS',
     },
     {
         id: 'AW',
@@ -351,6 +407,8 @@ export const countryData: CountryData[] = [
         title: 'Aruba',
         currency: 'AWG',
         path: 'aruba',
+        iso2: 'AW',
+        iso3: 'ABW',
     },
     {
         id: 'ALA',
@@ -358,6 +416,8 @@ export const countryData: CountryData[] = [
         title: 'Åland',
         currency: 'EUR',
         path: 'aland',
+        iso2: 'AX',
+        iso3: 'ALA',
     },
     {
         id: 'AZ',
@@ -365,6 +425,8 @@ export const countryData: CountryData[] = [
         title: 'Azerbaijan',
         currency: 'AZN',
         path: 'azerbaijan',
+        iso2: 'AZ',
+        iso3: 'AZE',
     },
     {
         id: 'BA',
@@ -372,6 +434,8 @@ export const countryData: CountryData[] = [
         title: 'Bosnia and Herzegovina',
         currency: 'BAM',
         path: 'bosnia-and-herzegovina',
+        iso2: 'BA',
+        iso3: 'BIH',
     },
     {
         id: 'BB',
@@ -379,6 +443,8 @@ export const countryData: CountryData[] = [
         title: 'Barbados',
         currency: 'BBD',
         path: 'barbados',
+        iso2: 'BB',
+        iso3: 'BRB',
     },
     {
         id: 'BD',
@@ -386,6 +452,8 @@ export const countryData: CountryData[] = [
         title: 'Bangladesh',
         currency: 'BDT',
         path: 'bangladesh',
+        iso2: 'BD',
+        iso3: 'BGD',
     },
     {
         id: 'BEL',
@@ -393,6 +461,8 @@ export const countryData: CountryData[] = [
         title: 'Belgium',
         currency: 'EUR',
         path: 'belgium',
+        iso2: 'BE',
+        iso3: 'BEL',
     },
     {
         id: 'BF',
@@ -400,6 +470,8 @@ export const countryData: CountryData[] = [
         title: 'Burkina Faso',
         currency: 'XOF',
         path: 'burkina-faso',
+        iso2: 'BF',
+        iso3: 'BFA',
     },
     {
         id: 'BGR',
@@ -407,6 +479,8 @@ export const countryData: CountryData[] = [
         title: 'Bulgaria',
         currency: 'BGN',
         path: 'bulgaria',
+        iso2: 'BG',
+        iso3: 'BGR',
     },
     {
         id: 'BH',
@@ -414,6 +488,8 @@ export const countryData: CountryData[] = [
         title: 'Bahrain',
         currency: 'BHD',
         path: 'bahrain',
+        iso2: 'BH',
+        iso3: 'BHR',
     },
     {
         id: 'BI',
@@ -421,6 +497,8 @@ export const countryData: CountryData[] = [
         title: 'Burundi',
         currency: 'BIF',
         path: 'burundi',
+        iso2: 'BI',
+        iso3: 'BDI',
     },
     {
         id: 'BJ',
@@ -428,6 +506,8 @@ export const countryData: CountryData[] = [
         title: 'Benin',
         currency: 'XOF',
         path: 'benin',
+        iso2: 'BJ',
+        iso3: 'BEN',
     },
     {
         id: 'BL',
@@ -435,6 +515,8 @@ export const countryData: CountryData[] = [
         title: 'Saint Barthélemy',
         currency: 'EUR',
         path: 'saint-barthélemy',
+        iso2: 'BL',
+        iso3: 'BLM',
     },
     {
         id: 'BM',
@@ -442,6 +524,8 @@ export const countryData: CountryData[] = [
         title: 'Bermuda',
         currency: 'BMD',
         path: 'bermuda',
+        iso2: 'BM',
+        iso3: 'BMU',
     },
     {
         id: 'BN',
@@ -449,6 +533,8 @@ export const countryData: CountryData[] = [
         title: 'Brunei',
         currency: 'BND',
         path: 'brunei',
+        iso2: 'BN',
+        iso3: 'BRN',
     },
     {
         id: 'BO',
@@ -456,6 +542,8 @@ export const countryData: CountryData[] = [
         title: 'Bolivia',
         currency: 'BOB',
         path: 'bolivia',
+        iso2: 'BO',
+        iso3: 'BOL',
     },
     {
         id: 'BQ',
@@ -463,6 +551,8 @@ export const countryData: CountryData[] = [
         title: 'Bonaire',
         currency: 'USD',
         path: 'bonaire',
+        iso2: 'BQ',
+        iso3: 'BES',
     },
     {
         id: 'BR',
@@ -470,6 +560,8 @@ export const countryData: CountryData[] = [
         title: 'Brazil',
         currency: 'BRL',
         path: 'brazil',
+        iso2: 'BR',
+        iso3: 'BRA',
     },
     {
         id: 'BS',
@@ -477,6 +569,8 @@ export const countryData: CountryData[] = [
         title: 'Bahamas',
         currency: 'BSD',
         path: 'bahamas',
+        iso2: 'BS',
+        iso3: 'BHS',
     },
     {
         id: 'BT',
@@ -484,6 +578,8 @@ export const countryData: CountryData[] = [
         title: 'Bhutan',
         currency: 'BTN',
         path: 'bhutan',
+        iso2: 'BT',
+        iso3: 'BTN',
     },
     {
         id: 'BV',
@@ -491,6 +587,8 @@ export const countryData: CountryData[] = [
         title: 'Bouvet Island',
         currency: 'NOK',
         path: 'bouvet-island',
+        iso2: 'BV',
+        iso3: 'BVT',
     },
     {
         id: 'BW',
@@ -498,6 +596,8 @@ export const countryData: CountryData[] = [
         title: 'Botswana',
         currency: 'BWP',
         path: 'botswana',
+        iso2: 'BW',
+        iso3: 'BWA',
     },
     {
         id: 'BZ',
@@ -505,6 +605,8 @@ export const countryData: CountryData[] = [
         title: 'Belize',
         currency: 'BZD',
         path: 'belize',
+        iso2: 'BZ',
+        iso3: 'BLZ',
     },
     {
         id: 'CA',
@@ -512,6 +614,8 @@ export const countryData: CountryData[] = [
         title: 'Canada',
         currency: 'CAD',
         path: 'canada',
+        iso2: 'CA',
+        iso3: 'CAN',
     },
     {
         id: 'CC',
@@ -519,6 +623,8 @@ export const countryData: CountryData[] = [
         title: 'Cocos (Keeling) Islands',
         currency: 'AUD',
         path: 'cocos-keeling-islands',
+        iso2: 'CC',
+        iso3: 'CCK',
     },
     {
         id: 'CD',
@@ -526,6 +632,8 @@ export const countryData: CountryData[] = [
         title: 'Democratic Republic of the Congo',
         currency: 'CDF',
         path: 'democratic-republic-of-the-congo',
+        iso2: 'CD',
+        iso3: 'COD',
     },
     {
         id: 'CF',
@@ -533,6 +641,8 @@ export const countryData: CountryData[] = [
         title: 'Central African Republic',
         currency: 'XAF',
         path: 'central-african-republic',
+        iso2: 'CF',
+        iso3: 'CAF',
     },
     {
         id: 'CG',
@@ -540,6 +650,8 @@ export const countryData: CountryData[] = [
         title: 'Republic of the Congo',
         currency: 'XAF',
         path: 'republic-of-the-congo',
+        iso2: 'CG',
+        iso3: 'COG',
     },
     {
         id: 'CHE',
@@ -547,6 +659,8 @@ export const countryData: CountryData[] = [
         title: 'Switzerland',
         currency: 'CHF',
         path: 'switzerland',
+        iso2: 'CH',
+        iso3: 'CHE',
     },
     {
         id: 'CI',
@@ -554,6 +668,8 @@ export const countryData: CountryData[] = [
         title: 'Ivory Coast',
         currency: 'XOF',
         path: 'ivory-coast',
+        iso2: 'CI',
+        iso3: 'CIV',
     },
     {
         id: 'CK',
@@ -561,6 +677,8 @@ export const countryData: CountryData[] = [
         title: 'Cook Islands',
         currency: 'NZD',
         path: 'cook-islands',
+        iso2: 'CK',
+        iso3: 'COK',
     },
     {
         id: 'CL',
@@ -568,6 +686,8 @@ export const countryData: CountryData[] = [
         title: 'Chile',
         currency: 'CLP',
         path: 'chile',
+        iso2: 'CL',
+        iso3: 'CHL',
     },
     {
         id: 'CM',
@@ -575,6 +695,8 @@ export const countryData: CountryData[] = [
         title: 'Cameroon',
         currency: 'XAF',
         path: 'cameroon',
+        iso2: 'CM',
+        iso3: 'CMR',
     },
     {
         id: 'CN',
@@ -582,6 +704,8 @@ export const countryData: CountryData[] = [
         title: 'China',
         currency: 'CNY',
         path: 'china',
+        iso2: 'CN',
+        iso3: 'CHN',
     },
     {
         id: 'CO',
@@ -589,6 +713,8 @@ export const countryData: CountryData[] = [
         title: 'Colombia',
         currency: 'COP',
         path: 'colombia',
+        iso2: 'CO',
+        iso3: 'COL',
     },
     {
         id: 'CR',
@@ -596,6 +722,8 @@ export const countryData: CountryData[] = [
         title: 'Costa Rica',
         currency: 'CRC',
         path: 'costa-rica',
+        iso2: 'CR',
+        iso3: 'CRI',
     },
     {
         id: 'CV',
@@ -603,6 +731,8 @@ export const countryData: CountryData[] = [
         title: 'Cape Verde',
         currency: 'CVE',
         path: 'cape-verde',
+        iso2: 'CV',
+        iso3: 'CPV',
     },
     {
         id: 'CW',
@@ -610,6 +740,8 @@ export const countryData: CountryData[] = [
         title: 'Curacao',
         currency: 'ANG',
         path: 'curacao',
+        iso2: 'CW',
+        iso3: 'CUW',
     },
     {
         id: 'CX',
@@ -617,6 +749,8 @@ export const countryData: CountryData[] = [
         title: 'Christmas Island',
         currency: 'AUD',
         path: 'christmas-island',
+        iso2: 'CX',
+        iso3: 'CXR',
     },
     {
         id: 'CYP',
@@ -624,6 +758,8 @@ export const countryData: CountryData[] = [
         title: 'Cyprus',
         currency: 'EUR',
         path: 'cyprus',
+        iso2: 'CY',
+        iso3: 'CYP',
     },
     {
         id: 'CZE',
@@ -631,6 +767,8 @@ export const countryData: CountryData[] = [
         title: 'Czechia',
         currency: 'CZK',
         path: 'czechia',
+        iso2: 'CZ',
+        iso3: 'CZE',
     },
     {
         id: 'DEU',
@@ -638,6 +776,8 @@ export const countryData: CountryData[] = [
         title: 'Germany',
         currency: 'EUR',
         path: 'germany',
+        iso2: 'DE',
+        iso3: 'DEU',
     },
     {
         id: 'DJ',
@@ -645,6 +785,8 @@ export const countryData: CountryData[] = [
         title: 'Djibouti',
         currency: 'DJF',
         path: 'djibouti',
+        iso2: 'DJ',
+        iso3: 'DJI',
     },
     {
         id: 'DNK',
@@ -652,6 +794,8 @@ export const countryData: CountryData[] = [
         title: 'Denmark',
         currency: 'DKK',
         path: 'denmark',
+        iso2: 'DK',
+        iso3: 'DNK',
     },
     {
         id: 'DM',
@@ -659,6 +803,8 @@ export const countryData: CountryData[] = [
         title: 'Dominica',
         currency: 'XCD',
         path: 'dominica',
+        iso2: 'DM',
+        iso3: 'DMA',
     },
     {
         id: 'DO',
@@ -666,6 +812,8 @@ export const countryData: CountryData[] = [
         title: 'Dominican Republic',
         currency: 'DOP',
         path: 'dominican-republic',
+        iso2: 'DO',
+        iso3: 'DOM',
     },
     {
         id: 'DZ',
@@ -673,6 +821,8 @@ export const countryData: CountryData[] = [
         title: 'Algeria',
         currency: 'DZD',
         path: 'algeria',
+        iso2: 'DZ',
+        iso3: 'DZA',
     },
     {
         id: 'EC',
@@ -680,6 +830,8 @@ export const countryData: CountryData[] = [
         title: 'Ecuador',
         currency: 'USD',
         path: 'ecuador',
+        iso2: 'EC',
+        iso3: 'ECU',
     },
     {
         id: 'EST',
@@ -687,6 +839,8 @@ export const countryData: CountryData[] = [
         title: 'Estonia',
         currency: 'EUR',
         path: 'estonia',
+        iso2: 'EE',
+        iso3: 'EST',
     },
     {
         id: 'EG',
@@ -694,6 +848,8 @@ export const countryData: CountryData[] = [
         title: 'Egypt',
         currency: 'EGP',
         path: 'egypt',
+        iso2: 'EG',
+        iso3: 'EGY',
     },
     {
         id: 'EH',
@@ -701,6 +857,8 @@ export const countryData: CountryData[] = [
         title: 'Western Sahara',
         currency: 'MAD',
         path: 'western-sahara',
+        iso2: 'EH',
+        iso3: 'ESH',
     },
     {
         id: 'ER',
@@ -708,6 +866,8 @@ export const countryData: CountryData[] = [
         title: 'Eritrea',
         currency: 'ERN',
         path: 'eritrea',
+        iso2: 'ER',
+        iso3: 'ERI',
     },
     {
         id: 'ESP',
@@ -715,6 +875,8 @@ export const countryData: CountryData[] = [
         title: 'Spain',
         currency: 'EUR',
         path: 'spain',
+        iso2: 'ES',
+        iso3: 'ESP',
     },
     {
         id: 'ET',
@@ -722,6 +884,8 @@ export const countryData: CountryData[] = [
         title: 'Ethiopia',
         currency: 'ETB',
         path: 'ethiopia',
+        iso2: 'ET',
+        iso3: 'ETH',
     },
     {
         id: 'FIN',
@@ -729,6 +893,8 @@ export const countryData: CountryData[] = [
         title: 'Finland',
         currency: 'EUR',
         path: 'finland',
+        iso2: 'FI',
+        iso3: 'FIN',
     },
     {
         id: 'FJ',
@@ -736,6 +902,8 @@ export const countryData: CountryData[] = [
         title: 'Fiji',
         currency: 'FJD',
         path: 'fiji',
+        iso2: 'FJ',
+        iso3: 'FJI',
     },
     {
         id: 'FK',
@@ -743,6 +911,8 @@ export const countryData: CountryData[] = [
         title: 'Falkland Islands',
         currency: 'FKP',
         path: 'falkland-islands',
+        iso2: 'FK',
+        iso3: 'FLK',
     },
     {
         id: 'FM',
@@ -750,6 +920,8 @@ export const countryData: CountryData[] = [
         title: 'Micronesia',
         currency: 'USD',
         path: 'micronesia',
+        iso2: 'FM',
+        iso3: 'FSM',
     },
     {
         id: 'FO',
@@ -757,6 +929,8 @@ export const countryData: CountryData[] = [
         title: 'Faroe Islands',
         currency: 'DKK',
         path: 'faroe-islands',
+        iso2: 'FO',
+        iso3: 'FRO',
     },
     {
         id: 'FRA',
@@ -764,6 +938,8 @@ export const countryData: CountryData[] = [
         title: 'France',
         currency: 'EUR',
         path: 'france',
+        iso2: 'FR',
+        iso3: 'FRA',
     },
     {
         id: 'GA',
@@ -771,6 +947,8 @@ export const countryData: CountryData[] = [
         title: 'Gabon',
         currency: 'XAF',
         path: 'gabon',
+        iso2: 'GA',
+        iso3: 'GAB',
     },
     {
         id: 'GBR',
@@ -779,6 +957,7 @@ export const countryData: CountryData[] = [
         currency: 'GBP',
         path: 'united-kingdom',
         iso2: 'GB',
+        iso3: 'GBR',
     },
     {
         id: 'GD',
@@ -786,6 +965,8 @@ export const countryData: CountryData[] = [
         title: 'Grenada',
         currency: 'XCD',
         path: 'grenada',
+        iso2: 'GD',
+        iso3: 'GRD',
     },
     {
         id: 'GE',
@@ -793,6 +974,8 @@ export const countryData: CountryData[] = [
         title: 'Georgia',
         currency: 'GEL',
         path: 'georgia',
+        iso2: 'GE',
+        iso3: 'GEO',
     },
     {
         id: 'GUF',
@@ -800,6 +983,8 @@ export const countryData: CountryData[] = [
         title: 'French Guiana',
         currency: 'EUR',
         path: 'french-guiana',
+        iso2: 'GF',
+        iso3: 'GUF',
     },
     {
         id: 'GG',
@@ -807,6 +992,8 @@ export const countryData: CountryData[] = [
         title: 'Guernsey',
         currency: 'GBP',
         path: 'guernsey',
+        iso2: 'GG',
+        iso3: 'GGY',
     },
     {
         id: 'GH',
@@ -814,6 +1001,8 @@ export const countryData: CountryData[] = [
         title: 'Ghana',
         currency: 'GHS',
         path: 'ghana',
+        iso2: 'GH',
+        iso3: 'GHA',
     },
     {
         id: 'GI',
@@ -821,6 +1010,8 @@ export const countryData: CountryData[] = [
         title: 'Gibraltar',
         currency: 'GIP',
         path: 'gibraltar',
+        iso2: 'GI',
+        iso3: 'GIB',
     },
     {
         id: 'GL',
@@ -828,6 +1019,8 @@ export const countryData: CountryData[] = [
         title: 'Greenland',
         currency: 'DKK',
         path: 'greenland',
+        iso2: 'GL',
+        iso3: 'GRL',
     },
     {
         id: 'GM',
@@ -835,6 +1028,8 @@ export const countryData: CountryData[] = [
         title: 'Gambia',
         currency: 'GMD',
         path: 'gambia',
+        iso2: 'GM',
+        iso3: 'GMB',
     },
     {
         id: 'GN',
@@ -842,6 +1037,8 @@ export const countryData: CountryData[] = [
         title: 'Guinea',
         currency: 'GNF',
         path: 'guinea',
+        iso2: 'GN',
+        iso3: 'GIN',
     },
     {
         id: 'GP',
@@ -849,6 +1046,8 @@ export const countryData: CountryData[] = [
         title: 'Guadeloupe',
         currency: 'EUR',
         path: 'guadeloupe',
+        iso2: 'GP',
+        iso3: 'GLP',
     },
     {
         id: 'GQ',
@@ -856,6 +1055,8 @@ export const countryData: CountryData[] = [
         title: 'Equatorial Guinea',
         currency: 'XAF',
         path: 'equatorial-guinea',
+        iso2: 'GQ',
+        iso3: 'GNQ',
     },
     {
         id: 'GR',
@@ -863,6 +1064,8 @@ export const countryData: CountryData[] = [
         title: 'Greece',
         currency: 'EUR',
         path: 'greece',
+        iso2: 'GR',
+        iso3: 'GRC',
     },
     {
         id: 'GS',
@@ -870,6 +1073,8 @@ export const countryData: CountryData[] = [
         title: 'South Georgia and the South Sandwich Islands',
         currency: 'GBP',
         path: 'south-georgia-and-the-south-sandwich-islands',
+        iso2: 'GS',
+        iso3: 'SGS',
     },
     {
         id: 'GT',
@@ -877,6 +1082,8 @@ export const countryData: CountryData[] = [
         title: 'Guatemala',
         currency: 'GTQ',
         path: 'guatemala',
+        iso2: 'GT',
+        iso3: 'GTM',
     },
     {
         id: 'GU',
@@ -884,6 +1091,8 @@ export const countryData: CountryData[] = [
         title: 'Guam',
         currency: 'USD',
         path: 'guam',
+        iso2: 'GU',
+        iso3: 'GUM',
     },
     {
         id: 'GW',
@@ -891,6 +1100,8 @@ export const countryData: CountryData[] = [
         title: 'Guinea-Bissau',
         currency: 'XOF',
         path: 'guinea-bissau',
+        iso2: 'GW',
+        iso3: 'GNB',
     },
     {
         id: 'GY',
@@ -898,6 +1109,8 @@ export const countryData: CountryData[] = [
         title: 'Guyana',
         currency: 'GYD',
         path: 'guyana',
+        iso2: 'GY',
+        iso3: 'GUY',
     },
     {
         id: 'HK',
@@ -905,6 +1118,8 @@ export const countryData: CountryData[] = [
         title: 'Hong Kong',
         currency: 'HKD',
         path: 'hong-kong',
+        iso2: 'HK',
+        iso3: 'HKG',
     },
     {
         id: 'HM',
@@ -912,6 +1127,8 @@ export const countryData: CountryData[] = [
         title: 'Heard Island and McDonald Islands',
         currency: 'AUD',
         path: 'heard-island-and-mcdonald-islands',
+        iso2: 'HM',
+        iso3: 'HMD',
     },
     {
         id: 'HN',
@@ -919,6 +1136,8 @@ export const countryData: CountryData[] = [
         title: 'Honduras',
         currency: 'HNL',
         path: 'honduras',
+        iso2: 'HN',
+        iso3: 'HND',
     },
     {
         id: 'HRV',
@@ -926,6 +1145,8 @@ export const countryData: CountryData[] = [
         title: 'Croatia',
         currency: 'EUR',
         path: 'croatia',
+        iso2: 'HR',
+        iso3: 'HRV',
     },
     {
         id: 'HT',
@@ -933,6 +1154,8 @@ export const countryData: CountryData[] = [
         title: 'Haiti',
         currency: 'HTG',
         path: 'haiti',
+        iso2: 'HT',
+        iso3: 'HTI',
     },
     {
         id: 'HUN',
@@ -940,6 +1163,8 @@ export const countryData: CountryData[] = [
         title: 'Hungary',
         currency: 'HUF',
         path: 'hungary',
+        iso2: 'HU',
+        iso3: 'HUN',
     },
     {
         id: 'ID',
@@ -947,6 +1172,8 @@ export const countryData: CountryData[] = [
         title: 'Indonesia',
         currency: 'IDR',
         path: 'indonesia',
+        iso2: 'ID',
+        iso3: 'IDN',
     },
     {
         id: 'IRL',
@@ -954,6 +1181,8 @@ export const countryData: CountryData[] = [
         title: 'Ireland',
         currency: 'EUR',
         path: 'ireland',
+        iso2: 'IE',
+        iso3: 'IRL',
     },
     {
         id: 'IL',
@@ -961,6 +1190,8 @@ export const countryData: CountryData[] = [
         title: 'Israel',
         currency: 'ILS',
         path: 'israel',
+        iso2: 'IL',
+        iso3: 'ISR',
     },
     {
         id: 'IM',
@@ -968,6 +1199,8 @@ export const countryData: CountryData[] = [
         title: 'Isle of Man',
         currency: 'GBP',
         path: 'isle-of-man',
+        iso2: 'IM',
+        iso3: 'IMN',
     },
     {
         id: 'IN',
@@ -975,6 +1208,8 @@ export const countryData: CountryData[] = [
         title: 'India',
         currency: 'INR',
         path: 'india',
+        iso2: 'IN',
+        iso3: 'IND',
     },
     {
         id: 'IO',
@@ -982,6 +1217,8 @@ export const countryData: CountryData[] = [
         title: 'British Indian Ocean Territory',
         currency: 'USD',
         path: 'british-indian-ocean-territory',
+        iso2: 'IO',
+        iso3: 'IOT',
     },
     {
         id: 'ISL',
@@ -989,6 +1226,8 @@ export const countryData: CountryData[] = [
         title: 'Iceland',
         currency: 'ISK',
         path: 'iceland',
+        iso2: 'IS',
+        iso3: 'ISL',
     },
     {
         id: 'ITA',
@@ -996,6 +1235,8 @@ export const countryData: CountryData[] = [
         title: 'Italy',
         currency: 'EUR',
         path: 'italy',
+        iso2: 'IT',
+        iso3: 'ITA',
     },
     {
         id: 'JE',
@@ -1003,6 +1244,8 @@ export const countryData: CountryData[] = [
         title: 'Jersey',
         currency: 'GBP',
         path: 'jersey',
+        iso2: 'JE',
+        iso3: 'JEY',
     },
     {
         id: 'JM',
@@ -1010,6 +1253,8 @@ export const countryData: CountryData[] = [
         title: 'Jamaica',
         currency: 'JMD',
         path: 'jamaica',
+        iso2: 'JM',
+        iso3: 'JAM',
     },
     {
         id: 'JO',
@@ -1017,6 +1262,8 @@ export const countryData: CountryData[] = [
         title: 'Jordan',
         currency: 'JOD',
         path: 'jordan',
+        iso2: 'JO',
+        iso3: 'JOR',
     },
     {
         id: 'JP',
@@ -1024,6 +1271,8 @@ export const countryData: CountryData[] = [
         title: 'Japan',
         currency: 'JPY',
         path: 'japan',
+        iso2: 'JP',
+        iso3: 'JPN',
     },
     {
         id: 'KE',
@@ -1031,6 +1280,8 @@ export const countryData: CountryData[] = [
         title: 'Kenya',
         currency: 'KES',
         path: 'kenya',
+        iso2: 'KE',
+        iso3: 'KEN',
     },
     {
         id: 'KG',
@@ -1038,6 +1289,8 @@ export const countryData: CountryData[] = [
         title: 'Kyrgyzstan',
         currency: 'KGS',
         path: 'kyrgyzstan',
+        iso2: 'KG',
+        iso3: 'KGZ',
     },
     {
         id: 'KH',
@@ -1045,6 +1298,8 @@ export const countryData: CountryData[] = [
         title: 'Cambodia',
         currency: 'KHR',
         path: 'cambodia',
+        iso2: 'KH',
+        iso3: 'KHM',
     },
     {
         id: 'KI',
@@ -1052,6 +1307,8 @@ export const countryData: CountryData[] = [
         title: 'Kiribati',
         currency: 'AUD',
         path: 'kiribati',
+        iso2: 'KI',
+        iso3: 'KIR',
     },
     {
         id: 'KM',
@@ -1059,6 +1316,8 @@ export const countryData: CountryData[] = [
         title: 'Comoros',
         currency: 'KMF',
         path: 'comoros',
+        iso2: 'KM',
+        iso3: 'COM',
     },
     {
         id: 'KN',
@@ -1066,6 +1325,8 @@ export const countryData: CountryData[] = [
         title: 'Saint Kitts and Nevis',
         currency: 'XCD',
         path: 'saint-kitts-and-nevis',
+        iso2: 'KN',
+        iso3: 'KNA',
     },
     {
         id: 'KR',
@@ -1073,6 +1334,8 @@ export const countryData: CountryData[] = [
         title: 'South Korea',
         currency: 'KRW',
         path: 'south-korea',
+        iso2: 'KR',
+        iso3: 'KOR',
     },
     {
         id: 'KW',
@@ -1080,6 +1343,8 @@ export const countryData: CountryData[] = [
         title: 'Kuwait',
         currency: 'KWD',
         path: 'kuwait',
+        iso2: 'KW',
+        iso3: 'KWT',
     },
     {
         id: 'KY',
@@ -1087,6 +1352,8 @@ export const countryData: CountryData[] = [
         title: 'Cayman Islands',
         currency: 'KYD',
         path: 'cayman-islands',
+        iso2: 'KY',
+        iso3: 'CYM',
     },
     {
         id: 'KZ',
@@ -1094,6 +1361,8 @@ export const countryData: CountryData[] = [
         title: 'Kazakhstan',
         currency: 'KZT',
         path: 'kazakhstan',
+        iso2: 'KZ',
+        iso3: 'KAZ',
     },
     {
         id: 'LA',
@@ -1101,6 +1370,8 @@ export const countryData: CountryData[] = [
         title: 'Laos',
         currency: 'LAK',
         path: 'laos',
+        iso2: 'LA',
+        iso3: 'LAO',
     },
     {
         id: 'LB',
@@ -1108,6 +1379,8 @@ export const countryData: CountryData[] = [
         title: 'Lebanon',
         currency: 'LBP',
         path: 'lebanon',
+        iso2: 'LB',
+        iso3: 'LBN',
     },
     {
         id: 'LC',
@@ -1115,6 +1388,8 @@ export const countryData: CountryData[] = [
         title: 'Saint Lucia',
         currency: 'XCD',
         path: 'saint-lucia',
+        iso2: 'LC',
+        iso3: 'LCA',
     },
     {
         id: 'LI',
@@ -1122,6 +1397,8 @@ export const countryData: CountryData[] = [
         title: 'Liechtenstein',
         currency: 'CHF',
         path: 'liechtenstein',
+        iso2: 'LI',
+        iso3: 'LIE',
     },
     {
         id: 'LK',
@@ -1129,6 +1406,8 @@ export const countryData: CountryData[] = [
         title: 'Sri Lanka',
         currency: 'LKR',
         path: 'sri-lanka',
+        iso2: 'LK',
+        iso3: 'LKA',
     },
     {
         id: 'LR',
@@ -1136,6 +1415,8 @@ export const countryData: CountryData[] = [
         title: 'Liberia',
         currency: 'LRD',
         path: 'liberia',
+        iso2: 'LR',
+        iso3: 'LBR',
     },
     {
         id: 'LS',
@@ -1143,6 +1424,8 @@ export const countryData: CountryData[] = [
         title: 'Lesotho',
         currency: 'LSL',
         path: 'lesotho',
+        iso2: 'LS',
+        iso3: 'LSO',
     },
     {
         id: 'LTU',
@@ -1150,6 +1433,8 @@ export const countryData: CountryData[] = [
         title: 'Lithuania',
         currency: 'EUR',
         path: 'lithuania',
+        iso2: 'LT',
+        iso3: 'LTU',
     },
     {
         id: 'LUX',
@@ -1157,6 +1442,8 @@ export const countryData: CountryData[] = [
         title: 'Luxembourg',
         currency: 'EUR',
         path: 'luxembourg',
+        iso2: 'LU',
+        iso3: 'LUX',
     },
     {
         id: 'LVA',
@@ -1164,6 +1451,8 @@ export const countryData: CountryData[] = [
         title: 'Latvia',
         currency: 'EUR',
         path: 'latvia',
+        iso2: 'LV',
+        iso3: 'LVA',
     },
     {
         id: 'LY',
@@ -1171,6 +1460,8 @@ export const countryData: CountryData[] = [
         title: 'Libya',
         currency: 'LYD',
         path: 'libya',
+        iso2: 'LY',
+        iso3: 'LBY',
     },
     {
         id: 'MA',
@@ -1178,6 +1469,8 @@ export const countryData: CountryData[] = [
         title: 'Morocco',
         currency: 'MAD',
         path: 'morocco',
+        iso2: 'MA',
+        iso3: 'MAR',
     },
     {
         id: 'MC',
@@ -1185,6 +1478,8 @@ export const countryData: CountryData[] = [
         title: 'Monaco',
         currency: 'EUR',
         path: 'monaco',
+        iso2: 'MC',
+        iso3: 'MCO',
     },
     {
         id: 'MD',
@@ -1192,6 +1487,8 @@ export const countryData: CountryData[] = [
         title: 'Moldova',
         currency: 'MDL',
         path: 'moldova',
+        iso2: 'MD',
+        iso3: 'MDA',
     },
     {
         id: 'ME',
@@ -1199,6 +1496,8 @@ export const countryData: CountryData[] = [
         title: 'Montenegro',
         currency: 'EUR',
         path: 'montenegro',
+        iso2: 'ME',
+        iso3: 'MNE',
     },
     {
         id: 'MAF',
@@ -1206,6 +1505,8 @@ export const countryData: CountryData[] = [
         title: 'Saint Martin',
         currency: 'EUR',
         path: 'saint-martin',
+        iso2: 'MF',
+        iso3: 'MAF',
     },
     {
         id: 'MG',
@@ -1213,6 +1514,8 @@ export const countryData: CountryData[] = [
         title: 'Madagascar',
         currency: 'MGA',
         path: 'madagascar',
+        iso2: 'MG',
+        iso3: 'MDG',
     },
     {
         id: 'MH',
@@ -1220,6 +1523,8 @@ export const countryData: CountryData[] = [
         title: 'Marshall Islands',
         currency: 'USD',
         path: 'marshall-islands',
+        iso2: 'MH',
+        iso3: 'MHL',
     },
     {
         id: 'MK',
@@ -1227,6 +1532,8 @@ export const countryData: CountryData[] = [
         title: 'Macedonia',
         currency: 'MKD',
         path: 'macedonia',
+        iso2: 'MK',
+        iso3: 'MKD',
     },
     {
         id: 'ML',
@@ -1234,6 +1541,8 @@ export const countryData: CountryData[] = [
         title: 'Mali',
         currency: 'XOF',
         path: 'mali',
+        iso2: 'ML',
+        iso3: 'MLI',
     },
     {
         id: 'MN',
@@ -1241,6 +1550,8 @@ export const countryData: CountryData[] = [
         title: 'Mongolia',
         currency: 'MNT',
         path: 'mongolia',
+        iso2: 'MN',
+        iso3: 'MNG',
     },
     {
         id: 'MO',
@@ -1248,6 +1559,8 @@ export const countryData: CountryData[] = [
         title: 'Macao',
         currency: 'MOP',
         path: 'macao',
+        iso2: 'MO',
+        iso3: 'MAC',
     },
     {
         id: 'MP',
@@ -1255,6 +1568,8 @@ export const countryData: CountryData[] = [
         title: 'Northern Mariana Islands',
         currency: 'USD',
         path: 'northern-mariana-islands',
+        iso2: 'MP',
+        iso3: 'MNP',
     },
     {
         id: 'MTQ',
@@ -1262,6 +1577,8 @@ export const countryData: CountryData[] = [
         title: 'Martinique',
         currency: 'EUR',
         path: 'martinique',
+        iso2: 'MQ',
+        iso3: 'MTQ',
     },
     {
         id: 'MR',
@@ -1269,6 +1586,8 @@ export const countryData: CountryData[] = [
         title: 'Mauritania',
         currency: 'MRU',
         path: 'mauritania',
+        iso2: 'MR',
+        iso3: 'MRT',
     },
     {
         id: 'MS',
@@ -1276,6 +1595,8 @@ export const countryData: CountryData[] = [
         title: 'Montserrat',
         currency: 'XCD',
         path: 'montserrat',
+        iso2: 'MS',
+        iso3: 'MSR',
     },
     {
         id: 'MLT',
@@ -1283,6 +1604,8 @@ export const countryData: CountryData[] = [
         title: 'Malta',
         currency: 'EUR',
         path: 'malta',
+        iso2: 'MT',
+        iso3: 'MLT',
     },
     {
         id: 'MU',
@@ -1290,6 +1613,8 @@ export const countryData: CountryData[] = [
         title: 'Mauritius',
         currency: 'MUR',
         path: 'mauritius',
+        iso2: 'MU',
+        iso3: 'MUS',
     },
     {
         id: 'MV',
@@ -1297,6 +1622,8 @@ export const countryData: CountryData[] = [
         title: 'Maldives',
         currency: 'MVR',
         path: 'maldives',
+        iso2: 'MV',
+        iso3: 'MDV',
     },
     {
         id: 'MW',
@@ -1304,6 +1631,8 @@ export const countryData: CountryData[] = [
         title: 'Malawi',
         currency: 'MWK',
         path: 'malawi',
+        iso2: 'MW',
+        iso3: 'MWI',
     },
     {
         id: 'MX',
@@ -1311,6 +1640,8 @@ export const countryData: CountryData[] = [
         title: 'Mexico',
         currency: 'MXN',
         path: 'mexico',
+        iso2: 'MX',
+        iso3: 'MEX',
     },
     {
         id: 'MY',
@@ -1318,6 +1649,8 @@ export const countryData: CountryData[] = [
         title: 'Malaysia',
         currency: 'MYR',
         path: 'malaysia',
+        iso2: 'MY',
+        iso3: 'MYS',
     },
     {
         id: 'MZ',
@@ -1325,6 +1658,8 @@ export const countryData: CountryData[] = [
         title: 'Mozambique',
         currency: 'MZN',
         path: 'mozambique',
+        iso2: 'MZ',
+        iso3: 'MOZ',
     },
     {
         id: 'NA',
@@ -1332,6 +1667,8 @@ export const countryData: CountryData[] = [
         title: 'Namibia',
         currency: 'NAD',
         path: 'namibia',
+        iso2: 'NA',
+        iso3: 'NAM',
     },
     {
         id: 'NC',
@@ -1339,6 +1676,8 @@ export const countryData: CountryData[] = [
         title: 'New Caledonia',
         currency: 'XPF',
         path: 'new-caledonia',
+        iso2: 'NC',
+        iso3: 'NCL',
     },
     {
         id: 'NE',
@@ -1346,6 +1685,8 @@ export const countryData: CountryData[] = [
         title: 'Niger',
         currency: 'XOF',
         path: 'niger',
+        iso2: 'NE',
+        iso3: 'NER',
     },
     {
         id: 'NF',
@@ -1353,6 +1694,8 @@ export const countryData: CountryData[] = [
         title: 'Norfolk Island',
         currency: 'AUD',
         path: 'norfolk-island',
+        iso2: 'NF',
+        iso3: 'NFK',
     },
     {
         id: 'NG',
@@ -1360,6 +1703,8 @@ export const countryData: CountryData[] = [
         title: 'Nigeria',
         currency: 'NGN',
         path: 'nigeria',
+        iso2: 'NG',
+        iso3: 'NGA',
     },
     {
         id: 'NI',
@@ -1367,6 +1712,8 @@ export const countryData: CountryData[] = [
         title: 'Nicaragua',
         currency: 'NIO',
         path: 'nicaragua',
+        iso2: 'NI',
+        iso3: 'NIC',
     },
     {
         id: 'NLD',
@@ -1374,6 +1721,8 @@ export const countryData: CountryData[] = [
         title: 'Netherlands',
         currency: 'EUR',
         path: 'netherlands',
+        iso2: 'NL',
+        iso3: 'NLD',
     },
     {
         id: 'NOR',
@@ -1381,6 +1730,8 @@ export const countryData: CountryData[] = [
         title: 'Norway',
         currency: 'NOK',
         path: 'norway',
+        iso2: 'NO',
+        iso3: 'NOR',
     },
     {
         id: 'NP',
@@ -1388,6 +1739,8 @@ export const countryData: CountryData[] = [
         title: 'Nepal',
         currency: 'NPR',
         path: 'nepal',
+        iso2: 'NP',
+        iso3: 'NPL',
     },
     {
         id: 'NR',
@@ -1395,6 +1748,8 @@ export const countryData: CountryData[] = [
         title: 'Nauru',
         currency: 'AUD',
         path: 'nauru',
+        iso2: 'NR',
+        iso3: 'NRU',
     },
     {
         id: 'NU',
@@ -1402,6 +1757,8 @@ export const countryData: CountryData[] = [
         title: 'Niue',
         currency: 'NZD',
         path: 'niue',
+        iso2: 'NU',
+        iso3: 'NIU',
     },
     {
         id: 'NZ',
@@ -1409,6 +1766,8 @@ export const countryData: CountryData[] = [
         title: 'New Zealand',
         currency: 'NZD',
         path: 'new-zealand',
+        iso2: 'NZ',
+        iso3: 'NZL',
     },
     {
         id: 'OM',
@@ -1416,6 +1775,8 @@ export const countryData: CountryData[] = [
         title: 'Oman',
         currency: 'OMR',
         path: 'oman',
+        iso2: 'OM',
+        iso3: 'OMN',
     },
     {
         id: 'PA',
@@ -1423,6 +1784,8 @@ export const countryData: CountryData[] = [
         title: 'Panama',
         currency: 'PAB',
         path: 'panama',
+        iso2: 'PA',
+        iso3: 'PAN',
     },
     {
         id: 'PE',
@@ -1430,6 +1793,8 @@ export const countryData: CountryData[] = [
         title: 'Peru',
         currency: 'PEN',
         path: 'peru',
+        iso2: 'PE',
+        iso3: 'PER',
     },
     {
         id: 'PF',
@@ -1437,6 +1802,8 @@ export const countryData: CountryData[] = [
         title: 'French Polynesia',
         currency: 'XPF',
         path: 'french-polynesia',
+        iso2: 'PF',
+        iso3: 'PYF',
     },
     {
         id: 'PG',
@@ -1444,6 +1811,8 @@ export const countryData: CountryData[] = [
         title: 'Papua New Guinea',
         currency: 'PGK',
         path: 'papua-new-guinea',
+        iso2: 'PG',
+        iso3: 'PNG',
     },
     {
         id: 'PH',
@@ -1451,6 +1820,8 @@ export const countryData: CountryData[] = [
         title: 'Philippines',
         currency: 'PHP',
         path: 'philippines',
+        iso2: 'PH',
+        iso3: 'PHL',
     },
     {
         id: 'PK',
@@ -1458,6 +1829,8 @@ export const countryData: CountryData[] = [
         title: 'Pakistan',
         currency: 'PKR',
         path: 'pakistan',
+        iso2: 'PK',
+        iso3: 'PAK',
     },
     {
         id: 'PL',
@@ -1465,6 +1838,8 @@ export const countryData: CountryData[] = [
         title: 'Poland',
         currency: 'PLN',
         path: 'poland',
+        iso2: 'PL',
+        iso3: 'POL',
     },
     {
         id: 'PM',
@@ -1472,6 +1847,8 @@ export const countryData: CountryData[] = [
         title: 'Saint Pierre and Miquelon',
         currency: 'EUR',
         path: 'saint-pierre-and-miquelon',
+        iso2: 'PM',
+        iso3: 'SPM',
     },
     {
         id: 'PN',
@@ -1479,6 +1856,8 @@ export const countryData: CountryData[] = [
         title: 'Pitcairn Islands',
         currency: 'NZD',
         path: 'pitcairn-islands',
+        iso2: 'PN',
+        iso3: 'PCN',
     },
     {
         id: 'PR',
@@ -1486,6 +1865,8 @@ export const countryData: CountryData[] = [
         title: 'Puerto Rico',
         currency: 'USD',
         path: 'puerto-rico',
+        iso2: 'PR',
+        iso3: 'PRI',
     },
     {
         id: 'PS',
@@ -1493,6 +1874,8 @@ export const countryData: CountryData[] = [
         title: 'Palestine',
         currency: 'ILS',
         path: 'palestine',
+        iso2: 'PS',
+        iso3: 'PSE',
     },
     {
         id: 'PRT',
@@ -1500,6 +1883,8 @@ export const countryData: CountryData[] = [
         title: 'Portugal',
         currency: 'EUR',
         path: 'portugal',
+        iso2: 'PT',
+        iso3: 'PRT',
     },
     {
         id: 'PW',
@@ -1507,6 +1892,8 @@ export const countryData: CountryData[] = [
         title: 'Palau',
         currency: 'USD',
         path: 'palau',
+        iso2: 'PW',
+        iso3: 'PLW',
     },
     {
         id: 'PY',
@@ -1514,6 +1901,8 @@ export const countryData: CountryData[] = [
         title: 'Paraguay',
         currency: 'PYG',
         path: 'paraguay',
+        iso2: 'PY',
+        iso3: 'PRY',
     },
     {
         id: 'QA',
@@ -1521,6 +1910,8 @@ export const countryData: CountryData[] = [
         title: 'Qatar',
         currency: 'QAR',
         path: 'qatar',
+        iso2: 'QA',
+        iso3: 'QAT',
     },
     {
         id: 'REU',
@@ -1528,6 +1919,8 @@ export const countryData: CountryData[] = [
         title: 'Réunion',
         currency: 'EUR',
         path: 'reunion',
+        iso2: 'RE',
+        iso3: 'REU',
     },
     {
         id: 'ROU',
@@ -1535,6 +1928,8 @@ export const countryData: CountryData[] = [
         title: 'Romania',
         currency: 'RON',
         path: 'romania',
+        iso2: 'RO',
+        iso3: 'ROU',
     },
     {
         id: 'RS',
@@ -1542,6 +1937,8 @@ export const countryData: CountryData[] = [
         title: 'Serbia',
         currency: 'RSD',
         path: 'serbia',
+        iso2: 'RS',
+        iso3: 'SRB',
     },
     {
         id: 'RW',
@@ -1549,6 +1946,8 @@ export const countryData: CountryData[] = [
         title: 'Rwanda',
         currency: 'RWF',
         path: 'rwanda',
+        iso2: 'RW',
+        iso3: 'RWA',
     },
     {
         id: 'SA',
@@ -1556,6 +1955,8 @@ export const countryData: CountryData[] = [
         title: 'Saudi Arabia',
         currency: 'SAR',
         path: 'saudi-arabia',
+        iso2: 'SA',
+        iso3: 'SAU',
     },
     {
         id: 'SB',
@@ -1563,6 +1964,8 @@ export const countryData: CountryData[] = [
         title: 'Solomon Islands',
         currency: 'SBD',
         path: 'solomon-islands',
+        iso2: 'SB',
+        iso3: 'SLB',
     },
     {
         id: 'SC',
@@ -1570,6 +1973,8 @@ export const countryData: CountryData[] = [
         title: 'Seychelles',
         currency: 'SCR',
         path: 'seychelles',
+        iso2: 'SC',
+        iso3: 'SYC',
     },
     {
         id: 'SD',
@@ -1577,6 +1982,8 @@ export const countryData: CountryData[] = [
         title: 'Sudan',
         currency: 'SDG',
         path: 'sudan',
+        iso2: 'SD',
+        iso3: 'SDN',
     },
     {
         id: 'SE',
@@ -1584,6 +1991,8 @@ export const countryData: CountryData[] = [
         title: 'Sweden',
         currency: 'SEK',
         path: 'sweden',
+        iso2: 'SE',
+        iso3: 'SWE',
     },
     {
         id: 'SG',
@@ -1591,6 +2000,8 @@ export const countryData: CountryData[] = [
         title: 'Singapore',
         currency: 'SGD',
         path: 'singapore',
+        iso2: 'SG',
+        iso3: 'SGP',
     },
     {
         id: 'SH',
@@ -1598,6 +2009,8 @@ export const countryData: CountryData[] = [
         title: 'Saint Helena',
         currency: 'SHP',
         path: 'saint-helena',
+        iso2: 'SH',
+        iso3: 'SHN',
     },
     {
         id: 'SVN',
@@ -1605,6 +2018,8 @@ export const countryData: CountryData[] = [
         title: 'Slovenia',
         currency: 'EUR',
         path: 'slovenia',
+        iso2: 'SI',
+        iso3: 'SVN',
     },
     {
         id: 'SJ',
@@ -1612,6 +2027,8 @@ export const countryData: CountryData[] = [
         title: 'Svalbard and Jan Mayen',
         currency: 'NOK',
         path: 'svalbard-and-jan-mayen',
+        iso2: 'SJ',
+        iso3: 'SJM',
     },
     {
         id: 'SVK',
@@ -1619,6 +2036,8 @@ export const countryData: CountryData[] = [
         title: 'Slovakia',
         currency: 'EUR',
         path: 'slovakia',
+        iso2: 'SK',
+        iso3: 'SVK',
     },
     {
         id: 'SL',
@@ -1626,6 +2045,8 @@ export const countryData: CountryData[] = [
         title: 'Sierra Leone',
         currency: 'SLL',
         path: 'sierra-leone',
+        iso2: 'SL',
+        iso3: 'SLE',
     },
     {
         id: 'SM',
@@ -1633,6 +2054,8 @@ export const countryData: CountryData[] = [
         title: 'San Marino',
         currency: 'EUR',
         path: 'san-marino',
+        iso2: 'SM',
+        iso3: 'SMR',
     },
     {
         id: 'SN',
@@ -1640,6 +2063,8 @@ export const countryData: CountryData[] = [
         title: 'Senegal',
         currency: 'XOF',
         path: 'senegal',
+        iso2: 'SN',
+        iso3: 'SEN',
     },
     {
         id: 'SO',
@@ -1647,6 +2072,8 @@ export const countryData: CountryData[] = [
         title: 'Somalia',
         currency: 'SOS',
         path: 'somalia',
+        iso2: 'SO',
+        iso3: 'SOM',
     },
     {
         id: 'SR',
@@ -1654,6 +2081,8 @@ export const countryData: CountryData[] = [
         title: 'Suriname',
         currency: 'SRD',
         path: 'suriname',
+        iso2: 'SR',
+        iso3: 'SUR',
     },
     {
         id: 'SS',
@@ -1661,6 +2090,8 @@ export const countryData: CountryData[] = [
         title: 'South Sudan',
         currency: 'SSP',
         path: 'south-sudan',
+        iso2: 'SS',
+        iso3: 'SSD',
     },
     {
         id: 'ST',
@@ -1668,6 +2099,8 @@ export const countryData: CountryData[] = [
         title: 'São Tomé and Príncipe',
         currency: 'STD',
         path: 'sao-tome-and-principe',
+        iso2: 'ST',
+        iso3: 'STP',
     },
     {
         id: 'SV',
@@ -1675,6 +2108,8 @@ export const countryData: CountryData[] = [
         title: 'El Salvador',
         currency: 'USD',
         path: 'el-salvador',
+        iso2: 'SV',
+        iso3: 'SLV',
     },
     {
         id: 'SX',
@@ -1682,6 +2117,8 @@ export const countryData: CountryData[] = [
         title: 'Sint Maarten',
         currency: 'ANG',
         path: 'sint-maarten',
+        iso2: 'SX',
+        iso3: 'SXM',
     },
     {
         id: 'SZ',
@@ -1689,6 +2126,8 @@ export const countryData: CountryData[] = [
         title: 'Swaziland',
         currency: 'SZL',
         path: 'swaziland',
+        iso2: 'SZ',
+        iso3: 'SWZ',
     },
     {
         id: 'TC',
@@ -1696,6 +2135,8 @@ export const countryData: CountryData[] = [
         title: 'Turks and Caicos Islands',
         currency: 'USD',
         path: 'turks-and-caicos-islands',
+        iso2: 'TC',
+        iso3: 'TCA',
     },
     {
         id: 'TD',
@@ -1703,6 +2144,8 @@ export const countryData: CountryData[] = [
         title: 'Chad',
         currency: 'XAF',
         path: 'chad',
+        iso2: 'TD',
+        iso3: 'TCD',
     },
     {
         id: 'TF',
@@ -1710,6 +2153,8 @@ export const countryData: CountryData[] = [
         title: 'French Southern Territories',
         currency: 'EUR',
         path: 'french-southern-territories',
+        iso2: 'TF',
+        iso3: 'ATF',
     },
     {
         id: 'TG',
@@ -1717,6 +2162,8 @@ export const countryData: CountryData[] = [
         title: 'Togo',
         currency: 'XOF',
         path: 'togo',
+        iso2: 'TG',
+        iso3: 'TGO',
     },
     {
         id: 'TH',
@@ -1724,6 +2171,8 @@ export const countryData: CountryData[] = [
         title: 'Thailand',
         currency: 'THB',
         path: 'thailand',
+        iso2: 'TH',
+        iso3: 'THA',
     },
     {
         id: 'TJ',
@@ -1731,6 +2180,8 @@ export const countryData: CountryData[] = [
         title: 'Tajikistan',
         currency: 'TJS',
         path: 'tajikistan',
+        iso2: 'TJ',
+        iso3: 'TJK',
     },
     {
         id: 'TK',
@@ -1738,6 +2189,8 @@ export const countryData: CountryData[] = [
         title: 'Tokelau',
         currency: 'NZD',
         path: 'tokelau',
+        iso2: 'TK',
+        iso3: 'TKL',
     },
     {
         id: 'TL',
@@ -1745,6 +2198,8 @@ export const countryData: CountryData[] = [
         title: 'East Timor',
         currency: 'USD',
         path: 'east-timor',
+        iso2: 'TL',
+        iso3: 'TLS',
     },
     {
         id: 'TM',
@@ -1752,6 +2207,8 @@ export const countryData: CountryData[] = [
         title: 'Turkmenistan',
         currency: 'TMT',
         path: 'turkmenistan',
+        iso2: 'TM',
+        iso3: 'TKM',
     },
     {
         id: 'TN',
@@ -1759,6 +2216,8 @@ export const countryData: CountryData[] = [
         title: 'Tunisia',
         currency: 'TND',
         path: 'tunisia',
+        iso2: 'TN',
+        iso3: 'TUN',
     },
     {
         id: 'TO',
@@ -1766,6 +2225,8 @@ export const countryData: CountryData[] = [
         title: 'Tonga',
         currency: 'TOP',
         path: 'tonga',
+        iso2: 'TO',
+        iso3: 'TON',
     },
     {
         id: 'TR',
@@ -1773,6 +2234,8 @@ export const countryData: CountryData[] = [
         title: 'Turkey',
         currency: 'TRY',
         path: 'turkey',
+        iso2: 'TR',
+        iso3: 'TUR',
     },
     {
         id: 'TT',
@@ -1780,6 +2243,8 @@ export const countryData: CountryData[] = [
         title: 'Trinidad and Tobago',
         currency: 'TTD',
         path: 'trinidad-and-tobago',
+        iso2: 'TT',
+        iso3: 'TTO',
     },
     {
         id: 'TV',
@@ -1787,6 +2252,8 @@ export const countryData: CountryData[] = [
         title: 'Tuvalu',
         currency: 'AUD',
         path: 'tuvalu',
+        iso2: 'TV',
+        iso3: 'TUV',
     },
     {
         id: 'TW',
@@ -1794,6 +2261,8 @@ export const countryData: CountryData[] = [
         title: 'Taiwan',
         currency: 'TWD',
         path: 'taiwan',
+        iso2: 'TW',
+        iso3: 'TWN',
     },
     {
         id: 'TZ',
@@ -1801,6 +2270,8 @@ export const countryData: CountryData[] = [
         title: 'Tanzania',
         currency: 'TZS',
         path: 'tanzania',
+        iso2: 'TZ',
+        iso3: 'TZA',
     },
     {
         id: 'UA',
@@ -1808,6 +2279,8 @@ export const countryData: CountryData[] = [
         title: 'Ukraine',
         currency: 'UAH',
         path: 'ukraine',
+        iso2: 'UA',
+        iso3: 'UKR',
     },
     {
         id: 'UG',
@@ -1815,6 +2288,8 @@ export const countryData: CountryData[] = [
         title: 'Uganda',
         currency: 'UGX',
         path: 'uganda',
+        iso2: 'UG',
+        iso3: 'UGA',
     },
     {
         id: 'UM',
@@ -1822,6 +2297,8 @@ export const countryData: CountryData[] = [
         title: 'U.S. Minor Outlying Islands',
         currency: 'USD',
         path: 'u.s.-minor-outlying-islands',
+        iso2: 'UM',
+        iso3: 'UMI',
     },
     {
         id: 'US',
@@ -1829,6 +2306,8 @@ export const countryData: CountryData[] = [
         title: 'United States',
         currency: 'USD',
         path: 'usa',
+        iso2: 'US',
+        iso3: 'USA',
     },
     {
         id: 'UY',
@@ -1836,6 +2315,8 @@ export const countryData: CountryData[] = [
         title: 'Uruguay',
         currency: 'UYU',
         path: 'uruguay',
+        iso2: 'UY',
+        iso3: 'URY',
     },
     {
         id: 'UZ',
@@ -1843,6 +2324,8 @@ export const countryData: CountryData[] = [
         title: 'Uzbekistan',
         currency: 'UZS',
         path: 'uzbekistan',
+        iso2: 'UZ',
+        iso3: 'UZB',
     },
     {
         id: 'VA',
@@ -1850,6 +2333,8 @@ export const countryData: CountryData[] = [
         title: 'Vatican City',
         currency: 'EUR',
         path: 'vatican-city',
+        iso2: 'VA',
+        iso3: 'VAT',
     },
     {
         id: 'VC',
@@ -1857,6 +2342,8 @@ export const countryData: CountryData[] = [
         title: 'Saint Vincent and the Grenadines',
         currency: 'XCD',
         path: 'saint-vincent-and-the-grenadines',
+        iso2: 'VC',
+        iso3: 'VCT',
     },
     {
         id: 'VG',
@@ -1864,6 +2351,8 @@ export const countryData: CountryData[] = [
         title: 'British Virgin Islands',
         currency: 'USD',
         path: 'british-virgin-islands',
+        iso2: 'VG',
+        iso3: 'VGB',
     },
     {
         id: 'VI',
@@ -1871,6 +2360,8 @@ export const countryData: CountryData[] = [
         title: 'U.S. Virgin Islands',
         currency: 'USD',
         path: 'us-virgin-islands',
+        iso2: 'VI',
+        iso3: 'VIR',
     },
     {
         id: 'VN',
@@ -1878,6 +2369,8 @@ export const countryData: CountryData[] = [
         title: 'Vietnam',
         currency: 'VND',
         path: 'vietnam',
+        iso2: 'VN',
+        iso3: 'VNM',
     },
     {
         id: 'VU',
@@ -1885,6 +2378,8 @@ export const countryData: CountryData[] = [
         title: 'Vanuatu',
         currency: 'VUV',
         path: 'vanuatu',
+        iso2: 'VU',
+        iso3: 'VUT',
     },
     {
         id: 'WF',
@@ -1892,6 +2387,8 @@ export const countryData: CountryData[] = [
         title: 'Wallis and Futuna',
         currency: 'XPF',
         path: 'wallis-and-futuna',
+        iso2: 'WF',
+        iso3: 'WLF',
     },
     {
         id: 'WS',
@@ -1899,6 +2396,8 @@ export const countryData: CountryData[] = [
         title: 'Samoa',
         currency: 'WST',
         path: 'samoa',
+        iso2: 'WS',
+        iso3: 'WSM',
     },
     {
         id: 'XK',
@@ -1906,6 +2405,8 @@ export const countryData: CountryData[] = [
         title: 'Kosovo',
         currency: 'EUR',
         path: 'kosovo',
+        iso2: 'XK',
+        iso3: 'XKX',
     },
     {
         id: 'YE',
@@ -1913,6 +2414,8 @@ export const countryData: CountryData[] = [
         title: 'Yemen',
         currency: 'YER',
         path: 'yemen',
+        iso2: 'YE',
+        iso3: 'YEM',
     },
     {
         id: 'YT',
@@ -1920,6 +2423,8 @@ export const countryData: CountryData[] = [
         title: 'Mayotte',
         currency: 'EUR',
         path: 'mayotte',
+        iso2: 'YT',
+        iso3: 'MYT',
     },
     {
         id: 'ZA',
@@ -1927,6 +2432,8 @@ export const countryData: CountryData[] = [
         title: 'South Africa',
         currency: 'ZAR',
         path: 'south-africa',
+        iso2: 'ZA',
+        iso3: 'ZAF',
     },
     {
         id: 'ZM',
@@ -1934,6 +2441,8 @@ export const countryData: CountryData[] = [
         title: 'Zambia',
         currency: 'ZMW',
         path: 'zambia',
+        iso2: 'ZM',
+        iso3: 'ZMB',
     },
     {
         id: 'ZW',
@@ -1941,6 +2450,8 @@ export const countryData: CountryData[] = [
         title: 'Zimbabwe',
         currency: 'ZWL',
         path: 'zimbabwe',
+        iso2: 'ZW',
+        iso3: 'ZWE',
     },
 ]
 
@@ -1973,7 +2484,7 @@ const LATAM_COUNTRY_CODES = [
 
 // bridge EAA country codes, source: https://apidocs.bridge.xyz/docs/sepa-euro-transactions
 // note: this is a map of 3-letter country codes to 2-letter country codes, for flags to work, bridge expects 3 letter codes
-export const countryCodeMap: { [key: string]: string } = {
+export const BRIDGE_ALPHA3_TO_ALPHA2: { [key: string]: string } = {
     ALA: 'AX',
     AND: 'AD',
     AUT: 'AT',
@@ -2017,19 +2528,33 @@ export const countryCodeMap: { [key: string]: string } = {
     USA: 'US',
 }
 
-const enabledBankTransferCountries = new Set([...Object.values(countryCodeMap), 'US', 'MX'])
+export const MANTECA_ALPHA3_TO_ALPHA2: { [key: string]: string } = {
+    ARG: 'AR',
+    BOL: 'BO',
+    BRA: 'BR',
+}
+
+export const ALL_COUNTRIES_ALPHA3_TO_ALPHA2: { [key: string]: string } = {
+    ...BRIDGE_ALPHA3_TO_ALPHA2,
+    ...MANTECA_ALPHA3_TO_ALPHA2,
+}
+
+const enabledBankWithdrawCountries = new Set([...Object.values(BRIDGE_ALPHA3_TO_ALPHA2), 'US', 'MX', 'AR', 'BO'])
+
+const enabledBankDepositCountries = new Set([...Object.values(BRIDGE_ALPHA3_TO_ALPHA2), 'US', 'AR'])
 
 // Helper function to check if a country code is enabled for bank transfers
 // Handles both 2-letter and 3-letter country codes
-const isCountryEnabledForBankTransfer = (countryCode: string): boolean => {
+const isCountryEnabledForBankTransfer = (countryCode: string, direction: 'withdraw' | 'deposit'): boolean => {
     // Direct check for 2-letter codes
-    if (enabledBankTransferCountries.has(countryCode)) {
+    const enabledCountries = direction === 'withdraw' ? enabledBankWithdrawCountries : enabledBankDepositCountries
+    if (enabledCountries.has(countryCode)) {
         return true
     }
 
     // Check if it's a 3-letter code that maps to an enabled 2-letter code
-    const mappedCode = countryCodeMap[countryCode]
-    return mappedCode ? enabledBankTransferCountries.has(mappedCode) : false
+    const mappedCode = ALL_COUNTRIES_ALPHA3_TO_ALPHA2[countryCode]
+    return mappedCode ? enabledCountries.has(mappedCode) : false
 }
 
 countryData.forEach((country) => {
@@ -2043,12 +2568,31 @@ countryData.forEach((country) => {
         const specificMethodDetails = countrySpecificWithdrawMethods[countryTitle]
         if (specificMethodDetails && specificMethodDetails.length > 0) {
             specificMethodDetails.forEach((method) => {
+                const methodId = `${countryCode.toLowerCase()}-${method.title.toLowerCase().replace(/\s+/g, '-')}-withdraw`
+
+                // Check if this is a Manteca country to add appropriate routing
+                const isMantecaCountry = [
+                    'argentina',
+                    'chile',
+                    'brazil',
+                    'colombia',
+                    'panama',
+                    'costa-rica',
+                    'guatemala',
+                    'philippines',
+                    'bolivia',
+                ].includes(country.path)
+
                 withdrawList.push({
-                    id: `${countryCode.toLowerCase()}-${method.title.toLowerCase().replace(/\s+/g, '-')}-withdraw`,
+                    id: methodId,
                     icon: method.icon ?? undefined,
                     title: method.title,
                     description: method.description,
-                    isSoon: true,
+                    isSoon: method.isSoon ?? true,
+                    // Add path for Manteca countries to route to Manteca flow
+                    path: isMantecaCountry
+                        ? `/withdraw/manteca?method=${method.title.toLowerCase().replace(/\s+/g, '-')}&country=${country.path}`
+                        : undefined,
                 })
             })
         }
@@ -2080,11 +2624,25 @@ countryData.forEach((country) => {
         // only add default bank if it doesn't already exist AND (SEPA was not added OR it's not considered redundant by SEPA)
         // for now, we simplify: if SEPA was added, we assume default bank is redundant.
         if (!genericBankExists && !sepaWasAdded) {
+            const isMantecaCountry = [
+                'argentina',
+                'chile',
+                'brazil',
+                'colombia',
+                'panama',
+                'costa-rica',
+                'guatemala',
+                'philippines',
+                'bolivia',
+            ].includes(country.path)
+
             withdrawList.push({
                 ...DEFAULT_BANK_WITHDRAW_METHOD,
                 id: `${countryCode.toLowerCase()}-default-bank-withdraw`,
-                path: `/withdraw/${countryCode.toLowerCase()}/bank`,
-                isSoon: !isCountryEnabledForBankTransfer(countryCode),
+                path: isMantecaCountry
+                    ? `/withdraw/manteca?method=bank-transfer&country=${country.path}`
+                    : `/withdraw/${countryCode.toLowerCase()}/bank`,
+                isSoon: !isCountryEnabledForBankTransfer(countryCode, 'withdraw'),
             })
         }
 
@@ -2099,35 +2657,24 @@ countryData.forEach((country) => {
         // filter add methods: include Mercado Pago only for LATAM countries
         const currentAddMethods = UPDATED_DEFAULT_ADD_MONEY_METHODS.filter((method) => {
             if (method.id === 'mercado-pago-add') {
-                return LATAM_COUNTRY_CODES.includes(countryCode)
+                return countryCode === 'AR'
+            }
+            if (method.id === 'pix-add') {
+                return countryCode === 'BR'
             }
             return true
         }).map((m) => {
             const newMethod = { ...m }
             if (newMethod.id === 'bank-transfer-add') {
-                newMethod.path = `/add-money/${country.path}/bank`
-                newMethod.isSoon = !isCountryEnabledForBankTransfer(countryCode) || countryCode === 'MX'
-            } else if (newMethod.id === 'crypto-add') {
-                newMethod.path = `/add-money/crypto`
-                newMethod.isSoon = false
-            } else {
-                newMethod.isSoon = true
+                if (MantecaSupportedExchanges[countryCode as keyof typeof MantecaSupportedExchanges]) {
+                    newMethod.path = `/add-money/${country.path}/manteca`
+                } else {
+                    newMethod.path = `/add-money/${country.path}/bank`
+                }
+                newMethod.isSoon = !isCountryEnabledForBankTransfer(countryCode, 'deposit')
             }
             return newMethod
         })
-
-        // Add country-specific add methods (same as withdraw methods for consistency)
-        if (specificMethodDetails && specificMethodDetails.length > 0) {
-            specificMethodDetails.forEach((method) => {
-                currentAddMethods.push({
-                    id: `${countryCode.toLowerCase()}-${method.title.toLowerCase().replace(/\s+/g, '-')}-add`,
-                    icon: method.icon ?? undefined,
-                    title: method.title,
-                    description: method.description,
-                    isSoon: true,
-                })
-            })
-        }
 
         COUNTRY_SPECIFIC_METHODS[countryCode] = {
             add: currentAddMethods,

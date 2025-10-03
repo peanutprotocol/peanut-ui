@@ -144,7 +144,7 @@ export interface Payment {
         type: string
         user: {
             username: string
-            kycStatus?: string
+            bridgeKycStatus?: string
         } | null
     }
 }
@@ -200,10 +200,10 @@ export interface TRequestChargeResponse {
             identifier: string
             type: string
             username?: string
-            kycStatus?: string
+            bridgeKycStatus?: string
             user: {
                 username: string
-                kycStatus?: string
+                bridgeKycStatus?: string
             }
         }
     }
@@ -305,4 +305,87 @@ export interface TCreateOfframpResponse {
     depositAddress: string
     deposit_chain_id: number
     deposit_token_address: string
+}
+
+// manteca service types
+export interface CreateQrPaymentRequest {
+    qrCode: string
+    amount?: string
+}
+
+export interface QrPaymentDetails {
+    paymentAsset?: string
+    paymentAssetAmount?: string
+    paymentPrice?: string
+    priceExpireAt?: string
+}
+
+export interface QrPaymentResponse {
+    id: string
+    externalId: string
+    sessionId: string
+    status: string
+    currentStage: string
+    details?: QrPaymentDetails
+    stages?: any[]
+}
+
+export interface CreateQrPaymentResponse {
+    qrPayment: QrPaymentResponse
+    charge: TRequestChargeResponse
+}
+
+export enum ESendLinkStatus {
+    creating = 'creating',
+    completed = 'completed',
+    CLAIMING = 'CLAIMING',
+    CLAIMED = 'CLAIMED',
+    CANCELLED = 'CANCELLED',
+    FAILED = 'FAILED',
+}
+
+export type SendLinkStatus = `${ESendLinkStatus}`
+
+export type SendLink = {
+    pubKey: string
+    depositIdx: number
+    chainId: string
+    contractVersion: string
+    textContent?: string
+    fileUrl?: string
+    status: SendLinkStatus
+    createdAt: Date
+    senderAddress: string
+    amount: bigint
+    tokenAddress: string
+    sender: {
+        userId: string
+        username: string
+        fullName: string
+        bridgeKycStatus: string
+        accounts: {
+            identifier: string
+            type: string
+        }[]
+    }
+    claim?: {
+        amount: string
+        txHash: string
+        tokenAddress: string
+        recipientAddress?: string
+        recipient?: {
+            userId: string
+            username: string
+            fullName: string
+            bridgeKycStatus: string
+            accounts: {
+                identifier: string
+                type: string
+            }[]
+        }
+    }
+    events: {
+        timestamp: Date
+        status: SendLinkStatus
+    }[]
 }

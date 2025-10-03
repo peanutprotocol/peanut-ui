@@ -45,7 +45,7 @@ export const useCreateOnramp = (): UseCreateOnrampReturn => {
                 if (usdAmount) {
                     // Get currency configuration for the country
                     const price = await getCurrencyPrice(currency)
-                    amount = (Number(usdAmount) * price).toFixed(2)
+                    amount = (Number(usdAmount) * price.buy).toFixed(2)
                 }
 
                 // Call backend to create onramp via proxy route
@@ -74,7 +74,7 @@ export const useCreateOnramp = (): UseCreateOnrampReturn => {
                 return onrampData
             } catch (error) {
                 console.error('Error creating onramp:', error)
-                setError('Failed to create bank transfer. Please try again.')
+                setError('Failed to create bank transfer. Please try again or contact support.')
                 throw error
             } finally {
                 setIsLoading(false)

@@ -1,4 +1,4 @@
-import { KYCStatus } from '@/utils'
+import { BridgeKycStatus } from '@/utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 
 export type RecipientType = 'address' | 'ens' | 'iban' | 'us' | 'username'
@@ -221,21 +221,40 @@ interface ReferralConnection {
     account_identifier: string
 }
 
+export enum MantecaKycStatus {
+    ONBOARDING = 'ONBOARDING',
+    ACTIVE = 'ACTIVE',
+    INACTIVE = 'INACTIVE',
+}
+
+export interface IUserKycVerification {
+    provider: 'MANTECA' | 'BRIDGE'
+    mantecaGeo?: string | null
+    bridgeGeo?: string | null
+    status: MantecaKycStatus
+    approvedAt?: string | null
+    providerUserId?: string | null
+    providerRawStatus?: string | null
+    createdAt: string
+    updatedAt: string
+}
+
 export interface User {
     userId: string
     email: string
     profile_picture: string | null
     username: string | null
-    kycStatus: KYCStatus
-    kycStartedAt?: string
-    kycApprovedAt?: string
-    kycRejectedAt?: string
+    bridgeKycStatus: BridgeKycStatus
+    bridgeKycStartedAt?: string
+    bridgeKycApprovedAt?: string
+    bridgeKycRejectedAt?: string
+    kycVerifications?: IUserKycVerification[] // currently only used for Manteca, can be extended to other providers in the future, bridge is not migrated as it might affect existing users
     tosStatus?: string
     tosAcceptedAt?: string
     bridgeCustomerId: string | null
     fullName: string
     telegram: string | null
-    hasPwAccess: boolean
+    showFullName: boolean
     createdAt: string
     accounts: Account[]
 }
@@ -249,6 +268,7 @@ export enum AccountType {
     EVM_ADDRESS = 'evm-address',
     PEANUT_WALLET = 'peanut-wallet',
     BRIDGE = 'bridgeBankAccount',
+    MANTECA = 'manteca',
 }
 
 export interface Account {

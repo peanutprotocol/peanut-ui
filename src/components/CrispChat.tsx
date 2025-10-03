@@ -1,13 +1,13 @@
 'use client'
 
 import Script from 'next/script'
-import { useRouter } from 'next/navigation'
+import { useSupportModalContext } from '@/context/SupportModalContext'
 
 export const CrispButton = ({ children, ...rest }: React.HTMLAttributes<HTMLButtonElement>) => {
-    const router = useRouter()
+    const { setIsSupportModalOpen } = useSupportModalContext()
 
     const handleClick = () => {
-        router.push('/support')
+        setIsSupportModalOpen(true)
     }
 
     return (

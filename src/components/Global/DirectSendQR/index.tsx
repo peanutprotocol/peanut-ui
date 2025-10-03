@@ -254,11 +254,6 @@ export default function DirectSendQr({
                     redirectUrl = path
                 }
                 break
-            case EQrType.PINTA_MERCHANT:
-                {
-                    redirectUrl = `/${data}@polygon/PNT`
-                }
-                break
             case EQrType.EVM_ADDRESS:
                 {
                     toConfirmUrl = `/${data}`
@@ -294,9 +289,16 @@ export default function DirectSendQr({
                 }
                 break
             case EQrType.MERCADO_PAGO:
+            case EQrType.ARGENTINA_QR3:
+            case EQrType.PIX:
+                {
+                    const timestamp = Date.now()
+                    // Casing matters, so send original instead of normalized
+                    redirectUrl = `/qr-pay?qrCode=${encodeURIComponent(originalData)}&t=${timestamp}&type=${qrType}`
+                }
+                break
             case EQrType.BITCOIN_ONCHAIN:
             case EQrType.BITCOIN_INVOICE:
-            case EQrType.PIX:
             case EQrType.TRON_ADDRESS:
             case EQrType.SOLANA_ADDRESS:
             case EQrType.XRP_ADDRESS: {

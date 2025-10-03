@@ -23,7 +23,7 @@ export function useRecentUsers() {
                 userId: account.userId!,
                 username: account.username!,
                 fullName: account.fullName!,
-                kycStatus: entry.isVerified ? 'approved' : 'not_started',
+                bridgeKycStatus: entry.isVerified ? 'approved' : 'not_started',
             })
             return acc
         }, [])

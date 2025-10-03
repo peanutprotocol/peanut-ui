@@ -9,8 +9,7 @@ import { useOnrampFlow } from '@/context/OnrampFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { formatAmount } from '@/utils'
 import { countryData } from '@/components/AddMoney/consts'
-import { InitiateKYCModal } from '@/components/Kyc'
-import { KYCStatus } from '@/utils/bridge-accounts.utils'
+import { BridgeKycStatus } from '@/utils/bridge-accounts.utils'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useAuth } from '@/context/authContext'
 import { useCreateOnramp } from '@/hooks/useCreateOnramp'
@@ -25,6 +24,7 @@ import { updateUserById } from '@/app/actions/users'
 import AddMoneyBankDetails from '@/components/AddMoney/components/AddMoneyBankDetails'
 import { getCurrencyConfig, getCurrencySymbol, getMinimumAmount } from '@/utils/bridge.utils'
 import { OnrampConfirmationModal } from '@/components/AddMoney/components/OnrampConfirmationModal'
+import { InitiateBridgeKYCModal } from '@/components/Kyc/InitiateBridgeKYCModal'
 
 type AddStep = 'inputAmount' | 'kyc' | 'loading' | 'collectUserDetails' | 'showDetails'
 
@@ -37,7 +37,7 @@ export default function OnrampBankPage() {
     const [isRiskAccepted, setIsRiskAccepted] = useState<boolean>(false)
 
     const [isKycModalOpen, setIsKycModalOpen] = useState(false)
-    const [liveKycStatus, setLiveKycStatus] = useState<KYCStatus | undefined>(undefined)
+    const [liveKycStatus, setLiveKycStatus] = useState<BridgeKycStatus | undefined>(undefined)
     const { amountToOnramp: amountFromContext, setAmountToOnramp, setError, error, setOnrampData } = useOnrampFlow()
     const formRef = useRef<{ handleSubmit: () => void }>(null)
     const [isUpdatingUser, setIsUpdatingUser] = useState(false)
@@ -58,15 +58,15 @@ export default function OnrampBankPage() {
         username: user?.user.username ?? undefined,
         autoConnect: !!user?.user.username,
         onKycStatusUpdate: (newStatus) => {
-            setLiveKycStatus(newStatus as KYCStatus)
+            setLiveKycStatus(newStatus as BridgeKycStatus)
         },
     })
 
     useEffect(() => {
-        if (user?.user.kycStatus) {
-            setLiveKycStatus(user.user.kycStatus as KYCStatus)
+        if (user?.user.bridgeKycStatus) {
+            setLiveKycStatus(user.user.bridgeKycStatus as BridgeKycStatus)
         }
-    }, [user?.user.kycStatus])
+    }, [user?.user.bridgeKycStatus])
 
     useEffect(() => {
         fetchUser()
@@ -84,7 +84,7 @@ export default function OnrampBankPage() {
     useEffect(() => {
         if (user === null) return // wait for user to be fetched
         if (step === 'loading') {
-            const currentKycStatus = liveKycStatus || user?.user.kycStatus
+            const currentKycStatus = liveKycStatus || user?.user.bridgeKycStatus
             const isUserKycVerified = currentKycStatus === 'approved'
 
             if (!isUserKycVerified) {
@@ -216,7 +216,7 @@ export default function OnrampBankPage() {
             if (!user?.user.userId) throw new Error('User not found')
             const result = await updateUserById({
                 userId: user.user.userId,
-                fullName: `${data.firstName} ${data.lastName}`,
+                fullName: data.fullName,
                 email: data.email,
             })
             if (result.error) {
@@ -246,8 +246,7 @@ export default function OnrampBankPage() {
 
     const initialUserDetails: Partial<UserDetailsFormData> = useMemo(
         () => ({
-            firstName: user?.user.fullName ? firstName : '',
-            lastName: user?.user.fullName ? lastName : '',
+            fullName: user?.user.fullName ?? '',
             email: user?.user.email ?? '',
         }),
         [user?.user.fullName, user?.user.email, firstName, lastName]
@@ -304,7 +303,7 @@ export default function OnrampBankPage() {
     if (step === 'kyc') {
         return (
             <div className="flex flex-col justify-start space-y-8">
-                <InitiateKYCModal
+                <InitiateBridgeKYCModal
                     isOpen={isKycModalOpen}
                     onClose={handleKycModalClose}
                     onKycSuccess={handleKycSuccess}
