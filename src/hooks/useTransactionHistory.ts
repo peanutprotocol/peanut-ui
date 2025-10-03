@@ -93,7 +93,7 @@ export function useTransactionHistory({
 
         return {
             ...data,
-            entries: data.entries.map(completeHistoryEntry),
+            entries: await Promise.all(data.entries.map(completeHistoryEntry)),
         }
     }
 
