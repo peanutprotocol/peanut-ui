@@ -87,7 +87,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         }
     }, [user, isFetchingUser, router])
 
-    if (!isReady || isFetchingUser || (!hasToken && !isPublicPath)) {
+    if (!isReady || isFetchingUser || (!hasToken && !isPublicPath) || (!isPublicPath && !user)) {
         return (
             <div className="flex h-[100dvh] w-full flex-col items-center justify-center">
                 <PeanutLoading />
@@ -99,6 +99,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     if (!isFetchingUser && user && !user?.user.hasAppAccess) {
         return <JoinWaitlistPage />
     }
+
+    console.log(user, 'user')
 
     return (
         <div className="flex min-h-[100dvh] w-full bg-background">
