@@ -33,7 +33,7 @@ export default function WithdrawPage() {
         setShowAllWithdrawMethods,
     } = useWithdrawFlow()
 
-    const initialStep: WithdrawStep = selectedMethod || selectedBankAccount ? 'inputAmount' : 'selectMethod'
+    const initialStep: WithdrawStep = selectedMethod ? 'inputAmount' : 'selectMethod'
 
     const [step, setStep] = useState<WithdrawStep>(initialStep)
 
@@ -218,8 +218,6 @@ export default function WithdrawPage() {
     }, [rawTokenAmount, maxDecimalAmount, error.showError, selectedTokenData?.price])
 
     if (step === 'inputAmount') {
-        const methodTitle = selectedMethod?.title || selectedMethod?.countryPath || 'Selected method'
-
         return (
             <div className="flex min-h-[inherit] flex-col justify-start space-y-8">
                 <NavHeader
