@@ -174,11 +174,13 @@ export default function DirectSendQr({
     className = '',
     ctaTitle,
     iconClassName,
+    disabled = false,
 }: {
     className?: string
     ctaTitle?: string
     icon?: IconName
     iconClassName?: string
+    disabled?: boolean
 }) {
     const [isQRScannerOpen, setIsQRScannerOpen] = useState(false)
     const [isModalOpen, setIsModalOpen] = useState(false)
@@ -405,6 +407,7 @@ export default function DirectSendQr({
                     'mx-auto h-20 w-20 cursor-pointer justify-center rounded-full p-0 hover:bg-primary-1/100',
                     className
                 )}
+                disabled={disabled}
             >
                 <Icon name={icon} className={twMerge('custom-size', iconClassName)} />
                 {ctaTitle && ctaTitle}

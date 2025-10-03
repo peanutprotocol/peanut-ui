@@ -5,6 +5,7 @@ import TopNavbar from '@/components/Global/TopNavbar'
 import WalletNavigation from '@/components/Global/WalletNavigation'
 import { ThemeProvider } from '@/config'
 import { useUserStore } from '@/redux/hooks'
+import { Banner } from '@/components/Global/Banner'
 
 import classNames from 'classnames'
 import { twMerge } from 'tailwind-merge'
@@ -26,6 +27,9 @@ export default function PaymentLayoutWrapper({ children }: { children: React.Rea
 
                 {/* Main content area */}
                 <div className="flex w-full flex-1 flex-col">
+                    {/* Banner component handles maintenance and feedback banners */}
+                    <Banner />
+
                     {/* Fixed top navbar */}
                     <div className="sticky top-0 z-10 w-full">
                         <TopNavbar />
