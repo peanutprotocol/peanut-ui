@@ -34,7 +34,6 @@ const JoinWaitlist = () => {
             setError('')
             setisLoading(true)
             const res = await invitesApi.validateInviteCode(inviteCode)
-            setisLoading(false)
             const isValid = res.success
             if (!isValid) {
                 setError('Invalid invite code')
@@ -43,6 +42,8 @@ const JoinWaitlist = () => {
         } catch (e) {
             setError('Invalid invite code')
             return false
+        } finally {
+            setisLoading(false)
         }
     }
 

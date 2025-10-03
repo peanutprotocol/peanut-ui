@@ -141,13 +141,13 @@ const ActionListDaimoPayButton = ({ handleContinueWithPeanut, showConfirmModal }
                 amount={usdAmount ?? '0.10'}
                 toAddress={parsedPaymentData.recipient.resolvedAddress}
                 onPaymentCompleted={handleCompleteDaimoPayment}
-                onBeforeShow={() => {
+                onBeforeShow={async () => {
                     if (!confirmLoseInvite && showConfirmModal) {
                         setShowInviteModal(true)
                         return false
                     }
-                    setConfirmLoseInvite(false) // reset state - if user closed Daimo widget and clicks again then show modal again
-                    return handleInitiateDaimoPayment()
+                    // Don't reset confirmLoseInvite here - let it be reset only when modal is closed or payment is initiated
+                    return await handleInitiateDaimoPayment()
                 }}
                 disabled={!usdAmount}
                 minAmount={0.1}
@@ -191,6 +191,8 @@ const ActionListDaimoPayButton = ({ handleContinueWithPeanut, showConfirmModal }
                 isOpen={showInviteModal}
                 onClose={() => {
                     setShowInviteModal(false)
+                    // Reset confirmLoseInvite when modal is closed without proceeding
+                    setConfirmLoseInvite(false)
                 }}
             />
         </>
