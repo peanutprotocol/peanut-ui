@@ -375,7 +375,7 @@ export const PaymentForm = ({
             chargeId: chargeDetails?.uuid,
             currency,
             currencyAmount,
-            isExternalWalletFlow: !!isExternalWalletFlow,
+            isExternalWalletFlow: !!isExternalWalletFlow || fulfillUsingManteca,
             transactionType: isExternalWalletFlow
                 ? 'DEPOSIT'
                 : isDirectUsdPayment || !requestId
@@ -391,13 +391,16 @@ export const PaymentForm = ({
         if (result.status === 'Success') {
             dispatch(paymentActions.setView('STATUS'))
         } else if (result.status === 'Charge Created') {
-            dispatch(paymentActions.setView('CONFIRM'))
+            if (!fulfillUsingManteca) {
+                dispatch(paymentActions.setView('CONFIRM'))
+            }
         } else if (result.status === 'Error') {
             console.error('Payment initiation failed:', result.error)
         } else {
             console.warn('Unexpected status from usePaymentInitiator:', result.status)
         }
     }, [
+        fulfillUsingManteca,
         canInitiatePayment,
         isDepositRequest,
         isConnected,
@@ -488,6 +491,12 @@ export const PaymentForm = ({
         }
     }, [user, searchParams])
 
+    useEffect(() => {
+        if (fulfillUsingManteca && !chargeDetails) {
+            handleInitiatePayment()
+        }
+    }, [fulfillUsingManteca, chargeDetails, handleInitiatePayment])
+
     const isInsufficientBalanceError = useMemo(() => {
         return error?.includes("You don't have enough balance.")
     }, [error])
@@ -547,7 +556,7 @@ export const PaymentForm = ({
         }
     }
 
-    if (fulfillUsingManteca) {
+    if (fulfillUsingManteca && chargeDetails) {
         return <MantecaFulfillment />
     }
 
@@ -603,6 +612,7 @@ export const PaymentForm = ({
                     disabled={!isExternalWalletFlow && (!!requestDetails?.tokenAmount || !!chargeDetails?.tokenAmount)}
                     walletBalance={isActivePeanutWallet ? peanutWalletBalance : undefined}
                     currency={currency}
+                    hideCurrencyToggle={!currency}
                     hideBalance={isExternalWalletFlow}
                 />
 
