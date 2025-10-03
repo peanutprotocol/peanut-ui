@@ -38,13 +38,12 @@ const PointsPage = () => {
             <NavHeader title="Invites" onPrev={() => router.back()} />
 
             <section className="mx-auto mb-auto mt-10 w-full space-y-4">
-                <h1 className="font-bold">Invite friends</h1>
+                <h1 className="font-bold">Invite friends with your code</h1>
                 <div className="flex w-full items-center justify-between gap-3">
-                    <Card className="flex w-1/2 items-center justify-center py-3.5">
+                    <Card className="flex w-full items-center justify-between py-3.5">
                         <p className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-bold md:text-base">{`${inviteCode}`}</p>
+                        <CopyToClipboard textToCopy={inviteCode} />
                     </Card>
-
-                    <CopyToClipboard type="button" textToCopy={inviteCode} />
                 </div>
 
                 {invites && invites.length > 0 && (
@@ -89,10 +88,10 @@ const PointsPage = () => {
                         <div className="flex items-center justify-center rounded-full bg-primary-1 p-2">
                             <Icon name="trophy" />
                         </div>
-                        <h2 className="font-medium">No points yet</h2>
+                        <h2 className="font-medium">No invites yet</h2>
 
                         <p className="text-center text-sm text-grey-1">
-                            Earn points for every action you take on Peanut and when your invites create an account.
+                            Send your invite link to start earning more rewards
                         </p>
                         <ShareButton
                             generateText={() => Promise.resolve(generateInvitesShareText(inviteLink))}

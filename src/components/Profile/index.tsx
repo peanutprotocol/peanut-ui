@@ -162,15 +162,11 @@ export const Profile = () => {
                 content={
                     <>
                         <div className="flex w-full items-center justify-between gap-3">
-                            <Card className="flex w-1/2 items-center justify-center py-1.5">
-                                <p className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-bold md:text-base">{`${inviteCode}`}</p>
+                            <Card className="flex items-center justify-between py-2">
+                                <p className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-bold ">{`${inviteCode}`}</p>
+
+                                <CopyToClipboard textToCopy={`${inviteCode}`} />
                             </Card>
-                            <CopyToClipboard
-                                type="button"
-                                className="w-1/2"
-                                textToCopy={`${inviteCode}`}
-                                buttonSize="medium"
-                            />
                         </div>
                         <ShareButton
                             generateText={() => Promise.resolve(generateInvitesShareText(inviteLink))}

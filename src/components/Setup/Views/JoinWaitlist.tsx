@@ -84,7 +84,7 @@ const JoinWaitlist = () => {
         <div className="flex flex-col gap-4">
             <div className="flex items-center gap-2">
                 <ValidatedInput
-                    placeholder="Enter an invite code"
+                    placeholder="Do you have an invite code?"
                     value={inviteCode}
                     debounceTime={750}
                     validate={validateInviteCode}
@@ -101,18 +101,6 @@ const JoinWaitlist = () => {
                         'rounded-sm'
                     )}
                 />
-                <Button
-                    className="h-12 w-4/12"
-                    loading={isLoading}
-                    shadowSize="4"
-                    onClick={() => {
-                        dispatch(setupActions.setInviteCode(inviteCode))
-                        handleNext()
-                    }}
-                    disabled={!isValid || isChanging || isLoading}
-                >
-                    Next
-                </Button>
             </div>
 
             {error && (
@@ -121,11 +109,19 @@ const JoinWaitlist = () => {
                 </div>
             )}
 
-            {!isValid && (
-                <Button onClick={() => handleNext()} shadowSize="4">
-                    Join Waitlist
-                </Button>
-            )}
+            <Button
+                disabled={(inviteCode.length !== 0 && !!error) || isLoading}
+                onClick={() => {
+                    if (inviteCode.length !== 0) {
+                        dispatch(setupActions.setInviteCode(inviteCode))
+                    }
+
+                    handleNext()
+                }}
+                shadowSize="4"
+            >
+                {inviteCode.length > 0 ? 'Claim your spot' : 'Join Waitlist'}
+            </Button>
 
             <button disabled={isLoggingIn} onClick={onLoginClick} className="text-sm underline">
                 {isLoggingIn ? 'Please wait..' : 'Already have an account? Log in!'}
