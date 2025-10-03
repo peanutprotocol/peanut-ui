@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react'
 import { CountryData } from '@/components/AddMoney/consts'
 import MantecaDepositShareDetails from '@/components/AddMoney/components/MantecaDepositShareDetails'
 import PeanutLoading from '@/components/Global/PeanutLoading'
-import NavHeader from '@/components/Global/NavHeader'
 import { MantecaGeoSpecificKycModal } from '@/components/Kyc/InitiateMantecaKYCModal'
 import { useAuth } from '@/context/authContext'
 import { useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
@@ -10,6 +9,7 @@ import { usePaymentStore } from '@/redux/hooks'
 import { mantecaApi } from '@/services/manteca'
 import { useQuery } from '@tanstack/react-query'
 import useKycStatus from '@/hooks/useKycStatus'
+import ErrorAlert from '@/components/Global/ErrorAlert'
 
 const MantecaFulfillment = () => {
     const { setFulfillUsingManteca, selectedCountry, setSelectedCountry } = useRequestFulfillmentFlow()
@@ -19,7 +19,12 @@ const MantecaFulfillment = () => {
     const { fetchUser } = useAuth()
 
     const currency = selectedCountry?.currency || 'ARS'
-    const { data: depositData, isLoading: isLoadingDeposit } = useQuery({
+    const {
+        data: depositData,
+        isLoading: isLoadingDeposit,
+        isError,
+        error,
+    } = useQuery({
         queryKey: ['manteca-deposit', chargeDetails?.uuid, currency],
         queryFn: () =>
             mantecaApi.deposit({
@@ -60,15 +65,8 @@ const MantecaFulfillment = () => {
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8 md:min-h-fit">
-            <NavHeader
-                title="Send"
-                onPrev={() => {
-                    setSelectedCountry(null)
-                    setFulfillUsingManteca(false)
-                }}
-            />
-
             {depositData?.data && <MantecaDepositShareDetails source={'bank'} depositDetails={depositData.data} />}
+            {isError && <ErrorAlert description={error.message} />}
 
             {isKYCModalOpen && (
                 <MantecaGeoSpecificKycModal
