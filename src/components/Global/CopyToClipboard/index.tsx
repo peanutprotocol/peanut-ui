@@ -41,7 +41,7 @@ const CopyToClipboard = ({ textToCopy, fill, className, iconSize = '6', type = '
     return (
         <Icon
             name={copied ? 'check' : 'copy'}
-            className={twMerge(`h-${iconSize} w-${iconSize} hover:opacity-80`, className)}
+            className={twMerge(`h-${iconSize} w-${iconSize} cursor-pointer hover:opacity-80`, className)}
             fill={fill ? fill : 'white'}
             onClick={handleCopy}
         />

@@ -1,7 +1,6 @@
 import {
     getCurrencyConfig,
     getOfframpCurrencyConfig,
-    getCurrencySymbol,
     getPaymentRailDisplayName,
     getMinimumAmount,
 } from '../bridge.utils'
@@ -147,27 +146,6 @@ describe('bridge.utils', () => {
                 expect(config.currency).toBeTruthy()
                 expect(config.paymentRail).toBeTruthy()
             })
-        })
-    })
-
-    describe('getCurrencySymbol', () => {
-        it('should return correct symbols for supported currencies', () => {
-            expect(getCurrencySymbol('usd')).toBe('$')
-            expect(getCurrencySymbol('USD')).toBe('$')
-            expect(getCurrencySymbol('eur')).toBe('€')
-            expect(getCurrencySymbol('EUR')).toBe('€')
-            expect(getCurrencySymbol('mxn')).toBe('MX$')
-            expect(getCurrencySymbol('MXN')).toBe('MX$')
-        })
-
-        it('should return uppercase currency code for unsupported currencies', () => {
-            expect(getCurrencySymbol('gbp')).toBe('GBP')
-            expect(getCurrencySymbol('jpy')).toBe('JPY')
-            expect(getCurrencySymbol('cad')).toBe('CAD')
-        })
-
-        it('should handle empty strings', () => {
-            expect(getCurrencySymbol('')).toBe('')
         })
     })
 

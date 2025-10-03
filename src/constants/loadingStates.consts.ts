@@ -9,6 +9,7 @@ export type LoadingStates =
     | 'Creating link'
     | 'Switching network'
     | 'Fetching route'
+    | 'Fetching details'
     | 'Awaiting route fulfillment'
     | 'Asserting values'
     | 'Generating details'
@@ -25,3 +26,5 @@ export type LoadingStates =
     | 'Requesting'
     | 'Logging in'
     | 'Logging out'
+    | 'Paying'
+    | 'Withdrawing'

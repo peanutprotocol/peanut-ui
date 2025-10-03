@@ -6,17 +6,7 @@ import { useUserStore } from '@/redux/hooks'
 import { BridgeKycStatus, convertPersonaUrl } from '@/utils'
 import { InitiateKycResponse } from '@/app/actions/types/users.types'
 import { getKycDetails } from '@/app/actions/users'
-
-// persona event detail types
-interface PersonaEventDetail {
-    inquiryId: string
-    status: string
-    sessionToken?: string
-}
-
-interface PersonaEvent extends Event {
-    detail: PersonaEventDetail
-}
+import { IUserKycVerification } from '@/interfaces'
 
 interface UseKycFlowOptions {
     onKycSuccess?: () => void
@@ -24,10 +14,12 @@ interface UseKycFlowOptions {
     onManualClose?: () => void
 }
 
-export type KycHistoryEntry = {
+export interface KycHistoryEntry {
     isKyc: true
     uuid: string
     timestamp: string
+    verification?: IUserKycVerification
+    bridgeKycStatus?: BridgeKycStatus
 }
 
 // type guard to check if an entry is a KYC status item in history section
@@ -35,17 +27,16 @@ export const isKycStatusItem = (entry: object): entry is KycHistoryEntry => {
     return 'isKyc' in entry && entry.isKyc === true
 }
 
-export const useKycFlow = ({ onKycSuccess, flow, onManualClose }: UseKycFlowOptions = {}) => {
+export const useBridgeKycFlow = ({ onKycSuccess, flow, onManualClose }: UseKycFlowOptions = {}) => {
     const { user } = useUserStore()
     const router = useRouter()
-    const isMounted = useRef(false)
-
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [apiResponse, setApiResponse] = useState<InitiateKycResponse | null>(null)
     const [liveKycStatus, setLiveKycStatus] = useState<BridgeKycStatus | undefined>(
         user?.user?.bridgeKycStatus as BridgeKycStatus
     )
+    const prevStatusRef = useRef(liveKycStatus)
 
     const [iframeOptions, setIframeOptions] = useState<Omit<IFrameWrapperProps, 'onClose'>>({
         src: '',
@@ -73,16 +64,15 @@ export const useKycFlow = ({ onKycSuccess, flow, onManualClose }: UseKycFlowOpti
         // We only want to run this effect on updates, not on the initial mount
         // to prevent `onKycSuccess` from being called when the component first renders
         // with an already-approved status.
-        if (isMounted.current) {
-            if (liveKycStatus === 'approved') {
-                setIsVerificationProgressModalOpen(false)
-                onKycSuccess?.()
-            } else if (liveKycStatus === 'rejected') {
-                setIsVerificationProgressModalOpen(false)
-            }
-        } else {
-            isMounted.current = true
+        const prevStatus = prevStatusRef.current
+        prevStatusRef.current = liveKycStatus
+        if (prevStatus !== 'approved' && liveKycStatus === 'approved') {
+            setIsVerificationProgressModalOpen(false)
+            onKycSuccess?.()
+        } else if (prevStatus !== 'rejected' && liveKycStatus === 'rejected') {
+            setIsVerificationProgressModalOpen(false)
         }
+        prevStatusRef.current = liveKycStatus
     }, [liveKycStatus, onKycSuccess])
 
     const handleInitiateKyc = async () => {

@@ -4,17 +4,24 @@ import { KYCStatusDrawerItem } from '../KycStatusItem'
 import Card from '@/components/Global/Card'
 import { useMemo } from 'react'
 import { formatDate } from '@/utils'
+import { CountryRegionRow } from '../CountryRegionRow'
 
 // this component shows the kyc status when it's failed/rejected.
 // it displays the reason for the failure and provides a retry button.
 export const KycFailed = ({
     reason,
     bridgeKycRejectedAt,
+    countryCode,
+    isBridge,
     onRetry,
+    isLoading,
 }: {
     reason: string | null
     bridgeKycRejectedAt?: string
+    countryCode?: string | null
+    isBridge?: boolean
     onRetry: () => void
+    isLoading?: boolean
 }) => {
     const rejectedOn = useMemo(() => {
         if (!bridgeKycRejectedAt) return 'N/A'
@@ -32,11 +39,23 @@ export const KycFailed = ({
             <Card position="single">
                 <PaymentInfoRow label="Rejected on" value={rejectedOn} />
 
-                <PaymentInfoRow label="Reason" value={reason || 'An unknown error occurred.'} hideBottomBorder />
+                <CountryRegionRow countryCode={countryCode} isBridge={isBridge} />
+
+                <PaymentInfoRow
+                    label="Reason"
+                    value={reason || 'There was an issue. Contact Support.'}
+                    hideBottomBorder
+                />
             </Card>
-            {/* as requested, this button is currently for ui purposes and will be implemented later. */}
-            <Button icon="retry" variant="purple" className="w-full" shadowSize="4" onClick={onRetry}>
-                Retry verification
+            <Button
+                icon="retry"
+                variant="purple"
+                className="w-full"
+                shadowSize="4"
+                onClick={onRetry}
+                disabled={isLoading}
+            >
+                {isLoading ? 'Loading...' : 'Retry verification'}
             </Button>
         </div>
     )

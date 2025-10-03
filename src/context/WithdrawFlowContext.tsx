@@ -4,6 +4,15 @@ import { ITokenPriceData, Account } from '@/interfaces'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import React, { createContext, ReactNode, useContext, useMemo, useState, useCallback } from 'react'
 
+export interface WithdrawMethod {
+    type: 'bridge' | 'manteca' | 'crypto'
+    countryPath?: string
+    currency?: string
+    minimumAmount?: number
+    savedAccount?: Account
+    title?: string
+}
+
 export type WithdrawView = 'INITIAL' | 'CONFIRM' | 'STATUS'
 
 export interface WithdrawData {
@@ -50,6 +59,8 @@ interface WithdrawFlowContextType {
     setSelectedBankAccount: (account: Account | null) => void
     showAllWithdrawMethods: boolean
     setShowAllWithdrawMethods: (show: boolean) => void
+    selectedMethod: WithdrawMethod | null
+    setSelectedMethod: (method: WithdrawMethod | null) => void
     resetWithdrawFlow: () => void
 }
 
@@ -73,6 +84,7 @@ export const WithdrawFlowContextProvider: React.FC<{ children: ReactNode }> = ({
     })
     const [selectedBankAccount, setSelectedBankAccount] = useState<Account | null>(null)
     const [showAllWithdrawMethods, setShowAllWithdrawMethods] = useState<boolean>(false)
+    const [selectedMethod, setSelectedMethod] = useState<WithdrawMethod | null>(null)
 
     const resetWithdrawFlow = useCallback(() => {
         setAmountToWithdraw('')
@@ -84,6 +96,7 @@ export const WithdrawFlowContextProvider: React.FC<{ children: ReactNode }> = ({
         setPaymentError(null)
         setShowAllWithdrawMethods(false)
         setUsdAmount('')
+        setSelectedMethod(null)
     }, [])
 
     const value = useMemo(
@@ -114,6 +127,8 @@ export const WithdrawFlowContextProvider: React.FC<{ children: ReactNode }> = ({
             setSelectedBankAccount,
             showAllWithdrawMethods,
             setShowAllWithdrawMethods,
+            selectedMethod,
+            setSelectedMethod,
             resetWithdrawFlow,
         }),
         [
@@ -130,6 +145,7 @@ export const WithdrawFlowContextProvider: React.FC<{ children: ReactNode }> = ({
             error,
             selectedBankAccount,
             showAllWithdrawMethods,
+            selectedMethod,
             setShowAllWithdrawMethods,
             resetWithdrawFlow,
         ]

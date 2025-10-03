@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation'
 import { checkIfInternalNavigation, generateInvitesShareText } from '@/utils'
 import ActionModal from '../Global/ActionModal'
 import { useState } from 'react'
+import useKycStatus from '@/hooks/useKycStatus'
 import Card from '../Global/Card'
 import ShowNameToggle from './components/ShowNameToggle'
 import ShareButton from '../Global/ShareButton'
@@ -20,6 +21,7 @@ export const Profile = () => {
     const [isKycApprovedModalOpen, setIsKycApprovedModalOpen] = useState(false)
     const [isInviteFriendsModalOpen, setIsInviteFriendsModalOpen] = useState(false)
     const router = useRouter()
+    const { isUserKycApproved } = useKycStatus()
 
     const logout = async () => {
         await logoutUser()
@@ -49,7 +51,7 @@ export const Profile = () => {
                 }}
             />
             <div className="space-y-8">
-                <ProfileHeader name={fullName || username} username={username} isVerified={isKycApproved} />
+                <ProfileHeader name={fullName || username} username={username} isVerified={isUserKycApproved} />
                 <div className="space-y-4">
                     {/* Menu Item - Invite Entry */}
                     {/* Enable with Invites project. */}
@@ -75,15 +77,11 @@ export const Profile = () => {
                             label="Identity Verification"
                             href="/profile/identity-verification"
                             onClick={() => {
-                                if (isKycApproved) {
-                                    setIsKycApprovedModalOpen(true)
-                                } else {
-                                    router.push('/profile/identity-verification')
-                                }
+                                router.push('/profile/identity-verification')
                             }}
                             position="middle"
-                            endIcon={isKycApproved ? 'check' : undefined}
-                            endIconClassName={isKycApproved ? 'text-success-3 size-4' : undefined}
+                            endIcon={isUserKycApproved ? 'check' : undefined}
+                            endIconClassName={isUserKycApproved ? 'text-success-3 size-4' : undefined}
                             showTooltip
                             toolTipText="No need to verify unless you want to move money to or from your bank."
                         />

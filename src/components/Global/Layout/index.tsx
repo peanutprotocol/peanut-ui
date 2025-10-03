@@ -1,6 +1,6 @@
 'use client'
 
-import { Banner, GenericBanner } from '@/components/Global/Banner'
+import { Banner } from '@/components/Global/Banner'
 import { ThemeProvider } from '@/config'
 import { useFooterVisibility } from '@/context/footerVisibility'
 import { Widget } from '@typeform/embed-react'

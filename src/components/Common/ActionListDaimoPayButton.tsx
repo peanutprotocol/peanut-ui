@@ -60,7 +60,7 @@ const ActionListDaimoPayButton = ({ handleContinueWithPeanut, showConfirmModal }
                 ? {
                       code: currencyCode,
                       symbol: currencySymbol || '',
-                      price: currencyPrice || 0,
+                      price: currencyPrice?.buy || 0,
                   }
                 : undefined,
             currencyAmount: usdAmount,

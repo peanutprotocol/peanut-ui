@@ -147,7 +147,7 @@ const ValidatedInput = ({
     return (
         <div
             className={twMerge(
-                'relative w-full border border-n-1 bg-white focus:border-primary-1 dark:border-white',
+                'relative w-full rounded-sm border border-n-1 bg-white focus:border-primary-1 dark:border-white',
                 value && !isValidating && !isValid && debouncedValue === value ? ' border-error dark:border-error' : '',
                 className
             )}
@@ -169,7 +169,7 @@ const ValidatedInput = ({
                     onChange={handleChange}
                     className={twMerge(
                         `notranslate h-12 w-full border-0 bg-white 
-                        pr-1 text-h8 font-medium outline-none focus:outline-none
+                        pr-1 text-sm font-medium outline-none focus:outline-none
                         active:bg-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75`,
                         !!infoText ? 'pl-0' : 'pl-4'
                     )}

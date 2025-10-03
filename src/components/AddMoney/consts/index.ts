@@ -1,8 +1,22 @@
-import { APPLE_PAY, GOOGLE_PAY, MERCADO_PAGO, SOLANA_ICON, TRON_ICON } from '@/assets'
+import { APPLE_PAY, GOOGLE_PAY, MERCADO_PAGO, SOLANA_ICON, TRON_ICON, PIX } from '@/assets'
 import { BINANCE_LOGO, LEMON_LOGO, RIPIO_LOGO } from '@/assets/exchanges'
 import { METAMASK_LOGO, RAINBOW_LOGO, TRUST_WALLET_LOGO } from '@/assets/wallets'
 import { IconName } from '@/components/Global/Icons/Icon'
 import { StaticImageData } from 'next/image'
+
+// ref: https://docs.manteca.dev/cripto/key-concepts/exchanges-multi-country#Available-Exchanges
+export const MantecaSupportedExchanges = {
+    AR: 'ARGENTINA',
+    CL: 'CHILE',
+    BR: 'BRAZIL',
+    CO: 'COLOMBIA',
+    PA: 'PANAMA',
+    CR: 'COSTA_RICA',
+    GT: 'GUATEMALA',
+    // MX: 'MEXICO', // manteca supports MEXICO, but mercado pago doesnt support qr payments for mexico
+    PH: 'PHILIPPINES',
+    BO: 'BOLIVIA',
+}
 
 export interface CryptoSource {
     id: string
@@ -162,16 +176,26 @@ export const UPDATED_DEFAULT_ADD_MONEY_METHODS: SpecificPaymentMethod[] = [
     {
         id: 'crypto-add',
         icon: 'wallet-outline' as IconName,
+        path: '/add-money/crypto',
         title: 'From Crypto',
         description: 'Usually arrives instantly',
         isSoon: false,
     },
     {
         id: 'mercado-pago-add',
+        path: '/add-money/argentina/manteca',
         icon: MERCADO_PAGO,
         title: 'Mercado Pago',
-        description: 'Popular in LATAM',
-        isSoon: true,
+        description: 'Instant transfers',
+        isSoon: false,
+    },
+    {
+        id: 'pix-add',
+        icon: PIX,
+        path: '/add-money/brazil/manteca',
+        title: 'Pix',
+        description: 'Instant transfers',
+        isSoon: false,
     },
     {
         id: 'apple-pay-add',
@@ -217,11 +241,18 @@ export const DEFAULT_WITHDRAW_METHODS: SpecificPaymentMethod[] = [
 
 const countrySpecificWithdrawMethods: Record<
     string,
-    Array<{ title: string; description: string; icon?: IconName | string }>
+    Array<{ title: string; description: string; icon?: IconName | string; isSoon?: boolean }>
 > = {
     India: [{ title: 'UPI', description: 'Unified Payments Interface, ~17B txns/month, 84% of digital payments.' }],
-    Brazil: [{ title: 'Pix', description: '75%+ population use it, 40% e-commerce share.' }],
-    Argentina: [{ title: 'MercadoPago', description: 'Dominant wallet in LATAM, supports QR and bank transfers.' }],
+    Brazil: [{ title: 'Pix', description: 'Instant transfers', icon: PIX, isSoon: false }],
+    Argentina: [
+        {
+            title: 'Mercado Pago',
+            description: 'Instant transfers',
+            icon: MERCADO_PAGO,
+            isSoon: false,
+        },
+    ],
     Mexico: [{ title: 'CoDi', description: 'Central bank-backed RTP, adoption growing.' }],
     Kenya: [{ title: 'M-Pesa', description: 'Over 90% penetration, also in Tanzania, Mozambique, etc.' }],
     Portugal: [{ title: 'MB WAY', description: 'Popular for QR payments, instant transfers.' }],
@@ -2453,7 +2484,7 @@ const LATAM_COUNTRY_CODES = [
 
 // bridge EAA country codes, source: https://apidocs.bridge.xyz/docs/sepa-euro-transactions
 // note: this is a map of 3-letter country codes to 2-letter country codes, for flags to work, bridge expects 3 letter codes
-export const countryCodeMap: { [key: string]: string } = {
+export const BRIDGE_ALPHA3_TO_ALPHA2: { [key: string]: string } = {
     ALA: 'AX',
     AND: 'AD',
     AUT: 'AT',
@@ -2497,19 +2528,33 @@ export const countryCodeMap: { [key: string]: string } = {
     USA: 'US',
 }
 
-const enabledBankTransferCountries = new Set([...Object.values(countryCodeMap), 'US', 'MX'])
+export const MANTECA_ALPHA3_TO_ALPHA2: { [key: string]: string } = {
+    ARG: 'AR',
+    BOL: 'BO',
+    BRA: 'BR',
+}
+
+export const ALL_COUNTRIES_ALPHA3_TO_ALPHA2: { [key: string]: string } = {
+    ...BRIDGE_ALPHA3_TO_ALPHA2,
+    ...MANTECA_ALPHA3_TO_ALPHA2,
+}
+
+const enabledBankWithdrawCountries = new Set([...Object.values(BRIDGE_ALPHA3_TO_ALPHA2), 'US', 'MX', 'AR', 'BO'])
+
+const enabledBankDepositCountries = new Set([...Object.values(BRIDGE_ALPHA3_TO_ALPHA2), 'US', 'AR'])
 
 // Helper function to check if a country code is enabled for bank transfers
 // Handles both 2-letter and 3-letter country codes
-const isCountryEnabledForBankTransfer = (countryCode: string): boolean => {
+const isCountryEnabledForBankTransfer = (countryCode: string, direction: 'withdraw' | 'deposit'): boolean => {
     // Direct check for 2-letter codes
-    if (enabledBankTransferCountries.has(countryCode)) {
+    const enabledCountries = direction === 'withdraw' ? enabledBankWithdrawCountries : enabledBankDepositCountries
+    if (enabledCountries.has(countryCode)) {
         return true
     }
 
     // Check if it's a 3-letter code that maps to an enabled 2-letter code
-    const mappedCode = countryCodeMap[countryCode]
-    return mappedCode ? enabledBankTransferCountries.has(mappedCode) : false
+    const mappedCode = ALL_COUNTRIES_ALPHA3_TO_ALPHA2[countryCode]
+    return mappedCode ? enabledCountries.has(mappedCode) : false
 }
 
 countryData.forEach((country) => {
@@ -2523,12 +2568,31 @@ countryData.forEach((country) => {
         const specificMethodDetails = countrySpecificWithdrawMethods[countryTitle]
         if (specificMethodDetails && specificMethodDetails.length > 0) {
             specificMethodDetails.forEach((method) => {
+                const methodId = `${countryCode.toLowerCase()}-${method.title.toLowerCase().replace(/\s+/g, '-')}-withdraw`
+
+                // Check if this is a Manteca country to add appropriate routing
+                const isMantecaCountry = [
+                    'argentina',
+                    'chile',
+                    'brazil',
+                    'colombia',
+                    'panama',
+                    'costa-rica',
+                    'guatemala',
+                    'philippines',
+                    'bolivia',
+                ].includes(country.path)
+
                 withdrawList.push({
-                    id: `${countryCode.toLowerCase()}-${method.title.toLowerCase().replace(/\s+/g, '-')}-withdraw`,
+                    id: methodId,
                     icon: method.icon ?? undefined,
                     title: method.title,
                     description: method.description,
-                    isSoon: true,
+                    isSoon: method.isSoon ?? true,
+                    // Add path for Manteca countries to route to Manteca flow
+                    path: isMantecaCountry
+                        ? `/withdraw/manteca?method=${method.title.toLowerCase().replace(/\s+/g, '-')}&country=${country.path}`
+                        : undefined,
                 })
             })
         }
@@ -2560,11 +2624,25 @@ countryData.forEach((country) => {
         // only add default bank if it doesn't already exist AND (SEPA was not added OR it's not considered redundant by SEPA)
         // for now, we simplify: if SEPA was added, we assume default bank is redundant.
         if (!genericBankExists && !sepaWasAdded) {
+            const isMantecaCountry = [
+                'argentina',
+                'chile',
+                'brazil',
+                'colombia',
+                'panama',
+                'costa-rica',
+                'guatemala',
+                'philippines',
+                'bolivia',
+            ].includes(country.path)
+
             withdrawList.push({
                 ...DEFAULT_BANK_WITHDRAW_METHOD,
                 id: `${countryCode.toLowerCase()}-default-bank-withdraw`,
-                path: `/withdraw/${countryCode.toLowerCase()}/bank`,
-                isSoon: !isCountryEnabledForBankTransfer(countryCode),
+                path: isMantecaCountry
+                    ? `/withdraw/manteca?method=bank-transfer&country=${country.path}`
+                    : `/withdraw/${countryCode.toLowerCase()}/bank`,
+                isSoon: !isCountryEnabledForBankTransfer(countryCode, 'withdraw'),
             })
         }
 
@@ -2579,35 +2657,24 @@ countryData.forEach((country) => {
         // filter add methods: include Mercado Pago only for LATAM countries
         const currentAddMethods = UPDATED_DEFAULT_ADD_MONEY_METHODS.filter((method) => {
             if (method.id === 'mercado-pago-add') {
-                return LATAM_COUNTRY_CODES.includes(countryCode)
+                return countryCode === 'AR'
+            }
+            if (method.id === 'pix-add') {
+                return countryCode === 'BR'
             }
             return true
         }).map((m) => {
             const newMethod = { ...m }
             if (newMethod.id === 'bank-transfer-add') {
-                newMethod.path = `/add-money/${country.path}/bank`
-                newMethod.isSoon = !isCountryEnabledForBankTransfer(countryCode) || countryCode === 'MX'
-            } else if (newMethod.id === 'crypto-add') {
-                newMethod.path = `/add-money/crypto`
-                newMethod.isSoon = false
-            } else {
-                newMethod.isSoon = true
+                if (MantecaSupportedExchanges[countryCode as keyof typeof MantecaSupportedExchanges]) {
+                    newMethod.path = `/add-money/${country.path}/manteca`
+                } else {
+                    newMethod.path = `/add-money/${country.path}/bank`
+                }
+                newMethod.isSoon = !isCountryEnabledForBankTransfer(countryCode, 'deposit')
             }
             return newMethod
         })
-
-        // Add country-specific add methods (same as withdraw methods for consistency)
-        if (specificMethodDetails && specificMethodDetails.length > 0) {
-            specificMethodDetails.forEach((method) => {
-                currentAddMethods.push({
-                    id: `${countryCode.toLowerCase()}-${method.title.toLowerCase().replace(/\s+/g, '-')}-add`,
-                    icon: method.icon ?? undefined,
-                    title: method.title,
-                    description: method.description,
-                    isSoon: true,
-                })
-            })
-        }
 
         COUNTRY_SPECIFIC_METHODS[countryCode] = {
             add: currentAddMethods,

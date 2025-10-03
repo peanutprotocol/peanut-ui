@@ -19,6 +19,7 @@ import { checkIfInternalNavigation } from '@/utils'
 import { useAuth } from '@/context/authContext'
 import ShareButton from '@/components/Global/ShareButton'
 import ActionModal from '@/components/Global/ActionModal'
+import { MantecaKycStatus } from '@/interfaces'
 
 interface PublicProfileProps {
     username: string
@@ -47,7 +48,14 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
     useEffect(() => {
         usersApi.getByUsername(username).then((user) => {
             if (user?.fullName) setFullName(user.fullName)
-            if (user?.bridgeKycStatus === 'approved') setIsKycVerified(true)
+            if (
+                user?.bridgeKycStatus === 'approved' ||
+                user?.kycVerifications?.some((v) => v.status === MantecaKycStatus.ACTIVE)
+            ) {
+                setIsKycVerified(true)
+            } else {
+                setIsKycVerified(false)
+            }
             // to check if the logged in user has sent money to the profile user,
             // we check the amount that the profile user has received from the logged in user.
             if (user?.totalUsdReceivedFromCurrentUser) {

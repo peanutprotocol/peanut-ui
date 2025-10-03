@@ -1,7 +1,6 @@
 'use client'
 
 import { MarqueeWrapper } from '@/components/Global/MarqueeWrapper'
-import { useRouter } from 'next/navigation'
 import { HandThumbsUp } from '@/assets'
 import Image from 'next/image'
 import GuestLoginModal from '@/components/Global/GuestLoginModal'
@@ -21,13 +20,13 @@ import '../../styles/globals.css'
 import SupportDrawer from '@/components/Global/SupportDrawer'
 import { useSupportModalContext } from '@/context/SupportModalContext'
 import JoinWaitlistPage from '@/components/Invites/JoinWaitlistPage'
+import { useRouter } from 'next/navigation'
 
 // Allow access to some public paths without authentication
 const publicPathRegex = /^\/(request\/pay|claim|pay\/.+$|support|invite)/
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     const pathName = usePathname()
-    const router = useRouter()
     const { isFetchingUser, user } = useAuth()
     const [isReady, setIsReady] = useState(false)
     const [hasToken, setHasToken] = useState(false)
@@ -37,6 +36,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const isHistory = pathName === '/history'
     const isSupport = pathName === '/support'
     const alignStart = isHome || isHistory || isSupport
+    const router = useRouter()
 
     useEffect(() => {
         // check for JWT token
@@ -80,12 +80,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     // Allow access to public paths without authentication
     const isPublicPath = publicPathRegex.test(pathName)
 
-    // redirect to setup if user is not logged in
     useEffect(() => {
         if (!isPublicPath && !isFetchingUser && !user) {
             router.push('/setup')
         }
-    }, [user, isFetchingUser, router])
+    }, [user, isFetchingUser])
 
     if (!isReady || isFetchingUser || (!hasToken && !isPublicPath) || (!isPublicPath && !user)) {
         return (
