@@ -187,8 +187,7 @@ export default function WithdrawPage() {
                 } else {
                     throw new Error('Failed to get country from bank account')
                 }
-            }
-            if (selectedMethod.type === 'crypto') {
+            } else if (selectedMethod.type === 'crypto') {
                 router.push('/withdraw/crypto')
             } else if (selectedMethod.type === 'manteca') {
                 // Route directly to Manteca with method and country params
