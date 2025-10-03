@@ -102,7 +102,7 @@ export const PaymentForm = ({
     const { initiatePayment, isProcessing, error: initiatorError } = usePaymentInitiator()
 
     const peanutWalletBalance = useMemo(() => {
-        return balance !== undefined ? formatAmount(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS)) : ''
+        return balance !== undefined ? parseFloat(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS)).toFixed(4) : ''
     }, [balance])
 
     const error = useMemo(() => {
