@@ -18,7 +18,6 @@ import { type ITokenPriceData } from '@/interfaces'
 import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
 import * as Sentry from '@sentry/nextjs'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
-import { useAuth } from '@/context/authContext'
 
 export const tokenSelectorContext = createContext({
     selectedTokenAddress: '',
@@ -51,7 +50,6 @@ export const tokenSelectorContext = createContext({
  */
 export const TokenContextProvider = ({ children }: { children: React.ReactNode }) => {
     const { isConnected: isPeanutWallet } = useWallet()
-    const { user } = useAuth()
 
     const peanutWalletTokenData = {
         price: 1,
@@ -69,23 +67,11 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
         decimals: undefined,
     }
 
-    // Initialize with default values
-    const initialTokenData = (() => {
-        if (isPeanutWallet) {
-            return {
-                address: PEANUT_WALLET_TOKEN,
-                chainId: PEANUT_WALLET_CHAIN.id.toString(),
-                decimals: PEANUT_WALLET_TOKEN_DECIMALS,
-            }
-        }
-        return emptyTokenData
-    })()
-
-    const [selectedTokenAddress, setSelectedTokenAddress] = useState(initialTokenData.address)
-    const [selectedChainID, setSelectedChainID] = useState(initialTokenData.chainId)
+    const [selectedTokenAddress, setSelectedTokenAddress] = useState(PEANUT_WALLET_TOKEN)
+    const [selectedChainID, setSelectedChainID] = useState(PEANUT_WALLET_CHAIN.id.toString())
     const [selectedTokenPrice, setSelectedTokenPrice] = useState<number | undefined>(isPeanutWallet ? 1 : undefined)
     const [refetchXchainRoute, setRefetchXchainRoute] = useState<boolean>(false)
-    const [selectedTokenDecimals, setSelectedTokenDecimals] = useState<number | undefined>(initialTokenData.decimals)
+    const [selectedTokenDecimals, setSelectedTokenDecimals] = useState<number | undefined>(PEANUT_WALLET_TOKEN_DECIMALS)
     const [isXChain, setIsXChain] = useState<boolean>(false)
     const [isFetchingTokenData, setIsFetchingTokenData] = useState<boolean>(false)
     const [selectedTokenData, setSelectedTokenData] = useState<ITokenPriceData | undefined>(
