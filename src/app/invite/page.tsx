@@ -43,7 +43,8 @@ export async function generateMetadata({
 
     if (inviteCodeData) {
         title = `${inviteCodeData.username} invited you to join Peanut`
-        description = 'Invite Page'
+        description =
+            'Join Peanut to send and receive money instantly, shop with merchants, and move funds across borders.'
 
         const ogUrl = new URL(`${siteUrl}/api/og`)
         ogUrl.searchParams.set('isInvite', 'true')
