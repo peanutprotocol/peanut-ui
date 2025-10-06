@@ -17,17 +17,29 @@ import { useRouter } from 'next/navigation'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import Image from 'next/image'
 import { pointsApi } from '@/services/points'
+import EmptyState from '@/components/Global/EmptyStates/EmptyState'
+import { getInitialsFromName } from '@/utils'
 
 const PointsPage = () => {
     const router = useRouter()
     const { user } = useAuth()
-    const { data: invites, isLoading } = useQuery({
+    const {
+        data: invites,
+        isLoading,
+        isError: isInvitesError,
+        error: invitesError,
+    } = useQuery({
         queryKey: ['invites', user?.user.userId],
         queryFn: () => invitesApi.getInvites(),
         enabled: !!user?.user.userId,
     })
 
-    const { data: tierInfo, isLoading: isTierInfoLoading } = useQuery({
+    const {
+        data: tierInfo,
+        isLoading: isTierInfoLoading,
+        isError: isTierInfoError,
+        error: tierInfoError,
+    } = useQuery({
         queryKey: ['tierInfo', user?.user.userId],
         queryFn: () => pointsApi.getTierInfo(),
         enabled: !!user?.user.userId,
@@ -36,8 +48,19 @@ const PointsPage = () => {
     const inviteCode = username ? `${username.toUpperCase()}INVITESYOU` : ''
     const inviteLink = `${process.env.NEXT_PUBLIC_BASE_URL}/invite?code=${inviteCode}`
 
+
     if (isLoading || isTierInfoLoading || !tierInfo?.data) {
         return <PeanutLoading />
+    }
+
+    if (isInvitesError || isTierInfoError) {
+        console.error('Error loading points data:', invitesError ?? tierInfoError)
+
+        return (
+            <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
+                <EmptyState icon="alert" title="Error loading points!" description="Please contact Support." />
+            </div>
+        )
     }
 
     return (
@@ -64,9 +87,8 @@ const PointsPage = () => {
                                     }}
                                 />
                             </div>
+                            {tierInfo?.data.currentTier + 1}
                         </div>
-                        {tierInfo?.data.currentTier + 1}
-                    </div>
 
                     <p className="text-sm text-grey-1">
                         {tierInfo.data.pointsToNextTier} {tierInfo.data.pointsToNextTier === 1 ? 'point' : 'points'}{' '}
@@ -119,7 +141,7 @@ const PointsPage = () => {
                                         <div className="flex items-center justify-between gap-4">
                                             <div className="flex items-center gap-3">
                                                 <TransactionAvatarBadge
-                                                    initials={fullName ?? username}
+                                                    initials={getInitialsFromName(fullName ?? username)}
                                                     userName={username}
                                                     isLinkTransaction={false}
                                                     transactionType={'send'}

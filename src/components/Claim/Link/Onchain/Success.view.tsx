@@ -36,7 +36,7 @@ export const SuccessClaimLinkView = ({
     const queryClient = useQueryClient()
     const { offrampDetails, claimType, bankDetails } = useClaimBankFlow()
 
-    const queryKey = useMemo(() => ['calculate-points'], [crypto.randomUUID()])
+    const queryKey = useMemo(() => ['calculate-points', 'claim-link', claimLinkData.link], [claimLinkData.link])
 
     const { data: pointsData, isLoading: isPointsDataLoading } = useQuery({
         queryKey,
