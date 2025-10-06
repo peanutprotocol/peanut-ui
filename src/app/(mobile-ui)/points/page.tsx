@@ -18,6 +18,7 @@ import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import Image from 'next/image'
 import { pointsApi } from '@/services/points'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
+import { getInitialsFromName } from '@/utils'
 
 const PointsPage = () => {
     const router = useRouter()
@@ -136,7 +137,7 @@ const PointsPage = () => {
                                         <div className="flex items-center justify-between gap-4">
                                             <div className="flex items-center gap-3">
                                                 <TransactionAvatarBadge
-                                                    initials={fullName ?? username}
+                                                    initials={getInitialsFromName(fullName ?? username)}
                                                     userName={username}
                                                     isLinkTransaction={false}
                                                     transactionType={'send'}
