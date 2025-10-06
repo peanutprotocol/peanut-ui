@@ -413,6 +413,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     // reset payment state on unmount
     useEffect(() => {
         return () => {
+            dispatch(paymentActions.resetPaymentState())
             setError(null)
             setIsUrlParsed(false)
             setIsRequestDetailsFetching(false)
