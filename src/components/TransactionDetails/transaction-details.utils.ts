@@ -16,6 +16,7 @@ export type TransactionDetailsRowKey =
     | 'peanutFee'
     | 'comment'
     | 'attachment'
+    | 'mantecaDepositInfo'
 
 // rder of the rows in the receipt
 export const transactionDetailsRowKeys: TransactionDetailsRowKey[] = [

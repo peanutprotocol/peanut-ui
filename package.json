@@ -137,6 +137,7 @@
             "node_modules/(?!(@wagmi|wagmi|viem|@viem|@squirrel-labs)/)"
         ],
         "moduleNameMapper": {
+            "\\.(svg|png|jpg|jpeg|gif)$": "jest-transform-stub",
             "^@/(.*)$": "<rootDir>/src/$1",
             "^wagmi/chains$": "<rootDir>/src/utils/__mocks__/wagmi.ts",
             "^@squirrel-labs/peanut-sdk$": "<rootDir>/src/utils/__mocks__/peanut-sdk.ts",

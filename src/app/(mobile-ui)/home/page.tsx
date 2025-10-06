@@ -24,7 +24,7 @@ import {
 } from '@/utils'
 import { useDisconnect } from '@reown/appkit/react'
 import Link from 'next/link'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { useAccount } from 'wagmi'
 import AddMoneyPromptModal from '@/components/Home/AddMoneyPromptModal'
@@ -38,6 +38,7 @@ import { PostSignupActionManager } from '@/components/Global/PostSignupActionMan
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
+import useKycStatus from '@/hooks/useKycStatus'
 import HomeBanners from '@/components/Home/HomeBanners'
 
 const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
@@ -48,15 +49,16 @@ export default function Home() {
     const { resetFlow: resetClaimBankFlow } = useClaimBankFlow()
     const { resetWithdrawFlow } = useWithdrawFlow()
     const { deviceType } = useDeviceType()
+    const { user } = useUserStore()
     const [isBalanceHidden, setIsBalanceHidden] = useState(() => {
-        const prefs = getUserPreferences()
+        const prefs = user ? getUserPreferences(user.user.userId) : undefined
         return prefs?.balanceHidden ?? false
     })
     const { isConnected: isWagmiConnected } = useAccount()
     const { disconnect: disconnectWagmi } = useDisconnect()
 
     const { isFetchingUser, addAccount } = useAuth()
-    const { user } = useUserStore()
+    const { isUserKycApproved } = useKycStatus()
     const username = user?.user.username
 
     const [showIOSPWAInstallModal, setShowIOSPWAInstallModal] = useState(false)
@@ -70,14 +72,19 @@ export default function Home() {
         return user.user.fullName
     }, [user])
 
-    const handleToggleBalanceVisibility = (e: React.MouseEvent<HTMLButtonElement>) => {
-        e.stopPropagation()
-        setIsBalanceHidden((prev: boolean) => {
-            const newValue = !prev
-            updateUserPreferences({ balanceHidden: newValue })
-            return newValue
-        })
-    }
+    const handleToggleBalanceVisibility = useCallback(
+        (e: React.MouseEvent<HTMLButtonElement>) => {
+            e.stopPropagation()
+            setIsBalanceHidden((prev: boolean) => {
+                const newValue = !prev
+                if (user) {
+                    updateUserPreferences(user.user.userId, { balanceHidden: newValue })
+                }
+                return newValue
+            })
+        },
+        [user]
+    )
 
     const isLoading = isFetchingUser && !username
 
@@ -132,7 +139,7 @@ export default function Home() {
 
     // effect for showing balance warning modal
     useEffect(() => {
-        if (isFetchingBalance || balance === undefined) return
+        if (isFetchingBalance || balance === undefined || !user) return
 
         if (typeof window !== 'undefined') {
             const hasSeenBalanceWarning = getFromLocalStorage(`${user!.user.userId}-hasSeenBalanceWarning`)
@@ -152,11 +159,11 @@ export default function Home() {
                 setShowBalanceWarningModal(true)
             }
         }
-    }, [balance, isFetchingBalance, showIOSPWAInstallModal, showAddMoneyPromptModal])
+    }, [balance, isFetchingBalance, showIOSPWAInstallModal, showAddMoneyPromptModal, user])
 
     // effect for showing balance warning modal
     useEffect(() => {
-        if (isFetchingBalance || balance === undefined) return
+        if (isFetchingBalance || balance === undefined || !user) return
 
         if (typeof window !== 'undefined') {
             const hasSeenBalanceWarning = getFromLocalStorage(`${user!.user.userId}-hasSeenBalanceWarning`)
@@ -175,7 +182,7 @@ export default function Home() {
                 setShowBalanceWarningModal(true)
             }
         }
-    }, [balance, isFetchingBalance, showIOSPWAInstallModal, showAddMoneyPromptModal])
+    }, [balance, isFetchingBalance, showIOSPWAInstallModal, showAddMoneyPromptModal, user])
 
     // effect for showing add money prompt modal
     useEffect(() => {
@@ -210,11 +217,7 @@ export default function Home() {
         <PageContainer>
             <div className="h-full w-full space-y-6 p-5">
                 <div className="flex items-center justify-between gap-2">
-                    <UserHeader
-                        username={username!}
-                        fullName={userFullName}
-                        isVerified={user?.user.bridgeKycStatus === 'approved'}
-                    />
+                    <UserHeader username={username!} fullName={userFullName} isVerified={isUserKycApproved} />
                     <SearchUsers />
                 </div>
                 <div className="space-y-4">

@@ -220,6 +220,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                         setTokenValue={handleTokenValueChange}
                         onSubmit={() => setView('confirm')}
                         walletBalance={peanutWalletBalance}
+                        hideCurrencyToggle
                     />
 
                     <FileUploadInput

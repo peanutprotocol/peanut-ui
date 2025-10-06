@@ -29,7 +29,7 @@ const Card = ({ children, className, shadowSize, color = 'primary', ...props }: 
         <div
             // Tailwind merge makes sure classes added through className by component caller are merged and overrides the default classes
             className={twMerge(
-                `flex flex-col border border-n-1 bg-white dark:border-white dark:bg-n-1`,
+                `flex flex-col rounded-sm border border-n-1 bg-white dark:border-white dark:bg-n-1`,
                 shadowClass,
                 className
             )}

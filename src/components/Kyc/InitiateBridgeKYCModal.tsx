@@ -1,12 +1,12 @@
 import ActionModal from '@/components/Global/ActionModal'
-import { useKycFlow } from '@/hooks/useKycFlow'
+import { useBridgeKycFlow } from '@/hooks/useBridgeKycFlow'
 import IframeWrapper from '@/components/Global/IframeWrapper'
 import { KycVerificationInProgressModal } from './KycVerificationInProgressModal'
 import { IconName } from '@/components/Global/Icons/Icon'
 import { saveRedirectUrl } from '@/utils'
 import useClaimLink from '../Claim/useClaimLink'
 
-interface KycModalFlowProps {
+interface BridgeKycModalFlowProps {
     isOpen: boolean
     onClose: () => void
     onKycSuccess?: () => void
@@ -14,7 +14,13 @@ interface KycModalFlowProps {
     flow?: 'add' | 'withdraw' | 'request_fulfillment'
 }
 
-export const InitiateKYCModal = ({ isOpen, onClose, onKycSuccess, onManualClose, flow }: KycModalFlowProps) => {
+export const InitiateBridgeKYCModal = ({
+    isOpen,
+    onClose,
+    onKycSuccess,
+    onManualClose,
+    flow,
+}: BridgeKycModalFlowProps) => {
     const {
         isLoading,
         error,
@@ -23,7 +29,7 @@ export const InitiateKYCModal = ({ isOpen, onClose, onKycSuccess, onManualClose,
         handleInitiateKyc,
         handleIframeClose,
         closeVerificationProgressModal,
-    } = useKycFlow({ onKycSuccess, flow, onManualClose })
+    } = useBridgeKycFlow({ onKycSuccess, flow, onManualClose })
     const { addParamStep } = useClaimLink()
 
     const handleVerifyClick = async () => {

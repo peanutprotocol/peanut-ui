@@ -10,14 +10,7 @@ import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { IExtendedLinkDetails } from '@/interfaces'
-import {
-    ErrorHandler,
-    formatTokenAmount,
-    saveClaimedLinkToLocalStorage,
-    printableAddress,
-    areEvmAddressesEqual,
-    isStableCoin,
-} from '@/utils'
+import { ErrorHandler, formatTokenAmount, saveClaimedLinkToLocalStorage, printableAddress, isStableCoin } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import { useContext, useState, useMemo } from 'react'
 import { formatUnits } from 'viem'

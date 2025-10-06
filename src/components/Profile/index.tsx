@@ -8,16 +8,18 @@ import ProfileHeader from './components/ProfileHeader'
 import ProfileMenuItem from './components/ProfileMenuItem'
 import { useRouter } from 'next/navigation'
 import { checkIfInternalNavigation } from '@/utils'
-import ActionModal from '../Global/ActionModal'
-import { useState } from 'react'
+import useKycStatus from '@/hooks/useKycStatus'
 import Card from '../Global/Card'
 import ShowNameToggle from './components/ShowNameToggle'
+import { useState } from 'react'
+import ActionModal from '../Global/ActionModal'
 
 export const Profile = () => {
     const { logoutUser, isLoggingOut, user } = useAuth()
     const [isKycApprovedModalOpen, setIsKycApprovedModalOpen] = useState(false)
     const [showInitiateKycModal, setShowInitiateKycModal] = useState(false)
     const router = useRouter()
+    const { isUserKycApproved } = useKycStatus()
 
     const logout = async () => {
         await logoutUser()
@@ -25,8 +27,6 @@ export const Profile = () => {
 
     const fullName = user?.user.fullName || user?.user?.username || 'Anonymous User'
     const username = user?.user.username || 'anonymous'
-
-    const isKycApproved = user?.user.bridgeKycStatus === 'approved'
 
     return (
         <div className="h-full w-full bg-background">
@@ -44,7 +44,7 @@ export const Profile = () => {
                 }}
             />
             <div className="space-y-8">
-                <ProfileHeader name={fullName || username} username={username} isVerified={isKycApproved} />
+                <ProfileHeader name={fullName || username} username={username} isVerified={isUserKycApproved} />
                 <div className="space-y-4">
                     {/* Menu Item - Invite Entry */}
                     {/* Enable with Invites project. */}
@@ -63,15 +63,15 @@ export const Profile = () => {
                             label="Identity Verification"
                             href="/profile/identity-verification"
                             onClick={() => {
-                                if (isKycApproved) {
+                                if (isUserKycApproved) {
                                     setIsKycApprovedModalOpen(true)
                                 } else {
                                     setShowInitiateKycModal(true)
                                 }
                             }}
                             position="middle"
-                            endIcon={isKycApproved ? 'check' : undefined}
-                            endIconClassName={isKycApproved ? 'text-success-3 size-4' : undefined}
+                            endIcon={isUserKycApproved ? 'check' : undefined}
+                            endIconClassName={isUserKycApproved ? 'text-success-3 size-4' : undefined}
                         />
 
                         <Card className="p-4" position="middle">

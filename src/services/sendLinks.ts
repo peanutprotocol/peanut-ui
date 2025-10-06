@@ -3,61 +3,10 @@ import { PEANUT_API_URL } from '@/constants'
 import { fetchWithSentry, jsonParse, jsonStringify } from '@/utils'
 import { generateKeysFromString, getParamsFromLink } from '@squirrel-labs/peanut-sdk'
 import Cookies from 'js-cookie'
+import type { SendLink } from '@/services/services.types'
 
-export enum ESendLinkStatus {
-    creating = 'creating',
-    completed = 'completed',
-    CLAIMING = 'CLAIMING',
-    CLAIMED = 'CLAIMED',
-    CANCELLED = 'CANCELLED',
-    FAILED = 'FAILED',
-}
-
-type SendLinkStatus = `${ESendLinkStatus}`
-
-export type SendLink = {
-    pubKey: string
-    depositIdx: number
-    chainId: string
-    contractVersion: string
-    textContent?: string
-    fileUrl?: string
-    status: SendLinkStatus
-    createdAt: Date
-    senderAddress: string
-    amount: bigint
-    tokenAddress: string
-    sender: {
-        userId: string
-        username: string
-        fullName: string
-        bridgeKycStatus: string
-        accounts: {
-            identifier: string
-            type: string
-        }[]
-    }
-    claim?: {
-        amount: string
-        txHash: string
-        tokenAddress: string
-        recipientAddress?: string
-        recipient?: {
-            userId: string
-            username: string
-            fullName: string
-            bridgeKycStatus: string
-            accounts: {
-                identifier: string
-                type: string
-            }[]
-        }
-    }
-    events: {
-        timestamp: Date
-        status: SendLinkStatus
-    }[]
-}
+export { ESendLinkStatus } from '@/services/services.types'
+export type { SendLinkStatus, SendLink } from '@/services/services.types'
 
 export type ClaimLinkData = SendLink & { link: string; password: string; tokenSymbol: string; tokenDecimals: number }
 
@@ -197,12 +146,17 @@ export const sendLinksApi = {
      *
      * @param recipient - The recipient's address or username
      * @param link - The link to claim
+     * @param destinationAddress - The destination address to claim the link to (for manteca claims)
      * @returns The claim link data
      */
-    claim: async (recipient: string, link: string): Promise<SendLink> => {
+    claim: async (recipient: string, link: string, waitForTx: boolean = false): Promise<SendLink> => {
         const params = getParamsFromLink(link)
         const pubKey = generateKeysFromString(params.password).address
-        return await claimSendLink(pubKey, recipient, params.password)
+        const response = await claimSendLink(pubKey, recipient, params.password, waitForTx)
+        if ('error' in response) {
+            throw new Error(response.error)
+        }
+        return response
     },
 
     /**

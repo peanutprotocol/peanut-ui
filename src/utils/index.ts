@@ -5,12 +5,12 @@ export * from './balance.utils'
 export * from './sentry.utils'
 export * from './token.utils'
 export * from './ens.utils'
+export * from './history.utils'
 
 // Bridge utils - explicit exports to avoid naming conflicts
 export {
     getCurrencyConfig as getBridgeCurrencyConfig,
     getOfframpCurrencyConfig,
-    getCurrencySymbol,
     getPaymentRailDisplayName,
     getMinimumAmount,
 } from './bridge.utils'

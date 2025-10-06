@@ -46,6 +46,8 @@ export const PEANUT_API_URL = (
     'https://api.peanut.me'
 ).replace(/\/$/, '') // remove any accidental trailing slash
 
+export const PEANUT_API_KEY = process.env.PEANUT_API_KEY!
+
 export const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://peanut.me'
 export const next_proxy_url = '/api/proxy'
 
