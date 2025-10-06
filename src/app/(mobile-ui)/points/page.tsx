@@ -26,6 +26,7 @@ const PointsPage = () => {
         data: invites,
         isLoading,
         isError: isInvitesError,
+        error: invitesError,
     } = useQuery({
         queryKey: ['invites', user?.user.userId],
         queryFn: () => invitesApi.getInvites(),
@@ -36,6 +37,7 @@ const PointsPage = () => {
         data: tierInfo,
         isLoading: isTierInfoLoading,
         isError: isTierInfoError,
+        error: tierInfoError,
     } = useQuery({
         queryKey: ['tierInfo', user?.user.userId],
         queryFn: () => pointsApi.getTierInfo(),
@@ -50,7 +52,7 @@ const PointsPage = () => {
     }
 
     if (isInvitesError || isTierInfoError) {
-        console.error(isInvitesError ?? isTierInfoError)
+        console.error('Error loading points data:', invitesError ?? tierInfoError)
 
         return (
             <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
