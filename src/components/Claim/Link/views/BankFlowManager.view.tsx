@@ -1,7 +1,6 @@
 'use client'
 
 import { IClaimScreenProps } from '../../Claim.consts'
-import { DynamicBankAccountForm, IBankAccountDetails } from '@/components/AddWithdraw/DynamicBankAccountForm'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useCallback, useContext, useState, useRef, useEffect } from 'react'
 import { loadingStateContext } from '@/context'
@@ -31,6 +30,7 @@ import { useAppDispatch } from '@/redux/hooks'
 import { bankFormActions } from '@/redux/slices/bank-form-slice'
 import { sendLinksApi } from '@/services/sendLinks'
 import { InitiateBridgeKYCModal } from '@/components/Kyc/InitiateBridgeKYCModal'
+import { MultiStepBankAccountForm, IBankAccountDetails } from '@/components/MultiStepBankAccountForm'
 
 type BankAccountWithId = IBankAccountDetails &
     (
@@ -465,7 +465,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                             }}
                         />
                     </div>
-                    <DynamicBankAccountForm
+                    <MultiStepBankAccountForm
                         ref={formRef}
                         key={selectedCountry?.id}
                         country={getCountryCodeForWithdraw(selectedCountry?.id ?? '')}
