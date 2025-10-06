@@ -2,6 +2,8 @@
 
 **.patch
 
+PR.md
+
 # dependencies
 /node_modules
 /.pnp

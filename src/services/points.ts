@@ -8,6 +8,7 @@ export const pointsApi = {
         try {
             const jwtToken = Cookies.get('jwt-token')
             if (!jwtToken) {
+                console.error('getTierInfo: No JWT token found')
                 return { success: false, data: null }
             }
 
@@ -19,12 +20,14 @@ export const pointsApi = {
                 },
             })
             if (!response.ok) {
+                console.error('getTierInfo: API request failed', response.status, response.statusText)
                 return { success: false, data: null }
             }
 
             const pointsInfo: TierInfo = await response.json()
             return { success: true, data: pointsInfo }
-        } catch {
+        } catch (error) {
+            console.error('getTierInfo: Unexpected error', error)
             return { success: false, data: null }
         }
     },
@@ -38,7 +41,9 @@ export const pointsApi = {
             const jwtToken = Cookies.get('jwt-token')
 
             if (!jwtToken) {
-                throw new Error('No JWT token found')
+                const error = new Error('No JWT token found')
+                console.error('calculatePoints: No JWT token found')
+                throw error
             }
 
             const body: { actionType: PointsAction; usdAmount: number; otherUserId?: string } = {
@@ -60,14 +65,22 @@ export const pointsApi = {
             })
 
             if (!response.ok) {
-                throw new Error('Failed to calculate points')
+                console.error(
+                    'calculatePoints: API request failed',
+                    response.status,
+                    response.statusText,
+                    'for action',
+                    actionType
+                )
+                throw new Error(`Failed to calculate points: ${response.status}`)
             }
 
             const data = await response.json()
 
             return { estimatedPoints: data.estimatedPoints }
-        } catch {
-            throw new Error('Failed to calculate points')
+        } catch (error) {
+            console.error('calculatePoints: Unexpected error', error)
+            throw error instanceof Error ? error : new Error('Failed to calculate points')
         }
     },
 }

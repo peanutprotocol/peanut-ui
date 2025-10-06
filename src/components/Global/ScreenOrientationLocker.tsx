@@ -5,14 +5,24 @@ import { captureException } from '@sentry/nextjs'
 
 export function ScreenOrientationLocker() {
     useEffect(() => {
+        // Only run on client-side and check if screen API exists
+        if (typeof window === 'undefined' || !window.screen) {
+            return
+        }
+
         const lockOrientation = async () => {
-            if (screen.orientation && (screen.orientation as any).lock) {
-                try {
-                    await (screen.orientation as any).lock('portrait-primary')
-                } catch (error) {
-                    console.error('Failed to lock screen orientation:', error)
-                    captureException(error)
-                }
+            // Check if orientation API is available
+            if (!screen.orientation || !(screen.orientation as any).lock) {
+                return
+            }
+
+            try {
+                await (screen.orientation as any).lock('portrait-primary')
+            } catch (error) {
+                // Only log to console, don't report to Sentry as this is expected behavior
+                // on desktop browsers and environments that don't support orientation lock
+                console.debug('Screen orientation lock not available on this device/browser:', error)
+                // Don't capture this as it's expected behavior in many environments
             }
         }
 

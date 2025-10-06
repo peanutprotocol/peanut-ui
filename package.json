@@ -29,7 +29,7 @@
         "@daimo/pay": "^1.16.5",
         "@dicebear/collection": "^9.2.2",
         "@dicebear/core": "^9.2.2",
-        "@headlessui/react": "^1.7.19",
+        "@headlessui/react": "^2.2.9",
         "@headlessui/tailwindcss": "^0.2.1",
         "@hookform/resolvers": "3.9.1",
         "@justaname.id/react": "0.3.180",

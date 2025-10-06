@@ -33,7 +33,7 @@ const AddMoneyPromptModal: React.FC<AddMoneyPromptModalProps> = ({ visible, onCl
         },
     ]
 
-    const title = <h1 className="!text-lg !font-bold text-black">Let's add money to your wallet</h1>
+    const title = "Let's add money to your wallet"
     const description = (
         <>
             Your wallet is ready!
@@ -51,7 +51,7 @@ const AddMoneyPromptModal: React.FC<AddMoneyPromptModalProps> = ({ visible, onCl
             icon={<Image src={PEANUTMAN_WAVING} alt="Peanut character waving" width={80} height={100} priority />}
             iconContainerClassName="!size-auto !rounded-none !bg-transparent !p-0 -mb-2"
             title={title}
-            titleClassName="!text-xl !font-bold text-black"
+            titleClassName="!text-lg !font-bold text-black dark:text-black"
             description={description}
             descriptionClassName="text-grey-1 text-sm"
             ctas={ctas}

@@ -72,6 +72,7 @@ export type HistoryEntry = {
     createdAt?: string | Date
     completedAt?: string | Date
     isVerified?: boolean
+    points?: number
 }
 
 export type HistoryResponse = {
