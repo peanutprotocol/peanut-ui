@@ -33,6 +33,9 @@ import NavHeader from '@/components/Global/NavHeader'
 import { ReqFulfillBankFlowManager } from '@/components/Request/views/ReqFulfillBankFlowManager'
 import SupportCTA from '@/components/Global/SupportCTA'
 import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermineBankRequestType'
+import { useQuery } from '@tanstack/react-query'
+import { pointsApi } from '@/services/points'
+import { PointsAction } from '@/services/services.types'
 
 export type PaymentFlow = 'request_pay' | 'external_wallet' | 'direct_pay' | 'withdraw'
 interface Props {
@@ -69,6 +72,21 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         setFlowStep: setRequestFulfilmentBankFlowStep,
     } = useRequestFulfillmentFlow()
     const { requestType } = useDetermineBankRequestType(chargeDetails?.requestLink.recipientAccount.userId ?? '')
+
+    // Calculate points API call
+    const { data: pointsData } = useQuery({
+        queryKey: ['calculate-points', chargeDetails?.uuid],
+        queryFn: () =>
+            pointsApi.calculatePoints({
+                actionType: PointsAction.P2P_REQUEST_PAYMENT,
+                usdAmount: Number(usdAmount),
+                otherUserId: chargeDetails?.requestLink.recipientAccount.userId,
+            }),
+        // Pre fetch points when in confirm view.
+        // Fetch only for logged in users.
+        enabled: !!(user?.user.userId && usdAmount && currentView === 'CONFIRM' && flow === 'request_pay'),
+        refetchOnWindowFocus: false,
+    })
 
     // determine if the current user is the recipient of the transaction
     const isCurrentUserRecipient = chargeDetails?.requestLink.recipientAccount?.userId === user?.user.userId
@@ -536,6 +554,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                             }
                             isExternalWalletFlow={isExternalWalletFlow}
                             redirectTo={isExternalWalletFlow ? '/add-money' : '/send'}
+                            points={pointsData?.estimatedPoints}
                         />
                     )}
                 </>

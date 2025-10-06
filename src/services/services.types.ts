@@ -323,3 +323,55 @@ export interface Invite {
         fullName: string | null
     }
 }
+
+export interface TierInfo {
+    userId: string
+    directPoints: number
+    transitivePoints: number
+    totalPoints: number
+    currentTier: number
+    leaderboardRank: number
+    nextTierThreshold: number
+    pointsToNextTier: number
+}
+
+export interface PointsInvite {
+    inviteeId: string
+    username: string
+    fullName: string | null
+    invitedAt: string
+    kycStatus: BridgeKycStatus | null
+    kycVerified: boolean
+    directPoints: number
+    totalPoints: number
+    contributedPoints: number
+    hasInvitedOthers: boolean
+    inviteesCount: number
+}
+
+export interface PointsInvitesResponse {
+    invitees: PointsInvite[]
+    summary: {
+        multiplier: number
+        pendingInvites: number
+        totalContributedPoints: number
+        totalDirectPoints: number
+        totalInvites: number
+        verifiedInvites: number
+    }
+}
+
+export enum PointsAction {
+    BRIDGE_TRANSFER = 'BRIDGE_TRANSFER',
+    MANTECA_TRANSFER = 'MANTECA_TRANSFER',
+    MANTECA_QR_PAYMENT = 'MANTECA_QR_PAYMENT',
+    P2P_SEND_LINK = 'P2P_SEND_LINK',
+    P2P_REQUEST_PAYMENT = 'P2P_REQUEST_PAYMENT',
+    INVITE_KYC_VERIFIED = 'INVITE_KYC_VERIFIED',
+}
+
+export interface CalculatePointsRequest {
+    actionType: PointsAction
+    usdAmount: number
+    otherUserId?: string
+}
