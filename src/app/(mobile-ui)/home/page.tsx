@@ -40,6 +40,7 @@ import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
 import useKycStatus from '@/hooks/useKycStatus'
 import HomeBanners from '@/components/Home/HomeBanners'
+import InvitesIcon from '@/components/Home/InvitesIcon'
 
 const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
 const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_EXPIRY ?? '1814400') // 21 days in seconds
@@ -218,7 +219,12 @@ export default function Home() {
             <div className="h-full w-full space-y-6 p-5">
                 <div className="flex items-center justify-between gap-2">
                     <UserHeader username={username!} fullName={userFullName} isVerified={isUserKycApproved} />
-                    <SearchUsers />
+                    <div className="flex items-center gap-2">
+                        <Link href="/points">
+                            <InvitesIcon />
+                        </Link>
+                        <SearchUsers />
+                    </div>
                 </div>
                 <div className="space-y-4">
                     <ActionButtonGroup>

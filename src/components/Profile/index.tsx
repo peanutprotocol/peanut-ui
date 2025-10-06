@@ -7,16 +7,19 @@ import NavHeader from '../Global/NavHeader'
 import ProfileHeader from './components/ProfileHeader'
 import ProfileMenuItem from './components/ProfileMenuItem'
 import { useRouter } from 'next/navigation'
-import { checkIfInternalNavigation } from '@/utils'
+import { checkIfInternalNavigation, generateInvitesShareText } from '@/utils'
+import ActionModal from '../Global/ActionModal'
+import { useState } from 'react'
 import useKycStatus from '@/hooks/useKycStatus'
 import Card from '../Global/Card'
 import ShowNameToggle from './components/ShowNameToggle'
-import { useState } from 'react'
-import ActionModal from '../Global/ActionModal'
+import ShareButton from '../Global/ShareButton'
+import CopyToClipboard from '../Global/CopyToClipboard'
 
 export const Profile = () => {
     const { logoutUser, isLoggingOut, user } = useAuth()
     const [isKycApprovedModalOpen, setIsKycApprovedModalOpen] = useState(false)
+    const [isInviteFriendsModalOpen, setIsInviteFriendsModalOpen] = useState(false)
     const [showInitiateKycModal, setShowInitiateKycModal] = useState(false)
     const router = useRouter()
     const { isUserKycApproved } = useKycStatus()
@@ -27,6 +30,9 @@ export const Profile = () => {
 
     const fullName = user?.user.fullName || user?.user?.username || 'Anonymous User'
     const username = user?.user.username || 'anonymous'
+
+    const inviteCode = `${user?.user.username?.toUpperCase()}INVITESYOU`
+    const inviteLink = `${process.env.NEXT_PUBLIC_BASE_URL}/invite?code=${inviteCode}`
 
     return (
         <div className="h-full w-full bg-background">
@@ -55,6 +61,13 @@ export const Profile = () => {
                         position="single"
                         isExternalLink
                     /> */}
+                    <ProfileMenuItem
+                        icon="smile"
+                        label="Invite friends to Peanut"
+                        onClick={() => setIsInviteFriendsModalOpen(true)}
+                        href="/dummy" // Dummy link, wont be called
+                        position="single"
+                    />
                     {/* Menu Items - First Group */}
                     <div>
                         <ProfileMenuItem icon="user" label="Personal details" href="/profile/edit" position="first" />
@@ -137,6 +150,31 @@ export const Profile = () => {
                         onClick: () => setIsKycApprovedModalOpen(false),
                     },
                 ]}
+            />
+
+            <ActionModal
+                visible={isInviteFriendsModalOpen}
+                onClose={() => setIsInviteFriendsModalOpen(false)}
+                title="Invite friends!"
+                description="Earn points when your referrals create an account in Peanut and also pocket 20% of the points they make!"
+                icon="user-plus"
+                content={
+                    <>
+                        <div className="flex w-full items-center justify-between gap-3">
+                            <Card className="flex items-center justify-between py-2">
+                                <p className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-bold ">{`${inviteCode}`}</p>
+
+                                <CopyToClipboard textToCopy={`${inviteCode}`} />
+                            </Card>
+                        </div>
+                        <ShareButton
+                            generateText={() => Promise.resolve(generateInvitesShareText(inviteLink))}
+                            title="Share your invite link"
+                        >
+                            Share Invite link
+                        </ShareButton>
+                    </>
+                }
             />
 
             <ActionModal

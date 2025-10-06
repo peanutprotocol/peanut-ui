@@ -53,7 +53,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const queryClient = useQueryClient()
     const LOCAL_STORAGE_WEB_AUTHN_KEY = 'web-authn-key'
 
-    const { data: user, isFetching: isFetchingUser, refetch: fetchUser } = useUserQuery(!authUser?.user.userId)
+    const { data: user, isLoading: isFetchingUser, refetch: fetchUser } = useUserQuery(!authUser?.user.userId)
 
     useEffect(() => {
         if (user) {
