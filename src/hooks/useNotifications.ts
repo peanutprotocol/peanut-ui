@@ -89,10 +89,20 @@ export function useNotifications() {
             return
         }
 
+        const modalClosed = Boolean(getFromLocalStorage('notif_modal_closed'))
+        const bannerShowAtVal = getFromLocalStorage('notif_banner_show_at')
+
         // if permission is denied, do not show the modal, rely on the reminder banner schedule
         // the banner copy guides user to enable notifications from device settings
         if (permissionState === 'denied') {
             setShowPermissionModal(false)
+
+            // schedule banner if not already scheduled
+            if (!bannerShowAtVal && modalClosed) {
+                const isDev = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test'
+                const showAt = Date.now() + (isDev ? TEN_SECONDS_MS : SEVEN_DAYS_MS)
+                saveToLocalStorage('notif_banner_show_at', showAt)
+            }
         } else {
             // if permission is default and user already opted in at onesignal level, hide prompts
             if (optedIn) {
@@ -101,9 +111,6 @@ export function useNotifications() {
                 return
             }
         }
-
-        const modalClosed = Boolean(getFromLocalStorage('notif_modal_closed'))
-        const bannerShowAtVal = getFromLocalStorage('notif_banner_show_at')
 
         // show modal if user hasn't closed it yet
         if (!modalClosed) {
@@ -253,8 +260,8 @@ export function useNotifications() {
     }, [oneSignalInitialized, evaluateVisibility, refreshPermissionState])
 
     // request notification permission from user
-    const requestPermission = useCallback(async (): Promise<void> => {
-        if (typeof window === 'undefined' || !oneSignalInitialized) return
+    const requestPermission = useCallback(async (): Promise<'granted' | 'denied' | 'default'> => {
+        if (typeof window === 'undefined' || !oneSignalInitialized) return 'default'
 
         try {
             // always use the native browser permission dialog, avoid onesignal slidedown ui
@@ -268,8 +275,12 @@ export function useNotifications() {
 
         // update permission state after request
         if (typeof Notification !== 'undefined') {
-            setPermissionState(Notification.permission as 'default' | 'granted' | 'denied')
+            const newPermission = Notification.permission as 'default' | 'granted' | 'denied'
+            setPermissionState(newPermission)
+            return newPermission
         }
+
+        return 'default'
     }, [oneSignalInitialized])
 
     // re-check visibility when sdk becomes ready
@@ -347,9 +358,19 @@ export function useNotifications() {
 
     // re-evaluate ui state after permission request
     const afterPermissionAttempt = useCallback(async () => {
+        // mark modal as closed to prevent it from showing again
+        saveToLocalStorage('notif_modal_closed', true)
+
+        // if permission was denied, schedule the banner
+        if (permissionState === 'denied') {
+            const isDev = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test'
+            const showAt = Date.now() + (isDev ? TEN_SECONDS_MS : SEVEN_DAYS_MS)
+            saveToLocalStorage('notif_banner_show_at', showAt)
+        }
+
         // immediately re-evaluate ui visibility after requesting permission
         evaluateVisibility()
-    }, [evaluateVisibility])
+    }, [evaluateVisibility, permissionState])
 
     // snooze banner and reschedule (10s for testing, 7 days for prod)
     const snoozeReminderBanner = useCallback(() => {

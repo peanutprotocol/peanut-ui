@@ -14,14 +14,20 @@ export default function SetupNotificationsModal() {
     const handleAllowClick = async (e?: React.MouseEvent) => {
         // prevent event bubbling to avoid double-triggering
         e?.stopPropagation()
-        // hide modal immediately without scheduling banner
-        // afterPermissionAttempt will handle visibility re-evaluation
-        hidePermissionModalImmediate()
+
         try {
+            // request permission - this shows the native dialog
+            // keep our modal open while native dialog is shown
             await requestPermission()
+
+            // after user interacts with native dialog, handle the result
+            // this will close our modal and schedule banner if needed
+            hidePermissionModalImmediate()
             await afterPermissionAttempt()
         } catch (error) {
             console.error('Error requesting permission:', error)
+            // ensure modal is closed even on error
+            hidePermissionModalImmediate()
         }
     }
 
@@ -36,7 +42,7 @@ export default function SetupNotificationsModal() {
         <>
             <ActionModal
                 visible={showPermissionModal}
-                onClose={closePermissionModal}
+                onClose={handleNotNowClick}
                 modalPanelClassName="m-0 max-w-[90%]"
                 title="Turn on notifications?"
                 description="Enable notifications and get alerts for all wallet activity."
