@@ -8,6 +8,17 @@ import { useUserStore } from '@/redux/hooks'
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
 const TEN_SECONDS_MS = 10000
 
+// helper to determine if we should use short delays for testing
+// uses explicit env var so it can be enabled on vercel preview/staging
+const useShortDelays = () => {
+    // explicitly enable short delays via env var (useful for vercel preview)
+    if (process.env.NEXT_PUBLIC_ENABLE_SHORT_NOTIFICATION_DELAYS === 'true') {
+        return true
+    }
+    // default to short delays in local development
+    return process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test'
+}
+
 export function useNotifications() {
     const { user } = useUserStore()
     const externalId = user?.user.userId
@@ -99,8 +110,7 @@ export function useNotifications() {
 
             // schedule banner if not already scheduled
             if (!bannerShowAtVal && modalClosed) {
-                const isDev = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test'
-                const showAt = Date.now() + (isDev ? TEN_SECONDS_MS : SEVEN_DAYS_MS)
+                const showAt = Date.now() + (useShortDelays() ? TEN_SECONDS_MS : SEVEN_DAYS_MS)
                 saveToLocalStorage('notif_banner_show_at', showAt)
             }
         } else {
@@ -337,10 +347,8 @@ export function useNotifications() {
     // close modal and schedule banner (10s for staging, 7 days for prod)
     const closePermissionModal = useCallback(() => {
         setShowPermissionModal(false)
-        let showAt: number = 0
-        // default to production behaviour, only shorten delays in explicit development/test
-        const isDev = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test'
-        showAt = Date.now() + (isDev ? TEN_SECONDS_MS : SEVEN_DAYS_MS)
+        // schedule banner based on environment
+        const showAt = Date.now() + (useShortDelays() ? TEN_SECONDS_MS : SEVEN_DAYS_MS)
         saveToLocalStorage('notif_modal_closed', true)
         saveToLocalStorage('notif_banner_show_at', showAt)
 
@@ -363,8 +371,7 @@ export function useNotifications() {
 
         // if permission was denied, schedule the banner
         if (permissionState === 'denied') {
-            const isDev = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test'
-            const showAt = Date.now() + (isDev ? TEN_SECONDS_MS : SEVEN_DAYS_MS)
+            const showAt = Date.now() + (useShortDelays() ? TEN_SECONDS_MS : SEVEN_DAYS_MS)
             saveToLocalStorage('notif_banner_show_at', showAt)
         }
 
@@ -374,10 +381,8 @@ export function useNotifications() {
 
     // snooze banner and reschedule (10s for testing, 7 days for prod)
     const snoozeReminderBanner = useCallback(() => {
-        let showAt: number = 0
-        // default to production behaviour, only shorten delays in explicit development/test
-        const isDev = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test'
-        showAt = Date.now() + (isDev ? TEN_SECONDS_MS : SEVEN_DAYS_MS)
+        // schedule next banner based on environment
+        const showAt = Date.now() + (useShortDelays() ? TEN_SECONDS_MS : SEVEN_DAYS_MS)
         saveToLocalStorage('notif_banner_show_at', showAt)
         setShowReminderBanner(false)
 
