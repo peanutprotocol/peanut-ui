@@ -14,7 +14,6 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
     const dispatch = useAppDispatch()
     const isPWA = usePWAStatus()
     const searchParams = useSearchParams()
-    const selectedStep = searchParams.get('step')
 
     useEffect(() => {
         // filter steps and set them in redux state
@@ -22,7 +21,7 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
             return step.screenId !== 'pwa-install' || !isPWA
         })
         dispatch(setupActions.setSteps(filteredSteps))
-    }, [isPWA, selectedStep])
+    }, [isPWA])
 
     return (
         <>

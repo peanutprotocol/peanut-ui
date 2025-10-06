@@ -34,8 +34,6 @@ export const Profile = () => {
     const inviteCode = `${user?.user.username?.toUpperCase()}INVITESYOU`
     const inviteLink = `${process.env.NEXT_PUBLIC_BASE_URL}/invite?code=${inviteCode}`
 
-    const isKycApproved = user?.user.bridgeKycStatus === 'approved'
-
     return (
         <div className="h-full w-full bg-background">
             <NavHeader
