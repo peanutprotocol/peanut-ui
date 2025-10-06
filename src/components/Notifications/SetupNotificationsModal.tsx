@@ -13,6 +13,7 @@ export default function SetupNotificationsModal() {
 
     const handleAllowClick = async (e?: React.MouseEvent) => {
         // prevent event bubbling to avoid double-triggering
+        e?.preventDefault()
         e?.stopPropagation()
 
         try {
@@ -31,8 +32,9 @@ export default function SetupNotificationsModal() {
         }
     }
 
-    const handleNotNowClick = (e?: React.MouseEvent) => {
+    const handleCloseNotifsSetupModal = (e?: React.MouseEvent) => {
         // prevent event bubbling to avoid double-triggering
+        e?.preventDefault()
         e?.stopPropagation()
         // close modal and schedule banner for later
         closePermissionModal()
@@ -42,7 +44,7 @@ export default function SetupNotificationsModal() {
         <>
             <ActionModal
                 visible={showPermissionModal}
-                onClose={handleNotNowClick}
+                onClose={handleCloseNotifsSetupModal}
                 modalPanelClassName="m-0 max-w-[90%]"
                 title="Turn on notifications?"
                 description="Enable notifications and get alerts for all wallet activity."
@@ -58,7 +60,7 @@ export default function SetupNotificationsModal() {
                     },
                     {
                         text: 'Not now',
-                        onClick: handleNotNowClick,
+                        onClick: handleCloseNotifsSetupModal,
                         variant: 'transparent',
                         className: 'underline h-6',
                     },

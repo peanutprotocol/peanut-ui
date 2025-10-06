@@ -90,7 +90,7 @@ const NotificationBanner = ({
                             variant: 'purple',
                         },
                         {
-                            text: 'Not now',
+                            text: 'Reinstall later',
                             onClick: () => {
                                 setShowPermissionDeniedModal(false)
                             },
