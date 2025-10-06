@@ -10,9 +10,7 @@ const HomeBanners = () => {
     const { banners, setBanners } = useBanners()
 
     // don't render carousel if there are no banners
-    if (banners.length === 0) {
-        return null
-    }
+    if (!banners.length) return null
 
     return (
         <Carousel>

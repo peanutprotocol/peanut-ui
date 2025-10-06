@@ -37,6 +37,6 @@ export async function getHistoryEntry(entryId: string, entryType: EHistoryEntryT
     }
 
     const data = await response.json()
-    const entry = completeHistoryEntry(data)
+    const entry = await completeHistoryEntry(data)
     return entry
 }

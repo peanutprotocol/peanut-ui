@@ -494,6 +494,9 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                                 flow="request"
                                 requestLinkData={parsedPaymentData as ParsedURL}
                                 isLoggedIn={!!user?.user.userId}
+                                isInviteLink={
+                                    flow === 'request_pay' && parsedPaymentData?.recipient?.recipientType === 'USERNAME'
+                                } // invite link is only available for request pay flow
                             />
                         )}
                     </div>

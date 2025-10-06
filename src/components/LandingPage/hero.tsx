@@ -139,10 +139,6 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 
                     </Button>
                 </a>
 
-                <p className="font-roboto-flex-bold mx-auto mt-2 text-xs italic text-n-1 md:text-sm">
-                    Takes 10 seconds
-                </p>
-
                 {renderArrows(variant, arrowOpacity, buttonVisible)}
             </motion.div>
         )
@@ -168,13 +164,15 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 
 
             <div className="relative mb-4 flex w-full flex-col items-center justify-center md:mb-0">
                 <h2 className="font-roboto-flex-extrabold mt-18 text-center text-[2.375rem] font-extraBlack text-black md:text-heading">
-                    INSTANTLY SEND & RECEIVE
+                    TAP. SEND. ANYWHERE
                 </h2>
                 <span
-                    className="mt-2 block text-xl leading-tight text-n-1 md:mt-4 md:text-5xl"
+                    className="mt-2 block text-center text-xl leading-tight text-n-1 md:mt-4 md:text-5xl"
                     style={{ fontWeight: 500, letterSpacing: '-0.5px' }}
                 >
-                    MONEY ACROSS THE GLOBE
+                    FROM NEW YORK <br className="block lg:hidden" />
+                    TO MADRID <br className="block md:hidden" />
+                    TO MEXICO CITY
                 </span>
                 {primaryCta && renderCTAButton(primaryCta, 'primary')}
                 {secondaryCta && renderCTAButton(secondaryCta, 'secondary')}

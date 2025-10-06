@@ -1,3 +1,6 @@
+import { countryData as ALL_METHODS_DATA, CountryData } from '@/components/AddMoney/consts'
+import { Account, AccountType } from '@/interfaces'
+
 export interface CurrencyConfig {
     currency: string
     paymentRail: string
@@ -75,4 +78,18 @@ export const getPaymentRailDisplayName = (paymentRail: string): string => {
         wire: 'Wire Transfer',
     }
     return displayNames[paymentRail] || paymentRail.toUpperCase()
+}
+
+export function getCountryFromAccount(account: Account): CountryData | undefined {
+    const threeLetterCountryCode = (account.details.countryCode ?? '').toUpperCase()
+
+    let countryInfo
+    if (account.type === AccountType.US) {
+        countryInfo = ALL_METHODS_DATA.find((c) => c.id === 'US')
+    } else {
+        countryInfo = account.details.countryName
+            ? ALL_METHODS_DATA.find((c) => c.path.toLowerCase() === account.details.countryName?.toLowerCase())
+            : ALL_METHODS_DATA.find((c) => c.id === threeLetterCountryCode)
+    }
+    return countryInfo
 }

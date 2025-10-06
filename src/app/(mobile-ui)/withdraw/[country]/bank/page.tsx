@@ -41,8 +41,8 @@ export default function WithdrawBankPage() {
     )?.currencyCode
 
     useEffect(() => {
-        if (!bankAccount && !amountToWithdraw) {
-            // If no bank account AND no amount, go back to main page
+        if (!amountToWithdraw) {
+            // If no amount, go back to main page
             router.replace('/withdraw')
         } else if (!bankAccount && amountToWithdraw) {
             // If amount is set but no bank account, go to country method selection

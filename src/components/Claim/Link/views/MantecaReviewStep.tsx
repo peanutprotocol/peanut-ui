@@ -30,8 +30,8 @@ const MantecaReviewStep: FC<MantecaReviewStepProps> = ({
 
     const detailsCardRows: MantecaCardRow[] = [
         {
-            key: 'alias',
-            label: 'Alias',
+            key: 'destinationAddress',
+            label: 'Destination Address',
             value: destinationAddress,
             allowCopy: true,
         },
@@ -52,8 +52,9 @@ const MantecaReviewStep: FC<MantecaReviewStepProps> = ({
             try {
                 setError(null)
                 setIsSubmitting(true)
-                const claimResponse = await sendLinksApi.claim(MANTECA_DEPOSIT_ADDRESS, claimLink)
-                const txHash = claimResponse?.claim?.txHash
+                const waitForTx = true
+                const claimResponse = await sendLinksApi.claim(MANTECA_DEPOSIT_ADDRESS, claimLink, waitForTx)
+                const txHash = claimResponse.claim?.txHash
                 if (!txHash) {
                     setError('Claim failed: missing transaction hash.')
                     return

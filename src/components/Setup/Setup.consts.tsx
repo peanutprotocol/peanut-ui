@@ -3,7 +3,8 @@ import peanutWithGlassesAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALP
 import happyPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_03.gif'
 import { PEANUTMAN_MOBILE, ThinkingPeanut } from '@/assets'
 import { ISetupStep } from '@/components/Setup/Setup.types'
-import { InstallPWA, SetupPasskey, SignupStep, WelcomeStep, JoinBetaStep } from '@/components/Setup/Views'
+import { InstallPWA, SetupPasskey, SignupStep, JoinBetaStep, CollectEmail } from '@/components/Setup/Views'
+import JoinWaitlist from './Views/JoinWaitlist'
 
 export const setupSteps: ISetupStep[] = [
     {
@@ -45,10 +46,11 @@ export const setupSteps: ISetupStep[] = [
     {
         screenId: 'welcome',
         layoutType: 'signup',
-        title: 'Peanut makes dollars easy.',
-        description: 'Create your wallet in seconds to save, send, or cash out dollars fast.',
+        title: 'Peanut is invite-only',
+        description:
+            'Enter your invite code to continue. Don’t have one? Join the waitlist and we’ll reach out when you’re eligible.',
         image: chillPeanutAnim.src,
-        component: WelcomeStep,
+        component: JoinWaitlist,
         showBackButton: false,
         showSkipButton: false,
         contentClassName: 'flex flex-col items-center justify-center gap-5',
@@ -65,17 +67,6 @@ export const setupSteps: ISetupStep[] = [
         contentClassName: 'flex flex-col items-end pt-8 justify-center gap-5',
     },
     {
-        screenId: 'join-beta',
-        layoutType: 'signup',
-        title: 'In for the beta program?',
-        description: 'We’ll occasionally DM you on Telegram for feedback and early features.',
-        image: peanutWithGlassesAnim.src,
-        component: JoinBetaStep,
-        showBackButton: true,
-        showSkipButton: false,
-        contentClassName: 'flex flex-col items-end pt-8 justify-center gap-5',
-    },
-    {
         screenId: 'passkey-permission',
         layoutType: 'signup',
         title: `Let's set up your passkey`,
@@ -85,5 +76,16 @@ export const setupSteps: ISetupStep[] = [
         showBackButton: true,
         showSkipButton: false,
         contentClassName: 'flex flex-col items-end pt-8 justify-center gap-5',
+    },
+    {
+        screenId: 'collect-email',
+        layoutType: 'signup',
+        title: 'Stay in the loop',
+        description: 'Enter your email to finish setup. We’ll send you an update as soon as you get access.',
+        image: chillPeanutAnim.src,
+        component: CollectEmail,
+        showBackButton: false,
+        showSkipButton: false,
+        contentClassName: 'flex flex-col items-center justify-center gap-5',
     },
 ]

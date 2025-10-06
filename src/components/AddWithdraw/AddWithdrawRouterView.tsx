@@ -186,23 +186,18 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                 pageTitle={pageTitle}
                 onPrev={onBackClick || defaultBackNavigation}
                 savedAccounts={savedAccounts}
-                onAccountClick={(account, path) => {
+                onAccountClick={(account, _path) => {
                     setSelectedBankAccount(account)
-
-                    // FIXED: For withdraw flow, route to saved account path
-                    if (flow === 'withdraw') {
-                        if (account.type === AccountType.MANTECA) {
-                            router.push(
-                                `/withdraw/manteca?country=${account.details.countryName}&destination=${account.identifier}`
-                            )
-                        } else {
-                            router.push(path)
-                        }
-                        return
+                    setSelectedMethod({
+                        type: account.type === AccountType.MANTECA ? 'manteca' : 'bridge',
+                        countryPath: account.details.countryName,
+                        title: 'To Bank',
+                    })
+                    if (account.type === AccountType.MANTECA) {
+                        router.push(
+                            `/withdraw/manteca?country=${account.details.countryName}&destination=${account.identifier}`
+                        )
                     }
-
-                    // Original add flow
-                    router.push(path)
                 }}
                 onSelectNewMethodClick={() => setShouldShowAllMethods(true)}
             />

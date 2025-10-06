@@ -1,3 +1,4 @@
+import { BridgeKycStatus } from '@/utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 
 export type TStatus = 'NEW' | 'PENDING' | 'COMPLETED' | 'EXPIRED' | 'FAILED' | 'SIGNED' | 'SUCCESSFUL' | 'CANCELLED'
@@ -333,4 +334,75 @@ export interface QrPaymentResponse {
 export interface CreateQrPaymentResponse {
     qrPayment: QrPaymentResponse
     charge: TRequestChargeResponse
+}
+
+export enum ESendLinkStatus {
+    creating = 'creating',
+    completed = 'completed',
+    CLAIMING = 'CLAIMING',
+    CLAIMED = 'CLAIMED',
+    CANCELLED = 'CANCELLED',
+    FAILED = 'FAILED',
+}
+
+export type SendLinkStatus = `${ESendLinkStatus}`
+
+export type SendLink = {
+    pubKey: string
+    depositIdx: number
+    chainId: string
+    contractVersion: string
+    textContent?: string
+    fileUrl?: string
+    status: SendLinkStatus
+    createdAt: Date
+    senderAddress: string
+    amount: bigint
+    tokenAddress: string
+    sender: {
+        userId: string
+        username: string
+        fullName: string
+        bridgeKycStatus: string
+        accounts: {
+            identifier: string
+            type: string
+        }[]
+    }
+    claim?: {
+        amount: string
+        txHash: string
+        tokenAddress: string
+        recipientAddress?: string
+        recipient?: {
+            userId: string
+            username: string
+            fullName: string
+            bridgeKycStatus: string
+            accounts: {
+                identifier: string
+                type: string
+            }[]
+        }
+    }
+    events: {
+        timestamp: Date
+        status: SendLinkStatus
+    }[]
+}
+
+export enum EInviteType {
+    DIRECT = 'DIRECT',
+    PAYMENT_LINK = 'PAYMENT_LINK',
+}
+
+export interface Invite {
+    id: string
+    type: EInviteType
+    createdAt: string
+    invitee: {
+        bridgeKycStatus: BridgeKycStatus
+        username: string
+        fullName: string | null
+    }
 }

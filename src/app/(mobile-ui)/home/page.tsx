@@ -43,6 +43,7 @@ import { useNotifications } from '@/hooks/useNotifications'
 import NotificationNavigation from '@/components/Notifications/NotificationNavigation'
 import useKycStatus from '@/hooks/useKycStatus'
 import HomeBanners from '@/components/Home/HomeBanners'
+import InvitesIcon from '@/components/Home/InvitesIcon'
 
 const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
 const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_EXPIRY ?? '1814400') // 21 days in seconds
@@ -231,8 +232,13 @@ export default function Home() {
                 <div className="flex items-center justify-between gap-2">
                     <UserHeader username={username!} fullName={userFullName} isVerified={isUserKycApproved} />
                     <div className="flex items-center">
-                        <SearchUsers />
-                        <NotificationNavigation />
+                        <div className="flex items-center gap-2">
+                            <Link href="/points">
+                                <InvitesIcon />
+                            </Link>
+                            <SearchUsers />
+                            <NotificationNavigation />
+                        </div>
                     </div>
                 </div>
                 <div className="space-y-4">
