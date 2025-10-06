@@ -6,14 +6,12 @@ import { setupActions } from '@/redux/slices/setup-slice'
 import { useEffect, Suspense } from 'react'
 import { setupSteps } from '../../components/Setup/Setup.consts'
 import '../../styles/globals.css'
-import { useSearchParams } from 'next/navigation'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { Banner } from '@/components/Global/Banner'
 
 function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
     const dispatch = useAppDispatch()
     const isPWA = usePWAStatus()
-    const searchParams = useSearchParams()
 
     useEffect(() => {
         // filter steps and set them in redux state
