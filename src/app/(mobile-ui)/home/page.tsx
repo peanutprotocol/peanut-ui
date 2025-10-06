@@ -191,27 +191,33 @@ export default function Home() {
 
     // effect for showing add money prompt modal
     useEffect(() => {
-        if (typeof window !== 'undefined' && !isFetchingBalance) {
-            const hasSeenAddMoneyPromptThisSession = sessionStorage.getItem('hasSeenAddMoneyPromptThisSession')
+        if (typeof window === 'undefined' || isFetchingBalance || !user) return
 
-            // show if:
-            // 1. balance is zero.
-            // 2. user hasn't seen this prompt in the current session.
-            // 3. setup notifications modal is not visible (priority: setup modal > add money prompt).
-            // 4. the iOS PWA install modal is not currently active.
-            // 5. the balance warning modal is not currently active.
-            // 6. no other post-signup modal is active.
-            if (
-                balance === 0n &&
-                !hasSeenAddMoneyPromptThisSession &&
-                !showPermissionModal &&
-                !showIOSPWAInstallModal &&
-                !showBalanceWarningModal &&
-                !isPostSignupActionModalVisible
-            ) {
-                setShowAddMoneyPromptModal(true)
-                sessionStorage.setItem('hasSeenAddMoneyPromptThisSession', 'true')
-            }
+        const hasSeenAddMoneyPromptThisSession = sessionStorage.getItem('hasSeenAddMoneyPromptThisSession')
+
+        // determine if we should show the add money modal based on all conditions
+        // show if:
+        // 1. balance is zero.
+        // 2. user hasn't seen this prompt in the current session.
+        // 3. setup notifications modal is not visible (priority: setup modal > add money prompt)
+        // 4. the iOS PWA install modal is not currently active.
+        // 5. the balance warning modal is not currently active.
+        // 6. no other post-signup modal is active
+        const shouldShow =
+            balance === 0n &&
+            !hasSeenAddMoneyPromptThisSession &&
+            !showPermissionModal &&
+            !showIOSPWAInstallModal &&
+            !showBalanceWarningModal &&
+            !isPostSignupActionModalVisible
+
+        if (shouldShow) {
+            setShowAddMoneyPromptModal(true)
+            sessionStorage.setItem('hasSeenAddMoneyPromptThisSession', 'true')
+        } else if (showAddMoneyPromptModal && showPermissionModal) {
+            // priority enforcement: hide add money modal if notification modal appears
+            // this handles race conditions where both modals try to show simultaneously
+            setShowAddMoneyPromptModal(false)
         }
     }, [
         balance,
@@ -220,6 +226,8 @@ export default function Home() {
         showIOSPWAInstallModal,
         showBalanceWarningModal,
         isPostSignupActionModalVisible,
+        showAddMoneyPromptModal,
+        user,
     ])
 
     if (isLoading) {
