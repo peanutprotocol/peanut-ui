@@ -56,6 +56,7 @@ export const Profile = () => {
                         isExternalLink
                     /> */}
                     {/* Menu Items - First Group */}
+                    <ProfileMenuItem icon="achievements" label="Your Badges" href="/badges" position="first" />
                     <div>
                         <ProfileMenuItem icon="user" label="Personal details" href="/profile/edit" position="first" />
                         <ProfileMenuItem
