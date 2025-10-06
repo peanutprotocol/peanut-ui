@@ -260,8 +260,25 @@ export const TransactionDetailsReceipt = ({
 
     if (!transaction) return null
 
-    const usdAmount = transactionAmount?.replace(/[\+\-\$]/g, '') ?? transaction.amount
-    const amountDisplay = `$ ${formatCurrency(usdAmount.toString())}`
+    // calculate usd amount with fallback handling
+    let usdAmount: number | bigint = 0
+    if (transactionAmount) {
+        // if transactionAmount is provided as a string, parse it
+        const parsed = parseFloat(transactionAmount.replace(/[\+\-\$]/g, ''))
+        usdAmount = isNaN(parsed) ? 0 : parsed
+    } else if (transaction.amount !== undefined && transaction.amount !== null) {
+        // fallback to transaction.amount
+        usdAmount = transaction.amount
+    } else if (transaction.currency?.amount) {
+        // last fallback to currency amount
+        const parsed = parseFloat(String(transaction.currency.amount))
+        usdAmount = isNaN(parsed) ? 0 : parsed
+    }
+
+    // ensure we have a valid number for display
+    const numericAmount = typeof usdAmount === 'bigint' ? Number(usdAmount) : usdAmount
+    const safeAmount = isNaN(numericAmount) || numericAmount === null || numericAmount === undefined ? 0 : numericAmount
+    const amountDisplay = `$ ${formatCurrency(Math.abs(safeAmount).toString())}`
     const feeDisplay = transaction.fee !== undefined ? formatAmount(transaction.fee as number) : 'N/A'
 
     // determine if the qr code and sharing section should be shown
