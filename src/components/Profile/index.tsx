@@ -11,9 +11,13 @@ import { checkIfInternalNavigation } from '@/utils'
 import useKycStatus from '@/hooks/useKycStatus'
 import Card from '../Global/Card'
 import ShowNameToggle from './components/ShowNameToggle'
+import { useState } from 'react'
+import ActionModal from '../Global/ActionModal'
 
 export const Profile = () => {
     const { logoutUser, isLoggingOut, user } = useAuth()
+    const [isKycApprovedModalOpen, setIsKycApprovedModalOpen] = useState(false)
+    const [showInitiateKycModal, setShowInitiateKycModal] = useState(false)
     const router = useRouter()
     const { isUserKycApproved } = useKycStatus()
 
@@ -59,13 +63,15 @@ export const Profile = () => {
                             label="Identity Verification"
                             href="/profile/identity-verification"
                             onClick={() => {
-                                router.push('/profile/identity-verification')
+                                if (isUserKycApproved) {
+                                    setIsKycApprovedModalOpen(true)
+                                } else {
+                                    setShowInitiateKycModal(true)
+                                }
                             }}
                             position="middle"
                             endIcon={isUserKycApproved ? 'check' : undefined}
                             endIconClassName={isUserKycApproved ? 'text-success-3 size-4' : undefined}
-                            showTooltip
-                            toolTipText="No need to verify unless you want to move money to or from your bank."
                         />
 
                         <Card className="p-4" position="middle">
@@ -116,6 +122,46 @@ export const Profile = () => {
                     </div>
                 </div>
             </div>
+
+            <ActionModal
+                visible={isKycApprovedModalOpen}
+                onClose={() => setIsKycApprovedModalOpen(false)}
+                title="You’re already verified"
+                description="Your identity has already been successfully verified. No further action is needed."
+                icon="shield"
+                ctas={[
+                    {
+                        text: 'Go back',
+                        shadowSize: '4',
+                        className: 'md:py-2',
+                        onClick: () => setIsKycApprovedModalOpen(false),
+                    },
+                ]}
+            />
+
+            <ActionModal
+                visible={showInitiateKycModal}
+                onClose={() => setShowInitiateKycModal(false)}
+                title="Verification, Only If You Need It"
+                description="No need to verify unless you want to move money to or from your bank."
+                icon="shield"
+                ctaClassName="flex-col sm:flex-col"
+                ctas={[
+                    {
+                        text: 'Verify now',
+                        shadowSize: '4',
+                        className: 'md:py-2',
+                        onClick: () => router.push('/profile/identity-verification'),
+                    },
+                    {
+                        variant: 'transparent-dark',
+                        className:
+                            'text-black underline text-xs font-medium h-2 mt-1 hover:text-black active:text-black',
+                        text: 'Not now',
+                        onClick: () => setShowInitiateKycModal(false),
+                    },
+                ]}
+            />
         </div>
     )
 }
