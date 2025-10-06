@@ -43,7 +43,10 @@ export default function WithdrawBankPage() {
             currency.path?.toLowerCase() === country.toLowerCase()
     )?.currencyCode
 
-    const queryKey = useMemo(() => ['calculate-points'], [crypto.randomUUID()])
+    const queryKey = useMemo(
+        () => ['calculate-points', 'withdraw', bankAccount?.id, amountToWithdraw],
+        [bankAccount?.id, amountToWithdraw]
+    )
 
     // Calculate points API call
     const { data: pointsData } = useQuery({
