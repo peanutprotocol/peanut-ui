@@ -8,6 +8,7 @@ import { setupSteps } from '../../components/Setup/Setup.consts'
 import '../../styles/globals.css'
 import { useSearchParams } from 'next/navigation'
 import PeanutLoading from '@/components/Global/PeanutLoading'
+import { Banner } from '@/components/Global/Banner'
 
 function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
     const dispatch = useAppDispatch()
@@ -23,7 +24,12 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
         dispatch(setupActions.setSteps(filteredSteps))
     }, [isPWA, selectedStep])
 
-    return <>{children}</>
+    return (
+        <>
+            <Banner />
+            {children}
+        </>
+    )
 }
 
 const SetupLayout = ({ children }: { children?: React.ReactNode }) => {
