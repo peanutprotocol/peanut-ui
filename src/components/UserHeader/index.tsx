@@ -1,3 +1,5 @@
+'use client'
+
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import { BASE_URL } from '@/components/Global/DirectSendQR/utils'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
@@ -9,6 +11,7 @@ import { useMemo } from 'react'
 import { isAddress } from 'viem'
 import { printableAddress } from '@/utils'
 import useKycStatus from '@/hooks/useKycStatus'
+import { useAuth } from '@/context/authContext'
 
 interface UserHeaderProps {
     username: string
@@ -31,6 +34,7 @@ export const UserHeader = ({ username, fullName, isVerified }: UserHeaderProps) 
                     name={username}
                     isVerified={isVerified}
                     isAuthenticatedUserVerified={isViewerVerified}
+                    username={username}
                 />
             </Link>
             <CopyToClipboard textToCopy={`${BASE_URL}/${username}`} fill="black" iconSize={'4'} />
@@ -40,6 +44,7 @@ export const UserHeader = ({ username, fullName, isVerified }: UserHeaderProps) 
 
 export const VerifiedUserLabel = ({
     name,
+    username,
     isVerified,
     className,
     iconSize = 14,
@@ -47,12 +52,14 @@ export const VerifiedUserLabel = ({
     isAuthenticatedUserVerified = false,
 }: {
     name: string
+    username: string
     isVerified: boolean | undefined
     className?: HTMLDivElement['className']
     iconSize?: number
     haveSentMoneyToUser?: boolean
     isAuthenticatedUserVerified?: boolean
 }) => {
+    const { invitedUsernamesSet } = useAuth()
     // determine badge and tooltip content based on verification status
     let badge = null
     let tooltipContent = ''
@@ -73,6 +80,9 @@ export const VerifiedUserLabel = ({
         return isAddress(name)
     }, [name])
 
+    // O(1) lookup in pre-computed Set instead of O(n) array iteration
+    const isInvitedByLoggedInUser = invitedUsernamesSet.has(username)
+
     return (
         <div className="flex items-center gap-1.5">
             <div className={twMerge('font-semibold md:text-base', className)}>
@@ -81,6 +91,11 @@ export const VerifiedUserLabel = ({
             {badge && (
                 <Tooltip id="verified-user-label" content={tooltipContent} position="top">
                     {badge}
+                </Tooltip>
+            )}
+            {isInvitedByLoggedInUser && (
+                <Tooltip id="invited-by-logged-in-user" content="You've invited this user." position="top">
+                    <Icon name="invite-heart" size={iconSize} className="text-success-1" />
                 </Tooltip>
             )}
         </div>

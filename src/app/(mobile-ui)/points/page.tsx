@@ -74,7 +74,11 @@ const PointsPage = () => {
                                             </div>
 
                                             <div className="min-w-0 flex-1 truncate font-roboto text-[16px] font-medium">
-                                                <VerifiedUserLabel name={username} isVerified={isVerified} />
+                                                <VerifiedUserLabel
+                                                    name={username}
+                                                    username={username}
+                                                    isVerified={isVerified}
+                                                />
                                             </div>
                                         </div>
                                     </Card>
