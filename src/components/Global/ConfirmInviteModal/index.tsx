@@ -72,7 +72,7 @@ const ConfirmInviteModal: FC<ConfirmInviteModalProps> = ({
                     style={{ transform: 'translateY(-80%)' }}
                 >
                     <div className="relative h-42 w-[90%] md:h-52">
-                        <Image src={chillPeanutAnim.src} alt="Peanut Man" layout="fill" objectFit="contain" />
+                        <Image src={chillPeanutAnim.src} alt="Peanut Man" className="object-contain" fill />
                     </div>
                 </div>
             </Modal>

@@ -72,7 +72,8 @@ const JoinWaitlist = () => {
                 router.push(sanitizedRedirectUrl)
             } else if (localStorageRedirect) {
                 localStorage.removeItem('redirect')
-                router.push(localStorageRedirect)
+                const sanitizedLocalRedirect = sanitizeRedirectURL(String(localStorageRedirect))
+                router.push(sanitizedLocalRedirect)
             } else {
                 router.push('/home')
             }
