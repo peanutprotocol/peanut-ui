@@ -80,7 +80,7 @@ export const VerifiedUserLabel = ({
         return isAddress(name)
     }, [name])
 
-    // O(1) lookup in pre-computed Set instead of O(n) array iteration
+    // O(1) lookup in pre-computed Set
     const isInvitedByLoggedInUser = invitedUsernamesSet.has(username)
 
     return (
