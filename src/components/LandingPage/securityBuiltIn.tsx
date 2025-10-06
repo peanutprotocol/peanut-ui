@@ -22,7 +22,7 @@ const features: Feature[] = [
         title: 'TOTAL SECURITY',
         titleSvg: biometricProtection,
         description:
-            'Peanut is 100 % self-custodial. Every transaction is approved via Passkeys using Face ID, Touch ID or passcode. No one else can move your assets.',
+            'Peanut is 100% self-custodial. Every transaction is approved via Passkeys using Face ID, Touch ID or passcode. No one else can move your assets. Not even us.',
         iconSrc: handThumbsUp,
         iconAlt: 'Thumbs up',
     },
