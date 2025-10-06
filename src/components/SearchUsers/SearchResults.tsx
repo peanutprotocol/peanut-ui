@@ -59,6 +59,7 @@ export const SearchResults = ({
                                     title={
                                         <VerifiedUserLabel
                                             name={user.fullName || user.username}
+                                            username={user.username}
                                             isVerified={isVerified}
                                             haveSentMoneyToUser={haveSentMoneyToUser}
                                         />
@@ -109,6 +110,7 @@ export const SearchResults = ({
                                         title={
                                             <VerifiedUserLabel
                                                 name={user.fullName || user.username}
+                                                username={user.username}
                                                 isVerified={isVerified}
                                                 haveSentMoneyToUser={haveSentMoneyToUser}
                                             />
