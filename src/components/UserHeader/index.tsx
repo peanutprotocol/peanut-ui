@@ -95,7 +95,7 @@ export const VerifiedUserLabel = ({
             )}
             {isInvitedByLoggedInUser && (
                 <Tooltip id="invited-by-logged-in-user" content="You've invited this user." position="top">
-                    <Icon name="invite-heart" size={iconSize} className="text-success-1" />
+                    <Icon name="invite-heart" size={iconSize} />
                 </Tooltip>
             )}
         </div>
