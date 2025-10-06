@@ -17,17 +17,26 @@ import { useRouter } from 'next/navigation'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import Image from 'next/image'
 import { pointsApi } from '@/services/points'
+import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 
 const PointsPage = () => {
     const router = useRouter()
     const { user } = useAuth()
-    const { data: invites, isLoading } = useQuery({
+    const {
+        data: invites,
+        isLoading,
+        isError: isInvitesError,
+    } = useQuery({
         queryKey: ['invites', user?.user.userId],
         queryFn: () => invitesApi.getInvites(),
         enabled: !!user?.user.userId,
     })
 
-    const { data: tierInfo, isLoading: isTierInfoLoading } = useQuery({
+    const {
+        data: tierInfo,
+        isLoading: isTierInfoLoading,
+        isError: isTierInfoError,
+    } = useQuery({
         queryKey: ['tierInfo', user?.user.userId],
         queryFn: () => pointsApi.getTierInfo(),
         enabled: !!user?.user.userId,
@@ -40,8 +49,14 @@ const PointsPage = () => {
         return <PeanutLoading />
     }
 
-    if (!tierInfo?.data) {
-        return <PeanutLoading />
+    if (isInvitesError || isTierInfoError) {
+        console.error(isInvitesError ?? isTierInfoError)
+
+        return (
+            <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
+                <EmptyState icon="alert" title="Error loading points!" description="Please contact Support." />
+            </div>
+        )
     }
 
     return (
@@ -49,33 +64,35 @@ const PointsPage = () => {
             <NavHeader title="Invites" onPrev={() => router.back()} />
 
             <section className="mx-auto mb-auto mt-10 w-full space-y-4">
-                <Card className="flex flex-col items-center justify-center gap-2 p-4">
-                    <h2 className="text-3xl font-extrabold text-black">TIER {tierInfo?.data.currentTier}</h2>
-                    <span className="flex items-center gap-2">
-                        <Image src={STAR_STRAIGHT_ICON} alt="star" width={20} height={20} />
-                        {tierInfo.data.totalPoints} Points
-                    </span>
+                {tierInfo?.data && (
+                    <Card className="flex flex-col items-center justify-center gap-2 p-4">
+                        <h2 className="text-3xl font-extrabold text-black">TIER {tierInfo?.data.currentTier}</h2>
+                        <span className="flex items-center gap-2">
+                            <Image src={STAR_STRAIGHT_ICON} alt="star" width={20} height={20} />
+                            {tierInfo.data.totalPoints} Points
+                        </span>
 
-                    {/* Progress bar */}
-                    <div className="flex w-full items-center gap-2">
-                        {tierInfo?.data.currentTier}
-                        <div className="w-full">
-                            <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-grey-2">
-                                <div
-                                    className="h-full rounded-full bg-primary-1 transition-all duration-300"
-                                    style={{
-                                        width: `${(tierInfo.data.totalPoints / tierInfo.data.nextTierThreshold) * 100}%`,
-                                    }}
-                                />
+                        {/* Progress bar */}
+                        <div className="flex w-full items-center gap-2">
+                            {tierInfo?.data.currentTier}
+                            <div className="w-full">
+                                <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-grey-2">
+                                    <div
+                                        className="h-full rounded-full bg-primary-1 transition-all duration-300"
+                                        style={{
+                                            width: `${(tierInfo.data.totalPoints / tierInfo.data.nextTierThreshold) * 100}%`,
+                                        }}
+                                    />
+                                </div>
                             </div>
+                            {tierInfo?.data.currentTier + 1}
                         </div>
-                        {tierInfo?.data.currentTier + 1}
-                    </div>
 
-                    <p className="text-sm text-grey-1">
-                        {tierInfo.data.pointsToNextTier} points needed for the next tier
-                    </p>
-                </Card>
+                        <p className="text-sm text-grey-1">
+                            {tierInfo.data.pointsToNextTier} points needed for the next tier
+                        </p>
+                    </Card>
+                )}
 
                 <div className="mx-3 flex items-center gap-2">
                     <Icon name="info" className="size-6 text-black md:size-3" />
