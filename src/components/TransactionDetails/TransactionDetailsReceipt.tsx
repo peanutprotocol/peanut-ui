@@ -10,6 +10,7 @@ import { useUserStore } from '@/redux/hooks'
 import { chargesApi } from '@/services/charges'
 import { sendLinksApi } from '@/services/sendLinks'
 import { formatAmount, formatDate, getInitialsFromName, isStableCoin, formatCurrency, getAvatarUrl } from '@/utils'
+import { getDisplayCurrencySymbol } from '@/utils/currency'
 import { formatIban, printableAddress, shortenAddress, shortenStringLong, slugify } from '@/utils/general.utils'
 import { cancelOnramp } from '@/app/actions/onramp'
 import { captureException } from '@sentry/nextjs'
@@ -260,8 +261,48 @@ export const TransactionDetailsReceipt = ({
 
     if (!transaction) return null
 
-    const usdAmount = transactionAmount?.replace(/[\+\-\$]/g, '') ?? transaction.amount
-    const amountDisplay = `$ ${formatCurrency(usdAmount.toString())}`
+    // format data for display with proper handling for different transaction types
+    let amountDisplay = ''
+
+    if (transactionAmount) {
+        // if transactionAmount is provided (from TransactionCard), use it
+        amountDisplay = transactionAmount.replace(/[+-]/g, '').replace(/\$/, '$ ')
+    } else if (
+        (transaction.direction === 'bank_deposit' ||
+            transaction.direction === 'bank_withdraw' ||
+            transaction.direction === 'bank_request_fulfillment') &&
+        transaction.currency?.code &&
+        transaction.currency.code.toUpperCase() !== 'USD'
+    ) {
+        // handle bank deposits/withdrawals with non-USD currency
+        const isCompleted = transaction.status === 'completed'
+
+        if (isCompleted) {
+            // for completed transactions: show USD amount (amount is already in USD)
+            const amount = transaction.amount || 0
+            const numericAmount = typeof amount === 'bigint' ? Number(amount) : Number(amount)
+            amountDisplay = `$ ${formatAmount(isNaN(numericAmount) ? 0 : numericAmount)}`
+        } else {
+            // for non-completed transactions: show original currency
+            const currencyAmount = transaction.currency?.amount || transaction.amount.toString()
+            const numericAmount = Number(currencyAmount)
+            const currencySymbol = getDisplayCurrencySymbol(transaction.currency.code)
+            amountDisplay = `${currencySymbol} ${formatAmount(isNaN(numericAmount) ? 0 : numericAmount)}`
+        }
+    } else {
+        // default: use currency amount if provided, otherwise fallback to raw amount - never show token value, only USD
+        if (transaction.currency?.amount && transaction.currency?.code) {
+            const numericAmount = Number(transaction.currency.amount)
+            const amount = isNaN(numericAmount) ? 0 : numericAmount
+            const currencySymbol = getDisplayCurrencySymbol(transaction.currency.code)
+            amountDisplay = `${currencySymbol} ${formatAmount(amount)}`
+        } else {
+            const amount = transaction.amount || 0
+            const numericAmount = typeof amount === 'bigint' ? Number(amount) : Number(amount)
+            amountDisplay = `$ ${formatAmount(isNaN(numericAmount) ? 0 : numericAmount)}`
+        }
+    }
+
     const feeDisplay = transaction.fee !== undefined ? formatAmount(transaction.fee as number) : 'N/A'
 
     // determine if the qr code and sharing section should be shown
