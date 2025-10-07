@@ -414,13 +414,8 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     useEffect(() => {
         return () => {
             dispatch(paymentActions.resetPaymentState())
-            setError(null)
-            setIsUrlParsed(false)
-            setIsRequestDetailsFetching(false)
-            setCurrencyAmount('')
-            setisLinkCancelling(false)
         }
-    }, [dispatch])
+    }, [])
 
     if (error) {
         return (
