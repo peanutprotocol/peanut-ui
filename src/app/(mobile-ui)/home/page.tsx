@@ -41,6 +41,7 @@ import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
 import useKycStatus from '@/hooks/useKycStatus'
 import HomeBanners from '@/components/Home/HomeBanners'
 import InvitesIcon from '@/components/Home/InvitesIcon'
+import NoMoreJailModal from '@/components/Global/NoMoreJailModal'
 
 const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
 const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_EXPIRY ?? '1814400') // 21 days in seconds
@@ -189,6 +190,7 @@ export default function Home() {
     useEffect(() => {
         if (typeof window !== 'undefined' && !isFetchingBalance) {
             const hasSeenAddMoneyPromptThisSession = sessionStorage.getItem('hasSeenAddMoneyPromptThisSession')
+            const showNoMoreJailModal = sessionStorage.getItem('showNoMoreJailModal')
 
             // show if:
             // 1. balance is zero.
@@ -202,7 +204,8 @@ export default function Home() {
                 !hasSeenAddMoneyPromptThisSession &&
                 !showIOSPWAInstallModal &&
                 !showBalanceWarningModal &&
-                !isPostSignupActionModalVisible
+                !isPostSignupActionModalVisible &&
+                showNoMoreJailModal !== 'true' // Give No more jail modal precedence, showing two modals together isn't ideal and it messes up their functionality
             ) {
                 setShowAddMoneyPromptModal(true)
                 sessionStorage.setItem('hasSeenAddMoneyPromptThisSession', 'true')
@@ -267,6 +270,8 @@ export default function Home() {
 
             {/* Add Money Prompt Modal */}
             <AddMoneyPromptModal visible={showAddMoneyPromptModal} onClose={() => setShowAddMoneyPromptModal(false)} />
+
+            <NoMoreJailModal />
 
             {/* Balance Warning Modal */}
             <BalanceWarningModal
