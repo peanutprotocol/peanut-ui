@@ -79,10 +79,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const isPublicPath = publicPathRegex.test(pathName)
 
     useEffect(() => {
-        if (!isPublicPath && !isFetchingUser && !user) {
+        if (isReady && !isPublicPath && !isFetchingUser && !user) {
             router.push('/setup')
         }
-    }, [user, isFetchingUser])
+    }, [isReady, user, isFetchingUser])
 
     if (!isReady || isFetchingUser || (!hasToken && !isPublicPath) || (!isPublicPath && !user)) {
         return (
