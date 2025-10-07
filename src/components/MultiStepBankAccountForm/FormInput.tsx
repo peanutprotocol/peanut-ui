@@ -1,5 +1,5 @@
 import React from 'react'
-import { Control, Controller, FieldErrors, FieldValues, Path, PathValue } from 'react-hook-form'
+import { Control, Controller, FieldErrors, FieldValues, Path, PathValue, RegisterOptions } from 'react-hook-form'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { IBankAccountDetails } from './types'
@@ -7,7 +7,7 @@ import { IBankAccountDetails } from './types'
 interface FormInputProps {
     name: keyof IBankAccountDetails
     placeholder: string
-    rules: any
+    rules: RegisterOptions<IBankAccountDetails, keyof IBankAccountDetails>
     control: Control<IBankAccountDetails>
     errors: FieldErrors<IBankAccountDetails>
     touchedFields: Partial<Record<keyof IBankAccountDetails, boolean>>

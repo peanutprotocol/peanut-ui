@@ -1,6 +1,7 @@
 'use client'
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { twMerge } from 'tailwind-merge'
 import { useAuth } from '@/context/authContext'
 import { Button } from '@/components/0_Bruddle/Button'
 import { AddBankAccountPayload, BridgeAccountOwnerType, BridgeAccountType } from '@/app/actions/types/users.types'
@@ -21,6 +22,7 @@ import StepIndicator from './StepIndicator'
 import PersonalInfoStep from './steps/PersonalInfoStep'
 import AccountDetailsStep from './steps/AccountDetailsStep'
 import AddressStep from './steps/AddressStep'
+import { sanitizeBankAccount } from '@/utils/format.utils'
 
 interface MultiStepBankAccountFormProps {
     country: string
@@ -127,8 +129,10 @@ export const MultiStepBankAccountForm = forwardRef<{ handleSubmit: () => void },
 
             setIsSubmitting(true)
             try {
+                // Normalize identifiers before comparison: remove spaces, hyphens, dots, underscores and convert to lowercase
+                const inputIdentifier = sanitizeBankAccount(isMx ? data.clabe : data.accountNumber)
                 const existingAccount = savedAccounts.find(
-                    (account) => account.identifier === (data.accountNumber.toLowerCase() || data.clabe.toLowerCase())
+                    (account) => sanitizeBankAccount(account.identifier) === inputIdentifier
                 )
 
                 // Skip adding account if the account already exists for the logged in user
@@ -227,6 +231,42 @@ export const MultiStepBankAccountForm = forwardRef<{ handleSubmit: () => void },
             return ALL_COUNTRIES_ALPHA3_TO_ALPHA2[country.toUpperCase()] ?? country.toUpperCase()
         }, [country])
 
+        const renderCurrentStep = () => {
+            switch (currentStep) {
+                case 1:
+                    return (
+                        <PersonalInfoStep
+                            control={control}
+                            errors={errors}
+                            touchedFields={touchedFields}
+                            flow={flow}
+                            user={user}
+                            hideEmailInput={hideEmailInput}
+                        />
+                    )
+                case 2:
+                    return (
+                        <AccountDetailsStep
+                            control={control}
+                            errors={errors}
+                            touchedFields={touchedFields}
+                            accountType={accountType}
+                            selectedCountry={selectedCountry}
+                            setValue={setValue}
+                            getValues={getValues}
+                            debouncedBicValue={debouncedBicValue}
+                            setisCheckingBICValid={setisCheckingBICValid}
+                            submissionError={submissionError}
+                            setSubmissionError={setSubmissionError}
+                        />
+                    )
+                case 3:
+                    return <AddressStep control={control} errors={errors} touchedFields={touchedFields} />
+                default:
+                    return null
+            }
+        }
+
         return (
             <div className="my-auto flex h-full w-full flex-col justify-center space-y-4 pb-5">
                 <PeanutActionDetailsCard
@@ -250,36 +290,7 @@ export const MultiStepBankAccountForm = forwardRef<{ handleSubmit: () => void },
                         }}
                         className="space-y-4"
                     >
-                        {currentStep === 1 && (
-                            <PersonalInfoStep
-                                control={control}
-                                errors={errors}
-                                touchedFields={touchedFields}
-                                flow={flow}
-                                user={user}
-                                hideEmailInput={hideEmailInput}
-                            />
-                        )}
-
-                        {currentStep === 2 && (
-                            <AccountDetailsStep
-                                control={control}
-                                errors={errors}
-                                touchedFields={touchedFields}
-                                accountType={accountType}
-                                selectedCountry={selectedCountry}
-                                setValue={setValue}
-                                getValues={getValues}
-                                debouncedBicValue={debouncedBicValue}
-                                setisCheckingBICValid={setisCheckingBICValid}
-                                submissionError={submissionError}
-                                setSubmissionError={setSubmissionError}
-                            />
-                        )}
-
-                        {currentStep === 3 && (
-                            <AddressStep control={control} errors={errors} touchedFields={touchedFields} />
-                        )}
+                        {renderCurrentStep()}
 
                         <StepIndicator currentStep={currentStep} stepConfig={stepConfig} />
 
@@ -287,7 +298,7 @@ export const MultiStepBankAccountForm = forwardRef<{ handleSubmit: () => void },
                             type="submit"
                             variant="purple"
                             shadowSize="4"
-                            className={`${currentStep > 1 ? 'flex-1' : 'w-full'}`}
+                            className={twMerge(currentStep > 1 ? 'flex-1' : 'w-full')}
                             loading={isSubmitting || isCheckingBICValid}
                             disabled={isSubmitting || !isCurrentStepValid || isCheckingBICValid}
                         >
@@ -309,4 +320,3 @@ export const MultiStepBankAccountForm = forwardRef<{ handleSubmit: () => void },
 MultiStepBankAccountForm.displayName = 'MultiStepBankAccountForm'
 
 export default MultiStepBankAccountForm
-export type { IBankAccountDetails, AccountType } from './types'

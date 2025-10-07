@@ -2,13 +2,13 @@ import React from 'react'
 import { Control, FieldErrors } from 'react-hook-form'
 import FormInput from '../FormInput'
 import { IBankAccountDetails } from '../types'
-
+import { IUserProfile } from '@/interfaces/interfaces'
 interface PersonalInfoStepProps {
     control: Control<IBankAccountDetails>
     errors: FieldErrors<IBankAccountDetails>
     touchedFields: Partial<Record<keyof IBankAccountDetails, boolean>>
     flow: 'claim' | 'withdraw'
-    user: any
+    user: IUserProfile | null
     hideEmailInput: boolean
 }
 
@@ -21,7 +21,7 @@ const PersonalInfoStep: React.FC<PersonalInfoStepProps> = ({
     hideEmailInput,
 }) => {
     const shouldShowEmailField =
-        (flow === 'claim' && user?.user.userId && !user.user.email && !hideEmailInput) ||
+        (flow === 'claim' && user?.user?.userId && !user?.user?.email && !hideEmailInput) ||
         (flow !== 'claim' && !hideEmailInput && !user?.user?.email)
 
     return (

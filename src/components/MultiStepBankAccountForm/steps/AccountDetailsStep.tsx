@@ -47,7 +47,8 @@ const AccountDetailsStep: React.FC<AccountDetailsStepProps> = ({
                         required: 'CLABE is required',
                         minLength: { value: 18, message: 'CLABE must be 18 digits' },
                         maxLength: { value: 18, message: 'CLABE must be 18 digits' },
-                        validate: async (value: string) => validateMXCLabeAccount(value).isValid || 'Invalid CLABE',
+                        validate: async (value: string | undefined) =>
+                            !value ? 'CLABE is required' : validateMXCLabeAccount(value).isValid || 'Invalid CLABE',
                     }}
                     control={control}
                     errors={errors}
@@ -63,7 +64,9 @@ const AccountDetailsStep: React.FC<AccountDetailsStepProps> = ({
                     placeholder="IBAN"
                     rules={{
                         required: 'IBAN is required',
-                        validate: async (val: string) => {
+                        validate: async (val: string | undefined) => {
+                            if (!val) return 'IBAN is required'
+
                             const isValidIban = await validateIban(val)
                             if (!isValidIban) return 'Invalid IBAN'
 
@@ -102,7 +105,10 @@ const AccountDetailsStep: React.FC<AccountDetailsStepProps> = ({
                 placeholder="Account Number"
                 rules={{
                     required: 'Account number is required',
-                    validate: async (value: string) => validateUSBankAccount(value).isValid || 'Invalid account number',
+                    validate: async (value: string | undefined) =>
+                        !value
+                            ? 'Account number is required'
+                            : validateUSBankAccount(value).isValid || 'Invalid account number',
                 }}
                 control={control}
                 errors={errors}
@@ -121,7 +127,7 @@ const AccountDetailsStep: React.FC<AccountDetailsStepProps> = ({
                     placeholder="BIC"
                     rules={{
                         required: 'BIC is required',
-                        validate: async (value: string) => {
+                        validate: async (value: string | undefined) => {
                             if (!value || value.trim().length === 0) return 'BIC is required'
 
                             // Only validate if the value matches the debounced value (to prevent API calls on every keystroke)
@@ -130,9 +136,14 @@ const AccountDetailsStep: React.FC<AccountDetailsStepProps> = ({
                             }
 
                             setisCheckingBICValid(true)
-                            const isValid = await validateBic(value.trim())
-                            setisCheckingBICValid(false)
-                            return isValid || 'Invalid BIC code'
+                            try {
+                                const isValid = await validateBic(value.trim())
+                                return isValid || 'Invalid BIC code'
+                            } catch {
+                                return 'Unable to validate BIC right now'
+                            } finally {
+                                setisCheckingBICValid(false)
+                            }
                         },
                     }}
                     control={control}
@@ -152,8 +163,10 @@ const AccountDetailsStep: React.FC<AccountDetailsStepProps> = ({
                     placeholder="Routing Number"
                     rules={{
                         required: 'Routing number is required',
-                        validate: async (value: string) =>
-                            (await isValidRoutingNumber(value)) || 'Invalid routing number',
+                        validate: async (value: string | undefined) =>
+                            !value
+                                ? 'Routing number is required'
+                                : (await isValidRoutingNumber(value)) || 'Invalid routing number',
                     }}
                     control={control}
                     errors={errors}

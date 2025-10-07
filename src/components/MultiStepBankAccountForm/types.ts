@@ -1,3 +1,5 @@
+import { FieldErrors } from 'react-hook-form'
+
 export type IBankAccountDetails = {
     name?: string
     firstName: string
@@ -20,5 +22,5 @@ export type AccountType = 'US' | 'IBAN' | 'MX'
 export interface StepConfig {
     totalSteps: number
     getStepTitle: (step: number) => string
-    isStepValid: (step: number, data: IBankAccountDetails, errors: any) => boolean
+    isStepValid: (step: number, data: IBankAccountDetails, errors: FieldErrors<IBankAccountDetails>) => boolean
 }
