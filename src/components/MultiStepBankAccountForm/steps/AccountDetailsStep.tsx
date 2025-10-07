@@ -1,5 +1,5 @@
 import React from 'react'
-import { Control, FieldErrors, FieldValues } from 'react-hook-form'
+import { Control, FieldErrors, UseFormSetValue, UseFormGetValues } from 'react-hook-form'
 import { validateIban, validateBic, isValidRoutingNumber } from '@/utils/bridge-accounts.utils'
 import { getBicFromIban } from '@/app/actions/ibanToBic'
 import { getCountryFromIban, validateMXCLabeAccount, validateUSBankAccount } from '@/utils/withdraw.utils'
@@ -12,8 +12,8 @@ interface AccountDetailsStepProps {
     touchedFields: Partial<Record<keyof IBankAccountDetails, boolean>>
     accountType: AccountType
     selectedCountry: string
-    setValue: (name: keyof IBankAccountDetails, value: any, options?: any) => void
-    getValues: (name?: keyof IBankAccountDetails) => any
+    setValue: UseFormSetValue<IBankAccountDetails>
+    getValues: UseFormGetValues<IBankAccountDetails>
     debouncedBicValue: string
     setisCheckingBICValid: (value: boolean) => void
     submissionError: string | null
@@ -38,6 +38,7 @@ const AccountDetailsStep: React.FC<AccountDetailsStepProps> = ({
     const isIban = accountType === 'IBAN'
 
     const renderAccountInput = () => {
+        // Mexico uses CLABE (18-digit account number)
         if (isMx) {
             return (
                 <FormInput
@@ -57,6 +58,7 @@ const AccountDetailsStep: React.FC<AccountDetailsStepProps> = ({
             )
         }
 
+        // Europe and other countries use IBAN
         if (isIban) {
             return (
                 <FormInput
@@ -83,6 +85,8 @@ const AccountDetailsStep: React.FC<AccountDetailsStepProps> = ({
                     onBlur={async (field) => {
                         if (!field.value || field.value.trim().length === 0) return
                         const isValidIban = await validateIban(field.value)
+
+                        // Auto-fill BIC if we can get it from the IBAN
                         if (isValidIban) {
                             try {
                                 const autoBic = await getBicFromIban(field.value)
@@ -98,7 +102,7 @@ const AccountDetailsStep: React.FC<AccountDetailsStepProps> = ({
             )
         }
 
-        // US account
+        // US uses account number + routing number
         return (
             <FormInput
                 name="accountNumber"
@@ -130,9 +134,9 @@ const AccountDetailsStep: React.FC<AccountDetailsStepProps> = ({
                         validate: async (value: string | undefined) => {
                             if (!value || value.trim().length === 0) return 'BIC is required'
 
-                            // Only validate if the value matches the debounced value (to prevent API calls on every keystroke)
+                            // Wait for debounce before validating to avoid spamming the API
                             if (value.trim() !== debouncedBicValue?.trim()) {
-                                return true // Skip validation until debounced value is ready
+                                return true
                             }
 
                             setisCheckingBICValid(true)

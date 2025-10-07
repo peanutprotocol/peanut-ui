@@ -20,6 +20,7 @@ const PersonalInfoStep: React.FC<PersonalInfoStepProps> = ({
     user,
     hideEmailInput,
 }) => {
+    // Only show email field if user doesn't have one already
     const shouldShowEmailField =
         (flow === 'claim' && user?.user?.userId && !user?.user?.email && !hideEmailInput) ||
         (flow !== 'claim' && !hideEmailInput && !user?.user?.email)

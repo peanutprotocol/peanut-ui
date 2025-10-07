@@ -1,5 +1,5 @@
 import React from 'react'
-import { Control, Controller, FieldErrors, FieldValues, Path, PathValue, RegisterOptions } from 'react-hook-form'
+import { Control, Controller, FieldErrors, ControllerRenderProps, RegisterOptions } from 'react-hook-form'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { IBankAccountDetails } from './types'
@@ -12,7 +12,7 @@ interface FormInputProps {
     errors: FieldErrors<IBankAccountDetails>
     touchedFields: Partial<Record<keyof IBankAccountDetails, boolean>>
     type?: string
-    onBlur?: (field: any) => Promise<void> | void
+    onBlur?: (field: ControllerRenderProps<IBankAccountDetails, keyof IBankAccountDetails>) => Promise<void> | void
 }
 
 const FormInput: React.FC<FormInputProps> = ({
@@ -39,7 +39,7 @@ const FormInput: React.FC<FormInputProps> = ({
                             placeholder={placeholder}
                             className="h-12 w-full rounded-sm border border-n-1 bg-white px-4 text-sm"
                             onBlur={async (e) => {
-                                // remove any whitespace from the input field
+                                // Trim whitespace on blur
                                 if (typeof field.value === 'string') {
                                     field.onChange(field.value.trim())
                                 }

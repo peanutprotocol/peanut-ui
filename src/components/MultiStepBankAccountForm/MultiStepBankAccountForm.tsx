@@ -49,6 +49,7 @@ export const MultiStepBankAccountForm = forwardRef<{ handleSubmit: () => void },
         },
         ref
     ) => {
+        // Figure out what type of bank account we're dealing with (US, MX, or IBAN)
         const accountType = getAccountType(country)
         const isMx = accountType === 'MX'
         const isUs = accountType === 'US'
@@ -61,8 +62,11 @@ export const MultiStepBankAccountForm = forwardRef<{ handleSubmit: () => void },
         const [submissionError, setSubmissionError] = useState<string | null>(null)
         const { country: countryNameParams } = useParams()
         const { amountToWithdraw, setSelectedBankAccount } = useWithdrawFlow()
+
+        // Split user's full name into first and last name
         const [firstName, ...lastNameParts] = (user?.user.fullName ?? '').split(' ')
         const lastName = lastNameParts.join(' ')
+
         const router = useRouter()
         const savedAccounts = useSavedAccounts()
         const [isCheckingBICValid, setisCheckingBICValid] = useState(false)
@@ -70,7 +74,7 @@ export const MultiStepBankAccountForm = forwardRef<{ handleSubmit: () => void },
         const selectedCountry = (countryNameFromProps ?? (countryNameParams as string)).toLowerCase()
         const stepConfig = getStepConfig(accountType)
 
-        // Get persisted form data from Redux
+        // Restore previously saved form data if user navigated away and came back
         const persistedFormData = useAppSelector((state) => state.bankForm.formData)
 
         const {
@@ -100,15 +104,15 @@ export const MultiStepBankAccountForm = forwardRef<{ handleSubmit: () => void },
             reValidateMode: 'onSubmit',
         })
 
-        // Watch BIC field value for debouncing
+        // Debounce BIC input to avoid hammering the validation API on every keystroke
         const bicValue = watch('bic')
-        const debouncedBicValue = useDebounce(bicValue, 500) // 500ms delay
+        const debouncedBicValue = useDebounce(bicValue, 500)
 
         useImperativeHandle(ref, () => ({
             handleSubmit: handleSubmit(onSubmit),
         }))
 
-        // Trigger BIC validation when debounced value changes
+        // Validate BIC once user stops typing
         useEffect(() => {
             if (isIban && debouncedBicValue && debouncedBicValue.trim().length > 0) {
                 setValue('bic', debouncedBicValue, { shouldValidate: true })
@@ -116,26 +120,24 @@ export const MultiStepBankAccountForm = forwardRef<{ handleSubmit: () => void },
         }, [debouncedBicValue, isIban, setValue])
 
         const onSubmit = async (data: IBankAccountDetails) => {
-            // If validation is still running, don't proceed
+            // Don't submit if we're still validating fields
             if (isValidating) {
                 console.log('Validation still checking, skipping submission')
                 return
             }
 
-            // Clear any existing submission errors before starting
             if (submissionError) {
                 setSubmissionError(null)
             }
 
             setIsSubmitting(true)
             try {
-                // Normalize identifiers before comparison: remove spaces, hyphens, dots, underscores and convert to lowercase
+                // Check if this account already exists in user's saved accounts
                 const inputIdentifier = sanitizeBankAccount(isMx ? data.clabe : data.accountNumber)
                 const existingAccount = savedAccounts.find(
                     (account) => sanitizeBankAccount(account.identifier) === inputIdentifier
                 )
 
-                // Skip adding account if the account already exists for the logged in user
                 if (existingAccount) {
                     setSelectedBankAccount(existingAccount)
                     router.push(`/withdraw/${country}/bank`)
@@ -192,7 +194,7 @@ export const MultiStepBankAccountForm = forwardRef<{ handleSubmit: () => void },
                     setSubmissionError(result.error)
                     setIsSubmitting(false)
                 } else {
-                    // Save form data to Redux after successful submission
+                    // Persist form data so user doesn't have to re-enter if they come back
                     const formDataToSave = {
                         ...data,
                         country,
@@ -202,8 +204,8 @@ export const MultiStepBankAccountForm = forwardRef<{ handleSubmit: () => void },
                     dispatch(bankFormActions.setFormData(formDataToSave))
                     setIsSubmitting(false)
                 }
-            } catch (error: any) {
-                setSubmissionError(error.message)
+            } catch (error) {
+                setSubmissionError(error instanceof Error ? error.message : 'An unknown error occurred')
             } finally {
                 setIsSubmitting(false)
             }
