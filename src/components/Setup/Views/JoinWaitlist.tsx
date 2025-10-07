@@ -61,6 +61,8 @@ const JoinWaitlist = () => {
     const onLoginClick = async () => {
         try {
             await handleLogin()
+            // 1 second delay for user context and cookies to be updated
+            await new Promise((resolve) => setTimeout(resolve, 1000))
             const localStorageRedirect = getFromLocalStorage('redirect')
             const redirect_uri = searchParams.get('redirect_uri')
             if (redirect_uri) {
