@@ -410,6 +410,13 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         }
     }, [searchParams, parsedPaymentData, chargeDetails, requestType])
 
+    // reset payment state on unmount
+    useEffect(() => {
+        return () => {
+            dispatch(paymentActions.resetPaymentState())
+        }
+    }, [])
+
     if (error) {
         return (
             <div className="mx-auto h-full w-full space-y-8 self-center md:w-6/12">

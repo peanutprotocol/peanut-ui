@@ -212,7 +212,8 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
                         </div>
                     )}
 
-                {!user?.user.bridgeKycStatus &&
+                {isSameUser &&
+                    !user?.user.bridgeKycStatus &&
                     (!user?.user.kycVerifications || user?.user.kycVerifications.length === 0) && (
                         <EmptyState
                             icon="txn-off"
@@ -220,6 +221,14 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
                             description="Start by sending or requesting money"
                         />
                     )}
+
+                {!isSameUser && (
+                    <EmptyState
+                        icon="txn-off"
+                        title="No transactions yet!"
+                        description="Start by sending or requesting money"
+                    />
+                )}
             </div>
         )
     }

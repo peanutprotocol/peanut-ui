@@ -301,6 +301,11 @@ export interface Account {
     referrals: ReferralConnection[]
 }
 
+interface userInvites {
+    inviteeId: string
+    inviteeUsername: string
+}
+
 export interface IUserProfile {
     points: number
     transactions: Transaction[]
@@ -320,6 +325,7 @@ export interface IUserProfile {
         totalReferrals: number
     }>
     totalReferralPoints: number
+    invitesSent: userInvites[]
 }
 
 interface Contact {

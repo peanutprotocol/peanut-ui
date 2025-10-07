@@ -199,6 +199,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                     <h2 className="flex items-center gap-2 text-sm font-medium text-grey-1">
                         {icon && <Icon name={icon} size={10} />}
                         <VerifiedUserLabel
+                            username={userName}
                             name={getTitle(direction, userName, isLinkTransaction, status) as string}
                             isVerified={isVerified}
                             className="flex items-center gap-1"
