@@ -54,7 +54,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const queryClient = useQueryClient()
     const LOCAL_STORAGE_WEB_AUTHN_KEY = 'web-authn-key'
 
-    const { data: user, isLoading: isFetchingUser, refetch: fetchUser } = useUserQuery(!authUser?.user.userId)
+    const { data: user, isFetching: isFetchingUser, refetch: fetchUser } = useUserQuery(!authUser?.user.userId)
 
     // Pre-compute a Set of invited usernames for O(1) lookups
     const invitedUsernamesSet = useMemo(() => {
