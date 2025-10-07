@@ -1,8 +1,5 @@
 'use client'
 
-import { MarqueeWrapper } from '@/components/Global/MarqueeWrapper'
-import { HandThumbsUp } from '@/assets'
-import Image from 'next/image'
 import GuestLoginModal from '@/components/Global/GuestLoginModal'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import TopNavbar from '@/components/Global/TopNavbar'
@@ -20,6 +17,7 @@ import '../../styles/globals.css'
 import SupportDrawer from '@/components/Global/SupportDrawer'
 import { useSupportModalContext } from '@/context/SupportModalContext'
 import { useRouter } from 'next/navigation'
+import { Banner } from '@/components/Global/Banner'
 
 // Allow access to some public paths without authentication
 const publicPathRegex = /^\/(request\/pay|claim|pay\/.+$|support)/
@@ -107,17 +105,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
                 {/* Main content area */}
                 <div className="flex w-full flex-1 flex-col">
-                    {/* Only show banner if not on landing page */}
-                    {pathName !== '/' && (
-                        <button onClick={() => setIsSupportModalOpen(true)} className="w-full cursor-pointer">
-                            <MarqueeWrapper backgroundColor="bg-primary-1" direction="left">
-                                <span className="z-10 mx-4 flex items-center gap-2 text-sm font-semibold">
-                                    Peanut is in beta! Thank you for being an early user, share your feedback here
-                                    <Image src={HandThumbsUp} alt="Thumbs up" className="h-4 w-4" />
-                                </span>
-                            </MarqueeWrapper>
-                        </button>
-                    )}
+                    {/* Banner component handles maintenance and feedback banners */}
+                    <Banner />
 
                     {/* Fixed top navbar */}
 
