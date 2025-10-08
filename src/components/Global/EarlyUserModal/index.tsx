@@ -7,7 +7,7 @@ import { useAuth } from '@/context/authContext'
 import { updateUserById } from '@/app/actions/users'
 
 const EarlyUserModal = () => {
-    const { user } = useAuth()
+    const { user, fetchUser } = useAuth()
     const inviteLink = generateInviteCodeLink(user?.user.username ?? '').inviteLink
     const [showModal, setShowModal] = useState(false)
 
@@ -17,25 +17,30 @@ const EarlyUserModal = () => {
         }
     }, [user])
 
-    const handleCloseModal = () => {
+    const handleCloseModal = async () => {
         setShowModal(false)
-        updateUserById({ userId: user?.user.userId, hasSeenEarlyUserModal: true })
+        await updateUserById({ userId: user?.user.userId, hasSeenEarlyUserModal: true })
+        fetchUser()
     }
 
     return (
         <ActionModal
             icon="lock"
-            title="You’re part of the first crew"
+            title="Earn from invites"
             visible={showModal}
             onClose={handleCloseModal}
             content={
                 <>
                     <p className="text-sm text-grey-1">
-                        Peanut is now <b>invite-only.</b>
-                        <br />
-                        As an <b>early user</b>, you keep full access and you get the power to invite friends.
-                        <br />
-                        Each invite earns you <b>points</b> and perks.
+                        <span className="block">
+                            Peanut is now <b>invite-only</b> and you're in!
+                        </span>
+                        <span className="mt-2 block">
+                            <b>Friends you invite </b>→ you earn a cut of their fees
+                        </span>
+                        <span className="block">
+                            <b> Their invites </b> → you earn a cut of the cut
+                        </span>
                     </p>
                     <ShareButton
                         generateText={() => Promise.resolve(generateInvitesShareText(inviteLink))}
