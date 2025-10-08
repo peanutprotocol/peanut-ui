@@ -1,3 +1,4 @@
+'use client'
 import { Button } from '@/components/0_Bruddle'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
@@ -7,16 +8,20 @@ import { useAuth } from '@/context/authContext'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useUserStore } from '@/redux/hooks'
 import { ESendLinkStatus, sendLinksApi } from '@/services/sendLinks'
-import { formatTokenAmount, getTokenDetails, printableAddress, shortenStringLong } from '@/utils'
-import { useQueryClient } from '@tanstack/react-query'
+import { formatTokenAmount, getTokenDetails, printableAddress, shortenAddressLong } from '@/utils'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo } from 'react'
 import type { Hash } from 'viem'
 import { formatUnits } from 'viem'
 import * as _consts from '../../Claim.consts'
 import Image from 'next/image'
-import { PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
+import { PEANUT_LOGO_BLACK, PEANUTMAN_LOGO, STAR_STRAIGHT_ICON } from '@/assets'
 import CreateAccountButton from '@/components/Global/CreateAccountButton'
+import { pointsApi } from '@/services/points'
+import { PointsAction } from '@/services/services.types'
+import PeanutLoading from '@/components/Global/PeanutLoading'
+import { shootDoubleStarConfetti } from '@/utils/confetti'
 
 export const SuccessClaimLinkView = ({
     transactionHash,
@@ -30,6 +35,25 @@ export const SuccessClaimLinkView = ({
     const router = useRouter()
     const queryClient = useQueryClient()
     const { offrampDetails, claimType, bankDetails } = useClaimBankFlow()
+
+    const queryKey = useMemo(() => ['calculate-points', 'claim-link', claimLinkData.link], [claimLinkData.link])
+
+    const { data: pointsData, isLoading: isPointsDataLoading } = useQuery({
+        queryKey,
+        queryFn: () =>
+            pointsApi.calculatePoints({
+                actionType: PointsAction.P2P_SEND_LINK,
+                usdAmount: Number(
+                    formatTokenAmount(
+                        Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)) * (tokenPrice ?? 0)
+                    )
+                ),
+                otherUserId: claimLinkData?.senderAddress,
+            }),
+        // Fetch only for logged in users.
+        enabled: !!authUser?.user.userId,
+        refetchOnWindowFocus: false,
+    })
 
     useEffect(() => {
         queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
@@ -117,6 +141,12 @@ export const SuccessClaimLinkView = ({
         title: isBankClaim ? 'You will receive' : 'You claimed',
     }
 
+    useEffect(() => {
+        if (pointsData?.estimatedPoints) {
+            shootDoubleStarConfetti({ origin: { x: 0.5, y: 0.6 } })
+        }
+    }, [pointsData?.estimatedPoints])
+
     const renderButtons = () => {
         if (authUser?.user.userId) {
             return (
@@ -135,6 +165,10 @@ export const SuccessClaimLinkView = ({
         return <CreateAccountButton onClick={() => router.push('/setup')} />
     }
 
+    if (isPointsDataLoading) {
+        return <PeanutLoading />
+    }
+
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
             <SoundPlayer sound="success" />
@@ -149,6 +183,14 @@ export const SuccessClaimLinkView = ({
             </div>
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 <PeanutActionDetailsCard {...cardProps} />
+                {pointsData && (
+                    <div className="flex justify-center gap-2">
+                        <Image src={STAR_STRAIGHT_ICON} alt="star" width={20} height={20} />
+                        <p className="text-sm font-medium text-black">
+                            You&apos;ve earned {pointsData.estimatedPoints} points!
+                        </p>
+                    </div>
+                )}
                 {renderButtons()}
             </div>
         </div>

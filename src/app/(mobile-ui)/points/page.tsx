@@ -13,24 +13,55 @@ import { useAuth } from '@/context/authContext'
 import { invitesApi } from '@/services/invites'
 import { Invite } from '@/services/services.types'
 import { generateInvitesShareText } from '@/utils'
+import { PointsInvite } from '@/services/services.types'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
+import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
+import Image from 'next/image'
+import { pointsApi } from '@/services/points'
+import EmptyState from '@/components/Global/EmptyStates/EmptyState'
+import { getInitialsFromName } from '@/utils'
 
 const PointsPage = () => {
     const router = useRouter()
     const { user } = useAuth()
-    const { data: invites, isLoading } = useQuery({
+    const {
+        data: invites,
+        isLoading,
+        isError: isInvitesError,
+        error: invitesError,
+    } = useQuery({
         queryKey: ['invites', user?.user.userId],
         queryFn: () => invitesApi.getInvites(),
         enabled: !!user?.user.userId,
     })
 
+    const {
+        data: tierInfo,
+        isLoading: isTierInfoLoading,
+        isError: isTierInfoError,
+        error: tierInfoError,
+    } = useQuery({
+        queryKey: ['tierInfo', user?.user.userId],
+        queryFn: () => pointsApi.getTierInfo(),
+        enabled: !!user?.user.userId,
+    })
     const username = user?.user.username
     const inviteCode = username ? `${username.toUpperCase()}INVITESYOU` : ''
     const inviteLink = `${process.env.NEXT_PUBLIC_BASE_URL}/invite?code=${inviteCode}`
 
-    if (isLoading) {
-        return <PeanutLoading coverFullScreen />
+    if (isLoading || isTierInfoLoading) {
+        return <PeanutLoading />
+    }
+
+    if (isInvitesError || isTierInfoError) {
+        console.error('Error loading points data:', invitesError ?? tierInfoError)
+
+        return (
+            <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
+                <EmptyState icon="alert" title="Error loading points!" description="Please contact Support." />
+            </div>
+        )
     }
 
     return (
@@ -38,7 +69,45 @@ const PointsPage = () => {
             <NavHeader title="Invites" onPrev={() => router.back()} />
 
             <section className="mx-auto mb-auto mt-10 w-full space-y-4">
-                {user?.invitedBy && (
+
+                {tierInfo?.data && (
+                    <Card className="flex flex-col items-center justify-center gap-2 p-4">
+                        <h2 className="text-3xl font-extrabold text-black">TIER {tierInfo?.data.currentTier}</h2>
+                        <span className="flex items-center gap-2">
+                            <Image src={STAR_STRAIGHT_ICON} alt="star" width={20} height={20} />
+                            {tierInfo.data.totalPoints} Points
+                        </span>
+
+                        {/* Progress bar */}
+                        <div className="flex w-full items-center gap-2">
+                            {tierInfo?.data.currentTier}
+                            <div className="w-full">
+                                <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-grey-2">
+                                    <div
+                                        className="h-full rounded-full bg-primary-1 transition-all duration-300"
+                                        style={{
+                                            width: `${(tierInfo.data.totalPoints / tierInfo.data.nextTierThreshold) * 100}%`,
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                            {tierInfo?.data.currentTier + 1}
+                        </div>
+
+                        <p className="text-sm text-grey-1">
+                            {tierInfo.data.pointsToNextTier} points needed for the next tier
+                        </p>
+                    </Card>
+                )}
+
+                <div className="mx-3 flex items-center gap-2">
+                    <Icon name="info" className="size-6 text-black md:size-3" />
+
+                    <p className="text-sm text-black">
+                        Do stuff on Peanut and get points. Invite friends and pocket 20% of their points, too.
+                    </p>
+                </div>
+        {user?.invitedBy && (
                     <p className="text-sm">
                         <span
                             onClick={() => router.push(`/${user.invitedBy}`)}
@@ -51,14 +120,17 @@ const PointsPage = () => {
                 )}
 
                 <h1 className="font-bold">Invite friends with your code</h1>
-                <div className="flex w-full items-center justify-between gap-3">
+
+                <h1 className="font-bold">Refer friends</h1>
+
+              <div className="flex w-full items-center justify-between gap-3">
                     <Card className="flex w-full items-center justify-between py-3.5">
                         <p className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-bold md:text-base">{`${inviteCode}`}</p>
                         <CopyToClipboard textToCopy={inviteCode} />
                     </Card>
                 </div>
 
-                {invites && invites.length > 0 && (
+                {invites?.invitees?.length && invites.invitees.length > 0 && (
                     <>
                         <ShareButton
                             generateText={() => Promise.resolve(generateInvitesShareText(inviteLink))}
@@ -68,15 +140,16 @@ const PointsPage = () => {
                         </ShareButton>
                         <h2 className="!mt-8 font-bold">People you invited</h2>
                         <div>
-                            {invites?.map((invite: Invite, i: number) => {
-                                const username = invite.invitee.username
-                                const isVerified = invite.invitee.bridgeKycStatus === 'approved'
+                            {invites.invitees?.map((invite: PointsInvite, i: number) => {
+                                const username = invite.username
+                                const fullName = invite.fullName
+                                const isVerified = invite.kycStatus === 'approved'
                                 return (
-                                    <Card key={invite.id} position={getCardPosition(i, invites.length)}>
+                                    <Card key={invite.inviteeId} position={getCardPosition(i, invites.invitees.length)}>
                                         <div className="flex items-center justify-between gap-4">
                                             <div className="flex items-center gap-3">
                                                 <TransactionAvatarBadge
-                                                    initials={username}
+                                                    initials={getInitialsFromName(fullName ?? username)}
                                                     userName={username}
                                                     isLinkTransaction={false}
                                                     transactionType={'send'}
@@ -84,7 +157,6 @@ const PointsPage = () => {
                                                     size="small"
                                                 />
                                             </div>
-
                                             <div className="min-w-0 flex-1 truncate font-roboto text-[16px] font-medium">
                                                 <VerifiedUserLabel
                                                     name={username}
@@ -92,6 +164,7 @@ const PointsPage = () => {
                                                     isVerified={isVerified}
                                                 />
                                             </div>
+                                            <p className="text-grey-1">+{invite.totalPoints} pts</p>
                                         </div>
                                     </Card>
                                 )
@@ -99,7 +172,8 @@ const PointsPage = () => {
                         </div>
                     </>
                 )}
-                {invites?.length === 0 && (
+
+                {invites?.invitees?.length === 0 && (
                     <Card className="flex flex-col items-center justify-center gap-4 py-4">
                         <div className="flex items-center justify-center rounded-full bg-primary-1 p-2">
                             <Icon name="trophy" />
