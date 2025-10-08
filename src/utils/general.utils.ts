@@ -1323,3 +1323,9 @@ export function slugify(text: string): string {
 export const generateInvitesShareText = (inviteLink: string) => {
     return `I’m using Peanut, an invite-only app for easy payments. With it you can pay friends, use merchants, and move money in and out of your bank, even cross-border. Here’s my invite: ${inviteLink}`
 }
+
+export const generateInviteCodeLink = (username: string) => {
+    const inviteCode = `${username.toUpperCase()}INVITESYOU`
+    const inviteLink = `${consts.BASE_URL}/invite?code=${inviteCode}`
+    return { inviteLink, inviteCode }
+}

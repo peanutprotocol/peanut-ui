@@ -175,6 +175,12 @@ module.exports = {
                     '50%': { transform: 'scale(1.05)', opacity: '1' },
                     '100%': { transform: 'scale(0.95)', opacity: '0.8' },
                 },
+                pulsateDeep: {
+                    '0%': { transform: 'scale(1)', opacity: '1' },
+                    '30%': { transform: 'scale(0.7)', opacity: '1' },
+                    '60%': { transform: 'scale(1)', opacity: '1' },
+                    '100%': { transform: 'scale(1)', opacity: '1' },
+                },
                 'pulse-strong': {
                     '0%': { opacity: '1' },
                     '50%': { opacity: '0.3' },
@@ -185,6 +191,7 @@ module.exports = {
                 colorPulse: 'colorPulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                 fadeIn: 'fadeIn 0.3s ease-in-out',
                 pulsate: 'pulsate 1.5s ease-in-out infinite',
+                'pulsate-slow': 'pulsateDeep 4s ease-in-out infinite',
                 'pulse-strong': 'pulse-strong 1s ease-in-out infinite',
             },
             opacity: {

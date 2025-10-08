@@ -43,6 +43,8 @@ import NotificationNavigation from '@/components/Notifications/NotificationNavig
 import useKycStatus from '@/hooks/useKycStatus'
 import HomeBanners from '@/components/Home/HomeBanners'
 import InvitesIcon from '@/components/Home/InvitesIcon'
+import NoMoreJailModal from '@/components/Global/NoMoreJailModal'
+import EarlyUserModal from '@/components/Global/EarlyUserModal'
 
 const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
 const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_EXPIRY ?? '1814400') // 21 days in seconds
@@ -191,8 +193,8 @@ export default function Home() {
     // effect for showing add money prompt modal
     useEffect(() => {
         if (typeof window === 'undefined' || isFetchingBalance || !user) return
-
         const hasSeenAddMoneyPromptThisSession = sessionStorage.getItem('hasSeenAddMoneyPromptThisSession')
+        const showNoMoreJailModal = sessionStorage.getItem('showNoMoreJailModal')
 
         // determine if we should show the add money modal based on all conditions
         // show if:
@@ -208,7 +210,9 @@ export default function Home() {
             !showPermissionModal &&
             !showIOSPWAInstallModal &&
             !showBalanceWarningModal &&
-            !isPostSignupActionModalVisible
+            !isPostSignupActionModalVisible &&
+            showNoMoreJailModal !== 'true' &&
+            !user?.showEarlyUserModal // Give Early User and No more jail modal precedence, showing two modals together isn't ideal and it messes up their functionality
 
         if (shouldShow) {
             setShowAddMoneyPromptModal(true)
@@ -271,6 +275,7 @@ export default function Home() {
                         />
                     </ActionButtonGroup>
                 </div>
+
                 <HomeBanners />
 
                 {showPermissionModal && <SetupNotificationsModal />}
@@ -289,6 +294,10 @@ export default function Home() {
 
             {/* Add Money Prompt Modal */}
             <AddMoneyPromptModal visible={showAddMoneyPromptModal} onClose={() => setShowAddMoneyPromptModal(false)} />
+
+            <NoMoreJailModal />
+
+            <EarlyUserModal />
 
             {/* Balance Warning Modal */}
             <BalanceWarningModal
