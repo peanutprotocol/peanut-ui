@@ -7,7 +7,7 @@ import { useAuth } from '@/context/authContext'
 import { updateUserById } from '@/app/actions/users'
 
 const EarlyUserModal = () => {
-    const { user } = useAuth()
+    const { user, fetchUser } = useAuth()
     const inviteLink = generateInviteCodeLink(user?.user.username ?? '').inviteLink
     const [showModal, setShowModal] = useState(false)
 
@@ -17,9 +17,10 @@ const EarlyUserModal = () => {
         }
     }, [user])
 
-    const handleCloseModal = () => {
+    const handleCloseModal = async () => {
         setShowModal(false)
-        updateUserById({ userId: user?.user.userId, hasSeenEarlyUserModal: true })
+        await updateUserById({ userId: user?.user.userId, hasSeenEarlyUserModal: true })
+        fetchUser()
     }
 
     return (

@@ -59,7 +59,7 @@ export const VerifiedUserLabel = ({
     haveSentMoneyToUser?: boolean
     isAuthenticatedUserVerified?: boolean
 }) => {
-    const { invitedUsernamesSet } = useAuth()
+    const { invitedUsernamesSet, user } = useAuth()
     // determine badge and tooltip content based on verification status
     let badge = null
     let tooltipContent = ''
@@ -83,6 +83,8 @@ export const VerifiedUserLabel = ({
     // O(1) lookup in pre-computed Set
     const isInvitedByLoggedInUser = invitedUsernamesSet.has(username)
 
+    const isInviter = user?.invitedBy === username
+
     return (
         <div className="flex items-center gap-1.5">
             <div className={twMerge('font-semibold md:text-base', className)}>
@@ -96,6 +98,12 @@ export const VerifiedUserLabel = ({
             {isInvitedByLoggedInUser && (
                 <Tooltip id="invited-by-logged-in-user" content="You've invited this user." position="top">
                     <Icon name="invite-heart" size={iconSize} />
+                </Tooltip>
+            )}
+
+            {isInviter && (
+                <Tooltip id="invited-by-logged-in-user" content="You were invited by this user." position="top">
+                    <Icon name="inviter-heart" size={iconSize} />
                 </Tooltip>
             )}
         </div>
