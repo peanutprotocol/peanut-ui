@@ -1,79 +1,18 @@
-import { BASE_URL, PEANUT_API_URL, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
+import { PEANUT_API_URL } from '@/constants'
 import { TRANSACTIONS } from '@/constants/query.consts'
-import { fetchWithSentry, formatAmount, getFromLocalStorage, getTokenDetails } from '@/utils'
+import { fetchWithSentry } from '@/utils'
 import type { InfiniteData, InfiniteQueryObserverResult, QueryObserverResult } from '@tanstack/react-query'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import Cookies from 'js-cookie'
-import { formatUnits, type Hash } from 'viem'
+import { completeHistoryEntry } from '@/utils/history.utils'
+import type { HistoryEntry } from '@/utils/history.utils'
+
+//TODO: remove and import all from utils everywhere
+export { EHistoryEntryType, EHistoryUserRole } from '@/utils/history.utils'
+export type { HistoryEntry, HistoryEntryType, HistoryUserRole } from '@/utils/history.utils'
 
 type LatestHistoryResult = QueryObserverResult<HistoryResponse>
 type InfiniteHistoryResult = InfiniteQueryObserverResult<InfiniteData<HistoryResponse>>
-
-export enum EHistoryEntryType {
-    REQUEST = 'REQUEST',
-    CASHOUT = 'CASHOUT',
-    DEPOSIT = 'DEPOSIT',
-    SEND_LINK = 'SEND_LINK',
-    DIRECT_SEND = 'DIRECT_SEND',
-    WITHDRAW = 'WITHDRAW',
-    BRIDGE_OFFRAMP = 'BRIDGE_OFFRAMP',
-    BRIDGE_ONRAMP = 'BRIDGE_ONRAMP',
-    BANK_SEND_LINK_CLAIM = 'BANK_SEND_LINK_CLAIM',
-}
-
-export enum EHistoryUserRole {
-    SENDER = 'SENDER',
-    RECIPIENT = 'RECIPIENT',
-    BOTH = 'BOTH',
-    NONE = 'NONE',
-}
-
-export type HistoryEntryType = `${EHistoryEntryType}`
-export type HistoryUserRole = `${EHistoryUserRole}`
-
-export type HistoryEntry = {
-    uuid: string
-    type: HistoryEntryType
-    timestamp: Date
-    amount: string
-    currency?: {
-        amount: string
-        code: string
-    }
-    txHash?: string
-    chainId: string
-    tokenSymbol: string
-    tokenAddress: string
-    status: string
-    userRole: HistoryUserRole
-    attachmentUrl?: string
-    memo?: string
-    cancelledAt?: Date | string
-    senderAccount?:
-        | {
-              identifier: string
-              type: string
-              isUser: boolean
-              username?: string | undefined
-              fullName?: string
-              userId?: string
-          }
-        | undefined
-    recipientAccount: {
-        identifier: string
-        type: string
-        isUser: boolean
-        username?: string | undefined
-        fullName?: string
-        userId?: string
-    }
-    extraData?: Record<string, any>
-    claimedAt?: string | Date
-    createdAt?: string | Date
-    completedAt?: string | Date
-    isVerified?: boolean
-    points?: number
-}
 
 export type HistoryResponse = {
     entries: HistoryEntry[]
@@ -152,83 +91,9 @@ export function useTransactionHistory({
 
         const data = await response.json()
 
-        // Convert ISO strings to Date objects for timestamps
         return {
             ...data,
-            entries: data.entries.map((entry: HistoryEntry) => {
-                const extraData = entry.extraData ?? {}
-                let link: string = ''
-                let tokenSymbol: string = ''
-                let usdAmount: string = ''
-                switch (entry.type) {
-                    case EHistoryEntryType.SEND_LINK: {
-                        const password = getFromLocalStorage(`sendLink::password::${entry.uuid}`)
-                        const { contractVersion, depositIdx } = extraData
-                        if (password) {
-                            link = `${BASE_URL}/claim?c=${entry.chainId}&v=${contractVersion}&i=${depositIdx}#p=${password}`
-                        }
-                        const tokenDetails = getTokenDetails({
-                            tokenAddress: entry.tokenAddress as Hash,
-                            chainId: entry.chainId,
-                        })
-                        usdAmount = formatUnits(BigInt(entry.amount), tokenDetails?.decimals ?? 6)
-                        tokenSymbol = tokenDetails?.symbol ?? ''
-                        break
-                    }
-                    case EHistoryEntryType.REQUEST: {
-                        link = `${BASE_URL}/${entry.recipientAccount.username || entry.recipientAccount.identifier}?chargeId=${entry.uuid}`
-                        tokenSymbol = entry.tokenSymbol
-                        usdAmount = entry.amount.toString()
-                        break
-                    }
-                    case EHistoryEntryType.DIRECT_SEND: {
-                        link = `${BASE_URL}/${entry.recipientAccount.username || entry.recipientAccount.identifier}?chargeId=${entry.uuid}`
-                        tokenSymbol = entry.tokenSymbol
-                        usdAmount = entry.amount.toString()
-                        break
-                    }
-                    case EHistoryEntryType.DEPOSIT: {
-                        const details = getTokenDetails({
-                            tokenAddress: entry.tokenAddress as Hash,
-                            chainId: entry.chainId,
-                        })
-                        tokenSymbol = details?.symbol ?? entry.tokenSymbol
-
-                        if (entry.extraData?.blockNumber) {
-                            // direct deposits are always in wei
-                            usdAmount = formatUnits(BigInt(entry.amount), PEANUT_WALLET_TOKEN_DECIMALS)
-                        } else {
-                            usdAmount = entry.amount.toString()
-                        }
-                        break
-                    }
-                    case EHistoryEntryType.WITHDRAW:
-                    case EHistoryEntryType.BRIDGE_OFFRAMP:
-                    case EHistoryEntryType.BRIDGE_ONRAMP:
-                    case EHistoryEntryType.BANK_SEND_LINK_CLAIM: {
-                        tokenSymbol = entry.tokenSymbol
-                        usdAmount = entry.amount.toString()
-                        break
-                    }
-                    default: {
-                        if (entry.amount && !usdAmount) {
-                            usdAmount = entry.amount.toString()
-                        }
-                        tokenSymbol = entry.tokenSymbol
-                    }
-                }
-                return {
-                    ...entry,
-                    tokenSymbol,
-                    timestamp: new Date(entry.timestamp),
-                    cancelledAt: entry.cancelledAt ? new Date(entry.cancelledAt) : undefined,
-                    extraData: {
-                        ...extraData,
-                        link,
-                        usdAmount: `$${formatAmount(usdAmount)}`,
-                    },
-                }
-            }),
+            entries: await Promise.all(data.entries.map(completeHistoryEntry)),
         }
     }
 

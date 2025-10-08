@@ -3,20 +3,46 @@
 import { IconName } from '@/components/Global/Icons/Icon'
 import { useAuth } from '@/context/authContext'
 import { useEffect, useState } from 'react'
+import { useNotifications } from './useNotifications'
 
 export type Banner = {
     id: string
     title: string
     description: string
     icon: IconName
+    // optional handlers for notification banner
+    onClick?: () => void | Promise<void>
+    onClose?: () => void
+    isPermissionDenied?: boolean
 }
 
 export const useBanners = () => {
     const [banners, setBanners] = useState<Banner[]>([])
     const { user } = useAuth()
+    const { showReminderBanner, requestPermission, snoozeReminderBanner, afterPermissionAttempt, isPermissionDenied } =
+        useNotifications()
 
     const generateBanners = () => {
         const _banners: Banner[] = []
+
+        // add notification banner as first item if it should be shown
+        if (showReminderBanner) {
+            _banners.push({
+                id: 'notification-banner',
+                title: 'Stay in the loop!',
+                description: 'Turn on notifications and get alerts for all your wallet activity.',
+                icon: 'bell',
+                onClick: async () => {
+                    await requestPermission()
+                    await afterPermissionAttempt()
+                },
+                onClose: () => {
+                    snoozeReminderBanner()
+                },
+                isPermissionDenied,
+            })
+        }
+
         if (user?.user.bridgeKycStatus !== 'approved') {
             // TODO: Add manteca KYC check after manteca is implemented
             _banners.push({
@@ -26,8 +52,6 @@ export const useBanners = () => {
                 icon: 'shield',
             })
         }
-
-        // TODO: Add notifications banner after notifications are implemented
 
         setBanners(_banners)
     }
@@ -39,7 +63,7 @@ export const useBanners = () => {
         }
 
         generateBanners()
-    }, [user])
+    }, [user, showReminderBanner, isPermissionDenied])
 
     return { banners, setBanners }
 }

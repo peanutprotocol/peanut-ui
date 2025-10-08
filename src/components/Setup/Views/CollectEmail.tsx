@@ -31,6 +31,12 @@ const CollectEmail = () => {
                 userId: user?.user.userId,
                 email,
             })
+
+            if (error && error.includes('Unique constraint failed on the fields: (`email`)')) {
+                setError('Email already in use.')
+                return
+            }
+
             if (error) {
                 setError('Something went wrong. Please try again or contact support')
                 return

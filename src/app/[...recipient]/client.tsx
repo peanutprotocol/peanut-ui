@@ -66,10 +66,11 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     const { isDrawerOpen, selectedTransaction, openTransactionDetails } = useTransactionDetailsDrawer()
     const [isLinkCancelling, setisLinkCancelling] = useState(false)
     const {
-        showExternalWalletFulfilMethods,
+        showExternalWalletFulfillMethods,
         showRequestFulfilmentBankFlowManager,
         setShowRequestFulfilmentBankFlowManager,
         setFlowStep: setRequestFulfilmentBankFlowStep,
+        fulfillUsingManteca,
     } = useRequestFulfillmentFlow()
     const { requestType } = useDetermineBankRequestType(chargeDetails?.requestLink.recipientAccount.userId ?? '')
 
@@ -418,6 +419,9 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         }
     }, [transactionForDrawer, currentView, dispatch, openTransactionDetails, isExternalWalletFlow, chargeId])
 
+    const showActionList =
+        (flow !== 'direct_pay' || (flow === 'direct_pay' && !user)) && // Show for direct-pay when user is not logged in
+        !fulfillUsingManteca // Show when not fulfilling using Manteca
     // Send to bank step if its mentioned in the URL and guest KYC is not needed
     useEffect(() => {
         const stepFromURL = searchParams.get('step')
@@ -433,11 +437,12 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         }
     }, [searchParams, parsedPaymentData, chargeDetails, requestType])
 
-    let showActionList = flow !== 'direct_pay'
-
-    if (flow === 'direct_pay' && !user) {
-        showActionList = true
-    }
+    // reset payment state on unmount
+    useEffect(() => {
+        return () => {
+            dispatch(paymentActions.resetPaymentState())
+        }
+    }, [])
 
     if (error) {
         return (
@@ -460,7 +465,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     }
 
     // render external wallet fulfilment methods
-    if (showExternalWalletFulfilMethods) {
+    if (showExternalWalletFulfillMethods) {
         return <ExternalWalletFulfilManager parsedPaymentData={parsedPaymentData as ParsedURL} />
     }
 
@@ -510,7 +515,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                                 ? {
                                       code: currencyCode,
                                       symbol: currencySymbol!,
-                                      price: currencyPrice!,
+                                      price: currencyPrice!.buy,
                                   }
                                 : undefined
                         }

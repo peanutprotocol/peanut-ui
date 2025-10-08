@@ -7,9 +7,10 @@ import NavHeader from '../Global/NavHeader'
 import ProfileHeader from './components/ProfileHeader'
 import ProfileMenuItem from './components/ProfileMenuItem'
 import { useRouter } from 'next/navigation'
-import { checkIfInternalNavigation } from '@/utils'
+import { checkIfInternalNavigation, generateInviteCodeLink, generateInvitesShareText } from '@/utils'
 import ActionModal from '../Global/ActionModal'
 import { useState } from 'react'
+import useKycStatus from '@/hooks/useKycStatus'
 import Card from '../Global/Card'
 import ShowNameToggle from './components/ShowNameToggle'
 import ShareButton from '../Global/ShareButton'
@@ -19,7 +20,9 @@ export const Profile = () => {
     const { logoutUser, isLoggingOut, user } = useAuth()
     const [isKycApprovedModalOpen, setIsKycApprovedModalOpen] = useState(false)
     const [isInviteFriendsModalOpen, setIsInviteFriendsModalOpen] = useState(false)
+    const [showInitiateKycModal, setShowInitiateKycModal] = useState(false)
     const router = useRouter()
+    const { isUserKycApproved } = useKycStatus()
 
     const logout = async () => {
         await logoutUser()
@@ -28,10 +31,7 @@ export const Profile = () => {
     const fullName = user?.user.fullName || user?.user?.username || 'Anonymous User'
     const username = user?.user.username || 'anonymous'
 
-    const inviteCode = `${user?.user.username?.toUpperCase()}INVITESYOU`
-    const inviteLink = `${process.env.NEXT_PUBLIC_BASE_URL}/invite?code=${inviteCode}`
-
-    const isKycApproved = user?.user.bridgeKycStatus === 'approved'
+    const inviteData = generateInviteCodeLink(user?.user.username ?? '')
 
     return (
         <div className="h-full w-full bg-background">
@@ -49,7 +49,7 @@ export const Profile = () => {
                 }}
             />
             <div className="space-y-8">
-                <ProfileHeader name={fullName || username} username={username} isVerified={isKycApproved} />
+                <ProfileHeader name={fullName || username} username={username} isVerified={isUserKycApproved} />
                 <div className="space-y-4">
                     {/* Menu Item - Invite Entry */}
                     {/* Enable with Invites project. */}
@@ -75,17 +75,15 @@ export const Profile = () => {
                             label="Identity Verification"
                             href="/profile/identity-verification"
                             onClick={() => {
-                                if (isKycApproved) {
+                                if (isUserKycApproved) {
                                     setIsKycApprovedModalOpen(true)
                                 } else {
-                                    router.push('/profile/identity-verification')
+                                    setShowInitiateKycModal(true)
                                 }
                             }}
                             position="middle"
-                            endIcon={isKycApproved ? 'check' : undefined}
-                            endIconClassName={isKycApproved ? 'text-success-3 size-4' : undefined}
-                            showTooltip
-                            toolTipText="No need to verify unless you want to move money to or from your bank."
+                            endIcon={isUserKycApproved ? 'check' : undefined}
+                            endIconClassName={isUserKycApproved ? 'text-success-3 size-4' : undefined}
                         />
 
                         <Card className="p-4" position="middle">
@@ -156,34 +154,50 @@ export const Profile = () => {
             <ActionModal
                 visible={isInviteFriendsModalOpen}
                 onClose={() => setIsInviteFriendsModalOpen(false)}
-                title="Refer friends!"
+                title="Invite friends!"
                 description="Earn points when your referrals create an account in Peanut and also pocket 20% of the points they make!"
                 icon="user-plus"
                 content={
                     <>
                         <div className="flex w-full items-center justify-between gap-3">
-                            <Card className="flex w-1/2 items-center justify-center py-1.5">
-                                <p className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-bold md:text-base">{`${inviteCode}`}</p>
+                            <Card className="flex items-center justify-between py-2">
+                                <p className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-bold ">{`${inviteData.inviteCode}`}</p>
+
+                                <CopyToClipboard textToCopy={`${inviteData.inviteCode}`} />
                             </Card>
-                            <CopyToClipboard
-                                type="button"
-                                className="w-1/2"
-                                textToCopy={`${inviteCode}`}
-                                buttonSize="medium"
-                            />
                         </div>
                         <ShareButton
-                            generateText={() =>
-                                Promise.resolve(
-                                    `I’m using Peanut, an invite-only app for easy payments. With it you can pay friends, use merchants, and move money in and out of your bank, even cross-border. Here’s my invite: ${inviteLink}`
-                                )
-                            }
+                            generateText={() => Promise.resolve(generateInvitesShareText(inviteData.inviteLink))}
                             title="Share your invite link"
                         >
                             Share Invite link
                         </ShareButton>
                     </>
                 }
+            />
+
+            <ActionModal
+                visible={showInitiateKycModal}
+                onClose={() => setShowInitiateKycModal(false)}
+                title="Verification, Only If You Need It"
+                description="No need to verify unless you want to move money to or from your bank."
+                icon="shield"
+                ctaClassName="flex-col sm:flex-col"
+                ctas={[
+                    {
+                        text: 'Verify now',
+                        shadowSize: '4',
+                        className: 'md:py-2',
+                        onClick: () => router.push('/profile/identity-verification'),
+                    },
+                    {
+                        variant: 'transparent-dark',
+                        className:
+                            'text-black underline text-xs font-medium h-2 mt-1 hover:text-black active:text-black',
+                        text: 'Not now',
+                        onClick: () => setShowInitiateKycModal(false),
+                    },
+                ]}
             />
         </div>
     )

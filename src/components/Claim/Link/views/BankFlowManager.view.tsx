@@ -24,13 +24,13 @@ import useSavedAccounts from '@/hooks/useSavedAccounts'
 import { ConfirmBankClaimView } from './Confirm.bank-claim.view'
 import { CountryListRouter } from '@/components/Common/CountryListRouter'
 import NavHeader from '@/components/Global/NavHeader'
-import { InitiateKYCModal } from '@/components/Kyc'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { BridgeKycStatus } from '@/utils/bridge-accounts.utils'
 import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
 import { useAppDispatch } from '@/redux/hooks'
 import { bankFormActions } from '@/redux/slices/bank-form-slice'
 import { sendLinksApi } from '@/services/sendLinks'
+import { InitiateBridgeKYCModal } from '@/components/Kyc/InitiateBridgeKYCModal'
 
 type BankAccountWithId = IBankAccountDetails &
     (
@@ -484,7 +484,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                         initialData={{}}
                         error={error}
                     />
-                    <InitiateKYCModal
+                    <InitiateBridgeKYCModal
                         isOpen={isKycModalOpen}
                         onClose={() => setIsKycModalOpen(false)}
                         onKycSuccess={handleKycSuccess}

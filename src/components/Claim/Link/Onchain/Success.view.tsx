@@ -8,8 +8,8 @@ import { useAuth } from '@/context/authContext'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useUserStore } from '@/redux/hooks'
 import { ESendLinkStatus, sendLinksApi } from '@/services/sendLinks'
-import { formatTokenAmount, getTokenDetails, printableAddress, shortenAddressLong } from '@/utils'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { formatTokenAmount, getTokenDetails, printableAddress, shortenStringLong } from '@/utils'
+import { useQueryClient, useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef } from 'react'
 import type { Hash } from 'viem'
@@ -105,13 +105,13 @@ export const SuccessClaimLinkView = ({
 
     const maskedAccountNumber = useMemo(() => {
         if (bankDetails?.iban) {
-            return `to ${shortenAddressLong(bankDetails.iban)}`
+            return `to ${shortenStringLong(bankDetails.iban)}`
         }
         if (bankDetails?.clabe) {
-            return `to ${shortenAddressLong(bankDetails.clabe)}`
+            return `to ${shortenStringLong(bankDetails.clabe)}`
         }
         if (bankDetails?.accountNumber) {
-            return `to ${shortenAddressLong(bankDetails.accountNumber)}`
+            return `to ${shortenStringLong(bankDetails.accountNumber)}`
         }
         return 'to your bank account'
     }, [bankDetails])

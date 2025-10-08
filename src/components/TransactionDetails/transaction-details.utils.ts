@@ -17,6 +17,7 @@ export type TransactionDetailsRowKey =
     | 'points'
     | 'comment'
     | 'attachment'
+    | 'mantecaDepositInfo'
 
 // order of the rows in the receipt
 export const transactionDetailsRowKeys: TransactionDetailsRowKey[] = [

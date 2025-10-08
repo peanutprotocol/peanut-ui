@@ -4,11 +4,11 @@ import { useUserQuery } from '@/hooks/query/user'
 import * as interfaces from '@/interfaces'
 import { useAppDispatch, useUserStore } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
-import { fetchWithSentry, getFromCookie, removeFromCookie, syncLocalStorageToCookie } from '@/utils'
+import { fetchWithSentry, removeFromCookie, syncLocalStorageToCookie, clearRedirectUrl } from '@/utils'
 import { useAppKit } from '@reown/appkit/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { createContext, ReactNode, useContext, useState, useEffect } from 'react'
+import { createContext, ReactNode, useContext, useState, useEffect, useMemo } from 'react'
 import { captureException } from '@sentry/nextjs'
 
 interface AuthContextType {
@@ -36,6 +36,7 @@ interface AuthContextType {
     isFetchingUser: boolean
     logoutUser: () => Promise<void>
     isLoggingOut: boolean
+    invitedUsernamesSet: Set<string>
 }
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
@@ -54,6 +55,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const LOCAL_STORAGE_WEB_AUTHN_KEY = 'web-authn-key'
 
     const { data: user, isLoading: isFetchingUser, refetch: fetchUser } = useUserQuery(!authUser?.user.userId)
+
+    // Pre-compute a Set of invited usernames for O(1) lookups
+    const invitedUsernamesSet = useMemo(() => {
+        if (!user?.invitesSent) return new Set<string>()
+        return new Set(user.invitesSent.map((invite) => invite.inviteeUsername))
+    }, [user?.invitesSent])
 
     useEffect(() => {
         if (user) {
@@ -133,6 +140,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (response.ok) {
                 localStorage.removeItem(LOCAL_STORAGE_WEB_AUTHN_KEY)
                 removeFromCookie(LOCAL_STORAGE_WEB_AUTHN_KEY)
+                clearRedirectUrl()
                 queryClient.invalidateQueries()
 
                 // clear JWT cookie by setting it to expire
@@ -172,6 +180,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 isFetchingUser,
                 logoutUser,
                 isLoggingOut,
+                invitedUsernamesSet,
             }}
         >
             {children}

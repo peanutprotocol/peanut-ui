@@ -1,4 +1,4 @@
-import { countryData, countryCodeMap } from '@/components/AddMoney/consts'
+import { countryData, ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
 
 /**
  * Extracts the country name from an IBAN by parsing the first 2 characters (country code)
@@ -136,12 +136,61 @@ export const validateMXCLabeAccount = (accountNumber: string) => {
 // Returns the 3-letter country code for the given country code
 export const getCountryCodeForWithdraw = (country: string) => {
     // If the input is already a 3-digit code and exists in the map, return it
-    if (countryCodeMap[country]) {
+    if (ALL_COUNTRIES_ALPHA3_TO_ALPHA2[country]) {
         return country
     }
 
     // If the input is a 2-digit code, find the corresponding 3-digit code
-    const threeDigitCode = Object.keys(countryCodeMap).find((key) => countryCodeMap[key] === country)
+    const threeDigitCode = Object.keys(ALL_COUNTRIES_ALPHA3_TO_ALPHA2).find(
+        (key) => ALL_COUNTRIES_ALPHA3_TO_ALPHA2[key] === country
+    )
 
     return threeDigitCode || country
+}
+
+function checkBlock(block: string, weights: number[]) {
+    let sum = 0
+    for (let i = 0; i < block.length; i++) {
+        sum += parseInt(block[i]) * weights[i]
+    }
+    const remainder = sum % 10
+    return remainder === 0 ? 0 : 10 - remainder
+}
+
+export function validateCbuCvuAlias(value: string): { valid: boolean; message?: string } {
+    value = value.trim()
+    const length = value.length
+    //TODO: enable this again when alias is supported
+    //if ((length < 6 || length > 20) && length !== 22) {
+    if (length !== 22) {
+        return { valid: false, message: 'Invalid length' }
+    }
+
+    // CBU and CVU case
+    if (length === 22) {
+        // contains non-numeric characters?
+        if (/\D/.test(value)) {
+            return { valid: false, message: 'CBU/CVU must contain only numbers' }
+        }
+
+        const firstBlock = value.substring(0, 7)
+        const firstCheck = value[7]
+        const secondBlock = value.substring(8, 21)
+        const secondCheck = value[21]
+
+        const expectedFirst = checkBlock(firstBlock, [7, 1, 3, 9, 7, 1, 3]).toString()
+        const expectedSecond = checkBlock(secondBlock, [3, 9, 7, 1, 3, 9, 7, 1, 3, 9, 7, 1, 3]).toString()
+
+        if (expectedFirst !== firstCheck || expectedSecond !== secondCheck) {
+            return { valid: false, message: 'Invalid CBU/CVU check that you entered it correctly' }
+        }
+        return { valid: true }
+    }
+
+    // Alias case
+    if (!/^[a-z/d\.-]*$/i.test(value)) {
+        return { valid: false, message: 'Alias must contain only letters, numbers, dots, and dashes' }
+    }
+
+    return { valid: true }
 }

@@ -9,14 +9,14 @@ import { PaymentForm } from '@/components/Payment/PaymentForm'
 
 export default function ExternalWalletFulfilManager({ parsedPaymentData }: { parsedPaymentData: ParsedURL }) {
     const {
-        showExternalWalletFulfilMethods,
-        externalWalletFulfilMethod,
-        setExternalWalletFulfilMethod,
-        setShowExternalWalletFulfilMethods,
+        showExternalWalletFulfillMethods,
+        externalWalletFulfillMethod,
+        setExternalWalletFulfillMethod,
+        setShowExternalWalletFulfillMethods,
     } = useRequestFulfillmentFlow()
     const { currentView } = usePaymentStore()
 
-    if (externalWalletFulfilMethod === 'wallet') {
+    if (externalWalletFulfillMethod === 'wallet') {
         switch (currentView) {
             case 'INITIAL':
                 return (
@@ -46,21 +46,21 @@ export default function ExternalWalletFulfilManager({ parsedPaymentData }: { par
         }
     }
 
-    if (externalWalletFulfilMethod === 'exchange') {
+    if (externalWalletFulfillMethod === 'exchange') {
         return (
             <AddMoneyCryptoPage
                 headerTitle="Send"
                 depositAddress={parsedPaymentData.recipient.resolvedAddress}
                 onBack={() => {
-                    setExternalWalletFulfilMethod(null)
-                    setShowExternalWalletFulfilMethods(true)
+                    setExternalWalletFulfillMethod(null)
+                    setShowExternalWalletFulfillMethods(true)
                 }}
             />
         )
     }
 
-    if (showExternalWalletFulfilMethods) {
-        return <ExternalWalletFulfilMethods onBack={() => setShowExternalWalletFulfilMethods(false)} />
+    if (showExternalWalletFulfillMethods) {
+        return <ExternalWalletFulfilMethods onBack={() => setShowExternalWalletFulfillMethods(false)} />
     }
 
     return null

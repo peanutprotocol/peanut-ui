@@ -9,6 +9,7 @@ interface TransactionDetailsDrawerProps {
     /** the transaction data to display, or null if none selected. */
     transaction: TransactionDetails | null
     transactionAmount?: string // dollarized amount of the transaction
+    avatarUrl?: string
 }
 
 /**
@@ -20,6 +21,7 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
     onClose,
     transaction,
     transactionAmount,
+    avatarUrl,
 }) => {
     // ref for the main content area to calculate dynamic height
     const contentRef = useRef<HTMLDivElement>(null)
@@ -54,6 +56,7 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                     transactionAmount={transactionAmount}
                     isModalOpen={isModalOpen}
                     setIsModalOpen={setIsModalOpen}
+                    avatarUrl={avatarUrl}
                     className="px-5"
                 />
             </DrawerContent>

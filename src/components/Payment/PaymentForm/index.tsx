@@ -32,6 +32,7 @@ import { useAccount } from 'wagmi'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { useUserByUsername } from '@/hooks/useUserByUsername'
 import { PaymentFlow } from '@/app/[...recipient]/client'
+import MantecaFulfillment from '../Views/MantecaFulfillment.view'
 
 export type PaymentFlowProps = {
     isExternalWalletFlow?: boolean
@@ -67,7 +68,12 @@ export const PaymentForm = ({
     const router = useRouter()
     const { user } = useAuth()
     const { requestDetails, chargeDetails, daimoError, error: paymentStoreError, attachmentOptions } = usePaymentStore()
-    const { setShowExternalWalletFulfilMethods, setExternalWalletFulfilMethod } = useRequestFulfillmentFlow()
+    const {
+        setShowExternalWalletFulfillMethods,
+        setExternalWalletFulfillMethod,
+        fulfillUsingManteca,
+        setFulfillUsingManteca,
+    } = useRequestFulfillmentFlow()
     const recipientUsername = !chargeDetails && recipient?.recipientType === 'USERNAME' ? recipient.identifier : null
     const { user: recipientUser } = useUserByUsername(recipientUsername)
 
@@ -369,7 +375,7 @@ export const PaymentForm = ({
             chargeId: chargeDetails?.uuid,
             currency,
             currencyAmount,
-            isExternalWalletFlow: !!isExternalWalletFlow,
+            isExternalWalletFlow: !!isExternalWalletFlow || fulfillUsingManteca,
             transactionType: isExternalWalletFlow
                 ? 'DEPOSIT'
                 : isDirectUsdPayment || !requestId
@@ -385,13 +391,16 @@ export const PaymentForm = ({
         if (result.status === 'Success') {
             dispatch(paymentActions.setView('STATUS'))
         } else if (result.status === 'Charge Created') {
-            dispatch(paymentActions.setView('CONFIRM'))
+            if (!fulfillUsingManteca) {
+                dispatch(paymentActions.setView('CONFIRM'))
+            }
         } else if (result.status === 'Error') {
             console.error('Payment initiation failed:', result.error)
         } else {
             console.warn('Unexpected status from usePaymentInitiator:', result.status)
         }
     }, [
+        fulfillUsingManteca,
         canInitiatePayment,
         isDepositRequest,
         isConnected,
@@ -473,6 +482,21 @@ export const PaymentForm = ({
         }
     }, [amount, inputTokenAmount, initialSetupDone])
 
+    useEffect(() => {
+        const stepFromURL = searchParams.get('step')
+        if (user && stepFromURL === 'regional-req-fulfill') {
+            setFulfillUsingManteca(true)
+        } else {
+            setFulfillUsingManteca(false)
+        }
+    }, [user, searchParams])
+
+    useEffect(() => {
+        if (fulfillUsingManteca && !chargeDetails) {
+            handleInitiatePayment()
+        }
+    }, [fulfillUsingManteca, chargeDetails, handleInitiatePayment])
+
     const isInsufficientBalanceError = useMemo(() => {
         return error?.includes("You don't have enough balance.")
     }, [error])
@@ -522,14 +546,18 @@ export const PaymentForm = ({
 
     const handleGoBack = () => {
         if (isExternalWalletFlow) {
-            setShowExternalWalletFulfilMethods(true)
-            setExternalWalletFulfilMethod(null)
+            setShowExternalWalletFulfillMethods(true)
+            setExternalWalletFulfillMethod(null)
             return
         } else if (window.history.length > 1) {
             router.back()
         } else {
             router.push('/')
         }
+    }
+
+    if (fulfillUsingManteca && chargeDetails) {
+        return <MantecaFulfillment />
     }
 
     return (
@@ -584,6 +612,7 @@ export const PaymentForm = ({
                     disabled={!isExternalWalletFlow && (!!requestDetails?.tokenAmount || !!chargeDetails?.tokenAmount)}
                     walletBalance={isActivePeanutWallet ? peanutWalletBalance : undefined}
                     currency={currency}
+                    hideCurrencyToggle={!currency}
                     hideBalance={isExternalWalletFlow}
                 />
 

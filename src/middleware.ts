@@ -1,12 +1,13 @@
 // middleware.ts
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
+import maintenanceConfig from '@/config/underMaintenance.config'
 
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl
-    const maintenanceMode = false
 
-    if (maintenanceMode) {
+    // check if full maintenance mode is enabled
+    if (maintenanceConfig.enableFullMaintenance) {
         const allowedPaths = ['/', '/maintenance', '/apple-app-site-association', '/support']
         if (
             !allowedPaths.includes(pathname) &&

@@ -58,8 +58,12 @@ import { FailedIcon } from './failed'
 import { ChevronDownIcon } from './chevron-down'
 import { DoubleCheckIcon } from './double-check'
 import { QuestionMarkIcon } from './question-mark'
+import { BellIcon } from './bell'
 import { ShieldIcon } from './shield'
 import { TrophyIcon } from './trophy'
+import { InviteHeartIcon } from './invite-heart'
+import { LockIcon } from './lock'
+import { InviterHeartIcon } from './inviter-heart'
 
 // available icon names
 export type IconName =
@@ -69,6 +73,7 @@ export type IconName =
     | 'arrow-up'
     | 'arrow-up-right'
     | 'bank'
+    | 'bell'
     | 'camera'
     | 'check'
     | 'chevron-up'
@@ -124,6 +129,9 @@ export type IconName =
     | 'shield'
     | 'question-mark'
     | 'trophy'
+    | 'invite-heart'
+    | 'lock'
+    | 'inviter-heart'
 
 export interface IconProps extends SVGProps<SVGSVGElement> {
     name: IconName
@@ -137,6 +145,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     'arrow-up': ArrowUpIcon,
     'arrow-up-right': ArrowUpRightIcon,
     bank: BankIcon,
+    bell: BellIcon,
     badge: BadgeIcon,
     camera: CameraIcon,
     check: CheckIcon,
@@ -193,6 +202,9 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     'question-mark': QuestionMarkIcon,
     shield: ShieldIcon,
     trophy: TrophyIcon,
+    'invite-heart': InviteHeartIcon,
+    lock: LockIcon,
+    'inviter-heart': InviterHeartIcon,
 }
 
 export const Icon: FC<IconProps> = ({ name, size = 24, width, height, ...props }) => {

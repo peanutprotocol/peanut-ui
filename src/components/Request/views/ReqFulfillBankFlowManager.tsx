@@ -10,7 +10,7 @@ import { useCreateOnramp } from '@/hooks/useCreateOnramp'
 import { usePaymentStore } from '@/redux/hooks'
 import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermineBankRequestType'
 import { createOnrampForGuest } from '@/app/actions/onramp'
-import { InitiateKYCModal } from '@/components/Kyc'
+import { InitiateBridgeKYCModal } from '@/components/Kyc/InitiateBridgeKYCModal'
 import { UserDetailsForm, type UserDetailsFormData } from '@/components/AddMoney/UserDetailsForm'
 import { useMemo, useState, useRef, useEffect } from 'react'
 import NavHeader from '@/components/Global/NavHeader'
@@ -62,7 +62,7 @@ export const ReqFulfillBankFlowManager = ({ parsedPaymentData }: { parsedPayment
         const usdAmount = chargeDetails.tokenAmount
         const minAmount = getMinimumAmount(selectedCountry.id)
         getCurrencyPrice(currency).then((price) => {
-            const currencyAmount = Number(usdAmount) * price
+            const currencyAmount = Number(usdAmount) * price.buy
             if (currencyAmount < minAmount) {
                 setErrorMessage(`Minimum amount is ${minAmount.toFixed(2)} ${currency}`)
             } else {
@@ -158,7 +158,7 @@ export const ReqFulfillBankFlowManager = ({ parsedPaymentData }: { parsedPayment
     // main render logic based on the current flow step
     if (showVerificationModal) {
         return (
-            <InitiateKYCModal
+            <InitiateBridgeKYCModal
                 isOpen={isKycModalOpen}
                 onClose={() => {
                     setIsKycModalOpen(false)

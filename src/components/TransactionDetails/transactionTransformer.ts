@@ -65,6 +65,7 @@ export interface TransactionDetails {
         rewardData?: RewardData
         fulfillmentType?: 'bridge' | 'wallet'
         bridgeTransferId?: string
+        avatarUrl?: string
         depositInstructions?: {
             amount: string
             currency: string
@@ -83,6 +84,10 @@ export interface TransactionDetails {
             account_holder_name?: string
         }
         receipt?: {
+            depositDetails?: {
+                depositAddress: string
+                depositAlias: string
+            }
             initial_amount?: string
             developer_fee?: string
             exchange_fee?: string
@@ -251,6 +256,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             isPeerActuallyUser = false
             break
         case EHistoryEntryType.BRIDGE_OFFRAMP:
+        case EHistoryEntryType.MANTECA_OFFRAMP:
             direction = 'bank_withdraw'
             transactionCardType = 'bank_withdraw'
             nameForDetails = 'Bank Account'
@@ -286,6 +292,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             }
             break
         case EHistoryEntryType.BRIDGE_ONRAMP:
+        case EHistoryEntryType.MANTECA_ONRAMP:
             direction = 'bank_deposit'
             transactionCardType = 'bank_deposit'
             nameForDetails = 'Bank Account'
@@ -295,6 +302,12 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             direction = 'add'
             transactionCardType = 'add'
             nameForDetails = entry.senderAccount?.identifier || 'Deposit Source'
+            isPeerActuallyUser = false
+            break
+        case EHistoryEntryType.MANTECA_QR_PAYMENT:
+            direction = 'qr_payment'
+            transactionCardType = 'pay'
+            nameForDetails = entry.recipientAccount?.identifier || 'Merchant'
             isPeerActuallyUser = false
             break
         default:
@@ -438,8 +451,8 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         id: entry.uuid,
         direction: direction,
         userName: nameForDetails,
+        amount,
         fullName,
-        amount: amount,
         currency: rewardData ? undefined : entry.currency,
         currencySymbol: `${entry.userRole === EHistoryUserRole.SENDER ? '-' : '+'}$`,
         tokenSymbol: rewardData?.getSymbol(amount) ?? entry.tokenSymbol,

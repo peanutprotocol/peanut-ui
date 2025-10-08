@@ -25,9 +25,13 @@ import ActionListDaimoPayButton from './ActionListDaimoPayButton'
 import { ACTION_METHODS, PaymentMethod } from '@/constants/actionlist.consts'
 import useClaimLink from '../Claim/useClaimLink'
 import { setupActions } from '@/redux/slices/setup-slice'
-import starImage from '@/assets/icons/star.png'
+import starStraightImage from '@/assets/icons/starStraight.svg'
 import { useAuth } from '@/context/authContext'
 import { EInviteType } from '@/services/services.types'
+import ConfirmInviteModal from '../Global/ConfirmInviteModal'
+import { useGeoLocation } from '@/hooks/useGeoLocation'
+import Loading from '../Global/Loading'
+
 interface IActionListProps {
     flow: 'claim' | 'request'
     claimLinkData?: ClaimLinkData
@@ -52,7 +56,13 @@ export default function ActionList({
     isInviteLink = false,
 }: IActionListProps) {
     const router = useRouter()
-    const { setClaimToExternalWallet, setFlowStep: setClaimBankFlowStep, setShowVerificationModal } = useClaimBankFlow()
+    const {
+        setClaimToExternalWallet,
+        setFlowStep: setClaimBankFlowStep,
+        setShowVerificationModal,
+        setClaimToMercadoPago,
+        setRegionalMethodType,
+    } = useClaimBankFlow()
     const [showMinAmountError, setShowMinAmountError] = useState(false)
     const { claimType } = useDetermineBankClaimType(claimLinkData?.sender?.userId ?? '')
     const { chargeDetails } = usePaymentStore()
@@ -63,8 +73,10 @@ export default function ActionList({
     const { addParamStep } = useClaimLink()
     const {
         setShowRequestFulfilmentBankFlowManager,
-        setShowExternalWalletFulfilMethods,
+        setShowExternalWalletFulfillMethods,
         setFlowStep: setRequestFulfilmentBankFlowStep,
+        setFulfillUsingManteca,
+        setRegionalMethodType: setRequestFulfillmentRegionalMethodType,
     } = useRequestFulfillmentFlow()
     const [isGuestVerificationModalOpen, setIsGuestVerificationModalOpen] = useState(false)
     const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null)
@@ -72,6 +84,8 @@ export default function ActionList({
     const { user } = useAuth()
 
     const dispatch = useAppDispatch()
+
+    const { countryCode: userGeoLocationCountryCode, isLoading: isGeoLoading } = useGeoLocation()
 
     const handleMethodClick = async (method: PaymentMethod) => {
         if (flow === 'claim' && claimLinkData) {
@@ -96,7 +110,15 @@ export default function ActionList({
                     }
                     break
                 case 'mercadopago':
-                    break // soon tag, so no action needed
+                case 'pix':
+                    if (!user) {
+                        addParamStep('regional-claim')
+                        setShowVerificationModal(true)
+                        return
+                    }
+                    setRegionalMethodType(method.id)
+                    setClaimToMercadoPago(true)
+                    break
                 case 'exchange-or-wallet':
                     setClaimToExternalWallet(true)
                     break
@@ -118,13 +140,34 @@ export default function ActionList({
                     }
                     break
                 case 'mercadopago':
-                    break // soon tag, so no action needed
+                case 'pix':
+                    if (!user) {
+                        addParamStep('regional-req-fulfill')
+                        setIsGuestVerificationModalOpen(true)
+                        return
+                    }
+                    setRequestFulfillmentRegionalMethodType(method.id)
+                    setFulfillUsingManteca(true)
+                    break
                 case 'exchange-or-wallet':
-                    setShowExternalWalletFulfilMethods(true)
+                    setShowExternalWalletFulfillMethods(true)
                     break
             }
         }
     }
+
+    const geolocatedMethods = useMemo(() => {
+        // show pix in brazil and mercado pago in other countries
+        return ACTION_METHODS.filter((method) => {
+            if (userGeoLocationCountryCode === 'BR' && method.id === 'mercadopago') {
+                return false
+            }
+            if (userGeoLocationCountryCode !== 'BR' && method.id === 'pix') {
+                return false
+            }
+            return true
+        })
+    }, [userGeoLocationCountryCode])
 
     const requiresVerification = useMemo(() => {
         if (flow === 'claim') {
@@ -137,7 +180,7 @@ export default function ActionList({
     }, [claimType, requestType, flow])
 
     const sortedActionMethods = useMemo(() => {
-        return [...ACTION_METHODS].sort((a, b) => {
+        return [...geolocatedMethods].sort((a, b) => {
             const aIsUnavailable = a.soon || (a.id === 'bank' && requiresVerification)
             const bIsUnavailable = b.soon || (b.id === 'bank' && requiresVerification)
 
@@ -170,6 +213,14 @@ export default function ActionList({
     const username = claimLinkData?.sender?.username ?? requestLinkData?.recipient?.identifier
     const userHasAppAccess = user?.user?.hasAppAccess ?? false
 
+    if (isGeoLoading) {
+        return (
+            <div className="flex w-full items-center justify-center py-8">
+                <Loading />
+            </div>
+        )
+    }
+
     return (
         <div className="space-y-2">
             {!isLoggedIn && (
@@ -183,16 +234,22 @@ export default function ActionList({
             )}
             {isInviteLink && !userHasAppAccess && username && (
                 <div className="!mt-6 flex w-full items-center justify-between">
-                    <Image src={starImage.src} alt="star" width={20} height={20} />{' '}
-                    <p className="text-center text-sm">Invited by {username}, you have early access to Peanut!</p>
-                    <Image src={starImage.src} alt="star" width={20} height={20} />
+                    <Image src={starStraightImage.src} alt="star" width={20} height={20} />{' '}
+                    <p className="text-center text-sm">Invited by {username}, you have early access!</p>
+                    <Image src={starStraightImage.src} alt="star" width={20} height={20} />
                 </div>
             )}
             <Divider text="or" />
             <div className="space-y-2">
                 {sortedActionMethods.map((method) => {
                     if (flow === 'request' && method.id === 'exchange-or-wallet') {
-                        return <ActionListDaimoPayButton key={method.id} />
+                        return (
+                            <ActionListDaimoPayButton
+                                handleContinueWithPeanut={handleContinueWithPeanut}
+                                key={method.id}
+                                showConfirmModal={isInviteLink && !userHasAppAccess}
+                            />
+                        )
                     }
 
                     return (
@@ -233,45 +290,21 @@ export default function ActionList({
 
             {/* Invites modal */}
 
-            <ActionModal
-                visible={showInviteModal}
-                title="Don’t lose your invite!"
-                titleClassName=" font-extrabold text-lg"
-                description={`This link unlocks Peanut. Using ${selectedMethod?.title} will skip your invite.`}
+            <ConfirmInviteModal
+                method={selectedMethod?.title ?? ''}
+                handleContinueWithPeanut={handleContinueWithPeanut}
+                handleLoseInvite={() => {
+                    if (selectedMethod) {
+                        handleMethodClick(selectedMethod)
+                        setShowInviteModal(false)
+                        setSelectedMethod(null)
+                    }
+                }}
+                isOpen={showInviteModal}
                 onClose={() => {
                     setShowInviteModal(false)
                     setSelectedMethod(null)
                 }}
-                ctaClassName="flex-col sm:flex-col"
-                ctas={[
-                    {
-                        text: '',
-                        onClick: handleContinueWithPeanut,
-                        shadowSize: '4',
-                        className: 'sm:py-3',
-                        children: (
-                            <>
-                                <div>Join</div>
-                                <div className="flex items-center gap-1">
-                                    <Image src={PEANUTMAN_LOGO} alt="Peanut Logo" className="size-5" />
-                                    <Image src={PEANUT_LOGO_BLACK} alt="Peanut Logo" />
-                                </div>
-                            </>
-                        ),
-                    },
-                    {
-                        text: `Continue with ${selectedMethod?.title}`,
-                        onClick: () => {
-                            if (selectedMethod) {
-                                handleMethodClick(selectedMethod)
-                                setShowInviteModal(false)
-                                setSelectedMethod(null)
-                            }
-                        },
-                        variant: 'transparent',
-                        className: 'underline text-sm !font-normal w-full !transform-none !pt-2',
-                    },
-                ]}
             />
         </div>
     )

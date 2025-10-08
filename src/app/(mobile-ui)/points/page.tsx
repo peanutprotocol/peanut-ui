@@ -11,7 +11,8 @@ import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionA
 import { VerifiedUserLabel } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
 import { invitesApi } from '@/services/invites'
-import { PointsInvite } from '@/services/services.types'
+import { Invite } from '@/services/services.types'
+import { generateInvitesShareText } from '@/utils'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
@@ -19,6 +20,7 @@ import Image from 'next/image'
 import { pointsApi } from '@/services/points'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { getInitialsFromName } from '@/utils'
+import { PointsInvite } from '@/services/services.types'
 
 const PointsPage = () => {
     const router = useRouter()
@@ -104,23 +106,36 @@ const PointsPage = () => {
                     </p>
                 </div>
 
+                {user?.invitedBy && (
+                    <p className="text-sm">
+                        <span
+                            onClick={() => router.push(`/${user.invitedBy}`)}
+                            className="inline-flex cursor-pointer items-center gap-1 font-bold"
+                        >
+                            {user.invitedBy} <Icon name="invite-heart" size={14} />
+                        </span>{' '}
+                        invited you and earned points. Now it's your turn! Invite friends and get 20% of their points.
+                    </p>
+                )}
+
                 <h1 className="font-bold">Refer friends</h1>
                 <div className="flex w-full items-center justify-between gap-3">
                     <Card className="flex w-1/2 items-center justify-center py-3.5">
                         <p className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-bold md:text-base">{`${inviteCode}`}</p>
                     </Card>
 
-                    <CopyToClipboard type="button" textToCopy={inviteCode} />
+                <h1 className="font-bold">Invite friends with your code</h1>
+                <div className="flex w-full items-center justify-between gap-3">
+                    <Card className="flex w-full items-center justify-between py-3.5">
+                        <p className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-bold md:text-base">{`${inviteCode}`}</p>
+                        <CopyToClipboard textToCopy={inviteCode} />
+                    </Card>
                 </div>
 
-                {invites?.invitees && invites.invitees.length > 0 && (
+                {invites && invites?.invitees && invites.invitees.length > 0 && (
                     <>
                         <ShareButton
-                            generateText={() =>
-                                Promise.resolve(
-                                    `I’m using Peanut, an invite-only app for easy payments. With it you can pay friends, use merchants, and move money in and out of your bank, even cross-border. Here’s my invite: ${inviteLink}`
-                                )
-                            }
+                            generateText={() => Promise.resolve(generateInvitesShareText(inviteLink))}
                             title="Share your invite link"
                         >
                             Share Invite link
@@ -150,7 +165,11 @@ const PointsPage = () => {
                                                 />
                                             </div>
                                             <div className="min-w-0 flex-1 truncate font-roboto text-[16px] font-medium">
-                                                <VerifiedUserLabel name={username} isVerified={isVerified} />
+                                                <VerifiedUserLabel
+                                                    name={username}
+                                                    username={username}
+                                                    isVerified={isVerified}
+                                                />
                                             </div>
                                             <p className="text-grey-1">
                                                 +{invite.totalPoints} {invite.totalPoints === 1 ? 'pt' : 'pts'}
@@ -168,17 +187,13 @@ const PointsPage = () => {
                         <div className="flex items-center justify-center rounded-full bg-primary-1 p-2">
                             <Icon name="trophy" />
                         </div>
-                        <h2 className="font-medium">No points yet</h2>
+                        <h2 className="font-medium">No invites yet</h2>
 
                         <p className="text-center text-sm text-grey-1">
-                            Earn points for every action you take on Peanut and when your invites create an account.
+                            Send your invite link to start earning more rewards
                         </p>
                         <ShareButton
-                            generateText={() =>
-                                Promise.resolve(
-                                    `I’m using Peanut, an invite-only app for easy payments. With it you can pay friends, use merchants, and move money in and out of your bank, even cross-border. Here’s my invite: ${inviteLink}`
-                                )
-                            }
+                            generateText={() => Promise.resolve(generateInvitesShareText(inviteLink))}
                             title="Share your invite link"
                         >
                             Share Invite link

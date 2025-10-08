@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle'
-import { countryCodeMap } from '@/components/AddMoney/consts'
+import { ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
 import Card from '@/components/Global/Card'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
@@ -11,7 +11,7 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { AccountType, Account } from '@/interfaces'
-import { formatIban, shortenAddressLong, isTxReverted } from '@/utils/general.utils'
+import { formatIban, shortenStringLong, isTxReverted } from '@/utils/general.utils'
 import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
@@ -56,10 +56,14 @@ export default function WithdrawBankPage() {
     })
 
     useEffect(() => {
-        if (!bankAccount) {
+        if (!amountToWithdraw) {
+            // If no amount, go back to main page
             router.replace('/withdraw')
+        } else if (!bankAccount && amountToWithdraw) {
+            // If amount is set but no bank account, go to country method selection
+            router.replace(`/withdraw/${country}`)
         }
-    }, [bankAccount, router])
+    }, [bankAccount, router, amountToWithdraw, country])
 
     const destinationDetails = (account: Account) => {
         let countryId: string
@@ -194,7 +198,8 @@ export default function WithdrawBankPage() {
 
     const countryCodeForFlag = () => {
         if (!bankAccount?.details?.countryCode) return ''
-        const code = countryCodeMap[bankAccount.details.countryCode ?? ''] ?? bankAccount.details.countryCode
+        const code =
+            ALL_COUNTRIES_ALPHA3_TO_ALPHA2[bankAccount.details.countryCode ?? ''] ?? bankAccount.details.countryCode
         return code.toLowerCase()
     }
 
@@ -286,7 +291,7 @@ export default function WithdrawBankPage() {
                 <DirectSuccessView
                     isWithdrawFlow
                     currencyAmount={`$${amountToWithdraw}`}
-                    message={bankAccount ? shortenAddressLong(bankAccount.identifier.toUpperCase()) : ''}
+                    message={bankAccount ? shortenStringLong(bankAccount.identifier.toUpperCase()) : ''}
                     points={pointsData?.estimatedPoints}
                 />
             )}

@@ -1,35 +1,30 @@
 'use client'
 
-import { MarqueeWrapper } from '@/components/Global/MarqueeWrapper'
-import { useRouter } from 'next/navigation'
-import { HandThumbsUp } from '@/assets'
-import Image from 'next/image'
 import GuestLoginModal from '@/components/Global/GuestLoginModal'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import TopNavbar from '@/components/Global/TopNavbar'
 import WalletNavigation from '@/components/Global/WalletNavigation'
-import HomeWaitlist from '@/components/Home/HomeWaitlist'
 import { ThemeProvider } from '@/config'
-import { peanutWalletIsInPreview } from '@/constants'
 import { useAuth } from '@/context/authContext'
 import { hasValidJwtToken } from '@/utils/auth'
 import { isIOS } from '@/utils/general.utils'
 import classNames from 'classnames'
 import { usePathname } from 'next/navigation'
 import PullToRefresh from 'pulltorefreshjs'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import '../../styles/globals.css'
 import SupportDrawer from '@/components/Global/SupportDrawer'
 import { useSupportModalContext } from '@/context/SupportModalContext'
 import JoinWaitlistPage from '@/components/Invites/JoinWaitlistPage'
+import { useRouter } from 'next/navigation'
+import { Banner } from '@/components/Global/Banner'
 
 // Allow access to some public paths without authentication
 const publicPathRegex = /^\/(request\/pay|claim|pay\/.+$|support|invite)/
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     const pathName = usePathname()
-    const router = useRouter()
     const { isFetchingUser, user } = useAuth()
     const [isReady, setIsReady] = useState(false)
     const [hasToken, setHasToken] = useState(false)
@@ -39,6 +34,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const isHistory = pathName === '/history'
     const isSupport = pathName === '/support'
     const alignStart = isHome || isHistory || isSupport
+    const router = useRouter()
 
     useEffect(() => {
         // check for JWT token
@@ -82,7 +78,13 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     // Allow access to public paths without authentication
     const isPublicPath = publicPathRegex.test(pathName)
 
-    if (!isReady || (isFetchingUser && !user && !hasToken && !isPublicPath)) {
+    useEffect(() => {
+        if (!isPublicPath && !isFetchingUser && !user) {
+            router.push('/setup')
+        }
+    }, [user, isFetchingUser])
+
+    if (!isReady || isFetchingUser || (!hasToken && !isPublicPath) || (!isPublicPath && !user)) {
         return (
             <div className="flex h-[100dvh] w-full flex-col items-center justify-center">
                 <PeanutLoading />
@@ -94,6 +96,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     if (!isFetchingUser && user && !user?.user.hasAppAccess) {
         return <JoinWaitlistPage />
     }
+
+    console.log(user, 'user')
 
     return (
         <div className="flex min-h-[100dvh] w-full bg-background">
@@ -109,17 +113,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
                 {/* Main content area */}
                 <div className="flex w-full flex-1 flex-col">
-                    {/* Only show banner if not on landing page */}
-                    {pathName !== '/' && (
-                        <button onClick={() => setIsSupportModalOpen(true)} className="w-full cursor-pointer">
-                            <MarqueeWrapper backgroundColor="bg-primary-1" direction="left">
-                                <span className="z-10 mx-4 flex items-center gap-2 text-sm font-semibold">
-                                    Peanut is in beta! Thank you for being an early user, share your feedback here
-                                    <Image src={HandThumbsUp} alt="Thumbs up" className="h-4 w-4" />
-                                </span>
-                            </MarqueeWrapper>
-                        </button>
-                    )}
+                    {/* Banner component handles maintenance and feedback banners */}
+                    <Banner />
 
                     {/* Fixed top navbar */}
 

@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react'
+import React, { useCallback, useState, useRef } from 'react'
 import { SearchResultCard } from '../SearchUsers/SearchResultCard'
 import IconStack from '../Global/IconStack'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
@@ -9,8 +9,14 @@ import { InitiatePaymentPayload, usePaymentInitiator } from '@/hooks/usePaymentI
 import DaimoPayButton from '../Global/DaimoPayButton'
 import { ACTION_METHODS } from '@/constants/actionlist.consts'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import ConfirmInviteModal from '../Global/ConfirmInviteModal'
 
-const ActionListDaimoPayButton = () => {
+interface ActionListDaimoPayButtonProps {
+    handleContinueWithPeanut: () => void
+    showConfirmModal: boolean
+}
+
+const ActionListDaimoPayButton = ({ handleContinueWithPeanut, showConfirmModal }: ActionListDaimoPayButtonProps) => {
     const dispatch = useAppDispatch()
     const searchParams = useSearchParams()
     const method = ACTION_METHODS.find((method) => method.id === 'exchange-or-wallet')
@@ -22,6 +28,9 @@ const ActionListDaimoPayButton = () => {
     } = useCurrency(searchParams.get('currency'))
     const requestId = searchParams.get('id')
     const { address: peanutWalletAddress } = useWallet()
+    const [showInviteModal, setShowInviteModal] = useState(false)
+    const [confirmLoseInvite, setConfirmLoseInvite] = useState(false)
+    const daimoPayButtonClickRef = useRef<(() => void) | null>(null)
 
     const { isProcessing, initiateDaimoPayment, completeDaimoPayment } = usePaymentInitiator()
 
@@ -51,7 +60,7 @@ const ActionListDaimoPayButton = () => {
                 ? {
                       code: currencyCode,
                       symbol: currencySymbol || '',
-                      price: currencyPrice || 0,
+                      price: currencyPrice?.buy || 0,
                   }
                 : undefined,
             currencyAmount: usdAmount,
@@ -127,31 +136,66 @@ const ActionListDaimoPayButton = () => {
     if (!method || !parsedPaymentData) return null
 
     return (
-        <DaimoPayButton
-            amount={usdAmount ?? '0.10'}
-            toAddress={parsedPaymentData.recipient.resolvedAddress}
-            onPaymentCompleted={handleCompleteDaimoPayment}
-            onBeforeShow={handleInitiateDaimoPayment}
-            disabled={!usdAmount}
-            minAmount={0.1}
-            maxAmount={30_000}
-            loading={isProcessing}
-            onValidationError={(error) => {
-                dispatch(paymentActions.setDaimoError(error))
-            }}
-        >
-            {({ onClick, loading }) => (
-                <SearchResultCard
-                    isDisabled={loading || isProcessing}
-                    position="single"
-                    description={method.description}
-                    descriptionClassName="text-[12px]"
-                    title={method.title}
-                    onClick={onClick}
-                    rightContent={<IconStack icons={method.icons} iconSize={24} />}
-                />
-            )}
-        </DaimoPayButton>
+        <>
+            <DaimoPayButton
+                amount={usdAmount ?? '0.10'}
+                toAddress={parsedPaymentData.recipient.resolvedAddress}
+                onPaymentCompleted={handleCompleteDaimoPayment}
+                onBeforeShow={async () => {
+                    if (!confirmLoseInvite && showConfirmModal) {
+                        setShowInviteModal(true)
+                        return false
+                    }
+                    // Don't reset confirmLoseInvite here - let it be reset only when modal is closed or payment is initiated
+                    return await handleInitiateDaimoPayment()
+                }}
+                disabled={!usdAmount}
+                minAmount={0.1}
+                maxAmount={30_000}
+                loading={isProcessing}
+                onValidationError={(error) => {
+                    dispatch(paymentActions.setDaimoError(error))
+                }}
+            >
+                {({ onClick, loading }) => {
+                    // Store the onClick function so we can trigger it from elsewhere
+                    daimoPayButtonClickRef.current = onClick
+
+                    return (
+                        <SearchResultCard
+                            isDisabled={loading || isProcessing}
+                            position="single"
+                            description={method.description}
+                            descriptionClassName="text-[12px]"
+                            title={method.title}
+                            onClick={onClick}
+                            rightContent={<IconStack icons={method.icons} iconSize={24} />}
+                        />
+                    )
+                }}
+            </DaimoPayButton>
+
+            <ConfirmInviteModal
+                method={'Exchange or wallet'}
+                handleContinueWithPeanut={handleContinueWithPeanut}
+                handleLoseInvite={async () => {
+                    setShowInviteModal(false)
+                    setConfirmLoseInvite(true)
+                    // Directly initiate the Daimo payment instead of triggering button click
+                    const success = await handleInitiateDaimoPayment()
+                    if (success && daimoPayButtonClickRef.current) {
+                        // Only trigger the actual Daimo widget if payment initiation was successful
+                        daimoPayButtonClickRef.current()
+                    }
+                }}
+                isOpen={showInviteModal}
+                onClose={() => {
+                    setShowInviteModal(false)
+                    // Reset confirmLoseInvite when modal is closed without proceeding
+                    setConfirmLoseInvite(false)
+                }}
+            />
+        </>
     )
 }
 
