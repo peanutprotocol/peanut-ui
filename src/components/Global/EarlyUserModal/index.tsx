@@ -2,14 +2,13 @@
 import { useEffect, useState } from 'react'
 import ActionModal from '../ActionModal'
 import ShareButton from '../ShareButton'
-import { generateInvitesShareText } from '@/utils'
+import { generateInviteCodeLink, generateInvitesShareText } from '@/utils'
 import { useAuth } from '@/context/authContext'
 import { updateUserById } from '@/app/actions/users'
 
 const EarlyUserModal = () => {
     const { user } = useAuth()
-    const inviteCode = `${user?.user.username?.toUpperCase()}INVITESYOU`
-    const inviteLink = `${process.env.NEXT_PUBLIC_BASE_URL}/invite?code=${inviteCode}`
+    const inviteLink = generateInviteCodeLink(user?.user.username ?? '').inviteLink
     const [showModal, setShowModal] = useState(false)
 
     useEffect(() => {

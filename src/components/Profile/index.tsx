@@ -7,7 +7,7 @@ import NavHeader from '../Global/NavHeader'
 import ProfileHeader from './components/ProfileHeader'
 import ProfileMenuItem from './components/ProfileMenuItem'
 import { useRouter } from 'next/navigation'
-import { checkIfInternalNavigation, generateInvitesShareText } from '@/utils'
+import { checkIfInternalNavigation, generateInviteCodeLink, generateInvitesShareText } from '@/utils'
 import ActionModal from '../Global/ActionModal'
 import { useState } from 'react'
 import useKycStatus from '@/hooks/useKycStatus'
@@ -31,8 +31,7 @@ export const Profile = () => {
     const fullName = user?.user.fullName || user?.user?.username || 'Anonymous User'
     const username = user?.user.username || 'anonymous'
 
-    const inviteCode = `${user?.user.username?.toUpperCase()}INVITESYOU`
-    const inviteLink = `${process.env.NEXT_PUBLIC_BASE_URL}/invite?code=${inviteCode}`
+    const inviteData = generateInviteCodeLink(user?.user.username ?? '')
 
     return (
         <div className="h-full w-full bg-background">
@@ -162,13 +161,13 @@ export const Profile = () => {
                     <>
                         <div className="flex w-full items-center justify-between gap-3">
                             <Card className="flex items-center justify-between py-2">
-                                <p className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-bold ">{`${inviteCode}`}</p>
+                                <p className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-bold ">{`${inviteData.inviteCode}`}</p>
 
-                                <CopyToClipboard textToCopy={`${inviteCode}`} />
+                                <CopyToClipboard textToCopy={`${inviteData.inviteCode}`} />
                             </Card>
                         </div>
                         <ShareButton
-                            generateText={() => Promise.resolve(generateInvitesShareText(inviteLink))}
+                            generateText={() => Promise.resolve(generateInvitesShareText(inviteData.inviteLink))}
                             title="Share your invite link"
                         >
                             Share Invite link
