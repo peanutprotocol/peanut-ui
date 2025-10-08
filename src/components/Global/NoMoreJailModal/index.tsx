@@ -8,7 +8,6 @@ import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF
 
 const NoMoreJailModal = () => {
     const [isOpen, setisOpen] = useState(false)
-    const showNoMoreJailModal = sessionStorage.getItem('showNoMoreJailModal')
 
     const onClose = () => {
         setisOpen(false)
@@ -16,10 +15,11 @@ const NoMoreJailModal = () => {
     }
 
     useEffect(() => {
+        const showNoMoreJailModal = sessionStorage.getItem('showNoMoreJailModal')
         if (showNoMoreJailModal === 'true') {
             setisOpen(true)
         }
-    }, [showNoMoreJailModal])
+    }, [])
 
     return (
         <Modal
