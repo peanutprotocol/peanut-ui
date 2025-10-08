@@ -50,7 +50,6 @@ const PointsPage = () => {
     const inviteCode = username ? `${username.toUpperCase()}INVITESYOU` : ''
     const inviteLink = `${process.env.NEXT_PUBLIC_BASE_URL}/invite?code=${inviteCode}`
 
-
     if (isLoading || isTierInfoLoading || !tierInfo?.data) {
         return <PeanutLoading />
     }
@@ -91,6 +90,7 @@ const PointsPage = () => {
                             </div>
                             {tierInfo?.data.currentTier + 1}
                         </div>
+                    </div>
 
                     <p className="text-sm text-grey-1">
                         {tierInfo.data.pointsToNextTier} {tierInfo.data.pointsToNextTier === 1 ? 'point' : 'points'}{' '}
@@ -123,6 +123,7 @@ const PointsPage = () => {
                     <Card className="flex w-1/2 items-center justify-center py-3.5">
                         <p className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-bold md:text-base">{`${inviteCode}`}</p>
                     </Card>
+                </div>
 
                 <h1 className="font-bold">Invite friends with your code</h1>
                 <div className="flex w-full items-center justify-between gap-3">
