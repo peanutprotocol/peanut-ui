@@ -58,6 +58,7 @@ import { FailedIcon } from './failed'
 import { ChevronDownIcon } from './chevron-down'
 import { DoubleCheckIcon } from './double-check'
 import { QuestionMarkIcon } from './question-mark'
+import { BellIcon } from './bell'
 import { ShieldIcon } from './shield'
 import { TrophyIcon } from './trophy'
 import { InviteHeartIcon } from './invite-heart'
@@ -72,6 +73,7 @@ export type IconName =
     | 'arrow-up'
     | 'arrow-up-right'
     | 'bank'
+    | 'bell'
     | 'camera'
     | 'check'
     | 'chevron-up'
@@ -143,6 +145,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     'arrow-up': ArrowUpIcon,
     'arrow-up-right': ArrowUpRightIcon,
     bank: BankIcon,
+    bell: BellIcon,
     badge: BadgeIcon,
     camera: CameraIcon,
     check: CheckIcon,
