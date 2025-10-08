@@ -9,7 +9,6 @@ import PeanutLoading from '@/components/Global/PeanutLoading'
 //import RewardsModal from '@/components/Global/RewardsModal'
 import HomeHistory from '@/components/Home/HomeHistory'
 //import RewardsCardModal from '@/components/Home/RewardsCardModal'
-import { SearchUsers } from '@/components/SearchUsers'
 import { UserHeader } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -244,7 +243,6 @@ export default function Home() {
                             <Link href="/points">
                                 <InvitesIcon />
                             </Link>
-                            <SearchUsers />
                             <NotificationNavigation />
                         </div>
                     </div>
