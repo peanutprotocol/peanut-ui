@@ -41,6 +41,8 @@ import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
 import useKycStatus from '@/hooks/useKycStatus'
 import HomeBanners from '@/components/Home/HomeBanners'
 import InvitesIcon from '@/components/Home/InvitesIcon'
+import NoMoreJailModal from '@/components/Global/NoMoreJailModal'
+import EarlyUserModal from '@/components/Global/EarlyUserModal'
 
 const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
 const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_EXPIRY ?? '1814400') // 21 days in seconds
@@ -66,7 +68,7 @@ export default function Home() {
     const [showAddMoneyPromptModal, setShowAddMoneyPromptModal] = useState(false)
     const [showBalanceWarningModal, setShowBalanceWarningModal] = useState(false)
     // const [showReferralCampaignModal, setShowReferralCampaignModal] = useState(false)
-    const [isPostSignupActionModalVisible, setIsPostSignupActionModalVisible] = useState(false)
+    const [showPostSignupActionModal, setShowPostSignupActionModal] = useState(false)
 
     const userFullName = useMemo(() => {
         if (!user) return
@@ -127,7 +129,7 @@ export default function Home() {
                 !isStandalone &&
                 !hasSeenModalThisSession &&
                 !user?.hasPwaInstalled &&
-                !isPostSignupActionModalVisible &&
+                !showPostSignupActionModal &&
                 !redirectUrl
             ) {
                 setShowIOSPWAInstallModal(true)
@@ -136,7 +138,7 @@ export default function Home() {
                 setShowIOSPWAInstallModal(false)
             }
         }
-    }, [user?.hasPwaInstalled, isPostSignupActionModalVisible, deviceType])
+    }, [user?.hasPwaInstalled, showPostSignupActionModal, deviceType])
 
     // effect for showing balance warning modal
     useEffect(() => {
@@ -155,7 +157,7 @@ export default function Home() {
                 !hasSeenBalanceWarning &&
                 !showIOSPWAInstallModal &&
                 !showAddMoneyPromptModal &&
-                !isPostSignupActionModalVisible
+                !showPostSignupActionModal
             ) {
                 setShowBalanceWarningModal(true)
             }
@@ -189,12 +191,15 @@ export default function Home() {
     useEffect(() => {
         if (typeof window !== 'undefined' && !isFetchingBalance) {
             const hasSeenAddMoneyPromptThisSession = sessionStorage.getItem('hasSeenAddMoneyPromptThisSession')
+            const showNoMoreJailModal = sessionStorage.getItem('showNoMoreJailModal')
 
             // show if:
             // 1. balance is zero.
             // 2. user hasn't seen this prompt in the current session.
             // 3. the iOS PWA install modal is not currently active.
             // 4. the balance warning modal is not currently active.
+            // 5. the early user modal is not currently active.
+            // 6. the no more jail modal is not currently active.
             // this allows the modal on any device (iOS/Android) and in any display mode (PWA/browser),
             // as long as the PWA modal (which is iOS & browser-specific) isn't taking precedence.
             if (
@@ -202,7 +207,9 @@ export default function Home() {
                 !hasSeenAddMoneyPromptThisSession &&
                 !showIOSPWAInstallModal &&
                 !showBalanceWarningModal &&
-                !isPostSignupActionModalVisible
+                !showPostSignupActionModal &&
+                showNoMoreJailModal !== 'true' &&
+                !user?.showEarlyUserModal // Give Early User and No more jail modal precedence, showing two modals together isn't ideal and it messes up their functionality
             ) {
                 setShowAddMoneyPromptModal(true)
                 sessionStorage.setItem('hasSeenAddMoneyPromptThisSession', 'true')
@@ -268,6 +275,10 @@ export default function Home() {
             {/* Add Money Prompt Modal */}
             <AddMoneyPromptModal visible={showAddMoneyPromptModal} onClose={() => setShowAddMoneyPromptModal(false)} />
 
+            <NoMoreJailModal />
+
+            <EarlyUserModal />
+
             {/* Balance Warning Modal */}
             <BalanceWarningModal
                 visible={showBalanceWarningModal}
@@ -287,7 +298,7 @@ export default function Home() {
             {/* <FloatingReferralButton onClick={() => setShowReferralCampaignModal(true)} /> */}
 
             {/* Post Signup Action Modal */}
-            <PostSignupActionManager onActionModalVisibilityChange={setIsPostSignupActionModalVisible} />
+            <PostSignupActionManager onActionModalVisibilityChange={setShowPostSignupActionModal} />
         </PageContainer>
     )
 }

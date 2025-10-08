@@ -326,6 +326,7 @@ export interface IUserProfile {
     }>
     totalReferralPoints: number
     invitesSent: userInvites[]
+    showEarlyUserModal: boolean
 }
 
 interface Contact {

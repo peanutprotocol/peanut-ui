@@ -4,7 +4,7 @@ import { Button } from '@/components/0_Bruddle'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import { useZeroDev } from '@/hooks/useZeroDev'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import * as Sentry from '@sentry/nextjs'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
@@ -14,6 +14,7 @@ import { invitesApi } from '@/services/invites'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { getFromLocalStorage, sanitizeRedirectURL } from '@/utils'
 import ErrorAlert from '@/components/Global/ErrorAlert'
+import { useAuth } from '@/context/authContext'
 
 const JoinWaitlist = () => {
     const [inviteCode, setInviteCode] = useState('')
@@ -28,6 +29,7 @@ const JoinWaitlist = () => {
     const dispatch = useAppDispatch()
     const router = useRouter()
     const searchParams = useSearchParams()
+    const { user } = useAuth()
 
     const validateInviteCode = async (inviteCode: string): Promise<boolean> => {
         try {
@@ -61,6 +63,14 @@ const JoinWaitlist = () => {
     const onLoginClick = async () => {
         try {
             await handleLogin()
+        } catch (e) {
+            handleError(e)
+        }
+    }
+
+    // Wait for user to be fetched, then redirect
+    useEffect(() => {
+        if (user) {
             const localStorageRedirect = getFromLocalStorage('redirect')
             const redirect_uri = searchParams.get('redirect_uri')
             if (redirect_uri) {
@@ -77,10 +87,8 @@ const JoinWaitlist = () => {
             } else {
                 router.push('/home')
             }
-        } catch (e) {
-            handleError(e)
         }
-    }
+    }, [user, router, searchParams])
 
     return (
         <div className="flex flex-col gap-4">

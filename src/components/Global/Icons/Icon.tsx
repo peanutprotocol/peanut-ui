@@ -61,6 +61,7 @@ import { QuestionMarkIcon } from './question-mark'
 import { ShieldIcon } from './shield'
 import { TrophyIcon } from './trophy'
 import { InviteHeartIcon } from './invite-heart'
+import { LockIcon } from './lock'
 
 // available icon names
 export type IconName =
@@ -126,6 +127,7 @@ export type IconName =
     | 'question-mark'
     | 'trophy'
     | 'invite-heart'
+    | 'lock'
 
 export interface IconProps extends SVGProps<SVGSVGElement> {
     name: IconName
@@ -196,6 +198,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     shield: ShieldIcon,
     trophy: TrophyIcon,
     'invite-heart': InviteHeartIcon,
+    lock: LockIcon,
 }
 
 export const Icon: FC<IconProps> = ({ name, size = 24, width, height, ...props }) => {

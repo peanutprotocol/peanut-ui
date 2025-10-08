@@ -43,6 +43,7 @@ const JoinWaitlistPage = () => {
         try {
             const res = await invitesApi.acceptInvite(inviteCode, inviteType)
             if (res.success) {
+                sessionStorage.setItem('showNoMoreJailModal', 'true')
                 fetchUser()
             } else {
                 setError('Something went wrong. Please try again or contact support.')
