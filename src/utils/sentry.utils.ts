@@ -7,9 +7,10 @@ import { JSONValue } from '../interfaces/interfaces'
  * can be called in that context, and we preffer to have control over
  * the error message and handling
  */
-const DEFAULT_TIMEOUT_MS = process.env.NEXT_PUBLIC_FETCH_TIMEOUT_MS
-    ? parseInt(process.env.NEXT_PUBLIC_FETCH_TIMEOUT_MS, 10)
-    : 10000
+const DEFAULT_TIMEOUT_MS =
+    process.env.NEXT_PUBLIC_FETCH_TIMEOUT_MS && !isNaN(parseInt(process.env.NEXT_PUBLIC_FETCH_TIMEOUT_MS, 10))
+        ? parseInt(process.env.NEXT_PUBLIC_FETCH_TIMEOUT_MS, 10)
+        : 10000
 
 const getErrorLevelFromStatus = (status: number): Sentry.SeverityLevel => {
     if (status >= 500) return 'error'
