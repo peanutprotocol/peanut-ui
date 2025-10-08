@@ -43,19 +43,15 @@ export default function WithdrawBankPage() {
             currency.path?.toLowerCase() === country.toLowerCase()
     )?.currencyCode
 
-    const queryKey = useMemo(
-        () => ['calculate-points', 'withdraw', bankAccount?.id, amountToWithdraw],
-        [bankAccount?.id, amountToWithdraw]
-    )
-
     // Calculate points API call
     const { data: pointsData } = useQuery({
-        queryKey,
+        queryKey: ['calculate-points', 'withdraw', bankAccount?.id, amountToWithdraw],
         queryFn: () =>
             pointsApi.calculatePoints({
                 actionType: PointsAction.BRIDGE_TRANSFER,
                 usdAmount: Number(amountToWithdraw),
             }),
+        enabled: !!(user?.user.userId && amountToWithdraw && bankAccount),
         refetchOnWindowFocus: false,
     })
 

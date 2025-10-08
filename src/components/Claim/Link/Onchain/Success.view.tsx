@@ -11,7 +11,7 @@ import { ESendLinkStatus, sendLinksApi } from '@/services/sendLinks'
 import { formatTokenAmount, getTokenDetails, printableAddress, shortenAddressLong } from '@/utils'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import type { Hash } from 'viem'
 import { formatUnits } from 'viem'
 import * as _consts from '../../Claim.consts'
@@ -141,9 +141,16 @@ export const SuccessClaimLinkView = ({
         title: isBankClaim ? 'You will receive' : 'You claimed',
     }
 
+    const pointsDivRef = useRef<HTMLDivElement>(null)
+
     useEffect(() => {
-        if (pointsData?.estimatedPoints) {
-            shootDoubleStarConfetti({ origin: { x: 0.5, y: 0.6 } })
+        if (pointsData?.estimatedPoints && pointsDivRef.current) {
+            // Calculate position of points div relative to viewport
+            const rect = pointsDivRef.current.getBoundingClientRect()
+            const x = (rect.left + rect.width / 2) / window.innerWidth
+            const y = (rect.top + rect.height / 2) / window.innerHeight
+
+            shootDoubleStarConfetti({ origin: { x, y } })
         }
     }, [pointsData?.estimatedPoints])
 
@@ -184,10 +191,11 @@ export const SuccessClaimLinkView = ({
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 <PeanutActionDetailsCard {...cardProps} />
                 {pointsData && (
-                    <div className="flex justify-center gap-2">
+                    <div ref={pointsDivRef} className="flex justify-center gap-2">
                         <Image src={STAR_STRAIGHT_ICON} alt="star" width={20} height={20} />
                         <p className="text-sm font-medium text-black">
-                            You&apos;ve earned {pointsData.estimatedPoints} points!
+                            You&apos;ve earned {pointsData.estimatedPoints}{' '}
+                            {pointsData.estimatedPoints === 1 ? 'point' : 'points'}!
                         </p>
                     </div>
                 )}

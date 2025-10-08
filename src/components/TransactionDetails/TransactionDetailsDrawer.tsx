@@ -1,6 +1,6 @@
 import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import React, { useCallback, useRef, useState } from 'react'
-import { Drawer, DrawerContent } from '../Global/Drawer'
+import { Drawer, DrawerContent, DrawerTitle } from '../Global/Drawer'
 import { TransactionDetailsReceipt } from './TransactionDetailsReceipt'
 
 interface TransactionDetailsDrawerProps {
@@ -44,6 +44,7 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
             }}
         >
             <DrawerContent className="py-5">
+                <DrawerTitle className="sr-only">Transaction Details</DrawerTitle>
                 <TransactionDetailsReceipt
                     isLoading={isLoading}
                     transaction={transaction}

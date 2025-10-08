@@ -55,7 +55,7 @@ createAppKit({
     metadata,
     projectId,
     features: {
-        analytics: true,
+        analytics: false, // no app-kit analytics plz
         socials: false,
         email: false,
         onramp: true,

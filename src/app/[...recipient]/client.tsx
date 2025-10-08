@@ -74,17 +74,26 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     const { requestType } = useDetermineBankRequestType(chargeDetails?.requestLink.recipientAccount.userId ?? '')
 
     // Calculate points API call
+    // Points are ALWAYS calculated based on USD value (per PR.md: "1c in cost = 10 pts")
+    // Pre-fetch points when in confirm view (request_pay) or status view (direct_pay)
+    // For request_pay: calculate on CONFIRM (before payment)
+    // For direct_pay: calculate on STATUS (after payment completes)
+
+    const shouldFetchPoints =
+        user?.user.userId &&
+        usdAmount &&
+        chargeDetails?.uuid &&
+        ((flow === 'request_pay' && currentView === 'CONFIRM') || (flow === 'direct_pay' && currentView === 'STATUS'))
+
     const { data: pointsData } = useQuery({
-        queryKey: ['calculate-points', chargeDetails?.uuid],
+        queryKey: ['calculate-points', chargeDetails?.uuid, flow],
         queryFn: () =>
             pointsApi.calculatePoints({
                 actionType: PointsAction.P2P_REQUEST_PAYMENT,
                 usdAmount: Number(usdAmount),
                 otherUserId: chargeDetails?.requestLink.recipientAccount.userId,
             }),
-        // Pre fetch points when in confirm view.
-        // Fetch only for logged in users.
-        enabled: !!(user?.user.userId && usdAmount && currentView === 'CONFIRM' && flow === 'request_pay'),
+        enabled: !!shouldFetchPoints,
         refetchOnWindowFocus: false,
     })
 

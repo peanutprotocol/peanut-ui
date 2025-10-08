@@ -3,7 +3,7 @@ import { KycCompleted } from './states/KycCompleted'
 import { KycFailed } from './states/KycFailed'
 import { KycProcessing } from './states/KycProcessing'
 import PeanutLoading from '@/components/Global/PeanutLoading'
-import { Drawer, DrawerContent } from '../Global/Drawer'
+import { Drawer, DrawerContent, DrawerTitle } from '../Global/Drawer'
 import { BridgeKycStatus } from '@/utils'
 import { getKycDetails } from '@/app/actions/users'
 import { useKycFlow } from '@/hooks/useKycFlow'
@@ -120,7 +120,10 @@ export const KycStatusDrawer = ({
     return (
         <>
             <Drawer open={isOpen} onOpenChange={onClose}>
-                <DrawerContent className="p-5 pb-12">{renderContent()}</DrawerContent>
+                <DrawerContent className="p-5 pb-12">
+                    <DrawerTitle className="sr-only">KYC Status</DrawerTitle>
+                    {renderContent()}
+                </DrawerContent>
             </Drawer>
             <IFrameWrapper
                 visible={iframeOptions.visible || isKycFlowLoading}

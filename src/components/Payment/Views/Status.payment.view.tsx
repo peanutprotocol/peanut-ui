@@ -22,7 +22,7 @@ import { formatAmount, getInitialsFromName, printableAddress } from '@/utils'
 import { useQueryClient } from '@tanstack/react-query'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { ReactNode, useEffect, useMemo } from 'react'
+import { ReactNode, useEffect, useMemo, useRef } from 'react'
 import { useDispatch } from 'react-redux'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import { shootDoubleStarConfetti } from '@/utils/confetti'
@@ -162,14 +162,21 @@ const DirectSuccessView = ({
         usdAmount,
     ])
 
+    const pointsDivRef = useRef<HTMLDivElement>(null)
+
     useEffect(() => {
         // invalidate queries to refetch history
         queryClient?.invalidateQueries({ queryKey: [TRANSACTIONS] })
     }, [queryClient])
 
     useEffect(() => {
-        if (points) {
-            shootDoubleStarConfetti({ origin: { x: 0.5, y: 0.6 } })
+        if (points && pointsDivRef.current) {
+            // Calculate position of points div relative to viewport
+            const rect = pointsDivRef.current.getBoundingClientRect()
+            const x = (rect.left + rect.width / 2) / window.innerWidth
+            const y = (rect.top + rect.height / 2) / window.innerHeight
+
+            shootDoubleStarConfetti({ origin: { x, y } })
         }
     }, [points])
 
@@ -242,9 +249,11 @@ const DirectSuccessView = ({
                 </Card>
 
                 {points && (
-                    <div className="flex justify-center gap-2">
+                    <div ref={pointsDivRef} className="flex justify-center gap-2">
                         <Image src={STAR_STRAIGHT_ICON} alt="star" width={20} height={20} />
-                        <p className="text-sm font-medium text-black"> You&apos;ve earned {points} points!</p>
+                        <p className="text-sm font-medium text-black">
+                            You&apos;ve earned {points} {points === 1 ? 'point' : 'points'}!
+                        </p>
                     </div>
                 )}
 

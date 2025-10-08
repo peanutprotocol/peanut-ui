@@ -16,10 +16,12 @@ import { cancelOnramp } from '@/app/actions/onramp'
 import { captureException } from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
+import Image from 'next/image'
 import React, { useMemo, useState, useEffect } from 'react'
 import { Button } from '../0_Bruddle'
 import DisplayIcon from '../Global/DisplayIcon'
 import { Icon } from '../Global/Icons/Icon'
+import { STAR_STRAIGHT_ICON } from '@/assets/icons'
 import QRCodeWrapper from '../Global/QRCodeWrapper'
 import ShareButton from '../Global/ShareButton'
 import { TransactionDetailsHeaderCard } from './TransactionDetailsHeaderCard'
@@ -139,6 +141,7 @@ export const TransactionDetailsReceipt = ({
                 transaction.extraDataForDrawer.depositInstructions.bank_name
             ),
             peanutFee: transaction.status !== 'pending',
+            points: !!(transaction.points && transaction.points > 0),
             comment: !!transaction.memo?.trim(),
             networkFee: !!(transaction.networkFeeDetails && transaction.sourceView === 'status'),
             attachment: !!transaction.attachmentUrl,
@@ -212,13 +215,18 @@ export const TransactionDetailsReceipt = ({
                 const res = await fetch(
                     `https://api.coingecko.com/api/v3/coins/${chainName}/contract/${transaction.tokenAddress}`
                 )
+
+                if (!res.ok) {
+                    throw new Error(`CoinGecko API error: ${res.status} ${res.statusText}`)
+                }
+
                 const tokenDetails = await res.json()
                 setTokenData({
                     symbol: tokenDetails.symbol,
                     icon: tokenDetails.image.large,
                 })
             } catch (e) {
-                console.error(e)
+                console.error('Failed to fetch token details from CoinGecko:', e)
                 setTokenData(null)
             } finally {
                 setIsTokenDataLoading(false)
@@ -755,6 +763,18 @@ export const TransactionDetailsReceipt = ({
                             label="Peanut fee"
                             value={'$ 0'}
                             hideBottomBorder={shouldHideBorder('peanutFee')}
+                        />
+                    )}
+                    {rowVisibilityConfig.points && transaction.points && (
+                        <PaymentInfoRow
+                            label="Points earned"
+                            value={
+                                <div className="flex items-center gap-2">
+                                    <Image src={STAR_STRAIGHT_ICON} alt="star" width={16} height={16} />
+                                    <span>{transaction.points}</span>
+                                </div>
+                            }
+                            hideBottomBorder={shouldHideBorder('points')}
                         />
                     )}
                     {rowVisibilityConfig.comment && (
