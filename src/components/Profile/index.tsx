@@ -15,6 +15,7 @@ import Card from '../Global/Card'
 import ShowNameToggle from './components/ShowNameToggle'
 import ShareButton from '../Global/ShareButton'
 import CopyToClipboard from '../Global/CopyToClipboard'
+import KycVerifiedOrReviewModal from '../Global/KycVerifiedOrReviewModal'
 
 export const Profile = () => {
     const { logoutUser, isLoggingOut, user } = useAuth()
@@ -22,7 +23,7 @@ export const Profile = () => {
     const [isInviteFriendsModalOpen, setIsInviteFriendsModalOpen] = useState(false)
     const [showInitiateKycModal, setShowInitiateKycModal] = useState(false)
     const router = useRouter()
-    const { isUserKycApproved } = useKycStatus()
+    const { isUserKycApproved, isUserBridgeKycUnderReview } = useKycStatus()
 
     const logout = async () => {
         await logoutUser()
@@ -75,7 +76,7 @@ export const Profile = () => {
                             label="Identity Verification"
                             href="/profile/identity-verification"
                             onClick={() => {
-                                if (isUserKycApproved) {
+                                if (isUserKycApproved || isUserBridgeKycUnderReview) {
                                     setIsKycApprovedModalOpen(true)
                                 } else {
                                     setShowInitiateKycModal(true)
@@ -135,20 +136,9 @@ export const Profile = () => {
                 </div>
             </div>
 
-            <ActionModal
-                visible={isKycApprovedModalOpen}
+            <KycVerifiedOrReviewModal
+                isKycApprovedModalOpen={isKycApprovedModalOpen}
                 onClose={() => setIsKycApprovedModalOpen(false)}
-                title="You’re already verified"
-                description="Your identity has already been successfully verified. No further action is needed."
-                icon="shield"
-                ctas={[
-                    {
-                        text: 'Go back',
-                        shadowSize: '4',
-                        className: 'md:py-2',
-                        onClick: () => setIsKycApprovedModalOpen(false),
-                    },
-                ]}
             />
 
             <ActionModal
