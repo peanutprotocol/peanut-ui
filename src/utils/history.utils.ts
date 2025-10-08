@@ -128,12 +128,14 @@ export function isFinalState(transaction: Pick<HistoryEntry, 'status'>): boolean
 }
 
 export function getReceiptUrl(transaction: TransactionDetails): string | undefined {
-    const hasReceiptPage = transaction.extraDataForDrawer?.originalType && [
-        EHistoryEntryType.MANTECA_QR_PAYMENT,
-        EHistoryEntryType.MANTECA_OFFRAMP,
-        EHistoryEntryType.MANTECA_ONRAMP,
-        EHistoryEntryType.SEND_LINK,
-    ].includes(transaction.extraDataForDrawer.originalType)
+    const hasReceiptPage =
+        transaction.extraDataForDrawer?.originalType &&
+        [
+            EHistoryEntryType.MANTECA_QR_PAYMENT,
+            EHistoryEntryType.MANTECA_OFFRAMP,
+            EHistoryEntryType.MANTECA_ONRAMP,
+            EHistoryEntryType.SEND_LINK,
+        ].includes(transaction.extraDataForDrawer.originalType)
     if (hasReceiptPage) {
         const typeId = historyTypeToNumber(transaction.extraDataForDrawer!.originalType)
         return `${BASE_URL}/receipt/${transaction.id}?t=${typeId}`
