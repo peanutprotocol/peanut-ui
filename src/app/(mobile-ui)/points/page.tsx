@@ -38,6 +38,18 @@ const PointsPage = () => {
             <NavHeader title="Invites" onPrev={() => router.back()} />
 
             <section className="mx-auto mb-auto mt-10 w-full space-y-4">
+                {user?.invitedBy && (
+                    <p className="text-sm">
+                        <span
+                            onClick={() => router.push(`/${user.invitedBy}`)}
+                            className="inline-flex cursor-pointer items-center gap-1 font-bold"
+                        >
+                            {user.invitedBy} <Icon name="invite-heart" size={14} />
+                        </span>{' '}
+                        invited you and earned points. Now it's your turn! Invite friends and get 20% of their points.
+                    </p>
+                )}
+
                 <h1 className="font-bold">Invite friends with your code</h1>
                 <div className="flex w-full items-center justify-between gap-3">
                     <Card className="flex w-full items-center justify-between py-3.5">
