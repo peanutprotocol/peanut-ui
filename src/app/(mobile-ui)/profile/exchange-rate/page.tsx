@@ -28,7 +28,7 @@ export default function ExchangeRatePage() {
             const formattedBalance = printableUsdc(balance ?? 0n)
 
             // if there is no balance, redirect to add-money
-            if (parseFloat(formattedBalance) < 0) {
+            if (parseFloat(formattedBalance) <= 0) {
                 countryPath = countryCurrencyMappings.find((currency) => currency.currencyCode === sourceCurrency)?.path
                 route = '/add-money'
             } else {
