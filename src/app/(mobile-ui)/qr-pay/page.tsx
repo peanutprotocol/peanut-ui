@@ -698,7 +698,7 @@ export default function QRPayPage() {
                                     date: now,
                                     createdAt: now,
                                     extraDataForDrawer: {
-                                        originalType: EHistoryEntryType.MANTECA_QR_PAYMENT,
+                                        originalType: EHistoryEntryType.SIMPLEFI_QR_PAYMENT,
                                         originalUserRole: EHistoryUserRole.SENDER,
                                         avatarUrl: methodIcon,
                                         receipt: {

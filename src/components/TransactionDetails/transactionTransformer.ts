@@ -304,6 +304,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             isPeerActuallyUser = false
             break
         case EHistoryEntryType.MANTECA_QR_PAYMENT:
+        case EHistoryEntryType.SIMPLEFI_QR_PAYMENT:
             direction = 'qr_payment'
             transactionCardType = 'pay'
             nameForDetails = entry.recipientAccount?.identifier || 'Merchant'

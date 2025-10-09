@@ -214,6 +214,7 @@ export const TransactionDetailsReceipt = ({
         if (
             [
                 EHistoryEntryType.MANTECA_QR_PAYMENT,
+                EHistoryEntryType.SIMPLEFI_QR_PAYMENT,
                 EHistoryEntryType.MANTECA_OFFRAMP,
                 EHistoryEntryType.MANTECA_ONRAMP,
             ].includes(transaction.extraDataForDrawer!.originalType)
