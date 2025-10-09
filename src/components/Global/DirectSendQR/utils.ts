@@ -63,9 +63,11 @@ const ARGENTINA_QR3_REGEX = /^(?=.*00020101021[12])(?=.*5303032)(?=.*5802AR)/i
 /* PIX is also a emvco qr code */
 const PIX_REGEX = /^.*000201.*0014br\.gov\.bcb\.pix.*5303986.*5802BR.*$/i
 
-export const SIMPLEFI_STATIC_REGEX = /^https:\/\/pagar\.simplefi\.tech\/(?<merchantSlug>[^\/]*)\/static$/
-export const SIMPLEFI_DYNAMIC_REGEX = /^https:\/\/pagar\.simplefi\.tech\/(?<merchantSlug>[^\/]*)$/
-export const SIMPLEFI_USER_SPECIFIED_REGEX = /^https:\/\/pagar\.simplefi\.tech\/(?<merchantId>[^\/]*)\/payment\/(?<paymentId>[^\/]*)$/
+export const SIMPLEFI_STATIC_REGEX =
+    /^https:\/\/pagar\.simplefi\.tech\/(?<merchantSlug>[^\/]*)(\/static$|\?static\=true)/
+export const SIMPLEFI_USER_SPECIFIED_REGEX = /^https:\/\/pagar\.simplefi\.tech\/(?<merchantSlug>[^\/]*)$/
+export const SIMPLEFI_DYNAMIC_REGEX =
+    /^https:\/\/pagar\.simplefi\.tech\/(?<merchantId>[^\/]*)\/payment\/(?<paymentId>[^\/]*)$/
 
 export const PAYMENT_PROCESSOR_REGEXES: { [key in QrType]?: RegExp } = {
     [EQrType.MERCADO_PAGO]: MP_AR_REGEX,
@@ -187,4 +189,51 @@ export const parseEip681 = (
     }
 
     return { address }
+}
+
+export interface SimpleFiStaticQrData {
+    type: 'SIMPLEFI_STATIC'
+    merchantSlug: string
+}
+
+export interface SimpleFiDynamicQrData {
+    type: 'SIMPLEFI_DYNAMIC'
+    merchantId: string
+    paymentId: string
+}
+
+export interface SimpleFiUserSpecifiedQrData {
+    type: 'SIMPLEFI_USER_SPECIFIED'
+    merchantSlug: string
+}
+
+export type SimpleFiQrData = SimpleFiStaticQrData | SimpleFiDynamicQrData | SimpleFiUserSpecifiedQrData
+
+export const parseSimpleFiQr = (data: string): SimpleFiQrData | null => {
+    const staticMatch = data.match(SIMPLEFI_STATIC_REGEX)
+    if (staticMatch?.groups?.merchantSlug) {
+        return {
+            type: 'SIMPLEFI_STATIC',
+            merchantSlug: staticMatch.groups.merchantSlug,
+        }
+    }
+
+    const dynamicMatch = data.match(SIMPLEFI_DYNAMIC_REGEX)
+    if (dynamicMatch?.groups?.merchantId && dynamicMatch?.groups?.paymentId) {
+        return {
+            type: 'SIMPLEFI_DYNAMIC',
+            merchantId: dynamicMatch.groups.merchantId,
+            paymentId: dynamicMatch.groups.paymentId,
+        }
+    }
+
+    const userSpecifiedMatch = data.match(SIMPLEFI_USER_SPECIFIED_REGEX)
+    if (userSpecifiedMatch?.groups?.merchantSlug) {
+        return {
+            type: 'SIMPLEFI_USER_SPECIFIED',
+            merchantSlug: userSpecifiedMatch.groups.merchantSlug,
+        }
+    }
+
+    return null
 }
