@@ -96,6 +96,14 @@ export const TransactionDetailsReceipt = ({
         )
     }, [transaction])
 
+    // check if token is usdc on arbitrum to hide token/network section
+    const isPeanutWalletToken = useMemo(() => {
+        if (!transaction) return false
+        const tokenSymbol = transaction.tokenSymbol?.toUpperCase()
+        const chainName = transaction.tokenDisplayDetails?.chainName?.toLowerCase()
+        return tokenSymbol === PEANUT_WALLET_TOKEN_SYMBOL && chainName === PEANUT_WALLET_CHAIN.name.toLowerCase()
+    }, [transaction])
+
     // config to determine which rows are visible in the receipt
     // this helps in managing layout and borders without repeating code
     const rowVisibilityConfig = useMemo((): Record<TransactionDetailsRowKey, boolean> => {
@@ -117,6 +125,7 @@ export const TransactionDetailsReceipt = ({
             tokenAndNetwork: !!(
                 transaction.tokenDisplayDetails &&
                 transaction.sourceView === 'history' &&
+                !isPeanutWalletToken &&
                 // hide token and network for send links in acitvity drawer for sender
                 !(
                     transaction.extraDataForDrawer?.originalType === EHistoryEntryType.SEND_LINK &&
@@ -222,14 +231,6 @@ export const TransactionDetailsReceipt = ({
             return true
         return false
     }, [transaction, isPendingSentLink, isPendingRequester, isPendingRequestee])
-
-    // check if token is usdc on arbitrum to hide token/network section
-    const isPeanutWalletToken = useMemo(() => {
-        if (!transaction) return false
-        const tokenSymbol = transaction.tokenSymbol?.toUpperCase()
-        const chainName = transaction.tokenDisplayDetails?.chainName?.toLowerCase()
-        return tokenSymbol === PEANUT_WALLET_TOKEN_SYMBOL && chainName === PEANUT_WALLET_CHAIN.name.toLowerCase()
-    }, [transaction])
 
     useEffect(() => {
         const getTokenDetails = async () => {
@@ -396,53 +397,57 @@ export const TransactionDetailsReceipt = ({
                     {rowVisibilityConfig.tokenAndNetwork &&
                         transaction.tokenDisplayDetails &&
                         tokenData?.icon &&
-                        tokenData?.symbol &&
-                        !isPeanutWalletToken && (
+                        tokenData?.symbol && (
                             <>
                                 {!isStableCoin(transaction.tokenSymbol ?? 'USDC') && (
                                     <PaymentInfoRow label="Token amount" value={transaction.amount} />
                                 )}
-                                <PaymentInfoRow
-                                    label="Token and network"
-                                    value={
-                                        isTokenDataLoading ? (
-                                            <div className="h-6 w-32 animate-pulse rounded bg-gray-200" />
-                                        ) : (
-                                            <div className="flex items-center gap-2">
-                                                <div className="relative flex h-6 w-6 min-w-[24px] items-center justify-center">
-                                                    {/* Main token icon */}
-                                                    <DisplayIcon
-                                                        iconUrl={tokenData.icon}
-                                                        altText={tokenData.symbol || 'token'}
-                                                        fallbackName={tokenData.symbol || 'T'}
-                                                        sizeClass="h-6 w-6"
-                                                    />
-                                                    {/* Smaller chain icon, absolutely positioned */}
-                                                    {transaction.tokenDisplayDetails.chainIconUrl && (
-                                                        <div className="absolute -bottom-1 -right-1">
-                                                            <DisplayIcon
-                                                                iconUrl={transaction.tokenDisplayDetails.chainIconUrl}
-                                                                altText={
-                                                                    transaction.tokenDisplayDetails.chainName || 'chain'
-                                                                }
-                                                                fallbackName={
-                                                                    transaction.tokenDisplayDetails.chainName || 'C'
-                                                                }
-                                                                sizeClass="h-3.5 w-3.5 text-[7px]"
-                                                                className="rounded-full border-2 border-white dark:border-grey-4"
-                                                            />
-                                                        </div>
-                                                    )}
+                                {!isPeanutWalletToken && (
+                                    <PaymentInfoRow
+                                        label="Token and network"
+                                        value={
+                                            isTokenDataLoading ? (
+                                                <div className="h-6 w-32 animate-pulse rounded bg-gray-200" />
+                                            ) : (
+                                                <div className="flex items-center gap-2">
+                                                    <div className="relative flex h-6 w-6 min-w-[24px] items-center justify-center">
+                                                        {/* Main token icon */}
+                                                        <DisplayIcon
+                                                            iconUrl={tokenData.icon}
+                                                            altText={tokenData.symbol || 'token'}
+                                                            fallbackName={tokenData.symbol || 'T'}
+                                                            sizeClass="h-6 w-6"
+                                                        />
+                                                        {/* Smaller chain icon, absolutely positioned */}
+                                                        {transaction.tokenDisplayDetails.chainIconUrl && (
+                                                            <div className="absolute -bottom-1 -right-1">
+                                                                <DisplayIcon
+                                                                    iconUrl={
+                                                                        transaction.tokenDisplayDetails.chainIconUrl
+                                                                    }
+                                                                    altText={
+                                                                        transaction.tokenDisplayDetails.chainName ||
+                                                                        'chain'
+                                                                    }
+                                                                    fallbackName={
+                                                                        transaction.tokenDisplayDetails.chainName || 'C'
+                                                                    }
+                                                                    sizeClass="h-3.5 w-3.5 text-[7px]"
+                                                                    className="rounded-full border-2 border-white dark:border-grey-4"
+                                                                />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <span>
+                                                        {tokenData.symbol.toUpperCase()} on{' '}
+                                                        {transaction.tokenDisplayDetails.chainName}
+                                                    </span>
                                                 </div>
-                                                <span>
-                                                    {tokenData.symbol.toUpperCase()} on{' '}
-                                                    {transaction.tokenDisplayDetails.chainName}
-                                                </span>
-                                            </div>
-                                        )
-                                    }
-                                    hideBottomBorder={shouldHideBorder('tokenAndNetwork')}
-                                />
+                                            )
+                                        }
+                                        hideBottomBorder={shouldHideBorder('tokenAndNetwork')}
+                                    />
+                                )}
                             </>
                         )}
 
