@@ -13,11 +13,12 @@ import { useAppDispatch } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { useAuth } from '@/context/authContext'
 import { EInviteType } from '@/services/services.types'
+import { saveToCookie } from '@/utils'
 
 function InvitePageContent() {
     const searchParams = useSearchParams()
     const inviteCode = searchParams.get('code')
-    const { logoutUser, isLoggingOut } = useAuth()
+    const { logoutUser, isLoggingOut, user } = useAuth()
 
     const dispatch = useAppDispatch()
     const router = useRouter()
@@ -36,7 +37,16 @@ function InvitePageContent() {
         if (inviteCode) {
             dispatch(setupActions.setInviteCode(inviteCode))
             dispatch(setupActions.setInviteType(EInviteType.PAYMENT_LINK))
+            saveToCookie('inviteCode', inviteCode) // Save to cookies as well, so that if user installs PWA, they can still use the invite code
             router.push('/setup?step=signup')
+        }
+    }
+
+    const handleLogout = () => {
+        if (user) {
+            logoutUser()
+        } else {
+            router.push('/setup')
         }
     }
 
@@ -76,7 +86,7 @@ function InvitePageContent() {
                             Claim your spot
                         </Button>
 
-                        <button disabled={isLoggingOut} onClick={logoutUser} className="text-sm underline">
+                        <button disabled={isLoggingOut} onClick={handleLogout} className="text-sm underline">
                             {isLoggingOut ? 'Please wait...' : 'Already have an account? Log in!'}
                         </button>
                     </div>

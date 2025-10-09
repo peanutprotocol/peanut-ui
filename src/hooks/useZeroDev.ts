@@ -6,7 +6,7 @@ import { useAuth } from '@/context/authContext'
 import { useKernelClient } from '@/context/kernelClient.context'
 import { useAppDispatch, useSetupStore, useZerodevStore } from '@/redux/hooks'
 import { zerodevActions } from '@/redux/slices/zerodev-slice'
-import { saveToCookie, saveToLocalStorage } from '@/utils'
+import { getFromCookie, removeFromCookie, saveToCookie, saveToLocalStorage } from '@/utils'
 import { toWebAuthnKey, WebAuthnMode } from '@zerodev/passkey-validator'
 import { useCallback, useContext } from 'react'
 import type { TransactionReceipt, Hex, Hash } from 'viem'
@@ -56,11 +56,19 @@ export const useZeroDev = () => {
                 rpID: window.location.hostname.replace(/^www\./, ''),
             })
 
-            if (inviteCode.trim().length > 0) {
+            const inviteCodeFromCookie = getFromCookie('inviteCode')
+
+            // invite code can also be store in cookies, so we need to check both
+            const userInviteCode = inviteCode || inviteCodeFromCookie
+
+            if (userInviteCode.trim().length > 0) {
                 try {
-                    const result = await invitesApi.acceptInvite(inviteCode, inviteType)
+                    const result = await invitesApi.acceptInvite(userInviteCode, inviteType)
                     if (!result.success) {
                         console.error('Error accepting invite', result)
+                    }
+                    if (inviteCodeFromCookie) {
+                        removeFromCookie('inviteCode')
                     }
                 } catch (e) {
                     console.error('Error accepting invite', e)

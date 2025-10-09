@@ -15,10 +15,11 @@ import { Invite } from '@/services/services.types'
 import { generateInvitesShareText } from '@/utils'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
 
 const PointsPage = () => {
     const router = useRouter()
-    const { user } = useAuth()
+    const { user, fetchUser } = useAuth()
     const { data: invites, isLoading } = useQuery({
         queryKey: ['invites', user?.user.userId],
         queryFn: () => invitesApi.getInvites(),
@@ -28,6 +29,11 @@ const PointsPage = () => {
     const username = user?.user.username
     const inviteCode = username ? `${username.toUpperCase()}INVITESYOU` : ''
     const inviteLink = `${process.env.NEXT_PUBLIC_BASE_URL}/invite?code=${inviteCode}`
+
+    useEffect(() => {
+        // Re-fetch user to get the latest invitees list for showing heart Icon
+        fetchUser()
+    }, [])
 
     if (isLoading) {
         return <PeanutLoading coverFullScreen />

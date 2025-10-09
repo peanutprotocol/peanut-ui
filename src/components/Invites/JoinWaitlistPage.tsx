@@ -15,7 +15,6 @@ import PeanutLoading from '../Global/PeanutLoading'
 import { useSetupStore } from '@/redux/hooks'
 
 const JoinWaitlistPage = () => {
-    const [inviteCode, setInviteCode] = useState('')
     const [isValid, setIsValid] = useState(false)
     const [isChanging, setIsChanging] = useState(false)
     const [isLoading, setisLoading] = useState(false)
@@ -23,7 +22,8 @@ const JoinWaitlistPage = () => {
     const { fetchUser, isFetchingUser, logoutUser, user } = useAuth()
     const [isLoggingOut, setisLoggingOut] = useState(false)
     const router = useRouter()
-    const { inviteType } = useSetupStore()
+    const { inviteType, inviteCode: setupInviteCode } = useSetupStore()
+    const [inviteCode, setInviteCode] = useState(setupInviteCode)
 
     const { data, isLoading: isLoadingWaitlistPosition } = useQuery({
         queryKey: ['waitlist-position'],
