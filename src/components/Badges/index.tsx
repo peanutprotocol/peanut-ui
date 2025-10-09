@@ -1,6 +1,7 @@
 'use client'
 
 import Image from 'next/image'
+import type { StaticImageData } from 'next/image'
 import NavHeader from '../Global/NavHeader'
 import { useRouter } from 'next/navigation'
 import { PEANUTMAN_LOGO } from '@/assets'
@@ -9,47 +10,29 @@ import { getCardPosition } from '../Global/Card'
 import EmptyState from '../Global/EmptyStates/EmptyState'
 import { Icon } from '../Global/Icons/Icon'
 import ActionModal from '../Global/ActionModal'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { useUserStore } from '@/redux/hooks'
 
-const tempBadges = [
-    {
-        title: 'Devconnect Badge',
-        description: 'You became a Peanut user during Devconnect Buenos Aires',
-        logo: PEANUTMAN_LOGO,
-    },
-    {
-        title: 'More Restaurants',
-        description: 'You payed at more than 5 restaurants using Peanut',
-        logo: PEANUTMAN_LOGO,
-    },
-    {
-        title: 'Big Spender',
-        description: 'You spent more than $5000 using Peanut',
-        logo: PEANUTMAN_LOGO,
-    },
-    {
-        title: 'OG',
-        description: 'You joined Peanut before other normies out there',
-        logo: PEANUTMAN_LOGO,
-    },
-    {
-        title: 'Beta Tester',
-        description: 'You helped us test Peanut before it was launched', // todo: improve copy
-        logo: PEANUTMAN_LOGO,
-    },
-    {
-        title: 'Product Hunt',
-        description: 'You upvoted Peanut on Product Hunt', // todo: improve copy
-        logo: PEANUTMAN_LOGO,
-    },
-]
+type BadgeView = { title: string; description: string; logo: string | StaticImageData }
 
 export const Badges = () => {
     const router = useRouter()
+    const { user: authUser } = useUserStore()
     const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false)
-    const [selectedBadge, setSelectedBadge] = useState<(typeof tempBadges)[0] | null>(null)
+    const [selectedBadge, setSelectedBadge] = useState<BadgeView | null>(null)
 
-    if (!tempBadges.length) {
+    // map api badges to view badges
+    const badges: BadgeView[] = useMemo(() => {
+        // get badges from user object and map to card fields
+        const raw = authUser?.user?.badges || []
+        return raw.map((b) => ({
+            title: b.name,
+            description: b.description || '',
+            logo: b.iconUrl || (PEANUTMAN_LOGO as any),
+        }))
+    }, [authUser?.user?.badges])
+
+    if (!badges.length) {
         return (
             <div className="flex min-h-[inherit] flex-col items-center justify-center gap-8">
                 <NavHeader
@@ -79,7 +62,7 @@ export const Badges = () => {
             />
             <div className="space-y-4">
                 <div>
-                    {tempBadges.map((badge, idx) => (
+                    {badges.map((badge, idx) => (
                         <SearchResultCard
                             key={idx}
                             title={badge.title}
@@ -90,8 +73,17 @@ export const Badges = () => {
                                 setSelectedBadge(badge)
                                 setIsBadgeModalOpen(true)
                             }}
-                            position={getCardPosition(idx, tempBadges.length)}
-                            leftIcon={<Image src={badge.logo} alt={badge.title} className="size-8 min-w-8" />}
+                            position={getCardPosition(idx, badges.length)}
+                            leftIcon={
+                                <Image
+                                    src={badge.logo}
+                                    alt={badge.title}
+                                    className="size-10 min-w-10"
+                                    height={100}
+                                    width={100}
+                                    unoptimized
+                                />
+                            }
                         />
                     ))}
                 </div>
@@ -103,16 +95,24 @@ export const Badges = () => {
             </div>
             {selectedBadge && (
                 <ActionModal
-                    icon={<Image src={selectedBadge?.logo} alt={selectedBadge?.title} className="size-16" />}
-                    iconContainerClassName="bg-transparent size-16 my-4"
+                    icon={
+                        <Image
+                            height={120}
+                            width={120}
+                            src={selectedBadge.logo}
+                            alt={selectedBadge.title}
+                            unoptimized
+                        />
+                    }
+                    iconContainerClassName="bg-transparent size-30"
                     modalPanelClassName="m-0"
                     visible={isBadgeModalOpen}
                     onClose={() => {
                         setIsBadgeModalOpen(false)
                         setSelectedBadge(null)
                     }}
-                    title={selectedBadge?.title}
-                    description={selectedBadge?.description}
+                    title={selectedBadge.title}
+                    description={selectedBadge.description}
                     ctas={[
                         {
                             text: 'Got it!',
