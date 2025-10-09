@@ -15,10 +15,11 @@ import { Invite } from '@/services/services.types'
 import { generateInvitesShareText } from '@/utils'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
 
 const PointsPage = () => {
     const router = useRouter()
-    const { user } = useAuth()
+    const { user, fetchUser } = useAuth()
     const { data: invites, isLoading } = useQuery({
         queryKey: ['invites', user?.user.userId],
         queryFn: () => invitesApi.getInvites(),
@@ -32,6 +33,11 @@ const PointsPage = () => {
     if (isLoading) {
         return <PeanutLoading coverFullScreen />
     }
+
+    useEffect(() => {
+        // Re-fetch user to get the latest invitees list for showing heart Icon
+        fetchUser()
+    }, [])
 
     return (
         <PageContainer className="flex flex-col">
