@@ -38,6 +38,7 @@ const HomeBanners = () => {
                         onClose={() => {
                             setBanners(banners.filter((b) => b.id !== banner.id))
                         }}
+                        onClick={banner.onClick}
                     />
                 )
             })}

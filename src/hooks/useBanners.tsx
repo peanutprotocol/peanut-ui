@@ -4,6 +4,7 @@ import { IconName } from '@/components/Global/Icons/Icon'
 import { useAuth } from '@/context/authContext'
 import { useEffect, useState } from 'react'
 import { useNotifications } from './useNotifications'
+import { useRouter } from 'next/navigation'
 
 export type Banner = {
     id: string
@@ -21,6 +22,7 @@ export const useBanners = () => {
     const { user } = useAuth()
     const { showReminderBanner, requestPermission, snoozeReminderBanner, afterPermissionAttempt, isPermissionDenied } =
         useNotifications()
+    const router = useRouter()
 
     const generateBanners = () => {
         const _banners: Banner[] = []
@@ -50,6 +52,9 @@ export const useBanners = () => {
                 title: 'Unlock bank & local payments',
                 description: 'Complete verification to add, withdraw or pay using Mercado Pago.',
                 icon: 'shield',
+                onClick: () => {
+                    router.push('/profile/identity-verification')
+                },
             })
         }
 
