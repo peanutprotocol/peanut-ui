@@ -173,6 +173,32 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [])
 
+    // RECOVERY FIX: Clear webAuthnKey if we have it but no user after client initialization
+    // This handles the case where registration failed but cookies were already set
+    useEffect(() => {
+        // Only run this check after kernel clients are ready (initialization complete)
+        if (!webAuthnKey) return
+
+        const kernelClientsReady = Object.keys(clientsByChain).length > 0
+        if (!kernelClientsReady) return
+
+        // If we have webAuthnKey and clients are ready, but no user after a delay, clear auth state
+        const checkUserTimeout = setTimeout(() => {
+            if (!user && webAuthnKey) {
+                console.warn(
+                    'KernelClientProvider: Have webAuthnKey but no user. Clearing auth state to prevent unrecoverable state.'
+                )
+                captureException(new Error('Auth state mismatch: webAuthnKey exists but no user found'), {
+                    level: 'warning',
+                    extra: { hasWebAuthnKey: !!webAuthnKey, hasUser: !!user },
+                })
+                logoutUser()
+            }
+        }, 5000) // Give 5 seconds for user fetch to complete
+
+        return () => clearTimeout(checkUserTimeout)
+    }, [webAuthnKey, clientsByChain, user])
+
     useEffect(() => {
         let isMounted = true
 

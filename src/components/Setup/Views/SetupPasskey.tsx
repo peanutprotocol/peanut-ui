@@ -67,7 +67,13 @@ const SetupPasskey = () => {
                 .catch((e) => {
                     Sentry.captureException(e)
                     console.error('Error adding account', e)
-                    setError('Error adding account')
+                    setError('Error adding account. Please try refreshing the page.')
+
+                    // CRITICAL FIX: Clear webAuthnKey cookies if account creation fails
+                    // This prevents the user from getting stuck in an unrecoverable state
+                    localStorage.removeItem('web-authn-key')
+                    document.cookie = 'web-authn-key=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
+                    dispatch(setupActions.setLoading(false))
                 })
                 .finally(() => {
                     dispatch(setupActions.setLoading(false))
@@ -87,6 +93,10 @@ const SetupPasskey = () => {
                             try {
                                 await handleRegister(username)
                             } catch (e) {
+                                // CRITICAL FIX: Clear any partially set webAuthnKey if registration fails
+                                localStorage.removeItem('web-authn-key')
+                                document.cookie = 'web-authn-key=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
+
                                 if (e instanceof WebAuthnError) {
                                     // https://github.com/MasterKale/SimpleWebAuthn/blob/master/packages/browser/src/helpers/identifyRegistrationError.ts
                                     if (
@@ -100,7 +110,7 @@ const SetupPasskey = () => {
                                         setError(e.message)
                                     }
                                 } else {
-                                    setError('Error registering passkey.')
+                                    setError('Error registering passkey. Please try again.')
                                 }
                                 console.error('Error registering passkey:', e)
                                 Sentry.captureException(e)
