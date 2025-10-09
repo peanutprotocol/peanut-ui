@@ -63,7 +63,7 @@ export const useZeroDev = () => {
 
             if (userInviteCode.trim().length > 0) {
                 try {
-                    const result = await invitesApi.acceptInvite(inviteCode, inviteType)
+                    const result = await invitesApi.acceptInvite(userInviteCode, inviteType)
                     if (!result.success) {
                         console.error('Error accepting invite', result)
                     }

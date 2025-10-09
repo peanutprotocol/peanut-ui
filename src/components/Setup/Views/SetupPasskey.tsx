@@ -10,7 +10,7 @@ import * as Sentry from '@sentry/nextjs'
 import { WalletProviderType, AccountType } from '@/interfaces'
 import { WebAuthnError } from '@simplewebauthn/browser'
 import Link from 'next/link'
-import { getFromLocalStorage, sanitizeRedirectURL } from '@/utils'
+import { getFromCookie, getFromLocalStorage, sanitizeRedirectURL } from '@/utils'
 import { POST_SIGNUP_ACTIONS } from '@/components/Global/PostSignupActionManager/post-signup-action.consts'
 
 const SetupPasskey = () => {
@@ -35,8 +35,12 @@ const SetupPasskey = () => {
                 telegramHandle: telegramHandle.length > 0 ? telegramHandle : undefined,
             })
                 .then(() => {
+                    const inviteCodeFromCookie = getFromCookie('inviteCode')
+
+                    const userInviteCode = inviteCode || inviteCodeFromCookie
+
                     // if no invite code, go to collect email step
-                    if (!inviteCode) {
+                    if (!userInviteCode) {
                         handleNext()
                         return
                     }
