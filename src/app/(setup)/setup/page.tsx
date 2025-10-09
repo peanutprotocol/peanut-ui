@@ -10,6 +10,7 @@ import { Suspense, useEffect, useState } from 'react'
 import { setupSteps as masterSetupSteps } from '../../../components/Setup/Setup.consts'
 import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal'
 import { isLikelyWebview, isDeviceOsSupported, getDeviceTypeForLogic } from '@/components/Setup/Setup.utils'
+import { getFromCookie } from '@/utils'
 
 function SetupPageContent() {
     const { steps, inviteCode } = useSetupStore()
@@ -111,8 +112,13 @@ function SetupPageContent() {
                 determinedSetupInitialStepId = 'pwa-install'
             }
 
+            const inviteCodeFromCookie = getFromCookie('inviteCode')
+
+            // invite code can also be store in cookies, so we need to check both
+            const userInviteCode = inviteCode || inviteCodeFromCookie
+
             // If invite code is present, set the step to the signup screen
-            if (determinedSetupInitialStepId && inviteCode) {
+            if (determinedSetupInitialStepId && userInviteCode) {
                 const signupScreenIndex = steps.findIndex((s: ISetupStep) => s.screenId === 'signup')
                 dispatch(setupActions.setStep(signupScreenIndex + 1))
             } else if (determinedSetupInitialStepId) {
