@@ -34,9 +34,6 @@ export const CryptoDepositQR = ({
         return () => clearTimeout(timer)
     }, [depositAddress])
 
-    console.log(tokenIcon)
-    console.log(chainIcon)
-
     return (
         <div className="flex w-full flex-col justify-start space-y-8 pb-5 md:pb-0">
             <NavHeader title={'Add Money'} onPrev={onBack} />
