@@ -101,10 +101,11 @@ export const Badges = () => {
                             width={120}
                             src={selectedBadge.logo}
                             alt={selectedBadge.title}
+                            className="w-30 object-contain"
                             unoptimized
                         />
                     }
-                    iconContainerClassName="bg-transparent size-30"
+                    iconContainerClassName="bg-transparent min-w-30 h-auto"
                     modalPanelClassName="m-0"
                     visible={isBadgeModalOpen}
                     onClose={() => {

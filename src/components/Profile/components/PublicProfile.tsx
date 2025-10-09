@@ -8,7 +8,6 @@ import HomeHistory from '@/components/Home/HomeHistory'
 import { useAppDispatch } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import Image from 'next/image'
-import Link from 'next/link'
 import ProfileHeader from './ProfileHeader'
 import { useState, useEffect, useMemo } from 'react'
 import { usersApi } from '@/services/users'
@@ -20,6 +19,7 @@ import { useAuth } from '@/context/authContext'
 import ShareButton from '@/components/Global/ShareButton'
 import ActionModal from '@/components/Global/ActionModal'
 import { MantecaKycStatus } from '@/interfaces'
+import BadgesRow from '@/components/Badges/BadgesRow'
 
 interface PublicProfileProps {
     username: string
@@ -36,6 +36,15 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
     const { user } = useAuth()
     const isSelfProfile = user?.user.username?.toLowerCase() === username.toLowerCase()
     const [showInviteModal, setShowInviteModal] = useState(false)
+    const [profileBadges, setProfileBadges] = useState<
+        Array<{
+            code: string
+            name: string
+            description: string | null
+            iconUrl: string | null
+            earnedAt?: string | Date
+        }>
+    >([])
     // Handle send button click
     const handleSend = () => {
         if (onSendClick) {
@@ -46,11 +55,11 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
     }
 
     useEffect(() => {
-        usersApi.getByUsername(username).then((user) => {
-            if (user?.fullName) setFullName(user.fullName)
+        usersApi.getByUsername(username).then((apiUser) => {
+            if (apiUser?.fullName) setFullName(apiUser.fullName)
             if (
-                user?.bridgeKycStatus === 'approved' ||
-                user?.kycVerifications?.some((v) => v.status === MantecaKycStatus.ACTIVE)
+                apiUser?.bridgeKycStatus === 'approved' ||
+                apiUser?.kycVerifications?.some((v) => v.status === MantecaKycStatus.ACTIVE)
             ) {
                 setIsKycVerified(true)
             } else {
@@ -58,9 +67,10 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
             }
             // to check if the logged in user has sent money to the profile user,
             // we check the amount that the profile user has received from the logged in user.
-            if (user?.totalUsdReceivedFromCurrentUser) {
-                setTotalSentByLoggedInUser(user.totalUsdReceivedFromCurrentUser)
+            if (apiUser?.totalUsdReceivedFromCurrentUser) {
+                setTotalSentByLoggedInUser(apiUser.totalUsdReceivedFromCurrentUser)
             }
+            setProfileBadges(apiUser?.badges ?? [])
         })
     }, [username])
 
@@ -189,6 +199,9 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                         </div>
                     </div>
                 )}
+
+                {/* badges row */}
+                <BadgesRow badges={profileBadges} className="-mt-4" />
 
                 {/* Show history to logged in users  */}
                 {isLoggedIn && <HomeHistory isPublic={false} username={username} />}
