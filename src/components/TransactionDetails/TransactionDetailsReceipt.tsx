@@ -39,6 +39,7 @@ import {
 } from '@/constants/manteca.consts'
 import { mantecaApi } from '@/services/manteca'
 import { getReceiptUrl } from '@/utils/history.utils'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
 
 export const TransactionDetailsReceipt = ({
     transaction,
@@ -222,6 +223,14 @@ export const TransactionDetailsReceipt = ({
         return false
     }, [transaction, isPendingSentLink, isPendingRequester, isPendingRequestee])
 
+    // check if token is usdc on arbitrum to hide token/network section
+    const isPeanutWalletToken = useMemo(() => {
+        if (!transaction) return false
+        const tokenSymbol = transaction.tokenSymbol?.toUpperCase()
+        const chainName = transaction.tokenDisplayDetails?.chainName?.toLowerCase()
+        return tokenSymbol === PEANUT_WALLET_TOKEN_SYMBOL && chainName === PEANUT_WALLET_CHAIN.name.toLowerCase()
+    }, [transaction])
+
     useEffect(() => {
         const getTokenDetails = async () => {
             if (!transaction) {
@@ -387,7 +396,8 @@ export const TransactionDetailsReceipt = ({
                     {rowVisibilityConfig.tokenAndNetwork &&
                         transaction.tokenDisplayDetails &&
                         tokenData?.icon &&
-                        tokenData?.symbol && (
+                        tokenData?.symbol &&
+                        !isPeanutWalletToken && (
                             <>
                                 {!isStableCoin(transaction.tokenSymbol ?? 'USDC') && (
                                     <PaymentInfoRow label="Token amount" value={transaction.amount} />

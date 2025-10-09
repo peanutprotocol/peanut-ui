@@ -1,10 +1,10 @@
 'use client'
 
 import { Button, type ButtonVariant } from '@/components/0_Bruddle'
-import Icon from '../Icon'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import * as Sentry from '@sentry/nextjs'
 import { useCallback } from 'react'
+import { Icon } from '../Icons/Icon'
 
 type ShareButtonProps = {
     title?: string
@@ -121,7 +121,7 @@ const ShareButton = ({
             shadowType="primary"
             shadowSize="4"
         >
-            <span>
+            <span className="flex items-center gap-2">
                 {showIcon && iconPosition === 'left' && <Icon name="share" />}
                 {children}
                 {showIcon && iconPosition === 'right' && <Icon name="share" />}

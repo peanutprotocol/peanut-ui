@@ -36,7 +36,7 @@ export default function LandingPage() {
             message: ['No fees', 'Instant', '24/7', 'USD', 'EUR', 'CRYPTO', 'GLOBAL', 'SELF-CUSTODIAL'],
         },
         primaryCta: {
-            label: 'TRY NOW!',
+            label: 'JOIN WAITLIST',
             href: '/setup',
         },
     }
@@ -181,7 +181,7 @@ export default function LandingPage() {
         <Layout className="enable-select !m-0 w-full !p-0">
             <Hero primaryCta={hero.primaryCta} buttonVisible={buttonVisible} buttonScale={buttonScale} />
             <Marquee {...marqueeProps} />
-            <NoFees />
+            <DropLink />
             <Marquee {...marqueeProps} />
             <RegulatedRails />
             <Marquee {...marqueeProps} />
@@ -193,7 +193,7 @@ export default function LandingPage() {
                 <SendInSeconds />
             </div>
             <Marquee {...marqueeProps} />
-            <DropLink />
+            <NoFees />
             <Marquee {...marqueeProps} />
             <FAQs heading={faqs.heading} questions={faqs.questions} marquee={faqs.marquee} />
             <Marquee {...marqueeProps} />
