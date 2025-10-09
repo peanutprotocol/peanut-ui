@@ -15,6 +15,9 @@ export enum EQrType {
     TRON_ADDRESS = 'TRON_ADDRESS',
     SOLANA_ADDRESS = 'SOLANA_ADDRESS',
     XRP_ADDRESS = 'XRP_ADDRESS',
+    SIMPLEFI_STATIC = 'SIMPLEFI_STATIC',
+    SIMPLEFI_DYNAMIC = 'SIMPLEFI_DYNAMIC',
+    SIMPLEFI_USER_SPECIFIED = 'SIMPLEFI_USER_SPECIFIED',
 }
 
 export const NAME_BY_QR_TYPE: { [key in QrType]?: string } = {
@@ -26,6 +29,9 @@ export const NAME_BY_QR_TYPE: { [key in QrType]?: string } = {
     [EQrType.TRON_ADDRESS]: 'Tron',
     [EQrType.SOLANA_ADDRESS]: 'Solana',
     [EQrType.XRP_ADDRESS]: 'Ripple',
+    [EQrType.SIMPLEFI_STATIC]: 'SimpleFi',
+    [EQrType.SIMPLEFI_DYNAMIC]: 'SimpleFi',
+    [EQrType.SIMPLEFI_USER_SPECIFIED]: 'SimpleFi',
 }
 
 export type QrType = `${EQrType}`
@@ -57,10 +63,17 @@ const ARGENTINA_QR3_REGEX = /^(?=.*00020101021[12])(?=.*5303032)(?=.*5802AR)/i
 /* PIX is also a emvco qr code */
 const PIX_REGEX = /^.*000201.*0014br\.gov\.bcb\.pix.*5303986.*5802BR.*$/i
 
+export const SIMPLEFI_STATIC_REGEX = /^https:\/\/pagar\.simplefi\.tech\/(?<merchantSlug>[^\/]*)\/static$/
+export const SIMPLEFI_DYNAMIC_REGEX = /^https:\/\/pagar\.simplefi\.tech\/(?<merchantSlug>[^\/]*)$/
+export const SIMPLEFI_USER_SPECIFIED_REGEX = /^https:\/\/pagar\.simplefi\.tech\/(?<merchantId>[^\/]*)\/payment\/(?<paymentId>[^\/]*)$/
+
 export const PAYMENT_PROCESSOR_REGEXES: { [key in QrType]?: RegExp } = {
     [EQrType.MERCADO_PAGO]: MP_AR_REGEX,
     [EQrType.PIX]: PIX_REGEX,
     [EQrType.ARGENTINA_QR3]: ARGENTINA_QR3_REGEX,
+    [EQrType.SIMPLEFI_STATIC]: SIMPLEFI_STATIC_REGEX,
+    [EQrType.SIMPLEFI_DYNAMIC]: SIMPLEFI_DYNAMIC_REGEX,
+    [EQrType.SIMPLEFI_USER_SPECIFIED]: SIMPLEFI_USER_SPECIFIED_REGEX,
 }
 
 const EIP_681_REGEX = /^ethereum:(?:pay-)?([^@/?]+)(?:@([^/?]+))?(?:\/([^?]+))?(?:\?(.*))?$/i
@@ -70,6 +83,9 @@ const REGEXES_BY_TYPE: { [key in QrType]?: RegExp } = {
     //this order is important, first mercadipago, then argentina qr3
     [EQrType.MERCADO_PAGO]: MP_AR_REGEX,
     [EQrType.ARGENTINA_QR3]: ARGENTINA_QR3_REGEX,
+    [EQrType.SIMPLEFI_STATIC]: SIMPLEFI_STATIC_REGEX,
+    [EQrType.SIMPLEFI_DYNAMIC]: SIMPLEFI_DYNAMIC_REGEX,
+    [EQrType.SIMPLEFI_USER_SPECIFIED]: SIMPLEFI_USER_SPECIFIED_REGEX,
     [EQrType.BITCOIN_ONCHAIN]: /^(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,39}$/,
     [EQrType.BITCOIN_INVOICE]: /^ln(bc|tb|bcrt)([0-9]{1,}[a-z0-9]+){1}$/,
     [EQrType.PIX]: PIX_REGEX,
