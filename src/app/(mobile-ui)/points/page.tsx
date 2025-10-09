@@ -30,14 +30,14 @@ const PointsPage = () => {
     const inviteCode = username ? `${username.toUpperCase()}INVITESYOU` : ''
     const inviteLink = `${process.env.NEXT_PUBLIC_BASE_URL}/invite?code=${inviteCode}`
 
-    if (isLoading) {
-        return <PeanutLoading coverFullScreen />
-    }
-
     useEffect(() => {
         // Re-fetch user to get the latest invitees list for showing heart Icon
         fetchUser()
     }, [])
+
+    if (isLoading) {
+        return <PeanutLoading coverFullScreen />
+    }
 
     return (
         <PageContainer className="flex flex-col">
