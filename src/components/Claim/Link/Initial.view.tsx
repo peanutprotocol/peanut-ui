@@ -169,7 +169,16 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             // If the user doesn't have app access, accept the invite before claiming the link
             if (!user?.user.hasAppAccess) {
                 try {
-                    const inviteCode = `${claimLinkData.sender.username}INVITESYOU`
+                    const inviterUsername = claimLinkData.sender?.username
+                    if (!inviterUsername) {
+                        setErrorState({
+                            showError: true,
+                            errorMessage: 'Unable to accept invite: missing inviter. Please contact support.',
+                        })
+                        setLoadingState('Idle')
+                        return
+                    }
+                    const inviteCode = `${inviterUsername}INVITESYOU`
                     const result = await invitesApi.acceptInvite(inviteCode, EInviteType.PAYMENT_LINK)
                     if (!result.success) {
                         console.error('Failed to accept invite')

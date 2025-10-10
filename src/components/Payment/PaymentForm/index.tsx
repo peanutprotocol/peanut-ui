@@ -335,11 +335,12 @@ export const PaymentForm = ({
             // We dont need to wait for this, can happen in background.
             await fetchUser()
             setIsAcceptingInvite(false)
+            return true
         } catch (error) {
             console.error('Failed to accept invite', error)
             setInviteError(true)
             setIsAcceptingInvite(false)
-            return
+            return false
         }
     }
 
@@ -351,7 +352,8 @@ export const PaymentForm = ({
         if (isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow) {
             // If the user doesn't have app access, accept the invite before claiming the link
             if (recipient.recipientType === 'USERNAME' && !user?.user.hasAppAccess) {
-                await handleAcceptInvite()
+                const isAccepted = await handleAcceptInvite()
+                if (!isAccepted) return
             }
             router.push('/add-money')
             return
