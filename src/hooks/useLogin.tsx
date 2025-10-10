@@ -1,8 +1,24 @@
 import { useAuth } from '@/context/authContext'
 import { useZeroDev } from './useZeroDev'
 import { useEffect } from 'react'
-import { getFromLocalStorage, sanitizeRedirectURL } from '@/utils'
+import { getFromLocalStorage, getValidRedirectUrl, sanitizeRedirectURL } from '@/utils'
 import { useRouter, useSearchParams } from 'next/navigation'
+
+/**
+ * Hook for handling user login and post-login redirects.
+ *
+ * Manages the login flow by coordinating authentication state and routing.
+ * After successful login, redirects users to:
+ * 1. `redirect_uri` query parameter (if present and safe)
+ * 2. Saved redirect URL from localStorage (if present and safe)
+ * 3. '/home' as fallback
+ *
+ * All redirects are sanitized to prevent external URL redirection attacks.
+ *
+ * @returns {Object} Login handlers and state
+ * @returns {Function} handleLoginClick - Async function to initiate login
+ * @returns {boolean} isLoggingIn - Loading state during login process
+ */
 
 export const useLogin = () => {
     const { user } = useAuth()
@@ -16,28 +32,12 @@ export const useLogin = () => {
             const localStorageRedirect = getFromLocalStorage('redirect')
             const redirect_uri = searchParams.get('redirect_uri')
             if (redirect_uri) {
-                let decodedRedirect = redirect_uri
-                try {
-                    decodedRedirect = decodeURIComponent(redirect_uri)
-                } catch {}
-                const sanitizedRedirectUrl = sanitizeRedirectURL(decodedRedirect)
-                // Only redirect if the URL is safe (same-origin)
-                if (sanitizedRedirectUrl) {
-                    router.push(sanitizedRedirectUrl)
-                } else {
-                    // Reject external redirects, go to home instead
-                    router.push('/home')
-                }
+                const validRedirectUrl = getValidRedirectUrl(redirect_uri, '/home')
+                router.push(validRedirectUrl)
             } else if (localStorageRedirect) {
                 localStorage.removeItem('redirect')
-                const sanitizedLocalRedirect = sanitizeRedirectURL(String(localStorageRedirect))
-                // Only redirect if the URL is safe (same-origin)
-                if (sanitizedLocalRedirect) {
-                    router.push(sanitizedLocalRedirect)
-                } else {
-                    // Reject external redirects, go to home instead
-                    router.push('/home')
-                }
+                const validRedirectUrl = getValidRedirectUrl(String(localStorageRedirect), '/home')
+                router.push(validRedirectUrl)
             } else {
                 router.push('/home')
             }

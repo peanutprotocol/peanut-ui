@@ -326,7 +326,7 @@ export const PaymentForm = ({
             await invitesApi.acceptInvite(inviteCode, EInviteType.PAYMENT_LINK)
             // fetch user so that we have the latest state and user can access the app.
             // We dont need to wait for this, can happen in background.
-            fetchUser()
+            await fetchUser()
             setIsAcceptingInvite(false)
         } catch (error) {
             console.error('Failed to accept invite', error)

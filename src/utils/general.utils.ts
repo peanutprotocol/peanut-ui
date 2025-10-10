@@ -1221,6 +1221,7 @@ export const sanitizeRedirectURL = (redirectUrl: string): string | null => {
         if (u.origin === window.location.origin) {
             return u.pathname + u.search + u.hash
         }
+        console.log('Rejecting off-origin URL:', redirectUrl)
         // Reject off-origin URLs
         return null
     } catch {
@@ -1336,4 +1337,22 @@ export const generateInviteCodeLink = (username: string) => {
     const inviteCode = `${username.toUpperCase()}INVITESYOU`
     const inviteLink = `${consts.BASE_URL}/invite?code=${inviteCode}`
     return { inviteLink, inviteCode }
+}
+
+export const getValidRedirectUrl = (redirectUrl: string, fallbackRoute: string) => {
+    let decodedRedirect = redirectUrl
+    try {
+        decodedRedirect = decodeURIComponent(redirectUrl)
+    } catch {
+        // if decoding URI fails, push to /login as fallback
+        return fallbackRoute
+    }
+    const sanitizedRedirectUrl = sanitizeRedirectURL(decodedRedirect)
+    // Only redirect if the URL is safe (same-origin)
+    if (sanitizedRedirectUrl) {
+        return sanitizedRedirectUrl
+    } else {
+        // Reject external redirects, go to home instead
+        return fallbackRoute
+    }
 }
