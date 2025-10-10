@@ -12,7 +12,6 @@ import { isAddress } from 'viem'
 import { printableAddress } from '@/utils'
 import useKycStatus from '@/hooks/useKycStatus'
 import { useAuth } from '@/context/authContext'
-import { useEnsName } from 'wagmi'
 import { usePrimaryName } from '@justaname.id/react'
 
 interface UserHeaderProps {
@@ -102,7 +101,7 @@ export const VerifiedUserLabel = ({
 
             {!isPrimaryNameFetching && (
                 <div className={twMerge('font-semibold md:text-base', className)}>
-                    {ensName && ensName}
+                    {ensName}
                     {!ensName && (isCryptoAddress ? printableAddress(name, 4, 4) : name)}
                 </div>
             )}
