@@ -33,6 +33,8 @@ import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { useUserByUsername } from '@/hooks/useUserByUsername'
 import { PaymentFlow } from '@/app/[...recipient]/client'
 import MantecaFulfillment from '../Views/MantecaFulfillment.view'
+import { invitesApi } from '@/services/invites'
+import { EInviteType } from '@/services/services.types'
 
 export type PaymentFlowProps = {
     isExternalWalletFlow?: boolean
@@ -66,7 +68,7 @@ export const PaymentForm = ({
 }: PaymentFormProps) => {
     const dispatch = useAppDispatch()
     const router = useRouter()
-    const { user } = useAuth()
+    const { user, fetchUser } = useAuth()
     const { requestDetails, chargeDetails, daimoError, error: paymentStoreError, attachmentOptions } = usePaymentStore()
     const {
         setShowExternalWalletFulfillMethods,
@@ -91,6 +93,8 @@ export const PaymentForm = ({
     const [inputTokenAmount, setInputTokenAmount] = useState<string>(
         chargeDetails?.tokenAmount || requestDetails?.tokenAmount || amount || ''
     )
+    const [isAcceptingInvite, setIsAcceptingInvite] = useState(false)
+    const [inviteError, setInviteError] = useState(false)
 
     // states
     const [disconnectWagmiModal, setDisconnectWagmiModal] = useState<boolean>(false)
@@ -108,8 +112,9 @@ export const PaymentForm = ({
     const error = useMemo(() => {
         if (paymentStoreError) return ErrorHandler(paymentStoreError)
         if (initiatorError) return ErrorHandler(initiatorError)
+        if (inviteError) return 'Something went wrong. Please try again or contact support.'
         return null
-    }, [paymentStoreError, initiatorError])
+    }, [paymentStoreError, initiatorError, inviteError])
 
     const {
         selectedTokenPrice,
@@ -314,8 +319,43 @@ export const PaymentForm = ({
         isActivePeanutWallet,
     ])
 
+    const handleAcceptInvite = async () => {
+        try {
+            setIsAcceptingInvite(true)
+            const inviteCode = `${recipient?.identifier}INVITESYOU`
+            const result = await invitesApi.acceptInvite(inviteCode, EInviteType.PAYMENT_LINK)
+
+            if (!result.success) {
+                console.error('Failed to accept invite')
+                setInviteError(true)
+                setIsAcceptingInvite(false)
+                return false
+            }
+
+            // fetch user so that we have the latest state and user can access the app.
+            // We dont need to wait for this, can happen in background.
+            await fetchUser()
+            setIsAcceptingInvite(false)
+            return true
+        } catch (error) {
+            console.error('Failed to accept invite', error)
+            setInviteError(true)
+            setIsAcceptingInvite(false)
+            return false
+        }
+    }
+
     const handleInitiatePayment = useCallback(async () => {
+        // clear invite error
+        if (inviteError) {
+            setInviteError(false)
+        }
         if (isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow) {
+            // If the user doesn't have app access, accept the invite before claiming the link
+            if (recipient.recipientType === 'USERNAME' && !user?.user.hasAppAccess) {
+                const isAccepted = await handleAcceptInvite()
+                if (!isAccepted) return
+            }
             router.push('/add-money')
             return
         }
@@ -416,6 +456,8 @@ export const PaymentForm = ({
         selectedChainID,
         inputUsdValue,
         requestedTokenPrice,
+        inviteError,
+        handleAcceptInvite,
     ])
 
     const getButtonText = () => {
@@ -654,7 +696,7 @@ export const PaymentForm = ({
                     {isPeanutWalletConnected && (!error || isInsufficientBalanceError) && (
                         <Button
                             variant="purple"
-                            loading={isProcessing}
+                            loading={isAcceptingInvite || isProcessing}
                             shadowSize="4"
                             onClick={handleInitiatePayment}
                             disabled={isButtonDisabled}

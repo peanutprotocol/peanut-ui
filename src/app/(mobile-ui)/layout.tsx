@@ -93,7 +93,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     }
 
     // Show waitlist page if user doesn't have app access
-    if (!isFetchingUser && user && !user?.user.hasAppAccess) {
+    if (!isFetchingUser && user && !user?.user.hasAppAccess && !isPublicPath) {
         return <JoinWaitlistPage />
     }
 
