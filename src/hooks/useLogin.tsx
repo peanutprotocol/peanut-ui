@@ -21,11 +21,23 @@ export const useLogin = () => {
                     decodedRedirect = decodeURIComponent(redirect_uri)
                 } catch {}
                 const sanitizedRedirectUrl = sanitizeRedirectURL(decodedRedirect)
-                router.push(sanitizedRedirectUrl)
+                // Only redirect if the URL is safe (same-origin)
+                if (sanitizedRedirectUrl) {
+                    router.push(sanitizedRedirectUrl)
+                } else {
+                    // Reject external redirects, go to home instead
+                    router.push('/home')
+                }
             } else if (localStorageRedirect) {
                 localStorage.removeItem('redirect')
                 const sanitizedLocalRedirect = sanitizeRedirectURL(String(localStorageRedirect))
-                router.push(sanitizedLocalRedirect)
+                // Only redirect if the URL is safe (same-origin)
+                if (sanitizedLocalRedirect) {
+                    router.push(sanitizedLocalRedirect)
+                } else {
+                    // Reject external redirects, go to home instead
+                    router.push('/home')
+                }
             } else {
                 router.push('/home')
             }

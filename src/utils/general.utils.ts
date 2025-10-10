@@ -1214,18 +1214,26 @@ export const clearRedirectUrl = () => {
     }
 }
 
-export const sanitizeRedirectURL = (redirectUrl: string): string => {
+export const sanitizeRedirectURL = (redirectUrl: string): string | null => {
     try {
         const u = new URL(redirectUrl, window.location.origin)
+        // Only allow same-origin URLs
         if (u.origin === window.location.origin) {
             return u.pathname + u.search + u.hash
         }
+        // Reject off-origin URLs
+        return null
     } catch {
-        if (redirectUrl.startsWith('/')) {
-            return redirectUrl
+        // For strings that can't be parsed as URLs, only allow relative paths
+        if (redirectUrl.startsWith('/') && !redirectUrl.startsWith('//')) {
+            // Additional check: ensure it doesn't contain a protocol
+            if (!redirectUrl.includes('://')) {
+                return redirectUrl
+            }
         }
+        // Reject anything else (including protocol-relative URLs like //evil.com)
+        return null
     }
-    return redirectUrl
 }
 
 export const formatPaymentStatus = (status: string): string => {
