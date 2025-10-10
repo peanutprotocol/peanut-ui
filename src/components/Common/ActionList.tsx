@@ -204,7 +204,7 @@ export default function ActionList({
             const inviteCode = `${username}INVITESYOU`
             dispatch(setupActions.setInviteCode(inviteCode))
             dispatch(setupActions.setInviteType(EInviteType.PAYMENT_LINK))
-            router.push(`/setup?step=signup&redirect_uri=${redirectUri}`)
+            router.push(`/invite?code=${inviteCode}&redirect_uri=${redirectUri}`)
         } else {
             router.push(`/setup?redirect_uri=${redirectUri}`)
         }

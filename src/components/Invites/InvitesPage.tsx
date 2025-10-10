@@ -18,6 +18,7 @@ import { saveToCookie } from '@/utils'
 function InvitePageContent() {
     const searchParams = useSearchParams()
     const inviteCode = searchParams.get('code')
+    const redirectUri = searchParams.get('redirect_uri')
     const { logoutUser, isLoggingOut, user } = useAuth()
 
     const dispatch = useAppDispatch()
@@ -38,7 +39,12 @@ function InvitePageContent() {
             dispatch(setupActions.setInviteCode(inviteCode))
             dispatch(setupActions.setInviteType(EInviteType.PAYMENT_LINK))
             saveToCookie('inviteCode', inviteCode) // Save to cookies as well, so that if user installs PWA, they can still use the invite code
-            router.push('/setup?step=signup')
+            if (redirectUri) {
+                const encodedRedirectUri = encodeURIComponent(redirectUri)
+                router.push('/setup?step=signup&redirect_uri=' + encodedRedirectUri)
+            } else {
+                router.push('/setup?step=signup')
+            }
         }
     }
 
