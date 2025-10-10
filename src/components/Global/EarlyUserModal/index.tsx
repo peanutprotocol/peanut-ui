@@ -9,7 +9,7 @@ import { updateUserById } from '@/app/actions/users'
 const EarlyUserModal = () => {
     const { user, fetchUser } = useAuth()
     const inviteLink = generateInviteCodeLink(user?.user.username ?? '').inviteLink
-    const [showModal, setShowModal] = useState(false)
+    const [showModal, setShowModal] = useState(true)
 
     useEffect(() => {
         if (user && user.showEarlyUserModal) {
@@ -33,14 +33,18 @@ const EarlyUserModal = () => {
                 <>
                     <p className="text-sm text-grey-1">
                         <span className="block">
-                            Peanut is now <b>invite-only</b> and you're in!
+                            Peanut is now <b>invite-only.</b>
                         </span>
-                        <span className="mt-2 block">
-                            <b>Friends you invite </b>→ you earn a cut of their fees
+                        <span>
+                            Share your link to earn a share of fees from your invitees and a smaller share when their
+                            friends join.
+                        </span>
+                        {/* <span className="mt-2 block">
+                            <b>Friends you invite: </b> you earn a share of their fees.
                         </span>
                         <span className="block">
-                            <b> Their invites </b> → you earn a cut of the cut
-                        </span>
+                            <b> Their invites: </b> you earn a smaller share, too.
+                        </span> */}
                     </p>
                     <ShareButton
                         generateText={() => Promise.resolve(generateInvitesShareText(inviteLink))}
