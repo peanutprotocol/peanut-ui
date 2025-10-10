@@ -14,15 +14,17 @@ import { setupActions } from '@/redux/slices/setup-slice'
 import { useAuth } from '@/context/authContext'
 import { EInviteType } from '@/services/services.types'
 import { saveToCookie } from '@/utils'
+import { useLogin } from '@/hooks/useLogin'
 
 function InvitePageContent() {
     const searchParams = useSearchParams()
     const inviteCode = searchParams.get('code')
     const redirectUri = searchParams.get('redirect_uri')
-    const { logoutUser, isLoggingOut, user } = useAuth()
+    const { user } = useAuth()
 
     const dispatch = useAppDispatch()
     const router = useRouter()
+    const { handleLoginClick, isLoggingIn } = useLogin()
 
     const {
         data: inviteCodeData,
@@ -45,14 +47,6 @@ function InvitePageContent() {
             } else {
                 router.push('/setup?step=signup')
             }
-        }
-    }
-
-    const handleLogout = () => {
-        if (user) {
-            logoutUser()
-        } else {
-            router.push('/setup')
         }
     }
 
@@ -92,9 +86,11 @@ function InvitePageContent() {
                             Claim your spot
                         </Button>
 
-                        <button disabled={isLoggingOut} onClick={handleLogout} className="text-sm underline">
-                            {isLoggingOut ? 'Please wait...' : 'Already have an account? Log in!'}
-                        </button>
+                        {!user?.user && (
+                            <button disabled={isLoggingIn} onClick={handleLoginClick} className="text-sm underline">
+                                {isLoggingIn ? 'Please wait...' : 'Already have an account? Log in!'}
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
