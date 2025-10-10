@@ -233,7 +233,7 @@ export default function ActionList({
                 </Button>
             )}
             {isInviteLink && !userHasAppAccess && username && (
-                <div className="!mt-6 flex w-full items-center justify-between">
+                <div className="!mt-6 flex w-full items-center justify-center gap-1 md:gap-2">
                     <Image src={starStraightImage.src} alt="star" width={20} height={20} />{' '}
                     <p className="text-center text-sm">Invited by {username}, you have early access!</p>
                     <Image src={starStraightImage.src} alt="star" width={20} height={20} />
