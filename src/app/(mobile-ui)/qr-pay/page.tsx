@@ -36,6 +36,9 @@ import ActionModal from '@/components/Global/ActionModal'
 import { MantecaGeoSpecificKycModal } from '@/components/Kyc/InitiateMantecaKYCModal'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { useQueryClient } from '@tanstack/react-query'
+import { useAuth } from '@/context/authContext'
+import { useWebSocket } from '@/hooks/useWebSocket'
+import type { HistoryEntry } from '@/hooks/useTransactionHistory'
 
 const MAX_QR_PAYMENT_AMOUNT = '200'
 
@@ -66,6 +69,9 @@ export default function QRPayPage() {
     const { isLoading, loadingState, setLoadingState } = useContext(loadingStateContext)
     const { shouldBlockPay, kycGateState } = useQrKycGate()
     const queryClient = useQueryClient()
+    const { user } = useAuth()
+    const [pendingSimpleFiPaymentId, setPendingSimpleFiPaymentId] = useState<string | null>(null)
+    const [isWaitingForWebSocket, setIsWaitingForWebSocket] = useState(false)
 
     const paymentProcessor: PaymentProcessor | null = useMemo(() => {
         if (
@@ -95,7 +101,53 @@ export default function QRPayPage() {
         setQrPayment(null)
         setCurrency(undefined)
         setLoadingState('Idle')
+        setPendingSimpleFiPaymentId(null)
+        setIsWaitingForWebSocket(false)
     }
+
+    const handleSimpleFiStatusUpdate = useCallback(
+        (entry: HistoryEntry) => {
+            if (!pendingSimpleFiPaymentId || entry.uuid !== pendingSimpleFiPaymentId) {
+                return
+            }
+
+            if (entry.type !== EHistoryEntryType.SIMPLEFI_QR_PAYMENT) {
+                return
+            }
+
+            console.log('[SimpleFi WebSocket] Received status update:', entry.status)
+
+            setIsWaitingForWebSocket(false)
+            setPendingSimpleFiPaymentId(null)
+
+            switch (entry.status) {
+                case 'approved':
+                    setSimpleFiPayment({
+                        id: entry.uuid,
+                        usdAmount: entry.amount,
+                        currency: entry.currency?.code || 'ARS',
+                        currencyAmount: entry.currency?.amount || '0',
+                        price: simpleFiPayment?.price || '1',
+                        address: simpleFiPayment?.address || ('0x0' as any),
+                    })
+                    setIsSuccess(true)
+                    setLoadingState('Idle')
+                    break
+
+                case 'expired':
+                case 'canceled':
+                case 'refunded':
+                    setErrorMessage('Payment failed or expired. Please try again.')
+                    setIsSuccess(false)
+                    setLoadingState('Idle')
+                    break
+
+                default:
+                    console.log('[SimpleFi WebSocket] Unknown status:', entry.status)
+            }
+        },
+        [pendingSimpleFiPaymentId, simpleFiPayment, setLoadingState]
+    )
 
     // First fetch for qrcode info — only after KYC gating allows proceeding
     useEffect(() => {
@@ -113,6 +165,29 @@ export default function QRPayPage() {
 
         setIsFirstLoad(false)
     }, [timestamp, paymentProcessor, qrCode])
+
+    useWebSocket({
+        username: user?.user.username ?? undefined,
+        autoConnect: true,
+        onHistoryEntry: handleSimpleFiStatusUpdate,
+    })
+
+    useEffect(() => {
+        if (!isWaitingForWebSocket || !pendingSimpleFiPaymentId) return
+
+        const timeout = setTimeout(
+            () => {
+                console.log('[SimpleFi WebSocket] Timeout after 5 minutes')
+                setIsWaitingForWebSocket(false)
+                setPendingSimpleFiPaymentId(null)
+                setErrorMessage('Payment is taking longer than expected. Please check your transaction history.')
+                setLoadingState('Idle')
+            },
+            5 * 60 * 1000
+        )
+
+        return () => clearTimeout(timeout)
+    }, [isWaitingForWebSocket, pendingSimpleFiPaymentId, setLoadingState])
 
     // Get amount from payment lock (Manteca)
     useEffect(() => {
@@ -310,8 +385,10 @@ export default function QRPayPage() {
             return
         }
 
-        setLoadingState('Idle')
-        setIsSuccess(true)
+        console.log('[SimpleFi] Transaction sent, waiting for WebSocket confirmation...')
+        setLoadingState('Paying')
+        setIsWaitingForWebSocket(true)
+        setPendingSimpleFiPaymentId(finalPayment.id)
     }, [simpleFiPayment, simpleFiQrData, currencyAmount, sendMoney, setLoadingState])
 
     const handleMantecaPayment = useCallback(async () => {
@@ -782,7 +859,7 @@ export default function QRPayPage() {
                 <Button
                     onClick={payQR}
                     shadowSize="4"
-                    loading={isLoading}
+                    loading={isLoading || isWaitingForWebSocket}
                     disabled={
                         !!errorInitiatingPayment ||
                         isBlockingError ||
@@ -791,10 +868,15 @@ export default function QRPayPage() {
                         !!balanceErrorMessage ||
                         shouldBlockPay ||
                         !usdAmount ||
-                        usdAmount === '0.00'
+                        usdAmount === '0.00' ||
+                        isWaitingForWebSocket
                     }
                 >
-                    {isLoading ? loadingState : 'Pay'}
+                    {isLoading || isWaitingForWebSocket
+                        ? isWaitingForWebSocket
+                            ? 'Processing Payment...'
+                            : loadingState
+                        : 'Pay'}
                 </Button>
 
                 {/* Error State */}

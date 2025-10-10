@@ -65,6 +65,11 @@ export enum EHistoryStatus {
     REFUNDED = 'REFUNDED',
     CANCELED = 'CANCELED',
     ERROR = 'ERROR',
+    approved = 'approved',
+    pending = 'pending',
+    refunded = 'refunded',
+    canceled = 'canceled',
+    expired = 'expired',
 }
 
 export const FINAL_STATES: HistoryStatus[] = [
