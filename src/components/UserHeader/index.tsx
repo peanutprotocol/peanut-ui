@@ -9,10 +9,9 @@ import { twMerge } from 'tailwind-merge'
 import { Tooltip } from '../Tooltip'
 import { useMemo } from 'react'
 import { isAddress } from 'viem'
-import { printableAddress } from '@/utils'
 import useKycStatus from '@/hooks/useKycStatus'
 import { useAuth } from '@/context/authContext'
-import { usePrimaryName } from '@justaname.id/react'
+import AddressLink from '../Global/AddressLink'
 
 interface UserHeaderProps {
     username: string
@@ -77,16 +76,9 @@ export const VerifiedUserLabel = ({
         tooltipContent = "This is a verified user and you've sent them money before."
     }
 
-    const { primaryName: ensName, isPrimaryNameFetching } = usePrimaryName({
-        address: username as `0x${string}`,
-        chainId: 1, // Mainnet for ENS lookups
-        priority: 'onChain',
-        enabled: isAddress(username),
-    })
-
     const isCryptoAddress = useMemo(() => {
-        return isAddress(name)
-    }, [name])
+        return isAddress(username)
+    }, [username])
 
     // O(1) lookup in pre-computed Set
     const isInvitedByLoggedInUser = invitedUsernamesSet.has(username)
@@ -95,16 +87,16 @@ export const VerifiedUserLabel = ({
 
     return (
         <div className="flex items-center gap-1.5">
-            {isPrimaryNameFetching && (
-                <div className="h-3 w-96 max-w-[10rem] animate-pulse rounded bg-gray-200 md:max-w-sm" />
+            {isCryptoAddress ? (
+                <AddressLink
+                    isLink={false}
+                    className={twMerge('font-semibold md:text-base', className)}
+                    address={username}
+                />
+            ) : (
+                <div className={twMerge('font-semibold md:text-base', className)}>{'name'}</div>
             )}
 
-            {!isPrimaryNameFetching && (
-                <div className={twMerge('font-semibold md:text-base', className)}>
-                    {ensName}
-                    {!ensName && (isCryptoAddress ? printableAddress(name, 4, 4) : name)}
-                </div>
-            )}
             {badge && (
                 <Tooltip id="verified-user-label" content={tooltipContent} position="top">
                     {badge}
