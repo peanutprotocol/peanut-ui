@@ -12,6 +12,8 @@ import { isAddress } from 'viem'
 import { printableAddress } from '@/utils'
 import useKycStatus from '@/hooks/useKycStatus'
 import { useAuth } from '@/context/authContext'
+import { useEnsName } from 'wagmi'
+import { usePrimaryName } from '@justaname.id/react'
 
 interface UserHeaderProps {
     username: string
@@ -76,6 +78,13 @@ export const VerifiedUserLabel = ({
         tooltipContent = "This is a verified user and you've sent them money before."
     }
 
+    const { primaryName: ensName, isPrimaryNameFetching } = usePrimaryName({
+        address: username as `0x${string}`,
+        chainId: 1, // Mainnet for ENS lookups
+        priority: 'onChain',
+        enabled: isAddress(username),
+    })
+
     const isCryptoAddress = useMemo(() => {
         return isAddress(name)
     }, [name])
@@ -87,9 +96,16 @@ export const VerifiedUserLabel = ({
 
     return (
         <div className="flex items-center gap-1.5">
-            <div className={twMerge('font-semibold md:text-base', className)}>
-                {isCryptoAddress ? printableAddress(name, 4, 4) : name}
-            </div>
+            {isPrimaryNameFetching && (
+                <div className="h-3 w-96 max-w-[10rem] animate-pulse rounded bg-gray-200 md:max-w-sm" />
+            )}
+
+            {!isPrimaryNameFetching && (
+                <div className={twMerge('font-semibold md:text-base', className)}>
+                    {ensName && ensName}
+                    {!ensName && (isCryptoAddress ? printableAddress(name, 4, 4) : name)}
+                </div>
+            )}
             {badge && (
                 <Tooltip id="verified-user-label" content={tooltipContent} position="top">
                     {badge}
