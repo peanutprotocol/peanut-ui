@@ -4,6 +4,9 @@ import { Button } from '@/components/0_Bruddle'
 import Icon from '@/components/Global/Icon'
 import { createPortal } from 'react-dom'
 import jsQR from 'jsqr'
+import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
+import { PEANUT_LOGO } from '@/assets/logos'
+import Image from 'next/image'
 
 export interface QRScannerProps {
     onScan: (data: string) => Promise<{ success: boolean; error?: string }>
@@ -214,7 +217,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                             <Icon name="flip-camera" fill="white" height={24} width={24} />
                         </Button>
                     </div>
-                    <div className="fixed left-1/2 h-64 w-64 -translate-x-1/2 translate-y-1/2">
+                    <div className="fixed left-1/2 flex h-64 w-64 -translate-x-1/2 translate-y-1/2 justify-center">
                         <div className="absolute inset-8">
                             {/* Top-left corner */}
                             <div className="absolute -left-2 -top-2 h-12 w-12 rounded-tl-2xl border-l-4 border-t-4 border-pink-400" />
@@ -227,6 +230,14 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
 
                             {/* Bottom-right corner */}
                             <div className="absolute -bottom-2 -right-2 h-12 w-12 rounded-br-2xl border-b-4 border-r-4 border-pink-400" />
+                        </div>
+                        <div className="flex-column translate-y-[100%] transform items-center text-center">
+                            <span className="text-xl font-extrabold text-white">Pay to any QR</span>
+                            <div className="mt-2 flex justify-center gap-2 opacity-75">
+                                <Image src={MERCADO_PAGO} alt="Mercado Pago" width={48} height={48} priority />
+                                <Image src={PEANUT_LOGO} alt="Peanut" height={48} priority />
+                                <Image src={PIX} alt="PIX" height={48} priority />
+                            </div>
                         </div>
                     </div>
                 </>
