@@ -9,7 +9,7 @@ import { updateUserById } from '@/app/actions/users'
 const EarlyUserModal = () => {
     const { user, fetchUser } = useAuth()
     const inviteLink = generateInviteCodeLink(user?.user.username ?? '').inviteLink
-    const [showModal, setShowModal] = useState(true)
+    const [showModal, setShowModal] = useState(false)
 
     useEffect(() => {
         if (user && user.showEarlyUserModal) {

@@ -170,7 +170,16 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             if (!user?.user.hasAppAccess) {
                 try {
                     const inviteCode = `${claimLinkData.sender.username}INVITESYOU`
-                    await invitesApi.acceptInvite(inviteCode, EInviteType.PAYMENT_LINK)
+                    const result = await invitesApi.acceptInvite(inviteCode, EInviteType.PAYMENT_LINK)
+                    if (!result.success) {
+                        console.error('Failed to accept invite')
+                        setErrorState({
+                            showError: true,
+                            errorMessage: 'Something went wrong. Please try again or contact support.',
+                        })
+                        return false
+                    }
+
                     // fetch user so that we have the latest state and user can access the app.
                     // We dont need to wait for this, can happen in background.
                     fetchUser()

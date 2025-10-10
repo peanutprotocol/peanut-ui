@@ -46,9 +46,10 @@ const GuestLoginCta = ({ hideConnectWallet = false, view }: GuestLoginCtaProps) 
                 // Only redirect if the URL is safe (same-origin)
                 if (sanitizedRedirectUrl) {
                     router.push(sanitizedRedirectUrl)
+                } else {
+                    // If redirect_uri was invalid, stay on current page
+                    Sentry.captureException(`Invalid redirect URL ${redirect_uri}`)
                 }
-                // If redirect_uri was invalid, stay on current page
-                Sentry.captureException(`Invalid redirect URL ${redirect_uri}`)
             }
         } catch (e) {
             toast.error('Error logging in')
