@@ -328,6 +328,7 @@ export const PaymentForm = ({
             if (!result.success) {
                 console.error('Failed to accept invite')
                 setInviteError(true)
+                setIsAcceptingInvite(false)
                 return false
             }
 

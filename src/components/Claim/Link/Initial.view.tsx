@@ -186,7 +186,8 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                             showError: true,
                             errorMessage: 'Something went wrong. Please try again or contact support.',
                         })
-                        return false
+                        setLoadingState('Idle')
+                        return
                     }
 
                     // fetch user so that we have the latest state and user can access the app.
