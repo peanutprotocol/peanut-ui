@@ -98,8 +98,7 @@ export function SavedAccountsMapping({
                 else if (isFirst) position = 'first'
                 else if (isLast) position = 'last'
 
-                let title = account.type === AccountType.IBAN ? formatIban(account.identifier) : account.identifier
-                title = title.length > 20 ? shortenStringLong(account.identifier, 6) : title
+                const title = account.type === AccountType.IBAN ? formatIban(account.identifier) : account.identifier
 
                 return (
                     <SearchResultCard
