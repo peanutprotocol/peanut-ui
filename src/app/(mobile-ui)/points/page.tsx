@@ -15,7 +15,7 @@ import { Invite } from '@/services/services.types'
 import { generateInvitesShareText } from '@/utils'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
+import { STAR_STRAIGHT_ICON, TIER_0_BADGE, TIER_1_BADGE, TIER_2_BADGE, TIER_3_BADGE } from '@/assets'
 import Image from 'next/image'
 import { pointsApi } from '@/services/points'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
@@ -25,6 +25,11 @@ import { PointsInvite } from '@/services/services.types'
 const PointsPage = () => {
     const router = useRouter()
     const { user } = useAuth()
+
+    const getTierBadge = (tier: number) => {
+        const badges = [TIER_0_BADGE, TIER_1_BADGE, TIER_2_BADGE, TIER_3_BADGE]
+        return badges[tier] || TIER_0_BADGE
+    }
     const {
         data: invites,
         isLoading,
@@ -75,21 +80,30 @@ const PointsPage = () => {
                         <Image src={STAR_STRAIGHT_ICON} alt="star" width={20} height={20} />
                         {tierInfo.data.totalPoints} {tierInfo.data.totalPoints === 1 ? 'Point' : 'Points'}
                     </span>
-
-                    {/* Progress bar */}
+                    {/* Progressive progress bar */}
                     <div className="flex w-full items-center gap-2">
-                        {tierInfo?.data.currentTier}
-                        <div className="w-full">
-                            <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-grey-2">
-                                <div
-                                    className="h-full animate-pulse rounded-full bg-primary-1 transition-all duration-300"
-                                    style={{
-                                        width: `${(tierInfo.data.totalPoints / tierInfo.data.nextTierThreshold) * 100}%`,
-                                    }}
-                                />
-                            </div>
-                            {tierInfo?.data.currentTier + 1}
+                        <Image
+                            src={getTierBadge(tierInfo?.data.currentTier)}
+                            alt={`Tier ${tierInfo?.data.currentTier}`}
+                            width={26}
+                            height={26}
+                            className="translate-y-0.5"
+                        />
+                        <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-grey-2">
+                            <div
+                                className="h-full animate-pulse rounded-full bg-primary-1 transition-all duration-200"
+                                style={{
+                                    width: `${Math.pow(tierInfo.data.totalPoints / tierInfo.data.nextTierThreshold, 0.6) * 100}%`,
+                                }}
+                            />
                         </div>
+                        <Image
+                            src={getTierBadge(tierInfo?.data.currentTier + 1)}
+                            alt={`Tier ${tierInfo?.data.currentTier + 1}`}
+                            width={26}
+                            height={26}
+                            className="translate-y-0.5"
+                        />
                     </div>
 
                     <p className="text-sm text-grey-1">
@@ -97,16 +111,7 @@ const PointsPage = () => {
                         needed for the next tier
                     </p>
                 </Card>
-
-                <div className="mx-3 flex items-start gap-2">
-                    <Icon name="info" className="size-6 text-black md:size-3" />
-
-                    <p className="text-sm text-black">
-                        Do stuff on Peanut and get points. Invite friends and pocket 20% of their points, too.
-                    </p>
-                </div>
-
-                {user?.invitedBy && (
+                {user?.invitedBy ? (
                     <p className="text-sm">
                         <span
                             onClick={() => router.push(`/${user.invitedBy}`)}
@@ -116,14 +121,14 @@ const PointsPage = () => {
                         </span>{' '}
                         invited you and earned points. Now it's your turn! Invite friends and get 20% of their points.
                     </p>
+                ) : (
+                    <div className="mx-3 flex items-start gap-2">
+                        <Icon name="info" className="size-6 text-black md:size-3" />
+                        <p className="text-sm text-black">
+                            Do stuff on Peanut and get points. Invite friends and pocket 20% of their points, too.
+                        </p>
+                    </div>
                 )}
-
-                <h1 className="font-bold">Refer friends</h1>
-                <div className="flex w-full items-center justify-between gap-3">
-                    <Card className="flex w-1/2 items-center justify-center py-3.5">
-                        <p className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-bold md:text-base">{`${inviteCode}`}</p>
-                    </Card>
-                </div>
 
                 <h1 className="font-bold">Invite friends with your code</h1>
                 <div className="flex w-full items-center justify-between gap-3">
@@ -141,12 +146,19 @@ const PointsPage = () => {
                         >
                             Share Invite link
                         </ShareButton>
-                        <h2 className="!mt-8 font-bold">People you invited</h2>
+                        <div
+                            className="!mt-8 flex cursor-pointer items-center justify-between"
+                            onClick={() => router.push('/points/invites')}
+                        >
+                            <h2 className="font-bold">People you invited</h2>
+                            <Icon name="arrow-up-right" className="text-black" />
+                        </div>
                         <div>
                             {invites.invitees?.map((invite: PointsInvite, i: number) => {
                                 const username = invite.username
                                 const fullName = invite.fullName
                                 const isVerified = invite.kycStatus === 'approved'
+                                const pointsEarned = Math.floor(invite.totalPoints * 0.2)
                                 return (
                                     <Card
                                         key={invite.inviteeId}
@@ -173,7 +185,7 @@ const PointsPage = () => {
                                                 />
                                             </div>
                                             <p className="text-grey-1">
-                                                +{invite.totalPoints} {invite.totalPoints === 1 ? 'pt' : 'pts'}
+                                                +{pointsEarned} {pointsEarned === 1 ? 'pt' : 'pts'}
                                             </p>
                                         </div>
                                     </Card>

@@ -153,7 +153,7 @@ export const TransactionDetailsReceipt = ({
                 transaction.extraDataForDrawer?.depositInstructions &&
                 transaction.extraDataForDrawer.depositInstructions.bank_name
             ),
-            peanutFee: transaction.status !== 'pending',
+            peanutFee: !!(transaction.extraDataForDrawer?.perk?.claimed && transaction.status !== 'pending'),
             points: !!(transaction.points && transaction.points > 0),
             comment: !!transaction.memo?.trim(),
             networkFee: !!(transaction.networkFeeDetails && transaction.sourceView === 'status'),

@@ -458,3 +458,11 @@ export interface CalculatePointsRequest {
     usdAmount: number
     otherUserId?: string
 }
+
+// Perks system types
+export interface HistoryEntryPerk {
+    claimed: boolean
+    discountPercentage: number
+    amountSponsored?: number
+    txHash?: string
+}

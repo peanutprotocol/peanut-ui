@@ -1,3 +1,4 @@
+export * from './badges'
 export * from './bg'
 export * from './chains'
 export * from './exchanges'

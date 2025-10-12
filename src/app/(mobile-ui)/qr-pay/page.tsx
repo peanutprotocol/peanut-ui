@@ -34,6 +34,8 @@ import { MantecaGeoSpecificKycModal } from '@/components/Kyc/InitiateMantecaKYCM
 import { EQrType } from '@/components/Global/DirectSendQR/utils'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { useQueryClient } from '@tanstack/react-query'
+import { shootDoubleStarConfetti } from '@/utils/confetti'
+import { STAR_STRAIGHT_ICON } from '@/assets'
 
 const MAX_QR_PAYMENT_AMOUNT = '200'
 
@@ -59,6 +61,9 @@ export default function QRPayPage() {
     const { isLoading, loadingState, setLoadingState } = useContext(loadingStateContext)
     const { shouldBlockPay, kycGateState } = useQrKycGate()
     const queryClient = useQueryClient()
+    const [isShaking, setIsShaking] = useState(false)
+    const [isClaimingPerk, setIsClaimingPerk] = useState(false)
+    const [perkClaimed, setPerkClaimed] = useState(false)
 
     const resetState = () => {
         setIsSuccess(false)
@@ -143,11 +148,13 @@ export default function QRPayPage() {
         }
     }, [qrType])
 
-    // fetch payment lock only when gating allows proceeding and we don't yet have a lock
+    // Fetch payment lock immediately on load (parallel with KYC check for faster UX)
+    // KYC blocking still happens via shouldBlockPay check at line 310
     useEffect(() => {
         if (!qrCode || !isPaymentProcessorQR(qrCode)) return
         if (!!paymentLock) return
-        if (kycGateState !== QrKycState.PROCEED_TO_PAY) return
+        // Remove KYC gate blocking here - fetch immediately for lower latency
+        // The actual payment action is still gated by shouldBlockPay
 
         setLoadingState('Fetching details')
         mantecaApi
@@ -155,7 +162,7 @@ export default function QRPayPage() {
             .then((pl) => setPaymentLock(pl))
             .catch((error) => setErrorInitiatingPayment(error.message))
             .finally(() => setLoadingState('Idle'))
-    }, [kycGateState, paymentLock, qrCode, setLoadingState])
+    }, [paymentLock, qrCode, setLoadingState])
 
     const merchantName = useMemo(() => {
         if (!paymentLock) return null
@@ -164,6 +171,7 @@ export default function QRPayPage() {
 
     const payQR = useCallback(async () => {
         if (!paymentLock || !qrCode || !currencyAmount) return
+
         let finalPaymentLock = paymentLock
         if (finalPaymentLock.code === '') {
             setLoadingState('Fetching details')
@@ -223,6 +231,41 @@ export default function QRPayPage() {
             setLoadingState('Idle')
         }
     }, [paymentLock?.code, sendMoney, usdAmount, qrCode, currencyAmount])
+
+    const claimPerk = useCallback(async () => {
+        if (!qrPayment?.id) return
+
+        // Start screen shake animation
+        setIsShaking(true)
+        setIsClaimingPerk(true)
+
+        try {
+            const result = await mantecaApi.claimPerk(qrPayment.id)
+            if (result.success) {
+                // Update qrPayment with claimed perk info
+                setQrPayment({
+                    ...qrPayment,
+                    perk: {
+                        eligible: true,
+                        discountPercentage: result.perk.discountPercentage,
+                        claimed: true,
+                        amountSponsored: result.perk.amountSponsored,
+                        txHash: result.perk.txHash,
+                    },
+                })
+                setPerkClaimed(true)
+
+                // Trigger confetti
+                shootDoubleStarConfetti({ origin: { x: 0.5, y: 0.5 } })
+            }
+        } catch (error) {
+            captureException(error)
+            setErrorMessage('Could not claim perk. Please contact support')
+        } finally {
+            setIsClaimingPerk(false)
+            setIsShaking(false)
+        }
+    }, [qrPayment])
 
     // Check user balance
     useEffect(() => {
@@ -367,50 +410,136 @@ export default function QRPayPage() {
                             </div>
                         </div>
                     </Card>
+
+                    {/* Perk Eligibility Card - Show before claiming */}
+                    {qrPayment?.perk?.eligible && !perkClaimed && !qrPayment.perk.claimed && (
+                        <Card className="flex flex-col items-start gap-3 bg-primary-1/10 p-4">
+                            <div className="flex items-center gap-2">
+                                <Image
+                                    src={STAR_STRAIGHT_ICON}
+                                    alt="star"
+                                    width={32}
+                                    height={32}
+                                    className="animate-pulse"
+                                />
+                                <h2 className="text-lg font-extrabold">Eligible for a Peanut Perk!</h2>
+                            </div>
+                            <p className="font-semibold text-black">
+                                This bill can be covered by Peanut. Claim it now to unlock your reward.
+                            </p>
+                        </Card>
+                    )}
+
+                    {/* Perk Success Banner - Show after claiming */}
+                    {(perkClaimed || qrPayment?.perk?.claimed) && (
+                        <Card className="flex flex-col items-center gap-3 bg-primary-1/10 p-4">
+                            <div className="flex items-center gap-2">
+                                <Image
+                                    src={STAR_STRAIGHT_ICON}
+                                    alt="star"
+                                    width={32}
+                                    height={32}
+                                    className="animate-pulse"
+                                />
+                                <h2 className="text-xl font-extrabold">Peanut got you!</h2>
+                            </div>
+                            <p className="text-center font-semibold text-black">
+                                {qrPayment?.perk?.discountPercentage === 100
+                                    ? 'We sponsored this bill!'
+                                    : `We gave you ${qrPayment?.perk?.discountPercentage}% off!`}
+                            </p>
+                            {qrPayment?.perk?.discountPercentage &&
+                                qrPayment.perk.discountPercentage < 100 &&
+                                qrPayment.perk.amountSponsored &&
+                                qrPayment.perk.amountSponsored > 0 && (
+                                    <div className="flex items-center gap-2 text-lg">
+                                        <span className="font-bold line-through">
+                                            $
+                                            {(
+                                                qrPayment.perk.amountSponsored /
+                                                (qrPayment.perk.discountPercentage / 100)
+                                            ).toFixed(2)}
+                                        </span>
+                                        <span className="font-extrabold text-success-1">
+                                            ${qrPayment.perk.amountSponsored.toFixed(2)}
+                                        </span>
+                                    </div>
+                                )}
+                        </Card>
+                    )}
+
                     <div className="w-full space-y-5">
-                        <Button
-                            onClick={() => {
-                                router.push('/home')
-                                resetState()
-                            }}
-                            shadowSize="4"
-                        >
-                            Back to home
-                        </Button>
-                        <Button
-                            variant="primary-soft"
-                            shadowSize="4"
-                            disabled={false}
-                            onClick={() => {
-                                const now = new Date()
-                                openTransactionDetails({
-                                    id: qrPayment!.id,
-                                    direction: 'qr_payment',
-                                    userName: qrPayment!.details.merchant.name,
-                                    fullName: qrPayment!.details.merchant.name,
-                                    amount: Number(usdAmount),
-                                    currency: {
-                                        amount: qrPayment!.details.paymentAssetAmount,
-                                        code: currency.code,
-                                    },
-                                    initials: 'QR',
-                                    currencySymbol: currency.symbol,
-                                    status: 'completed',
-                                    date: now,
-                                    createdAt: now,
-                                    extraDataForDrawer: {
-                                        originalType: EHistoryEntryType.MANTECA_QR_PAYMENT,
-                                        originalUserRole: EHistoryUserRole.SENDER,
-                                        avatarUrl: methodIcon,
-                                        receipt: {
-                                            exchange_rate: currency.price.toString(),
-                                        },
-                                    },
-                                })
-                            }}
-                        >
-                            See receipt
-                        </Button>
+                        {/* Show Claim Perk button if eligible and not claimed yet */}
+                        {qrPayment?.perk?.eligible && !perkClaimed && !qrPayment.perk.claimed ? (
+                            <>
+                                <Button
+                                    onClick={claimPerk}
+                                    shadowSize="4"
+                                    disabled={isClaimingPerk}
+                                    loading={isClaimingPerk}
+                                >
+                                    {qrPayment.perk.discountPercentage === 100
+                                        ? '⭐ Claim Peanut Perk'
+                                        : `⭐ Claim ${qrPayment.perk.discountPercentage}% Perk!`}
+                                </Button>
+                                <Button
+                                    variant="primary-soft"
+                                    shadowSize="4"
+                                    onClick={() => {
+                                        router.push('/home')
+                                        resetState()
+                                    }}
+                                >
+                                    Skip for now
+                                </Button>
+                            </>
+                        ) : (
+                            <>
+                                <Button
+                                    onClick={() => {
+                                        router.push('/home')
+                                        resetState()
+                                    }}
+                                    shadowSize="4"
+                                >
+                                    Back to home
+                                </Button>
+                                <Button
+                                    variant="primary-soft"
+                                    shadowSize="4"
+                                    disabled={false}
+                                    onClick={() => {
+                                        const now = new Date()
+                                        openTransactionDetails({
+                                            id: qrPayment!.id,
+                                            direction: 'qr_payment',
+                                            userName: qrPayment!.details.merchant.name,
+                                            fullName: qrPayment!.details.merchant.name,
+                                            amount: Number(usdAmount),
+                                            currency: {
+                                                amount: qrPayment!.details.paymentAssetAmount,
+                                                code: currency.code,
+                                            },
+                                            initials: 'QR',
+                                            currencySymbol: currency.symbol,
+                                            status: 'completed',
+                                            date: now,
+                                            createdAt: now,
+                                            extraDataForDrawer: {
+                                                originalType: EHistoryEntryType.MANTECA_QR_PAYMENT,
+                                                originalUserRole: EHistoryUserRole.SENDER,
+                                                avatarUrl: methodIcon,
+                                                receipt: {
+                                                    exchange_rate: currency.price.toString(),
+                                                },
+                                            },
+                                        })
+                                    }}
+                                >
+                                    See receipt
+                                </Button>
+                            </>
+                        )}
                     </div>
                 </div>
                 <TransactionDetailsDrawer
@@ -423,7 +552,7 @@ export default function QRPayPage() {
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col gap-8">
+        <div className={`flex min-h-[inherit] flex-col gap-8 ${isShaking ? 'perk-shake' : ''}`}>
             <NavHeader title="Pay" />
 
             {/* Payment Content */}
@@ -472,7 +601,7 @@ export default function QRPayPage() {
                     <PaymentInfoRow label="Peanut fee" value="Sponsored by Peanut!" hideBottomBorder />
                 </Card>
 
-                {/* Send Button */}
+                {/* Pay Button */}
                 <Button
                     onClick={payQR}
                     shadowSize="4"
