@@ -389,6 +389,8 @@ export const CreateRequestLinkView = () => {
                     onSubmit={handleTokenAmountSubmit}
                     walletBalance={peanutWalletBalance}
                     disabled={!!requestId}
+                    showInfoText
+                    infoText="Leave empty to let payers choose amounts."
                 />
 
                 <FileUploadInput
@@ -405,7 +407,11 @@ export const CreateRequestLinkView = () => {
                         </div>
                     </Button>
                 ) : (
-                    <ShareButton generateUrl={generateLink}>Share Link</ShareButton>
+                    <ShareButton generateUrl={generateLink}>
+                        {tokenValue.length === 0 || parseFloat(tokenValue) === 0
+                            ? 'Share open request'
+                            : `Share $${tokenValue} request`}
+                    </ShareButton>
                 )}
 
                 {errorState.showError && (

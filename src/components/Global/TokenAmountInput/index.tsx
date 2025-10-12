@@ -4,6 +4,7 @@ import { formatAmountWithoutComma, formatTokenAmount } from '@/utils'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import Icon from '../Icon'
 import { twMerge } from 'tailwind-merge'
+import { Icon as IconComponent } from '@/components/Global/Icons/Icon'
 
 interface TokenAmountInputProps {
     className?: string
@@ -22,6 +23,8 @@ interface TokenAmountInputProps {
     }
     hideCurrencyToggle?: boolean
     hideBalance?: boolean
+    showInfoText?: boolean
+    infoText?: string
 }
 
 const TokenAmountInput = ({
@@ -37,6 +40,8 @@ const TokenAmountInput = ({
     setUsdValue,
     hideCurrencyToggle = false,
     hideBalance = false,
+    infoText,
+    showInfoText,
 }: TokenAmountInputProps) => {
     const { selectedTokenData } = useContext(tokenSelectorContext)
     const inputRef = useRef<HTMLInputElement>(null)
@@ -274,6 +279,12 @@ const TokenAmountInput = ({
                     }}
                 >
                     <Icon name={'switch'} className="ml-5 rotate-90 cursor-pointer" width={32} height={32} />
+                </div>
+            )}
+            {showInfoText && infoText && (
+                <div className="mx-auto flex w-fit items-center gap-2 rounded-full bg-grey-2 p-1.5">
+                    <IconComponent name="info" size={12} className="text-grey-1" />
+                    <p className="text-[10px] font-bold text-grey-1">{infoText}</p>
                 </div>
             )}
         </form>
