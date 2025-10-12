@@ -10,6 +10,7 @@ import { isAddress as isWalletAddress } from 'viem'
 import Card from '../Global/Card'
 import { Icon, IconName } from '../Global/Icons/Icon'
 import { VerifiedUserLabel } from '../UserHeader'
+import ProgressBar from '../Global/ProgressBar'
 
 export type TransactionDirection =
     | 'send'
@@ -195,8 +196,8 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                         size="medium"
                     />
                 )}
-                <div className="space-y-1">
-                    <h2 className="flex items-center gap-2 text-sm font-medium text-grey-1">
+                <div className="w-full space-y-1">
+                    <h2 className="flex w-full items-center gap-2 text-sm font-medium text-grey-1">
                         {icon && <Icon name={icon} size={10} />}
                         <VerifiedUserLabel
                             username={userName}
@@ -206,6 +207,11 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                             haveSentMoneyToUser={haveSentMoneyToUser}
                             iconSize={18}
                         />
+                        {
+                            <div className="ml-auto">
+                                {status && <StatusBadge status={status} size="small" className="py-0" />}
+                            </div>
+                        }
                     </h2>
                     <h1
                         className={`text-3xl font-extrabold md:text-4xl ${status === 'cancelled' ? 'text-grey-1 line-through' : ''}`}
@@ -214,7 +220,9 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                     </h1>
                 </div>
             </div>
-            <div className="absolute bottom-4 right-4">{status && <StatusBadge status={status} size="small" />}</div>
+            <div className="mt-4">
+                <ProgressBar goal={100} progress={20} isClosed={false} />
+            </div>
         </Card>
     )
 }

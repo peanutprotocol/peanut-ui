@@ -112,6 +112,7 @@ module.exports = {
                     1: '#FFD8D8',
                     2: '#EA8282',
                     3: '#FF4A4A',
+                    4: '#FC5555',
                 },
             },
             zIndex: {
