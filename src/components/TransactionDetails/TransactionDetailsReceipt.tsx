@@ -1,6 +1,6 @@
 'use client'
 
-import Card from '@/components/Global/Card'
+import Card, { getCardPosition } from '@/components/Global/Card'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { TRANSACTIONS } from '@/constants/query.consts'
@@ -40,6 +40,7 @@ import {
 import { mantecaApi } from '@/services/manteca'
 import { getReceiptUrl } from '@/utils/history.utils'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
+import TransactionCard from './TransactionCard'
 
 export const TransactionDetailsReceipt = ({
     transaction,
@@ -1204,6 +1205,23 @@ export const TransactionDetailsReceipt = ({
                     }}
                 />
             )}
+
+            <h2 className="text-base font-bold text-black">Contributors (10)</h2>
+            <div className="h-36 overflow-y-auto">
+                {Array.from({ length: 10 }).map((_, index) => (
+                    <TransactionCard
+                        key={index}
+                        type="receive"
+                        name={`Contributor ${index + 1}`}
+                        amount={Number(100)}
+                        status={'completed'}
+                        initials={`C ${index + 1}`}
+                        transaction={transaction}
+                        position={getCardPosition(index, 10)}
+                        haveSentMoneyToUser={true}
+                    />
+                ))}
+            </div>
         </div>
     )
 }
