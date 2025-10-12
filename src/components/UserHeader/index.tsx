@@ -95,15 +95,13 @@ export const VerifiedUserLabel = ({
                     {badge}
                 </Tooltip>
             )}
-            {isInvitedByLoggedInUser && (
-                <Tooltip id="invited-by-user" content="You've invited this user." position="top">
+            {(isInvitedByLoggedInUser || isInviter) && (
+                <Tooltip
+                    id={isInviter ? 'inviter-user' : 'invited-by-user'}
+                    content={isInviter ? 'You were invited by this user.' : "You've invited this user."}
+                    position="top"
+                >
                     <Icon name="invite-heart" size={iconSize} />
-                </Tooltip>
-            )}
-
-            {isInviter && (
-                <Tooltip id="inviter-user" content="You were invited by this user." position="top">
-                    <Icon name="inviter-heart" size={iconSize} />
                 </Tooltip>
             )}
         </div>

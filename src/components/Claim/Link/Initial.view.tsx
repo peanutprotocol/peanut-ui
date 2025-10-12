@@ -48,6 +48,8 @@ import { GuestVerificationModal } from '@/components/Global/GuestVerificationMod
 import useKycStatus from '@/hooks/useKycStatus'
 import MantecaFlowManager from './MantecaFlowManager'
 import ErrorAlert from '@/components/Global/ErrorAlert'
+import { invitesApi } from '@/services/invites'
+import { EInviteType } from '@/services/services.types'
 
 export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     const {
@@ -104,7 +106,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     const { claimLink, claimLinkXchain, removeParamStep } = useClaimLink()
     const { isConnected: isPeanutWallet, address, fetchBalance } = useWallet()
     const router = useRouter()
-    const { user } = useAuth()
+    const { user, fetchUser } = useAuth()
     const queryClient = useQueryClient()
     const searchParams = useSearchParams()
     const prevRecipientType = useRef<string | null>(null)
@@ -163,6 +165,45 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             })
 
             if (recipient.address === '') return
+
+            // If the user doesn't have app access, accept the invite before claiming the link
+            if (!user?.user.hasAppAccess) {
+                try {
+                    const inviterUsername = claimLinkData.sender?.username
+                    if (!inviterUsername) {
+                        setErrorState({
+                            showError: true,
+                            errorMessage: 'Unable to accept invite: missing inviter. Please contact support.',
+                        })
+                        setLoadingState('Idle')
+                        return
+                    }
+                    const inviteCode = `${inviterUsername}INVITESYOU`
+                    const result = await invitesApi.acceptInvite(inviteCode, EInviteType.PAYMENT_LINK)
+                    if (!result.success) {
+                        console.error('Failed to accept invite')
+                        setErrorState({
+                            showError: true,
+                            errorMessage: 'Something went wrong. Please try again or contact support.',
+                        })
+                        setLoadingState('Idle')
+                        return
+                    }
+
+                    // fetch user so that we have the latest state and user can access the app.
+                    // We dont need to wait for this, can happen in background.
+                    fetchUser()
+                } catch (error) {
+                    Sentry.captureException(error)
+                    console.error('Failed to accept invite', error)
+                    setErrorState({
+                        showError: true,
+                        errorMessage: 'Something went wrong. Please try again or contact support.',
+                    })
+                    setLoadingState('Idle')
+                    return
+                }
+            }
 
             try {
                 setLoadingState('Executing transaction')

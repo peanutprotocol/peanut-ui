@@ -21,10 +21,11 @@ import { pointsApi } from '@/services/points'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { getInitialsFromName } from '@/utils'
 import { PointsInvite } from '@/services/services.types'
+import { useEffect } from 'react'
 
 const PointsPage = () => {
     const router = useRouter()
-    const { user } = useAuth()
+    const { user, fetchUser } = useAuth()
 
     const getTierBadge = (tier: number) => {
         const badges = [TIER_0_BADGE, TIER_1_BADGE, TIER_2_BADGE, TIER_3_BADGE]
@@ -54,6 +55,11 @@ const PointsPage = () => {
     const username = user?.user.username
     const inviteCode = username ? `${username.toUpperCase()}INVITESYOU` : ''
     const inviteLink = `${process.env.NEXT_PUBLIC_BASE_URL}/invite?code=${inviteCode}`
+
+    useEffect(() => {
+        // Re-fetch user to get the latest invitees list for showing heart Icon
+        fetchUser()
+    }, [])
 
     if (isLoading || isTierInfoLoading || !tierInfo?.data) {
         return <PeanutLoading />

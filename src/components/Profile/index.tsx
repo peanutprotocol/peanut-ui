@@ -75,11 +75,7 @@ export const Profile = () => {
                             label="Identity Verification"
                             href="/profile/identity-verification"
                             onClick={() => {
-                                if (isUserKycApproved) {
-                                    setIsKycApprovedModalOpen(true)
-                                } else {
-                                    setShowInitiateKycModal(true)
-                                }
+                                setShowInitiateKycModal(true)
                             }}
                             position="middle"
                             endIcon={isUserKycApproved ? 'check' : undefined}
