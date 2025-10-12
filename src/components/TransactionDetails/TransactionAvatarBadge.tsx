@@ -19,7 +19,6 @@ interface TransactionAvatarBadgeProps {
     isLinkTransaction?: boolean
     transactionType: TransactionType
     context: 'card' | 'header' | 'drawer'
-    status?: StatusPillType
 }
 
 /**
@@ -33,7 +32,6 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
     size = 'medium',
     transactionType,
     context,
-    status,
 }) => {
     let displayIconName: IconName | undefined = undefined
     let displayInitials: string | undefined = initials
@@ -113,8 +111,6 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
             inlineStyle={{ backgroundColor: calculatedBgColor }}
             textColor={textColor}
             iconFillColor={iconFillColor}
-            showStatusPill
-            statusPillStatus={status}
         />
     )
 }

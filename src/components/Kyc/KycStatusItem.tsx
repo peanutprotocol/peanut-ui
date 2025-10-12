@@ -92,7 +92,7 @@ export const KycStatusItem = ({
 }
 
 export const KYCStatusIcon = () => {
-    return <AvatarWithBadge icon="user-id" className="bg-yellow-1" size="small" />
+    return <AvatarWithBadge icon="user-id" className="bg-yellow-1" size="extra-small" />
 }
 
 export const KYCStatusDrawerItem = ({ status }: { status: StatusType }) => {

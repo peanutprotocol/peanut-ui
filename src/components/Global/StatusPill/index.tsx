@@ -28,18 +28,18 @@ const StatusPill = ({ status }: StatusPillProps) => {
     }
 
     const iconSize: Record<StatusPillType, number> = {
-        completed: 10,
-        failed: 7,
+        completed: 7,
+        failed: 6,
         processing: 10,
-        soon: 10,
-        pending: 10,
-        cancelled: 7,
+        soon: 7,
+        pending: 8,
+        cancelled: 6,
     }
 
     return (
         <div
             className={twMerge(
-                'absolute bottom-0 right-0 flex size-4 items-center justify-center rounded-full border',
+                'flex size-[14px] items-center justify-center rounded-full border',
                 colorClasses[status]
             )}
         >

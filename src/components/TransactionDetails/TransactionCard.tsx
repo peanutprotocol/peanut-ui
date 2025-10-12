@@ -110,8 +110,6 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                     width={30}
                                     height={30}
                                 />
-
-                                {status && <StatusPill status={status} />}
                             </div>
                         ) : (
                             <TransactionAvatarBadge
@@ -120,8 +118,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                 isLinkTransaction={isLinkTx}
                                 transactionType={type}
                                 context="card"
-                                size="small"
-                                status={status}
+                                size="extra-small"
                             />
                         )}
                         <div className="flex flex-col">
@@ -138,9 +135,10 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                 </div>
                             </div>
                             {/* display the action icon and type text */}
-                            <div className="flex items-center gap-1 text-sm font-medium text-gray-1">
+                            <div className="flex items-center gap-2 text-xs font-medium text-gray-1">
                                 {getActionIcon(type, transaction.direction)}
                                 <span className="capitalize">{getActionText(type)}</span>
+                                {status && <StatusPill status={status} />}
                             </div>
                         </div>
                     </div>
@@ -170,7 +168,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
 // helper functions
 function getActionIcon(type: TransactionType, direction: TransactionDirection): React.ReactNode {
     let iconName: IconName | null = null
-    let iconSize = 8
+    let iconSize = 7
 
     switch (type) {
         case 'send':
