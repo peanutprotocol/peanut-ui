@@ -37,6 +37,7 @@ export const Profile = () => {
         <div className="h-full w-full bg-background">
             <NavHeader
                 hideLabel
+                showLogoutBtn
                 onPrev={() => {
                     // Check if the referrer is from the same domain (internal navigation)
                     const isInternalReferrer = checkIfInternalNavigation()

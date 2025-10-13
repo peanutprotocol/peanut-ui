@@ -247,7 +247,7 @@ export default function Home() {
                             <Link href="/points">
                                 <InvitesIcon />
                             </Link>
-                            <NotificationNavigation />
+                            {/* <NotificationNavigation /> */}
                         </div>
                     </div>
                 </div>

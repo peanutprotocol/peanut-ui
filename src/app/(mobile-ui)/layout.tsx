@@ -97,8 +97,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         return <JoinWaitlistPage />
     }
 
-    console.log(user, 'user')
-
     return (
         <div className="flex min-h-[100dvh] w-full bg-background">
             {/* Wrapper div for desktop layout */}
