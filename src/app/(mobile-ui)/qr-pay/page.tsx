@@ -62,8 +62,12 @@ export default function QRPayPage() {
     const { shouldBlockPay, kycGateState } = useQrKycGate()
     const queryClient = useQueryClient()
     const [isShaking, setIsShaking] = useState(false)
+    const [shakeIntensity, setShakeIntensity] = useState<'none' | 'weak' | 'medium' | 'strong' | 'intense'>('none')
     const [isClaimingPerk, setIsClaimingPerk] = useState(false)
     const [perkClaimed, setPerkClaimed] = useState(false)
+    const [holdProgress, setHoldProgress] = useState(0)
+    const [holdTimer, setHoldTimer] = useState<NodeJS.Timeout | null>(null)
+    const [progressInterval, setProgressInterval] = useState<NodeJS.Timeout | null>(null)
 
     const resetState = () => {
         setIsSuccess(false)
@@ -77,7 +81,20 @@ export default function QRPayPage() {
         setQrPayment(null)
         setCurrency(undefined)
         setLoadingState('Idle')
+        if (holdTimer) clearTimeout(holdTimer)
+        if (progressInterval) clearInterval(progressInterval)
+        setHoldProgress(0)
+        setIsShaking(false)
+        setShakeIntensity('none')
     }
+
+    // Cleanup timers on unmount
+    useEffect(() => {
+        return () => {
+            if (holdTimer) clearTimeout(holdTimer)
+            if (progressInterval) clearInterval(progressInterval)
+        }
+    }, [holdTimer, progressInterval])
 
     // First fetch for qrcode info — only after KYC gating allows proceeding
     useEffect(() => {
@@ -232,17 +249,54 @@ export default function QRPayPage() {
         }
     }, [paymentLock?.code, sendMoney, usdAmount, qrCode, currencyAmount])
 
+    // Hold-to-claim mechanics
+    const HOLD_DURATION = 1500 // 1.5 seconds
+
+    const cancelHold = useCallback(() => {
+        if (holdTimer) clearTimeout(holdTimer)
+        if (progressInterval) clearInterval(progressInterval)
+        setHoldTimer(null)
+        setProgressInterval(null)
+        setHoldProgress(0)
+        setIsShaking(false)
+        setShakeIntensity('none')
+
+        // Stop any ongoing vibration when user releases early
+        if ('vibrate' in navigator) {
+            navigator.vibrate(0)
+        }
+    }, [holdTimer, progressInterval])
+
+    // DEV NOTE: This is an OPTIMISTIC claim flow for better UX
+    // We immediately show success UI and trigger confetti, then claim in background
+    // If claim fails, we show error post-factum but keep the user in success state
     const claimPerk = useCallback(async () => {
-        if (!qrPayment?.id) return
+        if (!qrPayment?.externalId) return
 
-        // Start screen shake animation
-        setIsShaking(true)
+        // 1. IMMEDIATELY show success UI (optimistic)
+        setPerkClaimed(true)
+
+        // 2. Reset shake and show success with confetti RIGHT AWAY
+        setIsShaking(false)
+        setShakeIntensity('none')
+        setHoldProgress(0)
+
+        // 3. Final success haptic feedback - POWERFUL celebratory double pulse!
+        if ('vibrate' in navigator) {
+            navigator.vibrate([300, 100, 300])
+        }
+
+        // 4. Trigger confetti immediately
+        setTimeout(() => {
+            shootDoubleStarConfetti({ origin: { x: 0.5, y: 0.5 } })
+        }, 100)
+
+        // 5. NOW do the actual API claim in the background
         setIsClaimingPerk(true)
-
         try {
-            const result = await mantecaApi.claimPerk(qrPayment.id)
+            const result = await mantecaApi.claimPerk(qrPayment.externalId)
             if (result.success) {
-                // Update qrPayment with claimed perk info
+                // Update qrPayment with actual claimed perk info from backend
                 setQrPayment({
                     ...qrPayment,
                     perk: {
@@ -253,19 +307,95 @@ export default function QRPayPage() {
                         txHash: result.perk.txHash,
                     },
                 })
-                setPerkClaimed(true)
-
-                // Trigger confetti
-                shootDoubleStarConfetti({ origin: { x: 0.5, y: 0.5 } })
             }
         } catch (error) {
+            // If claim fails, show error but keep user in success state
+            // (they already saw confetti, better UX than reverting)
             captureException(error)
-            setErrorMessage('Could not claim perk. Please contact support')
+            setErrorMessage('Perk claim is being processed. If you do not see it in your history, contact support.')
         } finally {
             setIsClaimingPerk(false)
-            setIsShaking(false)
         }
     }, [qrPayment])
+
+    const startHold = useCallback(() => {
+        setHoldProgress(0)
+        setIsShaking(true)
+
+        const startTime = Date.now()
+        let lastIntensity: 'weak' | 'medium' | 'strong' | 'intense' = 'weak'
+
+        // Update progress and shake intensity
+        const interval = setInterval(() => {
+            const elapsed = Date.now() - startTime
+            const progress = Math.min((elapsed / HOLD_DURATION) * 100, 100)
+            setHoldProgress(progress)
+
+            // Progressive shake intensity with haptic feedback
+            let newIntensity: 'weak' | 'medium' | 'strong' | 'intense' = 'weak'
+            if (progress < 25) {
+                newIntensity = 'weak'
+            } else if (progress < 50) {
+                newIntensity = 'medium'
+            } else if (progress < 75) {
+                newIntensity = 'strong'
+            } else {
+                newIntensity = 'intense'
+            }
+
+            // Trigger haptic feedback when intensity changes
+            if (newIntensity !== lastIntensity && 'vibrate' in navigator) {
+                // Progressive vibration patterns that match shake intensity - MAX STRENGTH!
+                switch (newIntensity) {
+                    case 'weak':
+                        navigator.vibrate(50) // Short but noticeable pulse
+                        break
+                    case 'medium':
+                        navigator.vibrate([100, 40, 100]) // Medium pulse pattern
+                        break
+                    case 'strong':
+                        navigator.vibrate([150, 40, 150, 40, 150]) // Strong pulse pattern
+                        break
+                    case 'intense':
+                        navigator.vibrate([200, 40, 200, 40, 200, 40, 200]) // INTENSE pulse pattern
+                        break
+                }
+                lastIntensity = newIntensity
+            }
+
+            setShakeIntensity(newIntensity)
+
+            if (progress >= 100) {
+                clearInterval(interval)
+            }
+        }, 50)
+
+        setProgressInterval(interval)
+
+        // Complete after hold duration
+        const timer = setTimeout(() => {
+            claimPerk()
+        }, HOLD_DURATION)
+
+        setHoldTimer(timer)
+    }, [claimPerk])
+
+    // Helper function to get shake CSS class based on intensity
+    const getShakeClass = () => {
+        if (!isShaking) return ''
+        switch (shakeIntensity) {
+            case 'weak':
+                return 'perk-shake-weak'
+            case 'medium':
+                return 'perk-shake-medium'
+            case 'strong':
+                return 'perk-shake-strong'
+            case 'intense':
+                return 'perk-shake-intense'
+            default:
+                return ''
+        }
+    }
 
     // Check user balance
     useEffect(() => {
@@ -382,117 +512,92 @@ export default function QRPayPage() {
         return null
     } else if (isSuccess) {
         return (
-            <div className="flex min-h-[inherit] flex-col gap-8">
+            <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass()}`}>
                 <SoundPlayer sound="success" />
                 <NavHeader title="Pay" />
                 <div className="my-auto flex h-full flex-col justify-center space-y-4">
-                    <Card className="flex flex-row items-center gap-3 p-4">
-                        <div className="flex items-center gap-3">
-                            <div
-                                className={
-                                    'flex h-12 w-12 min-w-12 items-center justify-center rounded-full bg-success-3 font-bold'
-                                }
-                            >
-                                <Icon name="check" size={24} />
+                    {/* Only show payment card if perk was not claimed */}
+                    {!perkClaimed && !qrPayment?.perk?.claimed && (
+                        <Card className="flex flex-row items-center gap-3 p-4">
+                            <div className="flex items-center gap-3">
+                                <div
+                                    className={
+                                        'flex h-12 w-12 min-w-12 items-center justify-center rounded-full bg-success-3 font-bold'
+                                    }
+                                >
+                                    <Icon name="check" size={24} />
+                                </div>
                             </div>
-                        </div>
 
-                        <div className="space-y-1">
-                            <h1 className="text-sm font-normal text-grey-1">
-                                You paid {qrPayment!.details.merchant.name}
-                            </h1>
-                            <div className="text-2xl font-extrabold">
-                                {currency.symbol}{' '}
-                                {formatNumberForDisplay(qrPayment!.details.paymentAssetAmount, { maxDecimals: 2 })}
+                            <div className="space-y-1">
+                                <h1 className="text-sm font-normal text-grey-1">
+                                    You paid {qrPayment!.details.merchant.name}
+                                </h1>
+                                <div className="text-2xl font-extrabold">
+                                    {currency.symbol}{' '}
+                                    {formatNumberForDisplay(qrPayment!.details.paymentAssetAmount, { maxDecimals: 2 })}
+                                </div>
+                                <div className="text-lg font-bold">
+                                    ≈ {formatNumberForDisplay(usdAmount ?? undefined, { maxDecimals: 2 })} USD
+                                </div>
                             </div>
-                            <div className="text-lg font-bold">
-                                ≈ {formatNumberForDisplay(usdAmount ?? undefined, { maxDecimals: 2 })} USD
-                            </div>
-                        </div>
-                    </Card>
+                        </Card>
+                    )}
 
                     {/* Perk Eligibility Card - Show before claiming */}
                     {qrPayment?.perk?.eligible && !perkClaimed && !qrPayment.perk.claimed && (
-                        <Card className="flex flex-col items-start gap-3 bg-primary-1/10 p-4">
-                            <div className="flex items-center gap-2">
-                                <Image
-                                    src={STAR_STRAIGHT_ICON}
-                                    alt="star"
-                                    width={32}
-                                    height={32}
-                                    className="animate-pulse"
-                                />
-                                <h2 className="text-lg font-extrabold">Eligible for a Peanut Perk!</h2>
+                        <Card className="flex items-start gap-3 bg-white p-4">
+                            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-yellow-400">
+                                <Image src={STAR_STRAIGHT_ICON} alt="star" width={24} height={24} />
                             </div>
-                            <p className="font-semibold text-black">
-                                This bill can be covered by Peanut. Claim it now to unlock your reward.
-                            </p>
+                            <div className="flex flex-col gap-2">
+                                <h2 className="text-lg">Eligible for a Peanut Perk!</h2>
+                                <p className="text-sm text-gray-600">
+                                    This bill can be covered by Peanut. Claim it now to unlock your reward.
+                                </p>
+                            </div>
                         </Card>
                     )}
 
                     {/* Perk Success Banner - Show after claiming */}
                     {(perkClaimed || qrPayment?.perk?.claimed) && (
-                        <Card className="flex flex-col items-center gap-3 bg-primary-1/10 p-4">
-                            <div className="flex items-center gap-2">
-                                <Image
-                                    src={STAR_STRAIGHT_ICON}
-                                    alt="star"
-                                    width={32}
-                                    height={32}
-                                    className="animate-pulse"
-                                />
-                                <h2 className="text-xl font-extrabold">Peanut got you!</h2>
+                        <Card className="flex items-start gap-4 bg-white p-6">
+                            <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full bg-yellow-400">
+                                <Image src={STAR_STRAIGHT_ICON} alt="star" width={36} height={36} />
                             </div>
-                            <p className="text-center font-semibold text-black">
-                                {qrPayment?.perk?.discountPercentage === 100
-                                    ? 'We sponsored this bill!'
-                                    : `We gave you ${qrPayment?.perk?.discountPercentage}% off!`}
-                            </p>
-                            {qrPayment?.perk?.discountPercentage &&
-                                qrPayment.perk.discountPercentage < 100 &&
-                                qrPayment.perk.amountSponsored &&
-                                qrPayment.perk.amountSponsored > 0 && (
-                                    <div className="flex items-center gap-2 text-lg">
-                                        <span className="font-bold line-through">
-                                            $
-                                            {(
-                                                qrPayment.perk.amountSponsored /
-                                                (qrPayment.perk.discountPercentage / 100)
-                                            ).toFixed(2)}
-                                        </span>
-                                        <span className="font-extrabold text-success-1">
-                                            ${qrPayment.perk.amountSponsored.toFixed(2)}
-                                        </span>
-                                    </div>
-                                )}
+                            <div className="flex flex-col gap-2">
+                                <h2 className="text-2xl font-bold">Peanut got you!</h2>
+                                <p className="text-base text-gray-900">
+                                    {qrPayment?.perk?.discountPercentage === 100
+                                        ? 'We sponsored this bill! Earn points, climb tiers and unlock even better perks.'
+                                        : `We gave you ${qrPayment?.perk?.discountPercentage}% off! Earn points, climb tiers and unlock even better perks.`}
+                                </p>
+                            </div>
                         </Card>
                     )}
 
                     <div className="w-full space-y-5">
                         {/* Show Claim Perk button if eligible and not claimed yet */}
                         {qrPayment?.perk?.eligible && !perkClaimed && !qrPayment.perk.claimed ? (
-                            <>
-                                <Button
-                                    onClick={claimPerk}
-                                    shadowSize="4"
-                                    disabled={isClaimingPerk}
-                                    loading={isClaimingPerk}
-                                >
-                                    {qrPayment.perk.discountPercentage === 100
-                                        ? '⭐ Claim Peanut Perk'
-                                        : `⭐ Claim ${qrPayment.perk.discountPercentage}% Perk!`}
-                                </Button>
-                                <Button
-                                    variant="primary-soft"
-                                    shadowSize="4"
-                                    onClick={() => {
-                                        router.push('/home')
-                                        resetState()
+                            <Button
+                                onPointerDown={startHold}
+                                onPointerUp={cancelHold}
+                                onPointerLeave={cancelHold}
+                                shadowSize="4"
+                                disabled={isClaimingPerk}
+                                loading={isClaimingPerk}
+                                className="relative overflow-hidden"
+                            >
+                                {/* Black progress fill from left to right */}
+                                <div
+                                    className="absolute inset-0 bg-black transition-all duration-100"
+                                    style={{
+                                        width: `${holdProgress}%`,
+                                        left: 0,
                                     }}
-                                >
-                                    Skip for now
-                                </Button>
-                            </>
+                                />
+                                <span className="relative z-10">Claim Peanut Perk Now!</span>
+                            </Button>
                         ) : (
                             <>
                                 <Button
@@ -552,77 +657,79 @@ export default function QRPayPage() {
     }
 
     return (
-        <div className={`flex min-h-[inherit] flex-col gap-8 ${isShaking ? 'perk-shake' : ''}`}>
-            <NavHeader title="Pay" />
+        <>
+            <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass()}`}>
+                <NavHeader title="Pay" />
 
-            {/* Payment Content */}
-            <div className="my-auto flex h-full flex-col justify-center space-y-4">
-                {/* Merchant Card */}
-                <Card className="p-4">
-                    <div className="flex items-center space-x-3">
-                        <div className="flex items-center justify-center rounded-full bg-white">
-                            <Image
-                                src={methodIcon}
-                                alt="Mercado Pago"
-                                width={48}
-                                height={48}
-                                className="h-12 w-12 rounded-full object-cover"
-                            />
+                {/* Payment Content */}
+                <div className="my-auto flex h-full flex-col justify-center space-y-4">
+                    {/* Merchant Card */}
+                    <Card className="p-4">
+                        <div className="flex items-center space-x-3">
+                            <div className="flex items-center justify-center rounded-full bg-white">
+                                <Image
+                                    src={methodIcon}
+                                    alt="Mercado Pago"
+                                    width={48}
+                                    height={48}
+                                    className="h-12 w-12 rounded-full object-cover"
+                                />
+                            </div>
+                            <div>
+                                <p className="flex items-center gap-1 text-center text-sm text-gray-600">
+                                    <Icon name="arrow-up-right" size={10} /> You're paying
+                                </p>
+                                <p className="text-xl font-semibold">{merchantName}</p>
+                            </div>
                         </div>
-                        <div>
-                            <p className="flex items-center gap-1 text-center text-sm text-gray-600">
-                                <Icon name="arrow-up-right" size={10} /> You're paying
-                            </p>
-                            <p className="text-xl font-semibold">{merchantName}</p>
-                        </div>
-                    </div>
-                </Card>
+                    </Card>
 
-                {/* Amount Card */}
-                {currency && (
-                    <TokenAmountInput
-                        tokenValue={amount}
-                        setTokenValue={setAmount}
-                        currency={currency}
-                        disabled={!!qrPayment || isLoading || paymentLock?.code !== ''}
-                        walletBalance={balance ? formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS) : undefined}
-                        setCurrencyAmount={setCurrencyAmount}
-                        hideBalance
-                    />
-                )}
-                {balanceErrorMessage && <ErrorAlert description={balanceErrorMessage} />}
+                    {/* Amount Card */}
+                    {currency && (
+                        <TokenAmountInput
+                            tokenValue={amount}
+                            setTokenValue={setAmount}
+                            currency={currency}
+                            disabled={!!qrPayment || isLoading || paymentLock?.code !== ''}
+                            walletBalance={balance ? formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS) : undefined}
+                            setCurrencyAmount={setCurrencyAmount}
+                            hideBalance
+                        />
+                    )}
+                    {balanceErrorMessage && <ErrorAlert description={balanceErrorMessage} />}
 
-                {/* Information Card */}
-                <Card className="space-y-0 px-4">
-                    <PaymentInfoRow
-                        label="Exchange Rate"
-                        value={`1 USD = ${currency.price} ${currency.code.toUpperCase()}`}
-                    />
-                    <PaymentInfoRow label="Peanut fee" value="Sponsored by Peanut!" hideBottomBorder />
-                </Card>
+                    {/* Information Card */}
+                    <Card className="space-y-0 px-4">
+                        <PaymentInfoRow
+                            label="Exchange Rate"
+                            value={`1 USD = ${currency.price} ${currency.code.toUpperCase()}`}
+                        />
+                        <PaymentInfoRow label="Peanut fee" value="Sponsored by Peanut!" hideBottomBorder />
+                    </Card>
 
-                {/* Pay Button */}
-                <Button
-                    onClick={payQR}
-                    shadowSize="4"
-                    loading={isLoading}
-                    disabled={
-                        !!errorInitiatingPayment ||
-                        isBlockingError ||
-                        !amount ||
-                        isLoading ||
-                        !!balanceErrorMessage ||
-                        shouldBlockPay ||
-                        !usdAmount ||
-                        usdAmount === '0.00'
-                    }
-                >
-                    {isLoading ? loadingState : 'Pay'}
-                </Button>
+                    {/* Pay Button */}
+                    <Button
+                        onClick={payQR}
+                        shadowSize="4"
+                        loading={isLoading}
+                        disabled={
+                            !!errorInitiatingPayment ||
+                            isBlockingError ||
+                            !amount ||
+                            isLoading ||
+                            !!balanceErrorMessage ||
+                            shouldBlockPay ||
+                            !usdAmount ||
+                            usdAmount === '0.00'
+                        }
+                    >
+                        {isLoading ? loadingState : 'Pay'}
+                    </Button>
 
-                {/* Error State */}
-                {errorMessage && <ErrorAlert description={errorMessage} />}
+                    {/* Error State */}
+                    {errorMessage && <ErrorAlert description={errorMessage} />}
+                </div>
             </div>
-        </div>
+        </>
     )
 }

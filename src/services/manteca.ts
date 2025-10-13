@@ -141,7 +141,7 @@ export const mantecaApi = {
         return response.json()
     },
     claimPerk: async (
-        qrPaymentId: string
+        mantecaTransferId: string
     ): Promise<{
         success: boolean
         perk: { sponsored: boolean; amountSponsored: number; discountPercentage: number; txHash?: string }
@@ -152,7 +152,7 @@ export const mantecaApi = {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${Cookies.get('jwt-token')}`,
             },
-            body: JSON.stringify({ qrPaymentId }),
+            body: JSON.stringify({ mantecaTransferId }),
         })
 
         if (!response.ok) {

@@ -360,6 +360,23 @@ export const TransactionDetailsReceipt = ({
                 <QRCodeWrapper url={transaction.extraDataForDrawer.link} />
             )}
 
+            {/* Perk banner */}
+            {transaction.extraDataForDrawer?.perk?.claimed && (
+                <Card position="single" className="px-4 py-4">
+                    <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-yellow-400">
+                            <Image src={STAR_STRAIGHT_ICON} alt="Perk" width={22} height={22} />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <span className="font-semibold text-gray-900">Peanut got you!</span>
+                            <span className="text-sm text-gray-600">
+                                We sponsored this bill! Earn points, climb tiers, and unlock even better perks.
+                            </span>
+                        </div>
+                    </div>
+                </Card>
+            )}
+
             {/* transaction header card */}
             <TransactionDetailsHeaderCard
                 direction={transaction.direction}
@@ -372,6 +389,7 @@ export const TransactionDetailsReceipt = ({
                 transactionType={transaction.extraDataForDrawer?.transactionCardType}
                 avatarUrl={avatarUrl ?? getAvatarUrl(transaction)}
                 haveSentMoneyToUser={transaction.haveSentMoneyToUser}
+                hasPerk={!!transaction.extraDataForDrawer?.perk?.claimed}
             />
 
             {/* details card (date, fee, memo) and more */}

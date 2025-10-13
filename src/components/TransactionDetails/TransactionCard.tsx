@@ -132,12 +132,6 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                     status={status}
                                 />
                             )}
-                            {/* Perk star badge */}
-                            {hasPerk && (
-                                <div className="absolute -right-1 -top-1 rounded-full bg-white p-0.5">
-                                    <Image src={STAR_STRAIGHT_ICON} alt="Perk" width={14} height={14} />
-                                </div>
-                            )}
                         </div>
                         <div className="flex flex-col">
                             {/* display formatted name (address or username) */}
@@ -161,29 +155,22 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                     </div>
 
                     {/* amount and status on the right side */}
-                    <div className="flex flex-col items-end">
-                        {hasPerk ? (
-                            <>
-                                {perkInfo.discountPercentage === 100 ? (
-                                    <>
-                                        <span className="font-semibold text-gray-1 line-through">{displayAmount}</span>
-                                        <span className="text-xs font-medium text-success-1">Sponsored</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <span className="font-semibold">{displayAmount}</span>
-                                        <span className="text-xs font-semibold text-success-1">
-                                            {perkInfo.discountPercentage}% off
-                                        </span>
-                                    </>
-                                )}
-                            </>
-                        ) : (
-                            <span className="font-semibold">{displayAmount}</span>
+                    <div className="flex items-center gap-2">
+                        {hasPerk && (
+                            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-yellow-400">
+                                <Image src={STAR_STRAIGHT_ICON} alt="Perk" width={16} height={16} />
+                            </div>
                         )}
-                        {currencyDisplayAmount && (
-                            <span className="text-sm font-medium text-gray-1">{currencyDisplayAmount}</span>
-                        )}
+                        <div className="flex flex-col items-end gap-1">
+                            {hasPerk ? (
+                                <span className="font-semibold line-through">{displayAmount}</span>
+                            ) : (
+                                <span className="font-semibold">{displayAmount}</span>
+                            )}
+                            {currencyDisplayAmount && (
+                                <span className="text-sm font-medium text-gray-1">{currencyDisplayAmount}</span>
+                            )}
+                        </div>
                     </div>
                 </div>
             </Card>

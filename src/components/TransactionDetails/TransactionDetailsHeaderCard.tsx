@@ -36,6 +36,7 @@ interface TransactionDetailsHeaderCardProps {
     transactionType?: TransactionType
     avatarUrl?: string
     haveSentMoneyToUser?: boolean
+    hasPerk?: boolean
 }
 
 const getTitle = (
@@ -166,6 +167,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     transactionType,
     avatarUrl,
     haveSentMoneyToUser = false,
+    hasPerk = false,
 }) => {
     const typeForAvatar =
         transactionType ?? (direction === 'add' ? 'add' : direction === 'withdraw' ? 'withdraw' : 'send')
@@ -208,7 +210,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                         />
                     </h2>
                     <h1
-                        className={`text-3xl font-extrabold md:text-4xl ${status === 'cancelled' ? 'text-grey-1 line-through' : ''}`}
+                        className={`text-3xl font-extrabold md:text-4xl ${status === 'cancelled' || hasPerk ? 'line-through' : ''} ${status === 'cancelled' ? 'text-grey-1' : ''}`}
                     >
                         {amountDisplay}
                     </h1>
