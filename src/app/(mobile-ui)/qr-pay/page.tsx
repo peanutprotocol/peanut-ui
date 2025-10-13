@@ -853,7 +853,7 @@ export default function QRPayPage() {
                                 <Image src={STAR_STRAIGHT_ICON} alt="star" width={24} height={24} />
                             </div>
                             <div className="flex flex-col gap-2">
-                                <h2 className="text-lg">Eligible for a Peanut Perk!</h2>
+                                <h2 className="text-lg font-bold">Eligible for a Peanut Perk!</h2>
                                 <p className="text-sm text-gray-600">
                                     This bill can be covered by Peanut. Claim it now to unlock your reward.
                                 </p>
