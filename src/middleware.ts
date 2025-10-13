@@ -6,6 +6,11 @@ import maintenanceConfig from '@/config/underMaintenance.config'
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl
 
+    // Block /dev routes in production
+    if (process.env.NODE_ENV === 'production' && pathname.startsWith('/dev')) {
+        return NextResponse.redirect(new URL('/404', request.url))
+    }
+
     // check if full maintenance mode is enabled
     if (maintenanceConfig.enableFullMaintenance) {
         const allowedPaths = ['/', '/maintenance', '/apple-app-site-association', '/support']
@@ -83,5 +88,6 @@ export const config = {
         '/pay/:path*',
         '/p/:path*',
         '/link/:path*',
+        '/dev/:path*',
     ],
 }

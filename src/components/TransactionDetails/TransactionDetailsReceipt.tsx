@@ -340,7 +340,7 @@ export const TransactionDetailsReceipt = ({
             )}
 
             {/* Perk banner */}
-            {transaction.extraDataForDrawer?.perk?.claimed && (
+            {transaction.extraDataForDrawer?.perk?.claimed && transaction.status === 'completed' && (
                 <Card position="single" className="px-4 py-4">
                     <div className="flex items-center gap-3">
                         <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-yellow-400">
