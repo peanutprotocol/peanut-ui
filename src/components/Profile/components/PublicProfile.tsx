@@ -191,7 +191,19 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                 )}
 
                 {/* Show history to logged in users  */}
-                {isLoggedIn && <HomeHistory isPublic={false} username={username} />}
+                {isLoggedIn && (
+                    <div>
+                        <HomeHistory isPublic={false} username={username} />
+                        {isSelfProfile && (
+                            <div className="flex w-full items-center justify-center gap-2">
+                                <Icon name="info" size={16} className="text-grey-1" />
+                                <p className="text-center text-sm text-grey-1">
+                                    Activity is only visible for you, it is not public.
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 <ActionModal
                     icon="user"

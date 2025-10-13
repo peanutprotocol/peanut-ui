@@ -5,6 +5,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { copyTextToClipboardWithFallback } from '@/utils'
+import Image, { StaticImageData } from 'next/image'
 import { useCallback, useState } from 'react'
 
 interface CryptoDepositQRProps {
@@ -12,9 +13,18 @@ interface CryptoDepositQRProps {
     chainName: string
     depositAddress: string
     onBack: () => void
+    tokenIcon: StaticImageData | string
+    chainIcon: StaticImageData | string
 }
 
-export const CryptoDepositQR = ({ tokenName, chainName, depositAddress, onBack }: CryptoDepositQRProps) => {
+export const CryptoDepositQR = ({
+    tokenName,
+    chainName,
+    depositAddress,
+    onBack,
+    tokenIcon,
+    chainIcon,
+}: CryptoDepositQRProps) => {
     const [copied, setCopied] = useState(false)
 
     const handleCopyAddress = useCallback(() => {
@@ -34,7 +44,13 @@ export const CryptoDepositQR = ({ tokenName, chainName, depositAddress, onBack }
                         <AvatarWithBadge size="extra-small" className="bg-yellow-400" icon="wallet-outline" />
 
                         <div className="flex flex-col">
-                            <h3 className="font-semibold">{`Deposit ${tokenName} on ${chainName}`}</h3>
+                            <div className="inline-flex items-center gap-1 text-sm font-semibold md:text-base">
+                                <h3 className="inline">Deposit</h3>
+                                <Image src={tokenIcon} alt={tokenName} width={18} height={18} />
+                                <span>{tokenName} on</span>
+                                <Image src={chainIcon} alt={chainName} width={18} height={18} />
+                                <span>{chainName}</span>
+                            </div>
                             <p className="text-xs text-grey-1">Other tokens or networks will be lost</p>
                         </div>
                     </div>

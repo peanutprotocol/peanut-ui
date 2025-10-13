@@ -127,7 +127,9 @@ const AddMoneyCryptoPage = ({ headerTitle, onBack, depositAddress }: AddMoneyCry
         return (
             <CryptoDepositQR
                 tokenName={selectedToken.symbol}
+                tokenIcon={selectedToken.icon}
                 chainName={selectedNetwork.name}
+                chainIcon={selectedNetwork.iconUrl}
                 depositAddress={depositAddress ?? peanutWalletAddress}
                 onBack={() => router.back()}
             />
