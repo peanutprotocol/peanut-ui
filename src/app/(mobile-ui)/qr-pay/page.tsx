@@ -74,16 +74,18 @@ export default function QRPayPage() {
     const [isWaitingForWebSocket, setIsWaitingForWebSocket] = useState(false)
 
     const paymentProcessor: PaymentProcessor | null = useMemo(() => {
-        if (
-            qrType === EQrType.SIMPLEFI_STATIC ||
-            qrType === EQrType.SIMPLEFI_DYNAMIC ||
-            qrType === EQrType.SIMPLEFI_USER_SPECIFIED
-        ) {
-            return 'SIMPLEFI'
-        } else if (qrType === EQrType.MERCADO_PAGO || qrType === EQrType.ARGENTINA_QR3 || qrType === EQrType.PIX) {
-            return 'MANTECA'
+        switch (qrType) {
+            case EQrType.SIMPLEFI_STATIC:
+            case EQrType.SIMPLEFI_DYNAMIC:
+            case EQrType.SIMPLEFI_USER_SPECIFIED:
+                return 'SIMPLEFI'
+            case EQrType.MERCADO_PAGO:
+            case EQrType.ARGENTINA_QR3:
+            case EQrType.PIX:
+                return 'MANTECA'
+            default:
+                return null
         }
-        return null
     }, [qrType])
 
     const resetState = () => {
@@ -125,10 +127,10 @@ export default function QRPayPage() {
                     setSimpleFiPayment({
                         id: entry.uuid,
                         usdAmount: entry.amount,
-                        currency: entry.currency?.code || 'ARS',
-                        currencyAmount: entry.currency?.amount || '0',
-                        price: simpleFiPayment?.price || '1',
-                        address: simpleFiPayment?.address || ('0x0' as any),
+                        currency: entry.currency!.code,
+                        currencyAmount: entry.currency!.amount,
+                        price: simpleFiPayment!.price,
+                        address: simpleFiPayment!.address,
                     })
                     setIsSuccess(true)
                     setLoadingState('Idle')

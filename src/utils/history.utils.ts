@@ -68,7 +68,7 @@ export enum EHistoryStatus {
     approved = 'approved',
     pending = 'pending',
     refunded = 'refunded',
-    canceled = 'canceled',
+    canceled = 'canceled', // from simplefi, canceled with only one l
     expired = 'expired',
 }
 

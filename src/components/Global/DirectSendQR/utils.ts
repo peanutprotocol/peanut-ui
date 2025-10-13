@@ -63,6 +63,11 @@ const ARGENTINA_QR3_REGEX = /^(?=.*00020101021[12])(?=.*5303032)(?=.*5802AR)/i
 /* PIX is also a emvco qr code */
 const PIX_REGEX = /^.*000201.*0014br\.gov\.bcb\.pix.*5303986.*5802BR.*$/i
 
+/** Simplefi QR codes are urls, depending on the route and params we can
+ * infer the flow type and merchant slug.
+ *
+ * The flow type is static, dynamic or user_specified.
+ */
 export const SIMPLEFI_STATIC_REGEX =
     /^https:\/\/pagar\.simplefi\.tech\/(?<merchantSlug>[^\/]*)(\/static$|\?static\=true)/
 export const SIMPLEFI_USER_SPECIFIED_REGEX = /^https:\/\/pagar\.simplefi\.tech\/(?<merchantSlug>[^\/]*)$/

@@ -313,6 +313,8 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             direction = 'qr_payment'
             transactionCardType = 'pay'
             nameForDetails = entry.recipientAccount?.identifier || 'Merchant'
+            // We dont have merchant name so we try to prettify the slug,
+            // replacing dashws with speaces and making the first letter uppercase
             nameForDetails = nameForDetails.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
             isPeerActuallyUser = false
             break
