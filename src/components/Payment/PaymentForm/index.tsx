@@ -656,6 +656,7 @@ export const PaymentForm = ({
                     currency={currency}
                     hideCurrencyToggle={!currency}
                     hideBalance={isExternalWalletFlow}
+                    showSlider={flow === 'request_pay'}
                 />
 
                 {/*

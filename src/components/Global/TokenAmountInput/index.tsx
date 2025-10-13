@@ -5,6 +5,7 @@ import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'r
 import Icon from '../Icon'
 import { twMerge } from 'tailwind-merge'
 import { Icon as IconComponent } from '@/components/Global/Icons/Icon'
+import { Slider } from '../Slider'
 
 interface TokenAmountInputProps {
     className?: string
@@ -25,6 +26,7 @@ interface TokenAmountInputProps {
     hideBalance?: boolean
     showInfoText?: boolean
     infoText?: string
+    showSlider?: boolean
 }
 
 const TokenAmountInput = ({
@@ -42,6 +44,7 @@ const TokenAmountInput = ({
     hideBalance = false,
     infoText,
     showInfoText,
+    showSlider = false,
 }: TokenAmountInputProps) => {
     const { selectedTokenData } = useContext(tokenSelectorContext)
     const inputRef = useRef<HTMLInputElement>(null)
@@ -206,7 +209,7 @@ const TokenAmountInput = ({
     return (
         <form
             ref={formRef}
-            className={`relative cursor-text rounded-sm border border-n-1 bg-white p-2 dark:border-white ${className}`}
+            className={`relative cursor-text rounded-sm border border-n-1 bg-white p-4 dark:border-white ${className}`}
             action=""
             onClick={handleContainerClick}
         >
@@ -257,7 +260,6 @@ const TokenAmountInput = ({
                     </div>
                 )}
             </div>
-
             {/* Conversion toggle */}
             {showConversion && (
                 <div
@@ -285,6 +287,11 @@ const TokenAmountInput = ({
                 <div className="mx-auto flex w-fit items-center gap-2 rounded-full bg-grey-2 p-1.5">
                     <IconComponent name="info" size={12} className="text-grey-1" />
                     <p className="text-[10px] font-bold text-grey-1">{infoText}</p>
+                </div>
+            )}
+            {showSlider && (
+                <div className="mt-2 h-14">
+                    <Slider />
                 </div>
             )}
         </form>
