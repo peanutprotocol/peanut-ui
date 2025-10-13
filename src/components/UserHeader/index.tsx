@@ -94,7 +94,7 @@ export const VerifiedUserLabel = ({
                     address={username}
                 />
             ) : (
-                <div className={twMerge('font-semibold md:text-base', className)}>{'name'}</div>
+                <div className={twMerge('font-semibold md:text-base', className)}>{name}</div>
             )}
 
             {badge && (
