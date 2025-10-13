@@ -45,6 +45,14 @@ export default function ExchangeRatePage() {
             route = '/add-money'
         }
 
+        if (sourceCurrency === 'USD' && destinationCurrency === 'USD') {
+            const formattedBalance = parseFloat(printableUsdc(balance ?? 0n))
+            // Either redirect to a relevant page or show an error
+            // For now, routing to USA add-money page as an example
+            countryPath = countryCurrencyMappings.find((currency) => currency.currencyCode === 'USD')?.path
+            route = formattedBalance <= 0 ? '/add-money' : '/withdraw'
+        }
+
         if (!countryPath) {
             const redirectRoute = `${route}?currencyCode=EUR`
             router.push(redirectRoute)
@@ -63,7 +71,7 @@ export default function ExchangeRatePage() {
         <PageContainer className="flex flex-col">
             <NavHeader title="Exchange rate & fees" onPrev={() => router.replace('/profile')} />
             <div className="m-auto">
-                <ExchangeRateWidget ctaIcon="arrow-down" ctaLabel="Add money to try it" ctaAction={handleCtaAction} />
+                <ExchangeRateWidget ctaIcon="arrow-down" ctaLabel="Try it!" ctaAction={handleCtaAction} />
             </div>
         </PageContainer>
     )
