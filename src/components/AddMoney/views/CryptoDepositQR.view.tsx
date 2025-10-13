@@ -1,12 +1,12 @@
 'use client'
 import { Button } from '@/components/0_Bruddle/Button'
 import Card from '@/components/Global/Card'
+import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import NavHeader from '@/components/Global/NavHeader'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
-import { copyTextToClipboardWithFallback } from '@/utils'
 import Image, { StaticImageData } from 'next/image'
-import { useCallback, useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 interface CryptoDepositQRProps {
     tokenName: string
@@ -25,14 +25,7 @@ export const CryptoDepositQR = ({
     tokenIcon,
     chainIcon,
 }: CryptoDepositQRProps) => {
-    const [copied, setCopied] = useState(false)
-
-    const handleCopyAddress = useCallback(() => {
-        copyTextToClipboardWithFallback(depositAddress)
-        setCopied(true)
-        const timer = setTimeout(() => setCopied(false), 2000)
-        return () => clearTimeout(timer)
-    }, [depositAddress])
+    const router = useRouter()
 
     return (
         <div className="flex w-full flex-col justify-start space-y-8 pb-5 md:pb-0">
@@ -64,15 +57,18 @@ export const CryptoDepositQR = ({
                     <label htmlFor="deposit-address" className="text-sm font-bold text-black">
                         Your deposit address
                     </label>
-                    <Card className="px-4 py-3 text-xs text-grey-1">{depositAddress}</Card>
+                    <Card className="flex items-center justify-between px-4 py-3 text-xs text-grey-1">
+                        <p>{depositAddress}</p>
+
+                        <CopyToClipboard textToCopy={depositAddress} className="text-black" iconSize={'4'} />
+                    </Card>
                     <Button
                         variant="purple"
-                        onClick={handleCopyAddress}
-                        className="w-full"
-                        icon={copied ? 'check' : 'copy'}
+                        onClick={() => router.push('/home')}
+                        className="mt-4 w-full"
                         shadowSize="4"
                     >
-                        {copied ? 'Copied!' : 'Copy'}
+                        I did it!
                     </Button>
                 </div>
             </div>
