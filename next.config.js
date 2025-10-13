@@ -42,6 +42,18 @@ let nextConfig = {
                 config.ignoreWarnings = [{ module: /@opentelemetry\/instrumentation/, message: /Critical dependency/ }]
             }
         }
+
+        // Exclude dev pages from production builds for faster compilation
+        // regex matches src/app/(mobile-ui)/dev/....*
+        if (!dev && process.env.NODE_ENV === 'production') {
+            const { IgnorePlugin } = require('webpack')
+            config.plugins.push(
+                new IgnorePlugin({
+                    resourceRegExp: /src\/app\/\(mobile-ui\)\/dev/,
+                })
+            )
+        }
+
         return config
     },
     reactStrictMode: false,
