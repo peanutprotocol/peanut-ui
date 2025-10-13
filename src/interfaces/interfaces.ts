@@ -254,6 +254,7 @@ export interface User {
     bridgeCustomerId: string | null
     fullName: string
     telegram: string | null
+    hasAppAccess: boolean
     showFullName: boolean
     createdAt: string
     accounts: Account[]
@@ -300,6 +301,11 @@ export interface Account {
     referrals: ReferralConnection[]
 }
 
+interface userInvites {
+    inviteeId: string
+    inviteeUsername: string
+}
+
 export interface IUserProfile {
     points: number
     transactions: Transaction[]
@@ -319,6 +325,9 @@ export interface IUserProfile {
         totalReferrals: number
     }>
     totalReferralPoints: number
+    invitesSent: userInvites[]
+    showEarlyUserModal: boolean
+    invitedBy: string | null
 }
 
 interface Contact {

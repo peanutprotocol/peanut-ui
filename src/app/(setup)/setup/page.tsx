@@ -6,15 +6,14 @@ import { BeforeInstallPromptEvent, ScreenId, ISetupStep } from '@/components/Set
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useAppDispatch, useSetupStore } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
-import { useEffect, useState } from 'react'
-import ActionModal from '@/components/Global/ActionModal'
-import { IconName } from '@/components/Global/Icons/Icon'
+import { Suspense, useEffect, useState } from 'react'
 import { setupSteps as masterSetupSteps } from '../../../components/Setup/Setup.consts'
 import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal'
 import { isLikelyWebview, isDeviceOsSupported, getDeviceTypeForLogic } from '@/components/Setup/Setup.utils'
+import { getFromCookie } from '@/utils'
 
-export default function SetupPage() {
-    const { steps } = useSetupStore()
+function SetupPageContent() {
+    const { steps, inviteCode } = useSetupStore()
     const { step, handleNext, handleBack } = useSetupFlow()
     const [direction, setDirection] = useState(0)
     const [currentStepIndex, setCurrentStepIndex] = useState(0)
@@ -113,7 +112,16 @@ export default function SetupPage() {
                 determinedSetupInitialStepId = 'pwa-install'
             }
 
-            if (determinedSetupInitialStepId) {
+            const inviteCodeFromCookie = getFromCookie('inviteCode')
+
+            // invite code can also be store in cookies, so we need to check both
+            const userInviteCode = inviteCode || inviteCodeFromCookie
+
+            // If invite code is present, set the step to the signup screen
+            if (determinedSetupInitialStepId && userInviteCode) {
+                const signupScreenIndex = steps.findIndex((s: ISetupStep) => s.screenId === 'signup')
+                dispatch(setupActions.setStep(signupScreenIndex + 1))
+            } else if (determinedSetupInitialStepId) {
                 const initialStepIndex = steps.findIndex((s: ISetupStep) => s.screenId === determinedSetupInitialStepId)
                 if (initialStepIndex !== -1) {
                     dispatch(setupActions.setStep(initialStepIndex + 1))
@@ -206,5 +214,13 @@ export default function SetupPage() {
         >
             <step.component />
         </SetupWrapper>
+    )
+}
+
+export default function SetupPage() {
+    return (
+        <Suspense fallback={<PeanutLoading coverFullScreen />}>
+            <SetupPageContent />
+        </Suspense>
     )
 }

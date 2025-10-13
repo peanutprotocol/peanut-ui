@@ -95,7 +95,7 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
     return (
         <>
             <ToastContext.Provider value={contextValue}>
-                <div className={`fixed z-50 flex flex-col gap-2 ${getPositionClasses('bottom-right')}`}>
+                <div className={`fixed z-[99999] flex flex-col gap-2 ${getPositionClasses('bottom-right')}`}>
                     <AnimatePresence mode="sync">
                         {toasts.map((toast) => (
                             <Toast key={toast.id} {...toast} />

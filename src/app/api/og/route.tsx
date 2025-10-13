@@ -10,6 +10,7 @@ import { ReceiptCardOG } from '@/components/og/ReceiptCardOG'
 import { printableAddress, resolveAddressToUsername } from '@/utils'
 import { isAddress } from 'viem'
 import { ProfileCardOG } from '@/components/og/ProfileCardOG'
+import { InviteCardOG } from '@/components/og/InviteCardOG'
 
 export const runtime = 'nodejs' //node.js instead of edge!
 
@@ -68,6 +69,38 @@ export async function GET(req: NextRequest) {
     const token = searchParams.get('token') || null
     const isReceipt = searchParams.get('isReceipt') || 'false'
     const isPeanutUsername = searchParams.get('isPeanutUsername') || 'false'
+    const isInvite = searchParams.get('isInvite') || 'false'
+
+    // create an object with all arrow SVG paths
+    const arrowSrcs = {
+        topLeft: `${origin}/arrows/top-left-arrows.svg`,
+        topRight: `${origin}/arrows/top-right-arrow.svg`,
+        bottomLeft: `${origin}/arrows/bottom-left-arrow.svg`,
+        bottomRight: `${origin}/arrows/bottom-right-arrow.svg`,
+        topRight2: `${origin}/arrows/top-right-arrow-2.svg`,
+    }
+
+    if (isInvite === 'true') {
+        return new ImageResponse(
+            (
+                <InviteCardOG
+                    username={username}
+                    scribbleSrc={`${origin}/scribble.svg`}
+                    iconSrc={`${origin}/icons/peanut-icon.svg`}
+                    logoSrc={`${origin}/logos/peanut-logo.svg`}
+                    arrowSrcs={arrowSrcs}
+                />
+            ),
+            {
+                width: 1200,
+                height: 630,
+                fonts: [
+                    { name: 'Montserrat Medium', data: montserratMedium, style: 'normal' },
+                    { name: 'Montserrat SemiBold', data: montserratSemibold, style: 'normal' },
+                ],
+            }
+        )
+    }
 
     if (type === 'generic') {
         return new ImageResponse(<div style={{}}>Peanut Protocol</div>, {
@@ -111,14 +144,6 @@ export async function GET(req: NextRequest) {
         )
     }
     if (isReceipt === 'true') {
-        // create an object with all arrow SVG paths for receipts
-        const arrowSrcs = {
-            topLeft: `${origin}/arrows/top-left-arrows.svg`,
-            topRight: `${origin}/arrows/top-right-arrow.svg`,
-            bottomLeft: `${origin}/arrows/bottom-left-arrow.svg`,
-            bottomRight: `${origin}/arrows/bottom-right-arrow.svg`,
-        }
-
         const link: PaymentLink & { token?: string } = {
             type,
             username,
@@ -147,14 +172,6 @@ export async function GET(req: NextRequest) {
                 ],
             }
         )
-    }
-
-    // create an object with all arrow SVG paths
-    const arrowSrcs = {
-        topLeft: `${origin}/arrows/top-left-arrows.svg`,
-        topRight: `${origin}/arrows/top-right-arrow.svg`,
-        bottomLeft: `${origin}/arrows/bottom-left-arrow.svg`,
-        bottomRight: `${origin}/arrows/bottom-right-arrow.svg`,
     }
 
     const link: PaymentLink & { token?: string } = {

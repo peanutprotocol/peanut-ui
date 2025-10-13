@@ -8,7 +8,7 @@ import { fetchWithSentry, removeFromCookie, syncLocalStorageToCookie, clearRedir
 import { useAppKit } from '@reown/appkit/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { createContext, ReactNode, useContext, useState, useEffect } from 'react'
+import { createContext, ReactNode, useContext, useState, useEffect, useMemo } from 'react'
 import { captureException } from '@sentry/nextjs'
 
 interface AuthContextType {
@@ -36,6 +36,7 @@ interface AuthContextType {
     isFetchingUser: boolean
     logoutUser: () => Promise<void>
     isLoggingOut: boolean
+    invitedUsernamesSet: Set<string>
 }
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
@@ -53,7 +54,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const queryClient = useQueryClient()
     const LOCAL_STORAGE_WEB_AUTHN_KEY = 'web-authn-key'
 
-    const { data: user, isFetching: isFetchingUser, refetch: fetchUser } = useUserQuery(!authUser?.user.userId)
+    const { data: user, isLoading: isFetchingUser, refetch: fetchUser } = useUserQuery(!authUser?.user.userId)
+
+    // Pre-compute a Set of invited usernames for O(1) lookups
+    const invitedUsernamesSet = useMemo(() => {
+        if (!user?.invitesSent) return new Set<string>()
+        return new Set(user.invitesSent.map((invite) => invite.inviteeUsername))
+    }, [user?.invitesSent])
 
     useEffect(() => {
         if (user) {
@@ -173,6 +180,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 isFetchingUser,
                 logoutUser,
                 isLoggingOut,
+                invitedUsernamesSet,
             }}
         >
             {children}

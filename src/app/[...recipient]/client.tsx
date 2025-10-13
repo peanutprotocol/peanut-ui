@@ -410,6 +410,13 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         }
     }, [searchParams, parsedPaymentData, chargeDetails, requestType])
 
+    // reset payment state on unmount
+    useEffect(() => {
+        return () => {
+            dispatch(paymentActions.resetPaymentState())
+        }
+    }, [])
+
     if (error) {
         return (
             <div className="mx-auto h-full w-full space-y-8 self-center md:w-6/12">
@@ -494,6 +501,9 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                                 flow="request"
                                 requestLinkData={parsedPaymentData as ParsedURL}
                                 isLoggedIn={!!user?.user.userId}
+                                isInviteLink={
+                                    flow === 'request_pay' && parsedPaymentData?.recipient?.recipientType === 'USERNAME'
+                                } // invite link is only available for request pay flow
                             />
                         )}
                     </div>

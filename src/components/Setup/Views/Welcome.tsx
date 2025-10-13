@@ -24,10 +24,23 @@ const WelcomeStep = () => {
             const redirect_uri = searchParams.get('redirect_uri')
             if (redirect_uri) {
                 const sanitizedRedirectUrl = sanitizeRedirectURL(redirect_uri)
-                push(sanitizedRedirectUrl)
+                // Only redirect if the URL is safe (same-origin)
+                if (sanitizedRedirectUrl) {
+                    push(sanitizedRedirectUrl)
+                } else {
+                    // Reject external redirects, go to home instead
+                    push('/home')
+                }
             } else if (localStorageRedirect) {
                 localStorage.removeItem('redirect')
-                push(localStorageRedirect)
+                const sanitizedLocalRedirect = sanitizeRedirectURL(localStorageRedirect)
+                // Only redirect if the URL is safe (same-origin)
+                if (sanitizedLocalRedirect) {
+                    push(sanitizedLocalRedirect)
+                } else {
+                    // Reject external redirects, go to home instead
+                    push('/home')
+                }
             } else {
                 push('/home')
             }

@@ -46,6 +46,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 {/* Name */}
                 <VerifiedUserLabel
                     name={name}
+                    username={username}
                     isVerified={isVerified}
                     className="text-2xl font-bold"
                     iconSize={20}
