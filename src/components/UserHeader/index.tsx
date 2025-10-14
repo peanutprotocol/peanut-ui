@@ -9,9 +9,9 @@ import { twMerge } from 'tailwind-merge'
 import { Tooltip } from '../Tooltip'
 import { useMemo } from 'react'
 import { isAddress } from 'viem'
-import { printableAddress } from '@/utils'
 import useKycStatus from '@/hooks/useKycStatus'
 import { useAuth } from '@/context/authContext'
+import AddressLink from '../Global/AddressLink'
 
 interface UserHeaderProps {
     username: string
@@ -77,8 +77,8 @@ export const VerifiedUserLabel = ({
     }
 
     const isCryptoAddress = useMemo(() => {
-        return isAddress(name)
-    }, [name])
+        return isAddress(username)
+    }, [username])
 
     // O(1) lookup in pre-computed Set
     const isInvitedByLoggedInUser = invitedUsernamesSet.has(username)
@@ -87,9 +87,16 @@ export const VerifiedUserLabel = ({
 
     return (
         <div className="flex items-center gap-1.5">
-            <div className={twMerge('font-semibold md:text-base', className)}>
-                {isCryptoAddress ? printableAddress(name, 4, 4) : name}
-            </div>
+            {isCryptoAddress ? (
+                <AddressLink
+                    isLink={false}
+                    className={twMerge('font-semibold md:text-base', className)}
+                    address={username}
+                />
+            ) : (
+                <div className={twMerge('font-semibold md:text-base', className)}>{name}</div>
+            )}
+
             {badge && (
                 <Tooltip id="verified-user-label" content={tooltipContent} position="top">
                     {badge}
