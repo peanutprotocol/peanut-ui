@@ -13,6 +13,7 @@ import {
 import { StatusPillType } from '../Global/StatusPill'
 import type { Address } from 'viem'
 import { PEANUT_WALLET_CHAIN } from '@/constants'
+import { HistoryEntryPerk } from '@/services/services.types'
 
 /**
  * @fileoverview maps raw transaction history data from the api/hook to the format needed by ui components.
@@ -66,6 +67,7 @@ export interface TransactionDetails {
         fulfillmentType?: 'bridge' | 'wallet'
         bridgeTransferId?: string
         avatarUrl?: string
+        perk?: HistoryEntryPerk
         depositInstructions?: {
             amount: string
             currency: string
@@ -118,6 +120,7 @@ export interface TransactionDetails {
     claimedAt?: string | Date
     createdAt?: string | Date
     completedAt?: string | Date
+    points?: number
 }
 
 /**
@@ -490,6 +493,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             rewardData,
             fulfillmentType: entry.extraData?.fulfillmentType,
             bridgeTransferId: entry.extraData?.bridgeTransferId,
+            perk: entry.extraData?.perk as HistoryEntryPerk | undefined,
             depositInstructions:
                 entry.type === EHistoryEntryType.BRIDGE_ONRAMP || entry.extraData?.fulfillmentType === 'bridge'
                     ? entry.extraData?.depositInstructions
@@ -497,6 +501,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             receipt: entry.extraData?.receipt,
         },
         sourceView: 'history',
+        points: entry.points,
         bankAccountDetails:
             entry.type === EHistoryEntryType.BRIDGE_OFFRAMP ||
             (entry.type === EHistoryEntryType.BANK_SEND_LINK_CLAIM && entry.userRole === EHistoryUserRole.RECIPIENT)

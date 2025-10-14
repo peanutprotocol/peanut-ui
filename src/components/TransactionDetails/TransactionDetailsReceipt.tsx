@@ -16,10 +16,12 @@ import { cancelOnramp } from '@/app/actions/onramp'
 import { captureException } from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
+import Image from 'next/image'
 import React, { useMemo, useState, useEffect } from 'react'
 import { Button } from '../0_Bruddle'
 import DisplayIcon from '../Global/DisplayIcon'
 import { Icon } from '../Global/Icons/Icon'
+import { STAR_STRAIGHT_ICON } from '@/assets/icons'
 import QRCodeWrapper from '../Global/QRCodeWrapper'
 import ShareButton from '../Global/ShareButton'
 import { TransactionDetailsHeaderCard } from './TransactionDetailsHeaderCard'
@@ -161,7 +163,8 @@ export const TransactionDetailsReceipt = ({
                 transaction.extraDataForDrawer?.depositInstructions &&
                 transaction.extraDataForDrawer.depositInstructions.bank_name
             ),
-            peanutFee: transaction.status !== 'pending',
+            peanutFee: !!(transaction.extraDataForDrawer?.perk?.claimed && transaction.status !== 'pending'),
+            points: !!(transaction.points && transaction.points > 0),
             comment: !!transaction.memo?.trim(),
             networkFee: !!(transaction.networkFeeDetails && transaction.sourceView === 'status'),
             attachment: !!transaction.attachmentUrl,
@@ -254,13 +257,18 @@ export const TransactionDetailsReceipt = ({
                 const res = await fetch(
                     `https://api.coingecko.com/api/v3/coins/${chainName}/contract/${transaction.tokenAddress}`
                 )
+
+                if (!res.ok) {
+                    throw new Error(`CoinGecko API error: ${res.status} ${res.statusText}`)
+                }
+
                 const tokenDetails = await res.json()
                 setTokenData({
                     symbol: tokenDetails.symbol,
                     icon: tokenDetails.image.large,
                 })
             } catch (e) {
-                console.error(e)
+                console.error('Failed to fetch token details from CoinGecko:', e)
                 setTokenData(null)
             } finally {
                 setIsTokenDataLoading(false)
@@ -331,6 +339,23 @@ export const TransactionDetailsReceipt = ({
                 <QRCodeWrapper url={transaction.extraDataForDrawer.link} />
             )}
 
+            {/* Perk banner */}
+            {transaction.extraDataForDrawer?.perk?.claimed && transaction.status === 'completed' && (
+                <Card position="single" className="px-4 py-4">
+                    <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-yellow-400">
+                            <Image src={STAR_STRAIGHT_ICON} alt="Perk" width={22} height={22} />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <span className="font-semibold text-gray-900">Peanut got you!</span>
+                            <span className="text-sm text-gray-600">
+                                We sponsored this bill! Earn points, climb tiers, and unlock even better perks.
+                            </span>
+                        </div>
+                    </div>
+                </Card>
+            )}
+
             {/* transaction header card */}
             <TransactionDetailsHeaderCard
                 direction={transaction.direction}
@@ -343,6 +368,7 @@ export const TransactionDetailsReceipt = ({
                 transactionType={transaction.extraDataForDrawer?.transactionCardType}
                 avatarUrl={avatarUrl ?? getAvatarUrl(transaction)}
                 haveSentMoneyToUser={transaction.haveSentMoneyToUser}
+                hasPerk={!!transaction.extraDataForDrawer?.perk?.claimed}
             />
 
             {/* details card (date, fee, memo) and more */}
@@ -825,6 +851,18 @@ export const TransactionDetailsReceipt = ({
                             label="Peanut fee"
                             value={'Sponsored by Peanut!'}
                             hideBottomBorder={shouldHideBorder('peanutFee')}
+                        />
+                    )}
+                    {rowVisibilityConfig.points && transaction.points && (
+                        <PaymentInfoRow
+                            label="Points earned"
+                            value={
+                                <div className="flex items-center gap-2">
+                                    <Image src={STAR_STRAIGHT_ICON} alt="star" width={16} height={16} />
+                                    <span>{transaction.points}</span>
+                                </div>
+                            }
+                            hideBottomBorder={shouldHideBorder('points')}
                         />
                     )}
                     {rowVisibilityConfig.comment && (

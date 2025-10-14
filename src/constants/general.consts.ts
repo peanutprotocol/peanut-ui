@@ -207,3 +207,6 @@ export const STABLE_COINS = ['USDC', 'USDT', 'DAI', 'BUSD']
 
 export const ROUTE_NOT_FOUND_ERROR =
     'No route found for this token pair. You can try with a different token pair, or contact support.'
+
+// Perk claim UI constants
+export const PERK_HOLD_DURATION_MS = 1500 // 1.5 seconds hold duration for claiming perks

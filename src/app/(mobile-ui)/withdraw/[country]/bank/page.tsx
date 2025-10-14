@@ -13,7 +13,7 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { AccountType, Account } from '@/interfaces'
 import { formatIban, shortenStringLong, isTxReverted } from '@/utils/general.utils'
 import { useParams, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
 import { ErrorHandler, getBridgeChainName } from '@/utils'
 import { getOfframpCurrencyConfig } from '@/utils/bridge.utils'
@@ -21,6 +21,9 @@ import { createOfframp, confirmOfframp } from '@/app/actions/offramp'
 import { useAuth } from '@/context/authContext'
 import ExchangeRate from '@/components/ExchangeRate'
 import countryCurrencyMappings from '@/constants/countryCurrencyMapping'
+import { useQuery } from '@tanstack/react-query'
+import { pointsApi } from '@/services/points'
+import { PointsAction } from '@/services/services.types'
 
 type View = 'INITIAL' | 'SUCCESS'
 
@@ -39,6 +42,18 @@ export default function WithdrawBankPage() {
             country.toLowerCase() === currency.country.toLowerCase() ||
             currency.path?.toLowerCase() === country.toLowerCase()
     )?.currencyCode
+
+    // Calculate points API call
+    const { data: pointsData } = useQuery({
+        queryKey: ['calculate-points', 'withdraw', bankAccount?.id, amountToWithdraw],
+        queryFn: () =>
+            pointsApi.calculatePoints({
+                actionType: PointsAction.BRIDGE_TRANSFER,
+                usdAmount: Number(amountToWithdraw),
+            }),
+        enabled: !!(user?.user.userId && amountToWithdraw && bankAccount),
+        refetchOnWindowFocus: false,
+    })
 
     useEffect(() => {
         if (!amountToWithdraw) {
@@ -277,6 +292,7 @@ export default function WithdrawBankPage() {
                     isWithdrawFlow
                     currencyAmount={`$${amountToWithdraw}`}
                     message={bankAccount ? shortenStringLong(bankAccount.identifier.toUpperCase()) : ''}
+                    points={pointsData?.estimatedPoints}
                 />
             )}
         </div>

@@ -21,7 +21,7 @@ import { useRouter } from 'next/navigation'
 import { Banner } from '@/components/Global/Banner'
 
 // Allow access to some public paths without authentication
-const publicPathRegex = /^\/(request\/pay|claim|pay\/.+$|support|invite)/
+const publicPathRegex = /^\/(request\/pay|claim|pay\/.+$|support|invite|dev)/
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     const pathName = usePathname()

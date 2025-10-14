@@ -1,10 +1,16 @@
 // middleware.ts
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
+import { notFound } from 'next/navigation'
 import maintenanceConfig from '@/config/underMaintenance.config'
 
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl
+
+    // Block /dev/ routes in production, but allow /devin, /devouring etc
+    if (process.env.NODE_ENV === 'production' && pathname.startsWith('/dev/')) {
+        return notFound()
+    }
 
     // check if full maintenance mode is enabled
     if (maintenanceConfig.enableFullMaintenance) {
@@ -83,5 +89,6 @@ export const config = {
         '/pay/:path*',
         '/p/:path*',
         '/link/:path*',
+        '/dev/:path*',
     ],
 }

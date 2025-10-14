@@ -1,7 +1,7 @@
 'use client'
 
 import { useSearchParams, useRouter } from 'next/navigation'
-import { useState, useCallback, useMemo, useEffect, useContext } from 'react'
+import { useState, useCallback, useMemo, useEffect, useContext, useRef } from 'react'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/KycVerificationInProgressModal'
 import Card from '@/components/Global/Card'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -17,8 +17,9 @@ import PeanutLoading from '@/components/Global/PeanutLoading'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { clearRedirectUrl, getRedirectUrl, isTxReverted, saveRedirectUrl, formatNumberForDisplay } from '@/utils'
+import { getShakeClass, type ShakeIntensity } from '@/utils/perk.utils'
 import ErrorAlert from '@/components/Global/ErrorAlert'
-import { PEANUT_WALLET_TOKEN_DECIMALS, TRANSACTIONS } from '@/constants'
+import { PEANUT_WALLET_TOKEN_DECIMALS, TRANSACTIONS, PERK_HOLD_DURATION_MS } from '@/constants'
 import { MANTECA_DEPOSIT_ADDRESS } from '@/constants/manteca.consts'
 import { formatUnits, parseUnits } from 'viem'
 import type { TransactionReceipt, Hash } from 'viem'
@@ -36,6 +37,8 @@ import ActionModal from '@/components/Global/ActionModal'
 import { MantecaGeoSpecificKycModal } from '@/components/Kyc/InitiateMantecaKYCModal'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { useQueryClient } from '@tanstack/react-query'
+import { shootDoubleStarConfetti } from '@/utils/confetti'
+import { STAR_STRAIGHT_ICON } from '@/assets'
 import { useAuth } from '@/context/authContext'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import type { HistoryEntry } from '@/hooks/useTransactionHistory'
@@ -69,6 +72,13 @@ export default function QRPayPage() {
     const { isLoading, loadingState, setLoadingState } = useContext(loadingStateContext)
     const { shouldBlockPay, kycGateState } = useQrKycGate()
     const queryClient = useQueryClient()
+    const [isShaking, setIsShaking] = useState(false)
+    const [shakeIntensity, setShakeIntensity] = useState<ShakeIntensity>('none')
+    const [isClaimingPerk, setIsClaimingPerk] = useState(false)
+    const [perkClaimed, setPerkClaimed] = useState(false)
+    const [holdProgress, setHoldProgress] = useState(0)
+    const holdTimerRef = useRef<NodeJS.Timeout | null>(null)
+    const progressIntervalRef = useRef<NodeJS.Timeout | null>(null)
     const { user } = useAuth()
     const [pendingSimpleFiPaymentId, setPendingSimpleFiPaymentId] = useState<string | null>(null)
     const [isWaitingForWebSocket, setIsWaitingForWebSocket] = useState(false)
@@ -103,6 +113,23 @@ export default function QRPayPage() {
         setQrPayment(null)
         setCurrency(undefined)
         setLoadingState('Idle')
+        if (holdTimerRef.current) clearTimeout(holdTimerRef.current)
+        if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
+        setHoldProgress(0)
+        setIsShaking(false)
+        setShakeIntensity('none')
+    }
+
+    // Cleanup timers on unmount
+    useEffect(() => {
+        return () => {
+            if (holdTimerRef.current) clearTimeout(holdTimerRef.current)
+            if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
+        }
+    }, [])
+
+    // Reset SimpleFi payment state
+    const resetSimpleFiState = () => {
         setPendingSimpleFiPaymentId(null)
         setIsWaitingForWebSocket(false)
     }
@@ -304,12 +331,17 @@ export default function QRPayPage() {
         fetchSimpleFiPayment()
     }, [kycGateState, simpleFiPayment, simpleFiQrData, paymentProcessor, setLoadingState])
 
-    // fetch payment lock only when gating allows proceeding and we don't yet have a lock (Manteca)
+    // Fetch Manteca payment lock immediately on QR scan (Manteca only)
+    // OPTIMIZATION: We fetch payment details BEFORE KYC check completes for faster UX
+    // This is SAFE because:
+    // 1. We only fetch payment metadata (merchant info, amount) - no sensitive action
+    // 2. The actual payment action is blocked by shouldBlockPay (line 713 & 1109)
+    // 3. KYC modals are shown if needed before user can pay
+    // This reduces latency from 4-5s to <1s for KYC'd users
     useEffect(() => {
         if (paymentProcessor !== 'MANTECA') return
         if (!qrCode || !isPaymentProcessorQR(qrCode)) return
         if (!!paymentLock) return
-        if (kycGateState !== QrKycState.PROCEED_TO_PAY) return
 
         setLoadingState('Fetching details')
         mantecaApi
@@ -317,7 +349,7 @@ export default function QRPayPage() {
             .then((pl) => setPaymentLock(pl))
             .catch((error) => setErrorInitiatingPayment(error.message))
             .finally(() => setLoadingState('Idle'))
-    }, [kycGateState, paymentLock, qrCode, setLoadingState, paymentProcessor])
+    }, [paymentLock, qrCode, setLoadingState, paymentProcessor])
 
     const merchantName = useMemo(() => {
         if (paymentProcessor === 'SIMPLEFI') {
@@ -395,6 +427,7 @@ export default function QRPayPage() {
 
     const handleMantecaPayment = useCallback(async () => {
         if (!paymentLock || !qrCode || !currencyAmount) return
+
         let finalPaymentLock = paymentLock
         if (finalPaymentLock.code === '') {
             setLoadingState('Fetching details')
@@ -461,6 +494,135 @@ export default function QRPayPage() {
             await handleMantecaPayment()
         }
     }, [paymentProcessor, handleSimpleFiPayment, handleMantecaPayment])
+
+    // Hold-to-claim mechanics
+    const cancelHold = useCallback(() => {
+        if (holdTimerRef.current) clearTimeout(holdTimerRef.current)
+        if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
+        holdTimerRef.current = null
+        progressIntervalRef.current = null
+        setHoldProgress(0)
+        setIsShaking(false)
+        setShakeIntensity('none')
+
+        // Stop any ongoing vibration when user releases early
+        if ('vibrate' in navigator) {
+            navigator.vibrate(0)
+        }
+    }, [])
+
+    // DEV NOTE: This is an OPTIMISTIC claim flow for better UX
+    // We immediately show success UI and trigger confetti, then claim in background
+    // If claim fails, we show error post-factum but keep the user in success state
+    const claimPerk = useCallback(async () => {
+        if (!qrPayment?.externalId) return
+
+        // 1. IMMEDIATELY show success UI (optimistic)
+        setPerkClaimed(true)
+
+        // 2. Reset shake and show success with confetti RIGHT AWAY
+        setIsShaking(false)
+        setShakeIntensity('none')
+        setHoldProgress(0)
+
+        // 3. Final success haptic feedback - POWERFUL celebratory double pulse!
+        if ('vibrate' in navigator) {
+            navigator.vibrate([300, 100, 300])
+        }
+
+        // 4. Trigger confetti immediately
+        setTimeout(() => {
+            shootDoubleStarConfetti({ origin: { x: 0.5, y: 0.5 } })
+        }, 100)
+
+        // 5. NOW do the actual API claim in the background
+        setIsClaimingPerk(true)
+        try {
+            const result = await mantecaApi.claimPerk(qrPayment.externalId)
+            if (result.success) {
+                // Update qrPayment with actual claimed perk info from backend
+                setQrPayment({
+                    ...qrPayment,
+                    perk: {
+                        eligible: true,
+                        discountPercentage: result.perk.discountPercentage,
+                        claimed: true,
+                        amountSponsored: result.perk.amountSponsored,
+                        txHash: result.perk.txHash,
+                    },
+                })
+            }
+        } catch (error) {
+            // If claim fails, show error but keep user in success state
+            // (they already saw confetti, better UX than reverting)
+            captureException(error)
+            setErrorMessage('Perk claim is being processed. If you do not see it in your history, contact support.')
+        } finally {
+            setIsClaimingPerk(false)
+        }
+    }, [qrPayment])
+
+    const startHold = useCallback(() => {
+        setHoldProgress(0)
+        setIsShaking(true)
+
+        const startTime = Date.now()
+        let lastIntensity: 'weak' | 'medium' | 'strong' | 'intense' = 'weak'
+
+        // Update progress and shake intensity
+        const interval = setInterval(() => {
+            const elapsed = Date.now() - startTime
+            const progress = Math.min((elapsed / PERK_HOLD_DURATION_MS) * 100, 100)
+            setHoldProgress(progress)
+
+            // Progressive shake intensity with haptic feedback
+            let newIntensity: 'weak' | 'medium' | 'strong' | 'intense' = 'weak'
+            if (progress < 25) {
+                newIntensity = 'weak'
+            } else if (progress < 50) {
+                newIntensity = 'medium'
+            } else if (progress < 75) {
+                newIntensity = 'strong'
+            } else {
+                newIntensity = 'intense'
+            }
+
+            // Trigger haptic feedback when intensity changes
+            if (newIntensity !== lastIntensity && 'vibrate' in navigator) {
+                // Progressive vibration patterns that match shake intensity - MAX STRENGTH!
+                switch (newIntensity) {
+                    case 'weak':
+                        navigator.vibrate(50) // Short but noticeable pulse
+                        break
+                    case 'medium':
+                        navigator.vibrate([100, 40, 100]) // Medium pulse pattern
+                        break
+                    case 'strong':
+                        navigator.vibrate([150, 40, 150, 40, 150]) // Strong pulse pattern
+                        break
+                    case 'intense':
+                        navigator.vibrate([200, 40, 200, 40, 200, 40, 200]) // INTENSE pulse pattern
+                        break
+                }
+                lastIntensity = newIntensity
+            }
+
+            setShakeIntensity(newIntensity)
+
+            if (progress >= 100) {
+                clearInterval(interval)
+            }
+        }, 50)
+
+        progressIntervalRef.current = interval
+
+        // Complete after hold duration
+        const timer = setTimeout(() => {
+            claimPerk()
+        }, PERK_HOLD_DURATION_MS)
+
+        holdTimerRef.current = timer
+    }, [claimPerk])
 
     // Check user balance
     useEffect(() => {
@@ -638,78 +800,151 @@ export default function QRPayPage() {
         return null
     } else if (isSuccess && paymentProcessor === 'MANTECA' && qrPayment) {
         return (
-            <div className="flex min-h-[inherit] flex-col gap-8">
+            <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(isShaking, shakeIntensity)}`}>
                 <SoundPlayer sound="success" />
                 <NavHeader title="Pay" />
                 <div className="my-auto flex h-full flex-col justify-center space-y-4">
-                    <Card className="flex flex-row items-center gap-3 p-4">
-                        <div className="flex items-center gap-3">
-                            <div
-                                className={
-                                    'flex h-12 w-12 min-w-12 items-center justify-center rounded-full bg-success-3 font-bold'
-                                }
-                            >
-                                <Icon name="check" size={24} />
+                    {/* Only show payment card if perk was not claimed */}
+                    {!perkClaimed && !qrPayment?.perk?.claimed && (
+                        <Card className="flex flex-row items-center gap-3 p-4">
+                            <div className="flex items-center gap-3">
+                                <div
+                                    className={
+                                        'flex h-12 w-12 min-w-12 items-center justify-center rounded-full bg-success-3 font-bold'
+                                    }
+                                >
+                                    <Icon name="check" size={24} />
+                                </div>
                             </div>
-                        </div>
 
-                        <div className="space-y-1">
-                            <h1 className="text-sm font-normal text-grey-1">
-                                You paid {qrPayment!.details.merchant.name}
-                            </h1>
-                            <div className="text-2xl font-extrabold">
-                                {currency.symbol}{' '}
-                                {formatNumberForDisplay(qrPayment!.details.paymentAssetAmount, { maxDecimals: 2 })}
+                            <div className="space-y-1">
+                                <h1 className="text-sm font-normal text-grey-1">
+                                    You paid {qrPayment!.details.merchant.name}
+                                </h1>
+                                <div className="text-2xl font-extrabold">
+                                    {currency.symbol}{' '}
+                                    {formatNumberForDisplay(qrPayment!.details.paymentAssetAmount, { maxDecimals: 2 })}
+                                </div>
+                                <div className="text-lg font-bold">
+                                    ≈ {formatNumberForDisplay(usdAmount ?? undefined, { maxDecimals: 2 })} USD
+                                </div>
                             </div>
-                            <div className="text-lg font-bold">
-                                ≈ {formatNumberForDisplay(usdAmount ?? undefined, { maxDecimals: 2 })} USD
+                        </Card>
+                    )}
+
+                    {/* Perk Eligibility Card - Show before claiming */}
+                    {qrPayment?.perk?.eligible && !perkClaimed && !qrPayment.perk.claimed && (
+                        <Card className="flex items-start gap-3 bg-white p-4">
+                            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-yellow-400">
+                                <Image src={STAR_STRAIGHT_ICON} alt="star" width={24} height={24} />
                             </div>
-                        </div>
-                    </Card>
+                            <div className="flex flex-col gap-2">
+                                <h2 className="text-lg font-bold">Eligible for a Peanut Perk!</h2>
+                                <p className="text-sm text-gray-600">
+                                    This bill can be covered by Peanut. Claim it now to unlock your reward.
+                                </p>
+                            </div>
+                        </Card>
+                    )}
+
+                    {/* Perk Success Banner - Show after claiming */}
+                    {(perkClaimed || qrPayment?.perk?.claimed) && (
+                        <Card className="flex items-start gap-4 bg-white p-6">
+                            <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full bg-yellow-400">
+                                <Image src={STAR_STRAIGHT_ICON} alt="star" width={36} height={36} />
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                <h2 className="text-2xl font-bold">Peanut got you!</h2>
+                                <p className="text-base text-gray-900">
+                                    {qrPayment?.perk?.discountPercentage === 100
+                                        ? 'We sponsored this bill! Earn points, climb tiers and unlock even better perks.'
+                                        : `We gave you ${qrPayment?.perk?.discountPercentage}% off! Earn points, climb tiers and unlock even better perks.`}
+                                </p>
+                            </div>
+                        </Card>
+                    )}
+
                     <div className="w-full space-y-5">
-                        <Button
-                            onClick={() => {
-                                router.push('/home')
-                                resetState()
-                            }}
-                            shadowSize="4"
-                        >
-                            Back to home
-                        </Button>
-                        <Button
-                            variant="primary-soft"
-                            shadowSize="4"
-                            disabled={false}
-                            onClick={() => {
-                                const now = new Date()
-                                openTransactionDetails({
-                                    id: qrPayment!.id,
-                                    direction: 'qr_payment',
-                                    userName: qrPayment!.details.merchant.name,
-                                    fullName: qrPayment!.details.merchant.name,
-                                    amount: Number(usdAmount),
-                                    currency: {
-                                        amount: qrPayment!.details.paymentAssetAmount,
-                                        code: currency.code,
-                                    },
-                                    initials: 'QR',
-                                    currencySymbol: currency.symbol,
-                                    status: 'completed',
-                                    date: now,
-                                    createdAt: now,
-                                    extraDataForDrawer: {
-                                        originalType: EHistoryEntryType.MANTECA_QR_PAYMENT,
-                                        originalUserRole: EHistoryUserRole.SENDER,
-                                        avatarUrl: methodIcon,
-                                        receipt: {
-                                            exchange_rate: currency.price.toString(),
-                                        },
-                                    },
-                                })
-                            }}
-                        >
-                            See receipt
-                        </Button>
+                        {/* Show Claim Perk button if eligible and not claimed yet */}
+                        {qrPayment?.perk?.eligible && !perkClaimed && !qrPayment.perk.claimed ? (
+                            <Button
+                                onPointerDown={startHold}
+                                onPointerUp={cancelHold}
+                                onPointerLeave={cancelHold}
+                                onKeyDown={(e) => {
+                                    if ((e.key === 'Enter' || e.key === ' ') && !isClaimingPerk) {
+                                        e.preventDefault()
+                                        startHold()
+                                    }
+                                }}
+                                onKeyUp={(e) => {
+                                    if ((e.key === 'Enter' || e.key === ' ') && !isClaimingPerk) {
+                                        e.preventDefault()
+                                        cancelHold()
+                                    }
+                                }}
+                                shadowSize="4"
+                                disabled={isClaimingPerk}
+                                loading={isClaimingPerk}
+                                className="relative overflow-hidden"
+                            >
+                                {/* Black progress fill from left to right */}
+                                <div
+                                    className="absolute inset-0 bg-black transition-all duration-100"
+                                    style={{
+                                        width: `${holdProgress}%`,
+                                        left: 0,
+                                    }}
+                                />
+                                <span className="relative z-10">Claim Peanut Perk Now!</span>
+                            </Button>
+                        ) : (
+                            <>
+                                <Button
+                                    onClick={() => {
+                                        router.push('/home')
+                                        resetState()
+                                    }}
+                                    shadowSize="4"
+                                >
+                                    Back to home
+                                </Button>
+                                <Button
+                                    variant="primary-soft"
+                                    shadowSize="4"
+                                    disabled={false}
+                                    onClick={() => {
+                                        const now = new Date()
+                                        openTransactionDetails({
+                                            id: qrPayment!.id,
+                                            direction: 'qr_payment',
+                                            userName: qrPayment!.details.merchant.name,
+                                            fullName: qrPayment!.details.merchant.name,
+                                            amount: Number(usdAmount),
+                                            currency: {
+                                                amount: qrPayment!.details.paymentAssetAmount,
+                                                code: currency.code,
+                                            },
+                                            initials: 'QR',
+                                            currencySymbol: currency.symbol,
+                                            status: 'completed',
+                                            date: now,
+                                            createdAt: now,
+                                            extraDataForDrawer: {
+                                                originalType: EHistoryEntryType.MANTECA_QR_PAYMENT,
+                                                originalUserRole: EHistoryUserRole.SENDER,
+                                                avatarUrl: methodIcon,
+                                                receipt: {
+                                                    exchange_rate: currency.price.toString(),
+                                                },
+                                            },
+                                        })
+                                    }}
+                                >
+                                    See receipt
+                                </Button>
+                            </>
+                        )}
                     </div>
                 </div>
                 <TransactionDetailsDrawer
@@ -801,89 +1036,91 @@ export default function QRPayPage() {
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col gap-8">
-            <NavHeader title="Pay" />
+        <>
+            <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(isShaking, shakeIntensity)}`}>
+                <NavHeader title="Pay" />
 
-            {/* Payment Content */}
-            <div className="my-auto flex h-full flex-col justify-center space-y-4">
-                {/* Merchant Card */}
-                <Card className="p-4">
-                    <div className="flex items-center space-x-3">
-                        <div className="flex items-center justify-center rounded-full bg-white">
-                            <Image
-                                src={methodIcon}
-                                alt="Payment method"
-                                width={48}
-                                height={48}
-                                className="h-12 w-12 rounded-full object-cover"
-                            />
+                {/* Payment Content */}
+                <div className="my-auto flex h-full flex-col justify-center space-y-4">
+                    {/* Merchant Card */}
+                    <Card className="p-4">
+                        <div className="flex items-center space-x-3">
+                            <div className="flex items-center justify-center rounded-full bg-white">
+                                <Image
+                                    src={methodIcon}
+                                    alt="Payment method"
+                                    width={48}
+                                    height={48}
+                                    className="h-12 w-12 rounded-full object-cover"
+                                />
+                            </div>
+                            <div>
+                                <p className="flex items-center gap-1 text-center text-sm text-gray-600">
+                                    <Icon name="arrow-up-right" size={10} /> You're paying
+                                </p>
+                                <p className="text-xl font-semibold">{merchantName}</p>
+                            </div>
                         </div>
-                        <div>
-                            <p className="flex items-center gap-1 text-center text-sm text-gray-600">
-                                <Icon name="arrow-up-right" size={10} /> You're paying
-                            </p>
-                            <p className="text-xl font-semibold">{merchantName}</p>
-                        </div>
-                    </div>
-                </Card>
+                    </Card>
 
-                {/* Amount Card */}
-                {currency && (
-                    <TokenAmountInput
-                        tokenValue={amount}
-                        setTokenValue={setAmount}
-                        currency={currency}
+                    {/* Amount Card */}
+                    {currency && (
+                        <TokenAmountInput
+                            tokenValue={amount}
+                            setTokenValue={setAmount}
+                            currency={currency}
+                            disabled={
+                                !!qrPayment ||
+                                isLoading ||
+                                (paymentProcessor === 'MANTECA' && paymentLock?.code !== '') ||
+                                (paymentProcessor === 'SIMPLEFI' &&
+                                    simpleFiQrData?.type !== 'SIMPLEFI_USER_SPECIFIED' &&
+                                    !!simpleFiPayment)
+                            }
+                            walletBalance={balance ? formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS) : undefined}
+                            setCurrencyAmount={setCurrencyAmount}
+                            hideBalance
+                        />
+                    )}
+                    {balanceErrorMessage && <ErrorAlert description={balanceErrorMessage} />}
+
+                    {/* Information Card */}
+                    <Card className="space-y-0 px-4">
+                        <PaymentInfoRow
+                            label="Exchange Rate"
+                            value={`1 USD = ${currency.price} ${currency.code.toUpperCase()}`}
+                        />
+                        <PaymentInfoRow label="Peanut fee" value="Sponsored by Peanut!" hideBottomBorder />
+                    </Card>
+
+                    {/* Send Button */}
+                    <Button
+                        onClick={payQR}
+                        shadowSize="4"
+                        loading={isLoading || isWaitingForWebSocket}
                         disabled={
-                            !!qrPayment ||
+                            !!errorInitiatingPayment ||
+                            isBlockingError ||
+                            !amount ||
                             isLoading ||
-                            (paymentProcessor === 'MANTECA' && paymentLock?.code !== '') ||
-                            (paymentProcessor === 'SIMPLEFI' &&
-                                simpleFiQrData?.type !== 'SIMPLEFI_USER_SPECIFIED' &&
-                                !!simpleFiPayment)
+                            !!balanceErrorMessage ||
+                            shouldBlockPay ||
+                            !usdAmount ||
+                            usdAmount === '0.00' ||
+                            isWaitingForWebSocket
                         }
-                        walletBalance={balance ? formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS) : undefined}
-                        setCurrencyAmount={setCurrencyAmount}
-                        hideBalance
-                    />
-                )}
-                {balanceErrorMessage && <ErrorAlert description={balanceErrorMessage} />}
+                    >
+                        {isLoading || isWaitingForWebSocket
+                            ? isWaitingForWebSocket
+                                ? 'Processing Payment...'
+                                : loadingState
+                            : 'Pay'}
+                    </Button>
 
-                {/* Information Card */}
-                <Card className="space-y-0 px-4">
-                    <PaymentInfoRow
-                        label="Exchange Rate"
-                        value={`1 USD = ${currency.price} ${currency.code.toUpperCase()}`}
-                    />
-                    <PaymentInfoRow label="Peanut fee" value="Sponsored by Peanut!" hideBottomBorder />
-                </Card>
-
-                {/* Send Button */}
-                <Button
-                    onClick={payQR}
-                    shadowSize="4"
-                    loading={isLoading || isWaitingForWebSocket}
-                    disabled={
-                        !!errorInitiatingPayment ||
-                        isBlockingError ||
-                        !amount ||
-                        isLoading ||
-                        !!balanceErrorMessage ||
-                        shouldBlockPay ||
-                        !usdAmount ||
-                        usdAmount === '0.00' ||
-                        isWaitingForWebSocket
-                    }
-                >
-                    {isLoading || isWaitingForWebSocket
-                        ? isWaitingForWebSocket
-                            ? 'Processing Payment...'
-                            : loadingState
-                        : 'Pay'}
-                </Button>
-
-                {/* Error State */}
-                {errorMessage && <ErrorAlert description={errorMessage} />}
+                    {/* Error State */}
+                    {errorMessage && <ErrorAlert description={errorMessage} />}
+                </div>
             </div>
-        </div>
+        </>
     )
 }

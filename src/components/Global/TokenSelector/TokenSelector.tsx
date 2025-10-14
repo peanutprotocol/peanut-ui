@@ -25,7 +25,7 @@ import {
     TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS,
 } from './TokenSelector.consts'
 import { fetchWalletBalances } from '@/app/actions/tokens'
-import { Drawer, DrawerContent } from '../Drawer'
+import { Drawer, DrawerContent, DrawerTitle } from '../Drawer'
 
 interface SectionProps {
     title: string
@@ -574,6 +574,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
 
             <Drawer open={isDrawerOpen} onOpenChange={closeDrawer}>
                 <DrawerContent className="p-5">
+                    <DrawerTitle className="sr-only">Select Token and Network</DrawerTitle>
                     <div ref={contentRef} className="mx-auto md:max-w-2xl">
                         {showNetworkList ? (
                             <NetworkListView
