@@ -5,7 +5,7 @@ import { useWebSocket } from '@/hooks/useWebSocket'
 import { useUserStore } from '@/redux/hooks'
 import { BridgeKycStatus, convertPersonaUrl } from '@/utils'
 import { InitiateKycResponse } from '@/app/actions/types/users.types'
-import { getKycDetails } from '@/app/actions/users'
+import { getKycDetails, updateUserById } from '@/app/actions/users'
 import { IUserKycVerification } from '@/interfaces'
 
 interface UseKycFlowOptions {
@@ -137,6 +137,11 @@ export const useBridgeKycFlow = ({ onKycSuccess, flow, onManualClose }: UseKycFl
             if (source === 'completed') {
                 setIframeOptions((prev) => ({ ...prev, visible: false }))
                 setIsVerificationProgressModalOpen(true)
+                // set the status to under review explicitly to avoild delays from bridge webhook
+                updateUserById({
+                    userId: user?.user.userId,
+                    bridgeKycStatus: 'under_review' as BridgeKycStatus,
+                })
                 return
             }
 
