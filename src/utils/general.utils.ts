@@ -1214,18 +1214,27 @@ export const clearRedirectUrl = () => {
     }
 }
 
-export const sanitizeRedirectURL = (redirectUrl: string): string => {
+export const sanitizeRedirectURL = (redirectUrl: string): string | null => {
     try {
         const u = new URL(redirectUrl, window.location.origin)
+        // Only allow same-origin URLs
         if (u.origin === window.location.origin) {
             return u.pathname + u.search + u.hash
         }
+        console.log('Rejecting off-origin URL:', redirectUrl)
+        // Reject off-origin URLs
+        return null
     } catch {
-        if (redirectUrl.startsWith('/')) {
-            return redirectUrl
+        // For strings that can't be parsed as URLs, only allow relative paths
+        if (redirectUrl.startsWith('/') && !redirectUrl.startsWith('//')) {
+            // Additional check: ensure it doesn't contain a protocol
+            if (!redirectUrl.includes('://')) {
+                return redirectUrl
+            }
         }
+        // Reject anything else (including protocol-relative URLs like //evil.com)
+        return null
     }
-    return redirectUrl
 }
 
 export const formatPaymentStatus = (status: string): string => {
@@ -1328,4 +1337,22 @@ export const generateInviteCodeLink = (username: string) => {
     const inviteCode = `${username.toUpperCase()}INVITESYOU`
     const inviteLink = `${consts.BASE_URL}/invite?code=${inviteCode}`
     return { inviteLink, inviteCode }
+}
+
+export const getValidRedirectUrl = (redirectUrl: string, fallbackRoute: string) => {
+    let decodedRedirect = redirectUrl
+    try {
+        decodedRedirect = decodeURIComponent(redirectUrl)
+    } catch {
+        // if decoding URI fails, push to /login as fallback
+        return fallbackRoute
+    }
+    const sanitizedRedirectUrl = sanitizeRedirectURL(decodedRedirect)
+    // Only redirect if the URL is safe (same-origin)
+    if (sanitizedRedirectUrl) {
+        return sanitizedRedirectUrl
+    } else {
+        // Reject external redirects, go to home instead
+        return fallbackRoute
+    }
 }

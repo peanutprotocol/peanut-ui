@@ -3,31 +3,62 @@
 import { IconName } from '@/components/Global/Icons/Icon'
 import { useAuth } from '@/context/authContext'
 import { useEffect, useState } from 'react'
+import { useNotifications } from './useNotifications'
+import { useRouter } from 'next/navigation'
+import useKycStatus from './useKycStatus'
 
 export type Banner = {
     id: string
     title: string
     description: string
     icon: IconName
+    // optional handlers for notification banner
+    onClick?: () => void | Promise<void>
+    onClose?: () => void
+    isPermissionDenied?: boolean
 }
 
 export const useBanners = () => {
     const [banners, setBanners] = useState<Banner[]>([])
     const { user } = useAuth()
+    const { showReminderBanner, requestPermission, snoozeReminderBanner, afterPermissionAttempt, isPermissionDenied } =
+        useNotifications()
+    const router = useRouter()
+    const { isUserKycApproved } = useKycStatus()
 
     const generateBanners = () => {
         const _banners: Banner[] = []
-        if (user?.user.bridgeKycStatus !== 'approved') {
+
+        // add notification banner as first item if it should be shown
+        if (showReminderBanner) {
+            _banners.push({
+                id: 'notification-banner',
+                title: 'Stay in the loop!',
+                description: 'Turn on notifications and get alerts for all your wallet activity.',
+                icon: 'bell',
+                onClick: async () => {
+                    await requestPermission()
+                    await afterPermissionAttempt()
+                },
+                onClose: () => {
+                    snoozeReminderBanner()
+                },
+                isPermissionDenied,
+            })
+        }
+
+        if (!isUserKycApproved) {
             // TODO: Add manteca KYC check after manteca is implemented
             _banners.push({
                 id: 'kyc-banner',
                 title: 'Unlock bank & local payments',
                 description: 'Complete verification to add, withdraw or pay using Mercado Pago.',
                 icon: 'shield',
+                onClick: () => {
+                    router.push('/profile/identity-verification')
+                },
             })
         }
-
-        // TODO: Add notifications banner after notifications are implemented
 
         setBanners(_banners)
     }
@@ -39,7 +70,7 @@ export const useBanners = () => {
         }
 
         generateBanners()
-    }, [user])
+    }, [user, showReminderBanner, isPermissionDenied])
 
     return { banners, setBanners }
 }

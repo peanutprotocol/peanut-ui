@@ -48,7 +48,10 @@ export const PEANUT_API_URL = (
 
 export const PEANUT_API_KEY = process.env.PEANUT_API_KEY!
 
+export const IS_DEV = process.env.NODE_ENV === 'development'
 export const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://peanut.me'
+// URL for the frontend to call its own Next.js API routes (like /api/health/*)
+export const SELF_URL = IS_DEV ? 'http://localhost:3000' : BASE_URL
 export const next_proxy_url = '/api/proxy'
 
 export const supportedMobulaChains = <{ name: string; chainId: string }[]>[

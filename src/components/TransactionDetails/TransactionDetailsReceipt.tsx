@@ -39,6 +39,7 @@ import {
 } from '@/constants/manteca.consts'
 import { mantecaApi } from '@/services/manteca'
 import { getReceiptUrl } from '@/utils/history.utils'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
 
 export const TransactionDetailsReceipt = ({
     transaction,
@@ -95,6 +96,14 @@ export const TransactionDetailsReceipt = ({
         )
     }, [transaction])
 
+    // check if token is usdc on arbitrum to hide token/network section
+    const isPeanutWalletToken = useMemo(() => {
+        if (!transaction) return false
+        const tokenSymbol = transaction.tokenSymbol?.toUpperCase()
+        const chainName = transaction.tokenDisplayDetails?.chainName?.toLowerCase()
+        return tokenSymbol === PEANUT_WALLET_TOKEN_SYMBOL && chainName === PEANUT_WALLET_CHAIN.name.toLowerCase()
+    }, [transaction])
+
     // config to determine which rows are visible in the receipt
     // this helps in managing layout and borders without repeating code
     const rowVisibilityConfig = useMemo((): Record<TransactionDetailsRowKey, boolean> => {
@@ -116,6 +125,7 @@ export const TransactionDetailsReceipt = ({
             tokenAndNetwork: !!(
                 transaction.tokenDisplayDetails &&
                 transaction.sourceView === 'history' &&
+                !isPeanutWalletToken &&
                 // hide token and network for send links in acitvity drawer for sender
                 !(
                     transaction.extraDataForDrawer?.originalType === EHistoryEntryType.SEND_LINK &&
@@ -214,6 +224,7 @@ export const TransactionDetailsReceipt = ({
         if (
             [
                 EHistoryEntryType.MANTECA_QR_PAYMENT,
+                EHistoryEntryType.SIMPLEFI_QR_PAYMENT,
                 EHistoryEntryType.MANTECA_OFFRAMP,
                 EHistoryEntryType.MANTECA_ONRAMP,
             ].includes(transaction.extraDataForDrawer!.originalType)
@@ -261,47 +272,25 @@ export const TransactionDetailsReceipt = ({
 
     if (!transaction) return null
 
-    // format data for display with proper handling for different transaction types
-    let amountDisplay = ''
+    let usdAmount: number | bigint = 0
 
     if (transactionAmount) {
-        // if transactionAmount is provided (from TransactionCard), use it
-        amountDisplay = transactionAmount.replace(/[+-]/g, '').replace(/\$/, '$ ')
-    } else if (
-        (transaction.direction === 'bank_deposit' ||
-            transaction.direction === 'bank_withdraw' ||
-            transaction.direction === 'bank_request_fulfillment') &&
-        transaction.currency?.code &&
-        transaction.currency.code.toUpperCase() !== 'USD'
-    ) {
-        // handle bank deposits/withdrawals with non-USD currency
-        const isCompleted = transaction.status === 'completed'
-
-        if (isCompleted) {
-            // for completed transactions: show USD amount (amount is already in USD)
-            const amount = transaction.amount || 0
-            const numericAmount = typeof amount === 'bigint' ? Number(amount) : Number(amount)
-            amountDisplay = `$ ${formatAmount(isNaN(numericAmount) ? 0 : numericAmount)}`
-        } else {
-            // for non-completed transactions: show original currency
-            const currencyAmount = transaction.currency?.amount || transaction.amount.toString()
-            const numericAmount = Number(currencyAmount)
-            const currencySymbol = getDisplayCurrencySymbol(transaction.currency.code)
-            amountDisplay = `${currencySymbol} ${formatAmount(isNaN(numericAmount) ? 0 : numericAmount)}`
-        }
-    } else {
-        // default: use currency amount if provided, otherwise fallback to raw amount - never show token value, only USD
-        if (transaction.currency?.amount && transaction.currency?.code) {
-            const numericAmount = Number(transaction.currency.amount)
-            const amount = isNaN(numericAmount) ? 0 : numericAmount
-            const currencySymbol = getDisplayCurrencySymbol(transaction.currency.code)
-            amountDisplay = `${currencySymbol} ${formatAmount(amount)}`
-        } else {
-            const amount = transaction.amount || 0
-            const numericAmount = typeof amount === 'bigint' ? Number(amount) : Number(amount)
-            amountDisplay = `$ ${formatAmount(isNaN(numericAmount) ? 0 : numericAmount)}`
-        }
+        // if transactionAmount is provided as a string, parse it
+        const parsed = parseFloat(transactionAmount.replace(/[\+\-\$]/g, ''))
+        usdAmount = isNaN(parsed) ? 0 : parsed
+    } else if (transaction.amount !== undefined && transaction.amount !== null) {
+        // fallback to transaction.amount
+        usdAmount = transaction.amount
+    } else if (transaction.currency?.amount) {
+        // last fallback to currency amount
+        const parsed = parseFloat(String(transaction.currency.amount))
+        usdAmount = isNaN(parsed) ? 0 : parsed
     }
+
+    // ensure we have a valid number for display
+    const numericAmount = typeof usdAmount === 'bigint' ? Number(usdAmount) : usdAmount
+    const safeAmount = isNaN(numericAmount) || numericAmount === null || numericAmount === undefined ? 0 : numericAmount
+    const amountDisplay = `$ ${formatCurrency(Math.abs(safeAmount).toString())}`
 
     const feeDisplay = transaction.fee !== undefined ? formatAmount(transaction.fee as number) : 'N/A'
 
@@ -392,47 +381,52 @@ export const TransactionDetailsReceipt = ({
                                 {!isStableCoin(transaction.tokenSymbol ?? 'USDC') && (
                                     <PaymentInfoRow label="Token amount" value={transaction.amount} />
                                 )}
-                                <PaymentInfoRow
-                                    label="Token and network"
-                                    value={
-                                        isTokenDataLoading ? (
-                                            <div className="h-6 w-32 animate-pulse rounded bg-gray-200" />
-                                        ) : (
-                                            <div className="flex items-center gap-2">
-                                                <div className="relative flex h-6 w-6 min-w-[24px] items-center justify-center">
-                                                    {/* Main token icon */}
-                                                    <DisplayIcon
-                                                        iconUrl={tokenData.icon}
-                                                        altText={tokenData.symbol || 'token'}
-                                                        fallbackName={tokenData.symbol || 'T'}
-                                                        sizeClass="h-6 w-6"
-                                                    />
-                                                    {/* Smaller chain icon, absolutely positioned */}
-                                                    {transaction.tokenDisplayDetails.chainIconUrl && (
-                                                        <div className="absolute -bottom-1 -right-1">
-                                                            <DisplayIcon
-                                                                iconUrl={transaction.tokenDisplayDetails.chainIconUrl}
-                                                                altText={
-                                                                    transaction.tokenDisplayDetails.chainName || 'chain'
-                                                                }
-                                                                fallbackName={
-                                                                    transaction.tokenDisplayDetails.chainName || 'C'
-                                                                }
-                                                                sizeClass="h-3.5 w-3.5 text-[7px]"
-                                                                className="rounded-full border-2 border-white dark:border-grey-4"
-                                                            />
-                                                        </div>
-                                                    )}
+                                {!isPeanutWalletToken && (
+                                    <PaymentInfoRow
+                                        label="Token and network"
+                                        value={
+                                            isTokenDataLoading ? (
+                                                <div className="h-6 w-32 animate-pulse rounded bg-gray-200" />
+                                            ) : (
+                                                <div className="flex items-center gap-2">
+                                                    <div className="relative flex h-6 w-6 min-w-[24px] items-center justify-center">
+                                                        {/* Main token icon */}
+                                                        <DisplayIcon
+                                                            iconUrl={tokenData.icon}
+                                                            altText={tokenData.symbol || 'token'}
+                                                            fallbackName={tokenData.symbol || 'T'}
+                                                            sizeClass="h-6 w-6"
+                                                        />
+                                                        {/* Smaller chain icon, absolutely positioned */}
+                                                        {transaction.tokenDisplayDetails.chainIconUrl && (
+                                                            <div className="absolute -bottom-1 -right-1">
+                                                                <DisplayIcon
+                                                                    iconUrl={
+                                                                        transaction.tokenDisplayDetails.chainIconUrl
+                                                                    }
+                                                                    altText={
+                                                                        transaction.tokenDisplayDetails.chainName ||
+                                                                        'chain'
+                                                                    }
+                                                                    fallbackName={
+                                                                        transaction.tokenDisplayDetails.chainName || 'C'
+                                                                    }
+                                                                    sizeClass="h-3.5 w-3.5 text-[7px]"
+                                                                    className="rounded-full border-2 border-white dark:border-grey-4"
+                                                                />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <span>
+                                                        {tokenData.symbol.toUpperCase()} on{' '}
+                                                        {transaction.tokenDisplayDetails.chainName}
+                                                    </span>
                                                 </div>
-                                                <span>
-                                                    {tokenData.symbol.toUpperCase()} on{' '}
-                                                    {transaction.tokenDisplayDetails.chainName}
-                                                </span>
-                                            </div>
-                                        )
-                                    }
-                                    hideBottomBorder={shouldHideBorder('tokenAndNetwork')}
-                                />
+                                            )
+                                        }
+                                        hideBottomBorder={shouldHideBorder('tokenAndNetwork')}
+                                    />
+                                )}
                             </>
                         )}
 

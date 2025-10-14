@@ -15,10 +15,11 @@ import { Invite } from '@/services/services.types'
 import { generateInvitesShareText } from '@/utils'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
 
 const PointsPage = () => {
     const router = useRouter()
-    const { user } = useAuth()
+    const { user, fetchUser } = useAuth()
     const { data: invites, isLoading } = useQuery({
         queryKey: ['invites', user?.user.userId],
         queryFn: () => invitesApi.getInvites(),
@@ -29,6 +30,11 @@ const PointsPage = () => {
     const inviteCode = username ? `${username.toUpperCase()}INVITESYOU` : ''
     const inviteLink = `${process.env.NEXT_PUBLIC_BASE_URL}/invite?code=${inviteCode}`
 
+    useEffect(() => {
+        // Re-fetch user to get the latest invitees list for showing heart Icon
+        fetchUser()
+    }, [])
+
     if (isLoading) {
         return <PeanutLoading coverFullScreen />
     }
@@ -38,6 +44,18 @@ const PointsPage = () => {
             <NavHeader title="Invites" onPrev={() => router.back()} />
 
             <section className="mx-auto mb-auto mt-10 w-full space-y-4">
+                {user?.invitedBy && (
+                    <p className="text-sm">
+                        <span
+                            onClick={() => router.push(`/${user.invitedBy}`)}
+                            className="inline-flex cursor-pointer items-center gap-1 font-bold"
+                        >
+                            {user.invitedBy} <Icon name="invite-heart" size={14} />
+                        </span>{' '}
+                        invited you and earned points. Now it's your turn! Invite friends and get 20% of their points.
+                    </p>
+                )}
+
                 <h1 className="font-bold">Invite friends with your code</h1>
                 <div className="flex w-full items-center justify-between gap-3">
                     <Card className="flex w-full items-center justify-between py-3.5">

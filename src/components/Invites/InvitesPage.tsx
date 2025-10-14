@@ -13,14 +13,18 @@ import { useAppDispatch } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { useAuth } from '@/context/authContext'
 import { EInviteType } from '@/services/services.types'
+import { saveToCookie } from '@/utils'
+import { useLogin } from '@/hooks/useLogin'
 
 function InvitePageContent() {
     const searchParams = useSearchParams()
     const inviteCode = searchParams.get('code')
-    const { logoutUser, isLoggingOut } = useAuth()
+    const redirectUri = searchParams.get('redirect_uri')
+    const { user } = useAuth()
 
     const dispatch = useAppDispatch()
     const router = useRouter()
+    const { handleLoginClick, isLoggingIn } = useLogin()
 
     const {
         data: inviteCodeData,
@@ -36,7 +40,13 @@ function InvitePageContent() {
         if (inviteCode) {
             dispatch(setupActions.setInviteCode(inviteCode))
             dispatch(setupActions.setInviteType(EInviteType.PAYMENT_LINK))
-            router.push('/setup?step=signup')
+            saveToCookie('inviteCode', inviteCode) // Save to cookies as well, so that if user installs PWA, they can still use the invite code
+            if (redirectUri) {
+                const encodedRedirectUri = encodeURIComponent(redirectUri)
+                router.push('/setup?step=signup&redirect_uri=' + encodedRedirectUri)
+            } else {
+                router.push('/setup?step=signup')
+            }
         }
     }
 
@@ -76,9 +86,11 @@ function InvitePageContent() {
                             Claim your spot
                         </Button>
 
-                        <button disabled={isLoggingOut} onClick={logoutUser} className="text-sm underline">
-                            {isLoggingOut ? 'Please wait...' : 'Already have an account? Log in!'}
-                        </button>
+                        {!user?.user && (
+                            <button disabled={isLoggingIn} onClick={handleLoginClick} className="text-sm underline">
+                                {isLoggingIn ? 'Please wait...' : 'Already have an account? Log in!'}
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>

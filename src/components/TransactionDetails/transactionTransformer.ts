@@ -309,6 +309,15 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             nameForDetails = entry.recipientAccount?.identifier || 'Merchant'
             isPeerActuallyUser = false
             break
+        case EHistoryEntryType.SIMPLEFI_QR_PAYMENT:
+            direction = 'qr_payment'
+            transactionCardType = 'pay'
+            nameForDetails = entry.recipientAccount?.identifier || 'Merchant'
+            // We dont have merchant name so we try to prettify the slug,
+            // replacing dashws with speaces and making the first letter uppercase
+            nameForDetails = nameForDetails.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+            isPeerActuallyUser = false
+            break
         default:
             direction = 'send'
             transactionCardType = 'send'
@@ -370,10 +379,13 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             case 'SUCCESSFUL':
             case 'CLAIMED':
             case 'PAID':
+            case 'APPROVED':
                 uiStatus = 'completed'
                 break
             case 'FAILED':
             case 'ERROR':
+            case 'CANCELED':
+            case 'EXPIRED':
                 uiStatus = 'failed'
                 break
             case 'CANCELLED':

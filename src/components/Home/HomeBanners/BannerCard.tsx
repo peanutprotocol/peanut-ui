@@ -9,13 +9,19 @@ interface BannerCardProps {
     title: string
     description: string
     onClose: () => void
+    onClick?: () => void
 }
 
-const BannerCard = ({ title, description, icon, onClose }: BannerCardProps) => {
+const BannerCard = ({ title, description, icon, onClose, onClick }: BannerCardProps) => {
+    const handleClose = (e: React.MouseEvent) => {
+        e.stopPropagation()
+        onClose()
+    }
+
     return (
-        <Card className="embla__slide relative flex flex-row items-center justify-around p-2">
+        <Card onClick={onClick} className="embla__slide relative flex flex-row items-center justify-around p-2">
             <div className="absolute right-2 top-2">
-                <Icon onClick={onClose} name="cancel" size={10} />
+                <Icon onClick={handleClose} name="cancel" size={10} />
             </div>
 
             <div className="flex size-8  items-center justify-center rounded-full bg-primary-1">

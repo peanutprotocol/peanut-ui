@@ -9,7 +9,6 @@ import PeanutLoading from '@/components/Global/PeanutLoading'
 //import RewardsModal from '@/components/Global/RewardsModal'
 import HomeHistory from '@/components/Home/HomeHistory'
 //import RewardsCardModal from '@/components/Home/RewardsCardModal'
-import { SearchUsers } from '@/components/SearchUsers'
 import { UserHeader } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -38,6 +37,9 @@ import { PostSignupActionManager } from '@/components/Global/PostSignupActionMan
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
+import SetupNotificationsModal from '@/components/Notifications/SetupNotificationsModal'
+import { useNotifications } from '@/hooks/useNotifications'
+import NotificationNavigation from '@/components/Notifications/NotificationNavigation'
 import useKycStatus from '@/hooks/useKycStatus'
 import HomeBanners from '@/components/Home/HomeBanners'
 import InvitesIcon from '@/components/Home/InvitesIcon'
@@ -48,6 +50,7 @@ const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNI
 const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_EXPIRY ?? '1814400') // 21 days in seconds
 
 export default function Home() {
+    const { showPermissionModal } = useNotifications()
     const { balance, address, isFetchingBalance } = useWallet()
     const { resetFlow: resetClaimBankFlow } = useClaimBankFlow()
     const { resetWithdrawFlow } = useWithdrawFlow()
@@ -68,7 +71,7 @@ export default function Home() {
     const [showAddMoneyPromptModal, setShowAddMoneyPromptModal] = useState(false)
     const [showBalanceWarningModal, setShowBalanceWarningModal] = useState(false)
     // const [showReferralCampaignModal, setShowReferralCampaignModal] = useState(false)
-    const [showPostSignupActionModal, setShowPostSignupActionModal] = useState(false)
+    const [isPostSignupActionModalVisible, setIsPostSignupActionModalVisible] = useState(false)
 
     const userFullName = useMemo(() => {
         if (!user) return
@@ -129,7 +132,7 @@ export default function Home() {
                 !isStandalone &&
                 !hasSeenModalThisSession &&
                 !user?.hasPwaInstalled &&
-                !showPostSignupActionModal &&
+                !isPostSignupActionModalVisible &&
                 !redirectUrl
             ) {
                 setShowIOSPWAInstallModal(true)
@@ -138,7 +141,7 @@ export default function Home() {
                 setShowIOSPWAInstallModal(false)
             }
         }
-    }, [user?.hasPwaInstalled, showPostSignupActionModal, deviceType])
+    }, [user?.hasPwaInstalled, isPostSignupActionModalVisible, deviceType])
 
     // effect for showing balance warning modal
     useEffect(() => {
@@ -157,7 +160,7 @@ export default function Home() {
                 !hasSeenBalanceWarning &&
                 !showIOSPWAInstallModal &&
                 !showAddMoneyPromptModal &&
-                !showPostSignupActionModal
+                !isPostSignupActionModalVisible
             ) {
                 setShowBalanceWarningModal(true)
             }
@@ -189,33 +192,46 @@ export default function Home() {
 
     // effect for showing add money prompt modal
     useEffect(() => {
-        if (typeof window !== 'undefined' && !isFetchingBalance) {
-            const hasSeenAddMoneyPromptThisSession = sessionStorage.getItem('hasSeenAddMoneyPromptThisSession')
-            const showNoMoreJailModal = sessionStorage.getItem('showNoMoreJailModal')
+        if (typeof window === 'undefined' || isFetchingBalance || !user) return
+        const hasSeenAddMoneyPromptThisSession = sessionStorage.getItem('hasSeenAddMoneyPromptThisSession')
+        const showNoMoreJailModal = sessionStorage.getItem('showNoMoreJailModal')
 
-            // show if:
-            // 1. balance is zero.
-            // 2. user hasn't seen this prompt in the current session.
-            // 3. the iOS PWA install modal is not currently active.
-            // 4. the balance warning modal is not currently active.
-            // 5. the early user modal is not currently active.
-            // 6. the no more jail modal is not currently active.
-            // this allows the modal on any device (iOS/Android) and in any display mode (PWA/browser),
-            // as long as the PWA modal (which is iOS & browser-specific) isn't taking precedence.
-            if (
-                balance === 0n &&
-                !hasSeenAddMoneyPromptThisSession &&
-                !showIOSPWAInstallModal &&
-                !showBalanceWarningModal &&
-                !showPostSignupActionModal &&
-                showNoMoreJailModal !== 'true' &&
-                !user?.showEarlyUserModal // Give Early User and No more jail modal precedence, showing two modals together isn't ideal and it messes up their functionality
-            ) {
-                setShowAddMoneyPromptModal(true)
-                sessionStorage.setItem('hasSeenAddMoneyPromptThisSession', 'true')
-            }
+        // determine if we should show the add money modal based on all conditions
+        // show if:
+        // 1. balance is zero.
+        // 2. user hasn't seen this prompt in the current session.
+        // 3. setup notifications modal is not visible (priority: setup modal > add money prompt)
+        // 4. the iOS PWA install modal is not currently active.
+        // 5. the balance warning modal is not currently active.
+        // 6. no other post-signup modal is active
+        const shouldShow =
+            balance === 0n &&
+            !hasSeenAddMoneyPromptThisSession &&
+            !showPermissionModal &&
+            !showIOSPWAInstallModal &&
+            !showBalanceWarningModal &&
+            !isPostSignupActionModalVisible &&
+            showNoMoreJailModal !== 'true' &&
+            !user?.showEarlyUserModal // Give Early User and No more jail modal precedence, showing two modals together isn't ideal and it messes up their functionality
+
+        if (shouldShow) {
+            setShowAddMoneyPromptModal(true)
+            sessionStorage.setItem('hasSeenAddMoneyPromptThisSession', 'true')
+        } else if (showAddMoneyPromptModal && showPermissionModal) {
+            // priority enforcement: hide add money modal if notification modal appears
+            // this handles race conditions where both modals try to show simultaneously
+            setShowAddMoneyPromptModal(false)
         }
-    }, [balance, isFetchingBalance, showIOSPWAInstallModal, showBalanceWarningModal])
+    }, [
+        balance,
+        isFetchingBalance,
+        showPermissionModal,
+        showIOSPWAInstallModal,
+        showBalanceWarningModal,
+        isPostSignupActionModalVisible,
+        showAddMoneyPromptModal,
+        user,
+    ])
 
     if (isLoading) {
         return <PeanutLoading coverFullScreen />
@@ -226,11 +242,13 @@ export default function Home() {
             <div className="h-full w-full space-y-6 p-5">
                 <div className="flex items-center justify-between gap-2">
                     <UserHeader username={username!} fullName={userFullName} isVerified={isUserKycApproved} />
-                    <div className="flex items-center gap-2">
-                        <Link href="/points">
-                            <InvitesIcon />
-                        </Link>
-                        <SearchUsers />
+                    <div className="flex items-center">
+                        <div className="flex items-center gap-2">
+                            <Link href="/points">
+                                <InvitesIcon />
+                            </Link>
+                            {/* <NotificationNavigation /> */}
+                        </div>
                     </div>
                 </div>
                 <div className="space-y-4">
@@ -259,6 +277,8 @@ export default function Home() {
                 </div>
 
                 <HomeBanners />
+
+                {showPermissionModal && <SetupNotificationsModal />}
 
                 <HomeHistory username={username ?? undefined} />
                 {/* Render the new Rewards Modal
@@ -298,7 +318,7 @@ export default function Home() {
             {/* <FloatingReferralButton onClick={() => setShowReferralCampaignModal(true)} /> */}
 
             {/* Post Signup Action Modal */}
-            <PostSignupActionManager onActionModalVisibilityChange={setShowPostSignupActionModal} />
+            <PostSignupActionManager onActionModalVisibilityChange={setIsPostSignupActionModalVisible} />
         </PageContainer>
     )
 }

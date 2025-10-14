@@ -448,7 +448,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                 <CountryListRouter
                     flow="claim"
                     claimLinkData={claimLinkData}
-                    inputTitle="Which country do you want to receive to?"
+                    inputTitle="Select your bank account's country"
                 />
             )
         case ClaimBankFlowStep.BankDetailsForm:

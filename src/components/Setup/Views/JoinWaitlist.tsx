@@ -11,10 +11,8 @@ import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useAppDispatch } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { invitesApi } from '@/services/invites'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { getFromLocalStorage, sanitizeRedirectURL } from '@/utils'
 import ErrorAlert from '@/components/Global/ErrorAlert'
-import { useAuth } from '@/context/authContext'
+import { useLogin } from '@/hooks/useLogin'
 
 const JoinWaitlist = () => {
     const [inviteCode, setInviteCode] = useState('')
@@ -23,13 +21,10 @@ const JoinWaitlist = () => {
     const [isLoading, setisLoading] = useState(false)
     const [error, setError] = useState('')
 
-    const { handleLogin, isLoggingIn } = useZeroDev()
     const toast = useToast()
     const { handleNext } = useSetupFlow()
     const dispatch = useAppDispatch()
-    const router = useRouter()
-    const searchParams = useSearchParams()
-    const { user } = useAuth()
+    const { handleLoginClick, isLoggingIn } = useLogin()
 
     const validateInviteCode = async (inviteCode: string): Promise<boolean> => {
         try {
@@ -62,33 +57,11 @@ const JoinWaitlist = () => {
 
     const onLoginClick = async () => {
         try {
-            await handleLogin()
+            await handleLoginClick()
         } catch (e) {
             handleError(e)
         }
     }
-
-    // Wait for user to be fetched, then redirect
-    useEffect(() => {
-        if (user) {
-            const localStorageRedirect = getFromLocalStorage('redirect')
-            const redirect_uri = searchParams.get('redirect_uri')
-            if (redirect_uri) {
-                let decodedRedirect = redirect_uri
-                try {
-                    decodedRedirect = decodeURIComponent(redirect_uri)
-                } catch {}
-                const sanitizedRedirectUrl = sanitizeRedirectURL(decodedRedirect)
-                router.push(sanitizedRedirectUrl)
-            } else if (localStorageRedirect) {
-                localStorage.removeItem('redirect')
-                const sanitizedLocalRedirect = sanitizeRedirectURL(String(localStorageRedirect))
-                router.push(sanitizedLocalRedirect)
-            } else {
-                router.push('/home')
-            }
-        }
-    }, [user, router, searchParams])
 
     return (
         <div className="flex flex-col gap-4">

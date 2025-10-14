@@ -38,6 +38,7 @@ export const Profile = () => {
         <div className="h-full w-full bg-background">
             <NavHeader
                 hideLabel
+                showLogoutBtn
                 onPrev={() => {
                     // Check if the referrer is from the same domain (internal navigation)
                     const isInternalReferrer = checkIfInternalNavigation()
@@ -76,11 +77,7 @@ export const Profile = () => {
                             label="Identity Verification"
                             href="/profile/identity-verification"
                             onClick={() => {
-                                if (isUserKycApproved || isUserBridgeKycUnderReview) {
-                                    setIsKycApprovedModalOpen(true)
-                                } else {
-                                    setShowInitiateKycModal(true)
-                                }
+                                setShowInitiateKycModal(true)
                             }}
                             position="middle"
                             endIcon={isUserKycApproved ? 'check' : undefined}
