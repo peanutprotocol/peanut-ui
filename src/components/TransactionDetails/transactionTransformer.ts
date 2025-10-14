@@ -501,7 +501,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             receipt: entry.extraData?.receipt,
         },
         sourceView: 'history',
-        points: (entry as any).points,
+        points: entry.points,
         bankAccountDetails:
             entry.type === EHistoryEntryType.BRIDGE_OFFRAMP ||
             (entry.type === EHistoryEntryType.BANK_SEND_LINK_CLAIM && entry.userRole === EHistoryUserRole.RECIPIENT)

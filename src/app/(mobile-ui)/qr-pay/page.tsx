@@ -1,7 +1,7 @@
 'use client'
 
 import { useSearchParams, useRouter } from 'next/navigation'
-import { useState, useCallback, useMemo, useEffect, useContext } from 'react'
+import { useState, useCallback, useMemo, useEffect, useContext, useRef } from 'react'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/KycVerificationInProgressModal'
 import Card from '@/components/Global/Card'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -17,8 +17,9 @@ import PeanutLoading from '@/components/Global/PeanutLoading'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { clearRedirectUrl, getRedirectUrl, isTxReverted, saveRedirectUrl, formatNumberForDisplay } from '@/utils'
+import { getShakeClass, type ShakeIntensity } from '@/utils/perk.utils'
 import ErrorAlert from '@/components/Global/ErrorAlert'
-import { PEANUT_WALLET_TOKEN_DECIMALS, TRANSACTIONS } from '@/constants'
+import { PEANUT_WALLET_TOKEN_DECIMALS, TRANSACTIONS, PERK_HOLD_DURATION_MS } from '@/constants'
 import { MANTECA_DEPOSIT_ADDRESS } from '@/constants/manteca.consts'
 import { formatUnits, parseUnits } from 'viem'
 import type { TransactionReceipt, Hash } from 'viem'
@@ -72,12 +73,12 @@ export default function QRPayPage() {
     const { shouldBlockPay, kycGateState } = useQrKycGate()
     const queryClient = useQueryClient()
     const [isShaking, setIsShaking] = useState(false)
-    const [shakeIntensity, setShakeIntensity] = useState<'none' | 'weak' | 'medium' | 'strong' | 'intense'>('none')
+    const [shakeIntensity, setShakeIntensity] = useState<ShakeIntensity>('none')
     const [isClaimingPerk, setIsClaimingPerk] = useState(false)
     const [perkClaimed, setPerkClaimed] = useState(false)
     const [holdProgress, setHoldProgress] = useState(0)
-    const [holdTimer, setHoldTimer] = useState<NodeJS.Timeout | null>(null)
-    const [progressInterval, setProgressInterval] = useState<NodeJS.Timeout | null>(null)
+    const holdTimerRef = useRef<NodeJS.Timeout | null>(null)
+    const progressIntervalRef = useRef<NodeJS.Timeout | null>(null)
     const { user } = useAuth()
     const [pendingSimpleFiPaymentId, setPendingSimpleFiPaymentId] = useState<string | null>(null)
     const [isWaitingForWebSocket, setIsWaitingForWebSocket] = useState(false)
@@ -112,8 +113,8 @@ export default function QRPayPage() {
         setQrPayment(null)
         setCurrency(undefined)
         setLoadingState('Idle')
-        if (holdTimer) clearTimeout(holdTimer)
-        if (progressInterval) clearInterval(progressInterval)
+        if (holdTimerRef.current) clearTimeout(holdTimerRef.current)
+        if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
         setHoldProgress(0)
         setIsShaking(false)
         setShakeIntensity('none')
@@ -122,10 +123,10 @@ export default function QRPayPage() {
     // Cleanup timers on unmount
     useEffect(() => {
         return () => {
-            if (holdTimer) clearTimeout(holdTimer)
-            if (progressInterval) clearInterval(progressInterval)
+            if (holdTimerRef.current) clearTimeout(holdTimerRef.current)
+            if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
         }
-    }, [holdTimer, progressInterval])
+    }, [])
 
     // Reset SimpleFi payment state
     const resetSimpleFiState = () => {
@@ -495,13 +496,11 @@ export default function QRPayPage() {
     }, [paymentProcessor, handleSimpleFiPayment, handleMantecaPayment])
 
     // Hold-to-claim mechanics
-    const HOLD_DURATION = 1500 // 1.5 seconds
-
     const cancelHold = useCallback(() => {
-        if (holdTimer) clearTimeout(holdTimer)
-        if (progressInterval) clearInterval(progressInterval)
-        setHoldTimer(null)
-        setProgressInterval(null)
+        if (holdTimerRef.current) clearTimeout(holdTimerRef.current)
+        if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
+        holdTimerRef.current = null
+        progressIntervalRef.current = null
         setHoldProgress(0)
         setIsShaking(false)
         setShakeIntensity('none')
@@ -510,7 +509,7 @@ export default function QRPayPage() {
         if ('vibrate' in navigator) {
             navigator.vibrate(0)
         }
-    }, [holdTimer, progressInterval])
+    }, [])
 
     // DEV NOTE: This is an OPTIMISTIC claim flow for better UX
     // We immediately show success UI and trigger confetti, then claim in background
@@ -573,7 +572,7 @@ export default function QRPayPage() {
         // Update progress and shake intensity
         const interval = setInterval(() => {
             const elapsed = Date.now() - startTime
-            const progress = Math.min((elapsed / HOLD_DURATION) * 100, 100)
+            const progress = Math.min((elapsed / PERK_HOLD_DURATION_MS) * 100, 100)
             setHoldProgress(progress)
 
             // Progressive shake intensity with haptic feedback
@@ -615,32 +614,15 @@ export default function QRPayPage() {
             }
         }, 50)
 
-        setProgressInterval(interval)
+        progressIntervalRef.current = interval
 
         // Complete after hold duration
         const timer = setTimeout(() => {
             claimPerk()
-        }, HOLD_DURATION)
+        }, PERK_HOLD_DURATION_MS)
 
-        setHoldTimer(timer)
+        holdTimerRef.current = timer
     }, [claimPerk])
-
-    // Helper function to get shake CSS class based on intensity
-    const getShakeClass = () => {
-        if (!isShaking) return ''
-        switch (shakeIntensity) {
-            case 'weak':
-                return 'perk-shake-weak'
-            case 'medium':
-                return 'perk-shake-medium'
-            case 'strong':
-                return 'perk-shake-strong'
-            case 'intense':
-                return 'perk-shake-intense'
-            default:
-                return ''
-        }
-    }
 
     // Check user balance
     useEffect(() => {
@@ -818,7 +800,7 @@ export default function QRPayPage() {
         return null
     } else if (isSuccess && paymentProcessor === 'MANTECA' && qrPayment) {
         return (
-            <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass()}`}>
+            <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(isShaking, shakeIntensity)}`}>
                 <SoundPlayer sound="success" />
                 <NavHeader title="Pay" />
                 <div className="my-auto flex h-full flex-col justify-center space-y-4">
@@ -889,6 +871,18 @@ export default function QRPayPage() {
                                 onPointerDown={startHold}
                                 onPointerUp={cancelHold}
                                 onPointerLeave={cancelHold}
+                                onKeyDown={(e) => {
+                                    if ((e.key === 'Enter' || e.key === ' ') && !isClaimingPerk) {
+                                        e.preventDefault()
+                                        startHold()
+                                    }
+                                }}
+                                onKeyUp={(e) => {
+                                    if ((e.key === 'Enter' || e.key === ' ') && !isClaimingPerk) {
+                                        e.preventDefault()
+                                        cancelHold()
+                                    }
+                                }}
                                 shadowSize="4"
                                 disabled={isClaimingPerk}
                                 loading={isClaimingPerk}
@@ -1043,7 +1037,7 @@ export default function QRPayPage() {
 
     return (
         <>
-            <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass()}`}>
+            <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(isShaking, shakeIntensity)}`}>
                 <NavHeader title="Pay" />
 
                 {/* Payment Content */}

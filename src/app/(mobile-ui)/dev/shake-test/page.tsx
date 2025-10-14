@@ -5,16 +5,16 @@ import { Button } from '@/components/0_Bruddle/Button'
 import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
 import { shootDoubleStarConfetti } from '@/utils/confetti'
+import { getShakeClass, type ShakeIntensity } from '@/utils/perk.utils'
+import { PERK_HOLD_DURATION_MS } from '@/constants'
 
 export default function DevShakeTestPage() {
     const [isShaking, setIsShaking] = useState(false)
-    const [shakeIntensity, setShakeIntensity] = useState<'none' | 'weak' | 'medium' | 'strong' | 'intense'>('none')
+    const [shakeIntensity, setShakeIntensity] = useState<ShakeIntensity>('none')
     const [holdProgress, setHoldProgress] = useState(0)
     const [holdTimer, setHoldTimer] = useState<NodeJS.Timeout | null>(null)
     const [progressInterval, setProgressInterval] = useState<NodeJS.Timeout | null>(null)
     const [showSuccess, setShowSuccess] = useState(false)
-
-    const HOLD_DURATION = 1500 // 1.5 seconds
 
     const startHold = useCallback(() => {
         setHoldProgress(0)
@@ -27,7 +27,7 @@ export default function DevShakeTestPage() {
         // Update progress and shake intensity
         const interval = setInterval(() => {
             const elapsed = Date.now() - startTime
-            const progress = Math.min((elapsed / HOLD_DURATION) * 100, 100)
+            const progress = Math.min((elapsed / PERK_HOLD_DURATION_MS) * 100, 100)
             setHoldProgress(progress)
 
             // Progressive shake intensity with haptic feedback
@@ -88,7 +88,7 @@ export default function DevShakeTestPage() {
             setTimeout(() => {
                 shootDoubleStarConfetti({ origin: { x: 0.5, y: 0.5 } })
             }, 100)
-        }, HOLD_DURATION)
+        }, PERK_HOLD_DURATION_MS)
 
         setHoldTimer(timer)
     }, [])
@@ -113,25 +113,8 @@ export default function DevShakeTestPage() {
         setShowSuccess(false)
     }, [cancelHold])
 
-    // Get the appropriate shake class based on intensity
-    const getShakeClass = () => {
-        if (!isShaking) return ''
-        switch (shakeIntensity) {
-            case 'weak':
-                return 'perk-shake-weak'
-            case 'medium':
-                return 'perk-shake-medium'
-            case 'strong':
-                return 'perk-shake-strong'
-            case 'intense':
-                return 'perk-shake-intense'
-            default:
-                return ''
-        }
-    }
-
     return (
-        <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass()}`}>
+        <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(isShaking, shakeIntensity)}`}>
             <NavHeader title="🧪 Dev Shake Test" />
 
             <div className="my-auto flex h-full flex-col justify-center space-y-6 px-4">

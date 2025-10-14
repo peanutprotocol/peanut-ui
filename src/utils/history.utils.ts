@@ -127,6 +127,7 @@ export type HistoryEntry = {
     createdAt?: string | Date
     completedAt?: string | Date
     isVerified?: boolean
+    points?: number
 }
 
 export function isFinalState(transaction: Pick<HistoryEntry, 'status'>): boolean {
