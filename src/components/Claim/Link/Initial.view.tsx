@@ -50,6 +50,10 @@ import MantecaFlowManager from './MantecaFlowManager'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 
 export const InitialClaimLinkView = (props: IClaimScreenProps) => {
+    // get campaign tag from claim link url
+    const params = useSearchParams()
+    const campaignTag = params.get('campaign')
+
     const {
         onNext,
         claimLinkData,
@@ -168,9 +172,18 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 setLoadingState('Executing transaction')
                 if (isPeanutWallet) {
                     if (autoClaim) {
-                        await sendLinksApi.autoClaimLink(user?.user.username ?? address, claimLinkData.link)
+                        await sendLinksApi.autoClaimLink(
+                            user?.user.username ?? address,
+                            claimLinkData.link,
+                            campaignTag ?? undefined
+                        )
                     } else {
-                        await sendLinksApi.claim(user?.user.username ?? address, claimLinkData.link)
+                        await sendLinksApi.claim(
+                            user?.user.username ?? address,
+                            claimLinkData.link,
+                            false,
+                            campaignTag ?? undefined
+                        )
                     }
                     setClaimType('claim')
                     onCustom('SUCCESS')

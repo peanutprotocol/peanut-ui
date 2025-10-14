@@ -147,12 +147,18 @@ export const sendLinksApi = {
      * @param recipient - The recipient's address or username
      * @param link - The link to claim
      * @param destinationAddress - The destination address to claim the link to (for manteca claims)
+     * @param campaignTag - The campaign tag to claim the link for, helpful for badge awarding
      * @returns The claim link data
      */
-    claim: async (recipient: string, link: string, waitForTx: boolean = false): Promise<SendLink> => {
+    claim: async (
+        recipient: string,
+        link: string,
+        waitForTx: boolean = false,
+        campaignTag?: string
+    ): Promise<SendLink> => {
         const params = getParamsFromLink(link)
         const pubKey = generateKeysFromString(params.password).address
-        const response = await claimSendLink(pubKey, recipient, params.password, waitForTx)
+        const response = await claimSendLink(pubKey, recipient, params.password, waitForTx, campaignTag)
         if ('error' in response) {
             throw new Error(response.error)
         }
@@ -164,9 +170,10 @@ export const sendLinksApi = {
      *
      * @param recipient - The recipient's address or username
      * @param link - The link to claim
+     * @param campaignTag - The campaign tag to claim the link for, helpful for badge awarding
      * @returns The claim link data
      */
-    autoClaimLink: async (recipient: string, link: string): Promise<SendLink> => {
+    autoClaimLink: async (recipient: string, link: string, campaignTag?: string): Promise<SendLink> => {
         try {
             const params = getParamsFromLink(link)
             const pubKey = generateKeysFromString(params.password).address
@@ -177,6 +184,7 @@ export const sendLinksApi = {
                     pubKey,
                     recipient,
                     password: params.password,
+                    campaignTag,
                 }),
             })
 

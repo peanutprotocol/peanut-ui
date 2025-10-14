@@ -13,7 +13,7 @@ import { PEANUT_API_URL } from '@/constants'
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json()
-        const { pubKey, recipient, password } = body
+        const { pubKey, recipient, password, campaignTag } = body
 
         if (!pubKey || !recipient || !password) {
             return NextResponse.json(
@@ -31,6 +31,7 @@ export async function POST(request: NextRequest) {
             body: JSON.stringify({
                 recipient,
                 password,
+                campaignTag,
             }),
         })
 

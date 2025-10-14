@@ -87,7 +87,8 @@ export async function claimSendLink(
     pubKey: string,
     recipient: string,
     password: string,
-    waitForTx: boolean
+    waitForTx: boolean,
+    campaignTag?: string // optional campaign tag
 ): Promise<SendLink | { error: string }> {
     const response = await fetchWithSentry(`${PEANUT_API_URL}/send-links/${pubKey}/claim`, {
         method: 'POST',
@@ -99,6 +100,7 @@ export async function claimSendLink(
             recipient,
             password,
             waitForTx,
+            campaignTag,
         }),
     })
     if (!response.ok) {
