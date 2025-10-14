@@ -27,6 +27,7 @@ interface TokenAmountInputProps {
     showInfoText?: boolean
     infoText?: string
     showSlider?: boolean
+    maxAmount?: number
 }
 
 const TokenAmountInput = ({
@@ -45,6 +46,7 @@ const TokenAmountInput = ({
     infoText,
     showInfoText,
     showSlider = false,
+    maxAmount,
 }: TokenAmountInputProps) => {
     const { selectedTokenData } = useContext(tokenSelectorContext)
     const inputRef = useRef<HTMLInputElement>(null)
@@ -132,6 +134,17 @@ const TokenAmountInput = ({
             setTokenValue(tokenValue)
         },
         [displayMode, currency?.price, selectedTokenData?.price, calculateAlternativeValue]
+    )
+
+    const onSliderValueChange = useCallback(
+        (value: number[]) => {
+            if (maxAmount) {
+                const selectedPercentage = value[0]
+                const selectedAmount = (selectedPercentage / 100) * maxAmount
+                onChange(selectedAmount.toString(), true)
+            }
+        },
+        [maxAmount, onChange]
     )
 
     const showConversion = useMemo(() => {
@@ -225,6 +238,7 @@ const TokenAmountInput = ({
                             const value = formatAmountWithoutComma(e.target.value)
                             onChange(value, isInputUsd)
                         }}
+                        autoFocus
                         ref={inputRef}
                         inputMode="decimal"
                         type={inputType}
@@ -289,9 +303,12 @@ const TokenAmountInput = ({
                     <p className="text-[10px] font-bold text-grey-1">{infoText}</p>
                 </div>
             )}
-            {showSlider && (
+            {showSlider && maxAmount && (
                 <div className="mt-2 h-14">
-                    <Slider />
+                    <Slider
+                        onValueChange={onSliderValueChange}
+                        value={tokenValue ? [(parseFloat(tokenValue.replace(/,/g, '')) / maxAmount) * 100] : [0]}
+                    />
                 </div>
             )}
         </form>

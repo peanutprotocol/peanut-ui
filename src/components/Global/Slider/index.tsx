@@ -4,7 +4,7 @@ import * as React from 'react'
 import * as SliderPrimitive from '@radix-ui/react-slider'
 import { twMerge } from 'tailwind-merge'
 
-const PERCENTAGE_OPTIONS = [0, 33, 50, 100, 120]
+const PERCENTAGE_OPTIONS = [25, 33, 50, 100, 120]
 
 function Slider({
     className,
@@ -32,10 +32,14 @@ function Slider({
                 Math.abs(curr - newValue[0]) < Math.abs(prev - newValue[0]) ? curr : prev
             )
             const snappedArray = [snappedValue]
-            setInternalValue(snappedArray)
-            onValueChange?.(snappedArray)
+
+            // Only update if the value actually changed
+            if (internalValue[0] !== snappedValue) {
+                setInternalValue(snappedArray)
+                onValueChange?.(snappedArray)
+            }
         },
-        [onValueChange]
+        [onValueChange, internalValue]
     )
 
     return (
@@ -75,7 +79,11 @@ function Slider({
                         )}
                     >
                         <div className="absolute left-1/2 top-full z-20 mt-2 -translate-x-1/2 whitespace-nowrap text-xs text-black">
-                            {internalValue[index]}%
+                            {/* Show decimals only if there are any */}
+                            {internalValue[index] % 1 === 0
+                                ? internalValue[index].toFixed(0)
+                                : internalValue[index].toFixed(2)}
+                            %
                         </div>
                     </SliderPrimitive.Thumb>
                 ))}
