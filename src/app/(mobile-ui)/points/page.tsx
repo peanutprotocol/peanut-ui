@@ -99,9 +99,17 @@ const PointsPage = () => {
                             <div
                                 className="h-full animate-pulse rounded-full bg-primary-1 transition-all duration-200"
                                 style={{
-                                    width: `${Math.pow(tierInfo.data.totalPoints / tierInfo.data.nextTierThreshold, 0.6) * 100}%`,
+                                style={{
+                                    width: `${Math.pow(
+                                        Math.min(
+                                            1,
+                                            tierInfo.data.nextTierThreshold > 0
+                                                ? tierInfo.data.totalPoints / tierInfo.data.nextTierThreshold
+                                                : 1
+                                        ),
+                                        0.6
+                                    ) * 100}%`,
                                 }}
-                            />
                         </div>
                         <Image
                             src={getTierBadge(tierInfo?.data.currentTier + 1)}
