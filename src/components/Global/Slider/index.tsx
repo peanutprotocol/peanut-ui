@@ -4,7 +4,8 @@ import * as React from 'react'
 import * as SliderPrimitive from '@radix-ui/react-slider'
 import { twMerge } from 'tailwind-merge'
 
-const PERCENTAGE_OPTIONS = [25, 33, 50, 100, 120]
+const SNAP_POINTS = [25, 33, 50, 100]
+const SNAP_THRESHOLD = 5 // ±5% proximity to trigger snap
 
 function Slider({
     className,
@@ -23,20 +24,31 @@ function Slider({
         }
     }, [controlledValue])
 
-    const _values = React.useMemo(() => internalValue, [internalValue])
+    // Check if current value is at a snap point (exact match)
+    const activeSnapPoint = React.useMemo(() => {
+        return SNAP_POINTS.find((snapPoint) => Math.abs(internalValue[0] - snapPoint) < 0.5)
+    }, [internalValue])
 
-    // Snap to nearest percentage option during drag
+    // Soft snap to nearby snap points with ±5% threshold
     const handleValueChange = React.useCallback(
         (newValue: number[]) => {
-            const snappedValue = PERCENTAGE_OPTIONS.reduce((prev, curr) =>
-                Math.abs(curr - newValue[0]) < Math.abs(prev - newValue[0]) ? curr : prev
-            )
-            const snappedArray = [snappedValue]
+            const rawValue = newValue[0]
+            let finalValue = rawValue
+
+            // Check if we're within snap threshold of any snap point
+            for (const snapPoint of SNAP_POINTS) {
+                if (Math.abs(rawValue - snapPoint) <= SNAP_THRESHOLD) {
+                    finalValue = snapPoint
+                    break
+                }
+            }
+
+            const finalArray = [finalValue]
 
             // Only update if the value actually changed
-            if (internalValue[0] !== snappedValue) {
-                setInternalValue(snappedArray)
-                onValueChange?.(snappedArray)
+            if (internalValue[0] !== finalValue) {
+                setInternalValue(finalArray)
+                onValueChange?.(finalArray)
             }
         },
         [onValueChange, internalValue]
@@ -67,26 +79,29 @@ function Slider({
                 >
                     <SliderPrimitive.Range
                         data-slot="slider-range"
-                        className="absolute h-full rounded-full bg-primary-1"
+                        className="absolute h-full rounded-full bg-primary-1 transition-all duration-150 ease-out"
                     />
                 </SliderPrimitive.Track>
-                {Array.from({ length: _values.length }, (_, index) => (
-                    <SliderPrimitive.Thumb
-                        data-slot="slider-thumb"
-                        key={index}
-                        className={twMerge(
-                            'relative isolate block size-4 cursor-pointer rounded-full bg-white shadow-lg outline-none ring-0 transition-transform before:absolute before:left-1/2 before:top-1/2 before:z-[-10] before:h-6 before:w-1 before:-translate-x-1/2 before:-translate-y-1/2 before:rounded-full before:bg-primary-1 before:content-[""] after:absolute after:inset-0 after:z-10 after:rounded-full after:border-2 after:border-black after:bg-white after:content-[""] disabled:pointer-events-none disabled:opacity-50'
-                        )}
-                    >
-                        <div className="absolute left-1/2 top-full z-20 mt-2 -translate-x-1/2 whitespace-nowrap text-xs text-black">
-                            {/* Show decimals only if there are any */}
-                            {internalValue[index] % 1 === 0
-                                ? internalValue[index].toFixed(0)
-                                : internalValue[index].toFixed(2)}
-                            %
-                        </div>
-                    </SliderPrimitive.Thumb>
-                ))}
+
+                <SliderPrimitive.Thumb
+                    data-slot="slider-thumb"
+                    className={twMerge(
+                        'relative isolate block size-4 cursor-pointer rounded-full bg-white shadow-lg outline-none ring-0 transition-all duration-150 ease-out disabled:pointer-events-none disabled:opacity-50'
+                    )}
+                >
+                    {/* Vertical tick mark - only visible when at a snap point */}
+                    {activeSnapPoint !== undefined && (
+                        <div className="pointer-events-none absolute left-1/2 top-1/2 z-0 h-6 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary-1 transition-all duration-150" />
+                    )}
+
+                    {/* White circle with border on top of the tick */}
+                    <div className="absolute inset-0 z-10 rounded-full border-2 border-black bg-white" />
+
+                    {/* Current value label */}
+                    <div className="absolute left-1/2 top-full z-20 mt-2 -translate-x-1/2 whitespace-nowrap text-xs text-black">
+                        {internalValue[0] % 1 === 0 ? internalValue[0].toFixed(0) : internalValue[0].toFixed(2)}%
+                    </div>
+                </SliderPrimitive.Thumb>
             </SliderPrimitive.Root>
         </div>
     )

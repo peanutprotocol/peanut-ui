@@ -140,8 +140,8 @@ const TokenAmountInput = ({
         (value: number[]) => {
             if (maxAmount) {
                 const selectedPercentage = value[0]
-                const selectedAmount = (selectedPercentage / 100) * maxAmount
-                onChange(selectedAmount.toString(), true)
+                const selectedAmount = parseFloat(((selectedPercentage / 100) * maxAmount).toFixed(4)).toString()
+                onChange(selectedAmount, true)
             }
         },
         [maxAmount, onChange]
