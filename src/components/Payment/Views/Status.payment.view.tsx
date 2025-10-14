@@ -25,7 +25,7 @@ import { useRouter } from 'next/navigation'
 import { ReactNode, useEffect, useMemo, useRef } from 'react'
 import { useDispatch } from 'react-redux'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
-import { shootDoubleStarConfetti } from '@/utils/confetti'
+import { usePointsConfetti } from '@/hooks/usePointsConfetti'
 
 type DirectSuccessViewProps = {
     user?: ApiUser
@@ -163,22 +163,12 @@ const DirectSuccessView = ({
     ])
 
     const pointsDivRef = useRef<HTMLDivElement>(null)
+    usePointsConfetti(points, pointsDivRef)
 
     useEffect(() => {
         // invalidate queries to refetch history
         queryClient?.invalidateQueries({ queryKey: [TRANSACTIONS] })
     }, [queryClient])
-
-    useEffect(() => {
-        if (points && pointsDivRef.current) {
-            // Calculate position of points div relative to viewport
-            const rect = pointsDivRef.current.getBoundingClientRect()
-            const x = (rect.left + rect.width / 2) / window.innerWidth
-            const y = (rect.top + rect.height / 2) / window.innerHeight
-
-            shootDoubleStarConfetti({ origin: { x, y } })
-        }
-    }, [points])
 
     const handleDone = () => {
         onComplete?.()

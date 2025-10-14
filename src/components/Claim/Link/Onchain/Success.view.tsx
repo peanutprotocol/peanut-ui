@@ -21,7 +21,7 @@ import CreateAccountButton from '@/components/Global/CreateAccountButton'
 import { pointsApi } from '@/services/points'
 import { PointsAction } from '@/services/services.types'
 import PeanutLoading from '@/components/Global/PeanutLoading'
-import { shootDoubleStarConfetti } from '@/utils/confetti'
+import { usePointsConfetti } from '@/hooks/usePointsConfetti'
 
 export const SuccessClaimLinkView = ({
     transactionHash,
@@ -142,17 +142,7 @@ export const SuccessClaimLinkView = ({
     }
 
     const pointsDivRef = useRef<HTMLDivElement>(null)
-
-    useEffect(() => {
-        if (pointsData?.estimatedPoints && pointsDivRef.current) {
-            // Calculate position of points div relative to viewport
-            const rect = pointsDivRef.current.getBoundingClientRect()
-            const x = (rect.left + rect.width / 2) / window.innerWidth
-            const y = (rect.top + rect.height / 2) / window.innerHeight
-
-            shootDoubleStarConfetti({ origin: { x, y } })
-        }
-    }, [pointsData?.estimatedPoints])
+    usePointsConfetti(pointsData?.estimatedPoints, pointsDivRef)
 
     const renderButtons = () => {
         if (authUser?.user.userId) {
