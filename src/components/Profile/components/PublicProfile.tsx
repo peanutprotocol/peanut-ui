@@ -149,6 +149,9 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                     </div>
                 )}
 
+                {/* badges row */}
+                <BadgesRow badges={profileBadges} className="-mt-4" />
+
                 {/* Show create account box to guest users */}
                 {!isLoggedIn && (
                     <div className="relative flex flex-col items-center">
@@ -199,9 +202,6 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                         </div>
                     </div>
                 )}
-
-                {/* badges row */}
-                <BadgesRow badges={profileBadges} className="-mt-4" />
 
                 {/* Show history to logged in users  */}
                 {isLoggedIn && <HomeHistory isPublic={false} username={username} />}

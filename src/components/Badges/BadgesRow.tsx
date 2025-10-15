@@ -19,7 +19,6 @@ type UIBadge = {
 interface BadgesRowProps {
     badges: UIBadge[]
     className?: string
-    includeMocks?: boolean
 }
 
 /**
@@ -31,35 +30,19 @@ interface BadgesRowProps {
  * - Automatic sorting by earned date (newest first)
  * - Mock badges support for UI testing
  */
-export function BadgesRow({ badges, className, includeMocks = true }: BadgesRowProps) {
+export function BadgesRow({ badges, className }: BadgesRowProps) {
     const viewportRef = useRef<HTMLDivElement>(null)
     const [visibleCount, setVisibleCount] = useState<number>(4)
     const [startIdx, setStartIdx] = useState<number>(0)
 
-    /**
-     * Mock badges for stress-testing the UI
-     * Memoized to prevent recreation on every render
-     */
-    const MOCK_BADGES: UIBadge[] = useMemo(
-        () =>
-            Array.from({ length: 10 }, (_, i) => ({
-                code: `MOCK_${i + 1}`,
-                name: `Badge ${i + 1}`,
-                description: `badge ${i + 1} description`,
-                iconUrl: 'https://res.cloudinary.com/dtactyu3j/image/upload/v1759946769/beta-tester_he75gf.svg',
-                earnedAt: undefined,
-            })),
-        []
-    )
     // sort by earnedAt, newest first
     const sortedBadges = useMemo(() => {
-        const source = includeMocks ? [...badges, ...MOCK_BADGES] : badges
-        return source.sort((a, b) => {
+        return badges.sort((a, b) => {
             const at = a.earnedAt ? new Date(a.earnedAt).getTime() : 0
             const bt = b.earnedAt ? new Date(b.earnedAt).getTime() : 0
             return bt - at
         })
-    }, [badges, includeMocks, MOCK_BADGES])
+    }, [badges])
 
     // calculate how many badges can fit in the viewport
     // assumes each badge takes ~80px (64px icon + 16px gap)

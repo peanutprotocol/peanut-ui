@@ -16,6 +16,7 @@ import EmptyState from '../Global/EmptyStates/EmptyState'
 import { KycStatusItem } from '../Kyc/KycStatusItem'
 import { isKycStatusItem, KycHistoryEntry } from '@/hooks/useBridgeKycFlow'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { BadgeStatusItem, isBadgeHistoryItem } from '@/components/Badges/BadgeStatusItem'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 
 /**
@@ -83,6 +84,21 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
         if (!isLoading && historyData?.entries) {
             // Start with the fetched entries
             const entries: Array<HistoryEntry | KycHistoryEntry> = [...historyData.entries]
+
+            // inject badge entries using user's badges (newest first) and earnedAt chronology
+            const badges = user?.user?.badges ?? []
+            badges.forEach((b) => {
+                if (!b.earnedAt) return
+                entries.push({
+                    isBadge: true,
+                    uuid: `badge-${b.code}-${new Date(b.earnedAt).getTime()}`,
+                    timestamp: new Date(b.earnedAt).toISOString(),
+                    code: b.code,
+                    name: b.name,
+                    description: b.description ?? undefined,
+                    iconUrl: b.iconUrl ?? undefined,
+                } as any)
+            })
 
             // process websocket entries: update existing or add new ones
             // Sort by timestamp ascending to process oldest entries first
@@ -299,6 +315,11 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
                                     }
                                 />
                             )
+                        }
+
+                        // render badge milestone entries
+                        if (isBadgeHistoryItem(item)) {
+                            return <BadgeStatusItem key={item.uuid} position={position} entry={item} />
                         }
 
                         // map the raw history entry to the format needed by the ui components

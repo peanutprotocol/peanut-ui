@@ -13,6 +13,7 @@ import { useUserStore } from '@/redux/hooks'
 import { formatGroupHeaderDate, getDateGroup, getDateGroupKey } from '@/utils/dateGrouping.utils'
 import * as Sentry from '@sentry/nextjs'
 import { isKycStatusItem } from '@/hooks/useBridgeKycFlow'
+import { BadgeStatusItem, isBadgeHistoryItem } from '@/components/Badges/BadgeStatusItem'
 import React, { useEffect, useMemo, useRef } from 'react'
 
 /**
@@ -65,6 +66,21 @@ const HistoryPage = () => {
             return []
         }
         const entries: Array<any> = [...allEntries]
+
+        // inject badge items from user profile, placed by earnedAt
+        const badges = user?.user?.badges ?? []
+        badges.forEach((b) => {
+            if (!b.earnedAt) return
+            entries.push({
+                isBadge: true,
+                uuid: `badge-${b.code}-${new Date(b.earnedAt).getTime()}`,
+                timestamp: new Date(b.earnedAt).toISOString(),
+                code: b.code,
+                name: b.name,
+                description: b.description ?? undefined,
+                iconUrl: b.iconUrl ?? undefined,
+            })
+        })
 
         if (user) {
             if (user.user?.bridgeKycStatus && user.user.bridgeKycStatus !== 'not_started') {
@@ -167,6 +183,8 @@ const HistoryPage = () => {
                                         item.bridgeKycStatus ? user?.user.bridgeKycStartedAt : undefined
                                     }
                                 />
+                            ) : isBadgeHistoryItem(item) ? (
+                                <BadgeStatusItem position={position} entry={item} />
                             ) : (
                                 (() => {
                                     const { transactionDetails, transactionCardType } =
