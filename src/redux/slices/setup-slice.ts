@@ -2,6 +2,7 @@ import { ISetupStep } from '@/components/Setup/Setup.types'
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 import { SETUP } from '../constants'
 import { ISetupState } from '../types/setup.types'
+import { EInviteType } from '@/services/services.types'
 
 const initialState: ISetupState = {
     username: '',
@@ -10,6 +11,8 @@ const initialState: ISetupState = {
     isLoading: false,
     telegramHandle: '',
     steps: [],
+    inviteCode: '',
+    inviteType: EInviteType.DIRECT,
 }
 
 const setupSlice = createSlice({
@@ -26,6 +29,7 @@ const setupSlice = createSlice({
             state.direction = 0
             state.isLoading = false
             state.steps = []
+            state.inviteCode = ''
         },
         nextStep: (state) => {
             state.direction = 1
@@ -48,6 +52,12 @@ const setupSlice = createSlice({
         },
         setTelegramHandle: (state, action: PayloadAction<string>) => {
             state.telegramHandle = action.payload
+        },
+        setInviteCode: (state, action: PayloadAction<string>) => {
+            state.inviteCode = action.payload
+        },
+        setInviteType: (state, action: PayloadAction<EInviteType>) => {
+            state.inviteType = action.payload
         },
     },
 })

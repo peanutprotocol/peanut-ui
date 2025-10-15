@@ -1,21 +1,18 @@
 'use client'
 
-import { PeanutArmHoldingBeer } from '@/assets'
 import { Button, ButtonSize, ButtonVariant } from '@/components/0_Bruddle'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
-import Card from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
 import IOSInstallPWAModal from '@/components/Global/IOSInstallPWAModal'
 import Loading from '@/components/Global/Loading'
 import PeanutLoading from '@/components/Global/PeanutLoading'
-import RewardsModal from '@/components/Global/RewardsModal'
+//import RewardsModal from '@/components/Global/RewardsModal'
 import HomeHistory from '@/components/Home/HomeHistory'
-import RewardsCardModal from '@/components/Home/RewardsCardModal'
-import { SearchUsers } from '@/components/SearchUsers'
+//import RewardsCardModal from '@/components/Home/RewardsCardModal'
 import { UserHeader } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { useUserStore, useWalletStore } from '@/redux/hooks'
+import { useUserStore } from '@/redux/hooks'
 import {
     formatExtendedNumber,
     getUserPreferences,
@@ -25,9 +22,8 @@ import {
     saveToLocalStorage,
 } from '@/utils'
 import { useDisconnect } from '@reown/appkit/react'
-import Image from 'next/image'
 import Link from 'next/link'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { useAccount } from 'wagmi'
 import AddMoneyPromptModal from '@/components/Home/AddMoneyPromptModal'
@@ -41,26 +37,34 @@ import { PostSignupActionManager } from '@/components/Global/PostSignupActionMan
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
+import SetupNotificationsModal from '@/components/Notifications/SetupNotificationsModal'
+import { useNotifications } from '@/hooks/useNotifications'
+import NotificationNavigation from '@/components/Notifications/NotificationNavigation'
+import useKycStatus from '@/hooks/useKycStatus'
+import HomeBanners from '@/components/Home/HomeBanners'
+import InvitesIcon from '@/components/Home/InvitesIcon'
+import NoMoreJailModal from '@/components/Global/NoMoreJailModal'
+import EarlyUserModal from '@/components/Global/EarlyUserModal'
 
 const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
 const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_EXPIRY ?? '1814400') // 21 days in seconds
 
 export default function Home() {
-    const { balance, address, isFetchingBalance, isFetchingRewardBalance } = useWallet()
-    const { rewardWalletBalance } = useWalletStore()
-    const [isRewardsModalOpen, setIsRewardsModalOpen] = useState(false)
+    const { showPermissionModal } = useNotifications()
+    const { balance, address, isFetchingBalance } = useWallet()
     const { resetFlow: resetClaimBankFlow } = useClaimBankFlow()
     const { resetWithdrawFlow } = useWithdrawFlow()
     const { deviceType } = useDeviceType()
+    const { user } = useUserStore()
     const [isBalanceHidden, setIsBalanceHidden] = useState(() => {
-        const prefs = getUserPreferences()
+        const prefs = user ? getUserPreferences(user.user.userId) : undefined
         return prefs?.balanceHidden ?? false
     })
     const { isConnected: isWagmiConnected } = useAccount()
     const { disconnect: disconnectWagmi } = useDisconnect()
 
     const { isFetchingUser, addAccount } = useAuth()
-    const { user } = useUserStore()
+    const { isUserKycApproved } = useKycStatus()
     const username = user?.user.username
 
     const [showIOSPWAInstallModal, setShowIOSPWAInstallModal] = useState(false)
@@ -74,14 +78,19 @@ export default function Home() {
         return user.user.fullName
     }, [user])
 
-    const handleToggleBalanceVisibility = (e: React.MouseEvent<HTMLButtonElement>) => {
-        e.stopPropagation()
-        setIsBalanceHidden((prev: boolean) => {
-            const newValue = !prev
-            updateUserPreferences({ balanceHidden: newValue })
-            return newValue
-        })
-    }
+    const handleToggleBalanceVisibility = useCallback(
+        (e: React.MouseEvent<HTMLButtonElement>) => {
+            e.stopPropagation()
+            setIsBalanceHidden((prev: boolean) => {
+                const newValue = !prev
+                if (user) {
+                    updateUserPreferences(user.user.userId, { balanceHidden: newValue })
+                }
+                return newValue
+            })
+        },
+        [user]
+    )
 
     const isLoading = isFetchingUser && !username
 
@@ -136,7 +145,7 @@ export default function Home() {
 
     // effect for showing balance warning modal
     useEffect(() => {
-        if (isFetchingBalance || balance === undefined) return
+        if (isFetchingBalance || balance === undefined || !user) return
 
         if (typeof window !== 'undefined') {
             const hasSeenBalanceWarning = getFromLocalStorage(`${user!.user.userId}-hasSeenBalanceWarning`)
@@ -156,11 +165,11 @@ export default function Home() {
                 setShowBalanceWarningModal(true)
             }
         }
-    }, [balance, isFetchingBalance, showIOSPWAInstallModal, showAddMoneyPromptModal])
+    }, [balance, isFetchingBalance, showIOSPWAInstallModal, showAddMoneyPromptModal, user])
 
     // effect for showing balance warning modal
     useEffect(() => {
-        if (isFetchingBalance || balance === undefined) return
+        if (isFetchingBalance || balance === undefined || !user) return
 
         if (typeof window !== 'undefined') {
             const hasSeenBalanceWarning = getFromLocalStorage(`${user!.user.userId}-hasSeenBalanceWarning`)
@@ -179,32 +188,50 @@ export default function Home() {
                 setShowBalanceWarningModal(true)
             }
         }
-    }, [balance, isFetchingBalance, showIOSPWAInstallModal, showAddMoneyPromptModal])
+    }, [balance, isFetchingBalance, showIOSPWAInstallModal, showAddMoneyPromptModal, user])
 
     // effect for showing add money prompt modal
     useEffect(() => {
-        if (typeof window !== 'undefined' && !isFetchingBalance) {
-            const hasSeenAddMoneyPromptThisSession = sessionStorage.getItem('hasSeenAddMoneyPromptThisSession')
+        if (typeof window === 'undefined' || isFetchingBalance || !user) return
+        const hasSeenAddMoneyPromptThisSession = sessionStorage.getItem('hasSeenAddMoneyPromptThisSession')
+        const showNoMoreJailModal = sessionStorage.getItem('showNoMoreJailModal')
 
-            // show if:
-            // 1. balance is zero.
-            // 2. user hasn't seen this prompt in the current session.
-            // 3. the iOS PWA install modal is not currently active.
-            // 4. the balance warning modal is not currently active.
-            // this allows the modal on any device (iOS/Android) and in any display mode (PWA/browser),
-            // as long as the PWA modal (which is iOS & browser-specific) isn't taking precedence.
-            if (
-                balance === 0n &&
-                !hasSeenAddMoneyPromptThisSession &&
-                !showIOSPWAInstallModal &&
-                !showBalanceWarningModal &&
-                !isPostSignupActionModalVisible
-            ) {
-                setShowAddMoneyPromptModal(true)
-                sessionStorage.setItem('hasSeenAddMoneyPromptThisSession', 'true')
-            }
+        // determine if we should show the add money modal based on all conditions
+        // show if:
+        // 1. balance is zero.
+        // 2. user hasn't seen this prompt in the current session.
+        // 3. setup notifications modal is not visible (priority: setup modal > add money prompt)
+        // 4. the iOS PWA install modal is not currently active.
+        // 5. the balance warning modal is not currently active.
+        // 6. no other post-signup modal is active
+        const shouldShow =
+            balance === 0n &&
+            !hasSeenAddMoneyPromptThisSession &&
+            !showPermissionModal &&
+            !showIOSPWAInstallModal &&
+            !showBalanceWarningModal &&
+            !isPostSignupActionModalVisible &&
+            showNoMoreJailModal !== 'true' &&
+            !user?.showEarlyUserModal // Give Early User and No more jail modal precedence, showing two modals together isn't ideal and it messes up their functionality
+
+        if (shouldShow) {
+            setShowAddMoneyPromptModal(true)
+            sessionStorage.setItem('hasSeenAddMoneyPromptThisSession', 'true')
+        } else if (showAddMoneyPromptModal && showPermissionModal) {
+            // priority enforcement: hide add money modal if notification modal appears
+            // this handles race conditions where both modals try to show simultaneously
+            setShowAddMoneyPromptModal(false)
         }
-    }, [balance, isFetchingBalance, showIOSPWAInstallModal, showBalanceWarningModal])
+    }, [
+        balance,
+        isFetchingBalance,
+        showPermissionModal,
+        showIOSPWAInstallModal,
+        showBalanceWarningModal,
+        isPostSignupActionModalVisible,
+        showAddMoneyPromptModal,
+        user,
+    ])
 
     if (isLoading) {
         return <PeanutLoading coverFullScreen />
@@ -214,12 +241,15 @@ export default function Home() {
         <PageContainer>
             <div className="h-full w-full space-y-6 p-5">
                 <div className="flex items-center justify-between gap-2">
-                    <UserHeader
-                        username={username!}
-                        fullName={userFullName}
-                        isVerified={user?.user.bridgeKycStatus === 'approved'}
-                    />
-                    <SearchUsers />
+                    <UserHeader username={username!} fullName={userFullName} isVerified={isUserKycApproved} />
+                    <div className="flex items-center">
+                        <div className="flex items-center gap-2">
+                            <Link href="/points">
+                                <InvitesIcon />
+                            </Link>
+                            {/* <NotificationNavigation /> */}
+                        </div>
+                    </div>
                 </div>
                 <div className="space-y-4">
                     <ActionButtonGroup>
@@ -246,25 +276,28 @@ export default function Home() {
                     </ActionButtonGroup>
                 </div>
 
-                {/* Rewards Card - only shows if balance is non-zero */}
-                <div onClick={() => setIsRewardsModalOpen(true)} className="cursor-pointer">
-                    <RewardsCard
-                        balance={Math.floor(Number(rewardWalletBalance) ?? 0).toString() ?? '0'}
-                        isFetchingRewardBalance={isFetchingRewardBalance}
-                    />
-                </div>
+                <HomeBanners />
+
+                {showPermissionModal && <SetupNotificationsModal />}
 
                 <HomeHistory username={username ?? undefined} />
+                {/* Render the new Rewards Modal
                 <RewardsModal />
+                */}
 
-                {/* Render the new Rewards Card Modal */}
+                {/* Render the new Rewards Card Modal
                 <RewardsCardModal visible={isRewardsModalOpen} onClose={() => setIsRewardsModalOpen(false)} />
+                */}
             </div>
             {/* iOS PWA Install Modal */}
             <IOSInstallPWAModal visible={showIOSPWAInstallModal} onClose={() => setShowIOSPWAInstallModal(false)} />
 
             {/* Add Money Prompt Modal */}
             <AddMoneyPromptModal visible={showAddMoneyPromptModal} onClose={() => setShowAddMoneyPromptModal(false)} />
+
+            <NoMoreJailModal />
+
+            <EarlyUserModal />
 
             {/* Balance Warning Modal */}
             <BalanceWarningModal
@@ -414,42 +447,4 @@ function ActionButton({ label, action, variant = 'primary-soft', size = 'small' 
 
 function ActionButtonGroup({ children }: { children: React.ReactNode }) {
     return <div className="flex items-center justify-normal gap-4">{children}</div>
-}
-
-function RewardsCard({
-    balance,
-    isFetchingRewardBalance,
-}: {
-    balance: string | undefined
-    isFetchingRewardBalance: boolean
-}) {
-    if (!balance || balance === '0') return null
-
-    return (
-        <div className="mt-6 space-y-3">
-            <h2 className="font-bold">Rewards</h2>
-            <Card position="single">
-                <div className="flex w-full items-center justify-between font-roboto">
-                    <div className="flex items-center gap-3">
-                        <div
-                            className={
-                                'flex size-8 items-center justify-center rounded-full border border-black bg-white py-2.5 pl-3 pr-0.5'
-                            }
-                        >
-                            <Image
-                                src={PeanutArmHoldingBeer}
-                                alt="Peanut arm holding beer"
-                                className={twMerge('size-6 object-contain')}
-                                width={24}
-                                height={24}
-                            />
-                        </div>
-
-                        <span className="text-sm font-medium">Beers</span>
-                    </div>
-                    <span className="text-sm font-medium">{isFetchingRewardBalance ? <Loading /> : balance}</span>
-                </div>
-            </Card>
-        </div>
-    )
 }

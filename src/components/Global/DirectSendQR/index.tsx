@@ -174,11 +174,13 @@ export default function DirectSendQr({
     className = '',
     ctaTitle,
     iconClassName,
+    disabled = false,
 }: {
     className?: string
     ctaTitle?: string
     icon?: IconName
     iconClassName?: string
+    disabled?: boolean
 }) {
     const [isQRScannerOpen, setIsQRScannerOpen] = useState(false)
     const [isModalOpen, setIsModalOpen] = useState(false)
@@ -254,11 +256,6 @@ export default function DirectSendQr({
                     redirectUrl = path
                 }
                 break
-            case EQrType.PINTA_MERCHANT:
-                {
-                    redirectUrl = `/${data}@polygon/PNT`
-                }
-                break
             case EQrType.EVM_ADDRESS:
                 {
                     toConfirmUrl = `/${data}`
@@ -294,9 +291,19 @@ export default function DirectSendQr({
                 }
                 break
             case EQrType.MERCADO_PAGO:
+            case EQrType.ARGENTINA_QR3:
+            case EQrType.PIX:
+            case EQrType.SIMPLEFI_STATIC:
+            case EQrType.SIMPLEFI_DYNAMIC:
+            case EQrType.SIMPLEFI_USER_SPECIFIED:
+                {
+                    const timestamp = Date.now()
+                    // Casing matters, so send original instead of normalized
+                    redirectUrl = `/qr-pay?qrCode=${encodeURIComponent(originalData)}&t=${timestamp}&type=${qrType}`
+                }
+                break
             case EQrType.BITCOIN_ONCHAIN:
             case EQrType.BITCOIN_INVOICE:
-            case EQrType.PIX:
             case EQrType.TRON_ADDRESS:
             case EQrType.SOLANA_ADDRESS:
             case EQrType.XRP_ADDRESS: {
@@ -403,6 +410,7 @@ export default function DirectSendQr({
                     'mx-auto h-20 w-20 cursor-pointer justify-center rounded-full p-0 hover:bg-primary-1/100',
                     className
                 )}
+                disabled={disabled}
             >
                 <Icon name={icon} className={twMerge('custom-size', iconClassName)} />
                 {ctaTitle && ctaTitle}

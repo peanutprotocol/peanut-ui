@@ -1,35 +1,37 @@
 import { getTokenSymbol, validateEnsName, getTokenDecimals } from '@/utils'
 import { isAddress, formatUnits } from 'viem'
 
-// Constants
-const PINTA_MERCHANTS: Record<string, string> = {
-    '0x0ff60f43e8c04d57c7374537d8432da8fedbb41d': 'Casa Temple',
-}
-
 export enum EQrType {
     PEANUT_URL = 'PEANUT_URL',
     ENS_NAME = 'ENS_NAME',
-    PINTA_MERCHANT = 'PINTA_MERCHANT',
     EVM_ADDRESS = 'EVM_ADDRESS',
     URL = 'URL',
     EIP_681 = 'EIP_681',
     MERCADO_PAGO = 'MERCADO_PAGO',
+    ARGENTINA_QR3 = 'ARGENTINA_QR3',
     BITCOIN_ONCHAIN = 'BITCOIN_ONCHAIN',
     BITCOIN_INVOICE = 'BITCOIN_INVOICE',
     PIX = 'PIX',
     TRON_ADDRESS = 'TRON_ADDRESS',
     SOLANA_ADDRESS = 'SOLANA_ADDRESS',
     XRP_ADDRESS = 'XRP_ADDRESS',
+    SIMPLEFI_STATIC = 'SIMPLEFI_STATIC',
+    SIMPLEFI_DYNAMIC = 'SIMPLEFI_DYNAMIC',
+    SIMPLEFI_USER_SPECIFIED = 'SIMPLEFI_USER_SPECIFIED',
 }
 
 export const NAME_BY_QR_TYPE: { [key in QrType]?: string } = {
     [EQrType.MERCADO_PAGO]: 'Mercado Pago',
+    [EQrType.ARGENTINA_QR3]: 'QR Interoperable',
     [EQrType.BITCOIN_ONCHAIN]: 'Bitcoin',
     [EQrType.BITCOIN_INVOICE]: 'Bitcoin',
     [EQrType.PIX]: 'PIX',
     [EQrType.TRON_ADDRESS]: 'Tron',
     [EQrType.SOLANA_ADDRESS]: 'Solana',
     [EQrType.XRP_ADDRESS]: 'Ripple',
+    [EQrType.SIMPLEFI_STATIC]: 'SimpleFi',
+    [EQrType.SIMPLEFI_DYNAMIC]: 'SimpleFi',
+    [EQrType.SIMPLEFI_USER_SPECIFIED]: 'SimpleFi',
 }
 
 export type QrType = `${EQrType}`
@@ -46,17 +48,52 @@ export type QrType = `${EQrType}`
  *    - May include specific Additional Data Field Template values
  *  @see https://www.emvco.com/specifications/emv-qr-code-specification-for-payment-systems-emv-qrcps-merchant-presented-mode/
  */
-const MP_AR_REGEX =
-    /^000201((?!6304).)*(?:(?:26|27|28|29|30|31|35|43)\d{2}(?:0015com\.mercadopago|0016com\.mercadolibre)).*5303032.*5802AR((?!6304).)*6304[0-9A-F]{4}$/i
+const MP_AR_REGEX = /^00020101021[12].*(?:0015com\.mercadopago|0016com\.mercadolibre).*5303032.*5802AR.*/i
+
+/**
+ * General interoperable QR code for Argentina
+ * This regex looks for:
+ * 1. Standard EMVco QR code format
+ * 2. Argentina country code (5802AR)
+ * 3. Argentine Peso currency (5303032)
+ * The three parts can be in any order in the QR
+ */
+const ARGENTINA_QR3_REGEX = /^(?=.*00020101021[12])(?=.*5303032)(?=.*5802AR)/i
 
 /* PIX is also a emvco qr code */
-const PIX_REGEX = /^.*00020126.*0014br\.gov\.bcb\.pix.*5303986.*5802BR.*$/i
+const PIX_REGEX = /^.*000201.*0014br\.gov\.bcb\.pix.*5303986.*5802BR.*$/i
+
+/** Simplefi QR codes are urls, depending on the route and params we can
+ * infer the flow type and merchant slug.
+ *
+ * The flow type is static, dynamic or user_specified.
+ */
+export const SIMPLEFI_STATIC_REGEX =
+    /^(?:https?:\/\/)?(?:www\.)?pagar\.simplefi\.tech\/(?<merchantSlug>[^\/]*)(\/static$|\?static\=true)/
+export const SIMPLEFI_USER_SPECIFIED_REGEX =
+    /^(?:https?:\/\/)?(?:www\.)?pagar\.simplefi\.tech\/(?<merchantSlug>[^\/]*)$/
+export const SIMPLEFI_DYNAMIC_REGEX =
+    /^(?:https?:\/\/)?(?:www\.)?pagar\.simplefi\.tech\/(?<merchantId>[^\/]*)\/payment\/(?<paymentId>[^\/]*)$/
+
+export const PAYMENT_PROCESSOR_REGEXES: { [key in QrType]?: RegExp } = {
+    [EQrType.MERCADO_PAGO]: MP_AR_REGEX,
+    [EQrType.PIX]: PIX_REGEX,
+    [EQrType.ARGENTINA_QR3]: ARGENTINA_QR3_REGEX,
+    [EQrType.SIMPLEFI_STATIC]: SIMPLEFI_STATIC_REGEX,
+    [EQrType.SIMPLEFI_DYNAMIC]: SIMPLEFI_DYNAMIC_REGEX,
+    [EQrType.SIMPLEFI_USER_SPECIFIED]: SIMPLEFI_USER_SPECIFIED_REGEX,
+}
 
 const EIP_681_REGEX = /^ethereum:(?:pay-)?([^@/?]+)(?:@([^/?]+))?(?:\/([^?]+))?(?:\?(.*))?$/i
 
 const REGEXES_BY_TYPE: { [key in QrType]?: RegExp } = {
     [EQrType.EIP_681]: EIP_681_REGEX,
+    //this order is important, first mercadipago, then argentina qr3
     [EQrType.MERCADO_PAGO]: MP_AR_REGEX,
+    [EQrType.ARGENTINA_QR3]: ARGENTINA_QR3_REGEX,
+    [EQrType.SIMPLEFI_STATIC]: SIMPLEFI_STATIC_REGEX,
+    [EQrType.SIMPLEFI_DYNAMIC]: SIMPLEFI_DYNAMIC_REGEX,
+    [EQrType.SIMPLEFI_USER_SPECIFIED]: SIMPLEFI_USER_SPECIFIED_REGEX,
     [EQrType.BITCOIN_ONCHAIN]: /^(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,39}$/,
     [EQrType.BITCOIN_INVOICE]: /^ln(bc|tb|bcrt)([0-9]{1,}[a-z0-9]+){1}$/,
     [EQrType.PIX]: PIX_REGEX,
@@ -74,7 +111,7 @@ export function recognizeQr(data: string): QrType | null {
         return EQrType.PEANUT_URL
     }
     if (isAddress(data)) {
-        return PINTA_MERCHANTS[data] ? EQrType.PINTA_MERCHANT : EQrType.EVM_ADDRESS
+        return EQrType.EVM_ADDRESS
     }
     if (validateEnsName(data)) {
         return EQrType.ENS_NAME
@@ -86,6 +123,19 @@ export function recognizeQr(data: string): QrType | null {
         }
     }
     return null
+}
+
+/**
+ * Returns true if the given string is a payment processor QR code.
+ * For example, Mercado Pago, Pix, etc.
+ */
+export const isPaymentProcessorQR = (data: string): boolean => {
+    for (const [_type, regex] of Object.entries(PAYMENT_PROCESSOR_REGEXES)) {
+        if (regex.test(data)) {
+            return true
+        }
+    }
+    return false
 }
 
 /**
@@ -145,4 +195,51 @@ export const parseEip681 = (
     }
 
     return { address }
+}
+
+export interface SimpleFiStaticQrData {
+    type: 'SIMPLEFI_STATIC'
+    merchantSlug: string
+}
+
+export interface SimpleFiDynamicQrData {
+    type: 'SIMPLEFI_DYNAMIC'
+    merchantId: string
+    paymentId: string
+}
+
+export interface SimpleFiUserSpecifiedQrData {
+    type: 'SIMPLEFI_USER_SPECIFIED'
+    merchantSlug: string
+}
+
+export type SimpleFiQrData = SimpleFiStaticQrData | SimpleFiDynamicQrData | SimpleFiUserSpecifiedQrData
+
+export const parseSimpleFiQr = (data: string): SimpleFiQrData | null => {
+    const staticMatch = data.match(SIMPLEFI_STATIC_REGEX)
+    if (staticMatch?.groups?.merchantSlug) {
+        return {
+            type: 'SIMPLEFI_STATIC',
+            merchantSlug: staticMatch.groups.merchantSlug,
+        }
+    }
+
+    const dynamicMatch = data.match(SIMPLEFI_DYNAMIC_REGEX)
+    if (dynamicMatch?.groups?.merchantId && dynamicMatch?.groups?.paymentId) {
+        return {
+            type: 'SIMPLEFI_DYNAMIC',
+            merchantId: dynamicMatch.groups.merchantId,
+            paymentId: dynamicMatch.groups.paymentId,
+        }
+    }
+
+    const userSpecifiedMatch = data.match(SIMPLEFI_USER_SPECIFIED_REGEX)
+    if (userSpecifiedMatch?.groups?.merchantSlug) {
+        return {
+            type: 'SIMPLEFI_USER_SPECIFIED',
+            merchantSlug: userSpecifiedMatch.groups.merchantSlug,
+        }
+    }
+
+    return null
 }

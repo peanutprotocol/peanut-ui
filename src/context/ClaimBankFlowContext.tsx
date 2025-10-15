@@ -42,6 +42,10 @@ interface ClaimBankFlowContextType {
     setSenderKycStatus: (status?: BridgeKycStatus) => void
     justCompletedKyc: boolean
     setJustCompletedKyc: (status: boolean) => void
+    claimToMercadoPago: boolean
+    setClaimToMercadoPago: (claimToMercadoPago: boolean) => void
+    regionalMethodType: 'mercadopago' | 'pix'
+    setRegionalMethodType: (regionalMethodType: 'mercadopago' | 'pix') => void
 }
 
 const ClaimBankFlowContext = createContext<ClaimBankFlowContextType | undefined>(undefined)
@@ -60,6 +64,8 @@ export const ClaimBankFlowContextProvider: React.FC<{ children: ReactNode }> = (
     const [selectedBankAccount, setSelectedBankAccount] = useState<Account | null>(null)
     const [senderKycStatus, setSenderKycStatus] = useState<BridgeKycStatus | undefined>()
     const [justCompletedKyc, setJustCompletedKyc] = useState(false)
+    const [claimToMercadoPago, setClaimToMercadoPago] = useState(false)
+    const [regionalMethodType, setRegionalMethodType] = useState<'mercadopago' | 'pix'>('mercadopago')
 
     const resetFlow = useCallback(() => {
         setClaimToExternalWallet(false)
@@ -75,6 +81,8 @@ export const ClaimBankFlowContextProvider: React.FC<{ children: ReactNode }> = (
         setSelectedBankAccount(null)
         setSenderKycStatus(undefined)
         setJustCompletedKyc(false)
+        setClaimToMercadoPago(false)
+        setRegionalMethodType('mercadopago')
     }, [])
 
     const value = useMemo(
@@ -106,6 +114,10 @@ export const ClaimBankFlowContextProvider: React.FC<{ children: ReactNode }> = (
             setSenderKycStatus,
             justCompletedKyc,
             setJustCompletedKyc,
+            claimToMercadoPago,
+            setClaimToMercadoPago,
+            regionalMethodType,
+            setRegionalMethodType,
         }),
         [
             claimToExternalWallet,
@@ -122,6 +134,9 @@ export const ClaimBankFlowContextProvider: React.FC<{ children: ReactNode }> = (
             selectedBankAccount,
             senderKycStatus,
             justCompletedKyc,
+            claimToMercadoPago,
+            setClaimToMercadoPago,
+            regionalMethodType,
         ]
     )
 

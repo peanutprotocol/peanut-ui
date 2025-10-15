@@ -17,6 +17,9 @@ import Card from '@/components/Global/Card'
 import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
 import { checkIfInternalNavigation } from '@/utils'
 import { useAuth } from '@/context/authContext'
+import ShareButton from '@/components/Global/ShareButton'
+import ActionModal from '@/components/Global/ActionModal'
+import { MantecaKycStatus } from '@/interfaces'
 
 interface PublicProfileProps {
     username: string
@@ -32,7 +35,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
     const router = useRouter()
     const { user } = useAuth()
     const isSelfProfile = user?.user.username?.toLowerCase() === username.toLowerCase()
-
+    const [showInviteModal, setShowInviteModal] = useState(false)
     // Handle send button click
     const handleSend = () => {
         if (onSendClick) {
@@ -45,7 +48,14 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
     useEffect(() => {
         usersApi.getByUsername(username).then((user) => {
             if (user?.fullName) setFullName(user.fullName)
-            if (user?.bridgeKycStatus === 'approved') setIsKycVerified(true)
+            if (
+                user?.bridgeKycStatus === 'approved' ||
+                user?.kycVerifications?.some((v) => v.status === MantecaKycStatus.ACTIVE)
+            ) {
+                setIsKycVerified(true)
+            } else {
+                setIsKycVerified(false)
+            }
             // to check if the logged in user has sent money to the profile user,
             // we check the amount that the profile user has received from the logged in user.
             if (user?.totalUsdReceivedFromCurrentUser) {
@@ -109,18 +119,23 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                             <span className="font-bold">Send</span>
                         </Button>
 
-                        <Link href={`/request/${username}`} className="w-1/2">
-                            <Button
-                                variant="purple"
-                                shadowSize="4"
-                                className="flex items-center justify-center gap-2 rounded-full py-3"
-                            >
-                                <div className="flex size-5 items-center justify-center">
-                                    <Icon name="arrow-down-left" size={8} fill="black" />
-                                </div>
-                                <span className="font-bold">Request</span>
-                            </Button>
-                        </Link>
+                        <Button
+                            onClick={() => {
+                                if (isLoggedIn && user?.user.hasAppAccess) {
+                                    router.push(`/request/${username}`)
+                                } else {
+                                    setShowInviteModal(true)
+                                }
+                            }}
+                            variant="purple"
+                            shadowSize="4"
+                            className="flex w-1/2 items-center justify-center gap-2 rounded-full py-3"
+                        >
+                            <div className="flex size-5 items-center justify-center">
+                                <Icon name="arrow-down-left" size={8} fill="black" />
+                            </div>
+                            <span className="font-bold">Request</span>
+                        </Button>
                     </div>
                 )}
 
@@ -138,18 +153,23 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                             ) : (
                                 <div className="space-y-4">
                                     <div className="space-y-2">
-                                        <h2 className="text-lg font-extrabold">Join Peanut!</h2>
-                                        <p>Send and receive payments in seconds with your own Peanut account.</p>
+                                        <h2 className="text-lg font-extrabold">No invite, no Peanut</h2>
+                                        <p>
+                                            Peanut is invite-only.
+                                            <br />
+                                            Go beg your friend for an invite link!
+                                        </p>
                                     </div>
-                                    <Button
-                                        variant="purple"
-                                        shadowSize="4"
-                                        className="mt-1 flex w-full items-center justify-center gap-2 rounded-sm"
-                                        onClick={() => router.push('/setup')}
+                                    <ShareButton
+                                        generateText={() =>
+                                            Promise.resolve(
+                                                `Bro… I’m on my knees. Peanut is invite-only and I’m locked outside. Save my life and send me your invite`
+                                            )
+                                        }
+                                        title="Beg for an invite"
                                     >
-                                        <Icon name="user-plus" size={16} fill="black" />
-                                        <span className="font-bold">Create Account</span>
-                                    </Button>
+                                        Beg for an invite
+                                    </ShareButton>
                                 </div>
                             )}
                         </Card>
@@ -171,7 +191,41 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                 )}
 
                 {/* Show history to logged in users  */}
-                {isLoggedIn && <HomeHistory isPublic={false} username={username} />}
+                {isLoggedIn && (
+                    <div>
+                        <HomeHistory isPublic={false} username={username} />
+                        {isSelfProfile && (
+                            <div className="flex w-full items-center justify-center gap-2">
+                                <Icon name="info" size={16} className="text-grey-1" />
+                                <p className="text-center text-sm text-grey-1">
+                                    Activity is only visible for you, it is not public.
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                <ActionModal
+                    icon="user"
+                    title="No invite, no Peanut"
+                    description={`Peanut is invite-only.\nGo beg your friend for an invite link!`}
+                    visible={showInviteModal}
+                    onClose={() => {
+                        setShowInviteModal(false)
+                    }}
+                    content={
+                        <ShareButton
+                            generateText={() =>
+                                Promise.resolve(
+                                    `Bro… I’m on my knees. Peanut is invite-only and I’m locked outside. Save my life and send me your invite`
+                                )
+                            }
+                            title="Beg for an invite"
+                        >
+                            Beg for an invite
+                        </ShareButton>
+                    }
+                />
             </div>
         </div>
     )

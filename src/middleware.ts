@@ -1,12 +1,19 @@
 // middleware.ts
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
+import { notFound } from 'next/navigation'
+import maintenanceConfig from '@/config/underMaintenance.config'
 
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl
-    const maintenanceMode = false
 
-    if (maintenanceMode) {
+    // Block /dev/ routes in production, but allow /devin, /devouring etc
+    if (process.env.NODE_ENV === 'production' && pathname.startsWith('/dev/')) {
+        return notFound()
+    }
+
+    // check if full maintenance mode is enabled
+    if (maintenanceConfig.enableFullMaintenance) {
         const allowedPaths = ['/', '/maintenance', '/apple-app-site-association', '/support']
         if (
             !allowedPaths.includes(pathname) &&
@@ -82,5 +89,6 @@ export const config = {
         '/pay/:path*',
         '/p/:path*',
         '/link/:path*',
+        '/dev/:path*',
     ],
 }

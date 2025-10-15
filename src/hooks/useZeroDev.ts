@@ -4,13 +4,14 @@ import * as consts from '@/constants/zerodev.consts'
 import { loadingStateContext } from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useKernelClient } from '@/context/kernelClient.context'
-import { useAppDispatch, useZerodevStore } from '@/redux/hooks'
+import { useAppDispatch, useSetupStore, useZerodevStore } from '@/redux/hooks'
 import { zerodevActions } from '@/redux/slices/zerodev-slice'
-import { saveToCookie, saveToLocalStorage } from '@/utils'
+import { getFromCookie, removeFromCookie, saveToCookie, saveToLocalStorage } from '@/utils'
 import { toWebAuthnKey, WebAuthnMode } from '@zerodev/passkey-validator'
 import { useCallback, useContext } from 'react'
 import type { TransactionReceipt, Hex, Hash } from 'viem'
 import { captureException } from '@sentry/nextjs'
+import { invitesApi } from '@/services/invites'
 
 // types
 type UserOpEncodedParams = {
@@ -38,6 +39,7 @@ export const useZeroDev = () => {
     const { isKernelClientReady, isRegistering, isLoggingIn, isSendingUserOp, address } = useZerodevStore()
     const { setWebAuthnKey, getClientForChain } = useKernelClient()
     const { setLoadingState } = useContext(loadingStateContext)
+    const { inviteCode, inviteType } = useSetupStore()
 
     // Future note: could be `${username}.${process.env.NEXT_PUBLIC_JUSTANAME_ENS_DOMAIN || 'peanut.me'}` (have to change BE too)
     const _getPasskeyName = (username: string) => `${username}.peanut.wallet`
@@ -53,6 +55,25 @@ export const useZeroDev = () => {
                 passkeyServerHeaders: {},
                 rpID: window.location.hostname.replace(/^www\./, ''),
             })
+
+            const inviteCodeFromCookie = getFromCookie('inviteCode')
+
+            // invite code can also be store in cookies, so we need to check both
+            const userInviteCode = inviteCode || inviteCodeFromCookie
+
+            if (userInviteCode?.trim().length > 0) {
+                try {
+                    const result = await invitesApi.acceptInvite(userInviteCode, inviteType)
+                    if (!result.success) {
+                        console.error('Error accepting invite', result)
+                    }
+                    if (inviteCodeFromCookie) {
+                        removeFromCookie('inviteCode')
+                    }
+                } catch (e) {
+                    console.error('Error accepting invite', e)
+                }
+            }
 
             setWebAuthnKey(webAuthnKey)
             saveToLocalStorage(LOCAL_STORAGE_WEB_AUTHN_KEY, webAuthnKey)

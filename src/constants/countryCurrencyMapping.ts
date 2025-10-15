@@ -42,9 +42,9 @@ export const countryCurrencyMappings: CountryCurrencyMapping[] = [
     // Mexico
     { currencyCode: 'MXN', currencyName: 'Mexican Peso', country: 'Mexico', flagCode: 'mx', path: 'mexico' },
 
-    // Coming Soon
-    { currencyCode: 'BRL', currencyName: 'Brazilian Real', country: 'Brazil', flagCode: 'br', comingSoon: true },
-    { currencyCode: 'ARS', currencyName: 'Argentine Peso', country: 'Argentina', flagCode: 'ar', comingSoon: true },
+    // LATAM Countries
+    { currencyCode: 'BRL', currencyName: 'Brazilian Real', country: 'Brazil', flagCode: 'br', path: 'brazil' },
+    { currencyCode: 'ARS', currencyName: 'Argentine Peso', country: 'Argentina', flagCode: 'ar', path: 'argentina' },
 ]
 
 export default countryCurrencyMappings

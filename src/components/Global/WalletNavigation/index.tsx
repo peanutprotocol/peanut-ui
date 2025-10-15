@@ -1,13 +1,13 @@
 import { PEANUT_LOGO } from '@/assets'
 import DirectSendQr from '@/components/Global/DirectSendQR'
 import { Icon, IconName, Icon as NavIcon } from '@/components/Global/Icons/Icon'
+import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { useSupportModalContext } from '@/context/SupportModalContext'
 import { useUserStore } from '@/redux/hooks'
 import classNames from 'classnames'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState } from 'react'
 
 type NavPathProps = {
     name: string
@@ -82,7 +82,10 @@ const MobileNav: React.FC<MobileNavProps> = ({ pathName }) => {
             </Link>
 
             {/* QR Button - Main Action */}
-            <DirectSendQr className="-translate-y-1/3 transform" />
+            <DirectSendQr
+                className="-translate-y-1/3 transform"
+                disabled={underMaintenanceConfig.enableFullMaintenance}
+            />
 
             {/* Support Link */}
             <button

@@ -42,6 +42,7 @@ let nextConfig = {
                 config.ignoreWarnings = [{ module: /@opentelemetry\/instrumentation/, message: /Critical dependency/ }]
             }
         }
+
         return config
     },
     reactStrictMode: false,

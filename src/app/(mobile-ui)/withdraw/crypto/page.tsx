@@ -89,13 +89,10 @@ export default function WithdrawCryptoPage() {
     }, [dispatch, resetPaymentInitiator])
 
     useEffect(() => {
-        if (!amountToWithdraw) {
-            console.error('Amount not available in WithdrawFlowContext for withdrawal, redirecting.')
-            router.push('/withdraw')
-            return
+        if (amountToWithdraw) {
+            clearErrors()
+            dispatch(paymentActions.setChargeDetails(null))
         }
-        clearErrors()
-        dispatch(paymentActions.setChargeDetails(null))
     }, [amountToWithdraw])
 
     useEffect(() => {
@@ -317,6 +314,8 @@ export default function WithdrawCryptoPage() {
     }, [xChainRoute])
 
     if (!amountToWithdraw) {
+        // Redirect to main withdraw page for amount input
+        router.push('/withdraw')
         return <PeanutLoading />
     }
 

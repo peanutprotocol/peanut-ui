@@ -1,4 +1,3 @@
-import { PeanutArmHoldingBeer } from '@/assets'
 import { StatusType } from '@/components/Global/Badges/StatusBadge'
 import { TransactionType as TransactionCardType } from '@/components/TransactionDetails/TransactionCard'
 import { TransactionDirection } from '@/components/TransactionDetails/TransactionDetailsHeaderCard'
@@ -14,6 +13,7 @@ import {
 import { StatusPillType } from '../Global/StatusPill'
 import type { Address } from 'viem'
 import { PEANUT_WALLET_CHAIN } from '@/constants'
+import { HistoryEntryPerk } from '@/services/services.types'
 
 /**
  * @fileoverview maps raw transaction history data from the api/hook to the format needed by ui components.
@@ -25,14 +25,8 @@ export type RewardData = {
     getSymbol: (amount: number | bigint) => string
     avatarUrl: string
 }
-export const REWARD_TOKENS: { [key: string]: RewardData } = {
-    '0x9ae69fdff2fa97e34b680752d8e70dfd529ea6ca': {
-        symbol: 'Beers',
-        formatAmount: (amount: number | bigint) => (Number(amount) === 1 ? '1 Beer' : `${amount.toString()} Beers`),
-        getSymbol: (amount: number | bigint) => (Number(amount) === 1 ? 'Beer' : 'Beers'),
-        avatarUrl: PeanutArmHoldingBeer,
-    },
-}
+// Configure reward tokens here
+export const REWARD_TOKENS: { [key: string]: RewardData } = {}
 
 /**
  * defines the structure of the data expected by the transaction details drawer component.
@@ -72,6 +66,8 @@ export interface TransactionDetails {
         rewardData?: RewardData
         fulfillmentType?: 'bridge' | 'wallet'
         bridgeTransferId?: string
+        avatarUrl?: string
+        perk?: HistoryEntryPerk
         depositInstructions?: {
             amount: string
             currency: string
@@ -90,6 +86,10 @@ export interface TransactionDetails {
             account_holder_name?: string
         }
         receipt?: {
+            depositDetails?: {
+                depositAddress: string
+                depositAlias: string
+            }
             initial_amount?: string
             developer_fee?: string
             exchange_fee?: string
@@ -120,6 +120,7 @@ export interface TransactionDetails {
     claimedAt?: string | Date
     createdAt?: string | Date
     completedAt?: string | Date
+    points?: number
 }
 
 /**
@@ -257,6 +258,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             isPeerActuallyUser = false
             break
         case EHistoryEntryType.BRIDGE_OFFRAMP:
+        case EHistoryEntryType.MANTECA_OFFRAMP:
             direction = 'bank_withdraw'
             transactionCardType = 'bank_withdraw'
             nameForDetails = 'Bank Account'
@@ -292,6 +294,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             }
             break
         case EHistoryEntryType.BRIDGE_ONRAMP:
+        case EHistoryEntryType.MANTECA_ONRAMP:
             direction = 'bank_deposit'
             transactionCardType = 'bank_deposit'
             nameForDetails = 'Bank Account'
@@ -301,6 +304,21 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             direction = 'add'
             transactionCardType = 'add'
             nameForDetails = entry.senderAccount?.identifier || 'Deposit Source'
+            isPeerActuallyUser = false
+            break
+        case EHistoryEntryType.MANTECA_QR_PAYMENT:
+            direction = 'qr_payment'
+            transactionCardType = 'pay'
+            nameForDetails = entry.recipientAccount?.identifier || 'Merchant'
+            isPeerActuallyUser = false
+            break
+        case EHistoryEntryType.SIMPLEFI_QR_PAYMENT:
+            direction = 'qr_payment'
+            transactionCardType = 'pay'
+            nameForDetails = entry.recipientAccount?.identifier || 'Merchant'
+            // We dont have merchant name so we try to prettify the slug,
+            // replacing dashws with speaces and making the first letter uppercase
+            nameForDetails = nameForDetails.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
             isPeerActuallyUser = false
             break
         default:
@@ -364,10 +382,13 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             case 'SUCCESSFUL':
             case 'CLAIMED':
             case 'PAID':
+            case 'APPROVED':
                 uiStatus = 'completed'
                 break
             case 'FAILED':
             case 'ERROR':
+            case 'CANCELED':
+            case 'EXPIRED':
                 uiStatus = 'failed'
                 break
             case 'CANCELLED':
@@ -444,8 +465,8 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         id: entry.uuid,
         direction: direction,
         userName: nameForDetails,
+        amount,
         fullName,
-        amount: amount,
         currency: rewardData ? undefined : entry.currency,
         currencySymbol: `${entry.userRole === EHistoryUserRole.SENDER ? '-' : '+'}$`,
         tokenSymbol: rewardData?.getSymbol(amount) ?? entry.tokenSymbol,
@@ -472,6 +493,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             rewardData,
             fulfillmentType: entry.extraData?.fulfillmentType,
             bridgeTransferId: entry.extraData?.bridgeTransferId,
+            perk: entry.extraData?.perk as HistoryEntryPerk | undefined,
             depositInstructions:
                 entry.type === EHistoryEntryType.BRIDGE_ONRAMP || entry.extraData?.fulfillmentType === 'bridge'
                     ? entry.extraData?.depositInstructions
@@ -479,6 +501,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             receipt: entry.extraData?.receipt,
         },
         sourceView: 'history',
+        points: entry.points,
         bankAccountDetails:
             entry.type === EHistoryEntryType.BRIDGE_OFFRAMP ||
             (entry.type === EHistoryEntryType.BANK_SEND_LINK_CLAIM && entry.userRole === EHistoryUserRole.RECIPIENT)

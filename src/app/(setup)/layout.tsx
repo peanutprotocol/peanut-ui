@@ -3,11 +3,13 @@
 import { usePWAStatus } from '@/hooks/usePWAStatus'
 import { useAppDispatch } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
-import { useEffect } from 'react'
+import { useEffect, Suspense } from 'react'
 import { setupSteps } from '../../components/Setup/Setup.consts'
 import '../../styles/globals.css'
+import PeanutLoading from '@/components/Global/PeanutLoading'
+import { Banner } from '@/components/Global/Banner'
 
-const SetupLayout = ({ children }: { children?: React.ReactNode }) => {
+function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
     const dispatch = useAppDispatch()
     const isPWA = usePWAStatus()
 
@@ -19,7 +21,20 @@ const SetupLayout = ({ children }: { children?: React.ReactNode }) => {
         dispatch(setupActions.setSteps(filteredSteps))
     }, [isPWA])
 
-    return <>{children}</>
+    return (
+        <>
+            <Banner />
+            {children}
+        </>
+    )
+}
+
+const SetupLayout = ({ children }: { children?: React.ReactNode }) => {
+    return (
+        <Suspense fallback={<PeanutLoading coverFullScreen />}>
+            <SetupLayoutContent>{children}</SetupLayoutContent>
+        </Suspense>
+    )
 }
 
 export default SetupLayout

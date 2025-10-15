@@ -221,6 +221,24 @@ interface ReferralConnection {
     account_identifier: string
 }
 
+export enum MantecaKycStatus {
+    ONBOARDING = 'ONBOARDING',
+    ACTIVE = 'ACTIVE',
+    INACTIVE = 'INACTIVE',
+}
+
+export interface IUserKycVerification {
+    provider: 'MANTECA' | 'BRIDGE'
+    mantecaGeo?: string | null
+    bridgeGeo?: string | null
+    status: MantecaKycStatus
+    approvedAt?: string | null
+    providerUserId?: string | null
+    providerRawStatus?: string | null
+    createdAt: string
+    updatedAt: string
+}
+
 export interface User {
     userId: string
     email: string
@@ -230,12 +248,14 @@ export interface User {
     bridgeKycStartedAt?: string
     bridgeKycApprovedAt?: string
     bridgeKycRejectedAt?: string
+    kycVerifications?: IUserKycVerification[] // currently only used for Manteca, can be extended to other providers in the future, bridge is not migrated as it might affect existing users
     tosStatus?: string
     tosAcceptedAt?: string
     bridgeCustomerId: string | null
     fullName: string
     telegram: string | null
-    hasPwAccess: boolean
+    hasAppAccess: boolean
+    showFullName: boolean
     createdAt: string
     accounts: Account[]
 }
@@ -249,6 +269,7 @@ export enum AccountType {
     EVM_ADDRESS = 'evm-address',
     PEANUT_WALLET = 'peanut-wallet',
     BRIDGE = 'bridgeBankAccount',
+    MANTECA = 'manteca',
 }
 
 export interface Account {
@@ -265,9 +286,7 @@ export interface Account {
     }
     createdAt: string
     updatedAt: string
-    points: number
-    referrerAddress: string | null
-    referredUsersPoints: number
+    // OLD Points V1 fields removed - use pointsV2 from stats instead
     chainId: string | null
     connectorUuid: string | null
     bic?: string
@@ -280,25 +299,24 @@ export interface Account {
     referrals: ReferralConnection[]
 }
 
+interface userInvites {
+    inviteeId: string
+    inviteeUsername: string
+}
+
 export interface IUserProfile {
-    points: number
-    transactions: Transaction[]
-    referralsPointsTxs: Transaction[]
-    totalReferralConnections: number
-    referredUsers: number
+    // OLD Points V1 fields removed - use pointsV2 in stats instead
+    // Points V2: Use stats.pointsV2.totalPoints, pointsV2.inviteCount, etc.
     streak: number
     pwQueue: { totalUsers: number; userPosition: number | null }
     accounts: Account[]
     contacts: Contact[]
-    totalPoints: number
+    totalPoints: number // Kept for backward compatibility - same as pointsV2.totalPoints
     hasPwaInstalled: boolean
     user: User
-    pointsPerReferral: Array<{
-        address: string
-        points: number
-        totalReferrals: number
-    }>
-    totalReferralPoints: number
+    invitesSent: userInvites[]
+    showEarlyUserModal: boolean
+    invitedBy: string | null // Username of the person who invited this user
 }
 
 interface Contact {

@@ -8,6 +8,7 @@ import { twMerge } from 'tailwind-merge'
 export interface ActionModalButtonProps extends ButtonProps {
     text: string
     iconPosition?: 'left' | 'right'
+    children?: React.ReactNode
 }
 
 export interface ActionModalCheckboxProps {
@@ -40,6 +41,7 @@ export interface ActionModalProps {
     descriptionClassName?: string
     buttonProps?: ButtonProps
     footer?: React.ReactNode
+    content?: React.ReactNode
 }
 
 const ActionModal: React.FC<ActionModalProps> = ({
@@ -64,6 +66,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
     descriptionClassName,
     buttonProps,
     footer,
+    content,
 }) => {
     const defaultModalPanelClasses = 'max-w-[85%]'
     const defaultIconContainerClassName = 'bg-primary-1' // default pink background
@@ -129,6 +132,8 @@ const ActionModal: React.FC<ActionModalProps> = ({
                     )}
                 </div>
 
+                {content}
+
                 {(checkbox || (ctas && ctas.length > 0)) && (
                     <div className="w-full space-y-4">
                         {checkbox && (
@@ -165,6 +170,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
                                             className: btnClassName,
                                             icon: btnIcon,
                                             iconPosition,
+                                            children,
                                             ...rest
                                         },
                                         index
@@ -185,6 +191,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
                                                 )}
                                                 {...rest}
                                             >
+                                                {children}
                                                 {btnIcon && currentIconPosition === 'left' && (
                                                     <Icon
                                                         name={btnIcon}

@@ -8,10 +8,27 @@ import { Star } from '@/assets'
 import Image from 'next/image'
 import ExchangeRateWidget from '../Global/ExchangeRateWidget'
 import { useRouter } from 'next/navigation'
+import { printableUsdc } from '@/utils'
+import { getExchangeRateWidgetRedirectRoute } from '@/utils/exchangeRateWidget.utils'
+import { useWallet } from '@/hooks/wallet/useWallet'
+import { useAuth } from '@/context/authContext'
 
 export function NoFees() {
     const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200)
     const router = useRouter()
+    const { fetchBalance, balance } = useWallet()
+    const { user } = useAuth()
+
+    const handleCtaAction = (sourceCurrency: string, destinationCurrency: string) => {
+        if (!user) {
+            router.push('/setup')
+            return
+        }
+        const formattedBalance = parseFloat(printableUsdc(balance ?? 0n))
+
+        const redirectRoute = getExchangeRateWidgetRedirectRoute(sourceCurrency, destinationCurrency, formattedBalance)
+        router.push(redirectRoute)
+    }
 
     useEffect(() => {
         const handleResize = () => {
@@ -22,6 +39,12 @@ export function NoFees() {
         window.addEventListener('resize', handleResize)
         return () => window.removeEventListener('resize', handleResize)
     }, [])
+
+    useEffect(() => {
+        if (user) {
+            fetchBalance()
+        }
+    }, [user])
 
     const createCloudAnimation = (side: 'left' | 'right', top: string, width: number, speed: number) => {
         const vpWidth = screenWidth || 1080
@@ -124,11 +147,7 @@ export function NoFees() {
                     />
                 </div>
 
-                <ExchangeRateWidget
-                    ctaIcon="arrow-up-right"
-                    ctaLabel="Send Money"
-                    ctaAction={() => router.push('/setup')}
-                />
+                <ExchangeRateWidget ctaIcon="arrow-up-right" ctaLabel="Send Money" ctaAction={handleCtaAction} />
             </div>
         </section>
     )

@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation'
 import { MaintenanceBanner } from './MaintenanceBanner'
 import { MarqueeWrapper } from '../MarqueeWrapper'
-import config from '@/config/routesUnderMaintenance'
+import maintenanceConfig from '@/config/underMaintenance.config'
 import { HandThumbsUp } from '@/assets'
 import Image from 'next/image'
 import { useSupportModalContext } from '@/context/SupportModalContext'
@@ -12,16 +12,15 @@ export function Banner() {
     const pathname = usePathname()
     if (!pathname) return null
 
-    // Don't show banner on landing page
-    if (pathname === '/') return null
-
-    // First check for maintenance
-    const isUnderMaintenance = config.routes.some((route) => pathname.startsWith(route))
-    if (isUnderMaintenance) {
-        return <MaintenanceBanner pathname={pathname} />
+    // check if maintenance banner OR full maintenance is enabled - show on all pages
+    if (maintenanceConfig.enableMaintenanceBanner || maintenanceConfig.enableFullMaintenance) {
+        return <MaintenanceBanner />
     }
 
-    // Show beta feedback banner for all paths unless under maintenance
+    // don't show beta feedback banner on landing page or setup page
+    if (pathname === '/' || pathname === '/setup') return null
+
+    // show beta feedback banner when not in maintenance
     return <FeedbackBanner />
 }
 

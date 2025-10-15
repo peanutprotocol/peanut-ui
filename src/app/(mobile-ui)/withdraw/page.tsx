@@ -10,6 +10,7 @@ import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { formatAmount } from '@/utils'
+import { getCountryFromAccount } from '@/utils/bridge.utils'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState, useRef, useContext } from 'react'
 import { formatUnits } from 'viem'
@@ -26,13 +27,13 @@ export default function WithdrawPage() {
         setError,
         error,
         setUsdAmount,
-        resetWithdrawFlow,
+        selectedMethod,
+        selectedBankAccount,
+        setSelectedMethod,
         setShowAllWithdrawMethods,
     } = useWithdrawFlow()
 
-    // choose the first screen: if an amount already exists we jump straight to the method list
-    const initialStep: WithdrawStep =
-        amountFromContext && parseFloat(amountFromContext) > 0 ? 'selectMethod' : 'inputAmount'
+    const initialStep: WithdrawStep = selectedMethod ? 'inputAmount' : 'selectMethod'
 
     const [step, setStep] = useState<WithdrawStep>(initialStep)
 
@@ -67,27 +68,20 @@ export default function WithdrawPage() {
     }, [setError, amountFromContext])
 
     useEffect(() => {
-        if (!amountFromContext) {
-            resetWithdrawFlow()
-        }
-    }, [amountFromContext, resetWithdrawFlow])
-
-    useEffect(() => {
-        if (amountFromContext && parseFloat(amountFromContext) > 0) {
-            setStep('selectMethod')
-
-            if (!rawTokenAmount) {
+        if (selectedMethod) {
+            setStep('inputAmount')
+            if (amountFromContext && !rawTokenAmount) {
                 setRawTokenAmount(amountFromContext)
             }
         } else {
-            setStep('inputAmount')
-            // clear the raw token amount when switching back to input
-            if (step !== 'inputAmount') {
+            setStep('selectMethod')
+            // clear the raw token amount when switching back to method selection
+            if (step !== 'selectMethod') {
                 setRawTokenAmount('')
                 setTokenInputKey((k) => k + 1)
             }
         }
-    }, [amountFromContext, step])
+    }, [selectedMethod, amountFromContext, step, rawTokenAmount])
 
     useEffect(() => {
         // If amount is available (i.e) user clicked back from select method view, show all methods
@@ -179,12 +173,33 @@ export default function WithdrawPage() {
     }, [rawTokenAmount, validateAmount, setError, step])
 
     const handleAmountContinue = () => {
-        if (validateAmount(rawTokenAmount)) {
+        if (validateAmount(rawTokenAmount) && selectedMethod) {
             const cleanedAmount = rawTokenAmount.replace(/,/g, '')
             setAmountToWithdraw(cleanedAmount)
             const usdVal = (selectedTokenData?.price ?? 1) * parseFloat(cleanedAmount)
             setUsdAmount(usdVal.toString())
-            // the step will automatically change to 'selectMethod' via the useEffect above
+
+            // Route based on selected method type
+            if (selectedBankAccount) {
+                const country = getCountryFromAccount(selectedBankAccount)
+                if (country) {
+                    router.push(`/withdraw/${country.path}/bank`)
+                } else {
+                    throw new Error('Failed to get country from bank account')
+                }
+            } else if (selectedMethod.type === 'crypto') {
+                router.push('/withdraw/crypto')
+            } else if (selectedMethod.type === 'manteca') {
+                // Route directly to Manteca with method and country params
+                const methodParam = selectedMethod.title?.toLowerCase().replace(/\s+/g, '-') || 'bank-transfer'
+                router.push(`/withdraw/manteca?method=${methodParam}&country=${selectedMethod.countryPath}`)
+            } else if (selectedMethod.type === 'bridge' && selectedMethod.countryPath) {
+                // Bridge countries go to country page for bank account form
+                router.push(`/withdraw/${selectedMethod.countryPath}`)
+            } else if (selectedMethod.countryPath) {
+                // Other countries go to their country pages
+                router.push(`/withdraw/${selectedMethod.countryPath}`)
+            }
         }
     }
 
@@ -205,9 +220,18 @@ export default function WithdrawPage() {
     if (step === 'inputAmount') {
         return (
             <div className="flex min-h-[inherit] flex-col justify-start space-y-8">
-                <NavHeader title="Withdraw" onPrev={() => router.push('/home')} />
+                <NavHeader
+                    title="Withdraw"
+                    onPrev={() => {
+                        // Go back to method selection
+                        setSelectedMethod(null)
+                        setStep('selectMethod')
+                    }}
+                />
                 <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
-                    <div className="text-sm font-bold">Amount to withdraw</div>
+                    <div className="space-y-1">
+                        <div className="text-xl font-bold">Amount to withdraw</div>
+                    </div>
                     <TokenAmountInput
                         key={tokenInputKey} // force re-render to clear any internal state
                         tokenValue={rawTokenAmount}
@@ -230,14 +254,14 @@ export default function WithdrawPage() {
         )
     }
 
-    if (step === 'selectMethod') {
+    if (step === 'selectMethod' && !selectedMethod) {
         return (
             <AddWithdrawRouterView
                 flow="withdraw"
                 pageTitle="Withdraw"
                 mainHeading="How would you like to withdraw?"
                 onBackClick={() => {
-                    resetWithdrawFlow()
+                    router.push('/home')
                 }}
             />
         )

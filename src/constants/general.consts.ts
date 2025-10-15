@@ -46,7 +46,12 @@ export const PEANUT_API_URL = (
     'https://api.peanut.me'
 ).replace(/\/$/, '') // remove any accidental trailing slash
 
+export const PEANUT_API_KEY = process.env.PEANUT_API_KEY!
+
+export const IS_DEV = process.env.NODE_ENV === 'development'
 export const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://peanut.me'
+// URL for the frontend to call its own Next.js API routes (like /api/health/*)
+export const SELF_URL = IS_DEV ? 'http://localhost:3000' : BASE_URL
 export const next_proxy_url = '/api/proxy'
 
 export const supportedMobulaChains = <{ name: string; chainId: string }[]>[
@@ -202,3 +207,6 @@ export const STABLE_COINS = ['USDC', 'USDT', 'DAI', 'BUSD']
 
 export const ROUTE_NOT_FOUND_ERROR =
     'No route found for this token pair. You can try with a different token pair, or contact support.'
+
+// Perk claim UI constants
+export const PERK_HOLD_DURATION_MS = 1500 // 1.5 seconds hold duration for claiming perks

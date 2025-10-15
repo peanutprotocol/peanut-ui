@@ -18,18 +18,26 @@ import { BankClaimType, useDetermineBankClaimType } from '@/hooks/useDetermineBa
 import useSavedAccounts from '@/hooks/useSavedAccounts'
 import { RequestFulfillmentBankFlowStep, useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
-import { usePaymentStore } from '@/redux/hooks'
+import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermineBankRequestType'
 import { GuestVerificationModal } from '../Global/GuestVerificationModal'
 import ActionListDaimoPayButton from './ActionListDaimoPayButton'
 import { ACTION_METHODS, PaymentMethod } from '@/constants/actionlist.consts'
 import useClaimLink from '../Claim/useClaimLink'
+import { setupActions } from '@/redux/slices/setup-slice'
+import starStraightImage from '@/assets/icons/starStraight.svg'
+import { useAuth } from '@/context/authContext'
+import { EInviteType } from '@/services/services.types'
+import ConfirmInviteModal from '../Global/ConfirmInviteModal'
+import { useGeoLocation } from '@/hooks/useGeoLocation'
+import Loading from '../Global/Loading'
 
 interface IActionListProps {
     flow: 'claim' | 'request'
     claimLinkData?: ClaimLinkData
     requestLinkData?: ParsedURL
     isLoggedIn: boolean
+    isInviteLink?: boolean
 }
 
 /**
@@ -40,9 +48,21 @@ interface IActionListProps {
  * @param {boolean} props.isLoggedIn Whether the user is logged in, used to show cta for continue with peanut if not logged in
  * @returns {JSX.Element}
  */
-export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLinkData }: IActionListProps) {
+export default function ActionList({
+    claimLinkData,
+    isLoggedIn,
+    flow,
+    requestLinkData,
+    isInviteLink = false,
+}: IActionListProps) {
     const router = useRouter()
-    const { setClaimToExternalWallet, setFlowStep: setClaimBankFlowStep, setShowVerificationModal } = useClaimBankFlow()
+    const {
+        setClaimToExternalWallet,
+        setFlowStep: setClaimBankFlowStep,
+        setShowVerificationModal,
+        setClaimToMercadoPago,
+        setRegionalMethodType,
+    } = useClaimBankFlow()
     const [showMinAmountError, setShowMinAmountError] = useState(false)
     const { claimType } = useDetermineBankClaimType(claimLinkData?.sender?.userId ?? '')
     const { chargeDetails } = usePaymentStore()
@@ -53,10 +73,19 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
     const { addParamStep } = useClaimLink()
     const {
         setShowRequestFulfilmentBankFlowManager,
-        setShowExternalWalletFulfilMethods,
+        setShowExternalWalletFulfillMethods,
         setFlowStep: setRequestFulfilmentBankFlowStep,
+        setFulfillUsingManteca,
+        setRegionalMethodType: setRequestFulfillmentRegionalMethodType,
     } = useRequestFulfillmentFlow()
     const [isGuestVerificationModalOpen, setIsGuestVerificationModalOpen] = useState(false)
+    const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null)
+    const [showInviteModal, setShowInviteModal] = useState(false)
+    const { user } = useAuth()
+
+    const dispatch = useAppDispatch()
+
+    const { countryCode: userGeoLocationCountryCode, isLoading: isGeoLoading } = useGeoLocation()
 
     const handleMethodClick = async (method: PaymentMethod) => {
         if (flow === 'claim' && claimLinkData) {
@@ -81,7 +110,15 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
                     }
                     break
                 case 'mercadopago':
-                    break // soon tag, so no action needed
+                case 'pix':
+                    if (!user) {
+                        addParamStep('regional-claim')
+                        setShowVerificationModal(true)
+                        return
+                    }
+                    setRegionalMethodType(method.id)
+                    setClaimToMercadoPago(true)
+                    break
                 case 'exchange-or-wallet':
                     setClaimToExternalWallet(true)
                     break
@@ -103,13 +140,34 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
                     }
                     break
                 case 'mercadopago':
-                    break // soon tag, so no action needed
+                case 'pix':
+                    if (!user) {
+                        addParamStep('regional-req-fulfill')
+                        setIsGuestVerificationModalOpen(true)
+                        return
+                    }
+                    setRequestFulfillmentRegionalMethodType(method.id)
+                    setFulfillUsingManteca(true)
+                    break
                 case 'exchange-or-wallet':
-                    setShowExternalWalletFulfilMethods(true)
+                    setShowExternalWalletFulfillMethods(true)
                     break
             }
         }
     }
+
+    const geolocatedMethods = useMemo(() => {
+        // show pix in brazil and mercado pago in other countries
+        return ACTION_METHODS.filter((method) => {
+            if (userGeoLocationCountryCode === 'BR' && method.id === 'mercadopago') {
+                return false
+            }
+            if (userGeoLocationCountryCode !== 'BR' && method.id === 'pix') {
+                return false
+            }
+            return true
+        })
+    }, [userGeoLocationCountryCode])
 
     const requiresVerification = useMemo(() => {
         if (flow === 'claim') {
@@ -122,7 +180,7 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
     }, [claimType, requestType, flow])
 
     const sortedActionMethods = useMemo(() => {
-        return [...ACTION_METHODS].sort((a, b) => {
+        return [...geolocatedMethods].sort((a, b) => {
             const aIsUnavailable = a.soon || (a.id === 'bank' && requiresVerification)
             const bIsUnavailable = b.soon || (b.id === 'bank' && requiresVerification)
 
@@ -133,21 +191,40 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
         })
     }, [requiresVerification])
 
+    const handleContinueWithPeanut = () => {
+        if (flow === 'claim') {
+            addParamStep('claim')
+        }
+        // push to setup page with redirect uri, to prevent the user from losing the flow context
+        const redirectUri = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash)
+        const rawUsername =
+            flow === 'request' ? requestLinkData?.recipient?.identifier : claimLinkData?.sender?.username
+        if (isInviteLink && !userHasAppAccess && rawUsername) {
+            const username = rawUsername ? rawUsername.toUpperCase() : ''
+            const inviteCode = `${username}INVITESYOU`
+            dispatch(setupActions.setInviteCode(inviteCode))
+            dispatch(setupActions.setInviteType(EInviteType.PAYMENT_LINK))
+            router.push(`/invite?code=${inviteCode}&redirect_uri=${redirectUri}`)
+        } else {
+            router.push(`/setup?redirect_uri=${redirectUri}`)
+        }
+    }
+
+    const username = claimLinkData?.sender?.username ?? requestLinkData?.recipient?.identifier
+    const userHasAppAccess = user?.user?.hasAppAccess ?? false
+
+    if (isGeoLoading) {
+        return (
+            <div className="flex w-full items-center justify-center py-8">
+                <Loading />
+            </div>
+        )
+    }
+
     return (
         <div className="space-y-2">
             {!isLoggedIn && (
-                <Button
-                    shadowSize="4"
-                    onClick={() => {
-                        addParamStep('claim')
-                        // push to setup page with redirect uri, to prevent the user from losing the flow context
-                        const redirectUri = encodeURIComponent(
-                            window.location.pathname + window.location.search + window.location.hash
-                        )
-                        router.push(`/setup?redirect_uri=${redirectUri}`)
-                    }}
-                    className="flex w-full items-center gap-1"
-                >
+                <Button shadowSize="4" onClick={handleContinueWithPeanut} className="flex w-full items-center gap-1">
                     <div>Continue with </div>
                     <div className="flex items-center gap-1">
                         <Image src={PEANUTMAN_LOGO} alt="Peanut Logo" className="size-5" />
@@ -155,16 +232,36 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
                     </div>
                 </Button>
             )}
+            {isInviteLink && !userHasAppAccess && username && (
+                <div className="!mt-6 flex w-full items-center justify-center gap-1 md:gap-2">
+                    <Image src={starStraightImage.src} alt="star" width={20} height={20} />{' '}
+                    <p className="text-center text-sm">Invited by {username}, you have early access!</p>
+                    <Image src={starStraightImage.src} alt="star" width={20} height={20} />
+                </div>
+            )}
             <Divider text="or" />
             <div className="space-y-2">
                 {sortedActionMethods.map((method) => {
                     if (flow === 'request' && method.id === 'exchange-or-wallet') {
-                        return <ActionListDaimoPayButton key={method.id} />
+                        return (
+                            <ActionListDaimoPayButton
+                                handleContinueWithPeanut={handleContinueWithPeanut}
+                                key={method.id}
+                                showConfirmModal={isInviteLink && !userHasAppAccess}
+                            />
+                        )
                     }
 
                     return (
                         <MethodCard
-                            onClick={() => handleMethodClick(method)}
+                            onClick={() => {
+                                if (isInviteLink && !userHasAppAccess) {
+                                    setSelectedMethod(method)
+                                    setShowInviteModal(true)
+                                } else {
+                                    handleMethodClick(method)
+                                }
+                            }}
                             key={method.id}
                             method={method}
                             requiresVerification={method.id === 'bank' && requiresVerification}
@@ -189,6 +286,25 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
                 onClose={() => setIsGuestVerificationModalOpen(false)}
                 description="To fulfill this request using bank account, please create an account and verify your identity."
                 redirectToVerification
+            />
+
+            {/* Invites modal */}
+
+            <ConfirmInviteModal
+                method={selectedMethod?.title ?? ''}
+                handleContinueWithPeanut={handleContinueWithPeanut}
+                handleLoseInvite={() => {
+                    if (selectedMethod) {
+                        handleMethodClick(selectedMethod)
+                        setShowInviteModal(false)
+                        setSelectedMethod(null)
+                    }
+                }}
+                isOpen={showInviteModal}
+                onClose={() => {
+                    setShowInviteModal(false)
+                    setSelectedMethod(null)
+                }}
             />
         </div>
     )

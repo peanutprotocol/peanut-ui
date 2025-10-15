@@ -1,3 +1,5 @@
+'use client'
+
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import { BASE_URL } from '@/components/Global/DirectSendQR/utils'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
@@ -7,7 +9,9 @@ import { twMerge } from 'tailwind-merge'
 import { Tooltip } from '../Tooltip'
 import { useMemo } from 'react'
 import { isAddress } from 'viem'
-import { printableAddress } from '@/utils'
+import useKycStatus from '@/hooks/useKycStatus'
+import { useAuth } from '@/context/authContext'
+import AddressLink from '../Global/AddressLink'
 
 interface UserHeaderProps {
     username: string
@@ -16,6 +20,8 @@ interface UserHeaderProps {
 }
 
 export const UserHeader = ({ username, fullName, isVerified }: UserHeaderProps) => {
+    const { isUserKycApproved: isViewerVerified } = useKycStatus()
+
     return (
         <div className="flex items-center gap-1.5">
             <Link href={`/profile`} className="flex items-center gap-2">
@@ -24,7 +30,12 @@ export const UserHeader = ({ username, fullName, isVerified }: UserHeaderProps) 
                     className="h-7 w-7 text-[11px] md:h-8 md:w-8 md:text-[13px]"
                     name={fullName || username}
                 />
-                <VerifiedUserLabel name={username} isVerified={isVerified} />
+                <VerifiedUserLabel
+                    name={username}
+                    isVerified={isVerified}
+                    isAuthenticatedUserVerified={isViewerVerified}
+                    username={username}
+                />
             </Link>
             <CopyToClipboard textToCopy={`${BASE_URL}/${username}`} fill="black" iconSize={'4'} />
         </div>
@@ -33,6 +44,7 @@ export const UserHeader = ({ username, fullName, isVerified }: UserHeaderProps) 
 
 export const VerifiedUserLabel = ({
     name,
+    username,
     isVerified,
     className,
     iconSize = 14,
@@ -40,12 +52,14 @@ export const VerifiedUserLabel = ({
     isAuthenticatedUserVerified = false,
 }: {
     name: string
+    username: string
     isVerified: boolean | undefined
     className?: HTMLDivElement['className']
     iconSize?: number
     haveSentMoneyToUser?: boolean
     isAuthenticatedUserVerified?: boolean
 }) => {
+    const { invitedUsernamesSet, user } = useAuth()
     // determine badge and tooltip content based on verification status
     let badge = null
     let tooltipContent = ''
@@ -63,17 +77,38 @@ export const VerifiedUserLabel = ({
     }
 
     const isCryptoAddress = useMemo(() => {
-        return isAddress(name)
-    }, [name])
+        return isAddress(username)
+    }, [username])
+
+    // O(1) lookup in pre-computed Set
+    const isInvitedByLoggedInUser = invitedUsernamesSet.has(username)
+
+    const isInviter = user?.invitedBy === username
 
     return (
         <div className="flex items-center gap-1.5">
-            <div className={twMerge('text-center text-sm font-semibold md:text-base', className)}>
-                {isCryptoAddress ? printableAddress(name, 4, 4) : name}
-            </div>
+            {isCryptoAddress ? (
+                <AddressLink
+                    isLink={false}
+                    className={twMerge('font-semibold md:text-base', className)}
+                    address={username}
+                />
+            ) : (
+                <div className={twMerge('font-semibold md:text-base', className)}>{name}</div>
+            )}
+
             {badge && (
                 <Tooltip id="verified-user-label" content={tooltipContent} position="top">
                     {badge}
+                </Tooltip>
+            )}
+            {(isInvitedByLoggedInUser || isInviter) && (
+                <Tooltip
+                    id={isInviter ? 'inviter-user' : 'invited-by-user'}
+                    content={isInviter ? 'You were invited by this user.' : "You've invited this user."}
+                    position="top"
+                >
+                    <Icon name="invite-heart" size={iconSize} />
                 </Tooltip>
             )}
         </div>

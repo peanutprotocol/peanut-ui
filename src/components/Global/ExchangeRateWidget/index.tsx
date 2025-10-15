@@ -11,7 +11,7 @@ import { Button } from '@/components/0_Bruddle'
 interface IExchangeRateWidgetProps {
     ctaLabel: string
     ctaIcon: IconName
-    ctaAction: () => void
+    ctaAction: (sourceCurrency: string, destinationCurrency: string) => void
 }
 
 const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, ctaAction }) => {
@@ -212,7 +212,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
             )}
 
             <Button
-                onClick={ctaAction}
+                onClick={() => ctaAction(sourceCurrency, destinationCurrency)}
                 icon={ctaIcon}
                 iconSize={13}
                 shadowSize="4"

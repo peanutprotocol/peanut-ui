@@ -8,15 +8,11 @@ import ActionModal from '@/components/Global/ActionModal'
 import AddressLink from '@/components/Global/AddressLink'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import FileUploadInput from '@/components/Global/FileUploadInput'
-import FlowHeader from '@/components/Global/FlowHeader'
-import GuestLoginCta from '@/components/Global/GuestLoginCta'
 import { IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
-import BeerInput from '@/components/PintaReqPay/BeerInput'
-import PintaReqViewWrapper from '@/components/PintaReqPay/PintaReqViewWrapper'
 import UserCard from '@/components/User/UserCard'
-import { PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS, PINTA_WALLET_CHAIN, PINTA_WALLET_TOKEN } from '@/constants'
+import { PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { tokenSelectorContext } from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
@@ -26,7 +22,7 @@ import { ParsedURL } from '@/lib/url-parser/types/payment'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { walletActions } from '@/redux/slices/wallet-slice'
-import { areEvmAddressesEqual, ErrorHandler, formatAmount } from '@/utils'
+import { areEvmAddressesEqual, ErrorHandler, formatAmount, formatCurrency } from '@/utils'
 import { useAppKit, useDisconnect } from '@reown/appkit/react'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -36,9 +32,11 @@ import { useAccount } from 'wagmi'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { useUserByUsername } from '@/hooks/useUserByUsername'
 import { PaymentFlow } from '@/app/[...recipient]/client'
+import MantecaFulfillment from '../Views/MantecaFulfillment.view'
+import { invitesApi } from '@/services/invites'
+import { EInviteType } from '@/services/services.types'
 
 export type PaymentFlowProps = {
-    isPintaReq?: boolean
     isExternalWalletFlow?: boolean
     /** Whether this is a direct USD payment flow (bypasses token conversion) */
     isDirectUsdPayment?: boolean
@@ -60,7 +58,6 @@ export const PaymentForm = ({
     amount,
     token,
     chain,
-    isPintaReq,
     currency,
     currencyAmount,
     setCurrencyAmount,
@@ -71,16 +68,14 @@ export const PaymentForm = ({
 }: PaymentFormProps) => {
     const dispatch = useAppDispatch()
     const router = useRouter()
-    const { user } = useAuth()
+    const { user, fetchUser } = useAuth()
+    const { requestDetails, chargeDetails, daimoError, error: paymentStoreError, attachmentOptions } = usePaymentStore()
     const {
-        requestDetails,
-        chargeDetails,
-        beerQuantity,
-        daimoError,
-        error: paymentStoreError,
-        attachmentOptions,
-    } = usePaymentStore()
-    const { setShowExternalWalletFulfilMethods, setExternalWalletFulfilMethod } = useRequestFulfillmentFlow()
+        setShowExternalWalletFulfillMethods,
+        setExternalWalletFulfillMethod,
+        fulfillUsingManteca,
+        setFulfillUsingManteca,
+    } = useRequestFulfillmentFlow()
     const recipientUsername = !chargeDetails && recipient?.recipientType === 'USERNAME' ? recipient.identifier : null
     const { user: recipientUser } = useUserByUsername(recipientUsername)
 
@@ -98,6 +93,8 @@ export const PaymentForm = ({
     const [inputTokenAmount, setInputTokenAmount] = useState<string>(
         chargeDetails?.tokenAmount || requestDetails?.tokenAmount || amount || ''
     )
+    const [isAcceptingInvite, setIsAcceptingInvite] = useState(false)
+    const [inviteError, setInviteError] = useState(false)
 
     // states
     const [disconnectWagmiModal, setDisconnectWagmiModal] = useState<boolean>(false)
@@ -109,14 +106,15 @@ export const PaymentForm = ({
     const { initiatePayment, isProcessing, error: initiatorError } = usePaymentInitiator()
 
     const peanutWalletBalance = useMemo(() => {
-        return balance !== undefined ? formatAmount(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS)) : ''
+        return balance !== undefined ? formatCurrency(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS)) : ''
     }, [balance])
 
     const error = useMemo(() => {
         if (paymentStoreError) return ErrorHandler(paymentStoreError)
         if (initiatorError) return ErrorHandler(initiatorError)
+        if (inviteError) return 'Something went wrong. Please try again or contact support.'
         return null
-    }, [paymentStoreError, initiatorError])
+    }, [paymentStoreError, initiatorError, inviteError])
 
     const {
         selectedTokenPrice,
@@ -210,7 +208,7 @@ export const PaymentForm = ({
                     dispatch(paymentActions.setError(null))
                 }
             } else {
-                // regular send/pay or PINTA flow
+                // regular send/pay
                 if (isActivePeanutWallet && areEvmAddressesEqual(selectedTokenAddress, PEANUT_WALLET_TOKEN)) {
                     // peanut wallet payment
                     const walletNumeric = parseFloat(String(peanutWalletBalance).replace(/,/g, ''))
@@ -267,7 +265,6 @@ export const PaymentForm = ({
 
     // fetch token price
     useEffect(() => {
-        if (isPintaReq) return
         if (!requestDetails?.tokenAddress || !requestDetails?.chainId) return
 
         const getTokenPriceData = async () => {
@@ -296,13 +293,11 @@ export const PaymentForm = ({
         }
 
         getTokenPriceData()
-    }, [requestDetails, isPintaReq])
+    }, [requestDetails])
 
     const canInitiatePayment = useMemo<boolean>(() => {
         let amountIsSet = false
-        if (isPintaReq) {
-            amountIsSet = beerQuantity > 0
-        } else if (isActivePeanutWallet) {
+        if (isActivePeanutWallet) {
             amountIsSet = !!inputTokenAmount && parseFloat(inputTokenAmount) > 0
         } else {
             amountIsSet =
@@ -320,14 +315,47 @@ export const PaymentForm = ({
         usdValue,
         selectedTokenAddress,
         selectedChainID,
-        isPintaReq,
-        beerQuantity,
         isConnected,
         isActivePeanutWallet,
     ])
 
+    const handleAcceptInvite = async () => {
+        try {
+            setIsAcceptingInvite(true)
+            const inviteCode = `${recipient?.identifier}INVITESYOU`
+            const result = await invitesApi.acceptInvite(inviteCode, EInviteType.PAYMENT_LINK)
+
+            if (!result.success) {
+                console.error('Failed to accept invite')
+                setInviteError(true)
+                setIsAcceptingInvite(false)
+                return false
+            }
+
+            // fetch user so that we have the latest state and user can access the app.
+            // We dont need to wait for this, can happen in background.
+            await fetchUser()
+            setIsAcceptingInvite(false)
+            return true
+        } catch (error) {
+            console.error('Failed to accept invite', error)
+            setInviteError(true)
+            setIsAcceptingInvite(false)
+            return false
+        }
+    }
+
     const handleInitiatePayment = useCallback(async () => {
+        // clear invite error
+        if (inviteError) {
+            setInviteError(false)
+        }
         if (isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow) {
+            // If the user doesn't have app access, accept the invite before claiming the link
+            if (recipient.recipientType === 'USERNAME' && !user?.user.hasAppAccess) {
+                const isAccepted = await handleAcceptInvite()
+                if (!isAccepted) return
+            }
             router.push('/add-money')
             return
         }
@@ -343,43 +371,6 @@ export const PaymentForm = ({
         }
 
         if (!canInitiatePayment) return
-
-        // for PINTA requests, validate beer quantity first
-        if (isPintaReq) {
-            if (beerQuantity <= 0) {
-                dispatch(paymentActions.setError('Please select at least 1 beer to continue.'))
-                return
-            }
-
-            try {
-                const payload = {
-                    recipient: recipient,
-                    tokenAmount: beerQuantity.toString(),
-                    isPintaReq: true,
-                    requestId: requestId ?? undefined,
-                    chainId: PINTA_WALLET_CHAIN.id.toString(),
-                    tokenAddress: PINTA_WALLET_TOKEN,
-                }
-
-                console.log('Initiating PINTA payment with payload:', payload)
-
-                const result = await initiatePayment(payload)
-
-                if (result.status === 'Success') {
-                    dispatch(paymentActions.setView('STATUS'))
-                } else if (result.status === 'Charge Created') {
-                    dispatch(paymentActions.setView('CONFIRM'))
-                } else if (result.status === 'Error') {
-                    console.error('PINTA payment initiation failed:', result.error)
-                }
-                return
-            } catch (error) {
-                console.error('Failed to initiate PINTA payment:', error)
-                const errorString = ErrorHandler(error)
-                dispatch(paymentActions.setError(errorString))
-                return
-            }
-        }
 
         // regular payment flow
         if (!inputTokenAmount || parseFloat(inputTokenAmount) <= 0) {
@@ -420,12 +411,11 @@ export const PaymentForm = ({
         const payload: InitiatePaymentPayload = {
             recipient: recipient,
             tokenAmount,
-            isPintaReq: false, // explicitly set to false for non-PINTA requests
             requestId: requestId ?? undefined,
             chargeId: chargeDetails?.uuid,
             currency,
             currencyAmount,
-            isExternalWalletFlow: !!isExternalWalletFlow,
+            isExternalWalletFlow: !!isExternalWalletFlow || fulfillUsingManteca,
             transactionType: isExternalWalletFlow
                 ? 'DEPOSIT'
                 : isDirectUsdPayment || !requestId
@@ -441,23 +431,24 @@ export const PaymentForm = ({
         if (result.status === 'Success') {
             dispatch(paymentActions.setView('STATUS'))
         } else if (result.status === 'Charge Created') {
-            dispatch(paymentActions.setView('CONFIRM'))
+            if (!fulfillUsingManteca) {
+                dispatch(paymentActions.setView('CONFIRM'))
+            }
         } else if (result.status === 'Error') {
             console.error('Payment initiation failed:', result.error)
         } else {
             console.warn('Unexpected status from usePaymentInitiator:', result.status)
         }
     }, [
+        fulfillUsingManteca,
         canInitiatePayment,
         isDepositRequest,
         isConnected,
         openReownModal,
         recipient,
         inputTokenAmount,
-        isPintaReq,
         requestId,
         initiatePayment,
-        beerQuantity,
         chargeDetails,
         isExternalWalletFlow,
         requestDetails,
@@ -465,6 +456,8 @@ export const PaymentForm = ({
         selectedChainID,
         inputUsdValue,
         requestedTokenPrice,
+        inviteError,
+        handleAcceptInvite,
     ])
 
     const getButtonText = () => {
@@ -518,12 +511,6 @@ export const PaymentForm = ({
     }
 
     useEffect(() => {
-        if (isPintaReq && inputTokenAmount) {
-            dispatch(paymentActions.setBeerQuantity(Number(inputTokenAmount)))
-        }
-    }, [isPintaReq, inputTokenAmount, dispatch])
-
-    useEffect(() => {
         if (!inputTokenAmount) return
         if (selectedTokenPrice) {
             setUsdValue((parseFloat(inputTokenAmount) * selectedTokenPrice).toString())
@@ -537,13 +524,20 @@ export const PaymentForm = ({
         }
     }, [amount, inputTokenAmount, initialSetupDone])
 
-    // Init beer quantity
     useEffect(() => {
-        if (!inputTokenAmount) return
-        if (isPintaReq) {
-            dispatch(paymentActions.setBeerQuantity(Number(inputTokenAmount)))
+        const stepFromURL = searchParams.get('step')
+        if (user && stepFromURL === 'regional-req-fulfill') {
+            setFulfillUsingManteca(true)
+        } else {
+            setFulfillUsingManteca(false)
         }
-    }, [isPintaReq, inputTokenAmount])
+    }, [user, searchParams])
+
+    useEffect(() => {
+        if (fulfillUsingManteca && !chargeDetails) {
+            handleInitiatePayment()
+        }
+    }, [fulfillUsingManteca, chargeDetails, handleInitiatePayment])
 
     const isInsufficientBalanceError = useMemo(() => {
         return error?.includes("You don't have enough balance.")
@@ -574,13 +568,7 @@ export const PaymentForm = ({
 
         if (flow === 'request_pay') return false
 
-        // logic for non-AddMoneyFlow / non-Pinta (Pinta has its own button logic)
-        if (!isPintaReq) {
-            if (!isConnected) return true // if not connected at all, disable (covers guest non-Peanut scenarios)
-
-            if (!selectedTokenAddress || !selectedChainID) return true // must have token/chain
-        }
-        // fallback for Pinta or other cases if not explicitly handled above
+        // fallback for other cases if not explicitly handled above
         return false
     }, [
         isProcessing,
@@ -592,36 +580,7 @@ export const PaymentForm = ({
         selectedChainID,
         isConnected,
         isActivePeanutWallet,
-        isPintaReq,
     ])
-
-    if (isPintaReq) {
-        return (
-            <div className="space-y-4">
-                {!!user && <FlowHeader />}
-                <PintaReqViewWrapper view="INITIAL">
-                    <BeerInput disabled={!!amount || !!requestDetails?.tokenAmount || isProcessing} />
-                    <div className="space-y-4">
-                        {!user ? (
-                            <GuestLoginCta hideConnectWallet view="CLAIM" />
-                        ) : (
-                            <Button
-                                shadowSize="4"
-                                variant="purple"
-                                onClick={handleInitiatePayment}
-                                disabled={beerQuantity === 0 || isProcessing}
-                                loading={isProcessing}
-                                className="w-full"
-                            >
-                                {getButtonText()}
-                            </Button>
-                        )}
-                        {error && <ErrorAlert description={error} />}
-                    </div>
-                </PintaReqViewWrapper>
-            </div>
-        )
-    }
 
     const recipientDisplayName = useMemo(() => {
         return recipient ? recipient.identifier : 'Unknown Recipient'
@@ -629,14 +588,18 @@ export const PaymentForm = ({
 
     const handleGoBack = () => {
         if (isExternalWalletFlow) {
-            setShowExternalWalletFulfilMethods(true)
-            setExternalWalletFulfilMethod(null)
+            setShowExternalWalletFulfillMethods(true)
+            setExternalWalletFulfillMethod(null)
             return
         } else if (window.history.length > 1) {
             router.back()
         } else {
             router.push('/')
         }
+    }
+
+    if (fulfillUsingManteca && chargeDetails) {
+        return <MantecaFulfillment />
     }
 
     return (
@@ -691,6 +654,7 @@ export const PaymentForm = ({
                     disabled={!isExternalWalletFlow && (!!requestDetails?.tokenAmount || !!chargeDetails?.tokenAmount)}
                     walletBalance={isActivePeanutWallet ? peanutWalletBalance : undefined}
                     currency={currency}
+                    hideCurrencyToggle={!currency}
                     hideBalance={isExternalWalletFlow}
                 />
 
@@ -732,7 +696,7 @@ export const PaymentForm = ({
                     {isPeanutWalletConnected && (!error || isInsufficientBalanceError) && (
                         <Button
                             variant="purple"
-                            loading={isProcessing}
+                            loading={isAcceptingInvite || isProcessing}
                             shadowSize="4"
                             onClick={handleInitiatePayment}
                             disabled={isButtonDisabled}

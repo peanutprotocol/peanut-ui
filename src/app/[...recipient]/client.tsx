@@ -6,7 +6,6 @@ import ConfirmPaymentView from '@/components/Payment/Views/Confirm.payment.view'
 import ValidationErrorView, { ValidationErrorViewProps } from '@/components/Payment/Views/Error.validation.view'
 import InitialPaymentView from '@/components/Payment/Views/Initial.payment.view'
 import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
-import PintaReqPaySuccessView from '@/components/PintaReqPay/Views/Success.pinta.view'
 import PublicProfile from '@/components/Profile/components/PublicProfile'
 import { TransactionDetailsReceipt } from '@/components/TransactionDetails/TransactionDetailsReceipt'
 import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
@@ -34,6 +33,9 @@ import NavHeader from '@/components/Global/NavHeader'
 import { ReqFulfillBankFlowManager } from '@/components/Request/views/ReqFulfillBankFlowManager'
 import SupportCTA from '@/components/Global/SupportCTA'
 import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermineBankRequestType'
+import { useQuery } from '@tanstack/react-query'
+import { pointsApi } from '@/services/points'
+import { PointsAction } from '@/services/services.types'
 
 export type PaymentFlow = 'request_pay' | 'external_wallet' | 'direct_pay' | 'withdraw'
 interface Props {
@@ -64,12 +66,37 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     const { isDrawerOpen, selectedTransaction, openTransactionDetails } = useTransactionDetailsDrawer()
     const [isLinkCancelling, setisLinkCancelling] = useState(false)
     const {
-        showExternalWalletFulfilMethods,
+        showExternalWalletFulfillMethods,
         showRequestFulfilmentBankFlowManager,
         setShowRequestFulfilmentBankFlowManager,
         setFlowStep: setRequestFulfilmentBankFlowStep,
+        fulfillUsingManteca,
     } = useRequestFulfillmentFlow()
     const { requestType } = useDetermineBankRequestType(chargeDetails?.requestLink.recipientAccount.userId ?? '')
+
+    // Calculate points API call
+    // Points are ALWAYS calculated based on USD value (per PR.md: "1c in cost = 10 pts")
+    // Pre-fetch points when in confirm view (request_pay) or status view (direct_pay)
+    // For request_pay: calculate on CONFIRM (before payment)
+    // For direct_pay: calculate on STATUS (after payment completes)
+
+    const shouldFetchPoints =
+        user?.user.userId &&
+        usdAmount &&
+        chargeDetails?.uuid &&
+        ((flow === 'request_pay' && currentView === 'CONFIRM') || (flow === 'direct_pay' && currentView === 'STATUS'))
+
+    const { data: pointsData } = useQuery({
+        queryKey: ['calculate-points', chargeDetails?.uuid, flow],
+        queryFn: () =>
+            pointsApi.calculatePoints({
+                actionType: PointsAction.P2P_REQUEST_PAYMENT,
+                usdAmount: Number(usdAmount),
+                otherUserId: chargeDetails?.requestLink.recipientAccount.userId,
+            }),
+        enabled: !!shouldFetchPoints,
+        refetchOnWindowFocus: false,
+    })
 
     // determine if the current user is the recipient of the transaction
     const isCurrentUserRecipient = chargeDetails?.requestLink.recipientAccount?.userId === user?.user.userId
@@ -392,6 +419,9 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         }
     }, [transactionForDrawer, currentView, dispatch, openTransactionDetails, isExternalWalletFlow, chargeId])
 
+    const showActionList =
+        (flow !== 'direct_pay' || (flow === 'direct_pay' && !user)) && // Show for direct-pay when user is not logged in
+        !fulfillUsingManteca // Show when not fulfilling using Manteca
     // Send to bank step if its mentioned in the URL and guest KYC is not needed
     useEffect(() => {
         const stepFromURL = searchParams.get('step')
@@ -407,11 +437,12 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         }
     }, [searchParams, parsedPaymentData, chargeDetails, requestType])
 
-    let showActionList = flow !== 'direct_pay'
-
-    if (flow === 'direct_pay' && !user) {
-        showActionList = true
-    }
+    // reset payment state on unmount
+    useEffect(() => {
+        return () => {
+            dispatch(paymentActions.resetPaymentState())
+        }
+    }, [])
 
     if (error) {
         return (
@@ -434,7 +465,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     }
 
     // render external wallet fulfilment methods
-    if (showExternalWalletFulfilMethods) {
+    if (showExternalWalletFulfillMethods) {
         return <ExternalWalletFulfilManager parsedPaymentData={parsedPaymentData as ParsedURL} />
     }
 
@@ -460,19 +491,6 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         )
     }
 
-    // pinta token payment flow
-    if (parsedPaymentData?.token?.symbol === 'PNT') {
-        return (
-            <div className={twMerge('mx-auto h-full w-full space-y-8 self-center')}>
-                <div>
-                    {currentView === 'INITIAL' && <InitialPaymentView {...parsedPaymentData} isPintaReq={true} />}
-                    {currentView === 'CONFIRM' && <ConfirmPaymentView isPintaReq={true} />}
-                    {currentView === 'STATUS' && <PintaReqPaySuccessView />}
-                </div>
-            </div>
-        )
-    }
-    // default payment flow
     return (
         <div className={twMerge('mx-auto min-h-[inherit] w-full space-y-8 self-center')}>
             {!user && parsedPaymentData?.recipient?.recipientType !== 'USERNAME' && (
@@ -497,7 +515,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                                 ? {
                                       code: currencyCode,
                                       symbol: currencySymbol!,
-                                      price: currencyPrice!,
+                                      price: currencyPrice!.buy,
                                   }
                                 : undefined
                         }
@@ -510,6 +528,9 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                                 flow="request"
                                 requestLinkData={parsedPaymentData as ParsedURL}
                                 isLoggedIn={!!user?.user.userId}
+                                isInviteLink={
+                                    flow === 'request_pay' && parsedPaymentData?.recipient?.recipientType === 'USERNAME'
+                                } // invite link is only available for request pay flow
                             />
                         )}
                     </div>
@@ -518,7 +539,6 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
             {currentView === 'CONFIRM' && (
                 <ConfirmPaymentView
                     key={`confirm-${flow}`}
-                    isPintaReq={parsedPaymentData?.token?.symbol === 'PNT'}
                     currencyAmount={currencyCode && currencyAmount ? `${currencySymbol} ${currencyAmount}` : undefined}
                     isExternalWalletFlow={isExternalWalletFlow}
                     isDirectUsdPayment={isDirectPay}
@@ -526,9 +546,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
             )}
             {currentView === 'STATUS' && (
                 <>
-                    {parsedPaymentData?.token?.symbol === 'PNT' ? (
-                        <PintaReqPaySuccessView />
-                    ) : isDrawerOpen && selectedTransaction?.id === transactionForDrawer?.id ? (
+                    {isDrawerOpen && selectedTransaction?.id === transactionForDrawer?.id ? (
                         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
                             <NavHeader disableBackBtn={!user?.user.userId} title="Receipt" />
                             <TransactionDetailsReceipt
@@ -550,6 +568,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                             }
                             isExternalWalletFlow={isExternalWalletFlow}
                             redirectTo={isExternalWalletFlow ? '/add-money' : '/send'}
+                            points={pointsData?.estimatedPoints}
                         />
                     )}
                 </>

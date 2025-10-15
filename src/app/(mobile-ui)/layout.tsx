@@ -1,23 +1,17 @@
 'use client'
 
-import { MarqueeWrapper } from '@/components/Global/MarqueeWrapper'
-import { useRouter } from 'next/navigation'
-import { HandThumbsUp } from '@/assets'
-import Image from 'next/image'
 import GuestLoginModal from '@/components/Global/GuestLoginModal'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import TopNavbar from '@/components/Global/TopNavbar'
 import WalletNavigation from '@/components/Global/WalletNavigation'
-import HomeWaitlist from '@/components/Home/HomeWaitlist'
 import { ThemeProvider } from '@/config'
-import { peanutWalletIsInPreview } from '@/constants'
 import { useAuth } from '@/context/authContext'
 import { hasValidJwtToken } from '@/utils/auth'
 import { isIOS } from '@/utils/general.utils'
 import classNames from 'classnames'
 import { usePathname } from 'next/navigation'
 import PullToRefresh from 'pulltorefreshjs'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import '../../styles/globals.css'
 import SupportDrawer from '@/components/Global/SupportDrawer'
@@ -25,13 +19,15 @@ import { useSupportModalContext } from '@/context/SupportModalContext'
 import ForceIOSPWAInstall from '@/components/ForceIOSPWAInstall'
 import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
 import { usePWAStatus } from '@/hooks/usePWAStatus'
+import JoinWaitlistPage from '@/components/Invites/JoinWaitlistPage'
+import { useRouter } from 'next/navigation'
+import { Banner } from '@/components/Global/Banner'
 
 // Allow access to some public paths without authentication
-const publicPathRegex = /^\/(request\/pay|claim|pay\/.+$|support)/
+const publicPathRegex = /^\/(request\/pay|claim|pay\/.+$|support|invite|dev)/
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     const pathName = usePathname()
-    const router = useRouter()
     const { isFetchingUser, user } = useAuth()
     const [isReady, setIsReady] = useState(false)
     const [hasToken, setHasToken] = useState(false)
@@ -43,11 +39,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const isHistory = pathName === '/history'
     const isSupport = pathName === '/support'
     const alignStart = isHome || isHistory || isSupport
-
-    const showFullPeanutWallet = useMemo(() => {
-        const isPublicPath = publicPathRegex.test(pathName)
-        return isPublicPath || (user?.user.hasPwAccess ?? false) || !peanutWalletIsInPreview
-    }, [user, pathName])
+    const router = useRouter()
 
     useEffect(() => {
         // check for JWT token
@@ -91,7 +83,13 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     // Allow access to public paths without authentication
     const isPublicPath = publicPathRegex.test(pathName)
 
-    if (!isReady || (isFetchingUser && !user && !hasToken && !isPublicPath)) {
+    useEffect(() => {
+        if (!isPublicPath && !isFetchingUser && !user) {
+            router.push('/setup')
+        }
+    }, [user, isFetchingUser])
+
+    if (!isReady || isFetchingUser || (!hasToken && !isPublicPath) || (!isPublicPath && !user)) {
         return (
             <div className="flex h-[100dvh] w-full flex-col items-center justify-center">
                 <PeanutLoading />
@@ -104,39 +102,33 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         return <ForceIOSPWAInstall />
     }
 
+    // Show waitlist page if user doesn't have app access
+    if (!isFetchingUser && user && !user?.user.hasAppAccess && !isPublicPath) {
+        return <JoinWaitlistPage />
+    }
+
     return (
         <div className="flex min-h-[100dvh] w-full bg-background">
             {/* Wrapper div for desktop layout */}
             <div className="flex w-full">
                 {/* Sidebar - Fixed on desktop */}
-                {showFullPeanutWallet && (
-                    <div className="hidden md:block">
-                        <div className="fixed left-0 top-0 z-20 h-screen w-64">
-                            <WalletNavigation />
-                        </div>
+
+                <div className="hidden md:block">
+                    <div className="fixed left-0 top-0 z-20 h-screen w-64">
+                        <WalletNavigation />
                     </div>
-                )}
+                </div>
 
                 {/* Main content area */}
                 <div className="flex w-full flex-1 flex-col">
-                    {/* Only show banner if not on landing page */}
-                    {pathName !== '/' && (
-                        <button onClick={() => setIsSupportModalOpen(true)} className="w-full cursor-pointer">
-                            <MarqueeWrapper backgroundColor="bg-primary-1" direction="left">
-                                <span className="z-10 mx-4 flex items-center gap-2 text-sm font-semibold">
-                                    Peanut is in beta! Thank you for being an early user, share your feedback here
-                                    <Image src={HandThumbsUp} alt="Thumbs up" className="h-4 w-4" />
-                                </span>
-                            </MarqueeWrapper>
-                        </button>
-                    )}
+                    {/* Banner component handles maintenance and feedback banners */}
+                    <Banner />
 
                     {/* Fixed top navbar */}
-                    {showFullPeanutWallet && (
-                        <div className="sticky top-0 z-10 w-full">
-                            <TopNavbar />
-                        </div>
-                    )}
+
+                    <div className="sticky top-0 z-10 w-full">
+                        <TopNavbar />
+                    </div>
 
                     {/* Scrollable content area */}
                     <div
@@ -151,31 +143,23 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                         )}
                     >
                         <ThemeProvider>
-                            {showFullPeanutWallet ? (
-                                <div
-                                    className={twMerge(
-                                        'flex w-full items-center justify-center md:ml-auto md:w-[calc(100%-160px)]',
-                                        alignStart && 'items-start',
-                                        isSupport && 'h-full',
-                                        isUserLoggedIn ? 'min-h-[calc(100dvh-160px)]' : 'min-h-[calc(100dvh-64px)]'
-                                    )}
-                                >
-                                    {children}
-                                </div>
-                            ) : (
-                                <div className="flex h-full items-center justify-center self-center">
-                                    <HomeWaitlist />
-                                </div>
-                            )}
+                            <div
+                                className={twMerge(
+                                    'flex w-full items-center justify-center md:ml-auto md:w-[calc(100%-160px)]',
+                                    alignStart && 'items-start',
+                                    isSupport && 'h-full',
+                                    isUserLoggedIn ? 'min-h-[calc(100dvh-160px)]' : 'min-h-[calc(100dvh-64px)]'
+                                )}
+                            >
+                                {children}
+                            </div>
                         </ThemeProvider>
                     </div>
 
                     {/* Mobile navigation */}
-                    {showFullPeanutWallet && (
-                        <div className="fixed bottom-0 left-0 right-0 z-10 bg-background md:hidden">
-                            <WalletNavigation />
-                        </div>
-                    )}
+                    <div className="fixed bottom-0 left-0 right-0 z-10 bg-background md:hidden">
+                        <WalletNavigation />
+                    </div>
                 </div>
             </div>
 

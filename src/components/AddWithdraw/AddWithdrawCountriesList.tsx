@@ -12,7 +12,6 @@ import { useParams, useRouter } from 'next/navigation'
 import EmptyState from '../Global/EmptyStates/EmptyState'
 import { useAuth } from '@/context/authContext'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { InitiateKYCModal } from '@/components/Kyc'
 import { DynamicBankAccountForm, IBankAccountDetails } from './DynamicBankAccountForm'
 import { addBankAccount, updateUserById } from '@/app/actions/users'
 import { BridgeKycStatus } from '@/utils/bridge-accounts.utils'
@@ -22,10 +21,14 @@ import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { Account } from '@/interfaces'
 import PeanutLoading from '../Global/PeanutLoading'
 import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
+import { isMantecaCountry } from '@/constants/manteca.consts'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import CryptoMethodDrawer from '../AddMoney/components/CryptoMethodDrawer'
 import { useAppDispatch } from '@/redux/hooks'
 import { bankFormActions } from '@/redux/slices/bank-form-slice'
+import { InitiateBridgeKYCModal } from '../Kyc/InitiateBridgeKYCModal'
+import useKycStatus from '@/hooks/useKycStatus'
+import KycVerifiedOrReviewModal from '../Global/KycVerifiedOrReviewModal'
 
 interface AddWithdrawCountriesListProps {
     flow: 'add' | 'withdraw'
@@ -38,17 +41,20 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     // hooks
     const { deviceType } = useDeviceType()
     const { user, fetchUser } = useAuth()
-    const { setSelectedBankAccount, amountToWithdraw } = useWithdrawFlow()
+    const { setSelectedBankAccount, amountToWithdraw, setSelectedMethod } = useWithdrawFlow()
     const dispatch = useAppDispatch()
 
     // component level states
-    const [view, setView] = useState<'list' | 'form'>('list')
+    const [view, setView] = useState<'list' | 'form'>(flow === 'withdraw' && amountToWithdraw ? 'form' : 'list')
     const [isKycModalOpen, setIsKycModalOpen] = useState(false)
     const formRef = useRef<{ handleSubmit: () => void }>(null)
     const [liveKycStatus, setLiveKycStatus] = useState<BridgeKycStatus | undefined>(
         user?.user?.bridgeKycStatus as BridgeKycStatus
     )
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+
+    const { isUserBridgeKycUnderReview } = useKycStatus()
+    const [showKycStatusModal, setShowKycStatusModal] = useState(false)
 
     useWebSocket({
         username: user?.user.username ?? undefined,
@@ -63,10 +69,6 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             setLiveKycStatus(user.user.bridgeKycStatus as BridgeKycStatus)
         }
     }, [user?.user.bridgeKycStatus])
-
-    useEffect(() => {
-        fetchUser()
-    }, [])
 
     const countryPathParts = Array.isArray(params.country) ? params.country : [params.country]
     const isBankPage = countryPathParts[countryPathParts.length - 1] === 'bank'
@@ -161,23 +163,52 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     }
 
     const handleWithdrawMethodClick = (method: SpecificPaymentMethod) => {
-        if (method.id.includes('default-bank-withdraw') || method.id.includes('sepa-instant-withdraw')) {
-            setView('form')
+        if (method.path && method.path.includes('/manteca')) {
+            // Manteca methods route directly (has own amount input)
+            router.push(method.path)
+        } else if (method.id.includes('default-bank-withdraw') || method.id.includes('sepa-instant-withdraw')) {
+            if (isUserBridgeKycUnderReview) {
+                setShowKycStatusModal(true)
+                return
+            }
+
+            // Bridge methods: Set in context and navigate for amount input
+            setSelectedMethod({
+                type: 'bridge',
+                countryPath: currentCountry?.path,
+                currency: currentCountry?.currency,
+                title: method.title,
+            })
+            router.push('/withdraw')
+            return
+        } else if (method.id.includes('crypto-withdraw')) {
+            setSelectedMethod({
+                type: 'crypto',
+                countryPath: 'crypto',
+                title: 'Crypto',
+            })
+            router.push('/withdraw')
         } else if (method.path) {
+            // Other methods with paths
             router.push(method.path)
         }
     }
 
-    useEffect(() => {
-        if (flow !== 'withdraw') {
-            return
+    const handleAddMethodClick = (method: SpecificPaymentMethod) => {
+        if (method.path) {
+            if (method.id === 'crypto-add') {
+                setIsDrawerOpen(true)
+                return
+            }
+            // show kyc status modal if user is kyc under review
+            if (isUserBridgeKycUnderReview) {
+                setShowKycStatusModal(true)
+                return
+            }
+
+            router.push(method.path)
         }
-        if (!amountToWithdraw) {
-            console.error('Amount not available in WithdrawFlowContext for withdrawal, redirecting.')
-            router.push('/withdraw')
-            return
-        }
-    }, [amountToWithdraw, router, flow])
+    }
 
     const methods = useMemo(() => {
         if (!currentCountry) return undefined
@@ -206,14 +237,6 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             add: filteredAddMethods,
         }
     }, [currentCountry, flow, deviceType])
-
-    if (!amountToWithdraw && flow === 'withdraw') {
-        return (
-            <div className="flex h-full w-full items-center justify-center md:min-h-[80vh]">
-                <PeanutLoading />
-            </div>
-        )
-    }
 
     if (!currentCountry) {
         return (
@@ -244,7 +267,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                     initialData={{}}
                     error={null}
                 />
-                <InitiateKYCModal
+                <InitiateBridgeKYCModal
                     isOpen={isKycModalOpen}
                     onClose={() => setIsKycModalOpen(false)}
                     onKycSuccess={handleKycSuccess}
@@ -300,11 +323,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                                 if (flow === 'withdraw') {
                                     handleWithdrawMethodClick(method)
                                 } else if (method.path) {
-                                    if (method.id === 'crypto-add') {
-                                        setIsDrawerOpen(true)
-                                        return
-                                    }
-                                    router.push(method.path)
+                                    handleAddMethodClick(method)
                                 }
                             }}
                             position={
@@ -348,7 +367,11 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                     closeDrawer={() => setIsDrawerOpen(false)}
                 />
             )}
-            <InitiateKYCModal
+            <KycVerifiedOrReviewModal
+                isKycApprovedModalOpen={showKycStatusModal}
+                onClose={() => setShowKycStatusModal(false)}
+            />
+            <InitiateBridgeKYCModal
                 isOpen={isKycModalOpen}
                 onClose={() => setIsKycModalOpen(false)}
                 onKycSuccess={handleKycSuccess}

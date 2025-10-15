@@ -2,6 +2,16 @@ import * as Sentry from '@sentry/nextjs'
 
 import { JSONValue } from '../interfaces/interfaces'
 
+/** Use configured fetch timeout or default to 10s
+ * We use 10s because vercel function timout is 15s and this function
+ * can be called in that context, and we preffer to have control over
+ * the error message and handling
+ */
+const DEFAULT_TIMEOUT_MS =
+    process.env.NEXT_PUBLIC_FETCH_TIMEOUT_MS && !isNaN(parseInt(process.env.NEXT_PUBLIC_FETCH_TIMEOUT_MS, 10))
+        ? parseInt(process.env.NEXT_PUBLIC_FETCH_TIMEOUT_MS, 10)
+        : 10000
+
 const getErrorLevelFromStatus = (status: number): Sentry.SeverityLevel => {
     if (status >= 500) return 'error'
     if (status >= 400) return 'warning'
@@ -23,7 +33,11 @@ const sanitizeHeaders = (headers: any): any => {
     return sanitized
 }
 
-export const fetchWithSentry = async (url: string, options: RequestInit = {}): Promise<Response> => {
+export const fetchWithSentry = async (
+    url: string,
+    options: RequestInit = {},
+    timeoutMs: number = DEFAULT_TIMEOUT_MS
+): Promise<Response> => {
     // Sanitize URL for fingerprinting by replacing IDs with placeholders
     const sanitizeUrl = (url: string) => {
         return (
@@ -36,8 +50,17 @@ export const fetchWithSentry = async (url: string, options: RequestInit = {}): P
                 .replace(/([?&][^=&]*=)\d+/g, '$1{id}')
         )
     }
+
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+
     try {
-        const response = await fetch(url, options)
+        const response = await fetch(url, {
+            ...options,
+            signal: controller.signal,
+        })
+
+        clearTimeout(timeoutId)
 
         if (!response.ok) {
             console.warn(`Request to ${url} failed with status ${response.status}`)
@@ -68,7 +91,30 @@ export const fetchWithSentry = async (url: string, options: RequestInit = {}): P
 
         return response
     } catch (error: unknown) {
+        clearTimeout(timeoutId)
         console.error(error)
+
+        if (error instanceof Error && error.name === 'AbortError') {
+            const timeoutError = new Error(`Request to ${url} timed out after ${timeoutMs}ms`)
+
+            Sentry.withScope((scope) => {
+                scope.setFingerprint(['timeout', sanitizeUrl(url), options.method || 'GET'])
+
+                Sentry.captureException(timeoutError, {
+                    level: 'error',
+                    extra: {
+                        url,
+                        method: options.method || 'GET',
+                        timeoutMs,
+                        requestHeaders: sanitizeHeaders(options.headers || {}),
+                        requestBody: options.body || null,
+                    },
+                })
+            })
+
+            throw timeoutError
+        }
+
         let errorMessage: string
         let errorName: string
         let errorStack: string | undefined

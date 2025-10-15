@@ -96,7 +96,7 @@ const useClaimLink = () => {
         }
     }
 
-    const addParamStep = (step: 'bank' | 'claim') => {
+    const addParamStep = (step: 'bank' | 'claim' | 'regional-claim' | 'regional-req-fulfill') => {
         const params = new URLSearchParams(searchParams)
         params.set('step', step)
 

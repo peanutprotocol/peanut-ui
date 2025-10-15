@@ -1,3 +1,4 @@
+import { BridgeKycStatus } from '@/utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 
 export type TStatus = 'NEW' | 'PENDING' | 'COMPLETED' | 'EXPIRED' | 'FAILED' | 'SIGNED' | 'SUCCESSFUL' | 'CANCELLED'
@@ -305,4 +306,163 @@ export interface TCreateOfframpResponse {
     depositAddress: string
     deposit_chain_id: number
     deposit_token_address: string
+}
+
+// manteca service types
+export interface CreateQrPaymentRequest {
+    qrCode: string
+    amount?: string
+}
+
+export interface QrPaymentDetails {
+    paymentAsset?: string
+    paymentAssetAmount?: string
+    paymentPrice?: string
+    priceExpireAt?: string
+}
+
+export interface QrPaymentResponse {
+    id: string
+    externalId: string
+    sessionId: string
+    status: string
+    currentStage: string
+    details?: QrPaymentDetails
+    stages?: any[]
+}
+
+export interface CreateQrPaymentResponse {
+    qrPayment: QrPaymentResponse
+    charge: TRequestChargeResponse
+}
+
+export enum ESendLinkStatus {
+    creating = 'creating',
+    completed = 'completed',
+    CLAIMING = 'CLAIMING',
+    CLAIMED = 'CLAIMED',
+    CANCELLED = 'CANCELLED',
+    FAILED = 'FAILED',
+}
+
+export type SendLinkStatus = `${ESendLinkStatus}`
+
+export type SendLink = {
+    pubKey: string
+    depositIdx: number
+    chainId: string
+    contractVersion: string
+    textContent?: string
+    fileUrl?: string
+    status: SendLinkStatus
+    createdAt: Date
+    senderAddress: string
+    amount: bigint
+    tokenAddress: string
+    sender: {
+        userId: string
+        username: string
+        fullName: string
+        bridgeKycStatus: string
+        accounts: {
+            identifier: string
+            type: string
+        }[]
+    }
+    claim?: {
+        amount: string
+        txHash: string
+        tokenAddress: string
+        recipientAddress?: string
+        recipient?: {
+            userId: string
+            username: string
+            fullName: string
+            bridgeKycStatus: string
+            accounts: {
+                identifier: string
+                type: string
+            }[]
+        }
+    }
+    events: {
+        timestamp: Date
+        status: SendLinkStatus
+    }[]
+}
+
+export enum EInviteType {
+    DIRECT = 'DIRECT',
+    PAYMENT_LINK = 'PAYMENT_LINK',
+}
+
+export interface Invite {
+    id: string
+    type: EInviteType
+    createdAt: string
+    invitee: {
+        bridgeKycStatus: BridgeKycStatus
+        username: string
+        fullName: string | null
+    }
+}
+
+export interface TierInfo {
+    userId: string
+    directPoints: number
+    transitivePoints: number
+    totalPoints: number
+    currentTier: number
+    leaderboardRank: number
+    nextTierThreshold: number
+    pointsToNextTier: number
+}
+
+export interface PointsInvite {
+    inviteeId: string
+    username: string
+    fullName: string | null
+    invitedAt: string
+    kycStatus: BridgeKycStatus | null
+    kycVerified: boolean
+    directPoints: number
+    totalPoints: number
+    contributedPoints: number
+    hasInvitedOthers: boolean
+    inviteesCount: number
+}
+
+export interface PointsInvitesResponse {
+    invitees: PointsInvite[]
+    summary: {
+        multiplier: number
+        pendingInvites: number
+        totalContributedPoints: number
+        totalDirectPoints: number
+        totalInvites: number
+        verifiedInvites: number
+    }
+}
+
+export enum PointsAction {
+    BRIDGE_TRANSFER = 'BRIDGE_TRANSFER',
+    MANTECA_TRANSFER = 'MANTECA_TRANSFER',
+    MANTECA_QR_PAYMENT = 'MANTECA_QR_PAYMENT',
+    P2P_SEND_LINK = 'P2P_SEND_LINK',
+    P2P_REQUEST_PAYMENT = 'P2P_REQUEST_PAYMENT',
+    INVITE_KYC_VERIFIED = 'INVITE_KYC_VERIFIED',
+}
+
+export interface CalculatePointsRequest {
+    actionType: PointsAction
+    usdAmount: number
+    otherUserId?: string
+}
+
+// Perks system types
+export interface HistoryEntryPerk {
+    claimed: boolean
+    discountPercentage: number
+    amountSponsored?: number
+    txHash?: string
 }
