@@ -10,6 +10,8 @@ import { isAddress as isWalletAddress } from 'viem'
 import Card from '../Global/Card'
 import { Icon, IconName } from '../Global/Icons/Icon'
 import { VerifiedUserLabel } from '../UserHeader'
+import { useRouter } from 'next/navigation'
+import { twMerge } from 'tailwind-merge'
 
 export type TransactionDirection =
     | 'send'
@@ -37,6 +39,7 @@ interface TransactionDetailsHeaderCardProps {
     avatarUrl?: string
     haveSentMoneyToUser?: boolean
     hasPerk?: boolean
+    isAvatarClickable?: boolean
 }
 
 const getTitle = (
@@ -168,7 +171,9 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     avatarUrl,
     haveSentMoneyToUser = false,
     hasPerk = false,
+    isAvatarClickable = false,
 }) => {
+    const router = useRouter()
     const typeForAvatar =
         transactionType ?? (direction === 'add' ? 'add' : direction === 'withdraw' ? 'withdraw' : 'send')
 
@@ -177,26 +182,35 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     return (
         <Card className="relative p-4 md:p-6" position="single">
             <div className="flex items-center gap-3">
-                {avatarUrl ? (
-                    <div className="flex h-16 w-16 items-center justify-center rounded-full">
-                        <Image
-                            src={avatarUrl}
-                            alt="Icon"
-                            className="size-full rounded-full object-cover"
-                            width={160}
-                            height={160}
+                <div
+                    className={twMerge(isAvatarClickable && 'cursor-pointer')}
+                    onClick={() => {
+                        if (isAvatarClickable) {
+                            router.push(`/${userName}`)
+                        }
+                    }}
+                >
+                    {avatarUrl ? (
+                        <div className="flex h-16 w-16 items-center justify-center rounded-full">
+                            <Image
+                                src={avatarUrl}
+                                alt="Icon"
+                                className="size-full rounded-full object-cover"
+                                width={160}
+                                height={160}
+                            />
+                        </div>
+                    ) : (
+                        <TransactionAvatarBadge
+                            initials={initials}
+                            userName={userName}
+                            isLinkTransaction={isLinkTransaction}
+                            transactionType={typeForAvatar}
+                            context="header"
+                            size="medium"
                         />
-                    </div>
-                ) : (
-                    <TransactionAvatarBadge
-                        initials={initials}
-                        userName={userName}
-                        isLinkTransaction={isLinkTransaction}
-                        transactionType={typeForAvatar}
-                        context="header"
-                        size="medium"
-                    />
-                )}
+                    )}
+                </div>
                 <div className="space-y-1">
                     <h2 className="flex items-center gap-2 text-sm font-medium text-grey-1">
                         {icon && <Icon name={icon} size={10} />}

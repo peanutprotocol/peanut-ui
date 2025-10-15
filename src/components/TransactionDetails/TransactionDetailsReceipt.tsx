@@ -10,7 +10,6 @@ import { useUserStore } from '@/redux/hooks'
 import { chargesApi } from '@/services/charges'
 import { sendLinksApi } from '@/services/sendLinks'
 import { formatAmount, formatDate, getInitialsFromName, isStableCoin, formatCurrency, getAvatarUrl } from '@/utils'
-import { getDisplayCurrencySymbol } from '@/utils/currency'
 import { formatIban, printableAddress, shortenAddress, shortenStringLong, slugify } from '@/utils/general.utils'
 import { cancelOnramp } from '@/app/actions/onramp'
 import { captureException } from '@sentry/nextjs'
@@ -323,9 +322,9 @@ export const TransactionDetailsReceipt = ({
     }
 
     // Show profile button only if txn is completed, not to/by a guest user and its a send/request/receive txn
-    const showUserProfileButton =
+    const isAvatarClickable =
         !!transaction &&
-        transaction.status === 'completed' &&
+        !transaction.extraDataForDrawer?.isLinkTransaction &&
         !!transaction.userName &&
         !isAddress(transaction.userName) &&
         (transaction.extraDataForDrawer?.transactionCardType === 'send' ||
@@ -369,6 +368,7 @@ export const TransactionDetailsReceipt = ({
                 avatarUrl={avatarUrl ?? getAvatarUrl(transaction)}
                 haveSentMoneyToUser={transaction.haveSentMoneyToUser}
                 hasPerk={!!transaction.extraDataForDrawer?.perk?.claimed}
+                isAvatarClickable={isAvatarClickable}
             />
 
             {/* details card (date, fee, memo) and more */}
@@ -1034,22 +1034,6 @@ export const TransactionDetailsReceipt = ({
                 </div>
             )}
 
-            {showUserProfileButton && (
-                <div className="pr-1">
-                    <Button
-                        onClick={() => router.push(`/${transaction.userName}`)}
-                        shadowSize="4"
-                        variant={
-                            transaction.extraDataForDrawer?.transactionCardType === 'request'
-                                ? 'purple'
-                                : 'primary-soft'
-                        }
-                        className="flex w-full items-center gap-1"
-                    >
-                        Go to {transaction.userName} profile
-                    </Button>
-                </div>
-            )}
             {/* Cancel deposit button for bridge_onramp transactions in awaiting_funds state */}
             {transaction.direction === 'bank_deposit' &&
                 transaction.extraDataForDrawer?.originalType !== EHistoryEntryType.REQUEST &&
