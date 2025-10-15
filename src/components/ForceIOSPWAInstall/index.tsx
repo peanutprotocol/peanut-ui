@@ -3,7 +3,7 @@ import starImage from '@/assets/icons/star.png'
 import { Icon } from '../Global/Icons/Icon'
 import { twMerge } from 'tailwind-merge'
 
-const ForcePWAInstall = () => {
+const ForceIOSPWAInstall = () => {
     const STAR_POSITIONS = [
         'left-[5%] animate-rock-delay-1 top-[15%] size-10',
         'right-[10%] animate-rock top-[10%] size-10',
@@ -27,7 +27,7 @@ const ForcePWAInstall = () => {
                 ))}
 
                 <video className="h-96 w-96 object-contain" autoPlay loop muted playsInline>
-                    <source src="/iosPwa.webm" type="video/webm" />
+                    <source src="/iosPwa.mov" type="video/webm" />
                     Your browser does not support the video tag.
                 </video>
             </section>
@@ -51,4 +51,4 @@ const ForcePWAInstall = () => {
     )
 }
 
-export default ForcePWAInstall
+export default ForceIOSPWAInstall

@@ -22,7 +22,7 @@ import { twMerge } from 'tailwind-merge'
 import '../../styles/globals.css'
 import SupportDrawer from '@/components/Global/SupportDrawer'
 import { useSupportModalContext } from '@/context/SupportModalContext'
-import ForcePWAInstall from '@/components/ForcePWAInstall'
+import ForceIOSPWAInstall from '@/components/ForceIOSPWAInstall'
 import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
 import { usePWAStatus } from '@/hooks/usePWAStatus'
 
@@ -101,7 +101,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
     // force PWA install for iOS devices
     if (deviceType === DeviceType.IOS && !isPWA) {
-        return <ForcePWAInstall />
+        return <ForceIOSPWAInstall />
     }
 
     return (
