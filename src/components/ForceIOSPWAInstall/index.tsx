@@ -12,7 +12,7 @@ const ForceIOSPWAInstall = () => {
     ] as const
 
     return (
-        <main className="h-[100dvh] w-screen">
+        <main className="h-[100dvh] w-full">
             <section className="relative flex h-1/2 w-full items-center justify-center overflow-hidden bg-secondary-3 p-10">
                 {STAR_POSITIONS.map((positions, index) => (
                     <Image
@@ -27,18 +27,17 @@ const ForceIOSPWAInstall = () => {
                 ))}
 
                 <video className="h-96 w-96 object-contain" autoPlay loop muted playsInline>
-                    <source src="/iosPwa.mov" type="video/webm" />
+                    <source src="/iosPwa.mov" type="video/quicktime" />
                     Your browser does not support the video tag.
                 </video>
             </section>
-            <section className="flex h-1/2 w-full flex-col gap-4 p-4">
+            <section className="flex h-1/2 w-full flex-col gap-4 bg-white p-4">
                 <h1 className="text-3xl font-bold">Get the full experience</h1>
                 <h2 className="text-base font-medium">This is the final step!</h2>
                 <h3>Add Peanut to your home screen to unlock your wallet and start using it.</h3>
                 <p className="flex items-center gap-1">
                     Tap the{' '}
                     <span className="flex items-center gap-1 font-bold">
-                        {' '}
                         <Icon name="share" size={16} /> Share icon
                     </span>
                     on your browser

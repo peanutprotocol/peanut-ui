@@ -98,7 +98,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     }
 
     // force PWA install for iOS devices
-    if (deviceType === DeviceType.IOS && !isPWA) {
+    if (!isPublicPath && deviceType === DeviceType.IOS && !isPWA) {
         return <ForceIOSPWAInstall />
     }
 
