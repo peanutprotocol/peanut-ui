@@ -39,15 +39,16 @@ const IMAGE_CONTAINER_CLASSES: Record<LayoutType, string> = {
     signup: 'min-h-[55dvh] md:min-h-full', // signup view has larger container height
     standard: 'min-h-[50dvh] md:min-h-full', // rest all views has medium container height
     'android-initial-pwa-install': 'min-h-[60dvh] md:min-h-full',
+    'ios-initial-pwa-install': 'hidden',
 }
 
 // define animated star decorations positions and sizes
 // each array element represents a star with specific positioning and animation
 const STAR_POSITIONS = [
-    'left-[10%] md:left-[15%] lg:left-[15%] animate-rock-delay-1 top-[15%] md:top-[20%]  size-13 md:size-14',
-    'right-[10%] md:right-[15%] lg:right-[15%] animate-rock top-[10%] md:top-[20%] size-10 md:size-14',
-    'left-[10%] md:left-[15%] lg:left-[15%] animate-rock-delay-2 bottom-[15%] md:bottom-[20%] size-12 md:size-14',
-    'right-[10%] md:right-[15%] lg:right-[15%] animate-rock-delay-2 bottom-[30%] size-6 md:size-14',
+    'left-[10%] md:left-[15%] lg:left-[15%] top-[15%] md:top-[20%]  size-13 md:size-14',
+    'right-[10%] md:right-[15%] lg:right-[15%] top-[10%] md:top-[20%] size-10 md:size-14',
+    'left-[10%] md:left-[15%] lg:left-[15%] bottom-[15%] md:bottom-[20%] size-12 md:size-14',
+    'right-[10%] md:right-[15%] lg:right-[15%] bottom-[30%] size-6 md:size-14',
 ] as const
 
 /**
@@ -97,6 +98,7 @@ const ImageSection = ({
     if (!image) return null
 
     const isSignup = layoutType === 'signup'
+    const isIosInitialPwaInstall = layoutType === 'ios-initial-pwa-install'
     const containerClass = IMAGE_CONTAINER_CLASSES[layoutType]
     const imageClass = !!imageClassName
         ? imageClassName
@@ -136,6 +138,9 @@ const ImageSection = ({
                 />
             </div>
         )
+    }
+    if (isIosInitialPwaInstall) {
+        return null
     }
 
     // standard layout rendering without decorations
