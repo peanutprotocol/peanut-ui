@@ -12,8 +12,9 @@ import { printableUsdc } from '@/utils'
 import { getExchangeRateWidgetRedirectRoute } from '@/utils/exchangeRateWidget.utils'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useAuth } from '@/context/authContext'
+import { twMerge } from 'tailwind-merge'
 
-export function NoFees() {
+export function NoFees({ className }: { className?: string }) {
     const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200)
     const router = useRouter()
     const { fetchBalance, balance } = useWallet()
@@ -62,7 +63,7 @@ export function NoFees() {
     }
 
     return (
-        <section className="relative overflow-hidden bg-secondary-3 px-4 py-24 md:py-14">
+        <section className={twMerge('relative overflow-hidden bg-secondary-3 px-4 py-24 md:py-14', className)}>
             <div className="absolute left-0 top-0 h-full w-full overflow-hidden">
                 {/* Animated clouds */}
                 <motion.img
