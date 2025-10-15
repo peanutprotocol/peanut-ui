@@ -69,11 +69,10 @@ const PIX_REGEX = /^.*000201.*0014br\.gov\.bcb\.pix.*5303986.*5802BR.*$/i
  * The flow type is static, dynamic or user_specified.
  */
 export const SIMPLEFI_STATIC_REGEX =
-    /^(?:https?:\/\/)?(?:www\.)?pagar\.simplefi\.tech\/(?<merchantSlug>[^\/]*)(\/static$|\?static\=true)/
-export const SIMPLEFI_USER_SPECIFIED_REGEX =
-    /^(?:https?:\/\/)?(?:www\.)?pagar\.simplefi\.tech\/(?<merchantSlug>[^\/]*)$/
+    /^(?:https?:\/\/)?(?:www\.)?pagar\.simplefi\.tech\/(?<merchantSlug>[^\/]*)(\/static|\/?\?.*static\=true.*)/
+export const SIMPLEFI_USER_SPECIFIED_REGEX = /^(?:https?:\/\/)?(?:www\.)?pagar\.simplefi\.tech\/(?<merchantSlug>[^\/]*)/
 export const SIMPLEFI_DYNAMIC_REGEX =
-    /^(?:https?:\/\/)?(?:www\.)?pagar\.simplefi\.tech\/(?<merchantId>[^\/]*)\/payment\/(?<paymentId>[^\/]*)$/
+    /^(?:https?:\/\/)?(?:www\.)?pagar\.simplefi\.tech\/(?<merchantId>[^\/]*)\/payment\/(?<paymentId>[^\/]*)/
 
 export const PAYMENT_PROCESSOR_REGEXES: { [key in QrType]?: RegExp } = {
     [EQrType.MERCADO_PAGO]: MP_AR_REGEX,
