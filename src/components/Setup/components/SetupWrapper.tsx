@@ -45,10 +45,10 @@ const IMAGE_CONTAINER_CLASSES: Record<LayoutType, string> = {
 // define animated star decorations positions and sizes
 // each array element represents a star with specific positioning and animation
 const STAR_POSITIONS = [
-    'left-[10%] md:left-[15%] lg:left-[15%] animate-rock-delay-1 top-[15%] md:top-[20%]  size-13 md:size-14',
-    'right-[10%] md:right-[15%] lg:right-[15%] animate-rock top-[10%] md:top-[20%] size-10 md:size-14',
-    'left-[10%] md:left-[15%] lg:left-[15%] animate-rock-delay-2 bottom-[15%] md:bottom-[20%] size-12 md:size-14',
-    'right-[10%] md:right-[15%] lg:right-[15%] animate-rock-delay-2 bottom-[30%] size-6 md:size-14',
+    'left-[10%] md:left-[15%] lg:left-[15%] top-[15%] md:top-[20%]  size-13 md:size-14',
+    'right-[10%] md:right-[15%] lg:right-[15%] top-[10%] md:top-[20%] size-10 md:size-14',
+    'left-[10%] md:left-[15%] lg:left-[15%] bottom-[15%] md:bottom-[20%] size-12 md:size-14',
+    'right-[10%] md:right-[15%] lg:right-[15%] bottom-[30%] size-6 md:size-14',
 ] as const
 
 /**

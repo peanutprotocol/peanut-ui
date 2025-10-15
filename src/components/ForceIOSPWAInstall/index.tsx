@@ -5,10 +5,10 @@ import { twMerge } from 'tailwind-merge'
 
 const ForceIOSPWAInstall = () => {
     const STAR_POSITIONS = [
-        'left-[5%] animate-rock-delay-1 top-[15%] size-10',
-        'right-[10%] animate-rock top-[10%] size-10',
-        'left-[5%] animate-rock-delay-2 bottom-[15%] size-10',
-        'right-[10%] animate-rock-delay-2 bottom-[15%] size-10',
+        'left-[5%] top-[15%] size-10',
+        'right-[10%] top-[10%] size-10',
+        'left-[5%] bottom-[15%] size-10',
+        'right-[10%] bottom-[15%] size-10',
     ] as const
 
     return (
