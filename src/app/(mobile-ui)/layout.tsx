@@ -15,10 +15,6 @@ import { useEffect, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import '../../styles/globals.css'
 import SupportDrawer from '@/components/Global/SupportDrawer'
-import { useSupportModalContext } from '@/context/SupportModalContext'
-import ForceIOSPWAInstall from '@/components/ForceIOSPWAInstall'
-import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
-import { usePWAStatus } from '@/hooks/usePWAStatus'
 import JoinWaitlistPage from '@/components/Invites/JoinWaitlistPage'
 import { useRouter } from 'next/navigation'
 import { Banner } from '@/components/Global/Banner'
@@ -32,9 +28,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const [isReady, setIsReady] = useState(false)
     const [hasToken, setHasToken] = useState(false)
     const isUserLoggedIn = !!user?.user.userId || false
-    const { setIsSupportModalOpen } = useSupportModalContext()
-    const { deviceType } = useDeviceType()
-    const isPWA = usePWAStatus()
     const isHome = pathName === '/home'
     const isHistory = pathName === '/history'
     const isSupport = pathName === '/support'
@@ -95,11 +88,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 <PeanutLoading />
             </div>
         )
-    }
-
-    // force PWA install for iOS devices
-    if (!isPublicPath && deviceType === DeviceType.IOS && !isPWA) {
-        return <ForceIOSPWAInstall />
     }
 
     // Show waitlist page if user doesn't have app access
