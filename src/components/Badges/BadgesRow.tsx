@@ -7,6 +7,7 @@ import { Tooltip } from '../Tooltip'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '../0_Bruddle'
 import { Icon } from '../Global/Icons/Icon'
+import { getBadgeIcon } from './badge.utils'
 
 type UIBadge = {
     code: string
@@ -107,7 +108,7 @@ export function BadgesRow({ badges, className }: BadgesRowProps) {
                             }
                         >
                             <Image
-                                src={badge.iconUrl || '/logo-favicon.png'}
+                                src={getBadgeIcon(badge.code)}
                                 alt={badge.name}
                                 className="min-h-12 min-w-12 object-contain"
                                 height={64}

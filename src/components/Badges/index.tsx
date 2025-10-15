@@ -4,7 +4,7 @@ import Image from 'next/image'
 import type { StaticImageData } from 'next/image'
 import NavHeader from '../Global/NavHeader'
 import { useRouter } from 'next/navigation'
-import { PEANUTMAN_LOGO } from '@/assets'
+import { getBadgeIcon } from './badge.utils'
 import { SearchResultCard } from '../SearchUsers/SearchResultCard'
 import { getCardPosition } from '../Global/Card'
 import EmptyState from '../Global/EmptyStates/EmptyState'
@@ -28,7 +28,7 @@ export const Badges = () => {
         return raw.map((b) => ({
             title: b.name,
             description: b.description || '',
-            logo: b.iconUrl || (PEANUTMAN_LOGO as any),
+            logo: getBadgeIcon(b.code),
         }))
     }, [authUser?.user?.badges])
 

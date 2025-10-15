@@ -3,6 +3,7 @@ import Card, { CardPosition } from '@/components/Global/Card'
 import { BadgeStatusDrawer } from './BadgeStatusDrawer'
 import Image from 'next/image'
 import InvitesIcon from '../Home/InvitesIcon'
+import { getBadgeIcon } from './badge.utils'
 
 export type BadgeHistoryEntry = {
     isBadge: true
@@ -46,7 +47,7 @@ export const BadgeStatusItem = ({
                 {/* badge icon */}
                 <div className={'relative flex h-12 w-12 items-center justify-center rounded-full'}>
                     <Image
-                        src={entry.iconUrl ?? ''}
+                        src={getBadgeIcon(entry.code)}
                         alt={`${entry.name} icon`}
                         className="size-10 object-contain"
                         width={32}

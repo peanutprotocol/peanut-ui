@@ -4,6 +4,7 @@ import { formatDate } from '@/utils'
 import Card from '../Global/Card'
 import { PaymentInfoRow } from '../Payment/PaymentInfoRow'
 import ShareButton from '../Global/ShareButton'
+import { getBadgeIcon } from './badge.utils'
 
 export type BadgeStatusDrawerProps = {
     isOpen: boolean
@@ -28,9 +29,9 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
                 <div className="space-y-5 p-5">
                     <Card className="relative p-4 md:p-6" position="single">
                         <div className="flex items-center gap-3">
-                            <div className="flex h-16 w-16 items-center justify-center rounded-full">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-full">
                                 <Image
-                                    src={badge.iconUrl ?? ''}
+                                    src={getBadgeIcon(badge.code)}
                                     alt="Icon"
                                     className="size-full object-contain"
                                     width={160}
@@ -39,10 +40,10 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
                             </div>
 
                             <div className="space-y-1">
-                                <h2 className="flex items-center gap-2 text-sm font-medium text-grey-1">
+                                <h2 className="flex items-center gap-2 text-xs font-medium text-grey-1">
                                     Badge unlocked!
                                 </h2>
-                                <h1 className={`text-3xl font-extrabold md:text-4xl`}>{badge.name}</h1>
+                                <h1 className={`text-lg font-extrabold md:text-4xl`}>{badge.name}</h1>
                             </div>
                         </div>
                     </Card>
@@ -54,7 +55,12 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
 
                     <div className="pb-4">
                         <ShareButton
-                            generateText={() => Promise.resolve(`I just unlocked the ${badge.name} badge on Peanut!`)}
+                            title=""
+                            generateText={() =>
+                                Promise.resolve(
+                                    `${badge.description}\nI just unlocked a ${badge.name} badge on Peanut!`
+                                )
+                            }
                         >
                             Share Achievement
                         </ShareButton>
