@@ -80,8 +80,15 @@ export const requestsApi = {
     },
 
     close: async (uuid: string): Promise<TRequestResponse> => {
+        const token = Cookies.get('jwt-token')
+        if (!token) {
+            throw new Error('Authentication token not found. Please log in again.')
+        }
         const response = await fetchWithSentry(`${PEANUT_API_URL}/requests/${uuid}`, {
             method: 'DELETE',
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
         })
         if (!response.ok) {
             throw new Error(`Failed to close request: ${response.statusText}`)
