@@ -1,5 +1,10 @@
 import { type ParsedURL } from '@/lib/url-parser/types/payment'
-import { type PaymentCreationResponse, type TCharge, type TRequestChargeResponse, type TRequestResponse } from '@/services/services.types'
+import {
+    type PaymentCreationResponse,
+    type TCharge,
+    type TRequestChargeResponse,
+    type TRequestResponse,
+} from '@/services/services.types'
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
 import { PAYMENT_SLICE } from '../constants'
 import { type IPaymentState, type TPaymentView } from '../types/payment.types'

@@ -30,7 +30,11 @@ import MoreInfo from '../Global/MoreInfo'
 import CancelSendLinkModal from '../Global/CancelSendLinkModal'
 import { twMerge } from 'tailwind-merge'
 import { isAddress } from 'viem'
-import { getBankAccountLabel, type TransactionDetailsRowKey, transactionDetailsRowKeys } from './transaction-details.utils'
+import {
+    getBankAccountLabel,
+    type TransactionDetailsRowKey,
+    transactionDetailsRowKeys,
+} from './transaction-details.utils'
 import { useSupportModalContext } from '@/context/SupportModalContext'
 import { useRouter } from 'next/navigation'
 import { countryData } from '@/components/AddMoney/consts'

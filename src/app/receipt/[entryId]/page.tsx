@@ -2,7 +2,10 @@ import { connection } from 'next/server'
 import { notFound } from 'next/navigation'
 import { isFinalState, historyTypeFromNumber } from '@/utils/history.utils'
 import { getHistoryEntry } from '@/app/actions/history'
-import { mapTransactionDataForDrawer, type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
+import {
+    mapTransactionDataForDrawer,
+    type TransactionDetails,
+} from '@/components/TransactionDetails/transactionTransformer'
 import { TransactionDetailsReceipt } from '@/components/TransactionDetails/TransactionDetailsReceipt'
 import NavHeader from '@/components/Global/NavHeader'
 import { generateMetadata as generateBaseMetadata } from '@/app/metadata'
