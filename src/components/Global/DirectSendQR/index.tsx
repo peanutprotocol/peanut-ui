@@ -293,6 +293,9 @@ export default function DirectSendQr({
             case EQrType.MERCADO_PAGO:
             case EQrType.ARGENTINA_QR3:
             case EQrType.PIX:
+            case EQrType.SIMPLEFI_STATIC:
+            case EQrType.SIMPLEFI_DYNAMIC:
+            case EQrType.SIMPLEFI_USER_SPECIFIED:
                 {
                     const timestamp = Date.now()
                     // Casing matters, so send original instead of normalized

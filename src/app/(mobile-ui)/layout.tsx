@@ -15,13 +15,12 @@ import { useEffect, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import '../../styles/globals.css'
 import SupportDrawer from '@/components/Global/SupportDrawer'
-import { useSupportModalContext } from '@/context/SupportModalContext'
 import JoinWaitlistPage from '@/components/Invites/JoinWaitlistPage'
 import { useRouter } from 'next/navigation'
 import { Banner } from '@/components/Global/Banner'
 
 // Allow access to some public paths without authentication
-const publicPathRegex = /^\/(request\/pay|claim|pay\/.+$|support|invite)/
+const publicPathRegex = /^\/(request\/pay|claim|pay\/.+$|support|invite|dev)/
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     const pathName = usePathname()
@@ -29,7 +28,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const [isReady, setIsReady] = useState(false)
     const [hasToken, setHasToken] = useState(false)
     const isUserLoggedIn = !!user?.user.userId || false
-    const { setIsSupportModalOpen } = useSupportModalContext()
     const isHome = pathName === '/home'
     const isHistory = pathName === '/history'
     const isSupport = pathName === '/support'
@@ -96,8 +94,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     if (!isFetchingUser && user && !user?.user.hasAppAccess && !isPublicPath) {
         return <JoinWaitlistPage />
     }
-
-    console.log(user, 'user')
 
     return (
         <div className="flex min-h-[100dvh] w-full bg-background">

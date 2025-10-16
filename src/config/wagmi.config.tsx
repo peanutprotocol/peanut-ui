@@ -1,4 +1,5 @@
 'use client'
+import '@/utils/crypto-polyfill' // Polyfill crypto.randomUUID for DaimoPayProvider
 import { JustaNameContext } from '@/config/justaname.config'
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
 import {
@@ -55,7 +56,7 @@ createAppKit({
     metadata,
     projectId,
     features: {
-        analytics: true,
+        analytics: false, // no app-kit analytics plz
         socials: false,
         email: false,
         onramp: true,

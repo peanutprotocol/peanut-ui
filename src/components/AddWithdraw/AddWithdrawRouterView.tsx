@@ -3,7 +3,7 @@ import { Button } from '@/components/0_Bruddle'
 import { DepositMethod, DepositMethodList } from '@/components/AddMoney/components/DepositMethodList'
 import NavHeader from '@/components/Global/NavHeader'
 import { RecentMethod, getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { FC, useEffect, useState, useTransition, useCallback } from 'react'
 import { useUserStore } from '@/redux/hooks'
 import { AccountType, Account } from '@/interfaces'
@@ -65,11 +65,18 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
     const [localShowAllMethods, setLocalShowAllMethods] = useState<boolean>(false)
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
     const [, startTransition] = useTransition()
+    const searchParams = useSearchParams()
+    const currencyCode = searchParams.get('currencyCode')
 
     // determine if we should show the full list of methods (countries/crypto) instead of the default view
-    const shouldShowAllMethods = flow === 'withdraw' ? showAllWithdrawMethods : localShowAllMethods
+    let shouldShowAllMethods = flow === 'withdraw' ? showAllWithdrawMethods : localShowAllMethods
     const setShouldShowAllMethods = flow === 'withdraw' ? setShowAllWithdrawMethods : setLocalShowAllMethods
     const [isLoadingPreferences, setIsLoadingPreferences] = useState(true)
+
+    // if currencyCode is present, show all methods
+    if (currencyCode) {
+        shouldShowAllMethods = true
+    }
 
     const baseRoute = flow === 'add' ? '/add-money' : '/withdraw'
 

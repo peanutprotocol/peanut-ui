@@ -286,9 +286,7 @@ export interface Account {
     }
     createdAt: string
     updatedAt: string
-    points: number
-    referrerAddress: string | null
-    referredUsersPoints: number
+    // OLD Points V1 fields removed - use pointsV2 from stats instead
     chainId: string | null
     connectorUuid: string | null
     bic?: string
@@ -307,27 +305,18 @@ interface userInvites {
 }
 
 export interface IUserProfile {
-    points: number
-    transactions: Transaction[]
-    referralsPointsTxs: Transaction[]
-    totalReferralConnections: number
-    referredUsers: number
+    // OLD Points V1 fields removed - use pointsV2 in stats instead
+    // Points V2: Use stats.pointsV2.totalPoints, pointsV2.inviteCount, etc.
     streak: number
     pwQueue: { totalUsers: number; userPosition: number | null }
     accounts: Account[]
     contacts: Contact[]
-    totalPoints: number
+    totalPoints: number // Kept for backward compatibility - same as pointsV2.totalPoints
     hasPwaInstalled: boolean
     user: User
-    pointsPerReferral: Array<{
-        address: string
-        points: number
-        totalReferrals: number
-    }>
-    totalReferralPoints: number
     invitesSent: userInvites[]
     showEarlyUserModal: boolean
-    invitedBy: string | null
+    invitedBy: string | null // Username of the person who invited this user
 }
 
 interface Contact {

@@ -19,6 +19,8 @@ import Image from 'next/image'
 import StatusPill, { StatusPillType } from '../Global/StatusPill'
 import { VerifiedUserLabel } from '../UserHeader'
 import { isAddress } from 'viem'
+import { STAR_STRAIGHT_ICON } from '@/assets'
+import { HistoryEntryPerk } from '@/services/services.types'
 
 export type TransactionType =
     | 'send'
@@ -85,6 +87,11 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     if (!isStableCoin(transaction.tokenSymbol ?? 'USDC')) {
         usdAmount = Number(transaction.currency?.amount ?? amount)
     }
+
+    // Check for perk info
+    const perkInfo = transaction.extraDataForDrawer?.perk as HistoryEntryPerk | undefined
+    const hasPerk = perkInfo?.claimed
+
     const formattedAmount = formatCurrency(Math.abs(usdAmount).toString())
     const displayAmount = `${sign}$${formattedAmount}`
 
@@ -101,29 +108,31 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         {/* txn avatar component handles icon/initials/colors */}
-                        {avatarUrl ? (
-                            <div className={'relative flex h-12 w-12 items-center justify-center rounded-full'}>
-                                <Image
-                                    src={avatarUrl}
-                                    alt="Icon"
-                                    className="size-12 object-contain"
-                                    width={30}
-                                    height={30}
-                                />
+                        <div className="relative">
+                            {avatarUrl ? (
+                                <div className={'relative flex h-12 w-12 items-center justify-center rounded-full'}>
+                                    <Image
+                                        src={avatarUrl}
+                                        alt="Icon"
+                                        className="size-12 object-contain"
+                                        width={30}
+                                        height={30}
+                                    />
 
-                                {status && <StatusPill status={status} />}
-                            </div>
-                        ) : (
-                            <TransactionAvatarBadge
-                                initials={initials}
-                                userName={userNameForAvatar}
-                                isLinkTransaction={isLinkTx}
-                                transactionType={type}
-                                context="card"
-                                size="small"
-                                status={status}
-                            />
-                        )}
+                                    {status && <StatusPill status={status} />}
+                                </div>
+                            ) : (
+                                <TransactionAvatarBadge
+                                    initials={initials}
+                                    userName={userNameForAvatar}
+                                    isLinkTransaction={isLinkTx}
+                                    transactionType={type}
+                                    context="card"
+                                    size="small"
+                                    status={status}
+                                />
+                            )}
+                        </div>
                         <div className="flex flex-col">
                             {/* display formatted name (address or username) */}
                             <div className="flex flex-row items-center gap-2">
@@ -146,11 +155,22 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                     </div>
 
                     {/* amount and status on the right side */}
-                    <div className="flex flex-col items-end">
-                        <span className="font-semibold">{displayAmount}</span>
-                        {currencyDisplayAmount && (
-                            <span className="text-sm font-medium text-gray-1">{currencyDisplayAmount}</span>
+                    <div className="flex items-center gap-2">
+                        {hasPerk && (
+                            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-yellow-400">
+                                <Image src={STAR_STRAIGHT_ICON} alt="Perk" width={16} height={16} />
+                            </div>
                         )}
+                        <div className="flex flex-col items-end gap-1">
+                            {hasPerk ? (
+                                <span className="font-semibold line-through">{displayAmount}</span>
+                            ) : (
+                                <span className="font-semibold">{displayAmount}</span>
+                            )}
+                            {currencyDisplayAmount && (
+                                <span className="text-sm font-medium text-gray-1">{currencyDisplayAmount}</span>
+                            )}
+                        </div>
                     </div>
                 </div>
             </Card>

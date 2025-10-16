@@ -10,16 +10,17 @@ import { useUserStore } from '@/redux/hooks'
 import { chargesApi } from '@/services/charges'
 import { sendLinksApi } from '@/services/sendLinks'
 import { formatAmount, formatDate, getInitialsFromName, isStableCoin, formatCurrency, getAvatarUrl } from '@/utils'
-import { getDisplayCurrencySymbol } from '@/utils/currency'
 import { formatIban, printableAddress, shortenAddress, shortenStringLong, slugify } from '@/utils/general.utils'
 import { cancelOnramp } from '@/app/actions/onramp'
 import { captureException } from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
+import Image from 'next/image'
 import React, { useMemo, useState, useEffect } from 'react'
 import { Button } from '../0_Bruddle'
 import DisplayIcon from '../Global/DisplayIcon'
 import { Icon } from '../Global/Icons/Icon'
+import { STAR_STRAIGHT_ICON } from '@/assets/icons'
 import QRCodeWrapper from '../Global/QRCodeWrapper'
 import ShareButton from '../Global/ShareButton'
 import { TransactionDetailsHeaderCard } from './TransactionDetailsHeaderCard'
@@ -161,7 +162,8 @@ export const TransactionDetailsReceipt = ({
                 transaction.extraDataForDrawer?.depositInstructions &&
                 transaction.extraDataForDrawer.depositInstructions.bank_name
             ),
-            peanutFee: transaction.status !== 'pending',
+            peanutFee: !!(transaction.extraDataForDrawer?.perk?.claimed && transaction.status !== 'pending'),
+            points: !!(transaction.points && transaction.points > 0),
             comment: !!transaction.memo?.trim(),
             networkFee: !!(transaction.networkFeeDetails && transaction.sourceView === 'status'),
             attachment: !!transaction.attachmentUrl,
@@ -224,6 +226,7 @@ export const TransactionDetailsReceipt = ({
         if (
             [
                 EHistoryEntryType.MANTECA_QR_PAYMENT,
+                EHistoryEntryType.SIMPLEFI_QR_PAYMENT,
                 EHistoryEntryType.MANTECA_OFFRAMP,
                 EHistoryEntryType.MANTECA_ONRAMP,
             ].includes(transaction.extraDataForDrawer!.originalType)
@@ -253,13 +256,18 @@ export const TransactionDetailsReceipt = ({
                 const res = await fetch(
                     `https://api.coingecko.com/api/v3/coins/${chainName}/contract/${transaction.tokenAddress}`
                 )
+
+                if (!res.ok) {
+                    throw new Error(`CoinGecko API error: ${res.status} ${res.statusText}`)
+                }
+
                 const tokenDetails = await res.json()
                 setTokenData({
                     symbol: tokenDetails.symbol,
                     icon: tokenDetails.image.large,
                 })
             } catch (e) {
-                console.error(e)
+                console.error('Failed to fetch token details from CoinGecko:', e)
                 setTokenData(null)
             } finally {
                 setIsTokenDataLoading(false)
@@ -271,47 +279,25 @@ export const TransactionDetailsReceipt = ({
 
     if (!transaction) return null
 
-    // format data for display with proper handling for different transaction types
-    let amountDisplay = ''
+    let usdAmount: number | bigint = 0
 
     if (transactionAmount) {
-        // if transactionAmount is provided (from TransactionCard), use it
-        amountDisplay = transactionAmount.replace(/[+-]/g, '').replace(/\$/, '$ ')
-    } else if (
-        (transaction.direction === 'bank_deposit' ||
-            transaction.direction === 'bank_withdraw' ||
-            transaction.direction === 'bank_request_fulfillment') &&
-        transaction.currency?.code &&
-        transaction.currency.code.toUpperCase() !== 'USD'
-    ) {
-        // handle bank deposits/withdrawals with non-USD currency
-        const isCompleted = transaction.status === 'completed'
-
-        if (isCompleted) {
-            // for completed transactions: show USD amount (amount is already in USD)
-            const amount = transaction.amount || 0
-            const numericAmount = typeof amount === 'bigint' ? Number(amount) : Number(amount)
-            amountDisplay = `$ ${formatAmount(isNaN(numericAmount) ? 0 : numericAmount)}`
-        } else {
-            // for non-completed transactions: show original currency
-            const currencyAmount = transaction.currency?.amount || transaction.amount.toString()
-            const numericAmount = Number(currencyAmount)
-            const currencySymbol = getDisplayCurrencySymbol(transaction.currency.code)
-            amountDisplay = `${currencySymbol} ${formatAmount(isNaN(numericAmount) ? 0 : numericAmount)}`
-        }
-    } else {
-        // default: use currency amount if provided, otherwise fallback to raw amount - never show token value, only USD
-        if (transaction.currency?.amount && transaction.currency?.code) {
-            const numericAmount = Number(transaction.currency.amount)
-            const amount = isNaN(numericAmount) ? 0 : numericAmount
-            const currencySymbol = getDisplayCurrencySymbol(transaction.currency.code)
-            amountDisplay = `${currencySymbol} ${formatAmount(amount)}`
-        } else {
-            const amount = transaction.amount || 0
-            const numericAmount = typeof amount === 'bigint' ? Number(amount) : Number(amount)
-            amountDisplay = `$ ${formatAmount(isNaN(numericAmount) ? 0 : numericAmount)}`
-        }
+        // if transactionAmount is provided as a string, parse it
+        const parsed = parseFloat(transactionAmount.replace(/[\+\-\$]/g, ''))
+        usdAmount = isNaN(parsed) ? 0 : parsed
+    } else if (transaction.amount !== undefined && transaction.amount !== null) {
+        // fallback to transaction.amount
+        usdAmount = transaction.amount
+    } else if (transaction.currency?.amount) {
+        // last fallback to currency amount
+        const parsed = parseFloat(String(transaction.currency.amount))
+        usdAmount = isNaN(parsed) ? 0 : parsed
     }
+
+    // ensure we have a valid number for display
+    const numericAmount = typeof usdAmount === 'bigint' ? Number(usdAmount) : usdAmount
+    const safeAmount = isNaN(numericAmount) || numericAmount === null || numericAmount === undefined ? 0 : numericAmount
+    const amountDisplay = `$ ${formatCurrency(Math.abs(safeAmount).toString())}`
 
     const feeDisplay = transaction.fee !== undefined ? formatAmount(transaction.fee as number) : 'N/A'
 
@@ -336,9 +322,9 @@ export const TransactionDetailsReceipt = ({
     }
 
     // Show profile button only if txn is completed, not to/by a guest user and its a send/request/receive txn
-    const showUserProfileButton =
+    const isAvatarClickable =
         !!transaction &&
-        transaction.status === 'completed' &&
+        !transaction.extraDataForDrawer?.isLinkTransaction &&
         !!transaction.userName &&
         !isAddress(transaction.userName) &&
         (transaction.extraDataForDrawer?.transactionCardType === 'send' ||
@@ -350,6 +336,23 @@ export const TransactionDetailsReceipt = ({
             {/* show qr code at the top if applicable */}
             {shouldShowQrShare && transaction.extraDataForDrawer?.link && (
                 <QRCodeWrapper url={transaction.extraDataForDrawer.link} />
+            )}
+
+            {/* Perk banner */}
+            {transaction.extraDataForDrawer?.perk?.claimed && transaction.status === 'completed' && (
+                <Card position="single" className="px-4 py-4">
+                    <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-yellow-400">
+                            <Image src={STAR_STRAIGHT_ICON} alt="Perk" width={22} height={22} />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <span className="font-semibold text-gray-900">Peanut got you!</span>
+                            <span className="text-sm text-gray-600">
+                                We sponsored this bill! Earn points, climb tiers, and unlock even better perks.
+                            </span>
+                        </div>
+                    </div>
+                </Card>
             )}
 
             {/* transaction header card */}
@@ -364,6 +367,8 @@ export const TransactionDetailsReceipt = ({
                 transactionType={transaction.extraDataForDrawer?.transactionCardType}
                 avatarUrl={avatarUrl ?? getAvatarUrl(transaction)}
                 haveSentMoneyToUser={transaction.haveSentMoneyToUser}
+                hasPerk={!!transaction.extraDataForDrawer?.perk?.claimed}
+                isAvatarClickable={isAvatarClickable}
             />
 
             {/* details card (date, fee, memo) and more */}
@@ -848,6 +853,18 @@ export const TransactionDetailsReceipt = ({
                             hideBottomBorder={shouldHideBorder('peanutFee')}
                         />
                     )}
+                    {rowVisibilityConfig.points && transaction.points && (
+                        <PaymentInfoRow
+                            label="Points earned"
+                            value={
+                                <div className="flex items-center gap-2">
+                                    <Image src={STAR_STRAIGHT_ICON} alt="star" width={16} height={16} />
+                                    <span>{transaction.points}</span>
+                                </div>
+                            }
+                            hideBottomBorder={shouldHideBorder('points')}
+                        />
+                    )}
                     {rowVisibilityConfig.comment && (
                         <PaymentInfoRow
                             label="Comment"
@@ -1017,22 +1034,6 @@ export const TransactionDetailsReceipt = ({
                 </div>
             )}
 
-            {showUserProfileButton && (
-                <div className="pr-1">
-                    <Button
-                        onClick={() => router.push(`/${transaction.userName}`)}
-                        shadowSize="4"
-                        variant={
-                            transaction.extraDataForDrawer?.transactionCardType === 'request'
-                                ? 'purple'
-                                : 'primary-soft'
-                        }
-                        className="flex w-full items-center gap-1"
-                    >
-                        Go to {transaction.userName} profile
-                    </Button>
-                </div>
-            )}
             {/* Cancel deposit button for bridge_onramp transactions in awaiting_funds state */}
             {transaction.direction === 'bank_deposit' &&
                 transaction.extraDataForDrawer?.originalType !== EHistoryEntryType.REQUEST &&

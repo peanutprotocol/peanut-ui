@@ -26,5 +26,11 @@ export default function useKycStatus() {
         [isUserBridgeKycApproved, isUserMantecaKycApproved]
     )
 
-    return { isUserBridgeKycApproved, isUserMantecaKycApproved, isUserKycApproved }
+    const isUserBridgeKycUnderReview = useMemo(
+        // Bridge kyc status is incomplete/under_review when user has started the kyc process
+        () => user?.user.bridgeKycStatus === 'under_review' || user?.user.bridgeKycStatus === 'incomplete',
+        [user]
+    )
+
+    return { isUserBridgeKycApproved, isUserMantecaKycApproved, isUserKycApproved, isUserBridgeKycUnderReview }
 }

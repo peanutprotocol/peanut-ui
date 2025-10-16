@@ -14,11 +14,14 @@ export enum DeviceType {
 export const useDeviceType = () => {
     const [deviceType, setDeviceType] = useState<DeviceType | null>(null)
 
-    const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent)
-    const isAndroid = /android/i.test(navigator.userAgent)
-
-    // check if the user is on ios or android
+    // check if the user is on ios or android or web
     useEffect(() => {
+        // Only access navigator when we're in the browser
+        if (typeof window === 'undefined') return
+
+        const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent)
+        const isAndroid = /android/i.test(navigator.userAgent)
+
         if (isIos) {
             setDeviceType(DeviceType.IOS)
         } else if (isAndroid) {
