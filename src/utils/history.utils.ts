@@ -252,7 +252,7 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
             }
             if (usdAmount === entry.currency?.amount && entry.currency?.code && entry.currency?.code !== 'USD') {
                 const price = await getCurrencyPrice(entry.currency.code)
-                usdAmount = (Number(entry.currency.amount) * price.sell).toString()
+                usdAmount = (Number(entry.currency.amount) / price.buy).toString()
             }
             break
         }
@@ -266,7 +266,7 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
             }
             if (usdAmount === entry.currency?.amount && entry.currency?.code && entry.currency?.code !== 'USD') {
                 const price = await getCurrencyPrice(entry.currency.code)
-                entry.currency.amount = (Number(entry.amount) * price.buy).toString()
+                entry.currency.amount = (Number(entry.amount) / price.sell).toString()
             }
             break
         }
