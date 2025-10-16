@@ -1,15 +1,37 @@
+'use client'
 import Image from 'next/image'
 import starImage from '@/assets/icons/star.png'
 import { Icon } from '../Global/Icons/Icon'
 import { twMerge } from 'tailwind-merge'
+import { useGetBrowserType, BrowserType } from '@/hooks/useGetBrowserType'
 
 const ForceIOSPWAInstall = () => {
+    const { browserType, isLoading } = useGetBrowserType()
+
+    console.log(browserType)
+
     const STAR_POSITIONS = [
         'left-[5%] top-[15%] size-10',
         'right-[10%] top-[10%] size-10',
         'left-[5%] bottom-[15%] size-10',
         'right-[10%] bottom-[15%] size-10',
     ] as const
+
+    // Select the appropriate video based on browser type
+    const getVideoSource = (): string => {
+        switch (browserType) {
+            case BrowserType.CHROME:
+            case BrowserType.EDGE:
+            case BrowserType.BRAVE:
+            case BrowserType.OPERA:
+                return '/iosPwaChrome.mov'
+            case BrowserType.SAFARI:
+            default:
+                return '/iosPwaSafari.mov'
+        }
+    }
+
+    const videoSource = getVideoSource()
 
     return (
         <main className="h-[100dvh] w-full">
@@ -26,10 +48,12 @@ const ForceIOSPWAInstall = () => {
                     />
                 ))}
 
-                <video className="h-96 w-96 object-contain" autoPlay loop muted playsInline>
-                    <source src="/iosPwa.mov" type="video/quicktime" />
-                    Your browser does not support the video tag.
-                </video>
+                {!isLoading && (
+                    <video className="h-96 w-96 object-contain" autoPlay loop muted playsInline key={videoSource}>
+                        <source src={videoSource} type="video/quicktime" />
+                        Your browser does not support the video tag.
+                    </video>
+                )}
             </section>
             <section className="flex h-1/2 w-full flex-col gap-4 bg-white p-4">
                 <h1 className="text-3xl font-bold">Get the full experience</h1>
