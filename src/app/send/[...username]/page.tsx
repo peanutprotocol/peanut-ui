@@ -21,8 +21,9 @@ export default function DirectPaymentPage(props: PageProps) {
     )
 }
 
-export async function generateMetadata({ params }: { params: { username: string[] } }): Promise<Metadata> {
-    const username = params.username?.[0] ? decodeURIComponent(params.username[0]) : 'user'
+export async function generateMetadata({ params }: { params: Promise<{ username: string[] }> }): Promise<Metadata> {
+    const { username: usernameArray } = await params
+    const username = usernameArray?.[0] ? decodeURIComponent(usernameArray[0]) : 'user'
 
     const defaultTitle = `Send Money to ${username} | Peanut`
     const defaultDescription = `Send digital dollars to ${username} quickly and securely with Peanut.`

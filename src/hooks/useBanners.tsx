@@ -52,7 +52,7 @@ export const useBanners = () => {
             _banners.push({
                 id: 'kyc-banner',
                 title: 'Unlock bank & local payments',
-                description: 'Complete verification to add, withdraw or pay using Mercado Pago.',
+                description: 'Complete verification to add, withdraw or pay using Banks, Mercado Pago, and more.',
                 icon: 'shield',
                 onClick: () => {
                     router.push('/profile/identity-verification')

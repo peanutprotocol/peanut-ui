@@ -38,7 +38,7 @@ async function sendDiscordNotification(healthData: any) {
 
         const roleMention = shouldMentionRole ? '<@&1187109195389083739> ' : ''
 
-        const message = `${roleMention}🚨 **Peanut Protocol Health Alert** 🚨
+        const message = `${roleMention}🚨 **Peanut Health Alert** 🚨
 
 System Status: **${healthData.status.toUpperCase()}**
 Health Score: ${healthData.healthScore}%

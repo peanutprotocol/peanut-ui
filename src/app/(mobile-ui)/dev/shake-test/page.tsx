@@ -15,6 +15,7 @@ export default function DevShakeTestPage() {
     const [holdTimer, setHoldTimer] = useState<NodeJS.Timeout | null>(null)
     const [progressInterval, setProgressInterval] = useState<NodeJS.Timeout | null>(null)
     const [showSuccess, setShowSuccess] = useState(false)
+    const [holdStartTime, setHoldStartTime] = useState<number | null>(null)
 
     const startHold = useCallback(() => {
         setHoldProgress(0)
@@ -22,6 +23,7 @@ export default function DevShakeTestPage() {
         setShowSuccess(false)
 
         const startTime = Date.now()
+        setHoldStartTime(startTime)
         let lastIntensity: 'weak' | 'medium' | 'strong' | 'intense' = 'weak'
 
         // Update progress and shake intensity
@@ -94,6 +96,51 @@ export default function DevShakeTestPage() {
     }, [])
 
     const cancelHold = useCallback(() => {
+        const PREVIEW_DURATION_MS = 500
+
+        // Calculate how long the user held
+        const elapsed = holdStartTime ? Date.now() - holdStartTime : 0
+
+        // Clear the completion timer (we'll never complete on release)
+        if (holdTimer) clearTimeout(holdTimer)
+        setHoldTimer(null)
+
+        // If it was a quick tap, let the preview animation continue for 500ms before resetting
+        if (elapsed > 0 && elapsed < PREVIEW_DURATION_MS) {
+            const remainingPreviewTime = PREVIEW_DURATION_MS - elapsed
+
+            // Let animations continue for the preview duration
+            const resetTimer = setTimeout(() => {
+                // Clean up after preview
+                if (progressInterval) clearInterval(progressInterval)
+                setProgressInterval(null)
+                setHoldProgress(0)
+                setIsShaking(false)
+                setShakeIntensity('none')
+                setHoldStartTime(null)
+
+                if ('vibrate' in navigator) {
+                    navigator.vibrate(0)
+                }
+            }, remainingPreviewTime)
+
+            setHoldTimer(resetTimer)
+        } else {
+            // Released after preview duration - reset immediately
+            if (progressInterval) clearInterval(progressInterval)
+            setProgressInterval(null)
+            setHoldProgress(0)
+            setIsShaking(false)
+            setShakeIntensity('none')
+            setHoldStartTime(null)
+
+            if ('vibrate' in navigator) {
+                navigator.vibrate(0)
+            }
+        }
+    }, [holdTimer, progressInterval, holdStartTime])
+
+    const reset = useCallback(() => {
         if (holdTimer) clearTimeout(holdTimer)
         if (progressInterval) clearInterval(progressInterval)
         setHoldTimer(null)
@@ -101,17 +148,12 @@ export default function DevShakeTestPage() {
         setHoldProgress(0)
         setIsShaking(false)
         setShakeIntensity('none')
-
-        // Stop any ongoing vibration when user releases early
+        setHoldStartTime(null)
+        setShowSuccess(false)
         if ('vibrate' in navigator) {
             navigator.vibrate(0)
         }
     }, [holdTimer, progressInterval])
-
-    const reset = useCallback(() => {
-        cancelHold()
-        setShowSuccess(false)
-    }, [cancelHold])
 
     return (
         <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(isShaking, shakeIntensity)}`}>
@@ -191,7 +233,7 @@ export default function DevShakeTestPage() {
                         </Button>
 
                         <div className="text-center text-xs text-gray-500">
-                            Press and hold the button to test the progressive shake
+                            Hold the button for the full duration (quick taps show 500ms preview)
                         </div>
                     </div>
                 ) : (
@@ -216,7 +258,8 @@ export default function DevShakeTestPage() {
                         <li>✓ Button fills with black as you hold</li>
                         <li>✓ Shake starts weak and gets progressively stronger</li>
                         <li>✓ Haptic feedback intensifies with shake (PWA only)</li>
-                        <li>✓ Shake stops when you release early</li>
+                        <li>✓ Quick tap shows preview but resets (must hold full duration)</li>
+                        <li>✓ Release early cancels the action</li>
                         <li>✓ After full hold: shake stops, confetti appears, final haptic</li>
                         <li>✓ Works on mobile touch and desktop mouse</li>
                     </ul>

@@ -1,6 +1,7 @@
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import Card, { CardPosition } from '@/components/Global/Card'
 import { Icon, IconName } from '@/components/Global/Icons/Icon'
+import NavigationArrow from '@/components/Global/NavigationArrow'
 import { Tooltip } from '@/components/Tooltip'
 import Link from 'next/link'
 import React from 'react'
@@ -48,13 +49,10 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
             <div className="flex items-center">
                 {comingSoon ? (
                     <StatusBadge status="soon" size="medium" />
+                ) : endIcon ? (
+                    <Icon name={endIcon} size={24} fill="black" className={endIconClassName} />
                 ) : (
-                    <Icon
-                        name={endIcon ?? 'chevron-up'}
-                        size={24}
-                        fill="black"
-                        className={twMerge(endIcon ? endIconClassName : 'rotate-90')}
-                    />
+                    <NavigationArrow size={24} className="fill-black" />
                 )}
             </div>
         </div>

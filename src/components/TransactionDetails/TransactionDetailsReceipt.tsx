@@ -863,6 +863,7 @@ export const TransactionDetailsReceipt = ({
                                 </div>
                             }
                             hideBottomBorder={shouldHideBorder('points')}
+                            onClick={() => router.push('/points')}
                         />
                     )}
                     {rowVisibilityConfig.comment && (

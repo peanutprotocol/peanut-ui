@@ -5,6 +5,7 @@ import Card, { getCardPosition } from '@/components/Global/Card'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
+import NavigationArrow from '@/components/Global/NavigationArrow'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import ShareButton from '@/components/Global/ShareButton'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
@@ -80,55 +81,66 @@ const PointsPage = () => {
             <NavHeader title="Points" onPrev={() => router.back()} />
 
             <section className="mx-auto mb-auto mt-10 w-full space-y-4">
-                <Card className="flex flex-col items-center justify-center gap-2 p-4">
-                    <h2 className="text-3xl font-extrabold text-black">TIER {tierInfo?.data.currentTier}</h2>
-                    <span className="flex items-center gap-2">
-                        <Image src={STAR_STRAIGHT_ICON} alt="star" width={20} height={20} />
-                        {tierInfo.data.totalPoints} {tierInfo.data.totalPoints === 1 ? 'Point' : 'Points'}
-                    </span>
+                <Card className="flex flex-col items-center justify-center gap-3 p-6">
+                    <div className="flex items-center gap-2">
+                        <Image src={STAR_STRAIGHT_ICON} alt="star" width={24} height={24} />
+                        <h2 className="text-4xl font-black text-black">
+                            {tierInfo.data.totalPoints} {tierInfo.data.totalPoints === 1 ? 'Point' : 'Points'}
+                        </h2>
+                    </div>
+
                     {/* Progressive progress bar */}
-                    <div className="flex w-full items-center gap-2">
+                    <div className="flex w-full items-center gap-3">
                         <Image
                             src={getTierBadge(tierInfo?.data.currentTier)}
                             alt={`Tier ${tierInfo?.data.currentTier}`}
-                            width={26}
-                            height={26}
-                            className="translate-y-0.5"
+                            width={32}
+                            height={32}
                         />
-                        <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-grey-2">
+                        <div className="relative h-2 w-full overflow-hidden rounded-full bg-grey-2">
                             <div
-                                className="h-full animate-pulse rounded-full bg-primary-1 transition-all duration-200"
+                                className="h-full rounded-full bg-gradient-to-r from-primary-1 to-primary-2 transition-all duration-500"
                                 style={{
                                     width: `${
-                                        Math.pow(
-                                            Math.min(
-                                                1,
-                                                tierInfo.data.nextTierThreshold > 0
-                                                    ? tierInfo.data.totalPoints / tierInfo.data.nextTierThreshold
-                                                    : 1
-                                            ),
-                                            0.6
-                                        ) * 100
+                                        tierInfo?.data.currentTier >= 3
+                                            ? 100
+                                            : Math.pow(
+                                                  Math.min(
+                                                      1,
+                                                      tierInfo.data.nextTierThreshold > 0
+                                                          ? tierInfo.data.totalPoints / tierInfo.data.nextTierThreshold
+                                                          : 0
+                                                  ),
+                                                  0.6
+                                              ) * 100
                                     }%`,
                                 }}
                             />
                         </div>
-                        <Image
-                            src={getTierBadge(tierInfo?.data.currentTier + 1)}
-                            alt={`Tier ${tierInfo?.data.currentTier + 1}`}
-                            width={26}
-                            height={26}
-                            className="translate-y-0.5"
-                        />
+                        {tierInfo?.data.currentTier < 3 && (
+                            <Image
+                                src={getTierBadge(tierInfo?.data.currentTier + 1)}
+                                alt={`Tier ${tierInfo?.data.currentTier + 1}`}
+                                width={32}
+                                height={32}
+                            />
+                        )}
                     </div>
 
-                    <p className="text-sm text-grey-1">
-                        {tierInfo.data.pointsToNextTier} {tierInfo.data.pointsToNextTier === 1 ? 'point' : 'points'}{' '}
-                        needed for the next tier
-                    </p>
+                    <div className="text-center">
+                        <p className="text-base text-grey-1">You&apos;re at tier {tierInfo?.data.currentTier}.</p>
+                        {tierInfo?.data.currentTier < 3 ? (
+                            <p className="text-sm text-grey-1">
+                                {tierInfo.data.pointsToNextTier}{' '}
+                                {tierInfo.data.pointsToNextTier === 1 ? 'point' : 'points'} needed to level up
+                            </p>
+                        ) : (
+                            <p className="text-sm text-grey-1">You&apos;ve reached the max tier!</p>
+                        )}
+                    </div>
                 </Card>
                 {user?.invitedBy ? (
-                    <p className="text-sm">
+                    <p className="text-center text-sm">
                         <span
                             onClick={() => router.push(`/${user.invitedBy}`)}
                             className="inline-flex cursor-pointer items-center gap-1 font-bold"
@@ -138,8 +150,8 @@ const PointsPage = () => {
                         invited you and earned points. Now it's your turn! Invite friends and get 20% of their points.
                     </p>
                 ) : (
-                    <div className="mx-3 flex items-start gap-2">
-                        <Icon name="info" className="size-6 text-black md:size-3" />
+                    <div className="mx-3 flex items-center gap-2">
+                        <Icon name="info" className="size-4 flex-shrink-0 text-black" />
                         <p className="text-sm text-black">
                             Do stuff on Peanut and get points. Invite friends and pocket 20% of their points, too.
                         </p>
@@ -150,7 +162,7 @@ const PointsPage = () => {
                 <div className="flex w-full items-center justify-between gap-3">
                     <Card className="flex w-full items-center justify-between py-3.5">
                         <p className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-bold md:text-base">{`${inviteCode}`}</p>
-                        <CopyToClipboard textToCopy={inviteCode} />
+                        <CopyToClipboard textToCopy={inviteCode} iconSize="4" />
                     </Card>
                 </div>
 
@@ -167,7 +179,7 @@ const PointsPage = () => {
                             onClick={() => router.push('/points/invites')}
                         >
                             <h2 className="font-bold">People you invited</h2>
-                            <Icon name="arrow-up-right" className="text-black" />
+                            <NavigationArrow className="text-black" />
                         </div>
                         <div>
                             {invites.invitees?.map((invite: PointsInvite, i: number) => {

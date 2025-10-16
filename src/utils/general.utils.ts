@@ -1070,7 +1070,7 @@ export function getChainName(chainId: string): string | undefined {
 }
 
 export const getHeaderTitle = (pathname: string) => {
-    return consts.pathTitles[pathname] || 'Peanut Protocol' // default title if path not found
+    return consts.pathTitles[pathname] || 'Peanut' // default title if path not found
 }
 
 /**

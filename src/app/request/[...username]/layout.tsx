@@ -2,8 +2,9 @@ import PaymentLayoutWrapper from '@/app/[...recipient]/payment-layout-wrapper'
 import { generateMetadata as generateBaseMetadata } from '@/app/metadata'
 import { Metadata } from 'next'
 
-export async function generateMetadata({ params }: { params: { username: string[] } }): Promise<Metadata> {
-    const username = params.username?.[0] ? decodeURIComponent(params.username[0]) : 'user'
+export async function generateMetadata({ params }: { params: Promise<{ username: string[] }> }): Promise<Metadata> {
+    const { username: usernameArray } = await params
+    const username = usernameArray?.[0] ? decodeURIComponent(usernameArray[0]) : 'user'
 
     const defaultTitle = `Request Money from ${username} | Peanut`
     const defaultDescription = `Request digital dollars from ${username} using Peanut. Create and share P2P payment requests easily.`

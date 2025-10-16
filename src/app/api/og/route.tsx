@@ -103,7 +103,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (type === 'generic') {
-        return new ImageResponse(<div style={{}}>Peanut Protocol</div>, {
+        return new ImageResponse(<div style={{}}>Peanut</div>, {
             width: 1200,
             height: 630,
             fonts: [{ name: 'Montserrat', data: montserratMedium, style: 'normal' }],
