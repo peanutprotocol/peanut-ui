@@ -27,6 +27,8 @@ import CryptoMethodDrawer from '../AddMoney/components/CryptoMethodDrawer'
 import { useAppDispatch } from '@/redux/hooks'
 import { bankFormActions } from '@/redux/slices/bank-form-slice'
 import { InitiateBridgeKYCModal } from '../Kyc/InitiateBridgeKYCModal'
+import useKycStatus from '@/hooks/useKycStatus'
+import KycVerifiedOrReviewModal from '../Global/KycVerifiedOrReviewModal'
 
 interface AddWithdrawCountriesListProps {
     flow: 'add' | 'withdraw'
@@ -50,6 +52,9 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         user?.user?.bridgeKycStatus as BridgeKycStatus
     )
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+
+    const { isUserBridgeKycUnderReview } = useKycStatus()
+    const [showKycStatusModal, setShowKycStatusModal] = useState(false)
 
     useWebSocket({
         username: user?.user.username ?? undefined,
@@ -162,6 +167,11 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             // Manteca methods route directly (has own amount input)
             router.push(method.path)
         } else if (method.id.includes('default-bank-withdraw') || method.id.includes('sepa-instant-withdraw')) {
+            if (isUserBridgeKycUnderReview) {
+                setShowKycStatusModal(true)
+                return
+            }
+
             // Bridge methods: Set in context and navigate for amount input
             setSelectedMethod({
                 type: 'bridge',
@@ -180,6 +190,22 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             router.push('/withdraw')
         } else if (method.path) {
             // Other methods with paths
+            router.push(method.path)
+        }
+    }
+
+    const handleAddMethodClick = (method: SpecificPaymentMethod) => {
+        if (method.path) {
+            if (method.id === 'crypto-add') {
+                setIsDrawerOpen(true)
+                return
+            }
+            // show kyc status modal if user is kyc under review
+            if (isUserBridgeKycUnderReview) {
+                setShowKycStatusModal(true)
+                return
+            }
+
             router.push(method.path)
         }
     }
@@ -297,11 +323,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                                 if (flow === 'withdraw') {
                                     handleWithdrawMethodClick(method)
                                 } else if (method.path) {
-                                    if (method.id === 'crypto-add') {
-                                        setIsDrawerOpen(true)
-                                        return
-                                    }
-                                    router.push(method.path)
+                                    handleAddMethodClick(method)
                                 }
                             }}
                             position={
@@ -345,6 +367,10 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                     closeDrawer={() => setIsDrawerOpen(false)}
                 />
             )}
+            <KycVerifiedOrReviewModal
+                isKycApprovedModalOpen={showKycStatusModal}
+                onClose={() => setShowKycStatusModal(false)}
+            />
             <InitiateBridgeKYCModal
                 isOpen={isKycModalOpen}
                 onClose={() => setIsKycModalOpen(false)}

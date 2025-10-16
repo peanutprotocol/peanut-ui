@@ -5,6 +5,7 @@ import { PEANUTMAN_MOBILE, ThinkingPeanut } from '@/assets'
 import { ISetupStep } from '@/components/Setup/Setup.types'
 import { InstallPWA, SetupPasskey, SignupStep, JoinBetaStep, CollectEmail } from '@/components/Setup/Views'
 import JoinWaitlist from './Views/JoinWaitlist'
+import ForceIOSPWAInstall from '../ForceIOSPWAInstall'
 
 export const setupSteps: ISetupStep[] = [
     {
@@ -31,6 +32,19 @@ export const setupSteps: ISetupStep[] = [
         imageClassName: 'w-[50%] md:w-[30%] h-auto',
         titleClassName: 'text-2xl',
         contentClassName: 'flex flex-col items-center justify-center gap-5',
+    },
+    {
+        screenId: 'ios-initial-pwa-install',
+        layoutType: 'ios-initial-pwa-install',
+        title: '',
+        description: '',
+        image: PEANUTMAN_MOBILE,
+        component: ForceIOSPWAInstall,
+        showBackButton: false,
+        showSkipButton: false,
+        imageClassName: 'hidden',
+        titleClassName: 'text-2xl',
+        contentClassName: 'flex flex-col p-0 items-center justify-center gap-5 bg-secondary-3',
     },
     {
         screenId: 'pwa-install',

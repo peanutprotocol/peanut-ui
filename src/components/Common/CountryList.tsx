@@ -17,6 +17,7 @@ import { CountryListSkeleton } from './CountryListSkeleton'
 import AvatarWithBadge from '../Profile/AvatarWithBadge'
 import StatusBadge from '../Global/Badges/StatusBadge'
 import Loading from '../Global/Loading'
+import { useSearchParams } from 'next/navigation'
 
 interface CountryListViewProps {
     inputTitle: string
@@ -46,7 +47,11 @@ export const CountryList = ({
     flow,
     getRightContent,
 }: CountryListViewProps) => {
-    const [searchTerm, setSearchTerm] = useState('')
+    const searchParams = useSearchParams()
+    // get currencyCode from search params
+    const currencyCode = searchParams.get('currencyCode')
+
+    const [searchTerm, setSearchTerm] = useState(currencyCode ?? '')
     // use deferred value to prevent blocking ui during search
     const deferredSearchTerm = useDeferredValue(searchTerm)
     const { countryCode: userGeoLocationCountryCode, isLoading: isGeoLoading } = useGeoLocation()

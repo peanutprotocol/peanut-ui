@@ -1,7 +1,25 @@
 # @dev Add cursor rules here. This goes in the LLM context window on every query when using cursor.
 
+## Random
+
+- never open SVG files, it crashes you. Only read jpeg, png, gif, or webp.
+- never run jq command, it crashes you.
+
+## Code quality
+
 - Use explicit imports where possible
 - Make a best effort to keep code quality high. Reuse existing components and functions, dont hardcode hacky solutions.
 - When making changes, ensure you're not breaking existing functionality, and if there's a risk, explicitly WARN about it.
 - If you notice an opportunity to refactor or improve existing code, mention it. DO NOT make any changes you were not explicitly told to do. Only mention the potential change to the user.
 - Performance is important. Cache where possible, make sure to not make unnecessary re-renders or data fetching.
+- Separate business logic from interface. This is important for readability, debugging and testability.
+
+## Testing
+
+- Where tests make sense, test new code. Especially with fast unit tests.
+- tests should live where the code they test is, not in a separate folder
+
+## Documentation
+
+- document major changes in docs.md/CHANGELOG.md
+- if you add any other documentation, the best place for it to live is usually docs/

@@ -59,15 +59,15 @@ export const printableAddress = (address: string, firstCharsLen?: number, lastCh
 }
 
 /**
- * Validates if a string is a valid ENS name format
- * Checks that the string follows the ENS domain pattern with required TLD
- * e.g., 'vitalik.eth', 'domain.xyz'
+ * Validates ens name accordingto EIP-137
  *
- * @param ensName - The ENS name to validate
- * @returns true if the string is a valid ENS format, false otherwise
+ * <domain> ::= <label> | <domain> "." <label>
+ * <label> ::=  any valid string label per [UTS46](https://unicode.org/reports/tr46/)
+ *
+ * @see https://eips.ethereum.org/EIPS/eip-137#name-syntax
  */
 export const validateEnsName = (ensName: string = ''): boolean => {
-    return /^[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)?$/.test(ensName)
+    return /^(?:[-a-zA-Z0-9]+\.)+[-a-zA-Z0-9]+$/.test(ensName)
 }
 
 export function jsonStringify(data: any): string {

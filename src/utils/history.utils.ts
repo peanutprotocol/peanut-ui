@@ -1,4 +1,4 @@
-import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
+import { MERCADO_PAGO, PIX, SIMPLEFI } from '@/assets/payment-apps'
 import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { getFromLocalStorage } from '@/utils'
 import { PEANUT_WALLET_TOKEN_DECIMALS, BASE_URL } from '@/constants'
@@ -18,6 +18,7 @@ export enum EHistoryEntryType {
     BRIDGE_ONRAMP = 'BRIDGE_ONRAMP',
     BANK_SEND_LINK_CLAIM = 'BANK_SEND_LINK_CLAIM',
     MANTECA_QR_PAYMENT = 'MANTECA_QR_PAYMENT',
+    SIMPLEFI_QR_PAYMENT = 'SIMPLEFI_QR_PAYMENT',
     MANTECA_OFFRAMP = 'MANTECA_OFFRAMP',
     MANTECA_ONRAMP = 'MANTECA_ONRAMP',
     BRIDGE_GUEST_OFFRAMP = 'BRIDGE_GUEST_OFFRAMP',
@@ -64,6 +65,11 @@ export enum EHistoryStatus {
     REFUNDED = 'REFUNDED',
     CANCELED = 'CANCELED',
     ERROR = 'ERROR',
+    approved = 'approved',
+    pending = 'pending',
+    refunded = 'refunded',
+    canceled = 'canceled', // from simplefi, canceled with only one l
+    expired = 'expired',
 }
 
 export const FINAL_STATES: HistoryStatus[] = [
@@ -121,6 +127,7 @@ export type HistoryEntry = {
     createdAt?: string | Date
     completedAt?: string | Date
     isVerified?: boolean
+    points?: number
 }
 
 export function isFinalState(transaction: Pick<HistoryEntry, 'status'>): boolean {
@@ -132,6 +139,7 @@ export function getReceiptUrl(transaction: TransactionDetails): string | undefin
         transaction.extraDataForDrawer?.originalType &&
         [
             EHistoryEntryType.MANTECA_QR_PAYMENT,
+            EHistoryEntryType.SIMPLEFI_QR_PAYMENT,
             EHistoryEntryType.MANTECA_OFFRAMP,
             EHistoryEntryType.MANTECA_ONRAMP,
             EHistoryEntryType.SEND_LINK,
@@ -159,6 +167,9 @@ export function getAvatarUrl(transaction: TransactionDetails): string | undefine
             default:
                 return undefined
         }
+    }
+    if (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.SIMPLEFI_QR_PAYMENT) {
+        return SIMPLEFI
     }
 }
 

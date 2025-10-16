@@ -11,6 +11,8 @@ import Card from '../Global/Card'
 import { Icon, IconName } from '../Global/Icons/Icon'
 import { VerifiedUserLabel } from '../UserHeader'
 import ProgressBar from '../Global/ProgressBar'
+import { useRouter } from 'next/navigation'
+import { twMerge } from 'tailwind-merge'
 
 export type TransactionDirection =
     | 'send'
@@ -37,6 +39,8 @@ interface TransactionDetailsHeaderCardProps {
     transactionType?: TransactionType
     avatarUrl?: string
     haveSentMoneyToUser?: boolean
+    hasPerk?: boolean
+    isAvatarClickable?: boolean
 }
 
 const getTitle = (
@@ -167,37 +171,48 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     transactionType,
     avatarUrl,
     haveSentMoneyToUser = false,
+    hasPerk = false,
+    isAvatarClickable = false,
 }) => {
+    const router = useRouter()
     const typeForAvatar =
         transactionType ?? (direction === 'add' ? 'add' : direction === 'withdraw' ? 'withdraw' : 'send')
 
     const icon = getIcon(direction, isLinkTransaction)
 
+    const handleUserPfpClick = () => {
+        if (isAvatarClickable) {
+            router.push(`/${userName}`)
+        }
+    }
+
     return (
         <Card className="relative p-4 md:p-6" position="single">
             <div className="flex items-center gap-3">
-                {avatarUrl ? (
-                    <div className="flex h-16 w-16 items-center justify-center rounded-full">
-                        <Image
-                            src={avatarUrl}
-                            alt="Icon"
-                            className="size-full rounded-full object-cover"
-                            width={160}
-                            height={160}
+                <div className={twMerge(isAvatarClickable && 'cursor-pointer')} onClick={handleUserPfpClick}>
+                    {avatarUrl ? (
+                        <div className="flex h-16 w-16 items-center justify-center rounded-full">
+                            <Image
+                                src={avatarUrl}
+                                alt="Icon"
+                                className="size-full rounded-full object-cover"
+                                width={160}
+                                height={160}
+                            />
+                        </div>
+                    ) : (
+                        <TransactionAvatarBadge
+                            initials={initials}
+                            userName={userName}
+                            isLinkTransaction={isLinkTransaction}
+                            transactionType={typeForAvatar}
+                            context="header"
+                            size="medium"
                         />
-                    </div>
-                ) : (
-                    <TransactionAvatarBadge
-                        initials={initials}
-                        userName={userName}
-                        isLinkTransaction={isLinkTransaction}
-                        transactionType={typeForAvatar}
-                        context="header"
-                        size="medium"
-                    />
-                )}
-                <div className="w-full space-y-1">
-                    <h2 className="flex w-full items-center gap-2 text-sm font-medium text-grey-1">
+                    )}
+                </div>
+                <div className="space-y-1">
+                    <h2 className="flex items-center gap-2 text-sm font-medium text-grey-1">
                         {icon && <Icon name={icon} size={10} />}
                         <VerifiedUserLabel
                             username={userName}
@@ -206,6 +221,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                             className="flex items-center gap-1"
                             haveSentMoneyToUser={haveSentMoneyToUser}
                             iconSize={18}
+                            onNameClick={isAvatarClickable ? handleUserPfpClick : undefined}
                         />
                         {
                             <div className="ml-auto">
@@ -214,7 +230,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                         }
                     </h2>
                     <h1
-                        className={`text-3xl font-extrabold md:text-4xl ${status === 'cancelled' ? 'text-grey-1 line-through' : ''}`}
+                        className={`text-3xl font-extrabold md:text-4xl ${status === 'cancelled' || hasPerk ? 'line-through' : ''} ${status === 'cancelled' ? 'text-grey-1' : ''}`}
                     >
                         {amountDisplay}
                     </h1>

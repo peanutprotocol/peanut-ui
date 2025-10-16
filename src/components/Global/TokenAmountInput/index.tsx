@@ -1,6 +1,6 @@
 import { PEANUT_WALLET_TOKEN_DECIMALS, STABLE_COINS } from '@/constants'
 import { tokenSelectorContext } from '@/context'
-import { formatAmountWithoutComma, formatTokenAmount } from '@/utils'
+import { formatAmountWithoutComma, formatTokenAmount, formatCurrency } from '@/utils'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import Icon from '../Icon'
 import { twMerge } from 'tailwind-merge'
@@ -262,7 +262,8 @@ const TokenAmountInput = ({
                 {/* Conversion */}
                 {showConversion && (
                     <label className={twMerge('text-lg font-bold', !Number(alternativeDisplayValue) && 'text-gray-1')}>
-                        ≈ {alternativeDisplayValue} {alternativeDisplaySymbol}
+                        ≈ {displayMode === 'TOKEN' ? alternativeDisplayValue : formatCurrency(alternativeDisplayValue)}{' '}
+                        {alternativeDisplaySymbol}
                     </label>
                 )}
 
