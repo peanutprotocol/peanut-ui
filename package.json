@@ -137,13 +137,16 @@
             ]
         },
         "transformIgnorePatterns": [
-            "node_modules/(?!(@wagmi|wagmi|viem|@viem|@squirrel-labs)/)"
+            "node_modules/(?!(@wagmi|wagmi|viem|@viem|@squirrel-labs|@reown|@walletconnect|@justaname\\.id|@zerodev)/)"
         ],
         "moduleNameMapper": {
             "\\.(svg|png|jpg|jpeg|gif)$": "jest-transform-stub",
             "^@/(.*)$": "<rootDir>/src/$1",
             "^wagmi/chains$": "<rootDir>/src/utils/__mocks__/wagmi.ts",
             "^@squirrel-labs/peanut-sdk$": "<rootDir>/src/utils/__mocks__/peanut-sdk.ts",
+            "^@reown/appkit/react$": "<rootDir>/src/utils/__mocks__/reown-appkit.ts",
+            "^@justaname\\.id/react$": "<rootDir>/src/utils/__mocks__/justaname.ts",
+            "^web-push$": "<rootDir>/src/utils/__mocks__/web-push.ts",
             "^next/cache$": "<rootDir>/src/utils/__mocks__/next-cache.ts"
         },
         "setupFilesAfterEnv": [

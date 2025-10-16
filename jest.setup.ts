@@ -7,6 +7,13 @@ global.TextDecoder = TextDecoder
 
 require('dotenv').config({ path: '.env.test' })
 
+// Setup minimal environment variables for tests
+process.env.NEXT_PUBLIC_ALCHEMY_API_KEY = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY || 'test-key'
+process.env.NEXT_PUBLIC_INFURA_API_KEY = process.env.NEXT_PUBLIC_INFURA_API_KEY || 'test-key'
+process.env.VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || 'test-vapid-public'
+process.env.VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || 'test-vapid-private'
+process.env.VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:test@example.com'
+
 // Add any global test setup here
 global.console = {
     ...console,
