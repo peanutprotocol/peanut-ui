@@ -13,12 +13,12 @@ import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
-import {
-    type CreateChargeRequest,
-    type CreateRequestRequest as CreateRequestPayloadServices,
-    type TCharge,
-    type TRequestChargeResponse,
-    type TRequestResponse,
+import type {
+    CreateChargeRequest,
+    CreateRequestRequest as CreateRequestPayloadServices,
+    TCharge,
+    TRequestChargeResponse,
+    TRequestResponse,
 } from '@/services/services.types'
 import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'

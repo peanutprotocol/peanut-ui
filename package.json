@@ -137,7 +137,7 @@
             ]
         },
         "transformIgnorePatterns": [
-            "node_modules/(?!(@wagmi|wagmi|viem|@viem|@squirrel-labs|@reown|@walletconnect|@justaname\\.id|@zerodev)/)"
+            "node_modules/(?!(@wagmi|wagmi|viem|@viem|@squirrel-labs|@reown|@walletconnect|@justaname\\.id|@zerodev|permissionless)/)"
         ],
         "moduleNameMapper": {
             "\\.(svg|png|jpg|jpeg|gif)$": "jest-transform-stub",
@@ -147,7 +147,8 @@
             "^@reown/appkit/react$": "<rootDir>/src/utils/__mocks__/reown-appkit.ts",
             "^@justaname\\.id/react$": "<rootDir>/src/utils/__mocks__/justaname.ts",
             "^web-push$": "<rootDir>/src/utils/__mocks__/web-push.ts",
-            "^next/cache$": "<rootDir>/src/utils/__mocks__/next-cache.ts"
+            "^next/cache$": "<rootDir>/src/utils/__mocks__/next-cache.ts",
+            "^@zerodev/sdk(.*)$": "<rootDir>/src/utils/__mocks__/zerodev-sdk.ts"
         },
         "setupFilesAfterEnv": [
             "<rootDir>/jest.setup.ts"

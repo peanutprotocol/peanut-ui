@@ -28,3 +28,10 @@ global.console = {
 jest.mock('next/cache', () => ({
     unstable_cache: (fn: Function) => fn,
 }))
+
+jest.mock('@/app/actions/tokens', () => ({
+    fetchTokenPriceApi: jest.fn(() => Promise.resolve({ price: 100, symbol: 'TEST' })),
+    getTokenBalances: jest.fn(() => Promise.resolve([])),
+    getTokenPrice: jest.fn(() => Promise.resolve(100)),
+    fetchERC20Data: jest.fn(() => Promise.resolve({ name: 'Test Token', symbol: 'TEST', decimals: 18 })),
+}))
