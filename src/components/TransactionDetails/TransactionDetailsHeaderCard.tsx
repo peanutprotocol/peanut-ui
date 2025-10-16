@@ -179,17 +179,16 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
 
     const icon = getIcon(direction, isLinkTransaction)
 
+    const handleUserPfpClick = () => {
+        if (isAvatarClickable) {
+            router.push(`/${userName}`)
+        }
+    }
+
     return (
         <Card className="relative p-4 md:p-6" position="single">
             <div className="flex items-center gap-3">
-                <div
-                    className={twMerge(isAvatarClickable && 'cursor-pointer')}
-                    onClick={() => {
-                        if (isAvatarClickable) {
-                            router.push(`/${userName}`)
-                        }
-                    }}
-                >
+                <div className={twMerge(isAvatarClickable && 'cursor-pointer')} onClick={handleUserPfpClick}>
                     {avatarUrl ? (
                         <div className="flex h-16 w-16 items-center justify-center rounded-full">
                             <Image
@@ -221,6 +220,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                             className="flex items-center gap-1"
                             haveSentMoneyToUser={haveSentMoneyToUser}
                             iconSize={18}
+                            onNameClick={isAvatarClickable ? handleUserPfpClick : undefined}
                         />
                     </h2>
                     <h1
