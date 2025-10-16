@@ -169,21 +169,8 @@ export const CreateRequestLinkView = () => {
                 const requestDetails = await requestsApi.create(requestData)
                 setRequestId(requestDetails.uuid)
 
-                const charge = await chargesApi.create({
-                    pricing_type: 'fixed_price',
-                    local_price: {
-                        amount: requestDetails.tokenAmount,
-                        currency: 'USD',
-                    },
-                    baseUrl: BASE_URL,
-                    requestId: requestDetails.uuid,
-                    transactionType: 'REQUEST',
-                })
-
                 const link = getRequestLink({
                     ...requestDetails,
-                    uuid: undefined,
-                    chargeId: charge.data.id,
                 })
 
                 // Update the last saved state
