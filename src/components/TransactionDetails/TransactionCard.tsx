@@ -158,7 +158,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                     <div className="flex items-center gap-2">
                         {hasPerk && (
                             <div className="flex h-6 w-6 items-center justify-center rounded-full bg-yellow-400">
-                                <Image src={STAR_STRAIGHT_ICON} alt="Perk" width={16} height={16} />u{' '}
+                                <Image src={STAR_STRAIGHT_ICON} alt="Perk" width={16} height={16} />{' '}
                             </div>
                         )}
                         <div className="flex flex-col items-end gap-1">
