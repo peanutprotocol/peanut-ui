@@ -1,14 +1,14 @@
 'use client'
 
-import StatusBadge, { StatusType } from '@/components/Global/Badges/StatusBadge'
+import StatusBadge, { type StatusType } from '@/components/Global/Badges/StatusBadge'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
-import { TransactionType } from '@/components/TransactionDetails/TransactionCard'
+import { type TransactionType } from '@/components/TransactionDetails/TransactionCard'
 import { printableAddress } from '@/utils'
 import Image from 'next/image'
 import React from 'react'
 import { isAddress as isWalletAddress } from 'viem'
 import Card from '../Global/Card'
-import { Icon, IconName } from '../Global/Icons/Icon'
+import { Icon, type IconName } from '../Global/Icons/Icon'
 import { VerifiedUserLabel } from '../UserHeader'
 
 export type TransactionDirection =

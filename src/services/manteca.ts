@@ -1,9 +1,9 @@
 import { PEANUT_API_URL, PEANUT_API_KEY } from '@/constants'
 import {
-    MantecaDepositResponseData,
-    MantecaWithdrawData,
-    MantecaWithdrawResponse,
-    CreateMantecaOnrampParams,
+    type MantecaDepositResponseData,
+    type MantecaWithdrawData,
+    type MantecaWithdrawResponse,
+    type CreateMantecaOnrampParams,
 } from '@/types/manteca.types'
 import { fetchWithSentry } from '@/utils'
 import Cookies from 'js-cookie'

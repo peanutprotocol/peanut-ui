@@ -1,7 +1,7 @@
 import { PEANUT_API_URL } from '@/constants'
 import { fetchWithSentry, jsonParse } from '@/utils'
 import Cookies from 'js-cookie'
-import { CreateChargeRequest, PaymentCreationResponse, TCharge, TRequestChargeResponse } from './services.types'
+import { type CreateChargeRequest, type PaymentCreationResponse, type TCharge, type TRequestChargeResponse } from './services.types'
 
 export const chargesApi = {
     create: async (data: CreateChargeRequest): Promise<TCharge> => {

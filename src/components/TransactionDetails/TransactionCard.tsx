@@ -1,9 +1,9 @@
-import Card, { CardPosition } from '@/components/Global/Card'
-import { Icon, IconName } from '@/components/Global/Icons/Icon'
+import Card, { type CardPosition } from '@/components/Global/Card'
+import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
 import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
-import { TransactionDirection } from '@/components/TransactionDetails/TransactionDetailsHeaderCard'
-import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
+import { type TransactionDirection } from '@/components/TransactionDetails/TransactionDetailsHeaderCard'
+import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import {
     formatNumberForDisplay,
@@ -16,11 +16,11 @@ import {
 } from '@/utils'
 import React from 'react'
 import Image from 'next/image'
-import StatusPill, { StatusPillType } from '../Global/StatusPill'
+import StatusPill, { type StatusPillType } from '../Global/StatusPill'
 import { VerifiedUserLabel } from '../UserHeader'
 import { isAddress } from 'viem'
 import { STAR_STRAIGHT_ICON } from '@/assets'
-import { HistoryEntryPerk } from '@/services/services.types'
+import { type HistoryEntryPerk } from '@/services/services.types'
 
 export type TransactionType =
     | 'send'

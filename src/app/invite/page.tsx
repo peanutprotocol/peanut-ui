@@ -1,7 +1,7 @@
 import InvitesPage from '@/components/Invites/InvitesPage'
 import { BASE_URL } from '@/constants'
 import getOrigin from '@/lib/hosting/get-origin'
-import { Metadata } from 'next'
+import { type Metadata } from 'next'
 import { validateInviteCode } from '../actions/invites'
 
 export const dynamic = 'force-dynamic'

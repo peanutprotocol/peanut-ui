@@ -12,7 +12,6 @@ import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionA
 import { VerifiedUserLabel } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
 import { invitesApi } from '@/services/invites'
-import { Invite } from '@/services/services.types'
 import { generateInvitesShareText } from '@/utils'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
@@ -21,7 +20,7 @@ import Image from 'next/image'
 import { pointsApi } from '@/services/points'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { getInitialsFromName } from '@/utils'
-import { PointsInvite } from '@/services/services.types'
+import { type PointsInvite } from '@/services/services.types'
 import { useEffect } from 'react'
 
 const PointsPage = () => {

@@ -1,7 +1,7 @@
 import PaymentPage from '@/app/[...recipient]/client'
 import { generateMetadata as generateBaseMetadata } from '@/app/metadata'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
-import { Metadata } from 'next'
+import { type Metadata } from 'next'
 import { use } from 'react'
 
 type PageProps = {

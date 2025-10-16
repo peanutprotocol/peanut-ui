@@ -1,5 +1,5 @@
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
-import { ChainValue, IUserBalance } from '@/interfaces'
+import { type ChainValue, type IUserBalance } from '@/interfaces'
 import * as Sentry from '@sentry/nextjs'
 import { formatUnits } from 'viem'
 

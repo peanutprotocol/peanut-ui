@@ -1,4 +1,4 @@
-import { HistoryEntry } from '@/hooks/useTransactionHistory'
+import { type HistoryEntry } from '@/hooks/useTransactionHistory'
 
 export type WebSocketMessage = {
     type:

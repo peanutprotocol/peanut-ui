@@ -1,9 +1,9 @@
 'use client'
 
-import React, { createContext, ReactNode, useContext, useMemo, useState, useCallback } from 'react'
-import { CountryData } from '@/components/AddMoney/consts'
-import { IOnrampData } from './OnrampFlowContext'
-import { User } from '@/interfaces'
+import React, { createContext, type ReactNode, useContext, useMemo, useState, useCallback } from 'react'
+import { type CountryData } from '@/components/AddMoney/consts'
+import { type IOnrampData } from './OnrampFlowContext'
+import { type User } from '@/interfaces'
 
 export type ExternalWalletFulfilMethod = 'exchange' | 'wallet'
 

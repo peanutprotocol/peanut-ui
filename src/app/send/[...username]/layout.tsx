@@ -1,6 +1,6 @@
 import PaymentLayoutWrapper from '@/app/[...recipient]/payment-layout-wrapper'
 import { generateMetadata as generateBaseMetadata } from '@/app/metadata'
-import { Metadata } from 'next'
+import { type Metadata } from 'next'
 
 export async function generateMetadata({ params }: { params: Promise<{ username: string[] }> }): Promise<Metadata> {
     const { username: usernameArray } = await params

@@ -1,5 +1,5 @@
 'use client'
-import { Button, ButtonVariant } from '@/components/0_Bruddle'
+import { Button, type ButtonVariant } from '@/components/0_Bruddle'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { copyTextToClipboardWithFallback } from '@/utils'
 import { useCallback, useState } from 'react'

@@ -1,4 +1,4 @@
-import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
+import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import React, { useCallback, useRef, useState } from 'react'
 import { Drawer, DrawerContent, DrawerTitle } from '../Global/Drawer'
 import { TransactionDetailsReceipt } from './TransactionDetailsReceipt'

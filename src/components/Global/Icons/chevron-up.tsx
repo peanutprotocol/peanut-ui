@@ -1,4 +1,4 @@
-import { FC, SVGProps } from 'react'
+import { type FC, type SVGProps } from 'react'
 
 interface ChevronUpIconProps extends SVGProps<SVGSVGElement> {
     size?: number | string

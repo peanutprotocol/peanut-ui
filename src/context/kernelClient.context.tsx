@@ -15,10 +15,10 @@ import {
     createKernelAccount,
     createKernelAccountClient,
     createZeroDevPaymasterClient,
-    KernelAccountClient,
+    type KernelAccountClient,
 } from '@zerodev/sdk'
-import { createContext, ReactNode, useCallback, useContext, useEffect, useState, useMemo } from 'react'
-import { Chain, http, PublicClient, Transport } from 'viem'
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useState, useMemo } from 'react'
+import { type Chain, http, type PublicClient, type Transport } from 'viem'
 import type { Address } from 'viem'
 import { captureException } from '@sentry/nextjs'
 

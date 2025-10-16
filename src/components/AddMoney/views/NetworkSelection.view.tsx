@@ -3,7 +3,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import NetworkListItem from '@/components/Global/TokenSelector/Components/NetworkListItem'
 import {
-    NetworkConfig,
+    type NetworkConfig,
     TOKEN_SELECTOR_COMING_SOON_NETWORKS,
     TOKEN_SELECTOR_POPULAR_NETWORK_IDS,
 } from '@/components/Global/TokenSelector/TokenSelector.consts'

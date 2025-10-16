@@ -1,6 +1,6 @@
 'use client'
 
-import { CardPosition } from '@/components/Global/Card'
+import { type CardPosition } from '@/components/Global/Card'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NoDataEmptyState from '@/components/Global/EmptyStates/NoDataEmptyState'
 import NavHeader from '@/components/Global/NavHeader'

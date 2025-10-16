@@ -1,7 +1,7 @@
 'use server'
 
 import { cookies } from 'next/headers'
-import { TCreateOfframpRequest } from '../../services/services.types'
+import { type TCreateOfframpRequest } from '../../services/services.types'
 import { fetchWithSentry } from '@/utils'
 
 const API_KEY = process.env.PEANUT_API_KEY!

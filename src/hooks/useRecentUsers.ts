@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
-import { useTransactionHistory, HistoryEntry } from '@/hooks/useTransactionHistory'
-import { RecentUser } from '@/services/users'
+import { useTransactionHistory, type HistoryEntry } from '@/hooks/useTransactionHistory'
+import { type RecentUser } from '@/services/users'
 
 export function useRecentUsers() {
     const { data } = useTransactionHistory({ mode: 'latest', limit: 20 })

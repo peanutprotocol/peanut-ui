@@ -1,7 +1,7 @@
 'use client'
 import {
     BRIDGE_ALPHA3_TO_ALPHA2,
-    CountryData,
+    type CountryData,
     countryData,
     MantecaSupportedExchanges,
     ALL_COUNTRIES_ALPHA3_TO_ALPHA2,

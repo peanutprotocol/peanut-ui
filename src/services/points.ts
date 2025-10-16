@@ -1,5 +1,5 @@
 import Cookies from 'js-cookie'
-import { CalculatePointsRequest, PointsAction, TierInfo } from './services.types'
+import { type CalculatePointsRequest, PointsAction, type TierInfo } from './services.types'
 import { fetchWithSentry } from '@/utils'
 import { PEANUT_API_URL } from '@/constants'
 

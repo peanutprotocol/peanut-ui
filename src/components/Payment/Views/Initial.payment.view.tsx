@@ -1,4 +1,4 @@
-import { PaymentForm, PaymentFormProps } from '../PaymentForm'
+import { PaymentForm, type PaymentFormProps } from '../PaymentForm'
 
 export default function InitialPaymentView(props: PaymentFormProps) {
     return (

@@ -3,7 +3,7 @@ import { TranslationSafeWrapper } from '@/components/Global/TranslationSafeWrapp
 import { PeanutProvider } from '@/config'
 import { ContextProvider } from '@/context'
 import { FooterVisibilityProvider } from '@/context/footerVisibility'
-import { Viewport } from 'next'
+import { type Viewport } from 'next'
 import { Londrina_Solid, Roboto_Flex, Sniglet } from 'next/font/google'
 import localFont from 'next/font/local'
 import Script from 'next/script'

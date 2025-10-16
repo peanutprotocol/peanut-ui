@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import ReactDOM from 'react-dom'
 import { twMerge } from 'tailwind-merge'
-import { TooltipContent, TooltipPosition } from './TooltipContent'
+import { TooltipContent, type TooltipPosition } from './TooltipContent'
 
 interface TooltipProps {
     content: string | React.ReactNode

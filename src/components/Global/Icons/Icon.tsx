@@ -1,4 +1,4 @@
-import { ComponentType, FC, SVGProps } from 'react'
+import { type ComponentType, type FC, type SVGProps } from 'react'
 import { AchievementsIcon } from './achievements'
 import { AlertIcon } from './alert'
 import { ArrowDownIcon } from './arrow-down'

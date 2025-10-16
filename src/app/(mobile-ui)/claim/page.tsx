@@ -2,7 +2,7 @@ import { getLinkDetails } from '@/app/actions/claimLinks'
 import { Claim } from '@/components'
 import { BASE_URL } from '@/constants'
 import { formatAmount, resolveAddressToUsername } from '@/utils'
-import { Metadata } from 'next'
+import { type Metadata } from 'next'
 import getOrigin from '@/lib/hosting/get-origin'
 
 export const dynamic = 'force-dynamic'

@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { PeanutWebSocket, getWebSocketInstance } from '@/services/websocket'
-import { HistoryEntry } from './useTransactionHistory'
+import { type HistoryEntry } from './useTransactionHistory'
 
 type WebSocketStatus = 'connecting' | 'connected' | 'disconnected' | 'error'
 

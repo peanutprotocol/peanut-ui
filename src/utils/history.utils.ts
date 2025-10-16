@@ -1,9 +1,9 @@
 import { MERCADO_PAGO, PIX, SIMPLEFI } from '@/assets/payment-apps'
-import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
+import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { getFromLocalStorage } from '@/utils'
 import { PEANUT_WALLET_TOKEN_DECIMALS, BASE_URL } from '@/constants'
 import { formatUnits } from 'viem'
-import { Hash } from 'viem'
+import { type Hash } from 'viem'
 import { getTokenDetails } from '@/utils'
 import { getCurrencyPrice } from '@/app/actions/currency'
 

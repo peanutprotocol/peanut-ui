@@ -1,7 +1,7 @@
 'use client'
 
 import { Card } from '@/components/0_Bruddle'
-import { Icon, IconName } from '@/components/Global/Icons/Icon'
+import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import React from 'react'
 
 interface BannerCardProps {

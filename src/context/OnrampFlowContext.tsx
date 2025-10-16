@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, ReactNode, useCallback, useContext, useMemo, useState } from 'react'
+import React, { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from 'react'
 
 export type OnrampView = 'INITIAL' | 'SELECT_METHOD'
 

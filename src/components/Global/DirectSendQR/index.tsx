@@ -16,7 +16,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useMemo, useState, type ChangeEvent } from 'react'
 import { twMerge } from 'tailwind-merge'
 import ActionModal from '../ActionModal'
-import { Icon, IconName } from '../Icons/Icon'
+import { Icon, type IconName } from '../Icons/Icon'
 import { EQrType, NAME_BY_QR_TYPE, parseEip681, recognizeQr } from './utils'
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL!

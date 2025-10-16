@@ -2,7 +2,7 @@ import React, { useMemo } from 'react'
 
 import EmptyState from '../../EmptyStates/EmptyState'
 import NavHeader from '../../NavHeader'
-import { NetworkConfig } from '../TokenSelector.consts'
+import { type NetworkConfig } from '../TokenSelector.consts'
 import NetworkListItem from './NetworkListItem'
 import SearchInput from './SearchInput'
 

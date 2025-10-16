@@ -1,6 +1,6 @@
 'use client'
 
-import ActionModal, { ActionModalButtonProps } from '@/components/Global/ActionModal'
+import ActionModal, { type ActionModalButtonProps } from '@/components/Global/ActionModal'
 import { useEffect, useState } from 'react'
 import { Icon } from '../Icons/Icon'
 
