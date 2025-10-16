@@ -6,7 +6,6 @@ import ErrorAlert from '@/components/Global/ErrorAlert'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import { useAuth } from '@/context/authContext'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
-import { useRouter } from 'next/navigation'
 import React, { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 
@@ -16,7 +15,6 @@ const CollectEmail = () => {
     const [isChanging, setIsChanging] = useState(false)
     const [isLoading, setisLoading] = useState(false)
     const [error, setError] = useState('')
-    const router = useRouter()
     const { user } = useAuth()
     const { handleNext } = useSetupFlow()
 
@@ -43,8 +41,7 @@ const CollectEmail = () => {
                 setError('Something went wrong. Please try again or contact support')
                 return
             }
-            setisLoading(false)
-            handleNext()
+            await handleNext()
         } catch {
             setError('Something went wrong. Please try again or contact support')
         } finally {

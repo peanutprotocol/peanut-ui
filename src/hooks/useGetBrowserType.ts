@@ -27,7 +27,7 @@ export const useGetBrowserType = () => {
             return
         }
 
-        const detectBrowser = (): BrowserType => {
+        const detectBrowser = async (): Promise<BrowserType> => {
             const userAgent = navigator.userAgent.toLowerCase()
 
             // Check for Firefox (desktop and mobile)
@@ -60,7 +60,7 @@ export const useGetBrowserType = () => {
             }
 
             // Check for Brave browser (uses Chrome UA)
-            if ((navigator as any).brave && typeof (navigator as any).brave.isBrave === 'function') {
+            if ((navigator as any).brave && (await (navigator as any).brave.isBrave?.()) === true) {
                 return BrowserType.BRAVE
             }
 
@@ -72,9 +72,13 @@ export const useGetBrowserType = () => {
             return BrowserType.UNKNOWN
         }
 
-        const browser = detectBrowser()
-        setBrowserType(browser)
-        setIsLoading(false)
+        const initBrowser = async () => {
+            const browser = await detectBrowser()
+            setBrowserType(browser)
+            setIsLoading(false)
+        }
+
+        initBrowser()
     }, [])
 
     return { browserType, isLoading }
