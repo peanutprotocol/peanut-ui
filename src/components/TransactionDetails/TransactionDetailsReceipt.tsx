@@ -2,7 +2,7 @@
 
 import Card from '@/components/Global/Card'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
-import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
+import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -29,7 +29,11 @@ import MoreInfo from '../Global/MoreInfo'
 import CancelSendLinkModal from '../Global/CancelSendLinkModal'
 import { twMerge } from 'tailwind-merge'
 import { isAddress } from 'viem'
-import { getBankAccountLabel, TransactionDetailsRowKey, transactionDetailsRowKeys } from './transaction-details.utils'
+import {
+    getBankAccountLabel,
+    type TransactionDetailsRowKey,
+    transactionDetailsRowKeys,
+} from './transaction-details.utils'
 import { useSupportModalContext } from '@/context/SupportModalContext'
 import { useRouter } from 'next/navigation'
 import { countryData } from '@/components/AddMoney/consts'
@@ -863,6 +867,7 @@ export const TransactionDetailsReceipt = ({
                                 </div>
                             }
                             hideBottomBorder={shouldHideBorder('points')}
+                            onClick={() => router.push('/points')}
                         />
                     )}
                     {rowVisibilityConfig.comment && (

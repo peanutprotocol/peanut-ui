@@ -5,7 +5,7 @@ import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import NavHeader from '@/components/Global/NavHeader'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
-import Image, { StaticImageData } from 'next/image'
+import Image, { type StaticImageData } from 'next/image'
 import { useRouter } from 'next/navigation'
 
 interface CryptoDepositQRProps {

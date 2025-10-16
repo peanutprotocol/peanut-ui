@@ -1,4 +1,4 @@
-import { JSONObject } from '@/interfaces'
+import { type JSONObject } from '@/interfaces'
 import { PEANUT_API_URL } from '@/constants'
 import { fetchWithSentry } from '@/utils'
 import Cookies from 'js-cookie'

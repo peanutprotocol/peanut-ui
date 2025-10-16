@@ -1,6 +1,6 @@
 import { useRouter } from 'next/navigation'
 import ActionModal from '@/components/Global/ActionModal'
-import { Icon, IconName } from '@/components/Global/Icons/Icon'
+import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import { twMerge } from 'tailwind-merge'
 
 interface KycVerificationInProgressModalProps {

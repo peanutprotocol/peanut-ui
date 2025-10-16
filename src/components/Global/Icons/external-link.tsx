@@ -1,4 +1,4 @@
-import { FC, SVGProps } from 'react'
+import { type FC, type SVGProps } from 'react'
 
 export const ExternalLinkIcon: FC<SVGProps<SVGSVGElement>> = (props) => (
     <svg width="11" height="10" viewBox="0 0 11 10" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>

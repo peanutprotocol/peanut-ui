@@ -1,6 +1,6 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit'
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
 import { ZERODEV_SLICE } from '../constants'
-import { ZeroDevState } from '../types/zerodev.types'
+import { type ZeroDevState } from '../types/zerodev.types'
 
 const initialState: ZeroDevState = {
     isKernelClientReady: false,

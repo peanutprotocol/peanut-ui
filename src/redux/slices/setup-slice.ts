@@ -1,7 +1,7 @@
-import { ISetupStep } from '@/components/Setup/Setup.types'
-import { createSlice, PayloadAction } from '@reduxjs/toolkit'
+import { type ISetupStep } from '@/components/Setup/Setup.types'
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
 import { SETUP } from '../constants'
-import { ISetupState } from '../types/setup.types'
+import { type ISetupState } from '../types/setup.types'
 import { EInviteType } from '@/services/services.types'
 
 const initialState: ISetupState = {

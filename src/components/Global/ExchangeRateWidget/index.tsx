@@ -4,8 +4,8 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { FC, useCallback, useEffect, useMemo } from 'react'
-import { Icon, IconName } from '../Icons/Icon'
+import { type FC, useCallback, useEffect, useMemo } from 'react'
+import { Icon, type IconName } from '../Icons/Icon'
 import { Button } from '@/components/0_Bruddle'
 
 interface IExchangeRateWidgetProps {

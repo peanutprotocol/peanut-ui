@@ -1,4 +1,4 @@
-import { IBankAccountDetails } from '@/components/AddWithdraw/DynamicBankAccountForm'
+import { type IBankAccountDetails } from '@/components/AddWithdraw/DynamicBankAccountForm'
 
 export type BankFormFlow = 'claim' | 'withdraw'
 

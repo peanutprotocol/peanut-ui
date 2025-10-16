@@ -1,6 +1,6 @@
-import { Icon, IconName } from '../Icons/Icon'
+import { Icon, type IconName } from '../Icons/Icon'
 import { twMerge } from 'tailwind-merge'
-import { StatusType } from '../Badges/StatusBadge'
+import { type StatusType } from '../Badges/StatusBadge'
 
 export type StatusPillType = Exclude<StatusType, 'custom'>
 

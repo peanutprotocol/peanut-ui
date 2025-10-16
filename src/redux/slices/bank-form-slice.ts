@@ -1,7 +1,7 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit'
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
 import { BANK_FORM_SLICE } from '../constants'
-import { IBankFormState } from '../types/bank-form.types'
-import { IBankAccountDetails } from '@/components/AddWithdraw/DynamicBankAccountForm'
+import { type IBankFormState } from '../types/bank-form.types'
+import { type IBankAccountDetails } from '@/components/AddWithdraw/DynamicBankAccountForm'
 
 const initialState: IBankFormState = {
     formData: null,

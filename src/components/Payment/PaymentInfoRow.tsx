@@ -12,6 +12,7 @@ export interface PaymentInfoRowProps {
     hideBottomBorder?: boolean
     allowCopy?: boolean
     copyValue?: string
+    onClick?: () => void
 }
 
 export const PaymentInfoRow = ({
@@ -22,6 +23,7 @@ export const PaymentInfoRow = ({
     hideBottomBorder,
     allowCopy,
     copyValue,
+    onClick,
 }: PaymentInfoRowProps) => {
     const [showMoreInfo, setShowMoreInfo] = useState(false)
     const tooltipId = useId()
@@ -30,8 +32,10 @@ export const PaymentInfoRow = ({
         <div
             className={twMerge(
                 'flex w-full flex-col justify-between gap-1 border-b border-dashed border-black py-3 text-h8',
-                hideBottomBorder && 'border-none'
+                hideBottomBorder && 'border-none',
+                onClick && 'cursor-pointer transition-colors hover:bg-grey-2/30 active:bg-grey-2/50'
             )}
+            onClick={onClick}
         >
             <div className="relative flex items-center">
                 <label className={twMerge('text-xs font-semibold')}>{label}</label>

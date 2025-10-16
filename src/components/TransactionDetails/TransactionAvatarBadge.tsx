@@ -1,6 +1,6 @@
-import { IconName } from '@/components/Global/Icons/Icon'
-import AvatarWithBadge, { AvatarSize } from '@/components/Profile/AvatarWithBadge'
-import { TransactionType } from '@/components/TransactionDetails/TransactionCard'
+import { type IconName } from '@/components/Global/Icons/Icon'
+import AvatarWithBadge, { type AvatarSize } from '@/components/Profile/AvatarWithBadge'
+import { type TransactionType } from '@/components/TransactionDetails/TransactionCard'
 import {
     AVATAR_LINK_BG,
     AVATAR_TEXT_DARK,
@@ -10,7 +10,7 @@ import {
 } from '@/utils/color.utils'
 import React from 'react'
 import { isAddress } from 'viem'
-import { StatusPillType } from '../Global/StatusPill'
+import { type StatusPillType } from '../Global/StatusPill'
 
 interface TransactionAvatarBadgeProps {
     size?: AvatarSize

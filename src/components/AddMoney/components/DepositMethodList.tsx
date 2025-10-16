@@ -1,5 +1,5 @@
 'use client'
-import { CardPosition } from '@/components/Global/Card'
+import { type CardPosition } from '@/components/Global/Card'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { SearchResultCard } from '@/components/SearchUsers/SearchResultCard'
 import Image from 'next/image'

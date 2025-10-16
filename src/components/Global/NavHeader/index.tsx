@@ -2,7 +2,7 @@
 import { Button } from '@/components/0_Bruddle'
 import Link from 'next/link'
 import { twMerge } from 'tailwind-merge'
-import { Icon, IconName } from '../Icons/Icon'
+import { Icon, type IconName } from '../Icons/Icon'
 import { useAuth } from '@/context/authContext'
 
 interface NavHeaderProps {

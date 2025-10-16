@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import ActionModal from '../ActionModal'
 import { POST_SIGNUP_ACTIONS } from './post-signup-action.consts'
-import { IconName } from '../Icons/Icon'
+import { type IconName } from '../Icons/Icon'
 import { useAuth } from '@/context/authContext'
 
 export const PostSignupActionManager = ({

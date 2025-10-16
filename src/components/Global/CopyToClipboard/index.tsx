@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Icon } from '../Icons/Icon'
-import { Button, ButtonSize } from '@/components/0_Bruddle'
+import { Button, type ButtonSize } from '@/components/0_Bruddle'
 
 interface Props {
     textToCopy: string

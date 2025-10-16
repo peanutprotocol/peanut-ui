@@ -2,7 +2,7 @@ import ActionModal from '@/components/Global/ActionModal'
 import { useBridgeKycFlow } from '@/hooks/useBridgeKycFlow'
 import IframeWrapper from '@/components/Global/IframeWrapper'
 import { KycVerificationInProgressModal } from './KycVerificationInProgressModal'
-import { IconName } from '@/components/Global/Icons/Icon'
+import { type IconName } from '@/components/Global/Icons/Icon'
 import { saveRedirectUrl } from '@/utils'
 import useClaimLink from '../Claim/useClaimLink'
 

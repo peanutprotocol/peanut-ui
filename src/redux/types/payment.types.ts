@@ -1,6 +1,11 @@
-import { ParsedURL } from '@/lib/url-parser/types/payment'
-import { PaymentCreationResponse, TCharge, TRequestChargeResponse, TRequestResponse } from '@/services/services.types'
-import { IAttachmentOptions } from './send-flow.types'
+import { type ParsedURL } from '@/lib/url-parser/types/payment'
+import {
+    type PaymentCreationResponse,
+    type TCharge,
+    type TRequestChargeResponse,
+    type TRequestResponse,
+} from '@/services/services.types'
+import { type IAttachmentOptions } from './send-flow.types'
 
 export type TPaymentView = 'INITIAL' | 'CONFIRM' | 'STATUS' | 'PUBLIC_PROFILE'
 

@@ -1,7 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit'
 import { WALLET_SLICE } from '../constants'
-import { WalletUIState } from '../types/wallet.types'
-import { PayloadAction } from '@reduxjs/toolkit'
+import { type WalletUIState } from '../types/wallet.types'
+import { type PayloadAction } from '@reduxjs/toolkit'
 
 const initialState: WalletUIState = {
     signInModalVisible: false,

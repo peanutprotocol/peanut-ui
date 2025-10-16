@@ -1,11 +1,11 @@
 'use client'
 
-import React, { createContext, ReactNode, useContext, useMemo, useState, useCallback } from 'react'
-import { CountryData } from '../components/AddMoney/consts'
-import { TCreateOfframpResponse } from '@/services/services.types'
-import { Account, User } from '@/interfaces'
-import { IBankAccountDetails } from '@/components/AddWithdraw/DynamicBankAccountForm'
-import { BridgeKycStatus } from '@/utils/bridge-accounts.utils'
+import React, { createContext, type ReactNode, useContext, useMemo, useState, useCallback } from 'react'
+import { type CountryData } from '../components/AddMoney/consts'
+import { type TCreateOfframpResponse } from '@/services/services.types'
+import { type Account, type User } from '@/interfaces'
+import { type IBankAccountDetails } from '@/components/AddWithdraw/DynamicBankAccountForm'
+import { type BridgeKycStatus } from '@/utils/bridge-accounts.utils'
 
 export enum ClaimBankFlowStep {
     SavedAccountsList = 'saved-accounts-list',

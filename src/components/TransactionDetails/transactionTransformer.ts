@@ -1,7 +1,7 @@
-import { StatusType } from '@/components/Global/Badges/StatusBadge'
-import { TransactionType as TransactionCardType } from '@/components/TransactionDetails/TransactionCard'
-import { TransactionDirection } from '@/components/TransactionDetails/TransactionDetailsHeaderCard'
-import { EHistoryEntryType, EHistoryUserRole, HistoryEntry } from '@/hooks/useTransactionHistory'
+import { type StatusType } from '@/components/Global/Badges/StatusBadge'
+import { type TransactionType as TransactionCardType } from '@/components/TransactionDetails/TransactionCard'
+import { type TransactionDirection } from '@/components/TransactionDetails/TransactionDetailsHeaderCard'
+import { EHistoryEntryType, EHistoryUserRole, type HistoryEntry } from '@/hooks/useTransactionHistory'
 import {
     getExplorerUrl,
     getInitialsFromName,
@@ -10,10 +10,10 @@ import {
     getTokenLogo,
     getChainLogo,
 } from '@/utils/general.utils'
-import { StatusPillType } from '../Global/StatusPill'
+import { type StatusPillType } from '../Global/StatusPill'
 import type { Address } from 'viem'
 import { PEANUT_WALLET_CHAIN } from '@/constants'
-import { HistoryEntryPerk } from '@/services/services.types'
+import { type HistoryEntryPerk } from '@/services/services.types'
 
 /**
  * @fileoverview maps raw transaction history data from the api/hook to the format needed by ui components.

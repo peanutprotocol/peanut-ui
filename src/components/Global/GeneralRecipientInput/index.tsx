@@ -1,5 +1,5 @@
 'use client'
-import ValidatedInput, { InputUpdate } from '@/components/Global/ValidatedInput'
+import ValidatedInput, { type InputUpdate } from '@/components/Global/ValidatedInput'
 import { useRecentRecipients } from '@/hooks/useRecentRecipients'
 import * as interfaces from '@/interfaces'
 import { validateBankAccount } from '@/utils'

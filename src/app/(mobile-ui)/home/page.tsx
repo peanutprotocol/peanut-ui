@@ -1,6 +1,6 @@
 'use client'
 
-import { Button, ButtonSize, ButtonVariant } from '@/components/0_Bruddle'
+import { Button, type ButtonSize, type ButtonVariant } from '@/components/0_Bruddle'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { Icon } from '@/components/Global/Icons/Icon'
 import IOSInstallPWAModal from '@/components/Global/IOSInstallPWAModal'

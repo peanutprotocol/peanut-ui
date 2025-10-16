@@ -2,11 +2,11 @@ import starImage from '@/assets/icons/star.png'
 import { Button } from '@/components/0_Bruddle'
 import CloudsBackground from '@/components/0_Bruddle/CloudsBackground'
 import Icon from '@/components/Global/Icon'
-import { BeforeInstallPromptEvent, LayoutType, ScreenId } from '@/components/Setup/Setup.types'
+import { type BeforeInstallPromptEvent, type LayoutType, type ScreenId } from '@/components/Setup/Setup.types'
 import InstallPWA from '@/components/Setup/Views/InstallPWA'
 import classNames from 'classnames'
 import Image from 'next/image'
-import { Children, ReactNode, cloneElement, memo, type ReactElement } from 'react'
+import { Children, type ReactNode, cloneElement, memo, type ReactElement } from 'react'
 import { twMerge } from 'tailwind-merge'
 
 /**

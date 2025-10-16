@@ -1,7 +1,7 @@
 'use client'
 import { countryData as ALL_METHODS_DATA, ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
 import { shortenStringLong, formatIban } from '@/utils/general.utils'
-import { AccountType, Account } from '@/interfaces'
+import { AccountType, type Account } from '@/interfaces'
 import Image from 'next/image'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { SearchResultCard } from '@/components/SearchUsers/SearchResultCard'

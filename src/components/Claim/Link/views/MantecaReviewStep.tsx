@@ -1,13 +1,13 @@
 import { Button } from '@/components/0_Bruddle'
 import ErrorAlert from '@/components/Global/ErrorAlert'
-import MantecaDetailsCard, { MantecaCardRow } from '@/components/Global/MantecaDetailsCard'
+import MantecaDetailsCard, { type MantecaCardRow } from '@/components/Global/MantecaDetailsCard'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { MANTECA_DEPOSIT_ADDRESS } from '@/constants'
 import { useCurrency } from '@/hooks/useCurrency'
 import { mantecaApi } from '@/services/manteca'
 import { sendLinksApi } from '@/services/sendLinks'
 import { MercadoPagoStep } from '@/types/manteca.types'
-import { Dispatch, FC, SetStateAction, useState } from 'react'
+import { type Dispatch, type FC, type SetStateAction, useState } from 'react'
 
 interface MantecaReviewStepProps {
     setCurrentStep: Dispatch<SetStateAction<MercadoPagoStep>>

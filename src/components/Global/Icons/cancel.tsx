@@ -1,4 +1,4 @@
-import { FC, SVGProps } from 'react'
+import { type FC, type SVGProps } from 'react'
 
 export const CancelIcon: FC<SVGProps<SVGSVGElement>> = (props) => (
     <svg width="9" height="8" viewBox="0 0 9 8" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
