@@ -4,6 +4,7 @@ import CloudsBackground from '@/components/0_Bruddle/CloudsBackground'
 import Icon from '@/components/Global/Icon'
 import { BeforeInstallPromptEvent, LayoutType, ScreenId } from '@/components/Setup/Setup.types'
 import InstallPWA from '@/components/Setup/Views/InstallPWA'
+import { DeviceType } from '@/hooks/useGetDeviceType'
 import classNames from 'classnames'
 import Image from 'next/image'
 import { Children, ReactNode, cloneElement, memo, type ReactElement } from 'react'
@@ -31,7 +32,7 @@ interface SetupWrapperProps {
     direction?: number
     deferredPrompt?: BeforeInstallPromptEvent | null
     canInstall?: boolean
-    deviceType?: 'ios' | 'android' | 'desktop'
+    deviceType?: DeviceType
 }
 
 // define responsive height classes for different layout types
@@ -194,7 +195,7 @@ export const SetupWrapper = memo(
                 <Navigation
                     showBackButton={showBackButton}
                     showSkipButton={
-                        showSkipButton || (screenId === 'pwa-install' && (!canInstall || deviceType === 'desktop'))
+                        showSkipButton || (screenId === 'pwa-install' && (!canInstall || deviceType === DeviceType.WEB))
                     }
                     onBack={onBack}
                     onSkip={onSkip}

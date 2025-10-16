@@ -7,7 +7,6 @@ import WalletNavigation from '@/components/Global/WalletNavigation'
 import { ThemeProvider } from '@/config'
 import { useAuth } from '@/context/authContext'
 import { hasValidJwtToken } from '@/utils/auth'
-import { isIOS } from '@/utils/general.utils'
 import classNames from 'classnames'
 import { usePathname } from 'next/navigation'
 import PullToRefresh from 'pulltorefreshjs'
@@ -18,6 +17,7 @@ import SupportDrawer from '@/components/Global/SupportDrawer'
 import JoinWaitlistPage from '@/components/Invites/JoinWaitlistPage'
 import { useRouter } from 'next/navigation'
 import { Banner } from '@/components/Global/Banner'
+import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 
 // Allow access to some public paths without authentication
 const publicPathRegex = /^\/(request\/pay|claim|pay\/.+$|support|invite|dev)/
@@ -33,6 +33,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const isSupport = pathName === '/support'
     const alignStart = isHome || isHistory || isSupport
     const router = useRouter()
+    const { deviceType: detectedDeviceType } = useDeviceType()
 
     useEffect(() => {
         // check for JWT token
@@ -47,7 +48,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         if (typeof window === 'undefined') return
 
         // Only initialize pull-to-refresh on iOS devices
-        if (!isIOS()) return
+        if (detectedDeviceType !== DeviceType.IOS) return
 
         PullToRefresh.init({
             mainElement: 'body',

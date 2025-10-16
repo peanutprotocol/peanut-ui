@@ -26,15 +26,3 @@ export const isDeviceOsSupported = (ua: string): boolean => {
     }
     return true // other os types are considered supported by this check
 }
-
-// determines device type (ios, android, or desktop) from user agent
-export const getDeviceTypeForLogic = (ua: string): 'ios' | 'android' | 'desktop' => {
-    if (!ua) return 'desktop'
-    const isIOS =
-        /iPad|iPhone|iPod/.test(ua) ||
-        (typeof navigator !== 'undefined' && navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
-    const isAndroid = /Android/i.test(ua)
-    if (isIOS) return 'ios'
-    if (isAndroid) return 'android'
-    return 'desktop'
-}
