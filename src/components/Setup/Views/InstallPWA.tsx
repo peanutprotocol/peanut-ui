@@ -10,7 +10,6 @@ import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import { captureException } from '@sentry/nextjs'
-import ForceIOSPWAInstall from '@/components/ForceIOSPWAInstall'
 
 const StepTitle = ({ text }: { text: string }) => <h3 className="text-xl font-extrabold leading-6">{text}</h3>
 
@@ -239,10 +238,6 @@ const InstallPWA = ({
                         )}
                     </>
                 )
-            }
-
-            if (deviceType === 'ios') {
-                return <ForceIOSPWAInstall />
             }
 
         default:
