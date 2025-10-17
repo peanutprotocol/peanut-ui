@@ -99,7 +99,7 @@ const UserCard = ({
                     <Attachment message={message ?? ''} fileUrl={fileUrl ?? ''} />
                 </div>
             </div>
-            {amount && amountCollected && type === 'request_pay' && (
+            {amount !== undefined && amountCollected !== undefined && type === 'request_pay' && (
                 <ProgressBar goal={amount} progress={amountCollected} isClosed={amountCollected >= amount} />
             )}
         </Card>

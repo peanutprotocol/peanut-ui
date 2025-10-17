@@ -10,6 +10,7 @@ import { getAddress, isAddress, erc20Abi } from 'viem'
 import * as wagmiChains from 'wagmi/chains'
 import { getPublicClient, type ChainId } from '@/app/actions/clients'
 import { NATIVE_TOKEN_ADDRESS, SQUID_ETH_ADDRESS } from './token.utils'
+import { ChargeEntry } from '@/services/services.types'
 
 export function urlBase64ToUint8Array(base64String: string) {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -1355,4 +1356,9 @@ export const getValidRedirectUrl = (redirectUrl: string, fallbackRoute: string) 
         // Reject external redirects, go to home instead
         return fallbackRoute
     }
+}
+
+export const getContributorsFromCharge = (charges: ChargeEntry[]) => {
+    // Contributors are the users who have paid for the charge
+    return charges.filter((charge) => charge.fulfillmentPayment)
 }

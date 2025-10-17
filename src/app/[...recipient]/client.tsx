@@ -33,7 +33,6 @@ import NavHeader from '@/components/Global/NavHeader'
 import { ReqFulfillBankFlowManager } from '@/components/Request/views/ReqFulfillBankFlowManager'
 import SupportCTA from '@/components/Global/SupportCTA'
 import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermineBankRequestType'
-import RequestFulfillmentFlow from '@/components/Payment/Views/RequestFulfillmentViews/RequestFulfillmentFlow'
 import { useQuery } from '@tanstack/react-query'
 import { pointsApi } from '@/services/points'
 import { PointsAction } from '@/services/services.types'
@@ -475,10 +474,6 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         return <ReqFulfillBankFlowManager parsedPaymentData={parsedPaymentData as ParsedURL} />
     }
 
-    if (flow === 'request_pay') {
-        return <RequestFulfillmentFlow />
-    }
-
     // render PUBLIC_PROFILE view
     if (
         currentView === 'PUBLIC_PROFILE' &&
@@ -526,16 +521,17 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                         }
                         setCurrencyAmount={(value: string | undefined) => setCurrencyAmount(value || '')}
                         currencyAmount={currencyAmount}
+                        isRequestPotPayment={!!requestId}
                     />
                     <div>
-                        {showActionList && (
+                        {chargeId && showActionList && (
                             <ActionList
                                 flow="request"
                                 requestLinkData={parsedPaymentData as ParsedURL}
                                 isLoggedIn={!!user?.user.userId}
-                                // isInviteLink={
-                                //     flow === 'request_pay' && parsedPaymentData?.recipient?.recipientType === 'USERNAME'
-                                // } // invite link is only available for request pay flow
+                                isInviteLink={
+                                    flow === 'request_pay' && parsedPaymentData?.recipient?.recipientType === 'USERNAME'
+                                } // invite link is only available for request pay flow
                             />
                         )}
                     </div>

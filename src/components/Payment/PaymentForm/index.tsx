@@ -35,6 +35,7 @@ import { PaymentFlow } from '@/app/[...recipient]/client'
 import MantecaFulfillment from '../Views/MantecaFulfillment.view'
 import { invitesApi } from '@/services/invites'
 import { EInviteType } from '@/services/services.types'
+import Contributors from '@/components/Global/Contributors'
 
 export type PaymentFlowProps = {
     isExternalWalletFlow?: boolean
@@ -49,6 +50,7 @@ export type PaymentFlowProps = {
     setCurrencyAmount?: (currencyvalue: string | undefined) => void
     headerTitle?: string
     flow?: PaymentFlow
+    isRequestPotPayment?: boolean
 }
 
 export type PaymentFormProps = ParsedURL & PaymentFlowProps
@@ -65,6 +67,7 @@ export const PaymentForm = ({
     isDirectUsdPayment,
     headerTitle,
     flow,
+    isRequestPotPayment,
 }: PaymentFormProps) => {
     const dispatch = useAppDispatch()
     const router = useRouter()
@@ -209,7 +212,11 @@ export const PaymentForm = ({
                 }
             } else {
                 // regular send/pay
-                if (isActivePeanutWallet && areEvmAddressesEqual(selectedTokenAddress, PEANUT_WALLET_TOKEN)) {
+                if (
+                    !isRequestPotPayment &&
+                    isActivePeanutWallet &&
+                    areEvmAddressesEqual(selectedTokenAddress, PEANUT_WALLET_TOKEN)
+                ) {
                     // peanut wallet payment
                     const walletNumeric = parseFloat(String(peanutWalletBalance).replace(/,/g, ''))
                     if (walletNumeric < parsedInputAmount) {
@@ -261,6 +268,7 @@ export const PaymentForm = ({
         selectedTokenData,
         isExternalWalletConnected,
         isExternalWalletFlow,
+        isRequestPotPayment,
     ])
 
     // fetch token price
@@ -308,6 +316,11 @@ export const PaymentForm = ({
         const recipientExists = !!recipient
         const walletConnected = isConnected
 
+        // If its requestPotPayment, we only need to check if the recipient exists, amount is set, and token is selected
+        if (isRequestPotPayment) {
+            return recipientExists && amountIsSet && tokenSelected && isRequestPotPayment
+        }
+
         return recipientExists && amountIsSet && tokenSelected && walletConnected
     }, [
         recipient,
@@ -350,7 +363,7 @@ export const PaymentForm = ({
         if (inviteError) {
             setInviteError(false)
         }
-        if (isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow) {
+        if (!isRequestPotPayment && isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow) {
             // If the user doesn't have app access, accept the invite before claiming the link
             if (recipient.recipientType === 'USERNAME' && !user?.user.hasAppAccess) {
                 const isAccepted = await handleAcceptInvite()
@@ -360,16 +373,17 @@ export const PaymentForm = ({
             return
         }
 
-        if (!isExternalWalletConnected && isExternalWalletFlow) {
+        if (!isRequestPotPayment && !isExternalWalletConnected && isExternalWalletFlow) {
             openReownModal()
             return
         }
 
-        if (!isConnected) {
+        if (!isRequestPotPayment && !isConnected) {
             dispatch(walletActions.setSignInModalVisible(true))
             return
         }
 
+        console.log('hello')
         if (!canInitiatePayment) return
 
         // regular payment flow
@@ -422,7 +436,15 @@ export const PaymentForm = ({
                   ? 'DIRECT_SEND'
                   : 'REQUEST',
             attachmentOptions: attachmentOptions,
+            isRequestPotPayment,
         }
+
+        // if (isRequestPotPayment) {
+        //     const res = await createRequestCharge(payload)
+        //     console.log(res)
+        //     dispatch(paymentActions.setView('CONFIRM'))
+        //     return
+        // }
 
         console.log('Initiating payment with payload:', payload)
 
@@ -431,7 +453,7 @@ export const PaymentForm = ({
         if (result.status === 'Success') {
             dispatch(paymentActions.setView('STATUS'))
         } else if (result.status === 'Charge Created') {
-            if (!fulfillUsingManteca) {
+            if (!fulfillUsingManteca && !isRequestPotPayment) {
                 dispatch(paymentActions.setView('CONFIRM'))
             }
         } else if (result.status === 'Error') {
@@ -473,6 +495,10 @@ export const PaymentForm = ({
             return 'Send'
         }
 
+        if (isRequestPotPayment) {
+            return 'Pay'
+        }
+
         if (isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow) {
             return (
                 <div className="flex items-center gap-1">
@@ -501,11 +527,13 @@ export const PaymentForm = ({
     }
 
     const getButtonIcon = (): IconName | undefined => {
-        if (!isExternalWalletConnected && isExternalWalletFlow) return 'wallet-outline'
+        if (!isRequestPotPayment && !isExternalWalletConnected && isExternalWalletFlow) return 'wallet-outline'
 
-        if (isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow) return 'arrow-down'
+        if (!isRequestPotPayment && isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow)
+            return 'arrow-down'
 
-        if (!isProcessing && isActivePeanutWallet && !isExternalWalletFlow) return 'arrow-up-right'
+        if (!isRequestPotPayment && !isProcessing && isActivePeanutWallet && !isExternalWalletFlow)
+            return 'arrow-up-right'
 
         return undefined
     }
@@ -630,7 +658,7 @@ export const PaymentForm = ({
                 {/* Recipient Info Card */}
                 {recipient && !isExternalWalletFlow && (
                     <UserCard
-                        type="send"
+                        type={isRequestPotPayment ? 'request_pay' : 'send'}
                         username={recipientDisplayName}
                         recipientType={recipient.recipientType}
                         size="small"
@@ -638,6 +666,8 @@ export const PaymentForm = ({
                         fileUrl={requestDetails?.attachmentUrl || chargeDetails?.requestLink?.attachmentUrl || ''}
                         isVerified={recipientKycStatus === 'approved'}
                         haveSentMoneyToUser={recipientUserId ? interactions[recipientUserId] || false : false}
+                        amount={isRequestPotPayment ? Number(amount) : undefined}
+                        amountCollected={isRequestPotPayment ? 0 : undefined} // TODO
                     />
                 )}
 
@@ -651,11 +681,17 @@ export const PaymentForm = ({
                     }}
                     setCurrencyAmount={setCurrencyAmount}
                     className="w-full"
-                    disabled={!isExternalWalletFlow && (!!requestDetails?.tokenAmount || !!chargeDetails?.tokenAmount)}
+                    disabled={
+                        !isRequestPotPayment &&
+                        !isExternalWalletFlow &&
+                        (!!requestDetails?.tokenAmount || !!chargeDetails?.tokenAmount)
+                    }
                     walletBalance={isActivePeanutWallet ? peanutWalletBalance : undefined}
                     currency={currency}
                     hideCurrencyToggle={!currency}
                     hideBalance={isExternalWalletFlow}
+                    showSlider={isRequestPotPayment}
+                    maxAmount={isRequestPotPayment ? Number(amount) : undefined}
                 />
 
                 {/*
@@ -693,7 +729,7 @@ export const PaymentForm = ({
                 )}
 
                 <div className="space-y-4">
-                    {isPeanutWalletConnected && (!error || isInsufficientBalanceError) && (
+                    {(isRequestPotPayment || (isPeanutWalletConnected && (!error || isInsufficientBalanceError))) && (
                         <Button
                             variant="purple"
                             loading={isAcceptingInvite || isProcessing}
@@ -736,6 +772,9 @@ export const PaymentForm = ({
                     )}
                 </div>
             </div>
+
+            {isRequestPotPayment && <Contributors charges={requestDetails?.charges || []} />}
+
             <ActionModal
                 visible={disconnectWagmiModal}
                 onClose={() => setDisconnectWagmiModal(false)}
