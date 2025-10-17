@@ -6,6 +6,7 @@ import { formatUnits } from 'viem'
 import { Hash } from 'viem'
 import { getTokenDetails } from '@/utils'
 import { getCurrencyPrice } from '@/app/actions/currency'
+import { ChargeEntry } from '@/services/services.types'
 
 export enum EHistoryEntryType {
     REQUEST = 'REQUEST',
@@ -128,6 +129,8 @@ export type HistoryEntry = {
     completedAt?: string | Date
     isVerified?: boolean
     points?: number
+    isRequestLink?: boolean // true if the transaction is a request pot link
+    charges?: ChargeEntry[]
 }
 
 export function isFinalState(transaction: Pick<HistoryEntry, 'status'>): boolean {

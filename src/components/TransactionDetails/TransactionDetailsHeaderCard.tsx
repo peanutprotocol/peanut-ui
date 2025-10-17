@@ -41,6 +41,9 @@ interface TransactionDetailsHeaderCardProps {
     haveSentMoneyToUser?: boolean
     hasPerk?: boolean
     isAvatarClickable?: boolean
+    showProgessBar?: boolean
+    progress?: number
+    goal?: number
 }
 
 const getTitle = (
@@ -173,6 +176,9 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     haveSentMoneyToUser = false,
     hasPerk = false,
     isAvatarClickable = false,
+    showProgessBar = false,
+    progress,
+    goal,
 }) => {
     const router = useRouter()
     const typeForAvatar =
@@ -236,9 +242,11 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                     </h1>
                 </div>
             </div>
-            <div className="mt-4">
-                <ProgressBar goal={100} progress={20} isClosed={false} />
-            </div>
+            {showProgessBar && goal !== undefined && progress !== undefined && (
+                <div className="mt-4">
+                    <ProgressBar goal={goal} progress={progress} isClosed={false} />
+                </div>
+            )}
         </Card>
     )
 }

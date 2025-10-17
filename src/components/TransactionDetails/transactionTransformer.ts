@@ -13,7 +13,7 @@ import {
 import { StatusPillType } from '../Global/StatusPill'
 import type { Address } from 'viem'
 import { PEANUT_WALLET_CHAIN } from '@/constants'
-import { HistoryEntryPerk } from '@/services/services.types'
+import { ChargeEntry, HistoryEntryPerk } from '@/services/services.types'
 
 /**
  * @fileoverview maps raw transaction history data from the api/hook to the format needed by ui components.
@@ -121,6 +121,8 @@ export interface TransactionDetails {
     createdAt?: string | Date
     completedAt?: string | Date
     points?: number
+    isRequestPotLink?: boolean
+    requestPotPayments?: ChargeEntry[]
 }
 
 /**
@@ -514,6 +516,8 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         createdAt: entry.createdAt,
         completedAt: entry.completedAt,
         haveSentMoneyToUser: entry.extraData?.haveSentMoneyToUser as boolean,
+        isRequestPotLink: entry.isRequestLink,
+        requestPotPayments: entry.charges,
     }
 
     return {

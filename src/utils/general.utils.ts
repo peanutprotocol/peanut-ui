@@ -1360,5 +1360,15 @@ export const getValidRedirectUrl = (redirectUrl: string, fallbackRoute: string) 
 
 export const getContributorsFromCharge = (charges: ChargeEntry[]) => {
     // Contributors are the users who have paid for the charge
-    return charges.filter((charge) => charge.fulfillmentPayment)
+    return charges
+        .filter((charge) => charge.fulfillmentPayment)
+        .map((charge) => ({
+            uuid: charge.uuid,
+            payments: charge.payments,
+            amount: charge.tokenAmount,
+            username: charge.payments[charge.payments.length - 1].payerAccount?.user?.username,
+            fulfilmentPayment: charge.fulfillmentPayment,
+            isUserVerified:
+                charge.payments[charge.payments.length - 1].payerAccount?.user?.bridgeKycStatus === 'approved',
+        }))
 }

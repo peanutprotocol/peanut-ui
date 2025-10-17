@@ -10,7 +10,14 @@ import { useUserStore } from '@/redux/hooks'
 import { chargesApi } from '@/services/charges'
 import { sendLinksApi } from '@/services/sendLinks'
 import { formatAmount, formatDate, getInitialsFromName, isStableCoin, formatCurrency, getAvatarUrl } from '@/utils'
-import { formatIban, printableAddress, shortenAddress, shortenStringLong, slugify } from '@/utils/general.utils'
+import {
+    formatIban,
+    getContributorsFromCharge,
+    printableAddress,
+    shortenAddress,
+    shortenStringLong,
+    slugify,
+} from '@/utils/general.utils'
 import { cancelOnramp } from '@/app/actions/onramp'
 import { captureException } from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
@@ -42,6 +49,7 @@ import { mantecaApi } from '@/services/manteca'
 import { getReceiptUrl } from '@/utils/history.utils'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
 import TransactionCard from './TransactionCard'
+import ContributorCard from '../Global/Contributors/ContributorCard'
 
 export const TransactionDetailsReceipt = ({
     transaction,
@@ -236,6 +244,16 @@ export const TransactionDetailsReceipt = ({
         return false
     }, [transaction, isPendingSentLink, isPendingRequester, isPendingRequestee])
 
+    const requestPotContributors = useMemo(() => {
+        if (!transaction || !transaction.requestPotPayments) return []
+        return getContributorsFromCharge(transaction.requestPotPayments)
+    }, [transaction])
+
+    const totalAmountCollected = useMemo(() => {
+        if (!transaction || !transaction.requestPotPayments) return 0
+        return requestPotContributors.reduce((acc, curr) => acc + Number(curr.amount), 0)
+    }, [requestPotContributors])
+
     useEffect(() => {
         const getTokenDetails = async () => {
             if (!transaction) {
@@ -370,6 +388,9 @@ export const TransactionDetailsReceipt = ({
                 haveSentMoneyToUser={transaction.haveSentMoneyToUser}
                 hasPerk={!!transaction.extraDataForDrawer?.perk?.claimed}
                 isAvatarClickable={isAvatarClickable}
+                showProgessBar={transaction.isRequestPotLink}
+                goal={Number(transaction.amount)}
+                progress={totalAmountCollected}
             />
 
             {/* details card (date, fee, memo) and more */}
@@ -1207,22 +1228,20 @@ export const TransactionDetailsReceipt = ({
                 />
             )}
 
-            <h2 className="text-base font-bold text-black">Contributors (10)</h2>
-            <div className="h-36 overflow-y-auto">
-                {Array.from({ length: 10 }).map((_, index) => (
-                    <TransactionCard
-                        key={index}
-                        type="receive"
-                        name={`Contributor ${index + 1}`}
-                        amount={Number(100)}
-                        status={'completed'}
-                        initials={`C ${index + 1}`}
-                        transaction={transaction}
-                        position={getCardPosition(index, 10)}
-                        haveSentMoneyToUser={true}
-                    />
-                ))}
-            </div>
+            {requestPotContributors.length > 0 && (
+                <>
+                    <h2 className="text-base font-bold text-black">Contributors ({requestPotContributors.length})</h2>
+                    <div className="max-h-36 overflow-y-auto">
+                        {requestPotContributors.map((contributor, index) => (
+                            <ContributorCard
+                                position={getCardPosition(index, requestPotContributors.length)}
+                                key={contributor.uuid}
+                                contributor={contributor}
+                            />
+                        ))}
+                    </div>
+                </>
+            )}
         </div>
     )
 }
