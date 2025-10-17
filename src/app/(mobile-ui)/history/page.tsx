@@ -53,17 +53,19 @@ const HistoryPage = () => {
                 (oldData) => {
                     if (!oldData) return oldData
 
-                    // Add new entry to the first page (with duplicate check)
+                    // Check if entry exists on ANY page to prevent duplicates
+                    const existsAnywhere = oldData.pages.some((p) => p.entries.some((e) => e.uuid === newEntry.uuid))
+
+                    if (existsAnywhere) {
+                        console.log('[History] Duplicate transaction ignored:', newEntry.uuid)
+                        return oldData
+                    }
+
+                    // Add new entry to the first page
                     return {
                         ...oldData,
                         pages: oldData.pages.map((page, index) => {
                             if (index === 0) {
-                                // Check if entry already exists to prevent duplicates
-                                const isDuplicate = page.entries.some((entry) => entry.uuid === newEntry.uuid)
-                                if (isDuplicate) {
-                                    console.log('[History] Duplicate transaction ignored:', newEntry.uuid)
-                                    return page
-                                }
                                 return {
                                     ...page,
                                     entries: [newEntry, ...page.entries],

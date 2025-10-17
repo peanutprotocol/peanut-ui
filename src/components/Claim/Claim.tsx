@@ -1,5 +1,5 @@
 'use client'
-import peanut from '@squirrel-labs/peanut-sdk'
+import { generateKeysFromString } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 
 import { fetchTokenDetails, fetchTokenPrice } from '@/app/actions/tokens'
@@ -14,7 +14,7 @@ import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHisto
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import * as interfaces from '@/interfaces'
-import { ESendLinkStatus, sendLinksApi, type ClaimLinkData } from '@/services/sendLinks'
+import { ESendLinkStatus, getParamsFromLink, sendLinksApi, type ClaimLinkData } from '@/services/sendLinks'
 import { getInitialsFromName, getTokenDetails, isStableCoin } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import { useQuery } from '@tanstack/react-query'
@@ -193,8 +193,13 @@ export const Claim = ({}) => {
 
         const processLink = async () => {
             try {
-                const url = new URL(linkUrl)
-                const password = url.hash.split('=')[1]
+                const params = getParamsFromLink(linkUrl)
+                const password = params.password
+
+                if (!password) {
+                    setLinkState(_consts.claimLinkStateType.WRONG_PASSWORD)
+                    return
+                }
 
                 setAttachment({
                     message: sendLink.textContent,
@@ -211,7 +216,7 @@ export const Claim = ({}) => {
                 })
                 setSelectedChainID(sendLink.chainId)
                 setSelectedTokenAddress(sendLink.tokenAddress)
-                const keyPair = peanut.generateKeysFromString(password)
+                const keyPair = generateKeysFromString(password)
                 const generatedPubKey = keyPair.address
 
                 const depositPubKey = sendLink.pubKey

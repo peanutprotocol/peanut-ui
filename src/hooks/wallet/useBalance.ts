@@ -18,7 +18,8 @@ export const useBalance = (address: Address | undefined) => {
         queryKey: ['balance', address],
         queryFn: async () => {
             if (!address) {
-                throw new Error('No address provided')
+                // Return 0 instead of throwing to avoid error state on manual refetch
+                return 0n
             }
 
             const balance = await peanutPublicClient.readContract({
