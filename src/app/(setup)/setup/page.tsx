@@ -107,11 +107,11 @@ function SetupPageContent() {
             }
 
             if (localDeviceType === 'android') {
-                determinedSetupInitialStepId = isStandalonePWA ? 'welcome' : 'android-initial-pwa-install'
+                determinedSetupInitialStepId = isStandalonePWA ? 'landing' : 'android-initial-pwa-install'
             }
-            // if ios, show welcome screen
+            // if ios, show landing screen
             else if (localDeviceType === 'ios') {
-                determinedSetupInitialStepId = 'welcome'
+                determinedSetupInitialStepId = 'landing'
             } else {
                 determinedSetupInitialStepId = 'pwa-install'
             }
