@@ -30,7 +30,6 @@ interface BadgesRowProps {
  * - Left/right navigation buttons for scrolling through badges
  * - Tooltips showing badge name and description on hover
  * - Automatic sorting by earned date (newest first)
- * - Mock badges support for UI testing
  */
 export function BadgesRow({ badges, className, isSelfProfile = true }: BadgesRowProps) {
     const viewportRef = useRef<HTMLDivElement>(null)
