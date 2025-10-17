@@ -7,7 +7,7 @@ import { Tooltip } from '../Tooltip'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '../0_Bruddle'
 import { Icon } from '../Global/Icons/Icon'
-import { getBadgeIcon } from './badge.utils'
+import { getBadgeIcon, getPublicBadgeDescription } from './badge.utils'
 
 type UIBadge = {
     code: string
@@ -20,6 +20,7 @@ type UIBadge = {
 interface BadgesRowProps {
     badges: UIBadge[]
     className?: string
+    isSelfProfile?: boolean // determines if we show self-perspective or public-perspective copy
 }
 
 /**
@@ -31,7 +32,7 @@ interface BadgesRowProps {
  * - Automatic sorting by earned date (newest first)
  * - Mock badges support for UI testing
  */
-export function BadgesRow({ badges, className }: BadgesRowProps) {
+export function BadgesRow({ badges, className, isSelfProfile = true }: BadgesRowProps) {
     const viewportRef = useRef<HTMLDivElement>(null)
     const [visibleCount, setVisibleCount] = useState<number>(4)
     const [startIdx, setStartIdx] = useState<number>(0)
@@ -97,26 +98,33 @@ export function BadgesRow({ badges, className }: BadgesRowProps) {
                     role="region"
                     aria-label="Badge collection"
                 >
-                    {visibleBadges.map((badge, idx) => (
-                        <Tooltip
-                            key={`${badge.code}-${startIdx + idx}`}
-                            content={
-                                <div className="flex flex-col items-center justify-center gap-1">
-                                    <div className="relative text-sm font-bold">{badge.name}</div>
-                                    <p className="text-center font-normal">{badge.description}</p>
-                                </div>
-                            }
-                        >
-                            <Image
-                                src={getBadgeIcon(badge.code)}
-                                alt={badge.name}
-                                className="min-h-12 min-w-12 object-contain"
-                                height={64}
-                                width={64}
-                                unoptimized
-                            />
-                        </Tooltip>
-                    ))}
+                    {visibleBadges.map((badge, idx) => {
+                        // use public description if viewing someone else's profile, otherwise use original
+                        const displayDescription = isSelfProfile
+                            ? badge.description
+                            : getPublicBadgeDescription(badge.code) || badge.description
+
+                        return (
+                            <Tooltip
+                                key={badge.code}
+                                content={
+                                    <div className="flex flex-col items-center justify-center gap-1">
+                                        <div className="relative text-sm font-bold">{badge.name}</div>
+                                        <p className="text-center font-normal">{displayDescription}</p>
+                                    </div>
+                                }
+                            >
+                                <Image
+                                    src={getBadgeIcon(badge.code)}
+                                    alt={badge.name}
+                                    className="min-h-10 min-w-10 object-contain"
+                                    height={48}
+                                    width={48}
+                                    unoptimized
+                                />
+                            </Tooltip>
+                        )
+                    })}
                 </div>
 
                 {/* Right navigation button */}

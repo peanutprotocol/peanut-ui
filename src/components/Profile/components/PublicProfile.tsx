@@ -1,6 +1,6 @@
 'use client'
 
-import { PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
+import { HandThumbsUpV2, PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
 import { Button } from '@/components/0_Bruddle'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
@@ -13,7 +13,6 @@ import { useState, useEffect, useMemo } from 'react'
 import { usersApi } from '@/services/users'
 import { useRouter } from 'next/navigation'
 import Card from '@/components/Global/Card'
-import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
 import { checkIfInternalNavigation } from '@/utils'
 import { useAuth } from '@/context/authContext'
 import ShareButton from '@/components/Global/ShareButton'
@@ -150,12 +149,12 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                 )}
 
                 {/* badges row */}
-                <BadgesRow badges={profileBadges} className="-mt-4" />
+                <BadgesRow badges={profileBadges} isSelfProfile={isSelfProfile} />
 
                 {/* Show create account box to guest users */}
                 {!isLoggedIn && (
-                    <div className="relative flex flex-col items-center">
-                        <Card position="single" className="z-10 mt-28 space-y-2 p-4 text-center">
+                    <div className="flex flex-col items-center">
+                        <Card position="single" className="space-y-2 p-4 text-center">
                             {isLoggedIn ? (
                                 <>
                                     <h2 className="text-lg font-extrabold">You're all set</h2>
@@ -166,7 +165,17 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                             ) : (
                                 <div className="space-y-4">
                                     <div className="space-y-2">
-                                        <h2 className="text-lg font-extrabold">No invite, no Peanut</h2>
+                                        <div className="flex items-center justify-center gap-2">
+                                            <Image src={HandThumbsUpV2.src} alt="Join Peanut" width={20} height={20} />
+                                            <h2 className="text-lg font-extrabold">Join Peanut!</h2>
+                                            <Image
+                                                src={HandThumbsUpV2.src}
+                                                className="scale-x-[-1] transform"
+                                                alt="Join Peanut"
+                                                width={20}
+                                                height={20}
+                                            />
+                                        </div>
                                         <p>
                                             Peanut is invite-only.
                                             <br />
@@ -186,7 +195,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                                 </div>
                             )}
                         </Card>
-                        <div
+                        {/* <div
                             className="absolute left-0 top-0 flex w-full justify-center"
                             style={{ transform: 'translateY(-15%)' }}
                         >
@@ -199,7 +208,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                                     className="h-auto w-auto"
                                 />
                             </div>
-                        </div>
+                        </div> */}
                     </div>
                 )}
 
