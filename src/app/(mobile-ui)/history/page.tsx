@@ -18,6 +18,7 @@ import { useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import type { HistoryResponse } from '@/hooks/useTransactionHistory'
+import { AccountType } from '@/interfaces'
 
 /**
  * displays the user's transaction history with infinite scrolling and date grouping.
@@ -74,8 +75,13 @@ const HistoryPage = () => {
                 }
             )
 
-            // Invalidate balance query to refresh it
-            queryClient.invalidateQueries({ queryKey: ['balance'] })
+            // Invalidate balance query to refresh it (scoped to user's wallet address)
+            const walletAddress = user?.accounts.find(
+                (account) => account.type === AccountType.PEANUT_WALLET
+            )?.identifier
+            if (walletAddress) {
+                queryClient.invalidateQueries({ queryKey: ['balance', walletAddress] })
+            }
         },
     })
 

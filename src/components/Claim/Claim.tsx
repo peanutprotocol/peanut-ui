@@ -226,19 +226,25 @@ export const Claim = ({}) => {
                     return
                 }
 
-                let price = 0
-                if (isStableCoin(tokenDetails.symbol)) {
-                    price = 1
-                } else {
-                    const tokenPriceDetails = await fetchTokenPrice(
-                        sendLink.tokenAddress.toLowerCase(),
-                        sendLink.chainId
-                    )
-                    if (tokenPriceDetails) {
-                        price = tokenPriceDetails.price
+                // Fetch token price - isolate failures to prevent hiding valid links
+                try {
+                    let price = 0
+                    if (isStableCoin(tokenDetails.symbol)) {
+                        price = 1
+                    } else {
+                        const tokenPriceDetails = await fetchTokenPrice(
+                            sendLink.tokenAddress.toLowerCase(),
+                            sendLink.chainId
+                        )
+                        if (tokenPriceDetails) {
+                            price = tokenPriceDetails.price
+                        }
                     }
+                    if (0 < price) setTokenPrice(price)
+                } catch (priceError) {
+                    console.warn('[Claim] Token price fetch failed, continuing without price:', priceError)
+                    // Link remains claimable even without price display
                 }
-                if (0 < price) setTokenPrice(price)
 
                 // if there is no logged-in user, allow claiming immediately.
                 // otherwise, perform user-related checks after user fetch completes

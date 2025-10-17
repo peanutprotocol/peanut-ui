@@ -88,7 +88,7 @@ export const useWallet = () => {
               : undefined
 
     return {
-        address: address!,
+        address,
         balance,
         isConnected: isKernelClientReady,
         sendTransactions,
