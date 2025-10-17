@@ -28,6 +28,8 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
         // if ios and not in pwa, show ios pwa install screen after setup flow is completed
         if (deviceType === DeviceType.IOS && !isPWA) {
             dispatch(setupActions.setShowIosPwaInstallScreen(true))
+        } else {
+            dispatch(setupActions.setShowIosPwaInstallScreen(false))
         }
     }, [isPWA, deviceType])
 
