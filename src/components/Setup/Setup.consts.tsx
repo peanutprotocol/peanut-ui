@@ -99,17 +99,4 @@ export const setupSteps: ISetupStep[] = [
         showSkipButton: false,
         contentClassName: 'flex flex-col items-center justify-center gap-5',
     },
-    {
-        screenId: 'ios-initial-pwa-install',
-        layoutType: 'ios-initial-pwa-install',
-        title: '',
-        description: '',
-        image: PEANUTMAN_MOBILE,
-        component: ForceIOSPWAInstall,
-        showBackButton: false,
-        showSkipButton: false,
-        imageClassName: 'hidden',
-        titleClassName: 'text-2xl',
-        contentClassName: 'flex flex-col p-0 items-center justify-center gap-5 bg-secondary-3',
-    },
 ]

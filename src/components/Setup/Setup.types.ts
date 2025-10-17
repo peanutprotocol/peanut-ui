@@ -12,9 +12,8 @@ export type ScreenId =
     | 'unsupported-browser'
     | 'join-beta'
     | 'collect-email'
-    | 'ios-initial-pwa-install'
 
-export type LayoutType = 'signup' | 'standard' | 'android-initial-pwa-install' | 'ios-initial-pwa-install'
+export type LayoutType = 'signup' | 'standard' | 'android-initial-pwa-install'
 
 export type ScreenProps = {
     landing: undefined
@@ -33,7 +32,6 @@ export type ScreenProps = {
     'unsupported-browser': undefined
     'join-beta': undefined
     'collect-email': undefined
-    'ios-initial-pwa-install': undefined
 }
 
 export interface StepComponentProps {

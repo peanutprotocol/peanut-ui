@@ -18,6 +18,8 @@ import JoinWaitlistPage from '@/components/Invites/JoinWaitlistPage'
 import { useRouter } from 'next/navigation'
 import { Banner } from '@/components/Global/Banner'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
+import { useSetupStore } from '@/redux/hooks'
+import ForceIOSPWAInstall from '@/components/ForceIOSPWAInstall'
 
 // Allow access to some public paths without authentication
 const publicPathRegex = /^\/(request\/pay|claim|pay\/.+$|support|invite|dev)/
@@ -34,6 +36,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const alignStart = isHome || isHistory || isSupport
     const router = useRouter()
     const { deviceType: detectedDeviceType } = useDeviceType()
+    const { showIosPwaInstallScreen } = useSetupStore()
 
     useEffect(() => {
         // check for JWT token
@@ -89,6 +92,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 <PeanutLoading />
             </div>
         )
+    }
+
+    // After setup flow is completed, show ios pwa install screen if not in pwa
+    if (!isPublicPath && showIosPwaInstallScreen) {
+        return <ForceIOSPWAInstall />
     }
 
     // Show waitlist page if user doesn't have app access

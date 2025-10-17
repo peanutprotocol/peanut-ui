@@ -21,12 +21,14 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
             // Filter out pwa-install if already in PWA
             if (step.screenId === 'pwa-install' && isPWA) return false
 
-            // Filter out ios-initial-pwa-install if not iOS or already in PWA
-            if (step.screenId === 'ios-initial-pwa-install' && (deviceType !== DeviceType.IOS || isPWA)) return false
-
             return true
         })
         dispatch(setupActions.setSteps(filteredSteps))
+
+        // if ios and not in pwa, show ios pwa install screen after setup flow is completed
+        if (deviceType === DeviceType.IOS && !isPWA) {
+            dispatch(setupActions.setShowIosPwaInstallScreen(true))
+        }
     }, [isPWA, deviceType])
 
     return (

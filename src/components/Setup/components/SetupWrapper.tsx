@@ -40,7 +40,6 @@ const IMAGE_CONTAINER_CLASSES: Record<LayoutType, string> = {
     signup: 'min-h-[55dvh] md:min-h-full', // signup view has larger container height
     standard: 'min-h-[50dvh] md:min-h-full', // rest all views has medium container height
     'android-initial-pwa-install': 'min-h-[60dvh] md:min-h-full',
-    'ios-initial-pwa-install': 'hidden',
 }
 
 // define animated star decorations positions and sizes
@@ -99,7 +98,6 @@ const ImageSection = ({
     if (!image) return null
 
     const isSignup = layoutType === 'signup'
-    const isIosInitialPwaInstall = layoutType === 'ios-initial-pwa-install'
     const containerClass = IMAGE_CONTAINER_CLASSES[layoutType]
     const imageClass = !!imageClassName
         ? imageClassName
@@ -139,9 +137,6 @@ const ImageSection = ({
                 />
             </div>
         )
-    }
-    if (isIosInitialPwaInstall) {
-        return null
     }
 
     // standard layout rendering without decorations

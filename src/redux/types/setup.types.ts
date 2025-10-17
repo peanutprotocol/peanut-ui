@@ -10,4 +10,5 @@ export interface ISetupState {
     telegramHandle: string
     inviteCode: string
     inviteType: EInviteType
+    showIosPwaInstallScreen: boolean
 }

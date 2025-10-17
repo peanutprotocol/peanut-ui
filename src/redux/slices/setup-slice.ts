@@ -13,6 +13,7 @@ const initialState: ISetupState = {
     steps: [],
     inviteCode: '',
     inviteType: EInviteType.DIRECT,
+    showIosPwaInstallScreen: false,
 }
 
 const setupSlice = createSlice({
@@ -58,6 +59,9 @@ const setupSlice = createSlice({
         },
         setInviteType: (state, action: PayloadAction<EInviteType>) => {
             state.inviteType = action.payload
+        },
+        setShowIosPwaInstallScreen: (state, action: PayloadAction<boolean>) => {
+            state.showIosPwaInstallScreen = action.payload
         },
     },
 })
