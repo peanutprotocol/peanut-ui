@@ -40,6 +40,14 @@ export default function WithdrawBankPage() {
             currency.path?.toLowerCase() === country.toLowerCase()
     )?.currencyCode
 
+    // non-eur sepa countries that are currently experiencing issues
+    const isNonEuroSepaCountry = !!(
+        nonEuroCurrency &&
+        nonEuroCurrency !== 'EUR' &&
+        nonEuroCurrency !== 'USD' &&
+        nonEuroCurrency !== 'MXN'
+    )
+
     useEffect(() => {
         if (!amountToWithdraw) {
             // If no amount, go back to main page
@@ -243,9 +251,27 @@ export default function WithdrawBankPage() {
                         <ExchangeRate accountType={bankAccount.type} nonEuroCurrency={nonEuroCurrency} />
                         <PaymentInfoRow hideBottomBorder label="Fee" value={`$ 0.00`} />
                     </Card>
+
+                    {isNonEuroSepaCountry && (
+                        <div className="rounded-sm border border-yellow-500 bg-yellow-50 p-4">
+                            <div className="flex items-start gap-3">
+                                <div className="mt-0.5 text-xl">⚠️</div>
+                                <div className="flex-1">
+                                    <p className="text-sm font-semibold text-yellow-800">
+                                        Service Temporarily Unavailable
+                                    </p>
+                                    <p className="mt-1 text-xs text-yellow-700">
+                                        Withdrawals to {nonEuroCurrency} bank accounts are temporarily unavailable.
+                                        Please try again later.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {error.showError ? (
                         <Button
-                            disabled={isLoading}
+                            disabled={isLoading || isNonEuroSepaCountry}
                             onClick={handleCreateAndInitiateOfframp}
                             loading={isLoading}
                             shadowSize="4"
@@ -262,10 +288,10 @@ export default function WithdrawBankPage() {
                             iconSize={12}
                             shadowSize="4"
                             onClick={handleCreateAndInitiateOfframp}
-                            disabled={isLoading || !bankAccount}
+                            disabled={isLoading || !bankAccount || isNonEuroSepaCountry}
                             className="w-full"
                         >
-                            Withdraw
+                            {isNonEuroSepaCountry ? 'Temporarily Unavailable' : 'Withdraw'}
                         </Button>
                     )}
                     {error.showError && <ErrorAlert description={error.errorMessage} />}
