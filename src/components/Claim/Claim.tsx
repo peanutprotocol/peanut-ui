@@ -306,7 +306,7 @@ export const Claim = ({}) => {
         if (pageUrl) {
             setLinkUrl(pageUrl) // TanStack Query will automatically fetch when linkUrl changes
         }
-    }, [user])
+    }, [])
 
     useEffect(() => {
         if (!transactionForDrawer) return
