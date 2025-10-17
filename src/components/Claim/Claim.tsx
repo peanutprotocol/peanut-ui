@@ -16,6 +16,7 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import * as interfaces from '@/interfaces'
 import { ESendLinkStatus, sendLinksApi, type ClaimLinkData } from '@/services/sendLinks'
 import { getInitialsFromName, getTokenDetails, isStableCoin } from '@/utils'
+import { retryWithBackoff } from '@/utils/retry.utils'
 import * as Sentry from '@sentry/nextjs'
 import type { Hash } from 'viem'
 import { formatUnits } from 'viem'
@@ -173,64 +174,80 @@ export const Claim = ({}) => {
     const checkLink = useCallback(
         async (link: string) => {
             try {
-                const url = new URL(link)
-                const password = url.hash.split('=')[1]
-                const sendLink = await sendLinksApi.get(link)
-                setAttachment({
-                    message: sendLink.textContent,
-                    attachmentUrl: sendLink.fileUrl,
-                })
+                // Retry logic for very fresh links (RPC sync delay)
+                await retryWithBackoff(
+                    async () => {
+                        const url = new URL(link)
+                        const password = url.hash.split('=')[1]
+                        const sendLink = await sendLinksApi.get(link)
+                        setAttachment({
+                            message: sendLink.textContent,
+                            attachmentUrl: sendLink.fileUrl,
+                        })
 
-                const tokenDetails = await fetchTokenDetails(sendLink.tokenAddress, sendLink.chainId)
-                setClaimLinkData({
-                    ...sendLink,
-                    link,
-                    password,
-                    tokenSymbol: tokenDetails.symbol,
-                    tokenDecimals: tokenDetails.decimals,
-                })
-                setSelectedChainID(sendLink.chainId)
-                setSelectedTokenAddress(sendLink.tokenAddress)
-                const keyPair = peanut.generateKeysFromString(password)
-                const generatedPubKey = keyPair.address
+                        const tokenDetails = await fetchTokenDetails(sendLink.tokenAddress, sendLink.chainId)
+                        setClaimLinkData({
+                            ...sendLink,
+                            link,
+                            password,
+                            tokenSymbol: tokenDetails.symbol,
+                            tokenDecimals: tokenDetails.decimals,
+                        })
+                        setSelectedChainID(sendLink.chainId)
+                        setSelectedTokenAddress(sendLink.tokenAddress)
+                        const keyPair = peanut.generateKeysFromString(password)
+                        const generatedPubKey = keyPair.address
 
-                const depositPubKey = sendLink.pubKey
+                        const depositPubKey = sendLink.pubKey
 
-                if (generatedPubKey !== depositPubKey) {
-                    setLinkState(_consts.claimLinkStateType.WRONG_PASSWORD)
-                    return
-                }
+                        if (generatedPubKey !== depositPubKey) {
+                            setLinkState(_consts.claimLinkStateType.WRONG_PASSWORD)
+                            return
+                        }
 
-                if (sendLink.status === ESendLinkStatus.CLAIMED || sendLink.status === ESendLinkStatus.CANCELLED) {
-                    setLinkState(_consts.claimLinkStateType.ALREADY_CLAIMED)
-                    return
-                }
+                        if (
+                            sendLink.status === ESendLinkStatus.CLAIMED ||
+                            sendLink.status === ESendLinkStatus.CANCELLED
+                        ) {
+                            setLinkState(_consts.claimLinkStateType.ALREADY_CLAIMED)
+                            return
+                        }
 
-                let price = 0
-                if (isStableCoin(tokenDetails.symbol)) {
-                    price = 1
-                } else {
-                    const tokenPriceDetails = await fetchTokenPrice(
-                        sendLink.tokenAddress.toLowerCase(),
-                        sendLink.chainId
-                    )
-                    if (tokenPriceDetails) {
-                        price = tokenPriceDetails.price
+                        let price = 0
+                        if (isStableCoin(tokenDetails.symbol)) {
+                            price = 1
+                        } else {
+                            const tokenPriceDetails = await fetchTokenPrice(
+                                sendLink.tokenAddress.toLowerCase(),
+                                sendLink.chainId
+                            )
+                            if (tokenPriceDetails) {
+                                price = tokenPriceDetails.price
+                            }
+                        }
+                        if (0 < price) setTokenPrice(price)
+
+                        // if there is no logged-in user, allow claiming immediately.
+                        // otherwise, perform user-related checks after user fetch completes
+                        if (!user || !isFetchingUser) {
+                            if (user && user.user.userId === sendLink.sender?.userId) {
+                                setLinkState(_consts.claimLinkStateType.CLAIM_SENDER)
+                            } else {
+                                setLinkState(_consts.claimLinkStateType.CLAIM)
+                            }
+                        }
+                    },
+                    {
+                        maxRetries: 3,
+                        initialDelay: 1000,
+                        backoffMultiplier: 1, // Linear: 1s, 2s, 3s
+                        onRetry: (attempt, error, delay) => {
+                            console.log(`Retry ${attempt}/3 - link might be very fresh, waiting ${delay}ms...`)
+                        },
                     }
-                }
-                if (0 < price) setTokenPrice(price)
-
-                // if there is no logged-in user, allow claiming immediately.
-                // otherwise, perform user-related checks after user fetch completes
-                if (!user || !isFetchingUser) {
-                    if (user && user.user.userId === sendLink.sender?.userId) {
-                        setLinkState(_consts.claimLinkStateType.CLAIM_SENDER)
-                    } else {
-                        setLinkState(_consts.claimLinkStateType.CLAIM)
-                    }
-                }
+                )
             } catch (error) {
-                console.error(error)
+                console.error('Failed to load link after retries:', error)
                 setLinkState(_consts.claimLinkStateType.NOT_FOUND)
                 Sentry.captureException(error)
             }
