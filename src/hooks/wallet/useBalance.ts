@@ -17,16 +17,11 @@ export const useBalance = (address: Address | undefined) => {
     return useQuery({
         queryKey: ['balance', address],
         queryFn: async () => {
-            if (!address) {
-                // Return 0 instead of throwing to avoid error state on manual refetch
-                return 0n
-            }
-
             const balance = await peanutPublicClient.readContract({
                 address: PEANUT_WALLET_TOKEN,
                 abi: erc20Abi,
                 functionName: 'balanceOf',
-                args: [address],
+                args: [address!], // Safe non-null assertion because enabled guards this
             })
 
             return balance

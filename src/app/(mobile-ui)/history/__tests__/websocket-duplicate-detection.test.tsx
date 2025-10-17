@@ -7,6 +7,7 @@
 
 import { QueryClient } from '@tanstack/react-query'
 import type { InfiniteData } from '@tanstack/react-query'
+import { TRANSACTIONS } from '@/constants/query.consts'
 
 // Mock transaction entry type
 type HistoryEntry = {
@@ -32,8 +33,6 @@ describe('History Page - WebSocket Duplicate Detection', () => {
             },
         })
     })
-
-    const TRANSACTIONS = 'transactions'
 
     // Simulate the WebSocket handler logic for adding new entries
     const handleNewHistoryEntry = (newEntry: HistoryEntry, limit: number = 20) => {

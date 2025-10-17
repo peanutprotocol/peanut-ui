@@ -188,8 +188,10 @@ export const Claim = ({}) => {
     }, [selectedTransaction, linkState, user, claimLinkData])
 
     // Process sendLink data when it arrives (TanStack Query handles retry automatically)
+    // This effect processes link validation WITHOUT user-dependent logic
     useEffect(() => {
         if (!sendLink || !linkUrl) return
+        if (isFetchingUser) return // Wait for user data to be ready before processing
 
         const processLink = async () => {
             try {
@@ -251,15 +253,8 @@ export const Claim = ({}) => {
                     // Link remains claimable even without price display
                 }
 
-                // if there is no logged-in user, allow claiming immediately.
-                // otherwise, perform user-related checks after user fetch completes
-                if (!user || !isFetchingUser) {
-                    if (user && user.user.userId === sendLink.sender?.userId) {
-                        setLinkState(_consts.claimLinkStateType.CLAIM_SENDER)
-                    } else {
-                        setLinkState(_consts.claimLinkStateType.CLAIM)
-                    }
-                }
+                // Set default claim state - will be updated by user-dependent effect below
+                setLinkState(_consts.claimLinkStateType.CLAIM)
             } catch (error) {
                 console.error('Error processing link:', error)
                 setLinkState(_consts.claimLinkStateType.NOT_FOUND)
@@ -268,7 +263,28 @@ export const Claim = ({}) => {
         }
 
         processLink()
-    }, [sendLink, linkUrl, user, isFetchingUser])
+    }, [sendLink, linkUrl, isFetchingUser, setSelectedChainID, setSelectedTokenAddress])
+
+    // Separate effect for user-dependent link state updates
+    // This runs after link data is processed and determines the correct claim state
+    useEffect(() => {
+        if (!claimLinkData || isFetchingUser) return
+
+        // If link is already claimed or cancelled, that state takes precedence
+        if (claimLinkData.status === ESendLinkStatus.CLAIMED || claimLinkData.status === ESendLinkStatus.CANCELLED) {
+            setLinkState(_consts.claimLinkStateType.ALREADY_CLAIMED)
+            return
+        }
+
+        // Determine claim state based on user
+        if (!user) {
+            setLinkState(_consts.claimLinkStateType.CLAIM)
+        } else if (user.user.userId === claimLinkData.sender?.userId) {
+            setLinkState(_consts.claimLinkStateType.CLAIM_SENDER)
+        } else {
+            setLinkState(_consts.claimLinkStateType.CLAIM)
+        }
+    }, [user, isFetchingUser, claimLinkData])
 
     // Handle sendLink fetch errors
     useEffect(() => {
