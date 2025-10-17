@@ -30,7 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Perk status now correctly reflects `PENDING_CLAIM` vs `CLAIMED` states in activity feed
 - Modal focus outline artifacts on initial load
 - `crypto.randomUUID` polyfill for older Node.js environments in SSR
-- **"Malformed link" race condition**: Added retry logic (3 attempts with 1-2s delays) on claim side when opening very fresh links. Keeps showing loading state instead of immediate error.
-    - Added comprehensive retry utility (`src/utils/retry.utils.ts`) with exponential backoff and jitter
-    - Created 18 passing unit tests for retry logic (`src/utils/__tests__/retry.utils.test.ts`)
-    - Tests cover linear/exponential backoff, max delay caps, jitter, and error classification
+- **"Malformed link" race condition**: Added retry logic using TanStack Query (3 attempts with 1-2s delays) on claim side when opening very fresh links. Keeps showing loading state instead of immediate error. Uses existing TanStack Query dependency for automatic retry with linear backoff.
+- **Auto-refreshing balance**: Balance now automatically refreshes every 30 seconds and when app regains focus
+- **Real-time transaction history**: New transactions appear instantly via WebSocket integration with TanStack Query cache
+- **Optimistic updates**: Sending money now shows instant UI feedback with automatic rollback on error

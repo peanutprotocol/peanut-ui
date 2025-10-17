@@ -14,6 +14,10 @@ import { formatGroupHeaderDate, getDateGroup, getDateGroupKey } from '@/utils/da
 import * as Sentry from '@sentry/nextjs'
 import { isKycStatusItem } from '@/hooks/useBridgeKycFlow'
 import React, { useEffect, useMemo, useRef } from 'react'
+import { useQueryClient, type InfiniteData } from '@tanstack/react-query'
+import { useWebSocket } from '@/hooks/useWebSocket'
+import { TRANSACTIONS } from '@/constants/query.consts'
+import type { HistoryResponse } from '@/hooks/useTransactionHistory'
 
 /**
  * displays the user's transaction history with infinite scrolling and date grouping.
@@ -21,6 +25,7 @@ import React, { useEffect, useMemo, useRef } from 'react'
 const HistoryPage = () => {
     const loaderRef = useRef<HTMLDivElement>(null)
     const { user } = useUserStore()
+    const queryClient = useQueryClient()
 
     const {
         data: historyData,
@@ -33,6 +38,45 @@ const HistoryPage = () => {
     } = useTransactionHistory({
         mode: 'infinite',
         limit: 20,
+    })
+
+    // Real-time updates via WebSocket
+    useWebSocket({
+        username: user?.user.username ?? undefined,
+        onHistoryEntry: (newEntry) => {
+            console.log('[History] New transaction received via WebSocket:', newEntry)
+
+            // Update TanStack Query cache with new transaction
+            queryClient.setQueryData<InfiniteData<HistoryResponse>>(
+                [TRANSACTIONS, 'infinite', { limit: 20 }],
+                (oldData) => {
+                    if (!oldData) return oldData
+
+                    // Add new entry to the first page (with duplicate check)
+                    return {
+                        ...oldData,
+                        pages: oldData.pages.map((page, index) => {
+                            if (index === 0) {
+                                // Check if entry already exists to prevent duplicates
+                                const isDuplicate = page.entries.some((entry) => entry.uuid === newEntry.uuid)
+                                if (isDuplicate) {
+                                    console.log('[History] Duplicate transaction ignored:', newEntry.uuid)
+                                    return page
+                                }
+                                return {
+                                    ...page,
+                                    entries: [newEntry, ...page.entries],
+                                }
+                            }
+                            return page
+                        }),
+                    }
+                }
+            )
+
+            // Invalidate balance query to refresh it
+            queryClient.invalidateQueries({ queryKey: ['balance'] })
+        },
     })
 
     useEffect(() => {

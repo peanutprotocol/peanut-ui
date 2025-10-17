@@ -10,32 +10,44 @@ import { erc20Abi, parseUnits, encodeFunctionData } from 'viem'
 import { useZeroDev } from '../useZeroDev'
 import { useAuth } from '@/context/authContext'
 import { AccountType } from '@/interfaces'
+import { useBalance } from './useBalance'
+import { useSendMoney as useSendMoneyMutation } from './useSendMoney'
 
 export const useWallet = () => {
     const dispatch = useAppDispatch()
     const { address, isKernelClientReady, handleSendUserOpEncoded } = useZeroDev()
-    const [isFetchingBalance, setIsFetchingBalance] = useState(true)
-    const { balance } = useWalletStore()
+    const { balance: reduxBalance } = useWalletStore()
     const { user } = useAuth()
+
+    // Check if address matches user's wallet address
+    const userAddress = user?.accounts.find((account) => account.type === AccountType.PEANUT_WALLET)?.identifier
+    const isValidAddress = !address || !userAddress || userAddress.toLowerCase() === address.toLowerCase()
+
+    // Use TanStack Query for auto-refreshing balance
+    const {
+        data: balanceFromQuery,
+        isLoading: isFetchingBalance,
+        refetch: refetchBalance,
+    } = useBalance(isValidAddress ? (address as Address | undefined) : undefined)
+
+    // Sync TanStack Query balance with Redux (for backward compatibility)
+    useEffect(() => {
+        if (balanceFromQuery !== undefined) {
+            dispatch(walletActions.setBalance(balanceFromQuery))
+        }
+    }, [balanceFromQuery, dispatch])
+
+    // Mutation for sending money with optimistic updates
+    const sendMoneyMutation = useSendMoneyMutation({ address: address as Address | undefined, handleSendUserOpEncoded })
 
     const sendMoney = useCallback(
         async (toAddress: Address, amountInUsd: string) => {
-            const amountToSend = parseUnits(amountInUsd, PEANUT_WALLET_TOKEN_DECIMALS)
-
-            const txData = encodeFunctionData({
-                abi: erc20Abi,
-                functionName: 'transfer',
-                args: [toAddress, amountToSend],
-            })
-
-            const transaction: peanutInterfaces.IPeanutUnsignedTransaction = {
-                to: PEANUT_WALLET_TOKEN,
-                data: txData,
-            }
-
-            return await sendTransactions([transaction], PEANUT_WALLET_CHAIN.id.toString())
+            // Use mutation which provides optimistic updates
+            const result = await sendMoneyMutation.mutateAsync({ toAddress, amountInUsd })
+            // Return full result for backward compatibility
+            return { userOpHash: result.userOpHash, receipt: result.receipt }
         },
-        [handleSendUserOpEncoded]
+        [sendMoneyMutation]
     )
 
     const sendTransactions = useCallback(
@@ -51,44 +63,33 @@ export const useWallet = () => {
         [handleSendUserOpEncoded]
     )
 
+    // Legacy fetchBalance function for backward compatibility
+    // Now it just triggers a refetch of the TanStack Query
     const fetchBalance = useCallback(async () => {
         if (!address) {
             console.warn('Cannot fetch balance, address is undefined.')
             return
         }
 
-        const userAddress = user?.accounts.find((account) => account.type === AccountType.PEANUT_WALLET)?.identifier
-
-        if (userAddress?.toLowerCase() !== address.toLowerCase()) {
+        if (!isValidAddress) {
             console.warn('Skipping fetch balance, address is not the same as the user address.')
             return
         }
 
-        await peanutPublicClient
-            .readContract({
-                address: PEANUT_WALLET_TOKEN,
-                abi: erc20Abi,
-                functionName: 'balanceOf',
-                args: [address as Hex],
-            })
-            .then((balance) => {
-                dispatch(walletActions.setBalance(balance))
-                setIsFetchingBalance(false)
-            })
-            .catch((error) => {
-                console.error('Error fetching balance:', error)
-                setIsFetchingBalance(false)
-            })
-    }, [address, dispatch, user])
+        await refetchBalance()
+    }, [address, isValidAddress, refetchBalance])
 
-    useEffect(() => {
-        if (!address) return
-        fetchBalance()
-    }, [address, fetchBalance])
+    // Use balance from query if available, otherwise fall back to Redux
+    const balance =
+        balanceFromQuery !== undefined
+            ? balanceFromQuery
+            : reduxBalance !== undefined
+              ? BigInt(reduxBalance)
+              : undefined
 
     return {
         address: address!,
-        balance: balance !== undefined ? BigInt(balance) : undefined,
+        balance,
         isConnected: isKernelClientReady,
         sendTransactions,
         sendMoney,

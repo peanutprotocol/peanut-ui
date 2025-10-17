@@ -1,25 +1,42 @@
-# @dev Add cursor rules here. This goes in the LLM context window on every query when using cursor.
+# peanut-ui Development Rules
 
-## Random
+**Version:** 0.0.1 | **Updated:** October 17, 2025
 
-- never open SVG files, it crashes you. Only read jpeg, png, gif, or webp.
-- never run jq command, it crashes you.
+## 🚫 Random
 
-## Code quality
+- **Never open SVG files** - it crashes you. Only read jpeg, png, gif, or webp.
+- **Never run jq command** - it crashes you.
+- **Never run sleep** from command line - it hibernates pc.
 
-- Use explicit imports where possible
-- Make a best effort to keep code quality high. Reuse existing components and functions, dont hardcode hacky solutions.
-- When making changes, ensure you're not breaking existing functionality, and if there's a risk, explicitly WARN about it.
-- If you notice an opportunity to refactor or improve existing code, mention it. DO NOT make any changes you were not explicitly told to do. Only mention the potential change to the user.
-- Performance is important. Cache where possible, make sure to not make unnecessary re-renders or data fetching.
-- Separate business logic from interface. This is important for readability, debugging and testability.
+## 💻 Code Quality
 
-## Testing
+- **Boy scout rule**: leave code better than you found it.
+- **Use explicit imports** where possible
+- **Reuse existing components and functions** - don't hardcode hacky solutions.
+- **Warn about breaking changes** - when making changes, ensure you're not breaking existing functionality, and if there's a risk, explicitly WARN about it.
+- **Mention refactor opportunities** - if you notice an opportunity to refactor or improve existing code, mention it. DO NOT make any changes you were not explicitly told to do. Only mention the potential change to the user.
+- **Performance is important** - cache where possible, make sure to not make unnecessary re-renders or data fetching.
+- **Separate business logic from interface** - this is important for readability, debugging and testability.
+- **Flag breaking changes** - always flag if changes done in Frontend are breaking and require action on Backend (or viceversa)
 
-- Where tests make sense, test new code. Especially with fast unit tests.
-- tests should live where the code they test is, not in a separate folder
+## 🧪 Testing
 
-## Documentation
+- **Test new code** - where tests make sense, test new code. Especially with fast unit tests.
+- **Tests live with code** - tests should live where the code they test is, not in a separate folder
 
-- document major changes in docs.md/CHANGELOG.md
-- if you add any other documentation, the best place for it to live is usually docs/
+## 📁 Documentation
+
+- **All docs go in `docs/`** (except root `README.md`)
+- **Keep it concise** - docs should be kept quite concise. AI tends to make verbose logs. No one reads that, keep it short and informational.
+- **Check existing docs** before creating new ones - merge instead of duplicate
+- **Log significant changes** in `docs/CHANGELOG.md` following semantic versioning
+
+## 🚀 Performance
+
+- **Cache where possible** - avoid unnecessary re-renders and data fetching
+- **Fire simultaneous requests** - if you're doing multiple sequential awaits and they're not interdependent, fire them simultaneously
+
+## 📝 Commits
+
+- **Be descriptive**
+- **Use emoji prefixes**: ✨ features, 🐛 fixes, 📚 docs, 🚀 infra, ♻️ refactor, ⚡ performance
