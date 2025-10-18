@@ -249,10 +249,7 @@ export const TransactionDetailsReceipt = ({
         return getContributorsFromCharge(transaction.requestPotPayments)
     }, [transaction])
 
-    const totalAmountCollected = useMemo(() => {
-        if (!transaction || !transaction.requestPotPayments) return 0
-        return requestPotContributors.reduce((acc, curr) => acc + Number(curr.amount), 0)
-    }, [requestPotContributors])
+    const formattedTotalAmountCollected = formatCurrency(transaction?.totalAmountCollected.toString() ?? '0', 2, 0)
 
     useEffect(() => {
         const getTokenDetails = async () => {
@@ -316,7 +313,7 @@ export const TransactionDetailsReceipt = ({
     // ensure we have a valid number for display
     const numericAmount = typeof usdAmount === 'bigint' ? Number(usdAmount) : usdAmount
     const safeAmount = isNaN(numericAmount) || numericAmount === null || numericAmount === undefined ? 0 : numericAmount
-    let amountDisplay = `$ ${formatCurrency(Math.abs(safeAmount).toString())}`
+    let amountDisplay = `$${formatCurrency(Math.abs(safeAmount).toString())}`
 
     const feeDisplay = transaction.fee !== undefined ? formatAmount(transaction.fee as number) : 'N/A'
 
@@ -340,10 +337,10 @@ export const TransactionDetailsReceipt = ({
         }
     }
 
-    console.log(transaction)
-
-    if (transaction.isRequestPotLink && Number(transaction.amount) === 0) {
-        amountDisplay = `$${formatCurrency(totalAmountCollected.toString())} collected`
+    if (transaction.isRequestPotLink && Number(transaction.amount) > 0) {
+        amountDisplay = `$${formatCurrency(transaction.amount.toString())}`
+    } else if (transaction.isRequestPotLink && Number(transaction.amount) === 0) {
+        amountDisplay = `$${formattedTotalAmountCollected} collected`
     }
 
     // Show profile button only if txn is completed, not to/by a guest user and its a send/request/receive txn
@@ -396,7 +393,7 @@ export const TransactionDetailsReceipt = ({
                 isAvatarClickable={isAvatarClickable}
                 showProgessBar={transaction.isRequestPotLink}
                 goal={Number(transaction.amount)}
-                progress={totalAmountCollected}
+                progress={Number(formattedTotalAmountCollected)}
                 isRequestPotTransaction={transaction.isRequestPotLink}
             />
 

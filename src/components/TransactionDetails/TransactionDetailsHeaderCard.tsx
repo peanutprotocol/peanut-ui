@@ -217,11 +217,11 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                             isLinkTransaction={isLinkTransaction}
                             transactionType={typeForAvatar}
                             context="header"
-                            size="medium"
+                            size="small"
                         />
                     )}
                 </div>
-                <div className="space-y-1">
+                <div className="w-full space-y-1">
                     <h2 className="flex items-center gap-2 text-sm font-medium text-grey-1">
                         {icon && <Icon name={icon} size={10} />}
                         <VerifiedUserLabel
@@ -233,11 +233,10 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                             iconSize={18}
                             onNameClick={isAvatarClickable ? handleUserPfpClick : undefined}
                         />
-                        {
-                            <div className="ml-auto">
-                                {status && <StatusBadge status={status} size="small" className="py-0" />}
-                            </div>
-                        }
+
+                        <div className="ml-auto">
+                            {status && <StatusBadge status={status} size="small" className="py-0" />}
+                        </div>
                     </h2>
                     <h1
                         className={twMerge(

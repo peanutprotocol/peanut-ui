@@ -21,6 +21,7 @@ import { VerifiedUserLabel } from '../UserHeader'
 import { isAddress } from 'viem'
 import { STAR_STRAIGHT_ICON } from '@/assets'
 import { HistoryEntryPerk } from '@/services/services.types'
+import { twMerge } from 'tailwind-merge'
 
 export type TransactionType =
     | 'send'
@@ -92,8 +93,16 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     const perkInfo = transaction.extraDataForDrawer?.perk as HistoryEntryPerk | undefined
     const hasPerk = perkInfo?.claimed
 
-    const formattedAmount = formatCurrency(Math.abs(usdAmount).toString())
-    const displayAmount = `${sign}$${formattedAmount}`
+    const formattedAmount = formatCurrency(Math.abs(usdAmount).toString(), 2, 0)
+    const formattedTotalAmountCollected = formatCurrency(transaction.totalAmountCollected.toString(), 2, 0)
+
+    let displayAmount = `${sign}$${formattedAmount}`
+
+    if (transaction.isRequestPotLink && Number(transaction.amount) > 0) {
+        displayAmount = `$${formattedTotalAmountCollected} / $${formattedAmount}`
+    } else if (transaction.isRequestPotLink && Number(transaction.amount) === 0) {
+        displayAmount = `$${formattedTotalAmountCollected}`
+    }
 
     let currencyDisplayAmount: string | undefined
     if (transaction.currency && transaction.currency.code.toUpperCase() !== 'USD') {
@@ -158,11 +167,9 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                             </div>
                         )}
                         <div className="flex flex-col items-end gap-1">
-                            {hasPerk ? (
-                                <span className="font-semibold line-through">{displayAmount}</span>
-                            ) : (
-                                <span className="font-semibold">{displayAmount}</span>
-                            )}
+                            <span className={twMerge('font-semibold ', hasPerk && 'line-through')}>
+                                {displayAmount}
+                            </span>
                             {currencyDisplayAmount && (
                                 <span className="text-sm font-medium text-gray-1">{currencyDisplayAmount}</span>
                             )}

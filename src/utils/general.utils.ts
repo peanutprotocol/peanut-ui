@@ -380,8 +380,8 @@ export const formatNumberForDisplay = (
     })
 }
 
-export function formatCurrency(valueStr: string | undefined): string {
-    return formatNumberForDisplay(valueStr, { maxDecimals: 2, minDecimals: 2 })
+export function formatCurrency(valueStr: string | undefined, maxDecimals: number = 2, minDecimals: number = 2): string {
+    return formatNumberForDisplay(valueStr, { maxDecimals, minDecimals })
 }
 
 /**

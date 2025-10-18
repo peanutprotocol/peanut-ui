@@ -123,6 +123,7 @@ export interface TransactionDetails {
     points?: number
     isRequestPotLink?: boolean
     requestPotPayments?: ChargeEntry[]
+    totalAmountCollected: number
 }
 
 /**
@@ -518,6 +519,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         haveSentMoneyToUser: entry.extraData?.haveSentMoneyToUser as boolean,
         isRequestPotLink: entry.isRequestLink,
         requestPotPayments: entry.charges,
+        totalAmountCollected: entry.totalAmountCollected ?? 0,
     }
 
     return {

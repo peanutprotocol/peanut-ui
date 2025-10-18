@@ -131,6 +131,7 @@ export type HistoryEntry = {
     points?: number
     isRequestLink?: boolean // true if the transaction is a request pot link
     charges?: ChargeEntry[]
+    totalAmountCollected?: number
 }
 
 export function isFinalState(transaction: Pick<HistoryEntry, 'status'>): boolean {
