@@ -6,7 +6,7 @@ import { formatUnits } from 'viem'
 import { type Hash } from 'viem'
 import { getTokenDetails } from '@/utils'
 import { getCurrencyPrice } from '@/app/actions/currency'
-import { ChargeEntry } from '@/services/services.types'
+import { type ChargeEntry } from '@/services/services.types'
 
 export enum EHistoryEntryType {
     REQUEST = 'REQUEST',
