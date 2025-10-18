@@ -71,6 +71,7 @@ export enum EHistoryStatus {
     refunded = 'refunded',
     canceled = 'canceled', // from simplefi, canceled with only one l
     expired = 'expired',
+    CLOSED = 'CLOSED',
 }
 
 export const FINAL_STATES: HistoryStatus[] = [
@@ -81,6 +82,7 @@ export const FINAL_STATES: HistoryStatus[] = [
     EHistoryStatus.REFUNDED,
     EHistoryStatus.CANCELED,
     EHistoryStatus.ERROR,
+    EHistoryStatus.CLOSED,
 ]
 
 export type HistoryEntryType = `${EHistoryEntryType}`

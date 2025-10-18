@@ -50,6 +50,7 @@ import { getReceiptUrl } from '@/utils/history.utils'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
 import TransactionCard from './TransactionCard'
 import ContributorCard from '../Global/Contributors/ContributorCard'
+import { requestsApi } from '@/services/requests'
 
 export const TransactionDetailsReceipt = ({
     transaction,
@@ -180,6 +181,7 @@ export const TransactionDetailsReceipt = ({
                 !isPublic &&
                 transaction.extraDataForDrawer?.originalType === EHistoryEntryType.MANTECA_ONRAMP &&
                 transaction.status === 'pending',
+            closed: !!(transaction.status === 'closed' && transaction.cancelledDate),
         }
     }, [transaction, isPendingBankRequest])
 
@@ -353,6 +355,28 @@ export const TransactionDetailsReceipt = ({
             transaction.extraDataForDrawer?.transactionCardType === 'request' ||
             transaction.extraDataForDrawer?.transactionCardType === 'receive')
 
+    const closeRequestLink = async () => {
+        if (isPendingRequester && setIsLoading && onClose) {
+            setIsLoading(true)
+            try {
+                if (transaction.isRequestPotLink) {
+                    await requestsApi.close(transaction.id)
+                } else {
+                    await chargesApi.cancel(transaction.id)
+                }
+                await queryClient.invalidateQueries({
+                    queryKey: [TRANSACTIONS],
+                })
+                setIsLoading(false)
+                onClose()
+            } catch (error) {
+                captureException(error)
+                console.error('Error canceling charge:', error)
+                setIsLoading(false)
+            }
+        }
+    }
+
     return (
         <div ref={contentRef} className={twMerge('space-y-4', className)}>
             {/* show qr code at the top if applicable */}
@@ -395,6 +419,7 @@ export const TransactionDetailsReceipt = ({
                 goal={Number(transaction.amount)}
                 progress={Number(formattedTotalAmountCollected)}
                 isRequestPotTransaction={transaction.isRequestPotLink}
+                isTransactionClosed={transaction.status === 'closed'}
             />
 
             {/* details card (date, fee, memo) and more */}
@@ -514,6 +539,18 @@ export const TransactionDetailsReceipt = ({
                                     label="Cancelled"
                                     value={formatDate(new Date(transaction.cancelledDate))}
                                     hideBottomBorder={shouldHideBorder('cancelled')}
+                                />
+                            )}
+                        </>
+                    )}
+
+                    {rowVisibilityConfig.closed && (
+                        <>
+                            {transaction.cancelledDate && (
+                                <PaymentInfoRow
+                                    label="Closed at"
+                                    value={formatDate(new Date(transaction.cancelledDate))}
+                                    hideBottomBorder={shouldHideBorder('closed')}
                                 />
                             )}
                         </>
@@ -979,31 +1016,12 @@ export const TransactionDetailsReceipt = ({
                         iconClassName="p-1"
                         loading={isLoading}
                         disabled={isLoading}
-                        onClick={() => {
-                            setIsLoading(true)
-                            chargesApi
-                                .cancel(transaction.id)
-                                .then(() => {
-                                    queryClient
-                                        .invalidateQueries({
-                                            queryKey: [TRANSACTIONS],
-                                        })
-                                        .then(() => {
-                                            setIsLoading(false)
-                                            onClose()
-                                        })
-                                })
-                                .catch((error) => {
-                                    captureException(error)
-                                    console.error('Error canceling charge:', error)
-                                    setIsLoading(false)
-                                })
-                        }}
+                        onClick={closeRequestLink}
                         variant={'primary-soft'}
                         shadowSize="4"
                         className="flex w-full items-center gap-1"
                     >
-                        Cancel request
+                        {transaction.totalAmountCollected > 0 ? 'Close request' : 'Cancel request'}
                     </Button>
                 </div>
             )}

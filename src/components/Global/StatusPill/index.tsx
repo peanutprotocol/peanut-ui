@@ -16,6 +16,7 @@ const StatusPill = ({ status }: StatusPillProps) => {
         failed: 'border-error-2 bg-error-1 text-error',
         processing: 'border-yellow-8 bg-secondary-4 text-yellow-6',
         soon: 'border-yellow-8 bg-secondary-4 text-yellow-6',
+        closed: 'border-success-5 bg-success-2 text-success-4',
     }
 
     const iconClasses: Record<StatusPillType, IconName> = {
@@ -25,6 +26,7 @@ const StatusPill = ({ status }: StatusPillProps) => {
         soon: 'pending',
         pending: 'pending',
         cancelled: 'cancel',
+        closed: 'success',
     }
 
     const iconSize: Record<StatusPillType, number> = {
@@ -34,6 +36,7 @@ const StatusPill = ({ status }: StatusPillProps) => {
         soon: 7,
         pending: 8,
         cancelled: 6,
+        closed: 7,
     }
 
     return (

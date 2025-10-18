@@ -398,6 +398,9 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             case 'EXPIRED':
                 uiStatus = 'cancelled'
                 break
+            case 'CLOSED':
+                uiStatus = 'closed'
+                break
             default:
                 {
                     const knownStatuses: StatusType[] = [

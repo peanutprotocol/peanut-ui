@@ -938,6 +938,7 @@ export default function QRPayPage() {
                                                     exchange_rate: currency.price.toString(),
                                                 },
                                             },
+                                            totalAmountCollected: Number(usdAmount),
                                         })
                                     }}
                                 >
@@ -1019,6 +1020,7 @@ export default function QRPayPage() {
                                             exchange_rate: currency.price.toString(),
                                         },
                                     },
+                                    totalAmountCollected: Number(usdAmount),
                                 })
                             }}
                         >

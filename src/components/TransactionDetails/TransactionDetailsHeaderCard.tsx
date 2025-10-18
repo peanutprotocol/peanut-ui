@@ -45,6 +45,7 @@ interface TransactionDetailsHeaderCardProps {
     progress?: number
     goal?: number
     isRequestPotTransaction?: boolean
+    isTransactionClosed: boolean
 }
 
 const getTitle = (
@@ -181,6 +182,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     progress,
     goal,
     isRequestPotTransaction,
+    isTransactionClosed,
 }) => {
     const router = useRouter()
     const typeForAvatar =
@@ -254,7 +256,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
             </div>
             {!isNoGoalSet && showProgessBar && goal !== undefined && progress !== undefined && (
                 <div className="mt-4">
-                    <ProgressBar goal={goal} progress={progress} isClosed={false} />
+                    <ProgressBar goal={goal} progress={progress} isClosed={isTransactionClosed} />
                 </div>
             )}
         </Card>
