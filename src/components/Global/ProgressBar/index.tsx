@@ -66,11 +66,14 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ goal, progress, isClosed }) =
 
         return (
             <div className="relative flex w-full items-center pb-2">
-                <p className="absolute -translate-x-1/2 text-sm" style={{ left: `${progressPercentage}%` }}>
+                <p
+                    className={twMerge('absolute text-sm', progressPercentage < 10 ? 'left-0' : '-translate-x-1/2')}
+                    style={progressPercentage < 10 ? {} : { left: `${progressPercentage}%` }}
+                >
                     {formatCurrency(progress)}
                 </p>
                 <div className="absolute right-0 flex flex-col items-end">
-                    <p className="text-sm">{percentage}%</p>
+                    <p className="text-sm">100%</p>
                 </div>
             </div>
         )

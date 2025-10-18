@@ -167,9 +167,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                             </div>
                         )}
                         <div className="flex flex-col items-end gap-1">
-                            <span className={twMerge('font-semibold ', hasPerk && 'line-through')}>
-                                {displayAmount}
-                            </span>
+                            <span className={twMerge('font-medium ', hasPerk && 'line-through')}>{displayAmount}</span>
                             {currencyDisplayAmount && (
                                 <span className="text-sm font-medium text-gray-1">{currencyDisplayAmount}</span>
                             )}
