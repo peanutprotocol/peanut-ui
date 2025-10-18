@@ -43,7 +43,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ goal, progress, isClosed }) =
             return (
                 <div className="flex w-full items-center justify-between text-sm">
                     <p className="text-grey-5">{formatCurrency(progress)} contributed</p>
-                    <p className="text-grey-5">{formatCurrency(goal - progress)} remaining</p>
+                    <p className="text-grey-5">{formatCurrency(Math.max(goal - progress, 0))} remaining</p>
                 </div>
             )
         }

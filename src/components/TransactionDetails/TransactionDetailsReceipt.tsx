@@ -316,7 +316,7 @@ export const TransactionDetailsReceipt = ({
     // ensure we have a valid number for display
     const numericAmount = typeof usdAmount === 'bigint' ? Number(usdAmount) : usdAmount
     const safeAmount = isNaN(numericAmount) || numericAmount === null || numericAmount === undefined ? 0 : numericAmount
-    const amountDisplay = `$ ${formatCurrency(Math.abs(safeAmount).toString())}`
+    let amountDisplay = `$ ${formatCurrency(Math.abs(safeAmount).toString())}`
 
     const feeDisplay = transaction.fee !== undefined ? formatAmount(transaction.fee as number) : 'N/A'
 
@@ -338,6 +338,12 @@ export const TransactionDetailsReceipt = ({
         } else {
             return transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER ? 'Sent' : 'Received'
         }
+    }
+
+    console.log(transaction)
+
+    if (transaction.isRequestPotLink && Number(transaction.amount) === 0) {
+        amountDisplay = `$${formatCurrency(totalAmountCollected.toString())} collected`
     }
 
     // Show profile button only if txn is completed, not to/by a guest user and its a send/request/receive txn
@@ -391,6 +397,7 @@ export const TransactionDetailsReceipt = ({
                 showProgessBar={transaction.isRequestPotLink}
                 goal={Number(transaction.amount)}
                 progress={totalAmountCollected}
+                isRequestPotTransaction={transaction.isRequestPotLink}
             />
 
             {/* details card (date, fee, memo) and more */}

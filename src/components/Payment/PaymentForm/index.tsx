@@ -22,7 +22,7 @@ import { ParsedURL } from '@/lib/url-parser/types/payment'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { walletActions } from '@/redux/slices/wallet-slice'
-import { areEvmAddressesEqual, ErrorHandler, formatAmount, formatCurrency } from '@/utils'
+import { areEvmAddressesEqual, ErrorHandler, formatAmount, formatCurrency, getContributorsFromCharge } from '@/utils'
 import { useAppKit, useDisconnect } from '@reown/appkit/react'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -35,7 +35,8 @@ import { PaymentFlow } from '@/app/[...recipient]/client'
 import MantecaFulfillment from '../Views/MantecaFulfillment.view'
 import { invitesApi } from '@/services/invites'
 import { EInviteType } from '@/services/services.types'
-import Contributors from '@/components/Global/Contributors'
+import ContributorCard from '@/components/Global/Contributors/ContributorCard'
+import { getCardPosition } from '@/components/Global/Card'
 
 export type PaymentFlowProps = {
     isExternalWalletFlow?: boolean
@@ -626,6 +627,13 @@ export const PaymentForm = ({
         }
     }
 
+    const contributors = getContributorsFromCharge(requestDetails?.charges || [])
+
+    const totalAmountCollected = useMemo(() => {
+        if (!requestDetails?.charges || !requestDetails?.charges.length) return 0
+        return contributors.reduce((acc, curr) => acc + Number(curr.amount), 0)
+    }, [contributors])
+
     if (fulfillUsingManteca && chargeDetails) {
         return <MantecaFulfillment />
     }
@@ -667,7 +675,8 @@ export const PaymentForm = ({
                         isVerified={recipientKycStatus === 'approved'}
                         haveSentMoneyToUser={recipientUserId ? interactions[recipientUserId] || false : false}
                         amount={isRequestPotPayment ? Number(amount) : undefined}
-                        amountCollected={isRequestPotPayment ? 0 : undefined} // TODO
+                        amountCollected={isRequestPotPayment ? totalAmountCollected : undefined} // TODO
+                        isRequestPot={isRequestPotPayment}
                     />
                 )}
 
@@ -690,7 +699,7 @@ export const PaymentForm = ({
                     currency={currency}
                     hideCurrencyToggle={!currency}
                     hideBalance={isExternalWalletFlow}
-                    showSlider={isRequestPotPayment}
+                    showSlider={isRequestPotPayment && Number(amount) > 0}
                     maxAmount={isRequestPotPayment ? Number(amount) : undefined}
                 />
 
@@ -773,7 +782,18 @@ export const PaymentForm = ({
                 </div>
             </div>
 
-            {isRequestPotPayment && <Contributors charges={requestDetails?.charges || []} />}
+            {isRequestPotPayment && (
+                <div>
+                    <h2 className="mb-4 text-base font-bold text-black">Contributors ({contributors.length})</h2>
+                    {contributors.map((contributor, index) => (
+                        <ContributorCard
+                            position={getCardPosition(index, contributors.length)}
+                            key={contributor.uuid}
+                            contributor={contributor}
+                        />
+                    ))}
+                </div>
+            )}
 
             <ActionModal
                 visible={disconnectWagmiModal}

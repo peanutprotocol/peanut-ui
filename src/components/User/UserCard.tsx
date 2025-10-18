@@ -22,6 +22,7 @@ interface UserCardProps {
     haveSentMoneyToUser?: boolean
     amount?: number
     amountCollected?: number
+    isRequestPot?: boolean
 }
 
 const UserCard = ({
@@ -36,6 +37,7 @@ const UserCard = ({
     haveSentMoneyToUser,
     amount,
     amountCollected,
+    isRequestPot,
 }: UserCardProps) => {
     const getIcon = (): IconName | undefined => {
         if (type === 'send') return 'arrow-up-right'
@@ -57,6 +59,13 @@ const UserCard = ({
             </div>
         )
     }, [type])
+
+    const getAddressLinkTitle = () => {
+        if (isRequestPot && amount && amount > 0) return `$${amount}` // If goal is set.
+        if (!amount && isRequestPot) return `Pay what you want` // If no goal is set.
+
+        return username
+    }
 
     return (
         <Card className="flex flex-col items-center gap-4 p-4">
@@ -80,7 +89,8 @@ const UserCard = ({
                     {getTitle()}
                     {recipientType !== 'USERNAME' || type === 'request_pay' ? (
                         <AddressLink
-                            address={amount ? `$${amount}` : username}
+                            // address={amount ? `$${amount}` : username}
+                            address={getAddressLinkTitle()}
                             className={twMerge(
                                 'text-base font-medium',
                                 type === 'request_pay' && 'text-2xl font-extrabold text-black md:text-3xl'
@@ -90,7 +100,7 @@ const UserCard = ({
                     ) : (
                         <VerifiedUserLabel
                             name={fullName ?? username}
-                            username={username}
+                            username={'username'}
                             isVerified={isVerified}
                             haveSentMoneyToUser={haveSentMoneyToUser}
                             className="text-base font-medium"
@@ -99,7 +109,7 @@ const UserCard = ({
                     <Attachment message={message ?? ''} fileUrl={fileUrl ?? ''} />
                 </div>
             </div>
-            {amount !== undefined && amountCollected !== undefined && type === 'request_pay' && (
+            {amount !== undefined && amountCollected !== undefined && type === 'request_pay' && amount > 0 && (
                 <ProgressBar goal={amount} progress={amountCollected} isClosed={amountCollected >= amount} />
             )}
         </Card>

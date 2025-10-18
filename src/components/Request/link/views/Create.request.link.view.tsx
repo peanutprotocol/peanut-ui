@@ -109,15 +109,6 @@ export const CreateRequestLinkView = () => {
                 })
                 return null
             }
-
-            if (!tokenValue || parseFloat(tokenValue) <= 0) {
-                setErrorState({
-                    showError: true,
-                    errorMessage: 'Please enter a token amount',
-                })
-                return null
-            }
-
             // Cleanup previous request
             if (createLinkAbortRef.current) {
                 createLinkAbortRef.current.abort()
@@ -342,7 +333,6 @@ export const CreateRequestLinkView = () => {
 
     const generateLink = useCallback(async () => {
         if (generatedLink) return generatedLink
-        if (Number(tokenValue) === 0) return qrCodeLink
         if (isCreatingLink || isUpdatingRequest) return '' // Prevent duplicate operations
 
         // Create new request when share button is clicked

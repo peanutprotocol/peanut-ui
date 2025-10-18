@@ -221,7 +221,14 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
             break
         }
         case EHistoryEntryType.REQUEST: {
-            link = `${BASE_URL}/${entry.recipientAccount.username || entry.recipientAccount.identifier}?chargeId=${entry.uuid}`
+            // if link is a request link, we need to add the token amount and symbol to the link, also use id param instead of chargeId
+            if (entry.isRequestLink) {
+                const tokenCurrency = entry.tokenSymbol
+                const tokenAmount = entry.amount
+                link = `${BASE_URL}/${entry.recipientAccount.username || entry.recipientAccount.identifier}/${tokenAmount}${tokenCurrency}?id=${entry.uuid}`
+            } else {
+                link = `${BASE_URL}/${entry.recipientAccount.username || entry.recipientAccount.identifier}?chargeId=${entry.uuid}`
+            }
             tokenSymbol = entry.tokenSymbol
             usdAmount = entry.amount.toString()
             break

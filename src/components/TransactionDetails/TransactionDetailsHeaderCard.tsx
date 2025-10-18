@@ -44,6 +44,7 @@ interface TransactionDetailsHeaderCardProps {
     showProgessBar?: boolean
     progress?: number
     goal?: number
+    isRequestPotTransaction?: boolean
 }
 
 const getTitle = (
@@ -179,6 +180,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     showProgessBar = false,
     progress,
     goal,
+    isRequestPotTransaction,
 }) => {
     const router = useRouter()
     const typeForAvatar =
@@ -191,6 +193,8 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
             router.push(`/${userName}`)
         }
     }
+
+    const isNoGoalSet = isRequestPotTransaction && goal === 0
 
     return (
         <Card className="relative p-4 md:p-6" position="single">
@@ -236,13 +240,20 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                         }
                     </h2>
                     <h1
-                        className={`text-3xl font-extrabold md:text-4xl ${status === 'cancelled' || hasPerk ? 'line-through' : ''} ${status === 'cancelled' ? 'text-grey-1' : ''}`}
+                        className={twMerge(
+                            'text-3xl font-extrabold md:text-4xl',
+                            (status === 'cancelled' || hasPerk) && 'line-through',
+                            status === 'cancelled' && 'text-grey-1',
+                            isNoGoalSet && 'text-xl text-black md:text-3xl'
+                        )}
                     >
                         {amountDisplay}
                     </h1>
+
+                    {isNoGoalSet && <h4 className="text-sm font-medium text-black">No goal set</h4>}
                 </div>
             </div>
-            {showProgessBar && goal !== undefined && progress !== undefined && (
+            {!isNoGoalSet && showProgessBar && goal !== undefined && progress !== undefined && (
                 <div className="mt-4">
                     <ProgressBar goal={goal} progress={progress} isClosed={false} />
                 </div>
