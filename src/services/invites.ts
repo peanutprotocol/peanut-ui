@@ -2,7 +2,7 @@ import { validateInviteCode } from '@/app/actions/invites'
 import { PEANUT_API_URL } from '@/constants'
 import { fetchWithSentry } from '@/utils'
 import Cookies from 'js-cookie'
-import { EInviteType, PointsInvitesResponse } from './services.types'
+import { EInviteType, type PointsInvitesResponse } from './services.types'
 
 export const invitesApi = {
     acceptInvite: async (inviteCode: string, type: EInviteType): Promise<{ success: boolean }> => {

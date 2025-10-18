@@ -1,9 +1,9 @@
 import { MERCADO_PAGO, PIX, SIMPLEFI } from '@/assets/payment-apps'
-import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
+import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { getFromLocalStorage } from '@/utils'
 import { PEANUT_WALLET_TOKEN_DECIMALS, BASE_URL } from '@/constants'
 import { formatUnits } from 'viem'
-import { Hash } from 'viem'
+import { type Hash } from 'viem'
 import { getTokenDetails } from '@/utils'
 import { getCurrencyPrice } from '@/app/actions/currency'
 import { ChargeEntry } from '@/services/services.types'
@@ -265,7 +265,7 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
             }
             if (usdAmount === entry.currency?.amount && entry.currency?.code && entry.currency?.code !== 'USD') {
                 const price = await getCurrencyPrice(entry.currency.code)
-                usdAmount = (Number(entry.currency.amount) * price.sell).toString()
+                usdAmount = (Number(entry.currency.amount) / price.buy).toString()
             }
             break
         }
@@ -279,7 +279,7 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
             }
             if (usdAmount === entry.currency?.amount && entry.currency?.code && entry.currency?.code !== 'USD') {
                 const price = await getCurrencyPrice(entry.currency.code)
-                entry.currency.amount = (Number(entry.amount) * price.buy).toString()
+                entry.currency.amount = (Number(entry.amount) / price.sell).toString()
             }
             break
         }

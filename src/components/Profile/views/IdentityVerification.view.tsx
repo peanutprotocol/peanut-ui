@@ -2,7 +2,7 @@
 import { updateUserById } from '@/app/actions/users'
 import { Button } from '@/components/0_Bruddle'
 import { BRIDGE_ALPHA3_TO_ALPHA2, MantecaSupportedExchanges } from '@/components/AddMoney/consts'
-import { UserDetailsForm, UserDetailsFormData } from '@/components/AddMoney/UserDetailsForm'
+import { UserDetailsForm, type UserDetailsFormData } from '@/components/AddMoney/UserDetailsForm'
 import { CountryList } from '@/components/Common/CountryList'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import IframeWrapper from '@/components/Global/IframeWrapper'

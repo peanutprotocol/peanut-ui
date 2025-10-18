@@ -1,4 +1,4 @@
-import { BridgeKycStatus } from '@/utils'
+import { type BridgeKycStatus } from '@/utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 
 export type RecipientType = 'address' | 'ens' | 'iban' | 'us' | 'username'

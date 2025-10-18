@@ -1,5 +1,5 @@
-import { countryData as ALL_METHODS_DATA, CountryData } from '@/components/AddMoney/consts'
-import { Account, AccountType } from '@/interfaces'
+import { countryData as ALL_METHODS_DATA, type CountryData } from '@/components/AddMoney/consts'
+import { type Account, AccountType } from '@/interfaces'
 
 export interface CurrencyConfig {
     currency: string

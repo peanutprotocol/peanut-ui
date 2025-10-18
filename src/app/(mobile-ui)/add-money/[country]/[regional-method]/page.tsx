@@ -1,6 +1,6 @@
 'use client'
 import MantecaAddMoney from '@/components/AddMoney/components/MantecaAddMoney'
-import { CountryData, countryData } from '@/components/AddMoney/consts'
+import { type CountryData, countryData } from '@/components/AddMoney/consts'
 import { MantecaSupportedExchanges } from '@/components/AddMoney/consts'
 import { useParams } from 'next/navigation'
 

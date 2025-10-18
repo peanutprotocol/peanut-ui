@@ -2,11 +2,12 @@ import starImage from '@/assets/icons/star.png'
 import { Button } from '@/components/0_Bruddle'
 import CloudsBackground from '@/components/0_Bruddle/CloudsBackground'
 import Icon from '@/components/Global/Icon'
-import { BeforeInstallPromptEvent, LayoutType, ScreenId } from '@/components/Setup/Setup.types'
+import { type BeforeInstallPromptEvent, type LayoutType, type ScreenId } from '@/components/Setup/Setup.types'
 import InstallPWA from '@/components/Setup/Views/InstallPWA'
+import { DeviceType } from '@/hooks/useGetDeviceType'
 import classNames from 'classnames'
 import Image from 'next/image'
-import { Children, ReactNode, cloneElement, memo, type ReactElement } from 'react'
+import { Children, type ReactNode, cloneElement, memo, type ReactElement } from 'react'
 import { twMerge } from 'tailwind-merge'
 
 /**
@@ -31,7 +32,7 @@ interface SetupWrapperProps {
     direction?: number
     deferredPrompt?: BeforeInstallPromptEvent | null
     canInstall?: boolean
-    deviceType?: 'ios' | 'android' | 'desktop'
+    deviceType?: DeviceType
 }
 
 // define responsive height classes for different layout types
@@ -39,7 +40,6 @@ const IMAGE_CONTAINER_CLASSES: Record<LayoutType, string> = {
     signup: 'min-h-[55dvh] md:min-h-full', // signup view has larger container height
     standard: 'min-h-[50dvh] md:min-h-full', // rest all views has medium container height
     'android-initial-pwa-install': 'min-h-[60dvh] md:min-h-full',
-    'ios-initial-pwa-install': 'hidden',
 }
 
 // define animated star decorations positions and sizes
@@ -98,7 +98,6 @@ const ImageSection = ({
     if (!image) return null
 
     const isSignup = layoutType === 'signup'
-    const isIosInitialPwaInstall = layoutType === 'ios-initial-pwa-install'
     const containerClass = IMAGE_CONTAINER_CLASSES[layoutType]
     const imageClass = !!imageClassName
         ? imageClassName
@@ -138,9 +137,6 @@ const ImageSection = ({
                 />
             </div>
         )
-    }
-    if (isIosInitialPwaInstall) {
-        return null
     }
 
     // standard layout rendering without decorations
@@ -194,7 +190,7 @@ export const SetupWrapper = memo(
                 <Navigation
                     showBackButton={showBackButton}
                     showSkipButton={
-                        showSkipButton || (screenId === 'pwa-install' && (!canInstall || deviceType === 'desktop'))
+                        showSkipButton || (screenId === 'pwa-install' && (!canInstall || deviceType === DeviceType.WEB))
                     }
                     onBack={onBack}
                     onSkip={onSkip}

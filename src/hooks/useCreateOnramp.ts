@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 import Cookies from 'js-cookie'
 import { getCurrencyConfig } from '@/utils/bridge.utils'
-import { CountryData } from '@/components/AddMoney/consts'
+import { type CountryData } from '@/components/AddMoney/consts'
 import type { Address } from 'viem'
 import { getCurrencyPrice } from '@/app/actions/currency'
 

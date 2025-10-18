@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react'
-import { CountryData } from '@/components/AddMoney/consts'
+import { type CountryData } from '@/components/AddMoney/consts'
 import MantecaDepositShareDetails from '@/components/AddMoney/components/MantecaDepositShareDetails'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { MantecaGeoSpecificKycModal } from '@/components/Kyc/InitiateMantecaKYCModal'

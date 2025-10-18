@@ -1,5 +1,5 @@
 import { PEANUT_API_URL } from '@/constants'
-import { CreateRequestRequest, TRequestResponse } from './services.types'
+import { type CreateRequestRequest, type TRequestResponse } from './services.types'
 import { fetchWithSentry, jsonStringify } from '@/utils'
 import Cookies from 'js-cookie'
 

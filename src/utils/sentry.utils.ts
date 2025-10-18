@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/nextjs'
 
-import { JSONValue } from '../interfaces/interfaces'
+import { type JSONValue } from '../interfaces/interfaces'
 
 /** Use configured fetch timeout or default to 10s
  * We use 10s because vercel function timout is 15s and this function

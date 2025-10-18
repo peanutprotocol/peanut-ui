@@ -14,7 +14,7 @@ import { STAR_STRAIGHT_ICON } from '@/assets'
 import Image from 'next/image'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { getInitialsFromName } from '@/utils'
-import { PointsInvite } from '@/services/services.types'
+import { type PointsInvite } from '@/services/services.types'
 
 const InvitesPage = () => {
     const router = useRouter()

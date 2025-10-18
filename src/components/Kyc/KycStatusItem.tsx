@@ -1,14 +1,14 @@
 import { useState, useMemo, useCallback } from 'react'
-import Card, { CardPosition } from '@/components/Global/Card'
+import Card, { type CardPosition } from '@/components/Global/Card'
 import { KycStatusDrawer } from './KycStatusDrawer'
 import { useUserStore } from '@/redux/hooks'
 import AvatarWithBadge from '../Profile/AvatarWithBadge'
-import StatusBadge, { StatusType } from '../Global/Badges/StatusBadge'
+import StatusBadge, { type StatusType } from '../Global/Badges/StatusBadge'
 import { useWebSocket } from '@/hooks/useWebSocket'
-import { BridgeKycStatus, formatDate } from '@/utils'
-import { HTMLAttributes } from 'react'
+import { type BridgeKycStatus, formatDate } from '@/utils'
+import { type HTMLAttributes } from 'react'
 import { twMerge } from 'tailwind-merge'
-import { IUserKycVerification } from '@/interfaces'
+import { type IUserKycVerification } from '@/interfaces'
 
 // this component shows the current kyc status and opens a drawer with more details on click
 export const KycStatusItem = ({

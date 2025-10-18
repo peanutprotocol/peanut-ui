@@ -1,4 +1,4 @@
-import { Button, ButtonProps } from '@/components/0_Bruddle/Button'
+import { Button, type ButtonProps } from '@/components/0_Bruddle/Button'
 import IframeWrapper from '@/components/Global/IframeWrapper'
 import { useBridgeKycFlow } from '@/hooks/useBridgeKycFlow'
 

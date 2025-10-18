@@ -1,6 +1,6 @@
 import React from 'react'
 import Card from '../Card'
-import { Icon, IconName } from '../Icons/Icon'
+import { Icon, type IconName } from '../Icons/Icon'
 
 interface EmptyStateProps {
     icon: IconName

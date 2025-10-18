@@ -1,5 +1,5 @@
 import { interfaces } from '@squirrel-labs/peanut-sdk'
-import { Chain } from 'viem'
+import { type Chain } from 'viem'
 
 export type RecipientType = 'ENS' | 'ADDRESS' | 'USERNAME'
 export type ChainId = Chain['id']

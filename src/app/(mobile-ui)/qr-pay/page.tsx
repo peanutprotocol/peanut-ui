@@ -79,6 +79,7 @@ export default function QRPayPage() {
     const [holdProgress, setHoldProgress] = useState(0)
     const holdTimerRef = useRef<NodeJS.Timeout | null>(null)
     const progressIntervalRef = useRef<NodeJS.Timeout | null>(null)
+    const holdStartTimeRef = useRef<number | null>(null)
     const { user } = useAuth()
     const [pendingSimpleFiPaymentId, setPendingSimpleFiPaymentId] = useState<string | null>(null)
     const [isWaitingForWebSocket, setIsWaitingForWebSocket] = useState(false)
@@ -115,6 +116,7 @@ export default function QRPayPage() {
         setLoadingState('Idle')
         if (holdTimerRef.current) clearTimeout(holdTimerRef.current)
         if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
+        holdStartTimeRef.current = null
         setHoldProgress(0)
         setIsShaking(false)
         setShakeIntensity('none')
@@ -125,6 +127,7 @@ export default function QRPayPage() {
         return () => {
             if (holdTimerRef.current) clearTimeout(holdTimerRef.current)
             if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
+            holdStartTimeRef.current = null
         }
     }, [])
 
@@ -495,22 +498,6 @@ export default function QRPayPage() {
         }
     }, [paymentProcessor, handleSimpleFiPayment, handleMantecaPayment])
 
-    // Hold-to-claim mechanics
-    const cancelHold = useCallback(() => {
-        if (holdTimerRef.current) clearTimeout(holdTimerRef.current)
-        if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
-        holdTimerRef.current = null
-        progressIntervalRef.current = null
-        setHoldProgress(0)
-        setIsShaking(false)
-        setShakeIntensity('none')
-
-        // Stop any ongoing vibration when user releases early
-        if ('vibrate' in navigator) {
-            navigator.vibrate(0)
-        }
-    }, [])
-
     // DEV NOTE: This is an OPTIMISTIC claim flow for better UX
     // We immediately show success UI and trigger confetti, then claim in background
     // If claim fails, we show error post-factum but keep the user in success state
@@ -562,11 +549,58 @@ export default function QRPayPage() {
         }
     }, [qrPayment])
 
+    // Hold-to-claim mechanics
+    const cancelHold = useCallback(() => {
+        const PREVIEW_DURATION_MS = 500
+
+        // Calculate how long the user held
+        const elapsed = holdStartTimeRef.current ? Date.now() - holdStartTimeRef.current : 0
+
+        // Clear the completion timer (we'll never complete on release)
+        if (holdTimerRef.current) clearTimeout(holdTimerRef.current)
+        holdTimerRef.current = null
+
+        // If it was a quick tap, let the preview animation continue for 500ms before resetting
+        if (elapsed > 0 && elapsed < PREVIEW_DURATION_MS) {
+            const remainingPreviewTime = PREVIEW_DURATION_MS - elapsed
+
+            // Let animations continue for the preview duration
+            const resetTimer = setTimeout(() => {
+                // Clean up after preview
+                if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
+                progressIntervalRef.current = null
+                setHoldProgress(0)
+                setIsShaking(false)
+                setShakeIntensity('none')
+                holdStartTimeRef.current = null
+
+                if ('vibrate' in navigator) {
+                    navigator.vibrate(0)
+                }
+            }, remainingPreviewTime)
+
+            holdTimerRef.current = resetTimer
+        } else {
+            // Released after preview duration - reset immediately
+            if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
+            progressIntervalRef.current = null
+            setHoldProgress(0)
+            setIsShaking(false)
+            setShakeIntensity('none')
+            holdStartTimeRef.current = null
+
+            if ('vibrate' in navigator) {
+                navigator.vibrate(0)
+            }
+        }
+    }, [])
+
     const startHold = useCallback(() => {
         setHoldProgress(0)
         setIsShaking(true)
 
         const startTime = Date.now()
+        holdStartTimeRef.current = startTime
         let lastIntensity: 'weak' | 'medium' | 'strong' | 'intense' = 'weak'
 
         // Update progress and shake intensity

@@ -1,5 +1,5 @@
-import { Button, ButtonProps } from '@/components/0_Bruddle/Button'
-import { IconProps as GlobalIconProps, Icon, IconName } from '@/components/Global/Icons/Icon'
+import { Button, type ButtonProps } from '@/components/0_Bruddle/Button'
+import { type IconProps as GlobalIconProps, Icon, type IconName } from '@/components/Global/Icons/Icon'
 import Loading from '@/components/Global/Loading'
 import BaseModal from '@/components/Global/Modal'
 import React from 'react'

@@ -2,9 +2,9 @@
 
 import ActionModal from '@/components/Global/ActionModal'
 import IframeWrapper from '@/components/Global/IframeWrapper'
-import { IconName } from '@/components/Global/Icons/Icon'
+import { type IconName } from '@/components/Global/Icons/Icon'
 import { useMantecaKycFlow } from '@/hooks/useMantecaKycFlow'
-import { CountryData } from '@/components/AddMoney/consts'
+import { type CountryData } from '@/components/AddMoney/consts'
 import { Button } from '../0_Bruddle'
 import { PeanutDoesntStoreAnyPersonalInformation } from './KycVerificationInProgressModal'
 import { useEffect } from 'react'

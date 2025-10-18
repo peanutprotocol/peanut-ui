@@ -1,18 +1,18 @@
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import { tokenSelectorContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { ParsedURL } from '@/lib/url-parser/types/payment'
+import { type ParsedURL } from '@/lib/url-parser/types/payment'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
-import { IAttachmentOptions } from '@/redux/types/send-flow.types'
+import { type IAttachmentOptions } from '@/redux/types/send-flow.types'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
 import {
-    CreateChargeRequest,
-    PaymentCreationResponse,
-    TCharge,
-    TChargeTransactionType,
-    TRequestChargeResponse,
+    type CreateChargeRequest,
+    type PaymentCreationResponse,
+    type TCharge,
+    type TChargeTransactionType,
+    type TRequestChargeResponse,
 } from '@/services/services.types'
 import { areEvmAddressesEqual, ErrorHandler, isNativeCurrency, isTxReverted } from '@/utils'
 import { useAppKitAccount } from '@reown/appkit/react'

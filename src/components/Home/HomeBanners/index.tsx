@@ -3,7 +3,7 @@
 import Carousel from '@/components/Global/Carousel'
 import BannerCard from './BannerCard'
 import NotificationBanner from '@/components/Notifications/NotificationBanner'
-import { IconName } from '@/components/Global/Icons/Icon'
+import { type IconName } from '@/components/Global/Icons/Icon'
 import { useBanners } from '@/hooks/useBanners'
 
 const HomeBanners = () => {

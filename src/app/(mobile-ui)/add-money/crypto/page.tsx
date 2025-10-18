@@ -4,12 +4,12 @@ import { CryptoSourceListCard } from '@/components/AddMoney/components/CryptoSou
 import {
     CRYPTO_EXCHANGES,
     CRYPTO_WALLETS,
-    CryptoSource,
-    CryptoToken,
+    type CryptoSource,
+    type CryptoToken,
     DEPOSIT_CRYPTO_TOKENS,
 } from '@/components/AddMoney/consts'
 import { CryptoDepositQR } from '@/components/AddMoney/views/CryptoDepositQR.view'
-import NetworkSelectionView, { SelectedNetwork } from '@/components/AddMoney/views/NetworkSelection.view'
+import NetworkSelectionView, { type SelectedNetwork } from '@/components/AddMoney/views/NetworkSelection.view'
 import TokenSelectionView from '@/components/AddMoney/views/TokenSelection.view'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutLoading from '@/components/Global/PeanutLoading'

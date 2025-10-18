@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { IFrameWrapperProps } from '@/components/Global/IframeWrapper'
+import { type IFrameWrapperProps } from '@/components/Global/IframeWrapper'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useUserStore } from '@/redux/hooks'
-import { BridgeKycStatus, convertPersonaUrl } from '@/utils'
-import { InitiateKycResponse } from '@/app/actions/types/users.types'
+import { type BridgeKycStatus, convertPersonaUrl } from '@/utils'
+import { type InitiateKycResponse } from '@/app/actions/types/users.types'
 import { getKycDetails, updateUserById } from '@/app/actions/users'
-import { IUserKycVerification } from '@/interfaces'
+import { type IUserKycVerification } from '@/interfaces'
 
 interface UseKycFlowOptions {
     onKycSuccess?: () => void

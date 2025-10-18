@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ApiUser, usersApi } from '@/services/users'
+import { type ApiUser, usersApi } from '@/services/users'
 
 /**
  * Hook to fetch a user by username

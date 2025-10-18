@@ -1,7 +1,7 @@
 import * as consts from '@/constants'
 import * as interfaces from '@/interfaces'
-import { IOfframpSuccessScreenProps, IOfframpConfirmScreenProps } from '../Offramp/Offramp.consts'
-import { ClaimLinkData } from '@/services/sendLinks'
+import { type IOfframpSuccessScreenProps, type IOfframpConfirmScreenProps } from '../Offramp/Offramp.consts'
+import { type ClaimLinkData } from '@/services/sendLinks'
 import { type PeanutCrossChainRoute } from '@/services/swap'
 export type ClaimType = 'claim' | 'claimxchain'
 

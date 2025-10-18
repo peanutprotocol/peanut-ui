@@ -1,4 +1,4 @@
-import { PaymentLink } from '@/interfaces'
+import { type PaymentLink } from '@/interfaces'
 
 function usernamePxWidth(name: string) {
     const charPx = 0.6 * 80 // ≈48 px per glyph

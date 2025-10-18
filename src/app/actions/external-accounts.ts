@@ -1,8 +1,8 @@
 'use server'
 
 import { fetchWithSentry } from '@/utils'
-import { AddBankAccountPayload } from './types/users.types'
-import { IBridgeAccount } from '@/interfaces'
+import { type AddBankAccountPayload } from './types/users.types'
+import { type IBridgeAccount } from '@/interfaces'
 
 const API_KEY = process.env.PEANUT_API_KEY!
 const API_URL = process.env.PEANUT_API_URL!

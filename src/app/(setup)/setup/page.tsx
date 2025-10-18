@@ -2,15 +2,16 @@
 
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
-import { BeforeInstallPromptEvent, ScreenId, ISetupStep } from '@/components/Setup/Setup.types'
+import { type BeforeInstallPromptEvent, type ScreenId, type ISetupStep } from '@/components/Setup/Setup.types'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useAppDispatch, useSetupStore } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { Suspense, useEffect, useState } from 'react'
 import { setupSteps as masterSetupSteps } from '../../../components/Setup/Setup.consts'
 import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal'
-import { isLikelyWebview, isDeviceOsSupported, getDeviceTypeForLogic } from '@/components/Setup/Setup.utils'
+import { isLikelyWebview, isDeviceOsSupported } from '@/components/Setup/Setup.utils'
 import { getFromCookie } from '@/utils'
+import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 
 function SetupPageContent() {
     const { steps, inviteCode } = useSetupStore()
@@ -19,11 +20,12 @@ function SetupPageContent() {
     const [currentStepIndex, setCurrentStepIndex] = useState(0)
     const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
     const [canInstall, setCanInstall] = useState(false)
-    const [deviceType, setDeviceType] = useState<'ios' | 'android' | 'desktop'>('desktop')
+    const [deviceType, setDeviceType] = useState<DeviceType>(DeviceType.WEB)
     const dispatch = useAppDispatch()
     const [isLoading, setIsLoading] = useState(true)
     const [showDeviceNotSupportedModal, setShowDeviceNotSupportedModal] = useState(false)
     const [showBrowserNotSupportedModal, setShowBrowserNotSupportedModal] = useState(false)
+    const { deviceType: detectedDeviceType } = useDeviceType()
 
     useEffect(() => {
         setIsLoading(true)
@@ -46,7 +48,7 @@ function SetupPageContent() {
             }
 
             const ua = typeof navigator !== 'undefined' ? navigator.userAgent : ''
-            const localDeviceType = getDeviceTypeForLogic(ua)
+            const localDeviceType = detectedDeviceType
             const osSupportedByVersion = isDeviceOsSupported(ua)
             const webviewByUASignature = isLikelyWebview() // initial webview check based on ua signatures
 
@@ -105,9 +107,11 @@ function SetupPageContent() {
             }
 
             if (localDeviceType === 'android') {
-                determinedSetupInitialStepId = isStandalonePWA ? 'welcome' : 'android-initial-pwa-install'
-            } else if (localDeviceType === 'ios') {
-                determinedSetupInitialStepId = isStandalonePWA ? 'welcome' : 'ios-initial-pwa-install'
+                determinedSetupInitialStepId = isStandalonePWA ? 'landing' : 'android-initial-pwa-install'
+            }
+            // if ios, show landing screen
+            else if (localDeviceType === 'ios') {
+                determinedSetupInitialStepId = 'landing'
             } else {
                 determinedSetupInitialStepId = 'pwa-install'
             }

@@ -5,7 +5,7 @@ import { Card } from '@/components/0_Bruddle'
 import { Drawer, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import React, { Dispatch, SetStateAction, useState } from 'react'
+import React, { type Dispatch, type SetStateAction, useState } from 'react'
 import TokenAndNetworkConfirmationModal from '@/components/Global/TokenAndNetworkConfirmationModal'
 
 const CryptoMethodDrawer = ({

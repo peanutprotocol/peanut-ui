@@ -31,7 +31,7 @@ import { useSupportModalContext } from '@/context/SupportModalContext'
 import {
     MantecaAccountType,
     MANTECA_COUNTRIES_CONFIG,
-    MantecaBankCode,
+    type MantecaBankCode,
     MANTECA_DEPOSIT_ADDRESS,
     TRANSACTIONS,
 } from '@/constants'

@@ -1,4 +1,4 @@
-import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
+import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { useState } from 'react'
 export const useTransactionDetailsDrawer = () => {
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)

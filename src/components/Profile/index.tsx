@@ -150,7 +150,7 @@ export const Profile = () => {
                             <Card className="flex items-center justify-between py-2">
                                 <p className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-bold ">{`${inviteData.inviteCode}`}</p>
 
-                                <CopyToClipboard textToCopy={`${inviteData.inviteCode}`} />
+                                <CopyToClipboard textToCopy={`${inviteData.inviteCode}`} iconSize="4" />
                             </Card>
                         </div>
                         <ShareButton

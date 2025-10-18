@@ -1,6 +1,6 @@
 import { Card } from '@/components/0_Bruddle/Card'
 import React from 'react'
-import StatusBadge, { StatusType } from '../Badges/StatusBadge'
+import StatusBadge, { type StatusType } from '../Badges/StatusBadge'
 import { Icon } from '../Icons/Icon'
 
 interface SuccessViewDetailsCardProps {

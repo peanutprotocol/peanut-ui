@@ -1071,7 +1071,7 @@ export function getChainName(chainId: string): string | undefined {
 }
 
 export const getHeaderTitle = (pathname: string) => {
-    return consts.pathTitles[pathname] || 'Peanut Protocol' // default title if path not found
+    return consts.pathTitles[pathname] || 'Peanut' // default title if path not found
 }
 
 /**
@@ -1283,17 +1283,6 @@ export function isPeanutWalletToken(tokenAddress: string, chainId: string): bool
     const supportedTokens: string[] | undefined = PEANUT_WALLET_SUPPORTED_TOKENS[chainId]
     if (!supportedTokens) return false
     return supportedTokens.some((t) => areEvmAddressesEqual(t, tokenAddress))
-}
-
-/**
- * Detects if the user is on an iOS device
- * @returns true if the user is on iOS, false otherwise
- */
-export function isIOS(): boolean {
-    if (typeof window === 'undefined') return false
-
-    const userAgent = window.navigator.userAgent.toLowerCase()
-    return /iphone|ipad|ipod/.test(userAgent)
 }
 
 /**

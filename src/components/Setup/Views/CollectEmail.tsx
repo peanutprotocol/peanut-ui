@@ -15,8 +15,8 @@ const CollectEmail = () => {
     const [isChanging, setIsChanging] = useState(false)
     const [isLoading, setisLoading] = useState(false)
     const [error, setError] = useState('')
-    const router = useRouter()
     const { user } = useAuth()
+    const router = useRouter()
 
     const validateEmail = async (email: string) => {
         const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
@@ -41,7 +41,6 @@ const CollectEmail = () => {
                 setError('Something went wrong. Please try again or contact support')
                 return
             }
-            setisLoading(false)
             router.push('/home')
         } catch {
             setError('Something went wrong. Please try again or contact support')
