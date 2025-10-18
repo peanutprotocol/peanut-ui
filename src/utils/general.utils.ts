@@ -10,7 +10,7 @@ import { getAddress, isAddress, erc20Abi } from 'viem'
 import * as wagmiChains from 'wagmi/chains'
 import { getPublicClient, type ChainId } from '@/app/actions/clients'
 import { NATIVE_TOKEN_ADDRESS, SQUID_ETH_ADDRESS } from './token.utils'
-import { ChargeEntry } from '@/services/services.types'
+import { type ChargeEntry } from '@/services/services.types'
 
 export function urlBase64ToUint8Array(base64String: string) {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4)

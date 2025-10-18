@@ -1,4 +1,4 @@
-import { ChargeEntry } from '@/services/services.types'
+import { type ChargeEntry } from '@/services/services.types'
 import { getContributorsFromCharge } from '@/utils'
 import React from 'react'
 import ContributorCard from './ContributorCard'

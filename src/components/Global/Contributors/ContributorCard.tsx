@@ -1,5 +1,5 @@
-import { ChargeEntry, Payment } from '@/services/services.types'
-import Card, { CardPosition } from '../Card'
+import { type Payment } from '@/services/services.types'
+import Card, { type CardPosition } from '../Card'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { getColorForUsername } from '@/utils/color.utils'
 import { VerifiedUserLabel } from '@/components/UserHeader'
