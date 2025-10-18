@@ -1,3 +1,5 @@
+import { COIN_ICON } from '@/assets'
+import Image from 'next/image'
 import React from 'react'
 import { twMerge } from 'tailwind-merge'
 
@@ -33,6 +35,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ goal, progress, isClosed }) =
         if (!isClosed) return null
         return (
             <div className="flex items-center gap-1 text-base font-medium">
+                <Image src={COIN_ICON} alt="coin" width={18} height={18} />
                 <p>{getStatusText()}</p>
             </div>
         )

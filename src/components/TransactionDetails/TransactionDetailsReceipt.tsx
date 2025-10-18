@@ -251,7 +251,7 @@ export const TransactionDetailsReceipt = ({
         return getContributorsFromCharge(transaction.requestPotPayments)
     }, [transaction])
 
-    const formattedTotalAmountCollected = formatCurrency(transaction?.totalAmountCollected.toString() ?? '0', 2, 0)
+    const formattedTotalAmountCollected = formatCurrency(transaction?.totalAmountCollected?.toString() ?? '0', 2, 0)
 
     useEffect(() => {
         const getTokenDetails = async () => {

@@ -4,6 +4,7 @@ import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { getColorForUsername } from '@/utils/color.utils'
 import { VerifiedUserLabel } from '@/components/UserHeader'
 import { formatTokenAmount } from '@/utils'
+import { isAddress } from 'viem'
 
 export type Contributor = {
     uuid: string
@@ -16,6 +17,7 @@ export type Contributor = {
 
 const ContributorCard = ({ contributor, position }: { contributor: Contributor; position: CardPosition }) => {
     const colors = getColorForUsername(contributor.username ?? '')
+    const isEvmAddress = isAddress(contributor.username ?? '')
     return (
         <Card position={position} className="cursor-pointer">
             <div className="flex items-center justify-between">
@@ -23,8 +25,9 @@ const ContributorCard = ({ contributor, position }: { contributor: Contributor; 
                     <AvatarWithBadge
                         name={contributor.username ?? ''}
                         size={'extra-small'}
-                        inlineStyle={{ backgroundColor: colors.lightShade }}
-                        textColor={colors.darkShade}
+                        inlineStyle={{ backgroundColor: isEvmAddress ? '#FFC900' : colors.lightShade }}
+                        textColor={isEvmAddress ? '#000000' : colors.darkShade}
+                        icon={isEvmAddress ? 'wallet-outline' : undefined}
                     />
 
                     <VerifiedUserLabel
@@ -35,7 +38,7 @@ const ContributorCard = ({ contributor, position }: { contributor: Contributor; 
                     />
                 </div>
 
-                <p className="font-medium">{formatTokenAmount(Number(contributor.amount))}</p>
+                <p className="font-medium">${formatTokenAmount(Number(contributor.amount))}</p>
             </div>
         </Card>
     )

@@ -1359,16 +1359,21 @@ export const getValidRedirectUrl = (redirectUrl: string, fallbackRoute: string) 
 }
 
 export const getContributorsFromCharge = (charges: ChargeEntry[]) => {
-    // Contributors are the users who have paid for the charge
-    return charges
-        .filter((charge) => charge.fulfillmentPayment)
-        .map((charge) => ({
+    return charges.map((charge) => {
+        const successfulPayment = charge.payments[charge.payments.length - 1]
+        let username = successfulPayment.payerAccount?.user?.username
+        if (successfulPayment.payerAccount?.type === 'evm-address') {
+            username = successfulPayment.payerAccount.identifier
+        }
+
+        return {
             uuid: charge.uuid,
             payments: charge.payments,
             amount: charge.tokenAmount,
-            username: charge.payments[charge.payments.length - 1].payerAccount?.user?.username,
+            username,
             fulfilmentPayment: charge.fulfillmentPayment,
             isUserVerified:
                 charge.payments[charge.payments.length - 1].payerAccount?.user?.bridgeKycStatus === 'approved',
-        }))
+        }
+    })
 }
