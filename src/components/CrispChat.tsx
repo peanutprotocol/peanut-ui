@@ -62,7 +62,12 @@ export default function CrispChat() {
         // Fallback: try again after a delay
         const timer = setTimeout(setCrispUserData, 2000)
 
-        return () => clearTimeout(timer)
+        return () => {
+            clearTimeout(timer)
+            if (window.$crisp) {
+                window.$crisp.push(['off', 'session:loaded', setCrispUserData])
+            }
+        }
     }, [username, userId])
 
     // thought: we need to version pin this script
