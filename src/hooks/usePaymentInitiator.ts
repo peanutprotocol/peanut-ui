@@ -58,7 +58,7 @@ export interface InitiatePaymentPayload {
     isExternalWalletFlow?: boolean
     transactionType?: TChargeTransactionType
     attachmentOptions?: IAttachmentOptions
-    isRequestPotPayment?: boolean
+    returnAfterChargeCreation?: boolean
 }
 
 interface InitiationResult {
@@ -161,9 +161,9 @@ export const usePaymentInitiator = () => {
                 if (currentUrl.searchParams.get('chargeId') === activeChargeDetails.uuid) {
                     const newUrl = new URL(window.location.href)
                     newUrl.searchParams.delete('chargeId')
-                    // Use router.replace (not window.history.replaceState) so that
+                    // Use router.push (not window.history.replaceState) so that
                     // the components using the search params will be updated
-                    router.replace(newUrl.pathname + newUrl.search)
+                    router.push(newUrl.pathname + newUrl.search)
                 }
             }
             return {
@@ -396,9 +396,9 @@ export const usePaymentInitiator = () => {
                     const newUrl = new URL(window.location.href)
                     if (payload.requestId) newUrl.searchParams.delete('id')
                     newUrl.searchParams.set('chargeId', chargeDetailsToUse.uuid)
-                    // Use router.replace (not window.history.replaceState) so that
+                    // Use router.push (not window.history.replaceState) so that
                     // the components using the search params will be updated
-                    router.replace(newUrl.pathname + newUrl.search)
+                    router.push(newUrl.pathname + newUrl.search)
                     console.log('Updated URL with chargeId:', newUrl.href)
                 }
             }
@@ -622,7 +622,7 @@ export const usePaymentInitiator = () => {
 
                 // 2. handle charge state
                 if (
-                    payload.isRequestPotPayment || // For request pot payment, return after charge creation
+                    payload.returnAfterChargeCreation || // For request pot payment, return after charge creation
                     (chargeCreated &&
                         (payload.isExternalWalletFlow ||
                             !isPeanutWallet ||
@@ -677,9 +677,9 @@ export const usePaymentInitiator = () => {
                     if (currentUrl.searchParams.get('chargeId') === determinedChargeDetails.uuid) {
                         const newUrl = new URL(window.location.href)
                         newUrl.searchParams.delete('chargeId')
-                        // Use router.replace (not window.history.replaceState) so that
+                        // Use router.push (not window.history.replaceState) so that
                         // the components using the search params will be updated
-                        router.replace(newUrl.pathname + newUrl.search)
+                        router.push(newUrl.pathname + newUrl.search)
                         console.log('URL updated, chargeId removed.')
                     }
                 }

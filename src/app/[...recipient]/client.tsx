@@ -521,7 +521,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                         }
                         setCurrencyAmount={(value: string | undefined) => setCurrencyAmount(value || '')}
                         currencyAmount={currencyAmount}
-                        isRequestPotPayment={!!requestId}
+                        showRequestPotInitialView={!!requestId}
                     />
                     <div>
                         {!requestId && showActionList && (
