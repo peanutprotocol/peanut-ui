@@ -473,6 +473,7 @@ export const PaymentForm = ({
         requestedTokenPrice,
         inviteError,
         handleAcceptInvite,
+        isRequestPotPayment,
     ])
 
     const getButtonText = () => {
@@ -663,8 +664,8 @@ export const PaymentForm = ({
                         fileUrl={requestDetails?.attachmentUrl || chargeDetails?.requestLink?.attachmentUrl || ''}
                         isVerified={recipientKycStatus === 'approved'}
                         haveSentMoneyToUser={recipientUserId ? interactions[recipientUserId] || false : false}
-                        amount={isRequestPotPayment ? Number(amount) : undefined}
-                        amountCollected={isRequestPotPayment ? totalAmountCollected : undefined} // TODO
+                        amount={isRequestPotPayment && amount ? Number(amount) : undefined}
+                        amountCollected={isRequestPotPayment ? totalAmountCollected : undefined}
                         isRequestPot={isRequestPotPayment}
                     />
                 )}
@@ -688,8 +689,8 @@ export const PaymentForm = ({
                     currency={currency}
                     hideCurrencyToggle={!currency}
                     hideBalance={isExternalWalletFlow}
-                    showSlider={isRequestPotPayment && Number(amount) > 0}
-                    maxAmount={isRequestPotPayment ? Number(amount) : undefined}
+                    showSlider={isRequestPotPayment && amount ? Number(amount) > 0 : false}
+                    maxAmount={isRequestPotPayment && amount ? Number(amount) : undefined}
                 />
 
                 {/*
