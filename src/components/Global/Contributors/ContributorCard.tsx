@@ -11,7 +11,7 @@ export type Contributor = {
     payments: Payment[]
     amount: string
     username: string | undefined
-    fulfilmentPayment: Payment | null
+    fulfillmentPayment: Payment | null
     isUserVerified: boolean
 }
 
@@ -34,7 +34,6 @@ const ContributorCard = ({ contributor, position }: { contributor: Contributor; 
                         username={contributor.username ?? ''}
                         name={contributor.username ?? ''}
                         isVerified={contributor.isUserVerified}
-                        haveSentMoneyToUser={true}
                     />
                 </div>
 

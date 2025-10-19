@@ -384,7 +384,6 @@ export const PaymentForm = ({
             return
         }
 
-        console.log('hello')
         if (!canInitiatePayment) return
 
         // regular payment flow
@@ -439,13 +438,6 @@ export const PaymentForm = ({
             attachmentOptions: attachmentOptions,
             isRequestPotPayment,
         }
-
-        // if (isRequestPotPayment) {
-        //     const res = await createRequestCharge(payload)
-        //     console.log(res)
-        //     dispatch(paymentActions.setView('CONFIRM'))
-        //     return
-        // }
 
         console.log('Initiating payment with payload:', payload)
 
@@ -629,10 +621,7 @@ export const PaymentForm = ({
 
     const contributors = getContributorsFromCharge(requestDetails?.charges || [])
 
-    const totalAmountCollected = useMemo(() => {
-        if (!requestDetails?.charges || !requestDetails?.charges.length) return 0
-        return contributors.reduce((acc, curr) => acc + Number(curr.amount), 0)
-    }, [contributors])
+    const totalAmountCollected = requestDetails?.totalCollectedAmount ?? 0
 
     if (fulfillUsingManteca && chargeDetails) {
         return <MantecaFulfillment />

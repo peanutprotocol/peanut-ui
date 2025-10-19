@@ -524,7 +524,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                         isRequestPotPayment={!!requestId}
                     />
                     <div>
-                        {chargeId && showActionList && (
+                        {!requestId && showActionList && (
                             <ActionList
                                 flow="request"
                                 requestLinkData={parsedPaymentData as ParsedURL}

@@ -1360,7 +1360,7 @@ export const getContributorsFromCharge = (charges: ChargeEntry[]) => {
             payments: charge.payments,
             amount: charge.tokenAmount,
             username,
-            fulfilmentPayment: charge.fulfillmentPayment,
+            fulfillmentPayment: charge.fulfillmentPayment,
             isUserVerified:
                 charge.payments[charge.payments.length - 1].payerAccount?.user?.bridgeKycStatus === 'approved',
         }

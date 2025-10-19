@@ -45,6 +45,7 @@ export interface TRequestResponse {
             username: string
         }
     }
+    totalCollectedAmount: number
 }
 
 export interface ChargeEntry {
