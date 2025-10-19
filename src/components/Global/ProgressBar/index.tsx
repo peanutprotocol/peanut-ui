@@ -10,13 +10,14 @@ interface ProgressBarProps {
 }
 
 const ProgressBar: React.FC<ProgressBarProps> = ({ goal, progress, isClosed }) => {
-    const isOverGoal = progress > goal
-    const isGoalAchieved = progress >= goal && !isOverGoal
+    const isOverGoal = progress > goal && goal > 0
+    const isGoalAchieved = progress >= goal && !isOverGoal && goal > 0
     const totalValue = isOverGoal ? progress : goal
 
-    const goalPercentage = (goal / totalValue) * 100
-    const progressPercentage = (progress / totalValue) * 100
-    const percentage = Math.round((progress / goal) * 100)
+    // Guard against division by zero and clamp percentages to valid ranges
+    const goalPercentage = totalValue > 0 ? Math.min(Math.max((goal / totalValue) * 100, 0), 100) : 0
+    const progressPercentage = totalValue > 0 ? Math.min(Math.max((progress / totalValue) * 100, 0), 100) : 0
+    const percentage = goal > 0 ? Math.min(Math.max(Math.round((progress / goal) * 100), 0), 100) : 0
 
     const formatCurrency = (value: number) => `$${value.toFixed(2)}`
 

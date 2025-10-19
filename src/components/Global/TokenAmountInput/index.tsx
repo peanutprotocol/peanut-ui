@@ -213,6 +213,13 @@ const TokenAmountInput = ({
 
     const formRef = useRef<HTMLFormElement>(null)
 
+    const sliderValue = useMemo(() => {
+        if (!maxAmount || !tokenValue) return [0]
+        const tokenNum = parseFloat(tokenValue.replace(/,/g, ''))
+        const usdValue = tokenNum * (selectedTokenData?.price ?? 1)
+        return [(usdValue / maxAmount) * 100]
+    }, [maxAmount, tokenValue, selectedTokenData?.price])
+
     const handleContainerClick = () => {
         if (inputRef.current) {
             inputRef.current.focus()
@@ -306,10 +313,7 @@ const TokenAmountInput = ({
             )}
             {showSlider && maxAmount && (
                 <div className="mt-2 h-14">
-                    <Slider
-                        onValueChange={onSliderValueChange}
-                        value={tokenValue ? [(parseFloat(tokenValue.replace(/,/g, '')) / maxAmount) * 100] : [0]}
-                    />
+                    <Slider onValueChange={onSliderValueChange} value={sliderValue} />
                 </div>
             )}
         </form>

@@ -5,11 +5,15 @@ import Cookies from 'js-cookie'
 
 export const requestsApi = {
     create: async (data: CreateRequestRequest): Promise<TRequestResponse> => {
+        const token = Cookies.get('jwt-token')
+        if (!token) {
+            throw new Error('Authentication token not found. Please log in again.')
+        }
         const response = await fetchWithSentry(`${PEANUT_API_URL}/requests`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+                Authorization: `Bearer ${token}`,
             },
             body: jsonStringify(data),
         })
@@ -34,11 +38,15 @@ export const requestsApi = {
     },
 
     update: async (id: string, data: Partial<CreateRequestRequest>): Promise<TRequestResponse> => {
+        const token = Cookies.get('jwt-token')
+        if (!token) {
+            throw new Error('Authentication token not found. Please log in again.')
+        }
         const response = await fetchWithSentry(`${PEANUT_API_URL}/requests/${id}`, {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+                Authorization: `Bearer ${token}`,
             },
             body: jsonStringify(data),
         })

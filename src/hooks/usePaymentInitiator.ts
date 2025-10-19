@@ -161,6 +161,8 @@ export const usePaymentInitiator = () => {
                 if (currentUrl.searchParams.get('chargeId') === activeChargeDetails.uuid) {
                     const newUrl = new URL(window.location.href)
                     newUrl.searchParams.delete('chargeId')
+                    // Use router.replace (not window.history.replaceState) so that
+                    // the components using the search params will be updated
                     router.replace(newUrl.pathname + newUrl.search)
                 }
             }
@@ -394,6 +396,8 @@ export const usePaymentInitiator = () => {
                     const newUrl = new URL(window.location.href)
                     if (payload.requestId) newUrl.searchParams.delete('id')
                     newUrl.searchParams.set('chargeId', chargeDetailsToUse.uuid)
+                    // Use router.replace (not window.history.replaceState) so that
+                    // the components using the search params will be updated
                     router.replace(newUrl.pathname + newUrl.search)
                     console.log('Updated URL with chargeId:', newUrl.href)
                 }
@@ -673,6 +677,8 @@ export const usePaymentInitiator = () => {
                     if (currentUrl.searchParams.get('chargeId') === determinedChargeDetails.uuid) {
                         const newUrl = new URL(window.location.href)
                         newUrl.searchParams.delete('chargeId')
+                        // Use router.replace (not window.history.replaceState) so that
+                        // the components using the search params will be updated
                         router.replace(newUrl.pathname + newUrl.search)
                         console.log('URL updated, chargeId removed.')
                     }

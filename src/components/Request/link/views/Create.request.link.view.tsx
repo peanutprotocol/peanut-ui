@@ -385,7 +385,7 @@ export const CreateRequestLinkView = () => {
                     </Button>
                 ) : (
                     <ShareButton generateUrl={generateLink}>
-                        {tokenValue.length === 0 || parseFloat(tokenValue) === 0
+                        {!tokenValue || !parseFloat(tokenValue) || parseFloat(tokenValue) === 0
                             ? 'Share open request'
                             : `Share $${tokenValue} request`}
                     </ShareButton>

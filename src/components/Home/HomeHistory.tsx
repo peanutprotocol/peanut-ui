@@ -26,7 +26,7 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
     const isLoggedIn = !!user?.user.userId || false
     // fetch the latest 5 transaction history entries
     const mode = isPublic ? 'public' : 'latest'
-    const limit = isPublic ? 20 : 20
+    const limit = isPublic ? 20 : 5
     // Only filter when user is requesting for some different user's history
     const filterMutualTxs = !isPublic && username !== user?.user.username
     const {

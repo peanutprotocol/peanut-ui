@@ -100,7 +100,7 @@ const UserCard = ({
                     ) : (
                         <VerifiedUserLabel
                             name={fullName ?? username}
-                            username={'username'}
+                            username={username}
                             isVerified={isVerified}
                             haveSentMoneyToUser={haveSentMoneyToUser}
                             className="text-base font-medium"
