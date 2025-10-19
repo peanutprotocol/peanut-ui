@@ -399,7 +399,8 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                 uiStatus = 'cancelled'
                 break
             case 'CLOSED':
-                uiStatus = 'closed'
+                // If the total amount collected is 0, the link is treated as cancelled
+                uiStatus = entry.totalAmountCollected === 0 ? 'cancelled' : 'closed'
                 break
             default:
                 {
