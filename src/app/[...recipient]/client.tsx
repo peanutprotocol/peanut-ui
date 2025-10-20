@@ -494,7 +494,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     return (
         <div className={twMerge('mx-auto min-h-[inherit] w-full space-y-8 self-center')}>
             {!user && parsedPaymentData?.recipient?.recipientType !== 'USERNAME' && (
-                <div className="absolute left-0 top-0 md:top-18">
+                <div className="absolute left-0 top-0 z-50 md:top-22 md:z-0">
                     <GenericBanner
                         message="THIS FEATURE IS CURRENTLY IN TESTING - ONLY USE WITH SMALL AMOUNTS"
                         marqueeClassName="flex h-11 items-center justify-center border-b-2 border-black"

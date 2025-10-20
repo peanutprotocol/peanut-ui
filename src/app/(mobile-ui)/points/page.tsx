@@ -12,7 +12,7 @@ import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionA
 import { VerifiedUserLabel } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
 import { invitesApi } from '@/services/invites'
-import { generateInvitesShareText } from '@/utils'
+import { generateInviteCodeLink, generateInvitesShareText } from '@/utils'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { STAR_STRAIGHT_ICON, TIER_0_BADGE, TIER_1_BADGE, TIER_2_BADGE, TIER_3_BADGE } from '@/assets'
@@ -53,8 +53,7 @@ const PointsPage = () => {
         enabled: !!user?.user.userId,
     })
     const username = user?.user.username
-    const inviteCode = username ? `${username.toUpperCase()}INVITESYOU` : ''
-    const inviteLink = `${process.env.NEXT_PUBLIC_BASE_URL}/invite?code=${inviteCode}`
+    const { inviteCode, inviteLink } = generateInviteCodeLink(username ?? '')
 
     useEffect(() => {
         // Re-fetch user to get the latest invitees list for showing heart Icon
