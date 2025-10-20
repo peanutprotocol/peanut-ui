@@ -235,7 +235,7 @@ export function SendInSeconds() {
                                 shadowSize="4"
                                 className="bg-white px-7 py-3 text-base font-extrabold hover:bg-white/90 md:px-9 md:py-8 md:text-xl"
                             >
-                                JOIN WAITLIST
+                                SEND NOW
                             </Button>
                         </a>
                     </motion.div>
