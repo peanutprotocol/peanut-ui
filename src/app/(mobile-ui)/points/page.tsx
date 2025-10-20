@@ -101,7 +101,7 @@ const PointsPage = () => {
                                 className="h-full rounded-full bg-gradient-to-r from-primary-1 to-primary-2 transition-all duration-500"
                                 style={{
                                     width: `${
-                                        tierInfo?.data.currentTier >= 3
+                                        tierInfo?.data.currentTier >= 2
                                             ? 100
                                             : Math.pow(
                                                   Math.min(
@@ -116,7 +116,7 @@ const PointsPage = () => {
                                 }}
                             />
                         </div>
-                        {tierInfo?.data.currentTier < 3 && (
+                        {tierInfo?.data.currentTier < 2 && (
                             <Image
                                 src={getTierBadge(tierInfo?.data.currentTier + 1)}
                                 alt={`Tier ${tierInfo?.data.currentTier + 1}`}
@@ -128,7 +128,7 @@ const PointsPage = () => {
 
                     <div className="text-center">
                         <p className="text-base text-grey-1">You&apos;re at tier {tierInfo?.data.currentTier}.</p>
-                        {tierInfo?.data.currentTier < 3 ? (
+                        {tierInfo?.data.currentTier < 2 ? (
                             <p className="text-sm text-grey-1">
                                 {tierInfo.data.pointsToNextTier}{' '}
                                 {tierInfo.data.pointsToNextTier === 1 ? 'point' : 'points'} needed to level up
