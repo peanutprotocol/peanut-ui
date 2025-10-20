@@ -24,8 +24,8 @@ interface MaintenanceConfig {
 }
 
 const underMaintenanceConfig: MaintenanceConfig = {
-    enableFullMaintenance: false, // set to true to redirect all pages to /maintenance
-    enableMaintenanceBanner: false, // set to true to show maintenance banner on all pages
+    enableFullMaintenance: true, // set to true to redirect all pages to /maintenance
+    enableMaintenanceBanner: true, // set to true to show maintenance banner on all pages
 }
 
 export default underMaintenanceConfig
