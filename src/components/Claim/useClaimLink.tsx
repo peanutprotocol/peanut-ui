@@ -28,7 +28,7 @@ const useClaimLink = () => {
             const claimTx = await claimLinkGasless({
                 link,
                 recipientAddress: address,
-                baseUrl: `${consts.next_proxy_url}/claim-v2`,
+                baseUrl: `${consts.next_proxy_url}/claim-v3`,
                 APIKey: 'doesnt-matter',
             })
 
