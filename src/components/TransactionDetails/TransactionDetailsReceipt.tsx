@@ -1187,17 +1187,23 @@ export const TransactionDetailsReceipt = ({
                             setCancelLinkText('Cancelling')
                             setShowCancelLinkModal(false)
 
-                            // ✅ SECURITY FIX: Get actual wallet address, not username
-                            // username is a human-readable name like "bob", not an Ethereum address
-                            const walletAddress = user!.accounts.find((acc) => acc.type === 'peanut-wallet')?.identifier
+                            if (!user?.accounts) {
+                                throw new Error('User not found for cancellation')
+                            }
+                            const walletAddress = user.accounts.find((acc) => acc.type === 'peanut-wallet')?.identifier
                             if (!walletAddress) {
                                 throw new Error('No wallet address found for cancellation')
+                            }
+
+                            // Validate transaction data
+                            if (!transaction.extraDataForDrawer?.link) {
+                                throw new Error('No link found for cancellation')
                             }
 
                             // Use secure SDK claim (password stays client-side)
                             const txHash = await claimLink({
                                 address: walletAddress,
-                                link: transaction.extraDataForDrawer!.link!,
+                                link: transaction.extraDataForDrawer.link,
                             })
 
                             if (txHash) {
@@ -1206,6 +1212,10 @@ export const TransactionDetailsReceipt = ({
                                     await sendLinksApi.associateClaim(txHash)
                                 } catch (e) {
                                     console.error('Failed to associate claim:', e)
+                                    captureException(e, {
+                                        tags: { feature: 'cancel-link' },
+                                        extra: { txHash, userId: user?.user?.userId },
+                                    })
                                 }
                             }
 
@@ -1228,6 +1238,8 @@ export const TransactionDetailsReceipt = ({
                             console.error('Error claiming link:', error)
                             setIsLoading(false)
                             setCancelLinkText('Cancel link')
+                            // TODO: Show user-visible error message
+                            // e.g., toast.error('Failed to cancel link. Please try again.')
                         }
                     }}
                 />
