@@ -69,7 +69,7 @@ export const Claim = ({}) => {
     const { address } = useWallet()
     const { user, isFetchingUser } = useAuth()
     const [isLinkCancelling, setisLinkCancelling] = useState(false)
-    const senderId = claimLinkData?.sender.userId
+    const senderId = claimLinkData?.sender?.userId
     const { interactions } = useUserInteractions(senderId ? [senderId] : [])
 
     const { setFlowStep: setClaimBankFlowStep } = useClaimBankFlow()
@@ -148,7 +148,7 @@ export const Claim = ({}) => {
             },
             isVerified: claimLinkData.sender?.bridgeKycStatus === 'approved',
             haveSentMoneyToUser: claimLinkData.sender?.userId
-                ? interactions[claimLinkData.sender.userId] || false
+                ? interactions[claimLinkData.sender?.userId] || false
                 : false,
         }
 
@@ -182,7 +182,7 @@ export const Claim = ({}) => {
         if (!selectedTransaction) return false
         // check for showing txn receipt only to the creator after link is claimed
         if (linkState === _consts.claimLinkStateType.ALREADY_CLAIMED) {
-            return user?.user.userId === claimLinkData?.sender.userId
+            return user?.user.userId === claimLinkData?.sender?.userId
         }
         return true
     }, [selectedTransaction, linkState, user, claimLinkData])
@@ -378,8 +378,8 @@ export const Claim = ({}) => {
             {linkState === _consts.claimLinkStateType.ALREADY_CLAIMED &&
                 selectedTransaction &&
                 claimLinkData &&
-                (!user || user.user.userId !== claimLinkData?.sender.userId) && (
-                    <ClaimedView amount={selectedTransaction.amount} senderUsername={claimLinkData.sender.username} />
+                (!user || user.user.userId !== claimLinkData?.sender?.userId) && (
+                    <ClaimedView amount={selectedTransaction.amount} senderUsername={claimLinkData.sender?.username} />
                 )}
             {showTransactionReceipt && (
                 <TransactionDetailsReceipt

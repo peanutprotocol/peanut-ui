@@ -368,7 +368,7 @@ export type SendLink = {
             identifier: string
             type: string
         }[]
-    }
+    } | null
     claim?: {
         amount: string
         txHash: string

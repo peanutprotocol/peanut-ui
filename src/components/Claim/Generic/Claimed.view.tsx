@@ -7,7 +7,7 @@ import { type FC } from 'react'
 
 interface ClaimedViewProps {
     amount: number | bigint
-    senderUsername: string
+    senderUsername?: string | null
 }
 
 export const ClaimedView: FC<ClaimedViewProps> = ({ amount, senderUsername }) => {
@@ -27,8 +27,8 @@ export const ClaimedView: FC<ClaimedViewProps> = ({ amount, senderUsername }) =>
 
             <Card.Content className="mx-auto flex flex-col gap-2 space-y-4 pb-8">
                 <p className="text-center text-grey-1">
-                    The <span className="font-bold">${amount}</span> sent by{' '}
-                    <span className="font-bold"> {senderUsername}</span> has already been claimed.
+                    The <span className="font-bold">${amount}</span> {senderUsername ? `sent by ` : ''}
+                    {senderUsername && <span className="font-bold">{senderUsername}</span>} has already been claimed.
                 </p>
 
                 {!user && <p className="text-center text-sm text-grey-1">Create a wallet to receive future links.</p>}

@@ -484,7 +484,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 const route = await getRoute(
                     {
                         from: {
-                            address: (claimLinkData.sender?.accounts[0].identifier ??
+                            address: (claimLinkData.sender?.accounts?.[0]?.identifier ??
                                 claimLinkData.senderAddress) as Address,
                             tokenAddress: fromToken as Address,
                             chainId: claimLinkData.chainId,
