@@ -540,21 +540,21 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     // Clear route immediately when user changes chain/token selection
     // This runs BEFORE selectedTokenData is ready, preventing stale routes
     useEffect(() => {
+        if (!selectedChainID || !selectedTokenAddress) return
+
         // Clear the old route when selection changes
         setSelectedRoute(undefined)
         setHasFetchedRoute(false)
 
         // If this is a cross-chain transfer, trigger refetch and show loading immediately
-        if (selectedChainID && selectedTokenAddress) {
-            const isXChainTransfer =
-                selectedChainID !== claimLinkData.chainId ||
-                !areEvmAddressesEqual(selectedTokenAddress, claimLinkData.tokenAddress)
+        const isXChainTransfer =
+            selectedChainID !== claimLinkData.chainId ||
+            !areEvmAddressesEqual(selectedTokenAddress, claimLinkData.tokenAddress)
 
-            if (isXChainTransfer) {
-                setRefetchXchainRoute(true)
-                setIsXchainLoading(true)
-                setLoadingState('Fetching route')
-            }
+        if (isXChainTransfer) {
+            setRefetchXchainRoute(true)
+            setIsXchainLoading(true)
+            setLoadingState('Fetching route')
         }
     }, [selectedChainID, selectedTokenAddress, claimLinkData.chainId, claimLinkData.tokenAddress])
 
@@ -620,7 +620,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         }
     }, [isPeanutWallet, address, isPeanutChain])
 
-    // handle xchain claim states
+    // Set isXChain flag and validate existing route against selected token
     useEffect(() => {
         if (selectedTokenData) {
             const isXChainTransfer =
@@ -629,40 +629,25 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
 
             setIsXChain(isXChainTransfer)
 
-            if (isXChainTransfer) {
-                if (selectedRoute) {
-                    const routeChainId = selectedRoute.rawResponse.route.params.toChain
-                    const routeTokenAddress = selectedRoute.rawResponse.route.estimate.toToken.address
-                    if (
-                        routeChainId !== selectedTokenData.chainId ||
-                        !areEvmAddressesEqual(routeTokenAddress, selectedTokenData.address)
-                    ) {
-                        // Clear the mismatched route immediately
-                        setSelectedRoute(undefined)
-                        setHasFetchedRoute(false)
-                        setRefetchXchainRoute(true)
-                    } else {
-                        setRefetchXchainRoute(false)
-                        setHasFetchedRoute(true)
-                    }
-                } else {
-                    setHasFetchedRoute(false)
+            // If there's an existing route, validate it matches the current selection
+            if (isXChainTransfer && selectedRoute) {
+                const routeChainId = selectedRoute.rawResponse.route.params.toChain
+                const routeTokenAddress = selectedRoute.rawResponse.route.estimate.toToken.address
+
+                // If route doesn't match selection, mark it for refetch
+                if (
+                    routeChainId !== selectedTokenData.chainId ||
+                    !areEvmAddressesEqual(routeTokenAddress, selectedTokenData.address)
+                ) {
                     setRefetchXchainRoute(true)
+                } else {
+                    // Route matches, mark as fetched
+                    setRefetchXchainRoute(false)
+                    setHasFetchedRoute(true)
                 }
-            } else {
-                setHasFetchedRoute(false)
-                setRefetchXchainRoute(false)
             }
         }
-    }, [
-        selectedTokenData,
-        claimLinkData.chainId,
-        claimLinkData.tokenAddress,
-        selectedRoute,
-        recipient.address,
-        isValidRecipient,
-        hasFetchedRoute,
-    ])
+    }, [selectedTokenData, claimLinkData.chainId, claimLinkData.tokenAddress, selectedRoute])
 
     const getButtonText = () => {
         if (isPeanutWallet && !claimToExternalWallet) {
