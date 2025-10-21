@@ -16,6 +16,7 @@ import { captureException } from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import useClaimLink from '@/components/Claim/useClaimLink'
 
 const LinkSendSuccessView = () => {
     const dispatch = useAppDispatch()
@@ -24,6 +25,7 @@ const LinkSendSuccessView = () => {
     const queryClient = useQueryClient()
     const { fetchBalance } = useWallet()
     const { user } = useUserStore()
+    const { claimLink } = useClaimLink()
     const [isLoading, setIsLoading] = useState<boolean>(false)
     const [showCancelLinkModal, setshowCancelLinkModal] = useState(false)
 
@@ -91,34 +93,47 @@ const LinkSendSuccessView = () => {
                     showCancelLinkModal={showCancelLinkModal}
                     setshowCancelLinkModal={setshowCancelLinkModal}
                     amount={`$ ${tokenValue}`}
-                    onClick={() => {
-                        setIsLoading(true)
-                        setshowCancelLinkModal(false)
-                        setCancelLinkText('Cancelling')
-                        sendLinksApi
-                            .claim(user!.user.username!, link)
-                            .then(() => {
-                                // Claiming takes time, so we need to invalidate both transaction query types
-                                setTimeout(() => {
-                                    fetchBalance()
-                                    queryClient
-                                        .invalidateQueries({
-                                            queryKey: ['transactions'],
-                                        })
-                                        .then(async () => {
-                                            setIsLoading(false)
-                                            setCancelLinkText('Cancelled')
-                                            await new Promise((resolve) => setTimeout(resolve, 2000))
-                                            router.push('/home')
-                                        })
-                                }, 3000)
+                    onClick={async () => {
+                        try {
+                            setIsLoading(true)
+                            setshowCancelLinkModal(false)
+                            setCancelLinkText('Cancelling')
+
+                            // Use secure SDK claim (password stays client-side)
+                            const txHash = await claimLink({
+                                address: user!.user.username!,
+                                link,
                             })
-                            .catch((error) => {
-                                captureException(error)
-                                console.error('Error claiming link:', error)
-                                setIsLoading(false)
-                                setCancelLinkText('Cancel link')
-                            })
+
+                            if (txHash) {
+                                // Associate the claim with user history
+                                try {
+                                    await sendLinksApi.associateClaim(txHash)
+                                } catch (e) {
+                                    console.error('Failed to associate claim:', e)
+                                }
+                            }
+
+                            // Claiming takes time, so we need to invalidate both transaction query types
+                            setTimeout(() => {
+                                fetchBalance()
+                                queryClient
+                                    .invalidateQueries({
+                                        queryKey: ['transactions'],
+                                    })
+                                    .then(async () => {
+                                        setIsLoading(false)
+                                        setCancelLinkText('Cancelled')
+                                        await new Promise((resolve) => setTimeout(resolve, 2000))
+                                        router.push('/home')
+                                    })
+                            }, 3000)
+                        } catch (error: any) {
+                            captureException(error)
+                            console.error('Error claiming link:', error)
+                            setIsLoading(false)
+                            setCancelLinkText('Cancel link')
+                        }
                     }}
                 />
             )}

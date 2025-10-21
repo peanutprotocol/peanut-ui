@@ -9,6 +9,7 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { useUserStore } from '@/redux/hooks'
 import { chargesApi } from '@/services/charges'
 import { sendLinksApi } from '@/services/sendLinks'
+import useClaimLink from '@/components/Claim/useClaimLink'
 import { formatAmount, formatDate, getInitialsFromName, isStableCoin, formatCurrency, getAvatarUrl } from '@/utils'
 import { formatIban, printableAddress, shortenAddress, shortenStringLong, slugify } from '@/utils/general.utils'
 import { cancelOnramp } from '@/app/actions/onramp'
@@ -75,6 +76,7 @@ export const TransactionDetailsReceipt = ({
     const { user } = useUserStore()
     const queryClient = useQueryClient()
     const { fetchBalance } = useWallet()
+    const { claimLink } = useClaimLink()
     const [showBankDetails, setShowBankDetails] = useState(false)
     const [showCancelLinkModal, setShowCancelLinkModal] = useState(isModalOpen)
     const [tokenData, setTokenData] = useState<{ symbol: string; icon: string } | null>(null)
@@ -1179,34 +1181,47 @@ export const TransactionDetailsReceipt = ({
                     showCancelLinkModal={showCancelLinkModal}
                     setshowCancelLinkModal={setShowCancelLinkModal}
                     amount={amountDisplay}
-                    onClick={() => {
-                        setIsLoading(true)
-                        setCancelLinkText('Cancelling')
-                        setShowCancelLinkModal(false)
-                        sendLinksApi
-                            .claim(user!.user.username!, transaction.extraDataForDrawer!.link!)
-                            .then(() => {
-                                // Claiming takes time, so we need to invalidate both transaction query types
-                                setTimeout(() => {
-                                    fetchBalance()
-                                    queryClient
-                                        .invalidateQueries({
-                                            queryKey: [TRANSACTIONS],
-                                        })
-                                        .then(async () => {
-                                            setIsLoading(false)
-                                            setCancelLinkText('Cancelled')
-                                            await new Promise((resolve) => setTimeout(resolve, 2000))
-                                            onClose()
-                                        })
-                                }, 3000)
+                    onClick={async () => {
+                        try {
+                            setIsLoading(true)
+                            setCancelLinkText('Cancelling')
+                            setShowCancelLinkModal(false)
+
+                            // Use secure SDK claim (password stays client-side)
+                            const txHash = await claimLink({
+                                address: user!.user.username!,
+                                link: transaction.extraDataForDrawer!.link!,
                             })
-                            .catch((error) => {
-                                captureException(error)
-                                console.error('Error claiming link:', error)
-                                setIsLoading(false)
-                                setCancelLinkText('Cancel link')
-                            })
+
+                            if (txHash) {
+                                // Associate the claim with user history
+                                try {
+                                    await sendLinksApi.associateClaim(txHash)
+                                } catch (e) {
+                                    console.error('Failed to associate claim:', e)
+                                }
+                            }
+
+                            // Claiming takes time, so we need to invalidate both transaction query types
+                            setTimeout(() => {
+                                fetchBalance()
+                                queryClient
+                                    .invalidateQueries({
+                                        queryKey: [TRANSACTIONS],
+                                    })
+                                    .then(async () => {
+                                        setIsLoading(false)
+                                        setCancelLinkText('Cancelled')
+                                        await new Promise((resolve) => setTimeout(resolve, 2000))
+                                        onClose()
+                                    })
+                            }, 3000)
+                        } catch (error: any) {
+                            captureException(error)
+                            console.error('Error claiming link:', error)
+                            setIsLoading(false)
+                            setCancelLinkText('Cancel link')
+                        }
                     }}
                 />
             )}
