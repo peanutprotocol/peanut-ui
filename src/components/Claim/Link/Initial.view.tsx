@@ -208,8 +208,6 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             try {
                 setLoadingState('Executing transaction')
 
-                // ✅ FIX: Determine recipient address using actual wallet address, not username
-                // username is a human-readable name like "bob", not an Ethereum address
                 let recipientAddress: string | undefined
                 if (isPeanutWallet) {
                     // Use actual wallet address from user's accounts

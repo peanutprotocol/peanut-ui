@@ -39,7 +39,7 @@ async function getClaimLinkData(searchParams: { [key: string]: string | string[]
         // If no username in backend data, try ENS resolution with timeout
         if (!username && linkDetails.senderAddress) {
             try {
-                // ✅ FIX: ENS race condition - catch errors to prevent Promise.race from throwing
+                // ENS race condition - catch errors to prevent Promise.race from throwing
                 const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000))
                 const resolvePromise = resolveAddressToUsername(linkDetails.senderAddress, siteUrl).catch((err) => {
                     console.error('ENS resolution failed:', err)
