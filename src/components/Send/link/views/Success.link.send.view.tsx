@@ -17,6 +17,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import useClaimLink from '@/components/Claim/useClaimLink'
+import { useToast } from '@/components/0_Bruddle/Toast'
 
 const LinkSendSuccessView = () => {
     const dispatch = useAppDispatch()
@@ -26,6 +27,7 @@ const LinkSendSuccessView = () => {
     const { fetchBalance } = useWallet()
     const { user } = useUserStore()
     const { claimLink } = useClaimLink()
+    const toast = useToast()
     const [isLoading, setIsLoading] = useState<boolean>(false)
     const [showCancelLinkModal, setshowCancelLinkModal] = useState(false)
 
@@ -136,6 +138,7 @@ const LinkSendSuccessView = () => {
                                     .then(async () => {
                                         setIsLoading(false)
                                         setCancelLinkText('Cancelled')
+                                        toast.success('Link cancelled successfully! Funds returned to your balance.')
                                         await new Promise((resolve) => setTimeout(resolve, 2000))
                                         router.push('/home')
                                     })
@@ -145,8 +148,7 @@ const LinkSendSuccessView = () => {
                             console.error('Error claiming link:', error)
                             setIsLoading(false)
                             setCancelLinkText('Cancel link')
-                            // TODO: Show user-visible error message
-                            // e.g., toast.error('Failed to cancel link. Please try again.')
+                            toast.error('Failed to cancel link. Please try again.')
                         }
                     }}
                 />

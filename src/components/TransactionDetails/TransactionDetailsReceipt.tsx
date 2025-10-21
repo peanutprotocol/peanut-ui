@@ -38,6 +38,7 @@ import {
 import { useSupportModalContext } from '@/context/SupportModalContext'
 import { useRouter } from 'next/navigation'
 import { countryData } from '@/components/AddMoney/consts'
+import { useToast } from '@/components/0_Bruddle/Toast'
 import {
     MANTECA_COUNTRIES_CONFIG,
     MANTECA_ARG_DEPOSIT_CUIT,
@@ -82,6 +83,7 @@ export const TransactionDetailsReceipt = ({
     const [tokenData, setTokenData] = useState<{ symbol: string; icon: string } | null>(null)
     const [isTokenDataLoading, setIsTokenDataLoading] = useState(true)
     const { setIsSupportModalOpen } = useSupportModalContext()
+    const toast = useToast()
     const router = useRouter()
     const [cancelLinkText, setCancelLinkText] = useState<'Cancelling' | 'Cancelled' | 'Cancel link'>('Cancel link')
 
@@ -1229,6 +1231,7 @@ export const TransactionDetailsReceipt = ({
                                     .then(async () => {
                                         setIsLoading(false)
                                         setCancelLinkText('Cancelled')
+                                        toast.success('Link cancelled successfully! Funds returned to your balance.')
                                         await new Promise((resolve) => setTimeout(resolve, 2000))
                                         onClose()
                                     })
@@ -1238,8 +1241,7 @@ export const TransactionDetailsReceipt = ({
                             console.error('Error claiming link:', error)
                             setIsLoading(false)
                             setCancelLinkText('Cancel link')
-                            // TODO: Show user-visible error message
-                            // e.g., toast.error('Failed to cancel link. Please try again.')
+                            toast.error('Failed to cancel link. Please try again.')
                         }
                     }}
                 />
