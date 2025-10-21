@@ -1,5 +1,5 @@
 import { Claim } from '@/components'
-import { BASE_URL } from '@/constants'
+import { BASE_URL, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { formatAmount, resolveAddressToUsername } from '@/utils'
 import { type Metadata } from 'next'
 import getOrigin from '@/lib/hosting/get-origin'
@@ -13,7 +13,7 @@ async function getClaimLinkData(searchParams: { [key: string]: string | string[]
 
     try {
         // Use backend API with belt-and-suspenders logic (DB + blockchain fallback)
-        const contractVersion = (searchParams.v as string) || 'v4.3'
+        const contractVersion = (searchParams.v as string) || 'v4.2'
 
         const sendLink = await sendLinksApi.getByParams({
             chainId: searchParams.c as string,
@@ -21,28 +21,9 @@ async function getClaimLinkData(searchParams: { [key: string]: string | string[]
             contractVersion,
         })
 
-        // Get token details for proper formatting
-        // We could enhance this to use backend token cache, but for now use blockchain
-        const { fetchTokenDetails } = await import('@/app/actions/tokens')
-        let tokenDecimals = 6
-        let tokenSymbol = 'USDC'
-
-        if (sendLink.tokenDecimals !== undefined && sendLink.tokenSymbol) {
-            // Use backend data if available
-            tokenDecimals = sendLink.tokenDecimals
-            tokenSymbol = sendLink.tokenSymbol
-        } else {
-            // Fallback: fetch token details from blockchain
-            try {
-                const { fetchTokenDetails } = await import('@/app/actions/tokens')
-                const tokenDetails = await fetchTokenDetails(sendLink.tokenAddress, sendLink.chainId)
-                tokenDecimals = tokenDetails.decimals
-                tokenSymbol = tokenDetails.symbol
-            } catch (e) {
-                console.error('Failed to fetch token details:', e)
-                // Keep defaults
-            }
-        }
+        // Backend always provides token details (from DB or blockchain fallback)
+        const tokenDecimals = sendLink.tokenDecimals
+        const tokenSymbol = sendLink.tokenSymbol
 
         // Transform to linkDetails format for metadata
         const linkDetails = {
@@ -58,11 +39,13 @@ async function getClaimLinkData(searchParams: { [key: string]: string | string[]
         // If no username in backend data, try ENS resolution with timeout
         if (!username && linkDetails.senderAddress) {
             try {
+                // ✅ FIX: ENS race condition - catch errors to prevent Promise.race from throwing
                 const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000))
-                username = await Promise.race([
-                    resolveAddressToUsername(linkDetails.senderAddress, siteUrl),
-                    timeoutPromise,
-                ])
+                const resolvePromise = resolveAddressToUsername(linkDetails.senderAddress, siteUrl).catch((err) => {
+                    console.error('ENS resolution failed:', err)
+                    return null
+                })
+                username = await Promise.race([resolvePromise, timeoutPromise])
             } catch (ensError) {
                 console.error('ENS resolution failed:', ensError)
                 username = null

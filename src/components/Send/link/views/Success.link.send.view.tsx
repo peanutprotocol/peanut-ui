@@ -99,9 +99,16 @@ const LinkSendSuccessView = () => {
                             setshowCancelLinkModal(false)
                             setCancelLinkText('Cancelling')
 
+                            // ✅ SECURITY FIX: Get actual wallet address, not username
+                            // username is a human-readable name like "bob", not an Ethereum address
+                            const walletAddress = user!.accounts.find((acc) => acc.type === 'peanut-wallet')?.identifier
+                            if (!walletAddress) {
+                                throw new Error('No wallet address found for cancellation')
+                            }
+
                             // Use secure SDK claim (password stays client-side)
                             const txHash = await claimLink({
-                                address: user!.user.username!,
+                                address: walletAddress,
                                 link,
                             })
 

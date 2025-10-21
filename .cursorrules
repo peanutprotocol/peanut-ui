@@ -11,12 +11,14 @@
 ## 💻 Code Quality
 
 - **Boy scout rule**: leave code better than you found it.
-- **Use explicit imports** where possible
+- **DRY** - do not repeat yourself. Reuse existing code and abstract shared functionality. Less code is better code.
+- this also means to use shared consts (e.g. check src/constants)
+- **Separate business logic from interface** - this is important for readability, debugging and testability.
+- **Use explicit imports** where possible.
 - **Reuse existing components and functions** - don't hardcode hacky solutions.
 - **Warn about breaking changes** - when making changes, ensure you're not breaking existing functionality, and if there's a risk, explicitly WARN about it.
 - **Mention refactor opportunities** - if you notice an opportunity to refactor or improve existing code, mention it. DO NOT make any changes you were not explicitly told to do. Only mention the potential change to the user.
 - **Performance is important** - cache where possible, make sure to not make unnecessary re-renders or data fetching.
-- **Separate business logic from interface** - this is important for readability, debugging and testability.
 - **Flag breaking changes** - always flag if changes done in Frontend are breaking and require action on Backend (or viceversa)
 
 ## 🧪 Testing

@@ -9,7 +9,7 @@ export { ESendLinkStatus } from '@/services/services.types'
 export type { SendLinkStatus, SendLink } from '@/services/services.types'
 export { getParamsFromLink } from '@squirrel-labs/peanut-sdk'
 
-export type ClaimLinkData = SendLink & { link: string; password: string; tokenSymbol: string; tokenDecimals: number }
+export type ClaimLinkData = SendLink & { link: string; password: string }
 
 type CreateLinkBody = {
     pubKey: string

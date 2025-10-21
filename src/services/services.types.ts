@@ -359,8 +359,8 @@ export type SendLink = {
     senderAddress: string
     amount: bigint
     tokenAddress: string
-    tokenDecimals?: number
-    tokenSymbol?: string
+    tokenDecimals: number
+    tokenSymbol: string
     sender: {
         userId: string
         username: string
