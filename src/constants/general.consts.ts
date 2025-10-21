@@ -54,6 +54,11 @@ export const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://peanut.me'
 export const SELF_URL = IS_DEV ? 'http://localhost:3000' : BASE_URL
 export const next_proxy_url = '/api/proxy'
 
+// Git commit hash - injected at build time
+export const GIT_COMMIT_HASH = process.env.NEXT_PUBLIC_GIT_COMMIT_HASH || 'unknown'
+// Check if we're in production (not dev or using production URL)
+export const IS_PRODUCTION = !IS_DEV || BASE_URL === 'https://peanut.me'
+
 export const supportedMobulaChains = <{ name: string; chainId: string }[]>[
     {
         name: 'Fantom',

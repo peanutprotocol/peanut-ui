@@ -7,6 +7,7 @@ import maintenanceConfig from '@/config/underMaintenance.config'
 import { HandThumbsUp } from '@/assets'
 import Image from 'next/image'
 import { useSupportModalContext } from '@/context/SupportModalContext'
+import { GIT_COMMIT_HASH, IS_PRODUCTION } from '@/constants/general.consts'
 
 export function Banner() {
     const pathname = usePathname()
@@ -37,6 +38,7 @@ function FeedbackBanner() {
                 <span className="z-10 mx-4 flex items-center gap-2 text-sm font-semibold">
                     Peanut is in beta! Thank you for being an early user, share your feedback here
                     <Image src={HandThumbsUp} alt="Thumbs up" className="h-4 w-4" />
+                    {!IS_PRODUCTION && <span className="ml-2 text-sm font-semibold">version: {GIT_COMMIT_HASH}</span>}
                 </span>
             </MarqueeWrapper>
         </button>

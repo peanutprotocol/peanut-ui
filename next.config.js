@@ -1,10 +1,19 @@
 const os = require('os')
+const { execSync } = require('child_process')
 const withBundleAnalyzer = require('@next/bundle-analyzer')({
     // Only enable in production builds when explicitly requested
     enabled: process.env.ANALYZE === 'true' && process.env.NODE_ENV !== 'development',
 })
 
 const redirectsConfig = require('./redirects.json')
+
+// Get git commit hash at build time
+let gitCommitHash = 'unknown'
+try {
+    gitCommitHash = execSync('git rev-parse --short=7 HEAD').toString().trim()
+} catch (error) {
+    console.warn('Could not get git commit hash:', error.message)
+}
 const interfaces = os.networkInterfaces()
 let ipAddress = 'Unable to determine IP address'
 
@@ -25,6 +34,9 @@ try {
 
 /** @type {import('next').NextConfig} */
 let nextConfig = {
+    env: {
+        NEXT_PUBLIC_GIT_COMMIT_HASH: gitCommitHash,
+    },
     images: {
         remotePatterns: [
             {
