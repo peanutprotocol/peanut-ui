@@ -18,6 +18,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import useClaimLink from '@/components/Claim/useClaimLink'
 import { useToast } from '@/components/0_Bruddle/Toast'
+import { TRANSACTIONS } from '@/constants/query.consts'
 
 const LinkSendSuccessView = () => {
     const dispatch = useAppDispatch()
@@ -133,7 +134,7 @@ const LinkSendSuccessView = () => {
                                 fetchBalance()
                                 queryClient
                                     .invalidateQueries({
-                                        queryKey: ['transactions'],
+                                        queryKey: [TRANSACTIONS],
                                     })
                                     .then(async () => {
                                         setIsLoading(false)

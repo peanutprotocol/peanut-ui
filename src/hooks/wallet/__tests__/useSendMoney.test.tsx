@@ -175,7 +175,7 @@ describe('useSendMoney', () => {
             // Check invalidation calls
             await waitFor(() => {
                 expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['balance', mockAddress] })
-                expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['transactions'] })
+                expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['TRANSACTIONS'] })
             })
         })
     })
