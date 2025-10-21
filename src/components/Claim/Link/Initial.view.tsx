@@ -209,7 +209,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 setLoadingState('Executing transaction')
 
                 // Determine recipient address
-                const recipientAddress = isPeanutWallet ? (user?.user.username ?? address) : recipient.address
+                const recipientAddress = isPeanutWallet ? (user?.user.username ?? address) : recipient?.address
 
                 if (!recipientAddress) {
                     throw new Error('No recipient address available')

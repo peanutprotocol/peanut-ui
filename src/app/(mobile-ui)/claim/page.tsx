@@ -9,14 +9,16 @@ import { formatUnits } from 'viem'
 export const dynamic = 'force-dynamic'
 
 async function getClaimLinkData(searchParams: { [key: string]: string | string[] | undefined }, siteUrl: string) {
-    if (!searchParams.i || !searchParams.c || !searchParams.v) return null
+    if (!searchParams.i || !searchParams.c) return null
 
     try {
         // Use backend API with belt-and-suspenders logic (DB + blockchain fallback)
+        const contractVersion = (searchParams.v as string) || 'v4.3'
+
         const sendLink = await sendLinksApi.getByParams({
             chainId: searchParams.c as string,
             depositIdx: searchParams.i as string,
-            contractVersion: searchParams.v as string,
+            contractVersion,
         })
 
         // Get token details for proper formatting
@@ -25,12 +27,21 @@ async function getClaimLinkData(searchParams: { [key: string]: string | string[]
         let tokenDecimals = 6
         let tokenSymbol = 'USDC'
 
-        try {
-            const tokenDetails = await fetchTokenDetails(sendLink.tokenAddress, sendLink.chainId)
-            tokenDecimals = tokenDetails.decimals
-            tokenSymbol = tokenDetails.symbol
-        } catch (e) {
-            console.error('Failed to fetch token details, using defaults:', e)
+        if (sendLink.tokenDecimals !== undefined && sendLink.tokenSymbol) {
+            // Use backend data if available
+            tokenDecimals = sendLink.tokenDecimals
+            tokenSymbol = sendLink.tokenSymbol
+        } else {
+            // Fallback: fetch token details from blockchain
+            try {
+                const { fetchTokenDetails } = await import('@/app/actions/tokens')
+                const tokenDetails = await fetchTokenDetails(sendLink.tokenAddress, sendLink.chainId)
+                tokenDecimals = tokenDetails.decimals
+                tokenSymbol = tokenDetails.symbol
+            } catch (e) {
+                console.error('Failed to fetch token details:', e)
+                // Keep defaults
+            }
         }
 
         // Transform to linkDetails format for metadata

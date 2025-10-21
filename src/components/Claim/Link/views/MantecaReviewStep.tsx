@@ -8,6 +8,7 @@ import { mantecaApi } from '@/services/manteca'
 import { sendLinksApi } from '@/services/sendLinks'
 import { MercadoPagoStep } from '@/types/manteca.types'
 import { type Dispatch, type FC, type SetStateAction, useState } from 'react'
+import useClaimLink from '@/components/Claim/useClaimLink'
 
 interface MantecaReviewStepProps {
     setCurrentStep: Dispatch<SetStateAction<MercadoPagoStep>>
@@ -27,6 +28,7 @@ const MantecaReviewStep: FC<MantecaReviewStepProps> = ({
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const { price, isLoading } = useCurrency(currency)
+    const { claimLink: claimLinkSecure } = useClaimLink()
 
     const detailsCardRows: MantecaCardRow[] = [
         {
@@ -52,13 +54,26 @@ const MantecaReviewStep: FC<MantecaReviewStepProps> = ({
             try {
                 setError(null)
                 setIsSubmitting(true)
-                const waitForTx = true
-                const claimResponse = await sendLinksApi.claim(MANTECA_DEPOSIT_ADDRESS, claimLink, waitForTx)
-                const txHash = claimResponse.claim?.txHash
+
+                // Use secure SDK claim (password stays client-side, only signature sent to backend)
+                const txHash = await claimLinkSecure({
+                    address: MANTECA_DEPOSIT_ADDRESS,
+                    link: claimLink,
+                })
+
                 if (!txHash) {
                     setError('Claim failed: missing transaction hash.')
                     return
                 }
+
+                // Associate the claim with user if logged in
+                try {
+                    await sendLinksApi.associateClaim(txHash)
+                } catch (e) {
+                    console.error('Failed to associate claim:', e)
+                    // Non-critical, continue
+                }
+
                 const { data, error: withdrawError } = await mantecaApi.withdraw({
                     amount: amount.replace(/,/g, ''),
                     destinationAddress,
