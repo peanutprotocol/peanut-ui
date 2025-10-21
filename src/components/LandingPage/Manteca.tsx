@@ -3,7 +3,7 @@ import borderCloud from '@/assets/illustrations/border-cloud.svg'
 import { useEffect, useState } from 'react'
 import mantecaIphone from '@/assets/iphone-ss/manteca_ss.png'
 import Image from 'next/image'
-import { MEPA_ARGENTINA_LOGO, PIX_BRZ_LOGO } from '@/assets'
+import { MEPA_ARGENTINA_LOGO, PIX_BRZ_LOGO, Star } from '@/assets'
 
 const Manteca = () => {
     const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200)
@@ -52,6 +52,62 @@ const Manteca = () => {
                     {...createCloudAnimation('right', '60%', 220, 40)}
                 />
             </div>
+
+            {/* Left side stars */}
+            <motion.img
+                src={Star.src}
+                alt="Floating Star"
+                width={50}
+                height={50}
+                className="absolute left-12 top-10"
+                initial={{ opacity: 0, translateY: 20, translateX: 5, rotate: 22 }}
+                whileInView={{ opacity: 1, translateY: 0, translateX: 0, rotate: 22 }}
+                transition={{ type: 'spring', damping: 5, delay: 0.2 }}
+            />
+
+            <motion.img
+                src={Star.src}
+                alt="Floating Star"
+                width={50}
+                height={50}
+                className="absolute left-56 top-1/2"
+                initial={{ opacity: 0, translateY: 20, translateX: 5, rotate: 22 }}
+                whileInView={{ opacity: 1, translateY: 0, translateX: 0, rotate: 22 }}
+                transition={{ type: 'spring', damping: 5, delay: 0.2 }}
+            />
+
+            <motion.img
+                src={Star.src}
+                alt="Floating Star"
+                width={50}
+                height={50}
+                className="absolute bottom-20 left-20"
+                initial={{ opacity: 0, translateY: 20, translateX: 5, rotate: 22 }}
+                whileInView={{ opacity: 1, translateY: 0, translateX: 0, rotate: 22 }}
+                transition={{ type: 'spring', damping: 5, delay: 0.2 }}
+            />
+
+            {/* Right side stars */}
+            <motion.img
+                src={Star.src}
+                alt="Floating Star"
+                width={50}
+                height={50}
+                className="absolute -top-16 right-20 md:top-58"
+                initial={{ opacity: 0, translateY: 20, translateX: 5, rotate: 22 }}
+                whileInView={{ opacity: 1, translateY: 0, translateX: 0, rotate: 22 }}
+                transition={{ type: 'spring', damping: 5, delay: 0.6 }}
+            />
+            <motion.img
+                src={Star.src}
+                alt="Floating Star"
+                width={50}
+                height={50}
+                className="absolute bottom-20 right-44"
+                initial={{ opacity: 0, translateY: 20, translateX: 5, rotate: 22 }}
+                whileInView={{ opacity: 1, translateY: 0, translateX: 0, rotate: 22 }}
+                transition={{ type: 'spring', damping: 5, delay: 0.6 }}
+            />
 
             <div className="relative flex flex-col items-center justify-center">
                 <h1 className="font-roboto-flex-extrabold text-center text-[4rem] font-extraBlack md:text-left lg:text-headingMedium">

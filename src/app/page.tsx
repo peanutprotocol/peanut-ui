@@ -189,6 +189,7 @@ export default function LandingPage() {
             <Hero primaryCta={hero.primaryCta} buttonVisible={buttonVisible} buttonScale={buttonScale} />
             <Marquee {...marqueeProps} />
             <Manteca />
+            <Marquee {...marqueeProps} />
             <DropLink />
             <Marquee {...marqueeProps} />
             <RegulatedRails />
