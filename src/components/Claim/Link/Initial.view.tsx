@@ -113,6 +113,10 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     const prevUser = useRef(user)
     const { isUserBridgeKycApproved } = useKycStatus()
 
+    // Track current token selection to prevent race conditions
+    const currentSelectionRef = useRef<{ chainId: string; tokenAddress: string } | null>(null)
+    const pendingFetchRef = useRef<{ chainId: string; tokenAddress: string } | null>(null)
+
     useEffect(() => {
         if (!prevUser.current && user) {
             resetClaimBankFlow()
@@ -152,6 +156,17 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     const handleClaimLink = useCallback(
         async (bypassModal = false, autoClaim = false) => {
             if (!selectedTokenData) return
+
+            // Validate that selectedTokenData matches current selection (prevent race condition)
+            if (
+                currentSelectionRef.current &&
+                (currentSelectionRef.current.chainId !== selectedTokenData.chainId ||
+                    !areEvmAddressesEqual(currentSelectionRef.current.tokenAddress, selectedTokenData.address))
+            ) {
+                console.warn('Token selection changed, aborting claim')
+                return
+            }
+
             if (!isPeanutWallet && !bypassModal) {
                 setShowConfirmationModal(true)
                 return
@@ -454,6 +469,11 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             }
             const chainId = toChain ?? selectedTokenData!.chainId
             const tokenAddress = toToken ?? selectedTokenData!.address
+
+            // Track this fetch request
+            const requestId = { chainId, tokenAddress: tokenAddress.toLowerCase() }
+            pendingFetchRef.current = requestId
+
             try {
                 const existingRoute = routes.find(
                     (route) =>
@@ -467,7 +487,14 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 )
 
                 if (existingRoute) {
-                    setSelectedRoute(existingRoute)
+                    // Check if this request is still current before setting state
+                    if (
+                        currentSelectionRef.current &&
+                        currentSelectionRef.current.chainId === requestId.chainId &&
+                        areEvmAddressesEqual(currentSelectionRef.current.tokenAddress, requestId.tokenAddress)
+                    ) {
+                        setSelectedRoute(existingRoute)
+                    }
                     return existingRoute
                 } else if (!isXChain && !toToken && !toChain) {
                     setHasFetchedRoute(false)
@@ -503,21 +530,41 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 )
 
                 setRoutes([...routes, route])
+
+                // Only set the route if this request is still current
                 if (!toToken && !toChain) {
-                    setSelectedRoute(route)
-                    setHasFetchedRoute(true)
+                    if (
+                        currentSelectionRef.current &&
+                        currentSelectionRef.current.chainId === requestId.chainId &&
+                        areEvmAddressesEqual(currentSelectionRef.current.tokenAddress, requestId.tokenAddress)
+                    ) {
+                        setSelectedRoute(route)
+                        setHasFetchedRoute(true)
+                    } else {
+                        console.log('Ignoring stale route fetch result:', requestId)
+                    }
                 }
                 return route
             } catch (error) {
                 console.error('Error fetching route:', error)
-                if (!toToken && !toChain) {
-                    setSelectedRoute(undefined)
+
+                // Only update state if this request is still current
+                if (
+                    currentSelectionRef.current &&
+                    currentSelectionRef.current.chainId === requestId.chainId &&
+                    areEvmAddressesEqual(currentSelectionRef.current.tokenAddress, requestId.tokenAddress)
+                ) {
+                    if (!toToken && !toChain) {
+                        setSelectedRoute(undefined)
+                    }
+                    setErrorState({
+                        showError: true,
+                        errorMessage: ROUTE_NOT_FOUND_ERROR,
+                    })
+                    Sentry.captureException(error)
+                } else {
+                    console.log('Ignoring error from stale route fetch:', requestId)
                 }
-                setErrorState({
-                    showError: true,
-                    errorMessage: ROUTE_NOT_FOUND_ERROR,
-                })
-                Sentry.captureException(error)
                 return undefined
             } finally {
                 setIsXchainLoading(false)
@@ -533,6 +580,16 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         }
     }, [claimBankFlowStep, resetSelectedToken])
 
+    // Track current selection to prevent race conditions
+    useEffect(() => {
+        if (selectedTokenData && selectedTokenData.chainId && selectedTokenData.address) {
+            currentSelectionRef.current = {
+                chainId: selectedTokenData.chainId,
+                tokenAddress: selectedTokenData.address.toLowerCase(),
+            }
+        }
+    }, [selectedTokenData])
+
     useEffect(() => {
         let isMounted = true
         if (isReward || !claimLinkData.tokenAddress) {
@@ -541,29 +598,42 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             }
         }
 
-        if (refetchXchainRoute && recipient.address) {
-            setIsXchainLoading(true)
-            setLoadingState('Fetching route')
-            setErrorState({
-                showError: false,
-                errorMessage: '',
-            })
+        // console.log(refetchXchainRoute, 'refetchXchainRoute')
+        // console.log(recipient.address, 'recipient.address')
 
-            fetchRoute().finally(() => {
-                if (isMounted) {
-                    setRefetchXchainRoute(false)
-                } else {
-                    setErrorState({
-                        showError: false,
-                        errorMessage: '',
-                    })
-                }
-            })
+        // Only fetch if selectedTokenData is ready and matches current selection
+        if (refetchXchainRoute && recipient.address && selectedTokenData) {
+            const isDataReady =
+                selectedTokenData.chainId &&
+                selectedTokenData.address &&
+                currentSelectionRef.current &&
+                currentSelectionRef.current.chainId === selectedTokenData.chainId &&
+                areEvmAddressesEqual(currentSelectionRef.current.tokenAddress, selectedTokenData.address)
+
+            if (isDataReady) {
+                setIsXchainLoading(true)
+                setLoadingState('Fetching route')
+                setErrorState({
+                    showError: false,
+                    errorMessage: '',
+                })
+
+                fetchRoute().finally(() => {
+                    if (isMounted) {
+                        setRefetchXchainRoute(false)
+                    } else {
+                        setErrorState({
+                            showError: false,
+                            errorMessage: '',
+                        })
+                    }
+                })
+            }
         }
         return () => {
             isMounted = false
         }
-    }, [claimLinkData.tokenAddress, refetchXchainRoute, isReward, fetchRoute, recipient.address])
+    }, [claimLinkData.tokenAddress, refetchXchainRoute, isReward, fetchRoute, recipient.address, selectedTokenData])
 
     useEffect(() => {
         if ((recipientType === 'iban' || recipientType === 'us') && selectedRoute) {
