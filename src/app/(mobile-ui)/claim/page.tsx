@@ -1,5 +1,5 @@
 import { Claim } from '@/components'
-import { BASE_URL, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
+import { BASE_URL, PEANUT_WALLET_TOKEN_DECIMALS, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
 import { formatAmount, resolveAddressToUsername } from '@/utils'
 import { type Metadata } from 'next'
 import getOrigin from '@/lib/hosting/get-origin'
@@ -13,19 +13,19 @@ async function getClaimLinkData(searchParams: { [key: string]: string | string[]
 
     try {
         // Use backend API with belt-and-suspenders logic (DB + blockchain fallback)
-        const contractVersion = (searchParams.v as string) || 'v4.2'
+        const contractVersion = (searchParams.v as string) || 'v4.3'
 
         const sendLink = await sendLinksApi.getByParams({
             chainId: searchParams.c as string,
             depositIdx: searchParams.i as string,
             contractVersion,
         })
-
         // Backend always provides token details (from DB or blockchain fallback)
-        const tokenDecimals = sendLink.tokenDecimals
-        const tokenSymbol = sendLink.tokenSymbol
+        // Use fallback from consts if not available
+        const tokenDecimals = sendLink.tokenDecimals ?? PEANUT_WALLET_TOKEN_DECIMALS
+        const tokenSymbol = sendLink.tokenSymbol ?? PEANUT_WALLET_TOKEN_SYMBOL
 
-        // Transform to linkDetails format for metadata
+        // Transform to linkDetails format for metadata`
         const linkDetails = {
             senderAddress: sendLink.senderAddress,
             tokenAmount: formatUnits(sendLink.amount, tokenDecimals),
