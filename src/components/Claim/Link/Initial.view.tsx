@@ -566,9 +566,6 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             }
         }
 
-        // console.log(refetchXchainRoute, 'refetchXchainRoute')
-        // console.log(recipient.address, 'recipient.address')
-
         // Only fetch if selectedTokenData is ready
         if (refetchXchainRoute && recipient.address && selectedTokenData) {
             setIsXchainLoading(true)
