@@ -13,6 +13,7 @@ import {
     RegulatedRails,
 } from '@/components/LandingPage'
 import Footer from '@/components/LandingPage/Footer'
+import Manteca from '@/components/LandingPage/Manteca'
 import { useFooterVisibility } from '@/context/footerVisibility'
 import { useEffect, useState, useRef } from 'react'
 
@@ -187,6 +188,7 @@ export default function LandingPage() {
         <Layout className="enable-select !m-0 w-full !p-0">
             <Hero primaryCta={hero.primaryCta} buttonVisible={buttonVisible} buttonScale={buttonScale} />
             <Marquee {...marqueeProps} />
+            <Manteca />
             <DropLink />
             <Marquee {...marqueeProps} />
             <RegulatedRails />
