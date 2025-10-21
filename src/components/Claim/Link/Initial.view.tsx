@@ -207,56 +207,52 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
 
             try {
                 setLoadingState('Executing transaction')
-                if (isPeanutWallet) {
-                    // Ensure we have a valid recipient (username or address)
-                    const recipient = user?.user.username ?? address
-                    if (!recipient) {
-                        throw new Error('No recipient address available')
-                    }
 
-                    if (autoClaim) {
-                        await sendLinksApi.autoClaimLink(recipient, claimLinkData.link)
-                    } else {
-                        await sendLinksApi.claim(recipient, claimLinkData.link)
-                    }
-                    setClaimType('claim')
-                    onCustom('SUCCESS')
-                    fetchBalance()
-                    queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
-                } else {
-                    // Check if cross-chain claiming is needed
+                // Determine recipient address
+                const recipientAddress = isPeanutWallet ? (user?.user.username ?? address) : recipient.address
 
-                    let claimTxHash: string
-                    if (isXChain) {
-                        claimTxHash = await claimLinkXchain({
-                            address: recipient.address,
-                            link: claimLinkData.link,
-                            destinationChainId: selectedTokenData.chainId,
-                            destinationToken: selectedTokenData.address,
-                        })
-                        setClaimType('claimxchain')
-                    } else {
-                        claimTxHash = await claimLink({
-                            address: recipient.address,
-                            link: claimLinkData.link,
-                        })
-                        setClaimType('claim')
-                    }
-
-                    // associate the claim with the user so it shows up in their activity
-                    if (user && claimTxHash) {
-                        try {
-                            await sendLinksApi.associateClaim(claimTxHash)
-                        } catch (e) {
-                            Sentry.captureException(e)
-                            console.error('Failed to associate claim', e)
-                        }
-                    }
-
-                    setTransactionHash(claimTxHash)
-                    onCustom('SUCCESS')
-                    queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+                if (!recipientAddress) {
+                    throw new Error('No recipient address available')
                 }
+
+                // Use secure SDK claim (password stays client-side, only signature sent to backend)
+                let claimTxHash: string
+
+                // Check if cross-chain claiming is needed
+                if (isXChain) {
+                    claimTxHash = await claimLinkXchain({
+                        address: recipientAddress,
+                        link: claimLinkData.link,
+                        destinationChainId: selectedTokenData.chainId,
+                        destinationToken: selectedTokenData.address,
+                    })
+                    setClaimType('claimxchain')
+                } else {
+                    claimTxHash = await claimLink({
+                        address: recipientAddress,
+                        link: claimLinkData.link,
+                    })
+                    setClaimType('claim')
+                }
+
+                // Associate the claim with the user so it shows up in their activity
+                if (user && claimTxHash) {
+                    try {
+                        await sendLinksApi.associateClaim(claimTxHash)
+                    } catch (e) {
+                        Sentry.captureException(e)
+                        console.error('Failed to associate claim', e)
+                    }
+                }
+
+                setTransactionHash(claimTxHash)
+                onCustom('SUCCESS')
+
+                // Refresh balance and transactions for all claim types
+                if (isPeanutWallet) {
+                    fetchBalance()
+                }
+                queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
             } catch (error) {
                 const errorString = ErrorHandler(error)
                 setErrorState({

@@ -1,40 +1,70 @@
-import { getLinkDetails } from '@/app/actions/claimLinks'
 import { Claim } from '@/components'
 import { BASE_URL } from '@/constants'
 import { formatAmount, resolveAddressToUsername } from '@/utils'
 import { type Metadata } from 'next'
 import getOrigin from '@/lib/hosting/get-origin'
+import { sendLinksApi } from '@/services/sendLinks'
+import { formatUnits } from 'viem'
 
 export const dynamic = 'force-dynamic'
 
 async function getClaimLinkData(searchParams: { [key: string]: string | string[] | undefined }, siteUrl: string) {
-    if (!searchParams.i || !searchParams.c) return null
+    if (!searchParams.i || !searchParams.c || !searchParams.v) return null
 
     try {
-        const queryParams = new URLSearchParams()
-        Object.entries(searchParams).forEach(([key, val]) => {
-            if (Array.isArray(val)) {
-                val.forEach((v) => queryParams.append(key, v))
-            } else if (val) {
-                queryParams.append(key, val)
-            }
+        // Use backend API with belt-and-suspenders logic (DB + blockchain fallback)
+        const sendLink = await sendLinksApi.getByParams({
+            chainId: searchParams.c as string,
+            depositIdx: searchParams.i as string,
+            contractVersion: searchParams.v as string,
         })
 
-        const url = `${siteUrl}/claim?${queryParams.toString()}`
-        const linkDetails = await getLinkDetails(url)
+        // Get token details for proper formatting
+        // We could enhance this to use backend token cache, but for now use blockchain
+        const { fetchTokenDetails } = await import('@/app/actions/tokens')
+        let tokenDecimals = 6
+        let tokenSymbol = 'USDC'
 
-        // Get username from sender address
-        const username = linkDetails?.senderAddress
-            ? await resolveAddressToUsername(linkDetails.senderAddress, siteUrl)
-            : null
+        try {
+            const tokenDetails = await fetchTokenDetails(sendLink.tokenAddress, sendLink.chainId)
+            tokenDecimals = tokenDetails.decimals
+            tokenSymbol = tokenDetails.symbol
+        } catch (e) {
+            console.error('Failed to fetch token details, using defaults:', e)
+        }
+
+        // Transform to linkDetails format for metadata
+        const linkDetails = {
+            senderAddress: sendLink.senderAddress,
+            tokenAmount: formatUnits(sendLink.amount, tokenDecimals),
+            tokenSymbol,
+            claimed: sendLink.status === 'CLAIMED' || sendLink.status === 'CANCELLED',
+        }
+
+        // Get username from sender - use sender.username if available (from backend)
+        let username: string | null = sendLink.sender?.username || null
+
+        // If no username in backend data, try ENS resolution with timeout
+        if (!username && linkDetails.senderAddress) {
+            try {
+                const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000))
+                username = await Promise.race([
+                    resolveAddressToUsername(linkDetails.senderAddress, siteUrl),
+                    timeoutPromise,
+                ])
+            } catch (ensError) {
+                console.error('ENS resolution failed:', ensError)
+                username = null
+            }
+        }
 
         if (username) {
-            console.log('username', username)
+            console.log('Resolved username:', username)
         }
 
         return { linkDetails, username }
     } catch (e) {
-        console.log('error: ', e)
+        console.error('Error fetching claim link data:', e)
         return null
     }
 }
