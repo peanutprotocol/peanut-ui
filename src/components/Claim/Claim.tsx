@@ -1,5 +1,5 @@
 'use client'
-import peanut from '@squirrel-labs/peanut-sdk'
+import { generateKeysFromString } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 
 import { fetchTokenDetails, fetchTokenPrice } from '@/app/actions/tokens'
@@ -14,9 +14,10 @@ import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHisto
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import * as interfaces from '@/interfaces'
-import { ESendLinkStatus, sendLinksApi, type ClaimLinkData } from '@/services/sendLinks'
+import { ESendLinkStatus, getParamsFromLink, sendLinksApi, type ClaimLinkData } from '@/services/sendLinks'
 import { getInitialsFromName, getTokenDetails, isStableCoin } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
+import { useQuery } from '@tanstack/react-query'
 import type { Hash } from 'viem'
 import { formatUnits } from 'viem'
 import PageContainer from '../0_Bruddle/PageContainer'
@@ -31,6 +32,7 @@ import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowCont
 import { useSearchParams } from 'next/navigation'
 
 export const Claim = ({}) => {
+    const [linkUrl, setLinkUrl] = useState<string>('')
     const [step, setStep] = useState<_consts.IClaimScreenState>(_consts.INIT_VIEW_STATE)
     const [linkState, setLinkState] = useState<_consts.claimLinkStateType>(_consts.claimLinkStateType.LOADING)
     const [claimLinkData, setClaimLinkData] = useState<ClaimLinkData | undefined>(undefined)
@@ -72,6 +74,21 @@ export const Claim = ({}) => {
 
     const { setFlowStep: setClaimBankFlowStep } = useClaimBankFlow()
     const searchParams = useSearchParams()
+
+    // TanStack Query for fetching send link with automatic retry
+    const {
+        data: sendLink,
+        isLoading: isSendLinkLoading,
+        error: sendLinkError,
+    } = useQuery({
+        queryKey: ['sendLink', linkUrl],
+        queryFn: () => sendLinksApi.get(linkUrl),
+        enabled: !!linkUrl, // Only run when we have a link URL
+        retry: 3, // Retry 3 times for RPC sync issues
+        retryDelay: (attemptIndex) => (attemptIndex + 1) * 1000, // 1s, 2s, 3s (linear backoff)
+        staleTime: 0, // Don't cache (one-time use per link)
+        gcTime: 0, // Garbage collect immediately after use
+    })
 
     const transactionForDrawer: TransactionDetails | null = useMemo(() => {
         if (!claimLinkData) return null
@@ -170,12 +187,22 @@ export const Claim = ({}) => {
         return true
     }, [selectedTransaction, linkState, user, claimLinkData])
 
-    const checkLink = useCallback(
-        async (link: string) => {
+    // Process sendLink data when it arrives (TanStack Query handles retry automatically)
+    // This effect processes link validation WITHOUT user-dependent logic
+    useEffect(() => {
+        if (!sendLink || !linkUrl) return
+        if (isFetchingUser) return // Wait for user data to be ready before processing
+
+        const processLink = async () => {
             try {
-                const url = new URL(link)
-                const password = url.hash.split('=')[1]
-                const sendLink = await sendLinksApi.get(link)
+                const params = getParamsFromLink(linkUrl)
+                const password = params.password
+
+                if (!password) {
+                    setLinkState(_consts.claimLinkStateType.WRONG_PASSWORD)
+                    return
+                }
+
                 setAttachment({
                     message: sendLink.textContent,
                     attachmentUrl: sendLink.fileUrl,
@@ -184,14 +211,14 @@ export const Claim = ({}) => {
                 const tokenDetails = await fetchTokenDetails(sendLink.tokenAddress, sendLink.chainId)
                 setClaimLinkData({
                     ...sendLink,
-                    link,
+                    link: linkUrl,
                     password,
                     tokenSymbol: tokenDetails.symbol,
                     tokenDecimals: tokenDetails.decimals,
                 })
                 setSelectedChainID(sendLink.chainId)
                 setSelectedTokenAddress(sendLink.tokenAddress)
-                const keyPair = peanut.generateKeysFromString(password)
+                const keyPair = generateKeysFromString(password)
                 const generatedPubKey = keyPair.address
 
                 const depositPubKey = sendLink.pubKey
@@ -206,37 +233,67 @@ export const Claim = ({}) => {
                     return
                 }
 
-                let price = 0
-                if (isStableCoin(tokenDetails.symbol)) {
-                    price = 1
-                } else {
-                    const tokenPriceDetails = await fetchTokenPrice(
-                        sendLink.tokenAddress.toLowerCase(),
-                        sendLink.chainId
-                    )
-                    if (tokenPriceDetails) {
-                        price = tokenPriceDetails.price
-                    }
-                }
-                if (0 < price) setTokenPrice(price)
-
-                // if there is no logged-in user, allow claiming immediately.
-                // otherwise, perform user-related checks after user fetch completes
-                if (!user || !isFetchingUser) {
-                    if (user && user.user.userId === sendLink.sender?.userId) {
-                        setLinkState(_consts.claimLinkStateType.CLAIM_SENDER)
+                // Fetch token price - isolate failures to prevent hiding valid links
+                try {
+                    let price = 0
+                    if (isStableCoin(tokenDetails.symbol)) {
+                        price = 1
                     } else {
-                        setLinkState(_consts.claimLinkStateType.CLAIM)
+                        const tokenPriceDetails = await fetchTokenPrice(
+                            sendLink.tokenAddress.toLowerCase(),
+                            sendLink.chainId
+                        )
+                        if (tokenPriceDetails) {
+                            price = tokenPriceDetails.price
+                        }
                     }
+                    if (0 < price) setTokenPrice(price)
+                } catch (priceError) {
+                    console.warn('[Claim] Token price fetch failed, continuing without price:', priceError)
+                    // Link remains claimable even without price display
                 }
+
+                // Set default claim state - will be updated by user-dependent effect below
+                setLinkState(_consts.claimLinkStateType.CLAIM)
             } catch (error) {
-                console.error(error)
+                console.error('Error processing link:', error)
                 setLinkState(_consts.claimLinkStateType.NOT_FOUND)
                 Sentry.captureException(error)
             }
-        },
-        [user, isFetchingUser]
-    )
+        }
+
+        processLink()
+    }, [sendLink, linkUrl, isFetchingUser, setSelectedChainID, setSelectedTokenAddress])
+
+    // Separate effect for user-dependent link state updates
+    // This runs after link data is processed and determines the correct claim state
+    useEffect(() => {
+        if (!claimLinkData || isFetchingUser) return
+
+        // If link is already claimed or cancelled, that state takes precedence
+        if (claimLinkData.status === ESendLinkStatus.CLAIMED || claimLinkData.status === ESendLinkStatus.CANCELLED) {
+            setLinkState(_consts.claimLinkStateType.ALREADY_CLAIMED)
+            return
+        }
+
+        // Determine claim state based on user
+        if (!user) {
+            setLinkState(_consts.claimLinkStateType.CLAIM)
+        } else if (user.user.userId === claimLinkData.sender?.userId) {
+            setLinkState(_consts.claimLinkStateType.CLAIM_SENDER)
+        } else {
+            setLinkState(_consts.claimLinkStateType.CLAIM)
+        }
+    }, [user, isFetchingUser, claimLinkData])
+
+    // Handle sendLink fetch errors
+    useEffect(() => {
+        if (sendLinkError) {
+            console.error('Failed to load link:', sendLinkError)
+            setLinkState(_consts.claimLinkStateType.NOT_FOUND)
+            Sentry.captureException(sendLinkError)
+        }
+    }, [sendLinkError])
 
     useEffect(() => {
         if (address) {
@@ -247,9 +304,9 @@ export const Claim = ({}) => {
     useEffect(() => {
         const pageUrl = typeof window !== 'undefined' ? window.location.href : ''
         if (pageUrl) {
-            checkLink(pageUrl)
+            setLinkUrl(pageUrl) // TanStack Query will automatically fetch when linkUrl changes
         }
-    }, [user])
+    }, [])
 
     useEffect(() => {
         if (!transactionForDrawer) return
@@ -329,7 +386,7 @@ export const Claim = ({}) => {
                     transaction={selectedTransaction}
                     setIsLoading={setisLinkCancelling}
                     isLoading={isLinkCancelling}
-                    onClose={() => checkLink(window.location.href)}
+                    onClose={() => setLinkUrl(window.location.href)}
                 />
             )}
 

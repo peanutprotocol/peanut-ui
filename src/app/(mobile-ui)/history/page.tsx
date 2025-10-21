@@ -14,6 +14,11 @@ import { formatGroupHeaderDate, getDateGroup, getDateGroupKey } from '@/utils/da
 import * as Sentry from '@sentry/nextjs'
 import { isKycStatusItem } from '@/hooks/useBridgeKycFlow'
 import React, { useEffect, useMemo, useRef } from 'react'
+import { useQueryClient, type InfiniteData } from '@tanstack/react-query'
+import { useWebSocket } from '@/hooks/useWebSocket'
+import { TRANSACTIONS } from '@/constants/query.consts'
+import type { HistoryResponse } from '@/hooks/useTransactionHistory'
+import { AccountType } from '@/interfaces'
 
 /**
  * displays the user's transaction history with infinite scrolling and date grouping.
@@ -21,6 +26,7 @@ import React, { useEffect, useMemo, useRef } from 'react'
 const HistoryPage = () => {
     const loaderRef = useRef<HTMLDivElement>(null)
     const { user } = useUserStore()
+    const queryClient = useQueryClient()
 
     const {
         data: historyData,
@@ -33,6 +39,52 @@ const HistoryPage = () => {
     } = useTransactionHistory({
         mode: 'infinite',
         limit: 20,
+    })
+
+    // Real-time updates via WebSocket
+    useWebSocket({
+        username: user?.user.username ?? undefined,
+        onHistoryEntry: (newEntry) => {
+            console.log('[History] New transaction received via WebSocket:', newEntry)
+
+            // Update TanStack Query cache with new transaction
+            queryClient.setQueryData<InfiniteData<HistoryResponse>>(
+                [TRANSACTIONS, 'infinite', { limit: 20 }],
+                (oldData) => {
+                    if (!oldData) return oldData
+
+                    // Check if entry exists on ANY page to prevent duplicates
+                    const existsAnywhere = oldData.pages.some((p) => p.entries.some((e) => e.uuid === newEntry.uuid))
+
+                    if (existsAnywhere) {
+                        console.log('[History] Duplicate transaction ignored:', newEntry.uuid)
+                        return oldData
+                    }
+
+                    // Add new entry to the first page
+                    return {
+                        ...oldData,
+                        pages: oldData.pages.map((page, index) => {
+                            if (index === 0) {
+                                return {
+                                    ...page,
+                                    entries: [newEntry, ...page.entries],
+                                }
+                            }
+                            return page
+                        }),
+                    }
+                }
+            )
+
+            // Invalidate balance query to refresh it (scoped to user's wallet address)
+            const walletAddress = user?.accounts.find(
+                (account) => account.type === AccountType.PEANUT_WALLET
+            )?.identifier
+            if (walletAddress) {
+                queryClient.invalidateQueries({ queryKey: ['balance', walletAddress] })
+            }
+        },
     })
 
     useEffect(() => {

@@ -208,10 +208,16 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             try {
                 setLoadingState('Executing transaction')
                 if (isPeanutWallet) {
+                    // Ensure we have a valid recipient (username or address)
+                    const recipient = user?.user.username ?? address
+                    if (!recipient) {
+                        throw new Error('No recipient address available')
+                    }
+
                     if (autoClaim) {
-                        await sendLinksApi.autoClaimLink(user?.user.username ?? address, claimLinkData.link)
+                        await sendLinksApi.autoClaimLink(recipient, claimLinkData.link)
                     } else {
-                        await sendLinksApi.claim(user?.user.username ?? address, claimLinkData.link)
+                        await sendLinksApi.claim(recipient, claimLinkData.link)
                     }
                     setClaimType('claim')
                     onCustom('SUCCESS')
