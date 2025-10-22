@@ -429,9 +429,9 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     // Note: Claimers don't earn points for claiming - only senders earn points for sending.
     // Points will be visible in the sender's transaction history after the claim is processed.
     // The calculatePoints endpoint is meant for senders to preview points before sending.
-    useEffect(() => {
-        // No points calculation needed on claim screen
-    }, [recipient.address, isValidRecipient, claimLinkData.amount, claimLinkData.chainId, tokenPrice, user])
+    // useEffect(() => {
+    //     // No points calculation needed on claim screen
+    // }, [recipient.address, isValidRecipient, claimLinkData.amount, claimLinkData.chainId, tokenPrice, user])
 
     useEffect(() => {
         setIsValidRecipient(!!recipient.address)
