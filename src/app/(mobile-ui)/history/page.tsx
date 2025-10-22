@@ -19,6 +19,7 @@ import { useWebSocket } from '@/hooks/useWebSocket'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import type { HistoryResponse } from '@/hooks/useTransactionHistory'
 import { AccountType } from '@/interfaces'
+import { completeHistoryEntry } from '@/utils/history.utils'
 
 /**
  * displays the user's transaction history with infinite scrolling and date grouping.
@@ -44,20 +45,45 @@ const HistoryPage = () => {
     // Real-time updates via WebSocket
     useWebSocket({
         username: user?.user.username ?? undefined,
-        onHistoryEntry: (newEntry) => {
+        onHistoryEntry: async (newEntry) => {
             console.log('[History] New transaction received via WebSocket:', newEntry)
 
-            // Update TanStack Query cache with new transaction
+            // Process the entry through completeHistoryEntry to format amounts and add computed fields
+            // This ensures WebSocket entries match the format of API-fetched entries
+            let completedEntry
+            try {
+                completedEntry = await completeHistoryEntry(newEntry)
+            } catch (error) {
+                console.error('[History] Failed to process WebSocket entry:', error)
+                Sentry.captureException(error, {
+                    tags: { feature: 'websocket-history' },
+                    extra: { entryType: newEntry.type, entryUuid: newEntry.uuid },
+                })
+                
+                // Fallback: Use raw entry with minimal processing
+                completedEntry = {
+                    ...newEntry,
+                    timestamp: new Date(newEntry.timestamp),
+                    extraData: {
+                        ...newEntry.extraData,
+                        usdAmount: newEntry.amount.toString(), // Best effort fallback
+                    },
+                }
+            }
+
+            // Update TanStack Query cache with processed transaction
             queryClient.setQueryData<InfiniteData<HistoryResponse>>(
                 [TRANSACTIONS, 'infinite', { limit: 20 }],
                 (oldData) => {
                     if (!oldData) return oldData
 
                     // Check if entry exists on ANY page to prevent duplicates
-                    const existsAnywhere = oldData.pages.some((p) => p.entries.some((e) => e.uuid === newEntry.uuid))
+                    const existsAnywhere = oldData.pages.some((p) =>
+                        p.entries.some((e) => e.uuid === completedEntry.uuid)
+                    )
 
                     if (existsAnywhere) {
-                        console.log('[History] Duplicate transaction ignored:', newEntry.uuid)
+                        console.log('[History] Duplicate transaction ignored:', completedEntry.uuid)
                         return oldData
                     }
 
@@ -68,7 +94,7 @@ const HistoryPage = () => {
                             if (index === 0) {
                                 return {
                                     ...page,
-                                    entries: [newEntry, ...page.entries],
+                                    entries: [completedEntry, ...page.entries],
                                 }
                             }
                             return page
