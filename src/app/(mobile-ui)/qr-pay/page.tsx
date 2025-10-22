@@ -43,7 +43,7 @@ import { useAuth } from '@/context/authContext'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import type { HistoryEntry } from '@/hooks/useTransactionHistory'
 
-const MAX_QR_PAYMENT_AMOUNT = '200'
+const MAX_QR_PAYMENT_AMOUNT = '2000'
 
 type PaymentProcessor = 'MANTECA' | 'SIMPLEFI'
 
