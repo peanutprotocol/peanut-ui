@@ -225,6 +225,9 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
 
                 // Check if cross-chain claiming is needed
                 if (isXChain) {
+                    if (!selectedTokenData?.chainId || !selectedTokenData?.address) {
+                        throw new Error('Selected token data is required for cross-chain claims')
+                    }
                     claimTxHash = await claimLinkXchain({
                         address: recipientAddress,
                         link: claimLinkData.link,

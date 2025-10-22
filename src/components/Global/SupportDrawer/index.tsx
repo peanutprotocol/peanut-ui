@@ -11,20 +11,21 @@ const SupportDrawer = () => {
     const iframeRef = useRef<HTMLIFrameElement>(null)
 
     useEffect(() => {
-        if (!isSupportModalOpen || !iframeRef.current) return
+        if (!isSupportModalOpen || !iframeRef.current || !username) return
 
         const iframe = iframeRef.current
 
+        // Try to set Crisp data in iframe (same as CrispChat.tsx)
         const setCrispDataInIframe = () => {
             try {
                 const iframeWindow = iframe.contentWindow as any
                 if (!iframeWindow?.$crisp) return
 
-                // Set user data in iframe's Crisp instance (same as CrispChat.tsx)
+                // Set user nickname and email
                 iframeWindow.$crisp.push(['set', 'user:nickname', [username]])
                 iframeWindow.$crisp.push(['set', 'user:email', [email]])
 
-                // Set session data with Grafana link and user_id
+                // Set session data - EXACT SAME STRUCTURE as CrispChat.tsx
                 iframeWindow.$crisp.push([
                     'set',
                     'session:data',
@@ -42,17 +43,29 @@ const SupportDrawer = () => {
                     iframeWindow.$crisp.push(['set', 'message:text', [prefilledMessage]])
                 }
             } catch (e) {
-                console.error('Error setting Crisp data in iframe:', e)
+                // Silently fail if CORS blocks access - no harm done
+                console.debug('Could not set Crisp data in iframe (expected if CORS-blocked):', e)
             }
         }
 
-        // Wait for iframe to load and Crisp to initialize
         const handleLoad = () => {
-            // Try multiple times as Crisp takes time to initialize
-            const attempts = [500, 1000, 2000, 3000]
-            attempts.forEach((delay) => {
-                setTimeout(setCrispDataInIframe, delay)
-            })
+            // Try immediately
+            setCrispDataInIframe()
+
+            // Listen for Crisp loaded event in iframe
+            try {
+                const iframeWindow = iframe.contentWindow as any
+                if (iframeWindow?.$crisp) {
+                    iframeWindow.$crisp.push(['on', 'session:loaded', setCrispDataInIframe])
+                }
+            } catch (e) {
+                // Ignore CORS errors
+            }
+
+            // Fallback: try again after delays (same as CrispChat.tsx)
+            setTimeout(setCrispDataInIframe, 500)
+            setTimeout(setCrispDataInIframe, 1000)
+            setTimeout(setCrispDataInIframe, 2000)
         }
 
         iframe.addEventListener('load', handleLoad)
