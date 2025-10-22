@@ -36,12 +36,14 @@ import { QrKycState, useQrKycGate } from '@/hooks/useQrKycGate'
 import ActionModal from '@/components/Global/ActionModal'
 import { MantecaGeoSpecificKycModal } from '@/components/Kyc/InitiateMantecaKYCModal'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQueryClient, useQuery } from '@tanstack/react-query'
 import { shootDoubleStarConfetti } from '@/utils/confetti'
 import { STAR_STRAIGHT_ICON } from '@/assets'
 import { useAuth } from '@/context/authContext'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import type { HistoryEntry } from '@/hooks/useTransactionHistory'
+import { useSupportModalContext } from '@/context/SupportModalContext'
+import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
 
 const MAX_QR_PAYMENT_AMOUNT = '2000'
 
@@ -83,6 +85,10 @@ export default function QRPayPage() {
     const { user } = useAuth()
     const [pendingSimpleFiPaymentId, setPendingSimpleFiPaymentId] = useState<string | null>(null)
     const [isWaitingForWebSocket, setIsWaitingForWebSocket] = useState(false)
+    const [shouldRetry, setShouldRetry] = useState(true)
+    const { setIsSupportModalOpen } = useSupportModalContext()
+    const [waitingForMerchantAmount, setWaitingForMerchantAmount] = useState(false)
+    const retryCount = useRef(0)
 
     const paymentProcessor: PaymentProcessor | null = useMemo(() => {
         switch (qrType) {
@@ -130,12 +136,6 @@ export default function QRPayPage() {
             holdStartTimeRef.current = null
         }
     }, [])
-
-    // Reset SimpleFi payment state
-    const resetSimpleFiState = () => {
-        setPendingSimpleFiPaymentId(null)
-        setIsWaitingForWebSocket(false)
-    }
 
     const handleSimpleFiStatusUpdate = useCallback(
         (entry: HistoryEntry) => {
@@ -344,15 +344,26 @@ export default function QRPayPage() {
     useEffect(() => {
         if (paymentProcessor !== 'MANTECA') return
         if (!qrCode || !isPaymentProcessorQR(qrCode)) return
-        if (!!paymentLock) return
+        if (!!paymentLock || !shouldRetry) return
 
+        setShouldRetry(false)
         setLoadingState('Fetching details')
         mantecaApi
             .initiateQrPayment({ qrCode })
-            .then((pl) => setPaymentLock(pl))
-            .catch((error) => setErrorInitiatingPayment(error.message))
+            .then((pl) => {
+                setWaitingForMerchantAmount(false)
+                setPaymentLock(pl)
+            })
+            .catch((error) => {
+                if (error.message.includes("provider can't decode it")) {
+                    setWaitingForMerchantAmount(true)
+                } else {
+                    setErrorInitiatingPayment(error.message)
+                    setWaitingForMerchantAmount(false)
+                }
+            })
             .finally(() => setLoadingState('Idle'))
-    }, [paymentLock, qrCode, setLoadingState, paymentProcessor])
+    }, [paymentLock, qrCode, setLoadingState, paymentProcessor, shouldRetry])
 
     const merchantName = useMemo(() => {
         if (paymentProcessor === 'SIMPLEFI') {
@@ -680,7 +691,7 @@ export default function QRPayPage() {
         }
     }, [isSuccess])
 
-    const handleOrderNotReadyRetry = useCallback(async () => {
+    const handleSimplefiRetry = useCallback(async () => {
         setShowOrderNotReadyModal(false)
         if (!simpleFiQrData || simpleFiQrData.type !== 'SIMPLEFI_STATIC') return
 
@@ -709,6 +720,27 @@ export default function QRPayPage() {
             setLoadingState('Idle')
         }
     }, [simpleFiQrData, setLoadingState])
+
+    useEffect(() => {
+        if (paymentProcessor !== 'SIMPLEFI') return
+        if (!shouldRetry) return
+        setShouldRetry(false)
+        handleSimplefiRetry()
+    }, [shouldRetry, handleSimplefiRetry])
+
+    useEffect(() => {
+        if (waitingForMerchantAmount && !shouldRetry) {
+            if (retryCount.current < 3) {
+                retryCount.current++
+                setTimeout(() => {
+                    setShouldRetry(true)
+                }, 3000)
+            } else {
+                setWaitingForMerchantAmount(false)
+                setShowOrderNotReadyModal(true)
+            }
+        }
+    }, [waitingForMerchantAmount, shouldRetry])
 
     if (!!errorInitiatingPayment) {
         return (
@@ -797,25 +829,57 @@ export default function QRPayPage() {
         )
     }
 
+    if (waitingForMerchantAmount) {
+        return (
+            <div className="my-auto flex h-full w-full flex-col items-center justify-center space-y-4">
+                <div className="relative">
+                    <Image
+                        src={chillPeanutAnim.src}
+                        alt="Peanut Mascot"
+                        width={20}
+                        height={20}
+                        className="absolute z-0 h-32 w-32 -translate-y-20 translate-x-26"
+                    />
+                    <Card className="relative z-10 flex w-full flex-col items-center gap-4 p-4">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-1 p-3">
+                            <Icon name="clock" className="h-full" />
+                        </div>
+                        <p className="font-medium">Waiting for the merchant to set the amount</p>
+                    </Card>
+                </div>
+            </div>
+        )
+    }
+
     if (showOrderNotReadyModal) {
         return (
-            <div className="my-auto flex h-full flex-col justify-center space-y-4">
-                <Card className="shadow-4 space-y-2">
-                    <div className="space-y-2">
-                        <h1 className="text-3xl font-extrabold">Order Not Ready</h1>
-                        <p className="text-lg">Please notify the cashier that you're ready to pay, then tap Retry.</p>
+            <div className="my-auto flex h-full w-full flex-col justify-center space-y-4">
+                <Card className="flex w-full flex-col items-center gap-2 p-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-1 p-3">
+                        <Icon name="qr-code" className="h-full" />
                     </div>
-                    <div className="h-[1px] bg-black"></div>
-
-                    <div className="flex flex-col space-y-3">
-                        <Button onClick={handleOrderNotReadyRetry} variant="purple" shadowSize="4">
-                            Retry Payment
-                        </Button>
-                        <Button onClick={() => router.back()} variant="primary-soft" shadowSize="4">
-                            Cancel
-                        </Button>
-                    </div>
+                    <span className="text-lg font-bold">We couldn't get the amount</span>
+                    <p className="max-w-52 text-center font-normal text-grey-1">
+                        Ask the merchant to enter it and scan the QR again.
+                    </p>
                 </Card>
+                <Button
+                    onClick={() => {
+                        setShowOrderNotReadyModal(false)
+                        setShouldRetry(true)
+                    }}
+                    variant="purple"
+                    shadowSize="4"
+                >
+                    Scan the code again
+                </Button>
+                <button
+                    onClick={() => setIsSupportModalOpen(true)}
+                    className="flex w-full items-center justify-center gap-2 text-sm font-medium text-grey-1 transition-colors hover:text-black"
+                >
+                    <Icon name="peanut-support" size={16} className="text-grey-1" />
+                    Having trouble?
+                </button>
             </div>
         )
     }
