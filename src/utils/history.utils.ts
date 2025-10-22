@@ -251,8 +251,13 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
                 entry.currency.code = entry.currency.code.toUpperCase()
             }
             if (usdAmount === entry.currency?.amount && entry.currency?.code && entry.currency?.code !== 'USD') {
-                const price = await getCurrencyPrice(entry.currency.code)
-                usdAmount = (Number(entry.currency.amount) / price.buy).toString()
+                try {
+                    const price = await getCurrencyPrice(entry.currency.code)
+                    usdAmount = (Number(entry.currency.amount) / price.buy).toString()
+                } catch (error) {
+                    console.error(`[completeHistoryEntry] Failed to fetch currency price for ${entry.currency.code}:`, error)
+                    // Fallback: use original amount (already set above)
+                }
             }
             break
         }
@@ -265,8 +270,13 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
                 entry.currency.code = entry.currency.code.toUpperCase()
             }
             if (usdAmount === entry.currency?.amount && entry.currency?.code && entry.currency?.code !== 'USD') {
-                const price = await getCurrencyPrice(entry.currency.code)
-                entry.currency.amount = (Number(entry.amount) / price.sell).toString()
+                try {
+                    const price = await getCurrencyPrice(entry.currency.code)
+                    entry.currency.amount = (Number(entry.amount) / price.sell).toString()
+                } catch (error) {
+                    console.error(`[completeHistoryEntry] Failed to fetch currency price for ${entry.currency.code}:`, error)
+                    // Fallback: use original amount (already set above)
+                }
             }
             break
         }

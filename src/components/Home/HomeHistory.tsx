@@ -18,6 +18,8 @@ import { isKycStatusItem, type KycHistoryEntry } from '@/hooks/useBridgeKycFlow'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { completeHistoryEntry } from '@/utils/history.utils'
+import { formatUnits } from 'viem'
+import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 
 /**
  * component to display a preview of the most recent transactions on the home page.
@@ -82,6 +84,8 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
 
     useEffect(() => {
         if (!isLoading && historyData?.entries) {
+            let cancelled = false
+
             // Process entries asynchronously to handle completeHistoryEntry
             const processEntries = async () => {
                 // Start with the fetched entries
@@ -95,6 +99,9 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
 
                 // Process WebSocket entries through completeHistoryEntry to format amounts correctly
                 for (const wsEntry of sortedWsEntries) {
+                    // Check cancellation before processing each entry
+                    if (cancelled) return
+
                     let completedEntry
                     try {
                         completedEntry = await completeHistoryEntry(wsEntry)
@@ -104,14 +111,25 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
                             tags: { feature: 'websocket-home-history' },
                             extra: { entryType: wsEntry.type, entryUuid: wsEntry.uuid },
                         })
-                        
-                        // Fallback: Use raw entry with minimal processing
+
+                        // Fallback: Use raw entry with proper amount formatting
+                        let fallbackAmount = wsEntry.amount.toString()
+
+                        if (wsEntry.type === 'DEPOSIT' && wsEntry.extraData?.blockNumber) {
+                            try {
+                                fallbackAmount = formatUnits(BigInt(wsEntry.amount), PEANUT_WALLET_TOKEN_DECIMALS)
+                            } catch (formatError) {
+                                console.error('[HomeHistory fallback] Failed to format deposit amount:', formatError)
+                                fallbackAmount = '0.00' // Safer than showing wei
+                            }
+                        }
+
                         completedEntry = {
                             ...wsEntry,
                             timestamp: new Date(wsEntry.timestamp),
                             extraData: {
                                 ...wsEntry.extraData,
-                                usdAmount: wsEntry.amount.toString(), // Best effort fallback
+                                usdAmount: fallbackAmount,
                             },
                         }
                     }
@@ -148,6 +166,9 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
                     })
                 }
 
+                // Check cancellation before setting state
+                if (cancelled) return
+
                 // Sort entries by date in descending order
                 entries.sort((a, b) => {
                     const dateA = new Date(a.timestamp || 0).getTime()
@@ -160,6 +181,11 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
             }
 
             processEntries()
+
+            // Cleanup function to prevent state updates after unmount
+            return () => {
+                cancelled = true
+            }
         }
     }, [historyData, wsHistoryEntries, isPublic, user, isLoading, isSameUser])
 

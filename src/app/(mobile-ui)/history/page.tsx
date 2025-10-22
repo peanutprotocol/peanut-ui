@@ -17,9 +17,11 @@ import React, { useEffect, useMemo, useRef } from 'react'
 import { useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { TRANSACTIONS } from '@/constants/query.consts'
+import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import type { HistoryResponse } from '@/hooks/useTransactionHistory'
 import { AccountType } from '@/interfaces'
 import { completeHistoryEntry } from '@/utils/history.utils'
+import { formatUnits } from 'viem'
 
 /**
  * displays the user's transaction history with infinite scrolling and date grouping.
@@ -59,14 +61,26 @@ const HistoryPage = () => {
                     tags: { feature: 'websocket-history' },
                     extra: { entryType: newEntry.type, entryUuid: newEntry.uuid },
                 })
-                
-                // Fallback: Use raw entry with minimal processing
+
+                // Fallback: Use raw entry with proper amount formatting
+                let fallbackAmount = newEntry.amount.toString()
+
+                // For DEPOSIT entries, amount is in wei and needs formatting
+                if (newEntry.type === 'DEPOSIT' && newEntry.extraData?.blockNumber) {
+                    try {
+                        fallbackAmount = formatUnits(BigInt(newEntry.amount), PEANUT_WALLET_TOKEN_DECIMALS)
+                    } catch (formatError) {
+                        console.error('[History fallback] Failed to format deposit amount:', formatError)
+                        fallbackAmount = '0.00' // Safer than showing wei
+                    }
+                }
+
                 completedEntry = {
                     ...newEntry,
                     timestamp: new Date(newEntry.timestamp),
                     extraData: {
                         ...newEntry.extraData,
-                        usdAmount: newEntry.amount.toString(), // Best effort fallback
+                        usdAmount: fallbackAmount,
                     },
                 }
             }
