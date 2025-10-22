@@ -255,7 +255,10 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
                     const price = await getCurrencyPrice(entry.currency.code)
                     usdAmount = (Number(entry.currency.amount) / price.buy).toString()
                 } catch (error) {
-                    console.error(`[completeHistoryEntry] Failed to fetch currency price for ${entry.currency.code}:`, error)
+                    console.error(
+                        `[completeHistoryEntry] Failed to fetch currency price for ${entry.currency.code}:`,
+                        error
+                    )
                     // Fallback: use original amount (already set above)
                 }
             }
@@ -274,7 +277,10 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
                     const price = await getCurrencyPrice(entry.currency.code)
                     entry.currency.amount = (Number(entry.amount) / price.sell).toString()
                 } catch (error) {
-                    console.error(`[completeHistoryEntry] Failed to fetch currency price for ${entry.currency.code}:`, error)
+                    console.error(
+                        `[completeHistoryEntry] Failed to fetch currency price for ${entry.currency.code}:`,
+                        error
+                    )
                     // Fallback: use original amount (already set above)
                 }
             }

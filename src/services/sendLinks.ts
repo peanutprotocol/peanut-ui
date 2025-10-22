@@ -119,9 +119,12 @@ export const sendLinksApi = {
     get: async (link: string): Promise<SendLink> => {
         const params = getParamsFromLink(link)
         const pubKey = generateKeysFromString(params.password).address
-        const url = `${PEANUT_API_URL}/send-links/${pubKey}?c=${params.chainId}&v=${params.contractVersion}&i=${params.depositIdx}`
+        // Add timestamp to prevent caching of 404s during DB replication lag
+        const cacheBuster = Date.now()
+        const url = `${PEANUT_API_URL}/send-links/${pubKey}?c=${params.chainId}&v=${params.contractVersion}&i=${params.depositIdx}&_=${cacheBuster}`
         const response = await fetchWithSentry(url, {
             method: 'GET',
+            cache: 'no-store', // Prevent browser from caching responses
         })
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`)

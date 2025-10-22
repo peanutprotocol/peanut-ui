@@ -65,7 +65,6 @@ const HistoryPage = () => {
                 // Fallback: Use raw entry with proper amount formatting
                 let fallbackAmount = newEntry.amount.toString()
 
-                // For DEPOSIT entries, amount is in wei and needs formatting
                 if (newEntry.type === 'DEPOSIT' && newEntry.extraData?.blockNumber) {
                     try {
                         fallbackAmount = formatUnits(BigInt(newEntry.amount), PEANUT_WALLET_TOKEN_DECIMALS)
