@@ -185,8 +185,9 @@ export const PaymentForm = ({
     }, [dispatch, recipient])
 
     useEffect(() => {
-        // Skip balance check if on CONFIRM or STATUS view (balance has been optimistically updated)
-        if (currentView === 'CONFIRM' || currentView === 'STATUS') {
+        // Skip balance check if on CONFIRM or STATUS view, or if transaction is being processed
+        // (balance has been optimistically updated in these states)
+        if (currentView === 'CONFIRM' || currentView === 'STATUS' || isProcessing) {
             return
         }
 
@@ -274,6 +275,7 @@ export const PaymentForm = ({
         isExternalWalletConnected,
         isExternalWalletFlow,
         currentView,
+        isProcessing,
     ])
 
     // fetch token price

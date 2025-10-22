@@ -542,6 +542,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 console.error('Error fetching route:', error)
                 if (!toToken && !toChain) {
                     setSelectedRoute(undefined)
+                    setHasFetchedRoute(true) // Mark as fetched to show error and allow retry
                 }
                 setErrorState({
                     showError: true,
@@ -685,12 +686,16 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             )
         }
 
-        if (selectedRoute || (isXChain && hasFetchedRoute)) {
+        if (selectedRoute) {
             return 'Review'
         }
 
         if ((isLoading || isXchainLoading) && !inputChanging) {
             return 'Receiving'
+        }
+
+        if (isXChain && hasFetchedRoute && !selectedRoute) {
+            return 'Retry'
         }
 
         return 'Receive now'
@@ -708,9 +713,11 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         } else if (recipientType === 'iban' || recipientType === 'us') {
             handleIbanRecipient()
         } else if (!isPeanutChain) {
-            if (selectedRoute || (isXChain && hasFetchedRoute)) {
+            if (selectedRoute) {
+                // Only proceed if we have a valid route
                 onNext()
             } else if (isXChain) {
+                // No route yet or route fetch failed - trigger refetch
                 setRefetchXchainRoute(true)
             }
         } else {
