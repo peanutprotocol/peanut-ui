@@ -22,6 +22,7 @@ interface TokenAmountInputProps {
     }
     hideCurrencyToggle?: boolean
     hideBalance?: boolean
+    isInitialInputUsd?: boolean
 }
 
 const TokenAmountInput = ({
@@ -37,6 +38,7 @@ const TokenAmountInput = ({
     setUsdValue,
     hideCurrencyToggle = false,
     hideBalance = false,
+    isInitialInputUsd = false,
 }: TokenAmountInputProps) => {
     const { selectedTokenData } = useContext(tokenSelectorContext)
     const inputRef = useRef<HTMLInputElement>(null)
@@ -44,7 +46,7 @@ const TokenAmountInput = ({
 
     // Store display value for input field (what user sees when typing)
     const [displayValue, setDisplayValue] = useState<string>(tokenValue || '')
-    const [isInputUsd, setIsInputUsd] = useState<boolean>(!currency)
+    const [isInputUsd, setIsInputUsd] = useState<boolean>(!currency || isInitialInputUsd)
     const [displaySymbol, setDisplaySymbol] = useState<string>('')
     const [alternativeDisplayValue, setAlternativeDisplayValue] = useState<string>('0.00')
     const [alternativeDisplaySymbol, setAlternativeDisplaySymbol] = useState<string>('')
@@ -240,7 +242,10 @@ const TokenAmountInput = ({
                 {/* Conversion */}
                 {showConversion && (
                     <label className={twMerge('text-lg font-bold', !Number(alternativeDisplayValue) && 'text-gray-1')}>
-                        ≈ {displayMode === 'TOKEN' ? alternativeDisplayValue : formatCurrency(alternativeDisplayValue)}{' '}
+                        ≈{' '}
+                        {displayMode === 'TOKEN'
+                            ? alternativeDisplayValue
+                            : formatCurrency(alternativeDisplayValue.replace(',', ''))}{' '}
                         {alternativeDisplaySymbol}
                     </label>
                 )}

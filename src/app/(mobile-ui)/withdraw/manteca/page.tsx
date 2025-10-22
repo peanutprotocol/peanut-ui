@@ -392,6 +392,7 @@ export default function MantecaWithdrawFlow() {
                         walletBalance={
                             balance ? formatAmount(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS)) : undefined
                         }
+                        isInitialInputUsd
                     />
                     <Button
                         variant="purple"
