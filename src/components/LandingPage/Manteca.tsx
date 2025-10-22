@@ -23,6 +23,16 @@ const Manteca = () => {
         }
     }
 
+    const starConfigs = [
+        { className: 'absolute left-12 top-10', delay: 0.2 },
+        { className: 'absolute left-56 top-1/2', delay: 0.2 },
+        { className: 'absolute bottom-20 left-20', delay: 0.2 },
+        { className: 'absolute -top-16 right-20 md:top-58', delay: 0.6 },
+        { className: 'absolute bottom-20 right-44', delay: 0.6 },
+    ]
+
+    const isMobile = screenWidth < 768
+
     useEffect(() => {
         const handleResize = () => {
             setScreenWidth(window.innerWidth)
@@ -34,103 +44,84 @@ const Manteca = () => {
     }, [])
 
     return (
-        <section className="relative h-[750px] overflow-hidden py-20 text-n-1" style={{ backgroundColor: '#F9F4F0' }}>
-            <div className="absolute left-0 top-0 h-full w-full overflow-hidden">
-                {/* Animated clouds */}
-                <motion.img
-                    src={borderCloud.src}
-                    alt="Floating Border Cloud"
-                    className="absolute left-0"
-                    style={{ top: '20%', width: 200 }}
-                    {...createCloudAnimation('left', '20%', 200, 35)}
-                />
-                <motion.img
-                    src={borderCloud.src}
-                    alt="Floating Border Cloud"
-                    className="absolute right-0"
-                    style={{ top: '60%', width: 220 }}
-                    {...createCloudAnimation('right', '60%', 220, 40)}
-                />
-            </div>
+        <section
+            className="relative overflow-hidden py-20 text-n-1 md:h-[750px]"
+            style={{ backgroundColor: '#F9F4F0' }}
+        >
+            {!isMobile && (
+                <div className="absolute left-0 top-0 h-full w-full overflow-hidden">
+                    {/* Animated clouds */}
+                    <motion.img
+                        src={borderCloud.src}
+                        alt="Floating Border Cloud"
+                        className="absolute left-0"
+                        style={{ top: '20%', width: 200 }}
+                        {...createCloudAnimation('left', '20%', 200, 35)}
+                    />
+                    <motion.img
+                        src={borderCloud.src}
+                        alt="Floating Border Cloud"
+                        className="absolute right-0"
+                        style={{ top: '60%', width: 220 }}
+                        {...createCloudAnimation('right', '60%', 220, 40)}
+                    />
+                </div>
+            )}
 
-            {/* Left side stars */}
-            <motion.img
-                src={Star.src}
-                alt="Floating Star"
-                width={50}
-                height={50}
-                className="absolute left-12 top-10"
-                initial={{ opacity: 0, translateY: 20, translateX: 5, rotate: 22 }}
-                whileInView={{ opacity: 1, translateY: 0, translateX: 0, rotate: 22 }}
-                transition={{ type: 'spring', damping: 5, delay: 0.2 }}
-            />
+            {!isMobile && (
+                <>
+                    {starConfigs.map((config, index) => (
+                        <motion.img
+                            key={index}
+                            src={Star.src}
+                            alt="Floating Star"
+                            width={50}
+                            height={50}
+                            className={config.className}
+                            initial={{ opacity: 0, translateY: 20, translateX: 5, rotate: 22 }}
+                            whileInView={{ opacity: 1, translateY: 0, translateX: 0, rotate: 22 }}
+                            transition={{ type: 'spring', damping: 5, delay: config.delay }}
+                        />
+                    ))}
+                </>
+            )}
 
-            <motion.img
-                src={Star.src}
-                alt="Floating Star"
-                width={50}
-                height={50}
-                className="absolute left-56 top-1/2"
-                initial={{ opacity: 0, translateY: 20, translateX: 5, rotate: 22 }}
-                whileInView={{ opacity: 1, translateY: 0, translateX: 0, rotate: 22 }}
-                transition={{ type: 'spring', damping: 5, delay: 0.2 }}
-            />
-
-            <motion.img
-                src={Star.src}
-                alt="Floating Star"
-                width={50}
-                height={50}
-                className="absolute bottom-20 left-20"
-                initial={{ opacity: 0, translateY: 20, translateX: 5, rotate: 22 }}
-                whileInView={{ opacity: 1, translateY: 0, translateX: 0, rotate: 22 }}
-                transition={{ type: 'spring', damping: 5, delay: 0.2 }}
-            />
-
-            {/* Right side stars */}
-            <motion.img
-                src={Star.src}
-                alt="Floating Star"
-                width={50}
-                height={50}
-                className="absolute -top-16 right-20 md:top-58"
-                initial={{ opacity: 0, translateY: 20, translateX: 5, rotate: 22 }}
-                whileInView={{ opacity: 1, translateY: 0, translateX: 0, rotate: 22 }}
-                transition={{ type: 'spring', damping: 5, delay: 0.6 }}
-            />
-            <motion.img
-                src={Star.src}
-                alt="Floating Star"
-                width={50}
-                height={50}
-                className="absolute bottom-20 right-44"
-                initial={{ opacity: 0, translateY: 20, translateX: 5, rotate: 22 }}
-                whileInView={{ opacity: 1, translateY: 0, translateX: 0, rotate: 22 }}
-                transition={{ type: 'spring', damping: 5, delay: 0.6 }}
-            />
-
-            <div className="relative flex flex-col items-center justify-center">
+            <div className="relative flex flex-col items-center justify-center px-4">
                 <h1 className="font-roboto-flex-extrabold text-center text-[4rem] font-extraBlack md:text-left lg:text-headingMedium">
                     SCAN. PAY. DONE.
                 </h1>
 
-                <h2 className="font-roboto-flex mt-6 text-left text-xl md:text-5xl">
+                <h2 className="font-roboto-flex mt-6 text-center text-xl md:text-5xl">
                     Pay instantly in <b>Argentina</b> and <b>Brazil</b>.
                 </h2>
 
-                <h2 className="font-roboto-flex mt-6 text-left text-xl md:text-4xl">
+                <h2 className="font-roboto-flex mt-6 text-center text-xl md:text-4xl">
                     JUST SCAN LOCAL QR codes. No bank details needed.
                 </h2>
 
-                <h3 className="font-roboto-flex mt-6 text-left text-xl md:text-xl">
+                <h3 className="font-roboto-flex mt-6 text-center text-xl md:text-xl">
                     About <b>5% cheaper</b> than Visa & Mastercard.
                 </h3>
             </div>
-            <div className="absolute -bottom-24 left-1/2 mx-auto flex -translate-x-1/2 items-center justify-center gap-10">
-                <Image src={MEPA_ARGENTINA_LOGO} alt="Mepa Argentina" width={150} height={150} />
-                <Image src={mantecaIphone} alt="Mercado pago payment" width={250} height={250} />
-                <Image src={PIX_BRZ_LOGO} alt="Pix Brz" width={150} height={150} />
-            </div>
+
+            {isMobile && (
+                <div className="mt-4 flex flex-col items-center justify-center gap-4">
+                    <Image src={mantecaIphone} alt="Mercado pago payment" width={250} height={250} />
+
+                    <div className="flex gap-8">
+                        <Image src={MEPA_ARGENTINA_LOGO} alt="Mepa Argentina" width={100} height={100} />
+                        <Image src={PIX_BRZ_LOGO} alt="Pix Brz" width={100} height={100} />
+                    </div>
+                </div>
+            )}
+
+            {!isMobile && (
+                <div className="absolute -bottom-24 left-1/2 mx-auto flex -translate-x-1/2 items-center justify-center gap-10">
+                    <Image src={MEPA_ARGENTINA_LOGO} alt="Mepa Argentina" width={150} height={150} />
+                    <Image src={mantecaIphone} alt="Mercado pago payment" width={250} height={250} />
+                    <Image src={PIX_BRZ_LOGO} alt="Pix Brz" width={150} height={150} />
+                </div>
+            )}
         </section>
     )
 }

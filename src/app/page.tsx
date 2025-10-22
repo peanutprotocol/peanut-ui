@@ -188,13 +188,13 @@ export default function LandingPage() {
         <Layout className="enable-select !m-0 w-full !p-0">
             <Hero primaryCta={hero.primaryCta} buttonVisible={buttonVisible} buttonScale={buttonScale} />
             <Marquee {...marqueeProps} />
-            <Manteca />
-            <Marquee {...marqueeProps} />
             <DropLink />
             <Marquee {...marqueeProps} />
             <RegulatedRails />
             <Marquee {...marqueeProps} />
             <YourMoney />
+            <Marquee {...marqueeProps} />
+            <Manteca />
             <Marquee {...marqueeProps} />
             <SecurityBuiltIn />
             <Marquee {...marqueeProps} />
