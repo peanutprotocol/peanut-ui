@@ -95,6 +95,8 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     } = useClaimBankFlow()
     const { setLoadingState, isLoading } = useContext(loadingStateContext)
     const {
+        selectedChainID,
+        selectedTokenAddress,
         setSelectedChainID,
         setSelectedTokenAddress,
         selectedTokenData,
@@ -152,6 +154,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     const handleClaimLink = useCallback(
         async (bypassModal = false, autoClaim = false) => {
             if (!selectedTokenData) return
+
             if (!isPeanutWallet && !bypassModal) {
                 setShowConfirmationModal(true)
                 return
@@ -454,6 +457,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             }
             const chainId = toChain ?? selectedTokenData!.chainId
             const tokenAddress = toToken ?? selectedTokenData!.address
+
             try {
                 const existingRoute = routes.find(
                     (route) =>
@@ -533,6 +537,27 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         }
     }, [claimBankFlowStep, resetSelectedToken])
 
+    // Clear route immediately when user changes chain/token selection
+    // This runs BEFORE selectedTokenData is ready, preventing stale routes
+    useEffect(() => {
+        if (!selectedChainID || !selectedTokenAddress) return
+
+        // Clear the old route when selection changes
+        setSelectedRoute(undefined)
+        setHasFetchedRoute(false)
+
+        // If this is a cross-chain transfer, trigger refetch and show loading immediately
+        const isXChainTransfer =
+            selectedChainID !== claimLinkData.chainId ||
+            !areEvmAddressesEqual(selectedTokenAddress, claimLinkData.tokenAddress)
+
+        if (isXChainTransfer) {
+            setRefetchXchainRoute(true)
+            setIsXchainLoading(true)
+            setLoadingState('Fetching route')
+        }
+    }, [selectedChainID, selectedTokenAddress, claimLinkData.chainId, claimLinkData.tokenAddress])
+
     useEffect(() => {
         let isMounted = true
         if (isReward || !claimLinkData.tokenAddress) {
@@ -541,7 +566,8 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             }
         }
 
-        if (refetchXchainRoute && recipient.address) {
+        // Only fetch if selectedTokenData is ready
+        if (refetchXchainRoute && recipient.address && selectedTokenData) {
             setIsXchainLoading(true)
             setLoadingState('Fetching route')
             setErrorState({
@@ -563,7 +589,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         return () => {
             isMounted = false
         }
-    }, [claimLinkData.tokenAddress, refetchXchainRoute, isReward, fetchRoute, recipient.address])
+    }, [claimLinkData.tokenAddress, refetchXchainRoute, isReward, fetchRoute, recipient.address, selectedTokenData])
 
     useEffect(() => {
         if ((recipientType === 'iban' || recipientType === 'us') && selectedRoute) {
@@ -591,7 +617,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         }
     }, [isPeanutWallet, address, isPeanutChain])
 
-    // handle xchain claim states
+    // Set isXChain flag and validate existing route against selected token
     useEffect(() => {
         if (selectedTokenData) {
             const isXChainTransfer =
@@ -600,37 +626,25 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
 
             setIsXChain(isXChainTransfer)
 
-            if (isXChainTransfer) {
-                if (selectedRoute) {
-                    const routeChainId = selectedRoute.rawResponse.route.params.toChain
-                    const routeTokenAddress = selectedRoute.rawResponse.route.estimate.toToken.address
-                    if (
-                        routeChainId !== selectedTokenData.chainId ||
-                        !areEvmAddressesEqual(routeTokenAddress, selectedTokenData.address)
-                    ) {
-                        setRefetchXchainRoute(true)
-                    } else {
-                        setRefetchXchainRoute(false)
-                        setHasFetchedRoute(true)
-                    }
-                } else {
-                    setHasFetchedRoute(false)
+            // If there's an existing route, validate it matches the current selection
+            if (isXChainTransfer && selectedRoute) {
+                const routeChainId = selectedRoute.rawResponse.route.params.toChain
+                const routeTokenAddress = selectedRoute.rawResponse.route.estimate.toToken.address
+
+                // If route doesn't match selection, mark it for refetch
+                if (
+                    routeChainId !== selectedTokenData.chainId ||
+                    !areEvmAddressesEqual(routeTokenAddress, selectedTokenData.address)
+                ) {
                     setRefetchXchainRoute(true)
+                } else {
+                    // Route matches, mark as fetched
+                    setRefetchXchainRoute(false)
+                    setHasFetchedRoute(true)
                 }
-            } else {
-                setHasFetchedRoute(false)
-                setRefetchXchainRoute(false)
             }
         }
-    }, [
-        selectedTokenData,
-        claimLinkData.chainId,
-        claimLinkData.tokenAddress,
-        selectedRoute,
-        recipient.address,
-        isValidRecipient,
-        hasFetchedRoute,
-    ])
+    }, [selectedTokenData, claimLinkData.chainId, claimLinkData.tokenAddress, selectedRoute])
 
     const getButtonText = () => {
         if (isPeanutWallet && !claimToExternalWallet) {
@@ -649,7 +663,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             return 'Review'
         }
 
-        if (isLoading && !inputChanging) {
+        if ((isLoading || isXchainLoading) && !inputChanging) {
             return 'Receiving'
         }
 
@@ -667,8 +681,12 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             onNext()
         } else if (recipientType === 'iban' || recipientType === 'us') {
             handleIbanRecipient()
-        } else if ((selectedRoute || (isXChain && hasFetchedRoute)) && !isPeanutChain) {
-            onNext()
+        } else if (!isPeanutChain) {
+            if (selectedRoute || (isXChain && hasFetchedRoute)) {
+                onNext()
+            } else if (isXChain) {
+                setRefetchXchainRoute(true)
+            }
         } else {
             handleClaimLink()
         }
