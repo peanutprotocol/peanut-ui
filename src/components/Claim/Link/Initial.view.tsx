@@ -223,6 +223,21 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 // Use secure SDK claim (password stays client-side, only signature sent to backend)
                 let claimTxHash: string
 
+                // Performance optimization: Pass deposit details to skip RPC call on backend
+                const depositDetails = {
+                    pubKey20: claimLinkData.pubKey,
+                    amount: claimLinkData.amount.toString(),
+                    tokenAddress: claimLinkData.tokenAddress,
+                    // @dev todo
+                    contractType: claimLinkData.contractType,
+                    contractType: 1,
+                    claimed: claimLinkData.status === 'CLAIMED' || claimLinkData.status === 'CANCELLED',
+                    requiresMFA: false, // MFA not supported in current flow
+                    timestamp: Math.floor(new Date(claimLinkData.createdAt).getTime() / 1000),
+                    tokenId: '0',
+                    senderAddress: claimLinkData.senderAddress,
+                }
+
                 // Check if cross-chain claiming is needed
                 if (isXChain) {
                     if (!selectedTokenData?.chainId || !selectedTokenData?.address) {
@@ -239,6 +254,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     claimTxHash = await claimLink({
                         address: recipientAddress,
                         link: claimLinkData.link,
+                        depositDetails, // ✅ Pass deposit details for performance
                     })
                     setClaimType('claim')
                 }

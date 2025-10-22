@@ -87,10 +87,22 @@ async function createClaimPayload(link: string, recipientAddress: string, onlyRe
 async function executeClaim({
     link,
     recipientAddress,
+    depositDetails,
     baseUrl = `${next_proxy_url}/claim-v3`,
 }: {
     link: string
     recipientAddress: string
+    depositDetails?: {
+        pubKey20: string
+        amount: string
+        tokenAddress: string
+        contractType: number
+        claimed: boolean
+        requiresMFA: boolean
+        timestamp: number
+        tokenId: string
+        senderAddress: string
+    }
     baseUrl?: string
 }): Promise<string> {
     const payload = await createClaimPayload(link, recipientAddress)
@@ -100,6 +112,8 @@ async function executeClaim({
         chainId: payload.chainId,
         version: payload.contractVersion,
         apiKey: 'doesnt-matter',
+        // Performance optimization: Pass deposit details to skip RPC call
+        ...(depositDetails && { depositDetails }),
     })
 
     return result.transactionHash ?? result.txHash ?? result.hash ?? result.tx_hash ?? ''
@@ -185,10 +199,29 @@ const useClaimLink = () => {
      */
     const claimLinkMutation = useMutation({
         mutationKey: [CLAIM_LINK],
-        mutationFn: async ({ address, link }: { address: string; link: string }) => {
+        mutationFn: async ({
+            address,
+            link,
+            depositDetails,
+        }: {
+            address: string
+            link: string
+            depositDetails?: {
+                pubKey20: string
+                amount: string
+                tokenAddress: string
+                contractType: number
+                claimed: boolean
+                requiresMFA: boolean
+                timestamp: number
+                tokenId: string
+                senderAddress: string
+            }
+        }) => {
             return await executeClaim({
                 link,
                 recipientAddress: address,
+                depositDetails,
             })
         },
         ...sharedMutationConfig,
@@ -243,8 +276,26 @@ const useClaimLink = () => {
      * Legacy wrapper for backward compatibility
      * Use claimLinkMutation.mutateAsync() directly for better type safety
      */
-    const claimLink = async ({ address, link }: { address: string; link: string }) => {
-        return await claimLinkMutation.mutateAsync({ address, link })
+    const claimLink = async ({
+        address,
+        link,
+        depositDetails,
+    }: {
+        address: string
+        link: string
+        depositDetails?: {
+            pubKey20: string
+            amount: string
+            tokenAddress: string
+            contractType: number
+            claimed: boolean
+            requiresMFA: boolean
+            timestamp: number
+            tokenId: string
+            senderAddress: string
+        }
+    }) => {
+        return await claimLinkMutation.mutateAsync({ address, link, depositDetails })
     }
 
     /**
