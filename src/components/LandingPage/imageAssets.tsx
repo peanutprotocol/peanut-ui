@@ -4,45 +4,44 @@ import { motion } from 'framer-motion'
 import borderCloud from '@/assets/illustrations/border-cloud.svg'
 
 const CloudAnimation = ({
-    side,
     top,
     imageSrc,
     styleMod,
     screenWidth,
+    width = 200,
     speed = 45,
-    startXOffset = 0,
+    delay = 0,
+    direction = 'left-to-right',
 }: {
-    side: 'left' | 'right'
     top: string
-    duration: number
     imageSrc: string
     styleMod?: string
     screenWidth?: number
+    width?: number
     speed?: number
-    startXOffset?: number
+    delay?: number
+    direction?: 'left-to-right' | 'right-to-left'
 }) => {
-    const imageWidth = 200 // Width of the cloud image (adjust as needed)
     const vpWidth = screenWidth || 1080
-
-    // Total travel distance is screen width + image width + offset
-    const totalDistance = vpWidth + imageWidth
+    const totalDistance = vpWidth + width
 
     return (
         <motion.img
             src={imageSrc}
-            alt={`Floating Cloud ${side}`}
-            className={`absolute ${side}-0 ${styleMod || ''}`}
-            style={{ top, width: imageWidth }}
+            alt="Floating Cloud"
+            className={`absolute left-0 ${styleMod || ''}`}
+            style={{ top, width }}
             initial={{
-                x: side === 'left' ? -imageWidth : vpWidth + startXOffset,
+                x: direction === 'left-to-right' ? -width : vpWidth,
             }}
             animate={{
-                x: side === 'left' ? [vpWidth, -imageWidth] : [-imageWidth, vpWidth],
+                x: direction === 'left-to-right' ? vpWidth : -width,
             }}
             transition={{
                 ease: 'linear',
                 duration: totalDistance / speed,
                 repeat: Infinity,
+                delay: delay,
             }}
         />
     )
@@ -51,66 +50,54 @@ const CloudAnimation = ({
 export const CloudImages = ({ screenWidth }: { screenWidth: number }) => {
     return (
         <div className="absolute left-0 top-0 h-full w-full overflow-hidden">
-            {/* Right side clouds */}
+            {/* 3 clouds moving left-to-right */}
             <CloudAnimation
-                side="right"
-                top="5%"
-                duration={10}
+                top="10%"
                 imageSrc={borderCloud.src}
                 screenWidth={screenWidth}
-                startXOffset={-200}
-                speed={55}
-            />
-            <CloudAnimation
-                side="right"
-                top="35%"
-                duration={12}
-                imageSrc={borderCloud.src}
-                styleMod="scale-50"
-                screenWidth={screenWidth}
-                startXOffset={100}
-                speed={35}
-            />
-            {/* <CloudAnimation
-                side="right"
-                top="65%"
-                duration={14}
-                imageSrc={Cloud.src}
-                screenWidth={screenWidth}
-                startXOffset={300}
-                speed={60}
-            /> */}
-
-            {/* Left side clouds */}
-            <CloudAnimation
-                side="left"
-                top="15%"
-                duration={15}
-                imageSrc={borderCloud.src}
-                styleMod="scale-50"
-                screenWidth={screenWidth}
-                startXOffset={-100}
+                width={180}
                 speed={30}
+                delay={0}
+                direction="left-to-right"
             />
             <CloudAnimation
-                side="left"
                 top="45%"
-                duration={18}
                 imageSrc={borderCloud.src}
                 screenWidth={screenWidth}
-                startXOffset={200}
+                width={220}
                 speed={40}
+                delay={0}
+                direction="left-to-right"
             />
-            {/* <CloudAnimation
-                side="left"
-                top="75%"
-                duration={20}
-                imageSrc={Cloud.src}
-                styleMod="z-[99]"
+            <CloudAnimation
+                top="80%"
+                imageSrc={borderCloud.src}
                 screenWidth={screenWidth}
-                startXOffset={50}
-                speed={45}
-            /> */}
+                width={210}
+                speed={38}
+                delay={0}
+                direction="left-to-right"
+            />
+
+            {/* 2 clouds moving right-to-left */}
+            <CloudAnimation
+                top="25%"
+                imageSrc={borderCloud.src}
+                screenWidth={screenWidth}
+                width={200}
+                speed={35}
+                delay={0}
+                direction="right-to-left"
+            />
+            <CloudAnimation
+                top="65%"
+                imageSrc={borderCloud.src}
+                screenWidth={screenWidth}
+                width={190}
+                speed={32}
+                delay={0}
+                direction="right-to-left"
+            />
         </div>
     )
 }
