@@ -42,6 +42,7 @@ import { STAR_STRAIGHT_ICON } from '@/assets'
 import { useAuth } from '@/context/authContext'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import type { HistoryEntry } from '@/hooks/useTransactionHistory'
+import { completeHistoryEntry } from '@/utils/history.utils'
 
 const MAX_QR_PAYMENT_AMOUNT = '2000'
 
@@ -138,7 +139,7 @@ export default function QRPayPage() {
     }
 
     const handleSimpleFiStatusUpdate = useCallback(
-        (entry: HistoryEntry) => {
+        async (entry: HistoryEntry) => {
             if (!pendingSimpleFiPaymentId || entry.uuid !== pendingSimpleFiPaymentId) {
                 return
             }
@@ -149,16 +150,19 @@ export default function QRPayPage() {
 
             console.log('[SimpleFi WebSocket] Received status update:', entry.status)
 
+            // Process entry through completeHistoryEntry to format amounts correctly
+            const completedEntry = await completeHistoryEntry(entry)
+
             setIsWaitingForWebSocket(false)
             setPendingSimpleFiPaymentId(null)
 
-            switch (entry.status) {
+            switch (completedEntry.status) {
                 case 'approved':
                     setSimpleFiPayment({
-                        id: entry.uuid,
-                        usdAmount: entry.amount,
-                        currency: entry.currency!.code,
-                        currencyAmount: entry.currency!.amount,
+                        id: completedEntry.uuid,
+                        usdAmount: completedEntry.extraData?.usdAmount || completedEntry.amount,
+                        currency: completedEntry.currency!.code,
+                        currencyAmount: completedEntry.currency!.amount,
                         price: simpleFiPayment!.price,
                         address: simpleFiPayment!.address,
                     })
@@ -175,7 +179,7 @@ export default function QRPayPage() {
                     break
 
                 default:
-                    console.log('[SimpleFi WebSocket] Unknown status:', entry.status)
+                    console.log('[SimpleFi WebSocket] Unknown status:', completedEntry.status)
             }
         },
         [pendingSimpleFiPaymentId, simpleFiPayment, setLoadingState]
