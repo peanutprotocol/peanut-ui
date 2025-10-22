@@ -27,7 +27,7 @@ const LinkSendSuccessView = () => {
     const queryClient = useQueryClient()
     const { fetchBalance } = useWallet()
     const { user } = useUserStore()
-    const { claimLink } = useClaimLink()
+    const { cancelLinkAndClaim, pollForClaimConfirmation } = useClaimLink()
     const toast = useToast()
     const [isLoading, setIsLoading] = useState<boolean>(false)
     const [showCancelLinkModal, setshowCancelLinkModal] = useState(false)
@@ -110,40 +110,46 @@ const LinkSendSuccessView = () => {
                                 throw new Error('No wallet address found for cancellation')
                             }
 
-                            // Use secure SDK claim (password stays client-side)
-                            const txHash = await claimLink({
-                                address: walletAddress,
+                            // Cancel the link by claiming it back
+                            await cancelLinkAndClaim({
                                 link,
+                                walletAddress,
+                                userId: user?.user?.userId,
                             })
 
-                            if (txHash) {
-                                // Associate the claim with user history
-                                try {
-                                    await sendLinksApi.associateClaim(txHash)
-                                } catch (e) {
-                                    console.error('Failed to associate claim:', e)
-                                    captureException(e, {
-                                        tags: { feature: 'cancel-link' },
-                                        extra: { txHash, userId: user?.user?.userId },
-                                    })
-                                }
-                            }
+                            try {
+                                // Wait for transaction confirmation
+                                const isConfirmed = await pollForClaimConfirmation(link)
 
-                            // Claiming takes time, so we need to invalidate both transaction query types
-                            setTimeout(() => {
+                                if (!isConfirmed) {
+                                    console.warn('Transaction confirmation timeout - proceeding with refresh')
+                                }
+
+                                // Update UI and queries
                                 fetchBalance()
-                                queryClient
-                                    .invalidateQueries({
-                                        queryKey: [TRANSACTIONS],
-                                    })
-                                    .then(async () => {
-                                        setIsLoading(false)
-                                        setCancelLinkText('Cancelled')
-                                        toast.success('Link cancelled successfully! Funds returned to your balance.')
-                                        await new Promise((resolve) => setTimeout(resolve, 2000))
-                                        router.push('/home')
-                                    })
-                            }, 3000)
+                                await queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+
+                                setIsLoading(false)
+                                setCancelLinkText('Cancelled')
+                                toast.success('Link cancelled successfully!')
+
+                                // Brief delay for toast visibility
+                                await new Promise((resolve) => setTimeout(resolve, 1500))
+                                router.push('/home')
+                            } catch (invalidateError) {
+                                console.error('Failed to update after claim:', invalidateError)
+                                captureException(invalidateError, {
+                                    tags: { feature: 'cancel-link' },
+                                    extra: { userId: user?.user?.userId },
+                                })
+
+                                // Still navigate even if invalidation fails
+                                setIsLoading(false)
+                                setCancelLinkText('Cancelled')
+                                toast.success('Link cancelled! Refresh to see updated balance.')
+                                await new Promise((resolve) => setTimeout(resolve, 1500))
+                                router.push('/home')
+                            }
                         } catch (error: any) {
                             captureException(error)
                             console.error('Error claiming link:', error)
