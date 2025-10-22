@@ -121,11 +121,9 @@ export const getFromLocalStorage = (key: string) => {
         }
         const data = localStorage.getItem(key)
         if (data === null) {
-            console.log(`No data found in localStorage for ${key}`)
             return null
         }
         const parsedData = jsonParse(data)
-        console.log(`Retrieved ${key} from localStorage:`, parsedData)
         return parsedData
     } catch (error) {
         Sentry.captureException(error)
