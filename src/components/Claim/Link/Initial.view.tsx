@@ -10,7 +10,6 @@ import {
     optimismChainId,
     usdcAddressOptimism,
 } from '@/components/Offramp/Offramp.consts'
-import { ActionType, estimatePoints } from '@/components/utils/utils'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, ROUTE_NOT_FOUND_ERROR } from '@/constants'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
@@ -210,8 +209,8 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
 
                 let recipientAddress: string | undefined
                 if (isPeanutWallet) {
-                    // Use actual wallet address from user's accounts
-                    recipientAddress = user?.accounts.find((acc) => acc.type === 'peanut-wallet')?.identifier ?? address
+                    // Use wallet address from useWallet hook
+                    recipientAddress = address
                 } else {
                     // Use external wallet address
                     recipientAddress = recipient?.address
@@ -403,25 +402,12 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         }
     }
 
+    // Note: Claimers don't earn points for claiming - only senders earn points for sending.
+    // Points will be visible in the sender's transaction history after the claim is processed.
+    // The calculatePoints endpoint is meant for senders to preview points before sending.
     useEffect(() => {
-        let isMounted = true
-        if (recipient?.address && isValidRecipient) {
-            const amountUSD = Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)) * (tokenPrice ?? 0)
-            estimatePoints({
-                address: recipient.address,
-                chainId: claimLinkData.chainId,
-                amountUSD,
-                actionType: ActionType.CLAIM,
-            }).then((points) => {
-                if (isMounted) {
-                    setEstimatedPoints(points)
-                }
-            })
-        }
-        return () => {
-            isMounted = false
-        }
-    }, [recipient.address, isValidRecipient, claimLinkData.amount, claimLinkData.chainId, tokenPrice])
+        // No points calculation needed on claim screen
+    }, [recipient.address, isValidRecipient, claimLinkData.amount, claimLinkData.chainId, tokenPrice, user])
 
     useEffect(() => {
         setIsValidRecipient(!!recipient.address)

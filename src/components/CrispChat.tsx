@@ -3,7 +3,7 @@
 import Script from 'next/script'
 import { useEffect } from 'react'
 import { useSupportModalContext } from '@/context/SupportModalContext'
-import { useAuth } from '@/context/authContext'
+import { useCrispUserData } from '@/hooks/useCrispUserData'
 
 export const CrispButton = ({ children, ...rest }: React.HTMLAttributes<HTMLButtonElement>) => {
     const { setIsSupportModalOpen } = useSupportModalContext()
@@ -20,7 +20,7 @@ export const CrispButton = ({ children, ...rest }: React.HTMLAttributes<HTMLButt
 }
 
 export default function CrispChat() {
-    const { username, userId } = useAuth()
+    const { username, userId, email, grafanaLink } = useCrispUserData()
 
     useEffect(() => {
         // Only set user data if we have a username
@@ -29,14 +29,11 @@ export default function CrispChat() {
         // Wait for Crisp to be fully loaded
         const setCrispUserData = () => {
             if (window.$crisp) {
-                // Set user nickname
+                // Set user nickname and email
                 window.$crisp.push(['set', 'user:nickname', [username]])
-                window.$crisp.push(['set', 'user:email', [`${username}@peanut.to`]])
+                window.$crisp.push(['set', 'user:email', [email]])
 
-                // Build Grafana dashboard link
-                const grafanaLink = `https://teampeanut.grafana.net/d/ad31f645-81ca-4779-bfb2-bff8e03d9057/explore-peanut-wallet-user?orgId=1&var-GRAFANA_VAR_Username=${encodeURIComponent(username)}`
-
-                // Set session data according
+                // Set session data - KEEP EXACT ORIGINAL STRUCTURE (3 nested arrays!)
                 window.$crisp.push([
                     'set',
                     'session:data',
@@ -68,7 +65,7 @@ export default function CrispChat() {
                 window.$crisp.push(['off', 'session:loaded', setCrispUserData])
             }
         }
-    }, [username, userId])
+    }, [username, userId, email, grafanaLink])
 
     // thought: we need to version pin this script
     return (
