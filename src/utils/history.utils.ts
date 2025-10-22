@@ -22,6 +22,7 @@ export enum EHistoryEntryType {
     MANTECA_OFFRAMP = 'MANTECA_OFFRAMP',
     MANTECA_ONRAMP = 'MANTECA_ONRAMP',
     BRIDGE_GUEST_OFFRAMP = 'BRIDGE_GUEST_OFFRAMP',
+    PERK_REWARD = 'PERK_REWARD',
 }
 export function historyTypeToNumber(type: EHistoryEntryType): number {
     return Object.values(EHistoryEntryType).indexOf(type)

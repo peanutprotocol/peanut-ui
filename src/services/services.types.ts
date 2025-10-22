@@ -462,10 +462,11 @@ export interface CalculatePointsRequest {
     otherUserId?: string
 }
 
-// Perks system types
-export interface HistoryEntryPerk {
-    claimed: boolean
+// Perks system - Unified interface (all perks are V2 campaigns now)
+export interface HistoryEntryPerkReward {
+    reason: string
     discountPercentage: number
-    amountSponsored?: number
-    txHash?: string
+    originatingTxId?: string
+    originatingTxType?: string
+    perkName?: string
 }
