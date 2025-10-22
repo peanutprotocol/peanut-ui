@@ -49,6 +49,11 @@ export const SuccessClaimLinkView = ({
                     setTransactionHash(link.claim?.txHash)
                     return true
                 } else if (link.status === ESendLinkStatus.FAILED) {
+                    // Claim failed after optimistic return - show error to user
+                    console.error('Claim failed:', link.events?.[link.events.length - 1]?.reason || 'Unknown error')
+                    // TODO: Show error UI to user instead of silent failure
+                    // For now, setting txHash to 'FAILED' to stop showing loading state
+                    setTransactionHash('FAILED')
                     return true
                 }
                 return false

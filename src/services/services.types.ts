@@ -390,6 +390,7 @@ export type SendLink = {
     events: {
         timestamp: Date
         status: SendLinkStatus
+        reason?: string
     }[]
 }
 
