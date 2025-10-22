@@ -108,9 +108,14 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                     address: details.depositInstructions.toAddress,
                     link: claimLinkData.link,
                 })
+
+                if (!claimTx) {
+                    throw new Error('Failed to claim link - no transaction hash returned')
+                }
+
                 // if a user is logged in, associate the claim with their account.
                 // this helps track their activity correctly.
-                if (user && claimTx) {
+                if (user) {
                     try {
                         await sendLinksApi.associateClaim(claimTx)
                     } catch (e) {
