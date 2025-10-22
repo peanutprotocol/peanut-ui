@@ -469,7 +469,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                         ref={formRef}
                         key={selectedCountry?.id}
                         country={getCountryCodeForWithdraw(selectedCountry?.id ?? '')}
-                        countryName={selectedCountry?.title ?? ''}
+                        countryName={selectedCountry?.path ?? ''}
                         onSuccess={handleSuccess}
                         flow={'claim'}
                         hideEmailInput={bankClaimType === BankClaimType.GuestBankClaim}
