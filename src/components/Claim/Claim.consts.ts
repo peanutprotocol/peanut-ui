@@ -36,8 +36,8 @@ export interface IClaimScreenProps {
     setRecipient: (recipient: { name: string | undefined; address: string }) => void
     tokenPrice: number
     setTokenPrice: (price: number) => void
-    transactionHash: string
-    setTransactionHash: (hash: string) => void
+    transactionHash: string | undefined
+    setTransactionHash: (hash: string | undefined) => void
     estimatedPoints: number
     setEstimatedPoints: (points: number) => void
     attachment: { message: string | undefined; attachmentUrl: string | undefined }

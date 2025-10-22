@@ -30,7 +30,7 @@ import * as Sentry from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState, useRef } from 'react'
-import { formatUnits } from 'viem'
+import { formatUnits, zeroAddress } from 'viem'
 import type { Address } from 'viem'
 import { type IClaimScreenProps } from '../Claim.consts'
 import ActionList from '@/components/Common/ActionList'
@@ -221,16 +221,19 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 }
 
                 // Use secure SDK claim (password stays client-side, only signature sent to backend)
-                let claimTxHash: string
-
+                let claimTxHash: string | undefined
                 // Performance optimization: Pass deposit details to skip RPC call on backend
+                // Determine contractType: 0 for native ETH, 1 for ERC20 tokens
+                // @dev todo: this should be fetched in backend ideally. Might break ETH sendlinks.
+                const isNativeToken =
+                    claimLinkData.tokenAddress === NATIVE_TOKEN_ADDRESS || claimLinkData.tokenAddress === zeroAddress
+                const contractType = isNativeToken ? 0 : 1
+
                 const depositDetails = {
                     pubKey20: claimLinkData.pubKey,
                     amount: claimLinkData.amount.toString(),
                     tokenAddress: claimLinkData.tokenAddress,
-                    // @dev todo
-                    contractType: claimLinkData.contractType,
-                    contractType: 1,
+                    contractType,
                     claimed: claimLinkData.status === 'CLAIMED' || claimLinkData.status === 'CANCELLED',
                     requiresMFA: false, // MFA not supported in current flow
                     timestamp: Math.floor(new Date(claimLinkData.createdAt).getTime() / 1000),
@@ -251,10 +254,12 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     })
                     setClaimType('claimxchain')
                 } else {
+                    // Regular P2P claim with optimistic return for faster UX
                     claimTxHash = await claimLink({
                         address: recipientAddress,
                         link: claimLinkData.link,
-                        depositDetails, // ✅ Pass deposit details for performance
+                        depositDetails, // Performance: Skip RPC call
+                        optimisticReturn: true, // UX: Return immediately, poll for txHash
                     })
                     setClaimType('claim')
                 }

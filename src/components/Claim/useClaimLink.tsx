@@ -83,11 +83,14 @@ async function createClaimPayload(link: string, recipientAddress: string, onlyRe
 
 /**
  * Claims a link through the Peanut API
+ * @param optimisticReturn - If true, returns immediately (202) and lets frontend poll for txHash
+ * @returns Transaction hash if available, or undefined if processing asynchronously
  */
 async function executeClaim({
     link,
     recipientAddress,
     depositDetails,
+    optimisticReturn = false,
     baseUrl = `${next_proxy_url}/claim-v3`,
 }: {
     link: string
@@ -103,8 +106,9 @@ async function executeClaim({
         tokenId: string
         senderAddress: string
     }
+    optimisticReturn?: boolean
     baseUrl?: string
-}): Promise<string> {
+}): Promise<string | undefined> {
     const payload = await createClaimPayload(link, recipientAddress)
 
     const result = await postJson<any>(baseUrl, {
@@ -114,9 +118,17 @@ async function executeClaim({
         apiKey: 'doesnt-matter',
         // Performance optimization: Pass deposit details to skip RPC call
         ...(depositDetails && { depositDetails }),
+        // UX optimization: Return immediately without waiting for blockchain confirmation
+        ...(optimisticReturn && { optimisticReturn: true }),
     })
 
-    return result.transactionHash ?? result.txHash ?? result.hash ?? result.tx_hash ?? ''
+    // Handle 202 Accepted (optimistic response) - txHash will be available via polling
+    if (result.status === 'processing') {
+        return undefined
+    }
+
+    // Handle synchronous response with txHash
+    return result.transactionHash ?? result.txHash ?? result.hash ?? result.tx_hash ?? undefined
 }
 
 /**
@@ -203,6 +215,7 @@ const useClaimLink = () => {
             address,
             link,
             depositDetails,
+            optimisticReturn,
         }: {
             address: string
             link: string
@@ -217,11 +230,13 @@ const useClaimLink = () => {
                 tokenId: string
                 senderAddress: string
             }
+            optimisticReturn?: boolean
         }) => {
             return await executeClaim({
                 link,
                 recipientAddress: address,
                 depositDetails,
+                optimisticReturn,
             })
         },
         ...sharedMutationConfig,
@@ -275,11 +290,14 @@ const useClaimLink = () => {
     /**
      * Legacy wrapper for backward compatibility
      * Use claimLinkMutation.mutateAsync() directly for better type safety
+     * @param optimisticReturn - If true, returns immediately and lets SUCCESS view poll for txHash
+     * @returns Transaction hash if available, or undefined if processing asynchronously
      */
     const claimLink = async ({
         address,
         link,
         depositDetails,
+        optimisticReturn,
     }: {
         address: string
         link: string
@@ -294,8 +312,9 @@ const useClaimLink = () => {
             tokenId: string
             senderAddress: string
         }
-    }) => {
-        return await claimLinkMutation.mutateAsync({ address, link, depositDetails })
+        optimisticReturn?: boolean
+    }): Promise<string | undefined> => {
+        return await claimLinkMutation.mutateAsync({ address, link, depositDetails, optimisticReturn })
     }
 
     /**
@@ -360,7 +379,7 @@ const useClaimLink = () => {
      * @param link - The link to cancel
      * @param walletAddress - The user's wallet address to claim back to
      * @param userId - Optional user ID for error tracking
-     * @returns The transaction hash if successful
+     * @returns The transaction hash if available, or undefined if processing asynchronously
      */
     const cancelLinkAndClaim = async ({
         link,
@@ -370,7 +389,7 @@ const useClaimLink = () => {
         link: string
         walletAddress: string
         userId?: string
-    }) => {
+    }): Promise<string | undefined> => {
         try {
             // Use secure SDK claim (password stays client-side)
             const txHash = await claimLink({
