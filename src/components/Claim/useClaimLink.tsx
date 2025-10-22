@@ -179,7 +179,6 @@ async function executeClaimXChain({
 }
 
 const useClaimLink = () => {
-    const { fetchBalance } = useWallet()
     const { chain: currentChain } = useAccount()
     const { switchChainAsync } = useSwitchChain()
     const pathname = usePathname()
@@ -196,8 +195,41 @@ const useClaimLink = () => {
             onMutate: () => {
                 setLoadingState('Executing transaction')
             },
-            onSuccess: () => {
-                queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+            onSuccess: (txHash: string | undefined) => {
+                // Only refetch if we have a txHash (synchronous claim)
+                // For optimistic returns (undefined), SUCCESS view will handle refetch after polling
+                if (txHash) {
+                    // Force immediate refetch to bypass staleTime
+                    queryClient.refetchQueries({
+                        queryKey: [TRANSACTIONS],
+                        type: 'active',
+                    })
+                    queryClient.refetchQueries({
+                        queryKey: ['balance'],
+                        type: 'active',
+                    })
+
+                    // Aggressive polling: Backend might take a few seconds to process
+                    // Poll every 1 second for 7 seconds
+                    let pollCount = 0
+                    const pollInterval = setInterval(() => {
+                        pollCount++
+                        console.log(`🔄 Aggressive poll ${pollCount}/10 after synchronous claim`)
+
+                        queryClient.refetchQueries({
+                            queryKey: [TRANSACTIONS],
+                            type: 'active',
+                        })
+                        queryClient.refetchQueries({
+                            queryKey: ['balance'],
+                            type: 'active',
+                        })
+
+                        if (pollCount >= 10) {
+                            clearInterval(pollInterval)
+                        }
+                    }, 1000)
+                }
             },
             onSettled: () => {
                 setLoadingState('Idle')
@@ -240,11 +272,6 @@ const useClaimLink = () => {
             })
         },
         ...sharedMutationConfig,
-        onSuccess: () => {
-            // Regular claim also refreshes balance
-            fetchBalance()
-            sharedMutationConfig.onSuccess()
-        },
         onError: (error) => {
             console.error('Error claiming link:', error)
             captureException(error, {

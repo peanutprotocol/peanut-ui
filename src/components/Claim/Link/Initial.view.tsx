@@ -277,11 +277,25 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 setTransactionHash(claimTxHash)
                 onCustom('SUCCESS')
 
-                // Refresh balance and transactions for all claim types
-                if (isPeanutWallet) {
-                    fetchBalance()
+                // Note: With optimisticReturn, balance/transactions refresh happens in SUCCESS view
+                // after polling confirms the transaction. Only refresh immediately if we have txHash.
+                if (claimTxHash) {
+                    // Synchronous claim - transaction is confirmed
+                    // Force immediate refetch to bypass staleTime
+                    if (isPeanutWallet) {
+                        queryClient.refetchQueries({
+                            queryKey: ['balance'],
+                            type: 'active',
+                        })
+                    }
+                    queryClient.refetchQueries({
+                        queryKey: [TRANSACTIONS],
+                        type: 'active',
+                    })
+                } else {
+                    // Optimistic return - transaction still processing
+                    // SUCCESS view will refresh after polling detects txHash
                 }
-                queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
             } catch (error) {
                 const errorString = ErrorHandler(error)
                 setErrorState({
