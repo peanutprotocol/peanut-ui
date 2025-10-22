@@ -9,6 +9,7 @@ import { sendLinksApi } from '@/services/sendLinks'
 import { MercadoPagoStep } from '@/types/manteca.types'
 import { type Dispatch, type FC, type SetStateAction, useState } from 'react'
 import useClaimLink from '@/components/Claim/useClaimLink'
+import * as Sentry from '@sentry/nextjs'
 
 interface MantecaReviewStepProps {
     setCurrentStep: Dispatch<SetStateAction<MercadoPagoStep>>
@@ -67,11 +68,35 @@ const MantecaReviewStep: FC<MantecaReviewStepProps> = ({
                 }
 
                 // Associate the claim with user if logged in
+                // CRITICAL: This is blocking for Manteca because claims to MANTECA_DEPOSIT_ADDRESS
+                // won't appear in history without this association (recipientAddress != user address)
                 try {
                     await sendLinksApi.associateClaim(txHash)
                 } catch (e) {
                     console.error('Failed to associate claim:', e)
-                    // Non-critical, continue
+                    Sentry.captureException(e, {
+                        tags: { feature: 'manteca-claim-association' },
+                        extra: { txHash, claimLink },
+                    })
+
+                    // Retry once after 1 second (handles race conditions)
+                    await new Promise((resolve) => setTimeout(resolve, 1000))
+                    try {
+                        await sendLinksApi.associateClaim(txHash)
+                    } catch (retryError) {
+                        console.error('Failed to associate claim after retry:', retryError)
+                        // Show warning but don't block - user's funds are safe
+                        setError(
+                            'Withdrawal successful! Your funds are being processed. ' +
+                                "If the transaction doesn't appear in your history within 5 minutes, please contact support."
+                        )
+                        Sentry.captureException(retryError, {
+                            tags: { feature: 'manteca-claim-association-retry-failed' },
+                            extra: { txHash, claimLink },
+                            level: 'error',
+                        })
+                        // Continue to withdraw - funds are safe
+                    }
                 }
 
                 const { data, error: withdrawError } = await mantecaApi.withdraw({
