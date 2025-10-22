@@ -93,52 +93,6 @@ export const useCreateLink = () => {
         [address]
     )
 
-    const estimatePoints = async ({
-        chainId,
-        preparedTx,
-        address,
-        amountUSD,
-        actionType,
-    }: {
-        chainId: string
-        preparedTx: any // This could be detailed further depending on the transaction structure
-        address: string
-        amountUSD: number
-        actionType: 'CREATE' | 'TRANSFER'
-    }) => {
-        try {
-            const response = await fetchWithSentry(`${PEANUT_API_URL}/calculate-pts-for-action`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    actionType: actionType,
-                    amountUsd: amountUSD,
-                    transaction: preparedTx
-                        ? {
-                              from: preparedTx.from ? preparedTx.from.toString() : address,
-                              to: preparedTx.to ? preparedTx.to.toString() : '',
-                              data: preparedTx.data ? preparedTx.data.toString() : '',
-                              value: preparedTx.value ? preparedTx.value.toString() : '',
-                          }
-                        : undefined,
-                    chainId: chainId,
-                    userAddress: address,
-                }),
-            })
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`)
-            }
-            const data = await response.json()
-            return Math.round(data.points)
-        } catch (error) {
-            console.error('Failed to estimate points:', error)
-            captureException(error)
-            return 0 // Returning 0 or another error handling strategy could be implemented here
-        }
-    }
     const submitClaimLinkInit = async ({
         attachmentOptions,
         password,
@@ -429,7 +383,6 @@ export const useCreateLink = () => {
         makeDepositGasless,
         prepareDepositTxs,
         getLinkFromHash,
-        estimatePoints,
         submitClaimLinkInit,
         submitClaimLinkConfirm,
         prepareDirectSendTx,

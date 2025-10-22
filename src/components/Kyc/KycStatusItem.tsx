@@ -9,19 +9,7 @@ import { type BridgeKycStatus, formatDate } from '@/utils'
 import { type HTMLAttributes } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { type IUserKycVerification } from '@/interfaces'
-import Image from 'next/image'
-import { STAR_STRAIGHT_ICON } from '@/assets'
-
-// @dev TODO: Remove hardcoded KYC points - implement proper solution
-// Current approach is suboptimal - KYC should be a real history entry from backend.
-// Proper fix:
-// 1. Add KYC_VERIFICATION to EHistoryEntryType enum
-// 2. Create history entry when KYC completes (in handleBridgeKycApproval/handleMantecaKycApproval)
-// 3. Include KYC entries in /users/history endpoint response
-// 4. Remove frontend KycHistoryEntry injection and this hardcoded value
-// 5. Display KYC as a normal activity item with points from backend
-// Benefits: Single source of truth, no hardcoding, consistent with other activities
-const KYC_BONUS_POINTS = 2000
+import { Icon } from '@/components/Global/Icons/Icon'
 
 // this component shows the current kyc status and opens a drawer with more details on click
 export const KycStatusItem = ({
@@ -96,12 +84,7 @@ export const KycStatusItem = ({
                             <p className="text-sm text-grey-1">{subtitle}</p>
                         </div>
                     </div>
-                    {isApproved && (
-                        <div className="flex items-center gap-1 text-sm font-semibold text-grey-1">
-                            <Image src={STAR_STRAIGHT_ICON} alt="star" width={16} height={16} />
-                            <span>+{KYC_BONUS_POINTS}</span>
-                        </div>
-                    )}
+                    {isApproved && <Icon name="check" size={16} className="text-success-1" />}
                 </div>
             </Card>
 

@@ -82,31 +82,3 @@ export async function getNextDepositIndex(contractVersion: string): Promise<numb
         args: [],
     })) as number
 }
-
-export async function claimSendLink(
-    pubKey: string,
-    recipient: string,
-    password: string,
-    waitForTx: boolean
-): Promise<SendLink | { error: string }> {
-    const response = await fetchWithSentry(`${PEANUT_API_URL}/send-links/${pubKey}/claim`, {
-        method: 'POST',
-        headers: {
-            'api-key': process.env.PEANUT_API_KEY!,
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            recipient,
-            password,
-            waitForTx,
-        }),
-    })
-    if (!response.ok) {
-        const body = await response.json()
-        if (!!body.error || !!body.message) {
-            return { error: body.message ?? body.error }
-        }
-        return { error: `HTTP error! status: ${response.status}` }
-    }
-    return jsonParse(await response.text()) as SendLink
-}

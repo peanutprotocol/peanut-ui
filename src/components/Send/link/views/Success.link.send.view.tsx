@@ -16,6 +16,9 @@ import { captureException } from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import useClaimLink from '@/components/Claim/useClaimLink'
+import { useToast } from '@/components/0_Bruddle/Toast'
+import { TRANSACTIONS } from '@/constants/query.consts'
 
 const LinkSendSuccessView = () => {
     const dispatch = useAppDispatch()
@@ -24,6 +27,8 @@ const LinkSendSuccessView = () => {
     const queryClient = useQueryClient()
     const { fetchBalance } = useWallet()
     const { user } = useUserStore()
+    const { cancelLinkAndClaim, pollForClaimConfirmation } = useClaimLink()
+    const toast = useToast()
     const [isLoading, setIsLoading] = useState<boolean>(false)
     const [showCancelLinkModal, setshowCancelLinkModal] = useState(false)
 
@@ -91,34 +96,69 @@ const LinkSendSuccessView = () => {
                     showCancelLinkModal={showCancelLinkModal}
                     setshowCancelLinkModal={setshowCancelLinkModal}
                     amount={`$ ${tokenValue}`}
-                    onClick={() => {
-                        setIsLoading(true)
-                        setshowCancelLinkModal(false)
-                        setCancelLinkText('Cancelling')
-                        sendLinksApi
-                            .claim(user!.user.username!, link)
-                            .then(() => {
-                                // Claiming takes time, so we need to invalidate both transaction query types
-                                setTimeout(() => {
-                                    fetchBalance()
-                                    queryClient
-                                        .invalidateQueries({
-                                            queryKey: ['transactions'],
-                                        })
-                                        .then(async () => {
-                                            setIsLoading(false)
-                                            setCancelLinkText('Cancelled')
-                                            await new Promise((resolve) => setTimeout(resolve, 2000))
-                                            router.push('/home')
-                                        })
-                                }, 3000)
+                    isLoading={isLoading}
+                    onClick={async () => {
+                        try {
+                            setIsLoading(true)
+                            setCancelLinkText('Cancelling')
+
+                            if (!user?.accounts) {
+                                throw new Error('User not found for cancellation')
+                            }
+                            const walletAddress = user.accounts.find((acc) => acc.type === 'peanut-wallet')?.identifier
+                            if (!walletAddress) {
+                                throw new Error('No wallet address found for cancellation')
+                            }
+
+                            // Cancel the link by claiming it back
+                            await cancelLinkAndClaim({
+                                link,
+                                walletAddress,
+                                userId: user?.user?.userId,
                             })
-                            .catch((error) => {
-                                captureException(error)
-                                console.error('Error claiming link:', error)
+
+                            try {
+                                // Wait for transaction confirmation
+                                const isConfirmed = await pollForClaimConfirmation(link)
+
+                                if (!isConfirmed) {
+                                    console.warn('Transaction confirmation timeout - proceeding with refresh')
+                                }
+
+                                // Update UI and queries
+                                fetchBalance()
+                                await queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+
                                 setIsLoading(false)
-                                setCancelLinkText('Cancel link')
-                            })
+                                setshowCancelLinkModal(false)
+                                setCancelLinkText('Cancelled')
+                                toast.success('Link cancelled successfully!')
+
+                                // Brief delay for toast visibility
+                                await new Promise((resolve) => setTimeout(resolve, 1500))
+                                router.push('/home')
+                            } catch (invalidateError) {
+                                console.error('Failed to update after claim:', invalidateError)
+                                captureException(invalidateError, {
+                                    tags: { feature: 'cancel-link' },
+                                    extra: { userId: user?.user?.userId },
+                                })
+
+                                // Still navigate even if invalidation fails
+                                setIsLoading(false)
+                                setshowCancelLinkModal(false)
+                                setCancelLinkText('Cancelled')
+                                toast.success('Link cancelled! Refresh to see updated balance.')
+                                await new Promise((resolve) => setTimeout(resolve, 1500))
+                                router.push('/home')
+                            }
+                        } catch (error: any) {
+                            captureException(error)
+                            console.error('Error claiming link:', error)
+                            setIsLoading(false)
+                            setCancelLinkText('Cancel link')
+                            toast.error('Failed to cancel link. Please try again.')
+                        }
                     }}
                 />
             )}

@@ -10,7 +10,6 @@ import {
     optimismChainId,
     usdcAddressOptimism,
 } from '@/components/Offramp/Offramp.consts'
-import { ActionType, estimatePoints } from '@/components/utils/utils'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, ROUTE_NOT_FOUND_ERROR } from '@/constants'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
@@ -31,7 +30,7 @@ import * as Sentry from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState, useRef } from 'react'
-import { formatUnits } from 'viem'
+import { formatUnits, zeroAddress } from 'viem'
 import type { Address } from 'viem'
 import { type IClaimScreenProps } from '../Claim.consts'
 import ActionList from '@/components/Common/ActionList'
@@ -210,55 +209,95 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
 
             try {
                 setLoadingState('Executing transaction')
+
+                let recipientAddress: string | undefined
                 if (isPeanutWallet) {
-                    // Ensure we have a valid recipient (username or address)
-                    const recipient = user?.user.username ?? address
-                    if (!recipient) {
-                        throw new Error('No recipient address available')
-                    }
-
-                    if (autoClaim) {
-                        await sendLinksApi.autoClaimLink(recipient, claimLinkData.link)
-                    } else {
-                        await sendLinksApi.claim(recipient, claimLinkData.link)
-                    }
-                    setClaimType('claim')
-                    onCustom('SUCCESS')
-                    fetchBalance()
-                    queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+                    // Use wallet address from useWallet hook
+                    recipientAddress = address
                 } else {
-                    // Check if cross-chain claiming is needed
+                    // Use external wallet address
+                    recipientAddress = recipient?.address
+                }
 
-                    let claimTxHash: string
-                    if (isXChain) {
-                        claimTxHash = await claimLinkXchain({
-                            address: recipient.address,
-                            link: claimLinkData.link,
-                            destinationChainId: selectedTokenData.chainId,
-                            destinationToken: selectedTokenData.address,
-                        })
-                        setClaimType('claimxchain')
-                    } else {
-                        claimTxHash = await claimLink({
-                            address: recipient.address,
-                            link: claimLinkData.link,
-                        })
-                        setClaimType('claim')
+                if (!recipientAddress) {
+                    throw new Error('No recipient address available')
+                }
+
+                // Use secure SDK claim (password stays client-side, only signature sent to backend)
+                let claimTxHash: string | undefined
+                // Performance optimization: Pass deposit details to skip RPC call on backend
+                // Determine contractType: 0 for native ETH, 1 for ERC20 tokens
+                // @dev todo: this should be fetched in backend ideally. Might break ETH sendlinks.
+                const isNativeToken =
+                    claimLinkData.tokenAddress === NATIVE_TOKEN_ADDRESS || claimLinkData.tokenAddress === zeroAddress
+                const contractType = isNativeToken ? 0 : 1
+
+                const depositDetails = {
+                    pubKey20: claimLinkData.pubKey,
+                    amount: claimLinkData.amount.toString(),
+                    tokenAddress: claimLinkData.tokenAddress,
+                    contractType,
+                    claimed: claimLinkData.status === 'CLAIMED' || claimLinkData.status === 'CANCELLED',
+                    requiresMFA: false, // MFA not supported in current flow
+                    timestamp: Math.floor(new Date(claimLinkData.createdAt).getTime() / 1000),
+                    tokenId: '0',
+                    senderAddress: claimLinkData.senderAddress,
+                }
+
+                // Check if cross-chain claiming is needed
+                if (isXChain) {
+                    if (!selectedTokenData?.chainId || !selectedTokenData?.address) {
+                        throw new Error('Selected token data is required for cross-chain claims')
                     }
+                    claimTxHash = await claimLinkXchain({
+                        address: recipientAddress,
+                        link: claimLinkData.link,
+                        destinationChainId: selectedTokenData.chainId,
+                        destinationToken: selectedTokenData.address,
+                    })
+                    setClaimType('claimxchain')
+                } else {
+                    // Regular P2P claim with optimistic return for faster UX
+                    claimTxHash = await claimLink({
+                        address: recipientAddress,
+                        link: claimLinkData.link,
+                        depositDetails, // Performance: Skip RPC call
+                        optimisticReturn: true, // UX: Return immediately, poll for txHash
+                    })
+                    setClaimType('claim')
+                }
 
-                    // associate the claim with the user so it shows up in their activity
-                    if (user && claimTxHash) {
-                        try {
-                            await sendLinksApi.associateClaim(claimTxHash)
-                        } catch (e) {
-                            Sentry.captureException(e)
-                            console.error('Failed to associate claim', e)
-                        }
+                // Associate the claim with the user so it shows up in their activity
+                if (user && claimTxHash) {
+                    try {
+                        await sendLinksApi.associateClaim(claimTxHash)
+                    } catch (e) {
+                        Sentry.captureException(e)
+                        console.error('Failed to associate claim', e)
                     }
+                }
 
-                    setTransactionHash(claimTxHash)
-                    onCustom('SUCCESS')
-                    queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+                setTransactionHash(claimTxHash)
+                onCustom('SUCCESS')
+
+                // Note: With optimisticReturn, balance/transactions refresh happens in SUCCESS view
+                // after polling confirms the transaction. Only refresh immediately if we have txHash.
+                if (claimTxHash) {
+                    // Synchronous claim - transaction is confirmed
+                    // Force immediate refetch to bypass staleTime
+                    if (isPeanutWallet) {
+                        queryClient.refetchQueries({
+                            queryKey: ['balance'],
+                            type: 'active',
+                        })
+                    }
+                    queryClient.refetchQueries({
+                        queryKey: [TRANSACTIONS],
+                        type: 'active',
+                    })
+                } else {
+                    // Optimistic return - transaction still processing
+                    // SUCCESS view will refresh after polling detects txHash
                 }
             } catch (error) {
                 const errorString = ErrorHandler(error)
@@ -404,25 +443,12 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         }
     }
 
-    useEffect(() => {
-        let isMounted = true
-        if (recipient?.address && isValidRecipient) {
-            const amountUSD = Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)) * (tokenPrice ?? 0)
-            estimatePoints({
-                address: recipient.address,
-                chainId: claimLinkData.chainId,
-                amountUSD,
-                actionType: ActionType.CLAIM,
-            }).then((points) => {
-                if (isMounted) {
-                    setEstimatedPoints(points)
-                }
-            })
-        }
-        return () => {
-            isMounted = false
-        }
-    }, [recipient.address, isValidRecipient, claimLinkData.amount, claimLinkData.chainId, tokenPrice])
+    // Note: Claimers don't earn points for claiming - only senders earn points for sending.
+    // Points will be visible in the sender's transaction history after the claim is processed.
+    // The calculatePoints endpoint is meant for senders to preview points before sending.
+    // useEffect(() => {
+    //     // No points calculation needed on claim screen
+    // }, [recipient.address, isValidRecipient, claimLinkData.amount, claimLinkData.chainId, tokenPrice, user])
 
     useEffect(() => {
         setIsValidRecipient(!!recipient.address)
