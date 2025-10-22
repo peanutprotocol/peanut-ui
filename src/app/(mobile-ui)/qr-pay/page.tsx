@@ -42,6 +42,7 @@ import { STAR_STRAIGHT_ICON } from '@/assets'
 import { useAuth } from '@/context/authContext'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import type { HistoryEntry } from '@/hooks/useTransactionHistory'
+import { completeHistoryEntry } from '@/utils/history.utils'
 
 const MAX_QR_PAYMENT_AMOUNT = '2000'
 
@@ -138,7 +139,7 @@ export default function QRPayPage() {
     }
 
     const handleSimpleFiStatusUpdate = useCallback(
-        (entry: HistoryEntry) => {
+        async (entry: HistoryEntry) => {
             if (!pendingSimpleFiPaymentId || entry.uuid !== pendingSimpleFiPaymentId) {
                 return
             }
@@ -149,22 +150,64 @@ export default function QRPayPage() {
 
             console.log('[SimpleFi WebSocket] Received status update:', entry.status)
 
+            // Process entry through completeHistoryEntry to format amounts correctly
+            let completedEntry
+            try {
+                completedEntry = await completeHistoryEntry(entry)
+            } catch (error) {
+                console.error('[SimpleFi WebSocket] Failed to process entry:', error)
+                captureException(error, {
+                    tags: { feature: 'simplefi-websocket' },
+                    extra: { entryUuid: entry.uuid },
+                })
+                setIsWaitingForWebSocket(false)
+                setPendingSimpleFiPaymentId(null)
+                setErrorMessage('We received an update, but failed to process it. Please check your history.')
+                setIsSuccess(false)
+                setLoadingState('Idle')
+                return
+            }
+
             setIsWaitingForWebSocket(false)
             setPendingSimpleFiPaymentId(null)
 
-            switch (entry.status) {
-                case 'approved':
+            switch (completedEntry.status) {
+                case 'approved': {
+                    // Guard against missing currency or simpleFiPayment data
+                    if (!completedEntry.currency?.code || !completedEntry.currency?.amount) {
+                        console.error('[SimpleFi WebSocket] Currency data missing on approval')
+                        captureException(new Error('SimpleFi payment approved but currency details missing'), {
+                            extra: { entryUuid: completedEntry.uuid },
+                        })
+                        setErrorMessage('Payment approved, but details are incomplete. Please check your history.')
+                        setIsSuccess(false)
+                        setLoadingState('Idle')
+                        break
+                    }
+
+                    if (!simpleFiPayment) {
+                        console.error('[SimpleFi WebSocket] SimpleFi payment details missing on approval')
+                        captureException(new Error('SimpleFi payment details missing on approval'), {
+                            extra: { entryUuid: completedEntry.uuid },
+                        })
+                        setErrorMessage('Payment approved, but details are missing. Please check your history.')
+                        setIsSuccess(false)
+                        setLoadingState('Idle')
+                        break
+                    }
+
                     setSimpleFiPayment({
-                        id: entry.uuid,
-                        usdAmount: entry.amount,
-                        currency: entry.currency!.code,
-                        currencyAmount: entry.currency!.amount,
-                        price: simpleFiPayment!.price,
-                        address: simpleFiPayment!.address,
+                        id: completedEntry.uuid,
+                        usdAmount: completedEntry.extraData?.usdAmount || completedEntry.amount,
+                        currency: completedEntry.currency.code,
+                        currencyAmount: completedEntry.currency.amount,
+                        price: simpleFiPayment.price,
+                        address: simpleFiPayment.address,
                     })
                     setIsSuccess(true)
                     setLoadingState('Idle')
                     break
+                }
 
                 case 'expired':
                 case 'canceled':
@@ -175,7 +218,7 @@ export default function QRPayPage() {
                     break
 
                 default:
-                    console.log('[SimpleFi WebSocket] Unknown status:', entry.status)
+                    console.log('[SimpleFi WebSocket] Unknown status:', completedEntry.status)
             }
         },
         [pendingSimpleFiPaymentId, simpleFiPayment, setLoadingState]
