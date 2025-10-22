@@ -79,7 +79,7 @@ export const ConfirmClaimLinkView = ({
         })
 
         try {
-            let claimTxHash = ''
+            let claimTxHash: string | undefined = ''
             if (selectedRoute) {
                 claimTxHash = await claimLinkXchain({
                     address: recipient ? recipient.address : (address ?? ''),
