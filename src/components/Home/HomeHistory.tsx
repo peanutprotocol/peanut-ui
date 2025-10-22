@@ -95,7 +95,27 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
 
                 // Process WebSocket entries through completeHistoryEntry to format amounts correctly
                 for (const wsEntry of sortedWsEntries) {
-                    const completedEntry = await completeHistoryEntry(wsEntry)
+                    let completedEntry
+                    try {
+                        completedEntry = await completeHistoryEntry(wsEntry)
+                    } catch (error) {
+                        console.error('[HomeHistory] Failed to process WebSocket entry:', error)
+                        Sentry.captureException(error, {
+                            tags: { feature: 'websocket-home-history' },
+                            extra: { entryType: wsEntry.type, entryUuid: wsEntry.uuid },
+                        })
+                        
+                        // Fallback: Use raw entry with minimal processing
+                        completedEntry = {
+                            ...wsEntry,
+                            timestamp: new Date(wsEntry.timestamp),
+                            extraData: {
+                                ...wsEntry.extraData,
+                                usdAmount: wsEntry.amount.toString(), // Best effort fallback
+                            },
+                        }
+                    }
+
                     const existingIndex = entries.findIndex((entry) => entry.uuid === completedEntry.uuid)
 
                     if (existingIndex !== -1) {

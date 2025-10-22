@@ -50,7 +50,26 @@ const HistoryPage = () => {
 
             // Process the entry through completeHistoryEntry to format amounts and add computed fields
             // This ensures WebSocket entries match the format of API-fetched entries
-            const completedEntry = await completeHistoryEntry(newEntry)
+            let completedEntry
+            try {
+                completedEntry = await completeHistoryEntry(newEntry)
+            } catch (error) {
+                console.error('[History] Failed to process WebSocket entry:', error)
+                Sentry.captureException(error, {
+                    tags: { feature: 'websocket-history' },
+                    extra: { entryType: newEntry.type, entryUuid: newEntry.uuid },
+                })
+                
+                // Fallback: Use raw entry with minimal processing
+                completedEntry = {
+                    ...newEntry,
+                    timestamp: new Date(newEntry.timestamp),
+                    extraData: {
+                        ...newEntry.extraData,
+                        usdAmount: newEntry.amount.toString(), // Best effort fallback
+                    },
+                }
+            }
 
             // Update TanStack Query cache with processed transaction
             queryClient.setQueryData<InfiniteData<HistoryResponse>>(

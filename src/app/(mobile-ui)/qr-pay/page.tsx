@@ -151,24 +151,63 @@ export default function QRPayPage() {
             console.log('[SimpleFi WebSocket] Received status update:', entry.status)
 
             // Process entry through completeHistoryEntry to format amounts correctly
-            const completedEntry = await completeHistoryEntry(entry)
+            let completedEntry
+            try {
+                completedEntry = await completeHistoryEntry(entry)
+            } catch (error) {
+                console.error('[SimpleFi WebSocket] Failed to process entry:', error)
+                captureException(error, {
+                    tags: { feature: 'simplefi-websocket' },
+                    extra: { entryUuid: entry.uuid },
+                })
+                setIsWaitingForWebSocket(false)
+                setPendingSimpleFiPaymentId(null)
+                setErrorMessage('We received an update, but failed to process it. Please check your history.')
+                setIsSuccess(false)
+                setLoadingState('Idle')
+                return
+            }
 
             setIsWaitingForWebSocket(false)
             setPendingSimpleFiPaymentId(null)
 
             switch (completedEntry.status) {
-                case 'approved':
+                case 'approved': {
+                    // Guard against missing currency or simpleFiPayment data
+                    if (!completedEntry.currency?.code || !completedEntry.currency?.amount) {
+                        console.error('[SimpleFi WebSocket] Currency data missing on approval')
+                        captureException(new Error('SimpleFi payment approved but currency details missing'), {
+                            extra: { entryUuid: completedEntry.uuid },
+                        })
+                        setErrorMessage('Payment approved, but details are incomplete. Please check your history.')
+                        setIsSuccess(false)
+                        setLoadingState('Idle')
+                        break
+                    }
+
+                    if (!simpleFiPayment) {
+                        console.error('[SimpleFi WebSocket] SimpleFi payment details missing on approval')
+                        captureException(new Error('SimpleFi payment details missing on approval'), {
+                            extra: { entryUuid: completedEntry.uuid },
+                        })
+                        setErrorMessage('Payment approved, but details are missing. Please check your history.')
+                        setIsSuccess(false)
+                        setLoadingState('Idle')
+                        break
+                    }
+
                     setSimpleFiPayment({
                         id: completedEntry.uuid,
                         usdAmount: completedEntry.extraData?.usdAmount || completedEntry.amount,
-                        currency: completedEntry.currency!.code,
-                        currencyAmount: completedEntry.currency!.amount,
-                        price: simpleFiPayment!.price,
-                        address: simpleFiPayment!.address,
+                        currency: completedEntry.currency.code,
+                        currencyAmount: completedEntry.currency.amount,
+                        price: simpleFiPayment.price,
+                        address: simpleFiPayment.address,
                     })
                     setIsSuccess(true)
                     setLoadingState('Idle')
                     break
+                }
 
                 case 'expired':
                 case 'canceled':

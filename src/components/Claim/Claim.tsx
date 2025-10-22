@@ -84,8 +84,8 @@ export const Claim = ({}) => {
         queryKey: ['sendLink', linkUrl],
         queryFn: () => sendLinksApi.get(linkUrl),
         enabled: !!linkUrl, // Only run when we have a link URL
-        retry: 3, // Retry 3 times for RPC sync issues
-        retryDelay: (attemptIndex) => (attemptIndex + 1) * 1000, // 1s, 2s, 3s (linear backoff)
+        retry: 4, // Retry a few times for DB replication lag + blockchain indexing
+        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000), // Exponential: 1s, 2s, 4s, 8s (total ~15s)
         staleTime: 0, // Don't cache (one-time use per link)
         gcTime: 0, // Garbage collect immediately after use
     })
