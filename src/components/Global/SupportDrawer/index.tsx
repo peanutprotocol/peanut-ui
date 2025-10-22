@@ -2,46 +2,27 @@
 
 import { useSupportModalContext } from '@/context/SupportModalContext'
 import { useCrispUserData } from '@/hooks/useCrispUserData'
+import { setCrispUserData } from '@/utils/crisp'
 import { Drawer, DrawerContent, DrawerTitle } from '../Drawer'
 import { useEffect, useRef } from 'react'
 
 const SupportDrawer = () => {
     const { isSupportModalOpen, setIsSupportModalOpen, prefilledMessage } = useSupportModalContext()
-    const { username, userId, email, grafanaLink } = useCrispUserData()
+    const userData = useCrispUserData()
     const iframeRef = useRef<HTMLIFrameElement>(null)
 
     useEffect(() => {
-        if (!isSupportModalOpen || !iframeRef.current || !username) return
+        if (!isSupportModalOpen || !iframeRef.current || !userData.username) return
 
         const iframe = iframeRef.current
 
-        // Try to set Crisp data in iframe (same as CrispChat.tsx)
-        const setCrispDataInIframe = () => {
+        // Try to set Crisp data in iframe (same logic as CrispChat.tsx)
+        const setData = () => {
             try {
                 const iframeWindow = iframe.contentWindow as any
                 if (!iframeWindow?.$crisp) return
 
-                // Set user nickname and email
-                iframeWindow.$crisp.push(['set', 'user:nickname', [username]])
-                iframeWindow.$crisp.push(['set', 'user:email', [email]])
-
-                // Set session data - EXACT SAME STRUCTURE as CrispChat.tsx
-                iframeWindow.$crisp.push([
-                    'set',
-                    'session:data',
-                    [
-                        [
-                            ['username', username],
-                            ['user_id', userId || ''],
-                            ['grafana_dashboard', grafanaLink],
-                        ],
-                    ],
-                ])
-
-                // Set prefilled message if exists
-                if (prefilledMessage) {
-                    iframeWindow.$crisp.push(['set', 'message:text', [prefilledMessage]])
-                }
+                setCrispUserData(iframeWindow.$crisp, userData, prefilledMessage)
             } catch (e) {
                 // Silently fail if CORS blocks access - no harm done
                 console.debug('Could not set Crisp data in iframe (expected if CORS-blocked):', e)
@@ -50,27 +31,27 @@ const SupportDrawer = () => {
 
         const handleLoad = () => {
             // Try immediately
-            setCrispDataInIframe()
+            setData()
 
             // Listen for Crisp loaded event in iframe
             try {
                 const iframeWindow = iframe.contentWindow as any
                 if (iframeWindow?.$crisp) {
-                    iframeWindow.$crisp.push(['on', 'session:loaded', setCrispDataInIframe])
+                    iframeWindow.$crisp.push(['on', 'session:loaded', setData])
                 }
             } catch (e) {
                 // Ignore CORS errors
             }
 
-            // Fallback: try again after delays (same as CrispChat.tsx)
-            setTimeout(setCrispDataInIframe, 500)
-            setTimeout(setCrispDataInIframe, 1000)
-            setTimeout(setCrispDataInIframe, 2000)
+            // Fallback: try again after delays
+            setTimeout(setData, 500)
+            setTimeout(setData, 1000)
+            setTimeout(setData, 2000)
         }
 
         iframe.addEventListener('load', handleLoad)
         return () => iframe.removeEventListener('load', handleLoad)
-    }, [isSupportModalOpen, username, userId, email, grafanaLink, prefilledMessage])
+    }, [isSupportModalOpen, userData, prefilledMessage])
 
     return (
         <Drawer open={isSupportModalOpen} onOpenChange={setIsSupportModalOpen}>

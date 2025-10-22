@@ -19,7 +19,7 @@ export function useCrispUserData(): CrispUserData {
         return {
             username,
             userId,
-            email: username ? `${username}@peanut.to` : undefined,
+            email: undefined,
             grafanaLink,
         }
     }, [username, userId])

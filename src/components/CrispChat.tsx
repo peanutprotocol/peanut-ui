@@ -4,6 +4,7 @@ import Script from 'next/script'
 import { useEffect } from 'react'
 import { useSupportModalContext } from '@/context/SupportModalContext'
 import { useCrispUserData } from '@/hooks/useCrispUserData'
+import { setCrispUserData } from '@/utils/crisp'
 
 export const CrispButton = ({ children, ...rest }: React.HTMLAttributes<HTMLButtonElement>) => {
     const { setIsSupportModalOpen } = useSupportModalContext()
@@ -20,52 +21,37 @@ export const CrispButton = ({ children, ...rest }: React.HTMLAttributes<HTMLButt
 }
 
 export default function CrispChat() {
-    const { username, userId, email, grafanaLink } = useCrispUserData()
+    const userData = useCrispUserData()
 
     useEffect(() => {
         // Only set user data if we have a username
-        if (!username || typeof window === 'undefined') return
+        if (!userData.username || typeof window === 'undefined') return
 
         // Wait for Crisp to be fully loaded
-        const setCrispUserData = () => {
+        const setData = () => {
             if (window.$crisp) {
-                // Set user nickname and email
-                window.$crisp.push(['set', 'user:nickname', [username]])
-                window.$crisp.push(['set', 'user:email', [email]])
-
-                // Set session data - KEEP EXACT ORIGINAL STRUCTURE (3 nested arrays!)
-                window.$crisp.push([
-                    'set',
-                    'session:data',
-                    [
-                        [
-                            ['username', username],
-                            ['user_id', userId || ''],
-                            ['grafana_dashboard', grafanaLink],
-                        ],
-                    ],
-                ])
+                setCrispUserData(window.$crisp, userData)
             }
         }
 
         // Try to set immediately
-        setCrispUserData()
+        setData()
 
         // Also listen for Crisp session loaded event
         if (window.$crisp) {
-            window.$crisp.push(['on', 'session:loaded', setCrispUserData])
+            window.$crisp.push(['on', 'session:loaded', setData])
         }
 
         // Fallback: try again after a delay
-        const timer = setTimeout(setCrispUserData, 2000)
+        const timer = setTimeout(setData, 2000)
 
         return () => {
             clearTimeout(timer)
             if (window.$crisp) {
-                window.$crisp.push(['off', 'session:loaded', setCrispUserData])
+                window.$crisp.push(['off', 'session:loaded', setData])
             }
         }
-    }, [username, userId, email, grafanaLink])
+    }, [userData])
 
     // thought: we need to version pin this script
     return (
