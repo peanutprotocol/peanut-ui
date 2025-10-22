@@ -96,10 +96,10 @@ const LinkSendSuccessView = () => {
                     showCancelLinkModal={showCancelLinkModal}
                     setshowCancelLinkModal={setshowCancelLinkModal}
                     amount={`$ ${tokenValue}`}
+                    isLoading={isLoading}
                     onClick={async () => {
                         try {
                             setIsLoading(true)
-                            setshowCancelLinkModal(false)
                             setCancelLinkText('Cancelling')
 
                             if (!user?.accounts) {
@@ -130,6 +130,7 @@ const LinkSendSuccessView = () => {
                                 await queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
 
                                 setIsLoading(false)
+                                setshowCancelLinkModal(false)
                                 setCancelLinkText('Cancelled')
                                 toast.success('Link cancelled successfully!')
 
@@ -145,6 +146,7 @@ const LinkSendSuccessView = () => {
 
                                 // Still navigate even if invalidation fails
                                 setIsLoading(false)
+                                setshowCancelLinkModal(false)
                                 setCancelLinkText('Cancelled')
                                 toast.success('Link cancelled! Refresh to see updated balance.')
                                 await new Promise((resolve) => setTimeout(resolve, 1500))

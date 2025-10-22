@@ -1183,11 +1183,11 @@ export const TransactionDetailsReceipt = ({
                     showCancelLinkModal={showCancelLinkModal}
                     setshowCancelLinkModal={setShowCancelLinkModal}
                     amount={amountDisplay}
+                    isLoading={isLoading}
                     onClick={async () => {
                         try {
                             setIsLoading(true)
                             setCancelLinkText('Cancelling')
-                            setShowCancelLinkModal(false)
 
                             if (!user?.accounts) {
                                 throw new Error('User not found for cancellation')
@@ -1222,6 +1222,7 @@ export const TransactionDetailsReceipt = ({
                                 await queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
 
                                 setIsLoading(false)
+                                setShowCancelLinkModal(false)
                                 setCancelLinkText('Cancelled')
                                 toast.success('Link cancelled successfully!')
 
@@ -1237,6 +1238,7 @@ export const TransactionDetailsReceipt = ({
 
                                 // Still close drawer even if invalidation fails
                                 setIsLoading(false)
+                                setShowCancelLinkModal(false)
                                 setCancelLinkText('Cancelled')
                                 toast.success('Link cancelled! Refresh to see updated balance.')
                                 await new Promise((resolve) => setTimeout(resolve, 1500))

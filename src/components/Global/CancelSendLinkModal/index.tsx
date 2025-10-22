@@ -4,7 +4,8 @@ interface CancelSendLinkModalProps {
     showCancelLinkModal: boolean
     setshowCancelLinkModal: (showCancelLinkModal: boolean) => void
     amount: string
-    onClick: () => void
+    onClick: () => void | Promise<void>
+    isLoading?: boolean
 }
 
 const CancelSendLinkModal = ({
@@ -12,11 +13,12 @@ const CancelSendLinkModal = ({
     setshowCancelLinkModal,
     amount,
     onClick,
+    isLoading = false,
 }: CancelSendLinkModalProps) => {
     return (
         <ActionModal
             visible={showCancelLinkModal}
-            onClose={() => setshowCancelLinkModal(false)}
+            onClose={() => !isLoading && setshowCancelLinkModal(false)}
             icon="link-slash"
             iconContainerClassName="bg-purple-1"
             iconProps={{ className: 'text-black' }}
@@ -30,7 +32,7 @@ const CancelSendLinkModal = ({
                     Once cancelled, nobody will be able to claim it.
                 </>
             }
-            preventClose={false}
+            preventClose={isLoading}
             modalPanelClassName="max-w-sm mx-8"
             ctas={[
                 {
@@ -38,6 +40,8 @@ const CancelSendLinkModal = ({
                     shadowSize: '4',
                     className: 'md:py-2',
                     onClick,
+                    loading: isLoading,
+                    disabled: isLoading,
                 },
             ]}
         />
