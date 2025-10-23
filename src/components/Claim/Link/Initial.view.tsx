@@ -573,15 +573,18 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         setSelectedRoute(undefined)
         setHasFetchedRoute(false)
 
-        // If this is a cross-chain transfer, trigger refetch and show loading immediately
+        // If this is a cross-chain transfer, trigger refetch
         const isXChainTransfer =
             selectedChainID !== claimLinkData.chainId ||
             !areEvmAddressesEqual(selectedTokenAddress, claimLinkData.tokenAddress)
 
         if (isXChainTransfer) {
             setRefetchXchainRoute(true)
-            setIsXchainLoading(true)
-            setLoadingState('Fetching route')
+            // Only set loading state if we have a recipient AND input is not changing (ENS resolved)
+            if (recipient.address && !inputChanging) {
+                setIsXchainLoading(true)
+                setLoadingState('Fetching route')
+            }
         }
     }, [selectedChainID, selectedTokenAddress, claimLinkData.chainId, claimLinkData.tokenAddress])
 
@@ -593,8 +596,9 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             }
         }
 
-        // Only fetch if selectedTokenData is ready
-        if (refetchXchainRoute && recipient.address && selectedTokenData) {
+        // Only fetch if selectedTokenData is ready and recipient address is resolved (not ENS)
+        const isAddressResolved = recipient.address && recipient.address.startsWith('0x')
+        if (refetchXchainRoute && isAddressResolved && selectedTokenData && !inputChanging) {
             setIsXchainLoading(true)
             setLoadingState('Fetching route')
             setErrorState({
