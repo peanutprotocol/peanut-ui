@@ -19,8 +19,8 @@ import Image from 'next/image'
 import StatusPill, { type StatusPillType } from '../Global/StatusPill'
 import { VerifiedUserLabel } from '../UserHeader'
 import { isAddress } from 'viem'
-import { STAR_STRAIGHT_ICON } from '@/assets'
-import { type HistoryEntryPerk } from '@/services/services.types'
+import { EHistoryEntryType } from '@/utils/history.utils'
+import { PerkIcon } from './PerkIcon'
 
 export type TransactionType =
     | 'send'
@@ -73,6 +73,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     }
 
     const isLinkTx = transaction.extraDataForDrawer?.isLinkTransaction ?? false
+    const isPerkReward = transaction.extraDataForDrawer?.originalType === EHistoryEntryType.PERK_REWARD
     const userNameForAvatar = transaction.fullName || transaction.userName
     const avatarUrl = getAvatarUrl(transaction)
     let displayName = name
@@ -87,10 +88,6 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     if (!isStableCoin(transaction.tokenSymbol ?? 'USDC')) {
         usdAmount = Number(transaction.currency?.amount ?? amount)
     }
-
-    // Check for perk info
-    const perkInfo = transaction.extraDataForDrawer?.perk as HistoryEntryPerk | undefined
-    const hasPerk = perkInfo?.claimed
 
     const formattedAmount = formatCurrency(Math.abs(usdAmount).toString())
     const displayAmount = `${sign}$${formattedAmount}`
@@ -109,7 +106,12 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                     <div className="flex items-center gap-3">
                         {/* txn avatar component handles icon/initials/colors */}
                         <div className="relative">
-                            {avatarUrl ? (
+                            {isPerkReward ? (
+                                <>
+                                    <PerkIcon size="medium" />
+                                    {status && <StatusPill status={status} />}
+                                </>
+                            ) : avatarUrl ? (
                                 <div className={'relative flex h-12 w-12 items-center justify-center rounded-full'}>
                                     <Image
                                         src={avatarUrl}
@@ -149,28 +151,17 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                             {/* display the action icon and type text */}
                             <div className="flex items-center gap-1 text-sm font-medium text-gray-1">
                                 {getActionIcon(type, transaction.direction)}
-                                <span className="capitalize">{getActionText(type)}</span>
+                                <span className="capitalize">{isPerkReward ? 'Refund' : getActionText(type)}</span>
                             </div>
                         </div>
                     </div>
 
                     {/* amount and status on the right side */}
                     <div className="flex items-center gap-2">
-                        {hasPerk && (
-                            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-yellow-400">
-                                <Image src={STAR_STRAIGHT_ICON} alt="Perk" width={16} height={16} />{' '}
-                            </div>
-                        )}
                         <div className="flex flex-col items-end gap-1">
-                            {hasPerk ? (
-                                <span className="font-semibold line-through">{displayAmount}</span>
-                            ) : (
-                                <span className="font-semibold">{displayAmount}</span>
-                            )}
+                            <span className="font-semibold">{displayAmount}</span>
                             {currencyDisplayAmount && (
-                                <span className={`text-sm font-medium text-gray-1 ${hasPerk ? 'line-through' : ''}`}>
-                                    {currencyDisplayAmount}
-                                </span>
+                                <span className="text-sm font-medium text-gray-1">{currencyDisplayAmount}</span>
                             )}
                         </div>
                     </div>

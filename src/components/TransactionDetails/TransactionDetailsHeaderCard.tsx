@@ -38,7 +38,6 @@ interface TransactionDetailsHeaderCardProps {
     transactionType?: TransactionType
     avatarUrl?: string
     haveSentMoneyToUser?: boolean
-    hasPerk?: boolean
     isAvatarClickable?: boolean
 }
 
@@ -170,7 +169,6 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     transactionType,
     avatarUrl,
     haveSentMoneyToUser = false,
-    hasPerk = false,
     isAvatarClickable = false,
 }) => {
     const router = useRouter()
@@ -224,7 +222,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                         />
                     </h2>
                     <h1
-                        className={`text-3xl font-extrabold md:text-4xl ${status === 'cancelled' || hasPerk ? 'line-through' : ''} ${status === 'cancelled' ? 'text-grey-1' : ''}`}
+                        className={`text-3xl font-extrabold md:text-4xl ${status === 'cancelled' ? 'text-grey-1 line-through' : ''}`}
                     >
                         {amountDisplay}
                     </h1>

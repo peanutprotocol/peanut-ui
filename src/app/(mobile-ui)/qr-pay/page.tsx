@@ -933,9 +933,16 @@ export default function QRPayPage() {
                             <div className="flex flex-col gap-2">
                                 <h2 className="text-2xl font-bold">Peanut got you!</h2>
                                 <p className="text-base text-gray-900">
-                                    {qrPayment?.perk?.discountPercentage === 100
-                                        ? 'We sponsored this bill! Earn points, climb tiers and unlock even better perks.'
-                                        : `We gave you ${qrPayment?.perk?.discountPercentage}% off! Earn points, climb tiers and unlock even better perks.`}
+                                    {(() => {
+                                        const percentage = qrPayment?.perk?.discountPercentage || 100
+                                        if (percentage === 100) {
+                                            return 'We paid for this bill! Earn points, climb tiers and unlock even better perks.'
+                                        } else if (percentage > 100) {
+                                            return `We gave you ${percentage}% back — that's more than you paid! Earn points, climb tiers and unlock even better perks.`
+                                        } else {
+                                            return `We gave you ${percentage}% cashback! Earn points, climb tiers and unlock even better perks.`
+                                        }
+                                    })()}
                                 </p>
                             </div>
                         </Card>
@@ -960,10 +967,18 @@ export default function QRPayPage() {
                                         cancelHold()
                                     }
                                 }}
+                                onContextMenu={(e) => {
+                                    // Prevent context menu from appearing
+                                    e.preventDefault()
+                                }}
                                 shadowSize="4"
                                 disabled={isClaimingPerk}
                                 loading={isClaimingPerk}
-                                className="relative overflow-hidden"
+                                className="relative touch-manipulation select-none overflow-hidden"
+                                style={{
+                                    WebkitTouchCallout: 'none',
+                                    WebkitTapHighlightColor: 'transparent',
+                                }}
                             >
                                 {/* Black progress fill from left to right */}
                                 <div
