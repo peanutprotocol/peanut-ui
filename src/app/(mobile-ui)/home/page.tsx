@@ -177,6 +177,10 @@ export default function Home() {
     // effect for showing add money prompt modal
     useEffect(() => {
         if (typeof window === 'undefined' || isFetchingBalance || !user) return
+
+        // Don't show modal if balance is still loading (undefined)
+        if (balance === undefined) return
+
         const hasSeenAddMoneyPromptThisSession = sessionStorage.getItem('hasSeenAddMoneyPromptThisSession')
         const showNoMoreJailModal = sessionStorage.getItem('showNoMoreJailModal')
 
@@ -215,6 +219,7 @@ export default function Home() {
         isPostSignupActionModalVisible,
         showAddMoneyPromptModal,
         user,
+        address,
     ])
 
     if (isLoading) {
