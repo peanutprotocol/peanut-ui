@@ -924,7 +924,16 @@ export default function QRPayPage() {
                             <div className="flex flex-col gap-2">
                                 <h2 className="text-lg font-bold">Eligible for a Peanut Perk!</h2>
                                 <p className="text-sm text-gray-600">
-                                    This bill can be covered by Peanut. Claim it now to unlock your reward.
+                                    {(() => {
+                                        const percentage = qrPayment?.perk?.discountPercentage || 100
+                                        if (percentage === 100) {
+                                            return 'This bill can be covered by Peanut. Claim it now to unlock your reward.'
+                                        } else if (percentage > 100) {
+                                            return `You're getting ${percentage}% back — that's more than you paid! Claim it now.`
+                                        } else {
+                                            return `You're getting ${percentage}% cashback! Claim it now to unlock your reward.`
+                                        }
+                                    })()}
                                 </p>
                             </div>
                         </Card>
