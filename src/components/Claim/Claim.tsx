@@ -3,6 +3,7 @@ import { generateKeysFromString } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 
 import { fetchTokenDetails, fetchTokenPrice } from '@/app/actions/tokens'
+import { Button } from '@/components/0_Bruddle'
 import { type StatusType } from '@/components/Global/Badges/StatusBadge'
 import { TransactionDetailsReceipt } from '@/components/TransactionDetails/TransactionDetailsReceipt'
 import { type TransactionDetails, REWARD_TOKENS } from '@/components/TransactionDetails/transactionTransformer'
@@ -25,8 +26,7 @@ import PeanutLoading from '../Global/PeanutLoading'
 import * as _consts from './Claim.consts'
 import FlowManager from './Link/FlowManager'
 import { type PeanutCrossChainRoute } from '@/services/swap'
-import { NotFoundClaimLink, WrongPasswordClaimLink, ClaimedView } from './Generic'
-import SupportCTA from '../Global/SupportCTA'
+import { ClaimedView, ClaimErrorView } from './Generic'
 import { twMerge } from 'tailwind-merge'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useSearchParams } from 'next/navigation'
@@ -80,6 +80,8 @@ export const Claim = ({}) => {
         data: sendLink,
         isLoading: isSendLinkLoading,
         error: sendLinkError,
+        refetch, // Get refetch function for manual retry
+        failureCount, // Track retry attempts for better UX
     } = useQuery({
         queryKey: ['sendLink', linkUrl],
         queryFn: () => sendLinksApi.get(linkUrl),
@@ -88,6 +90,10 @@ export const Claim = ({}) => {
         retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000), // Exponential: 1s, 2s, 4s, 8s (total ~15s)
         staleTime: 0, // Don't cache (one-time use per link)
         gcTime: 0, // Garbage collect immediately after use
+        // Refetch when window regains focus (helps with "close and reopen" scenario)
+        refetchOnWindowFocus: true,
+        // Refetch on mount (helps with navigation back scenarios)
+        refetchOnMount: true,
     })
 
     const transactionForDrawer: TransactionDetails | null = useMemo(() => {
@@ -286,14 +292,23 @@ export const Claim = ({}) => {
         }
     }, [user, isFetchingUser, claimLinkData])
 
-    // Handle sendLink fetch errors
+    // Handle sendLink fetch errors with better UX
     useEffect(() => {
         if (sendLinkError) {
             console.error('Failed to load link:', sendLinkError)
-            setLinkState(_consts.claimLinkStateType.NOT_FOUND)
             Sentry.captureException(sendLinkError)
+
+            // Don't immediately show NOT_FOUND - give user option to retry
+            // Link might have just been created
+            if (failureCount >= 4) {
+                // After all retries exhausted, show error with retry button
+                setLinkState(_consts.claimLinkStateType.NOT_FOUND)
+            } else {
+                // Still retrying, keep showing loading
+                setLinkState(_consts.claimLinkStateType.LOADING)
+            }
         }
-    }, [sendLinkError])
+    }, [sendLinkError, failureCount])
 
     useEffect(() => {
         if (address) {
@@ -331,7 +346,23 @@ export const Claim = ({}) => {
             alignItems="center"
             className={twMerge('flex flex-col', !user && !isFetchingUser && 'min-h-[calc(100dvh-110px)]')}
         >
-            {linkState === _consts.claimLinkStateType.LOADING && <PeanutLoading />}
+            {linkState === _consts.claimLinkStateType.LOADING && (
+                <div className="flex flex-col items-center gap-4 px-4">
+                    <PeanutLoading />
+                    {isSendLinkLoading && failureCount > 0 && (
+                        <p className="text-center text-sm text-gray-600">
+                            {failureCount < 3
+                                ? 'Loading your link...'
+                                : 'This is taking longer than usual. The link might have just been created.'}
+                        </p>
+                    )}
+                    {isSendLinkLoading && failureCount >= 3 && (
+                        <p className="text-center text-xs text-gray-500">
+                            We're still trying... (attempt {failureCount + 1}/5)
+                        </p>
+                    )}
+                </div>
+            )}
             {linkState === _consts.claimLinkStateType.CLAIM && (
                 <FlowManager
                     recipientType={recipientType}
@@ -372,8 +403,28 @@ export const Claim = ({}) => {
                     }
                 />
             )}
-            {linkState === _consts.claimLinkStateType.WRONG_PASSWORD && <WrongPasswordClaimLink />}
-            {linkState === _consts.claimLinkStateType.NOT_FOUND && <NotFoundClaimLink />}
+            {linkState === _consts.claimLinkStateType.WRONG_PASSWORD && (
+                <ClaimErrorView
+                    title="Wrong password!"
+                    message="Are you sure you clicked on the right link?"
+                    primaryButtonText="Try Again"
+                    onPrimaryClick={() => {
+                        setLinkState(_consts.claimLinkStateType.LOADING)
+                        refetch()
+                    }}
+                />
+            )}
+            {linkState === _consts.claimLinkStateType.NOT_FOUND && (
+                <ClaimErrorView
+                    title="This link seems broken!"
+                    message="Are you sure you clicked on the right link? Was this link just created? Try again in a few seconds."
+                    primaryButtonText="Retry Loading Link"
+                    onPrimaryClick={() => {
+                        setLinkState(_consts.claimLinkStateType.LOADING)
+                        refetch()
+                    }}
+                />
+            )}
             {/* Show this state only to guest users and receivers, never to the link creator */}
             {linkState === _consts.claimLinkStateType.ALREADY_CLAIMED &&
                 selectedTransaction &&
@@ -389,9 +440,6 @@ export const Claim = ({}) => {
                     onClose={() => setLinkUrl(window.location.href)}
                 />
             )}
-
-            {/* Show only to guest users */}
-            {linkState !== _consts.claimLinkStateType.LOADING && !user && !isFetchingUser && <SupportCTA />}
         </PageContainer>
     )
 }
