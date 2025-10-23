@@ -19,24 +19,25 @@ export type TransactionDetailsRowKey =
     | 'attachment'
     | 'mantecaDepositInfo'
 
-// order of the rows in the receipt
+// order of the rows in the receipt (must match actual rendering order in component)
 export const transactionDetailsRowKeys: TransactionDetailsRowKey[] = [
     'createdAt',
-    'to',
-    'tokenAndNetwork',
-    'txId',
     'cancelled',
     'claimed',
     'completed',
+    'to',
+    'tokenAndNetwork',
+    'txId',
     'fee',
+    'mantecaDepositInfo',
     'exchangeRate',
     'bankAccountDetails',
     'transferId',
     'depositInstructions',
-    'peanutFee',
     'points',
     'comment',
     'networkFee',
+    'peanutFee',
     'attachment',
 ]
 

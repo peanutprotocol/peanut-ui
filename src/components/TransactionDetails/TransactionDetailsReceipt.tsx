@@ -198,6 +198,46 @@ export const TransactionDetailsReceipt = ({
         return rowKey === lastVisibleRow
     }
 
+    // reusable helper to get the last visible row in a specific group
+    const getLastVisibleInGroup = (groupKeys: TransactionDetailsRowKey[]) => {
+        const visibleInGroup = groupKeys.filter((key) => rowVisibilityConfig[key])
+        return visibleInGroup[visibleInGroup.length - 1]
+    }
+
+    // define row groups
+    const rowGroups = useMemo(
+        () => ({
+            dateRows: ['createdAt', 'cancelled', 'claimed', 'completed'] as TransactionDetailsRowKey[],
+            txnDetails: ['tokenAndNetwork', 'txId'] as TransactionDetailsRowKey[],
+            fees: ['networkFee', 'peanutFee'] as TransactionDetailsRowKey[],
+        }),
+        []
+    )
+
+    // get last visible row for each group
+    const lastVisibleInGroups = useMemo(
+        () => ({
+            dateRows: getLastVisibleInGroup(rowGroups.dateRows),
+            txnDetails: getLastVisibleInGroup(rowGroups.txnDetails),
+            fees: getLastVisibleInGroup(rowGroups.fees),
+        }),
+        [rowVisibilityConfig]
+    )
+
+    // reusable helper to check if border should be hidden for a row in a specific group
+    const shouldHideGroupBorder = (rowKey: TransactionDetailsRowKey, groupName: keyof typeof rowGroups) => {
+        const isLastInGroup = rowKey === lastVisibleInGroups[groupName]
+        const isGlobalLast = shouldHideBorder(rowKey)
+
+        // if it's the last in its group, show border UNLESS it's also the global last
+        if (isLastInGroup) {
+            return isGlobalLast
+        }
+
+        // if not last in group, always hide border
+        return true
+    }
+
     const isPendingRequestee = useMemo(() => {
         if (!transaction) return false
         return (
@@ -338,7 +378,6 @@ export const TransactionDetailsReceipt = ({
         (transaction.extraDataForDrawer?.transactionCardType === 'send' ||
             transaction.extraDataForDrawer?.transactionCardType === 'request' ||
             transaction.extraDataForDrawer?.transactionCardType === 'receive')
-
     return (
         <div ref={contentRef} className={twMerge('space-y-4', className)}>
             {/* show qr code at the top if applicable */}
@@ -386,7 +425,31 @@ export const TransactionDetailsReceipt = ({
                         <PaymentInfoRow
                             label={'Created'}
                             value={formatDate(new Date(transaction.createdAt!.toString()))}
-                            hideBottomBorder={shouldHideBorder('createdAt')}
+                            hideBottomBorder={shouldHideGroupBorder('createdAt', 'dateRows')}
+                        />
+                    )}
+
+                    {rowVisibilityConfig.cancelled && (
+                        <PaymentInfoRow
+                            label="Cancelled"
+                            value={formatDate(new Date(transaction.cancelledDate!))}
+                            hideBottomBorder={shouldHideGroupBorder('cancelled', 'dateRows')}
+                        />
+                    )}
+
+                    {rowVisibilityConfig.claimed && (
+                        <PaymentInfoRow
+                            label="Claimed"
+                            value={formatDate(new Date(transaction.claimedAt!))}
+                            hideBottomBorder={shouldHideGroupBorder('claimed', 'dateRows')}
+                        />
+                    )}
+
+                    {rowVisibilityConfig.completed && (
+                        <PaymentInfoRow
+                            label={getLabelText(transaction)}
+                            value={formatDate(new Date(transaction.completedAt!))}
+                            hideBottomBorder={shouldHideGroupBorder('completed', 'dateRows')}
                         />
                     )}
 
@@ -458,7 +521,7 @@ export const TransactionDetailsReceipt = ({
                                                 </div>
                                             )
                                         }
-                                        hideBottomBorder={shouldHideBorder('tokenAndNetwork')}
+                                        hideBottomBorder={shouldHideGroupBorder('tokenAndNetwork', 'txnDetails')}
                                     />
                                 )}
                             </>
@@ -485,42 +548,8 @@ export const TransactionDetailsReceipt = ({
                                     </div>
                                 )
                             }
-                            hideBottomBorder={shouldHideBorder('txId')}
+                            hideBottomBorder={shouldHideGroupBorder('txId', 'txnDetails')}
                         />
-                    )}
-
-                    {rowVisibilityConfig.cancelled && (
-                        <>
-                            {transaction.cancelledDate && (
-                                <PaymentInfoRow
-                                    label="Cancelled"
-                                    value={formatDate(new Date(transaction.cancelledDate))}
-                                    hideBottomBorder={shouldHideBorder('cancelled')}
-                                />
-                            )}
-                        </>
-                    )}
-
-                    {rowVisibilityConfig.claimed && (
-                        <>
-                            {transaction.claimedAt && (
-                                <PaymentInfoRow
-                                    label="Claimed"
-                                    value={formatDate(new Date(transaction.claimedAt))}
-                                    hideBottomBorder={shouldHideBorder('claimed')}
-                                />
-                            )}
-                        </>
-                    )}
-
-                    {rowVisibilityConfig.completed && (
-                        <>
-                            <PaymentInfoRow
-                                label={getLabelText(transaction)}
-                                value={formatDate(new Date(transaction.completedAt!))}
-                                hideBottomBorder={shouldHideBorder('completed')}
-                            />
-                        </>
                     )}
 
                     {rowVisibilityConfig.fee && (
@@ -565,6 +594,7 @@ export const TransactionDetailsReceipt = ({
                                 <PaymentInfoRow
                                     label={`Value in ${transaction.currency!.code}`}
                                     value={`${transaction.currency!.code} ${formatCurrency(transaction.currency!.amount)}`}
+                                    hideBottomBorder
                                 />
                             )}
                             {/* TODO: stop using snake_case!!!!! */}
@@ -670,7 +700,7 @@ export const TransactionDetailsReceipt = ({
                                                 />
                                             </div>
                                         }
-                                        hideBottomBorder={false}
+                                        hideBottomBorder={true}
                                     />
                                     <PaymentInfoRow
                                         label="Bank Address"
@@ -711,7 +741,7 @@ export const TransactionDetailsReceipt = ({
                                                         />
                                                     </div>
                                                 }
-                                                hideBottomBorder={false}
+                                                hideBottomBorder={true}
                                             />
                                             <PaymentInfoRow
                                                 label="BIC"
@@ -820,7 +850,7 @@ export const TransactionDetailsReceipt = ({
                                                             />
                                                         </div>
                                                     }
-                                                    hideBottomBorder={false}
+                                                    hideBottomBorder={true}
                                                 />
                                             )}
                                             {transaction.extraDataForDrawer.depositInstructions
@@ -854,13 +884,6 @@ export const TransactionDetailsReceipt = ({
                         </>
                     )}
 
-                    {rowVisibilityConfig.peanutFee && (
-                        <PaymentInfoRow
-                            label="Peanut fee"
-                            value={'Sponsored by Peanut!'}
-                            hideBottomBorder={shouldHideBorder('peanutFee')}
-                        />
-                    )}
                     {rowVisibilityConfig.points && transaction.points && (
                         <PaymentInfoRow
                             label="Points earned"
@@ -887,7 +910,15 @@ export const TransactionDetailsReceipt = ({
                             label="Network fee"
                             value={transaction.networkFeeDetails!.amountDisplay}
                             moreInfoText={transaction.networkFeeDetails!.moreInfoText}
-                            hideBottomBorder={shouldHideBorder('networkFee')}
+                            hideBottomBorder={shouldHideGroupBorder('networkFee', 'fees')}
+                        />
+                    )}
+
+                    {rowVisibilityConfig.peanutFee && (
+                        <PaymentInfoRow
+                            label="Peanut fee"
+                            value={'Sponsored by Peanut!'}
+                            hideBottomBorder={shouldHideGroupBorder('peanutFee', 'fees')}
                         />
                     )}
 
