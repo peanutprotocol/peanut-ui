@@ -937,7 +937,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     removeParamStep()
                     setShowVerificationModal(false)
                 }}
-                description="The sender isn't verified, so please create an account and verify your identity to have the funds deposited to your bank."
+                description="The sender isn't verified for this method. You'll have to create an account, verify your identity,  and then your funds will be deposited to your bank."
             />
         </div>
     )
