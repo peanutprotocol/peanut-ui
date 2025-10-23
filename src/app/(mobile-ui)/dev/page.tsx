@@ -8,6 +8,13 @@ import { Icon } from '@/components/Global/Icons/Icon'
 export default function DevToolsPage() {
     const tools = [
         {
+            name: 'Points Leaderboard',
+            description: 'Real-time leaderboard with customizable time filters for event competitions',
+            path: '/dev/leaderboard',
+            icon: '🏆',
+            status: 'active',
+        },
+        {
             name: 'Shake Test',
             description: 'Test progressive shake animation and confetti for perk claiming',
             path: '/dev/shake-test',

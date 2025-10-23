@@ -20,6 +20,7 @@ import StatusPill, { type StatusPillType } from '../Global/StatusPill'
 import { VerifiedUserLabel } from '../UserHeader'
 import { isAddress } from 'viem'
 import { EHistoryEntryType } from '@/utils/history.utils'
+import { PerkIcon } from './PerkIcon'
 
 export type TransactionType =
     | 'send'
@@ -106,9 +107,10 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                         {/* txn avatar component handles icon/initials/colors */}
                         <div className="relative">
                             {isPerkReward ? (
-                                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-400">
-                                    <Icon name="star" size={24} />
-                                </div>
+                                <>
+                                    <PerkIcon size="medium" />
+                                    {status && <StatusPill status={status} />}
+                                </>
                             ) : avatarUrl ? (
                                 <div className={'relative flex h-12 w-12 items-center justify-center rounded-full'}>
                                     <Image

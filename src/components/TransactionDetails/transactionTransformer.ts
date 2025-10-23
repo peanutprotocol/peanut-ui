@@ -510,6 +510,15 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             fulfillmentType: entry.extraData?.fulfillmentType,
             bridgeTransferId: entry.extraData?.bridgeTransferId,
             perkReward: entry.extraData?.perkReward as HistoryEntryPerkReward | undefined,
+            perk: entry.extraData?.perk as
+                | {
+                      claimed: boolean
+                      discountPercentage: number
+                      amountSponsored?: number
+                      txHash?: string
+                      merchantInfo?: { promoDescription?: string }
+                  }
+                | undefined,
             depositInstructions:
                 entry.type === EHistoryEntryType.BRIDGE_ONRAMP || entry.extraData?.fulfillmentType === 'bridge'
                     ? entry.extraData?.depositInstructions

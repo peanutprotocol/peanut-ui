@@ -1,4 +1,11 @@
 'use client'
+/**
+ * @todo This file needs significant DRY (Don't Repeat Yourself) refactoring and consolidation
+ * - Multiple repeated UI patterns and logic that could be extracted into reusable components
+ * - Complex conditional rendering that could be simplified
+ * - Duplicated status/type checking logic that could be centralized
+ * - Large component that could be split into smaller focused components
+ */
 
 import Card from '@/components/Global/Card'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
@@ -20,6 +27,7 @@ import React, { useMemo, useState, useEffect } from 'react'
 import { Button } from '../0_Bruddle'
 import DisplayIcon from '../Global/DisplayIcon'
 import { Icon } from '../Global/Icons/Icon'
+import { PerkIcon } from './PerkIcon'
 import { STAR_STRAIGHT_ICON } from '@/assets/icons'
 import QRCodeWrapper from '../Global/QRCodeWrapper'
 import ShareButton from '../Global/ShareButton'
@@ -346,47 +354,84 @@ export const TransactionDetailsReceipt = ({
     if (isPerkReward && perkRewardData) {
         return (
             <div ref={contentRef} className={twMerge('space-y-4', className)}>
-                {/* Perk Reward Header */}
+                {/* Perk Reward Header - Top section with logo, amount, and status */}
                 <Card position="single" className="px-4 py-6">
-                    <div className="flex flex-col items-center text-center">
-                        <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-yellow-400">
-                            <Icon name="star" size={32} />
+                    <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                            <PerkIcon size="medium" />
+                            <div className="flex flex-col">
+                                <h2 className="text-lg font-semibold text-gray-900">Peanut Perk</h2>
+                                <p className="text-2xl font-bold text-gray-900">{amountDisplay}</p>
+                            </div>
                         </div>
-                        <h2 className="text-2xl font-bold">Peanut Perk!</h2>
-                        <p className="mt-2 text-3xl font-bold text-green-600">{amountDisplay}</p>
-                        <span className="mt-1 text-sm text-gray-500">Completed</span>
+                        <div className="flex-shrink-0">
+                            {transaction.status === 'completed' ? (
+                                <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
+                                    Completed
+                                </span>
+                            ) : transaction.status === 'pending' || transaction.status === 'processing' ? (
+                                <span className="rounded-full bg-yellow-100 px-3 py-1 text-xs font-medium text-yellow-700">
+                                    Processing
+                                </span>
+                            ) : (
+                                <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
+                                    {transaction.status}
+                                </span>
+                            )}
+                        </div>
                     </div>
+                    <p className="mt-3 text-sm text-gray-600">
+                        Earn points, climb tiers, and unlock even better perks.
+                    </p>
                 </Card>
 
-                {/* Perk Details */}
+                {/* Perk Details - Middle section with date, reason, and link */}
                 <Card position="single" className="px-4 py-0">
-                    <PaymentInfoRow label="Received" value={formatDate(new Date(transaction.date))} />
-                    <PaymentInfoRow label="Reason" value={perkRewardData.reason} />
-                    {perkRewardData.discountPercentage !== 100 && (
-                        <PaymentInfoRow label="Cashback" value={`${perkRewardData.discountPercentage}%`} />
-                    )}
+                    <PaymentInfoRow
+                        label="Received"
+                        value={formatDate(new Date(transaction.date))}
+                        hideBottomBorder={false}
+                    />
+                    <PaymentInfoRow
+                        label="Reason"
+                        value={perkRewardData.reason}
+                        // hideBottomBorder={!perkRewardData.originatingTxId}
+                        hideBottomBorder={true}
+                    />
+                    {/* 
+                    
+                    {perkRewardData.originatingTxId && (
+                        <PaymentInfoRow
+                            label="Originating payment"
+                            value={
+                                <button
+                                    className="flex items-center gap-1 text-sm font-medium text-primary-1 hover:underline"
+                                    onClick={() => {
+                                        // Close current drawer so user can find the transaction in history
+                                        if (onClose) {
+                                            onClose()
+                                        }
+                                        // Navigate to home where they can see both transactions
+                                        router.push('/home')
+                                    }}
+                                >
+                                    <span>View in history</span>
+                                    <Icon name="arrow-up-right" size={12} />
+                                </button>
+                            }
+                            hideBottomBorder={true}
+                        />
+                    )} */}
                 </Card>
 
-                {/* Link to originating transaction if available */}
-                {perkRewardData.originatingTxId && (
-                    <Card position="single" className="px-4 py-4">
-                        <button
-                            className="flex w-full items-center justify-between text-sm font-medium text-gray-700"
-                            onClick={() => {
-                                // TODO: Open originating transaction drawer
-                                console.log('Open transaction:', perkRewardData.originatingTxId)
-                            }}
-                        >
-                            <span>Related Transaction</span>
-                            <Icon name="arrow-up-right" size={16} />
-                        </button>
-                    </Card>
-                )}
-
-                {/* Footer info */}
-                <Card position="single" className="px-4 py-3">
-                    <p className="text-center text-xs text-gray-500">Earn points, climb tiers, unlock more perks!</p>
-                </Card>
+                {/* Support link section */}
+                <button
+                    onClick={() => setIsSupportModalOpen(true)}
+                    className="flex w-full items-center justify-center gap-2 text-sm font-medium text-grey-1 underline transition-colors hover:text-black"
+                >
+                    <Icon name="peanut-support" size={16} className="text-grey-1" />
+                    Issues with this transaction?
+                </button>
             </div>
         )
     }
@@ -417,19 +462,23 @@ export const TransactionDetailsReceipt = ({
             {transaction.extraDataForDrawer?.perk?.claimed && transaction.status !== 'pending' && (
                 <Card position="single" className="px-4 py-4">
                     <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-yellow-400">
-                            <Image src={STAR_STRAIGHT_ICON} alt="Perk" width={22} height={22} />
-                        </div>
+                        <PerkIcon size="small" />
                         <div className="flex flex-col gap-1">
                             <span className="font-semibold text-gray-900">Eligible for a Peanut Perk!</span>
                             <span className="text-sm text-gray-600">
-                                {transaction.extraDataForDrawer.perk.discountPercentage === 100
-                                    ? 'You received a full refund for this payment'
-                                    : `You received ${transaction.extraDataForDrawer.perk.discountPercentage}% cashback`}
-                                {transaction.extraDataForDrawer.perk.amountSponsored
-                                    ? ` (+$${transaction.extraDataForDrawer.perk.amountSponsored.toFixed(2)})`
-                                    : ''}{' '}
-                                as a Peanut Perk. Check your history to see the reward!
+                                {(() => {
+                                    const percentage = transaction.extraDataForDrawer.perk.discountPercentage
+                                    const amount = transaction.extraDataForDrawer.perk.amountSponsored
+                                    const amountStr = amount ? `$${amount.toFixed(2)}` : ''
+
+                                    if (percentage === 100) {
+                                        return `You received a full refund${amount ? ` (${amountStr})` : ''} as a Peanut Perk.`
+                                    } else if (percentage > 100) {
+                                        return `You received ${percentage}% back${amount ? ` (${amountStr})` : ''} — that's more than you paid!`
+                                    } else {
+                                        return `You received ${percentage}% cashback${amount ? ` (${amountStr})` : ''} as a Peanut Perk.`
+                                    }
+                                })()}
                             </span>
                         </div>
                     </div>

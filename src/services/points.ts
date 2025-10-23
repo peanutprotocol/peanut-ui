@@ -83,4 +83,49 @@ export const pointsApi = {
             throw error instanceof Error ? error : new Error('Failed to calculate points')
         }
     },
+
+    getTimeLeaderboard: async (params?: {
+        limit?: number
+        since?: string
+    }): Promise<{
+        success: boolean
+        data: {
+            leaderboard: Array<{
+                rank: number
+                userId: string
+                username: string
+                pointsEarned: number
+                currentTier: number
+            }>
+            since: string
+            limit: number
+        } | null
+    }> => {
+        try {
+            const queryParams = new URLSearchParams()
+            if (params?.limit) queryParams.append('limit', params.limit.toString())
+            if (params?.since) queryParams.append('since', params.since)
+
+            const response = await fetchWithSentry(
+                `${PEANUT_API_URL}/points/time-leaderboard?${queryParams.toString()}`,
+                {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                }
+            )
+
+            if (!response.ok) {
+                console.error('getTimeLeaderboard: API request failed', response.status, response.statusText)
+                return { success: false, data: null }
+            }
+
+            const data = await response.json()
+            return { success: true, data }
+        } catch (error) {
+            console.error('getTimeLeaderboard: Unexpected error', error)
+            return { success: false, data: null }
+        }
+    },
 }
