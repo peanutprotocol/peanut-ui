@@ -703,6 +703,12 @@ export default function QRPayPage() {
 
     // Check user balance
     useEffect(() => {
+        // Skip balance check if transaction is being processed
+        // (balance has been optimistically updated in these states)
+        if (isLoading || isWaitingForWebSocket) {
+            return
+        }
+
         if (!usdAmount || usdAmount === '0.00' || isNaN(Number(usdAmount)) || balance === undefined) {
             setBalanceErrorMessage(null)
             return
@@ -715,7 +721,7 @@ export default function QRPayPage() {
         } else {
             setBalanceErrorMessage(null)
         }
-    }, [usdAmount, balance])
+    }, [usdAmount, balance, isLoading, isWaitingForWebSocket])
 
     useEffect(() => {
         if (isSuccess) {
