@@ -194,7 +194,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                     dispatch(paymentActions.setView('INITIAL'))
                 }
             } else {
-                setError(getErrorProps({ error, isUser: !!user }))
+                setError(getErrorProps({ error, isUser: !!user, recipient }))
             }
         }
 
@@ -587,14 +587,26 @@ const getDefaultError: (isUser: boolean) => ValidationErrorViewProps = (isUser) 
     redirectTo: isUser ? '/home' : '/setup',
 })
 
-function getErrorProps({ error, isUser }: { error: ParseUrlError; isUser: boolean }): ValidationErrorViewProps {
+function getErrorProps({
+    error,
+    isUser,
+    recipient,
+}: {
+    error: ParseUrlError
+    isUser: boolean
+    recipient: string[]
+}): ValidationErrorViewProps {
+    const username = recipient[0] || 'unknown'
+
     switch (error.message) {
         case EParseUrlError.INVALID_RECIPIENT:
             return {
-                title: 'Invalid Recipient',
-                message: 'The recipient you are trying to pay is invalid. Please check the URL and try again.',
-                buttonText: isUser ? 'Go to home' : 'Create your Peanut Wallet',
-                redirectTo: isUser ? '/home' : '/setup',
+                title: `We don't know any @${username}`,
+                message: 'Are you sure you clicked on the right link?',
+                buttonText: 'Go back to home',
+                redirectTo: '/home',
+                showLearnMore: false,
+                supportMessageTemplate: 'I clicked on this link but got an error: {url}',
             }
         case EParseUrlError.INVALID_CHAIN:
             return {

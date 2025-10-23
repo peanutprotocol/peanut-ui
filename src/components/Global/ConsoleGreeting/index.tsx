@@ -36,6 +36,16 @@ Found a bug? Report it at ${BASE_URL}/support
 `,
             'color: #FF6B00; font-weight: bold;'
         )
+
+        console.log(
+            '%cStop!',
+            'color: #FF0000; font-size: 60px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'
+        )
+
+        console.log(
+            '%cThis is a browser feature intended for developers. If someone told you to copy-paste something here to enable a Peanut feature or "hack" someone\'s account, it is a scam and will give them access to your account.',
+            'font-size: 18px; font-weight: normal;'
+        )
     }, [])
 
     return null

@@ -4,6 +4,7 @@ import { useCreateLink } from '@/components/Create/useCreateLink'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import PeanutActionCard from '@/components/Global/PeanutActionCard'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
+import { TRANSACTIONS } from '@/constants/query.consts'
 import { loadingStateContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useAppDispatch, useSendFlowStore } from '@/redux/hooks'
@@ -54,7 +55,7 @@ const LinkSendInitialView = () => {
             dispatch(sendFlowActions.setView('SUCCESS'))
             fetchBalance()
             queryClient.invalidateQueries({
-                queryKey: ['transactions'],
+                queryKey: [TRANSACTIONS],
             })
 
             // We dont need to wait for this to finish in order to proceed

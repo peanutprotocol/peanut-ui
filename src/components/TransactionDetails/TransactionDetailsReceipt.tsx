@@ -8,7 +8,7 @@ import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHisto
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useUserStore } from '@/redux/hooks'
 import { chargesApi } from '@/services/charges'
-import { sendLinksApi } from '@/services/sendLinks'
+import useClaimLink from '@/components/Claim/useClaimLink'
 import { formatAmount, formatDate, getInitialsFromName, isStableCoin, formatCurrency, getAvatarUrl } from '@/utils'
 import { formatIban, printableAddress, shortenAddress, shortenStringLong, slugify } from '@/utils/general.utils'
 import { cancelOnramp } from '@/app/actions/onramp'
@@ -37,6 +37,7 @@ import {
 import { useSupportModalContext } from '@/context/SupportModalContext'
 import { useRouter } from 'next/navigation'
 import { countryData } from '@/components/AddMoney/consts'
+import { useToast } from '@/components/0_Bruddle/Toast'
 import {
     MANTECA_COUNTRIES_CONFIG,
     MANTECA_ARG_DEPOSIT_CUIT,
@@ -75,17 +76,20 @@ export const TransactionDetailsReceipt = ({
     const { user } = useUserStore()
     const queryClient = useQueryClient()
     const { fetchBalance } = useWallet()
+    const { cancelLinkAndClaim, pollForClaimConfirmation } = useClaimLink()
     const [showBankDetails, setShowBankDetails] = useState(false)
-    const [showCancelLinkModal, setShowCancelLinkModal] = useState(isModalOpen)
+    const [showCancelLinkModal, setShowCancelLinkModal] = useState(false)
     const [tokenData, setTokenData] = useState<{ symbol: string; icon: string } | null>(null)
     const [isTokenDataLoading, setIsTokenDataLoading] = useState(true)
     const { setIsSupportModalOpen } = useSupportModalContext()
+    const toast = useToast()
     const router = useRouter()
     const [cancelLinkText, setCancelLinkText] = useState<'Cancelling' | 'Cancelled' | 'Cancel link'>('Cancel link')
 
+    // Sync modal state to parent if callback is provided
     useEffect(() => {
         setIsModalOpen?.(showCancelLinkModal)
-    }, [showCancelLinkModal])
+    }, [showCancelLinkModal, setIsModalOpen])
 
     const isGuestBankClaim = useMemo(() => {
         if (!transaction) return false
@@ -1179,34 +1183,74 @@ export const TransactionDetailsReceipt = ({
                     showCancelLinkModal={showCancelLinkModal}
                     setshowCancelLinkModal={setShowCancelLinkModal}
                     amount={amountDisplay}
-                    onClick={() => {
-                        setIsLoading(true)
-                        setCancelLinkText('Cancelling')
-                        setShowCancelLinkModal(false)
-                        sendLinksApi
-                            .claim(user!.user.username!, transaction.extraDataForDrawer!.link!)
-                            .then(() => {
-                                // Claiming takes time, so we need to invalidate both transaction query types
-                                setTimeout(() => {
-                                    fetchBalance()
-                                    queryClient
-                                        .invalidateQueries({
-                                            queryKey: [TRANSACTIONS],
-                                        })
-                                        .then(async () => {
-                                            setIsLoading(false)
-                                            setCancelLinkText('Cancelled')
-                                            await new Promise((resolve) => setTimeout(resolve, 2000))
-                                            onClose()
-                                        })
-                                }, 3000)
+                    isLoading={isLoading}
+                    onClick={async () => {
+                        try {
+                            setIsLoading(true)
+                            setCancelLinkText('Cancelling')
+
+                            if (!user?.accounts) {
+                                throw new Error('User not found for cancellation')
+                            }
+                            const walletAddress = user.accounts.find((acc) => acc.type === 'peanut-wallet')?.identifier
+                            if (!walletAddress) {
+                                throw new Error('No wallet address found for cancellation')
+                            }
+
+                            // Validate transaction data
+                            if (!transaction.extraDataForDrawer?.link) {
+                                throw new Error('No link found for cancellation')
+                            }
+
+                            // Cancel the link by claiming it back
+                            await cancelLinkAndClaim({
+                                link: transaction.extraDataForDrawer.link,
+                                walletAddress,
+                                userId: user?.user?.userId,
                             })
-                            .catch((error) => {
-                                captureException(error)
-                                console.error('Error claiming link:', error)
+
+                            try {
+                                // Wait for transaction confirmation
+                                const isConfirmed = await pollForClaimConfirmation(transaction.extraDataForDrawer.link)
+
+                                if (!isConfirmed) {
+                                    console.warn('Transaction confirmation timeout - proceeding with refresh')
+                                }
+
+                                // Update UI and queries
+                                fetchBalance()
+                                await queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+
                                 setIsLoading(false)
-                                setCancelLinkText('Cancel link')
-                            })
+                                setShowCancelLinkModal(false)
+                                setCancelLinkText('Cancelled')
+                                toast.success('Link cancelled successfully!')
+
+                                // Brief delay for toast visibility
+                                await new Promise((resolve) => setTimeout(resolve, 1500))
+                                onClose()
+                            } catch (invalidateError) {
+                                console.error('Failed to update after claim:', invalidateError)
+                                captureException(invalidateError, {
+                                    tags: { feature: 'cancel-link' },
+                                    extra: { userId: user?.user?.userId },
+                                })
+
+                                // Still close drawer even if invalidation fails
+                                setIsLoading(false)
+                                setShowCancelLinkModal(false)
+                                setCancelLinkText('Cancelled')
+                                toast.success('Link cancelled! Refresh to see updated balance.')
+                                await new Promise((resolve) => setTimeout(resolve, 1500))
+                                onClose()
+                            }
+                        } catch (error: any) {
+                            captureException(error)
+                            console.error('Error claiming link:', error)
+                            setIsLoading(false)
+                            setCancelLinkText('Cancel link')
+                            toast.error('Failed to cancel link. Please try again.')
+                        }
                     }}
                 />
             )}

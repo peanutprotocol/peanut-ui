@@ -20,8 +20,14 @@ jest.mock('@/constants', () => ({
     PEANUT_WALLET_TOKEN: '0x1234567890123456789012345678901234567890',
     PEANUT_WALLET_TOKEN_DECIMALS: 6,
     PEANUT_WALLET_CHAIN: { id: 137 },
+}))
+
+jest.mock('@/constants/query.consts', () => ({
     TRANSACTIONS: 'transactions',
 }))
+
+// Import the mocked constant after mocking
+import { TRANSACTIONS } from '@/constants/query.consts'
 
 describe('useSendMoney', () => {
     let queryClient: QueryClient
@@ -175,7 +181,7 @@ describe('useSendMoney', () => {
             // Check invalidation calls
             await waitFor(() => {
                 expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['balance', mockAddress] })
-                expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['transactions'] })
+                expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: [TRANSACTIONS] })
             })
         })
     })

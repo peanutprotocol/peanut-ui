@@ -69,7 +69,14 @@ export const PaymentForm = ({
     const dispatch = useAppDispatch()
     const router = useRouter()
     const { user, fetchUser } = useAuth()
-    const { requestDetails, chargeDetails, daimoError, error: paymentStoreError, attachmentOptions } = usePaymentStore()
+    const {
+        requestDetails,
+        chargeDetails,
+        daimoError,
+        error: paymentStoreError,
+        attachmentOptions,
+        currentView,
+    } = usePaymentStore()
     const {
         setShowExternalWalletFulfillMethods,
         setExternalWalletFulfillMethod,
@@ -178,6 +185,12 @@ export const PaymentForm = ({
     }, [dispatch, recipient])
 
     useEffect(() => {
+        // Skip balance check if on CONFIRM or STATUS view, or if transaction is being processed
+        // (balance has been optimistically updated in these states)
+        if (currentView === 'CONFIRM' || currentView === 'STATUS' || isProcessing) {
+            return
+        }
+
         dispatch(paymentActions.setError(null))
 
         const currentInputAmountStr = String(inputTokenAmount)
@@ -261,6 +274,8 @@ export const PaymentForm = ({
         selectedTokenData,
         isExternalWalletConnected,
         isExternalWalletFlow,
+        currentView,
+        isProcessing,
     ])
 
     // fetch token price

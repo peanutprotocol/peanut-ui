@@ -1,4 +1,4 @@
-import { claimSendLink } from '@/app/actions/claimLinks'
+// Removed claimSendLink import - no longer used (was insecure)
 import { PEANUT_API_URL } from '@/constants'
 import { fetchWithSentry, jsonParse, jsonStringify } from '@/utils'
 import { generateKeysFromString, getParamsFromLink } from '@squirrel-labs/peanut-sdk'
@@ -9,7 +9,7 @@ export { ESendLinkStatus } from '@/services/services.types'
 export type { SendLinkStatus, SendLink } from '@/services/services.types'
 export { getParamsFromLink } from '@squirrel-labs/peanut-sdk'
 
-export type ClaimLinkData = SendLink & { link: string; password: string; tokenSymbol: string; tokenDecimals: number }
+export type ClaimLinkData = SendLink & { link: string; password: string }
 
 type CreateLinkBody = {
     pubKey: string
@@ -119,7 +119,31 @@ export const sendLinksApi = {
     get: async (link: string): Promise<SendLink> => {
         const params = getParamsFromLink(link)
         const pubKey = generateKeysFromString(params.password).address
-        const url = `${PEANUT_API_URL}/send-links/${pubKey}?c=${params.chainId}&v=${params.contractVersion}&i=${params.depositIdx}`
+        // Add timestamp to prevent caching of 404s during DB replication lag
+        const cacheBuster = Date.now()
+        const url = `${PEANUT_API_URL}/send-links/${pubKey}?c=${params.chainId}&v=${params.contractVersion}&i=${params.depositIdx}&_=${cacheBuster}`
+        const response = await fetchWithSentry(url, {
+            method: 'GET',
+            cache: 'no-store', // Prevent browser from caching responses
+        })
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`)
+        }
+        const data: SendLink = jsonParse(await response.text())
+        return data
+    },
+
+    /**
+     * Get send link by query parameters (chainId, depositIdx, contractVersion)
+     * Does NOT require password - useful for SSR/metadata generation
+     * Uses backend's belt-and-suspenders logic (DB + blockchain fallback)
+     */
+    getByParams: async (params: {
+        chainId: string
+        depositIdx: number | string
+        contractVersion: string
+    }): Promise<SendLink> => {
+        const url = `${PEANUT_API_URL}/send-links?c=${params.chainId}&v=${params.contractVersion}&i=${params.depositIdx}`
         const response = await fetchWithSentry(url, {
             method: 'GET',
         })
@@ -142,58 +166,10 @@ export const sendLinksApi = {
         return data
     },
 
-    /**
-     * Claim a send link
-     *
-     * @param recipient - The recipient's address or username
-     * @param link - The link to claim
-     * @param destinationAddress - The destination address to claim the link to (for manteca claims)
-     * @returns The claim link data
-     */
-    claim: async (recipient: string, link: string, waitForTx: boolean = false): Promise<SendLink> => {
-        const params = getParamsFromLink(link)
-        const pubKey = generateKeysFromString(params.password).address
-        const response = await claimSendLink(pubKey, recipient, params.password, waitForTx)
-        if ('error' in response) {
-            throw new Error(response.error)
-        }
-        return response
-    },
-
-    /**
-     * Automaticaly claim a send link without the need of the recipient to click the claim button - Calls the Next.js API route
-     *
-     * @param recipient - The recipient's address or username
-     * @param link - The link to claim
-     * @returns The claim link data
-     */
-    autoClaimLink: async (recipient: string, link: string): Promise<SendLink> => {
-        try {
-            const params = getParamsFromLink(link)
-            const pubKey = generateKeysFromString(params.password).address
-            const response = await fetch(`/api/auto-claim`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    pubKey,
-                    recipient,
-                    password: params.password,
-                }),
-            })
-
-            if (!response.ok) {
-                const errText = await response.text()
-                throw new Error(`HTTP error! status: ${response.status}, message: ${errText}`)
-            }
-
-            const text = await response.text()
-            const result: SendLink = jsonParse(text)
-            return result
-        } catch (error) {
-            console.error('Failed to automatically claim link:', error)
-            throw error
-        }
-    },
+    // REMOVED: claim() and autoClaimLink() methods
+    // These methods were INSECURE as they sent passwords to the backend.
+    // All claims now use SDK's claimLinkGasless() which signs client-side
+    // and only sends signatures to /claim-v2 endpoint.
 
     /**
      * associates a logged-in user with a claim transaction.
