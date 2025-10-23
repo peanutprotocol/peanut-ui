@@ -1,7 +1,7 @@
 import { useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import ExternalWalletFulfilMethods from './ExternalWalletFulfilMethods'
 import AddMoneyCryptoPage from '@/app/(mobile-ui)/add-money/crypto/page'
-import { ParsedURL } from '@/lib/url-parser/types/payment'
+import { type ParsedURL } from '@/lib/url-parser/types/payment'
 import { usePaymentStore } from '@/redux/hooks'
 import ConfirmPaymentView from '@/components/Payment/Views/Confirm.payment.view'
 import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'

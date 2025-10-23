@@ -6,14 +6,14 @@ import PeanutLoading from '@/components/Global/PeanutLoading'
 import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
 import ConfirmWithdrawView from '@/components/Withdraw/views/Confirm.withdraw.view'
 import InitialWithdrawView from '@/components/Withdraw/views/Initial.withdraw.view'
-import { useWithdrawFlow, WithdrawData } from '@/context/WithdrawFlowContext'
-import { InitiatePaymentPayload, usePaymentInitiator } from '@/hooks/usePaymentInitiator'
+import { useWithdrawFlow, type WithdrawData } from '@/context/WithdrawFlowContext'
+import { type InitiatePaymentPayload, usePaymentInitiator } from '@/hooks/usePaymentInitiator'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
-import {
+import type {
     CreateChargeRequest,
     CreateRequestRequest as CreateRequestPayloadServices,
     TCharge,

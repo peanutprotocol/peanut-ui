@@ -5,7 +5,7 @@ import { SearchResultCard } from '@/components/SearchUsers/SearchResultCard'
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
 import Image from 'next/image'
 import React from 'react'
-import { CryptoToken, DEPOSIT_CRYPTO_TOKENS } from '../consts'
+import { type CryptoToken, DEPOSIT_CRYPTO_TOKENS } from '../consts'
 
 interface TokenSelectionViewProps {
     headerTitle?: string

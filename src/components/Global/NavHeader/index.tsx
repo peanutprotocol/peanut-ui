@@ -1,7 +1,9 @@
+'use client'
 import { Button } from '@/components/0_Bruddle'
 import Link from 'next/link'
 import { twMerge } from 'tailwind-merge'
-import { Icon, IconName } from '../Icons/Icon'
+import { Icon, type IconName } from '../Icons/Icon'
+import { useAuth } from '@/context/authContext'
 
 interface NavHeaderProps {
     onPrev?: () => void
@@ -10,9 +12,20 @@ interface NavHeaderProps {
     href?: string
     hideLabel?: boolean
     icon?: IconName
+    showLogoutBtn?: boolean
 }
 
-const NavHeader = ({ title, icon = 'chevron-up', href, hideLabel = false, onPrev, disableBackBtn }: NavHeaderProps) => {
+const NavHeader = ({
+    title,
+    icon = 'chevron-up',
+    href,
+    hideLabel = false,
+    onPrev,
+    disableBackBtn,
+    showLogoutBtn = false,
+}: NavHeaderProps) => {
+    const { logoutUser, isLoggingOut } = useAuth()
+
     return (
         <div className="relative flex w-full flex-row items-center justify-between md:block">
             {!onPrev ? (
@@ -38,6 +51,17 @@ const NavHeader = ({ title, icon = 'chevron-up', href, hideLabel = false, onPrev
                 <div className="absolute left-1/2 top-1/2 min-w-max -translate-x-1/2 -translate-y-1/2 transform pb-1 text-2xl font-extrabold md:relative md:left-auto md:top-auto md:hidden md:translate-x-0 md:translate-y-0 md:transform-none md:pb-0 md:text-base md:font-semibold">
                     {title}
                 </div>
+            )}
+
+            {showLogoutBtn && (
+                <Button
+                    onClick={logoutUser}
+                    loading={isLoggingOut}
+                    variant="stroke"
+                    className={twMerge('h-7 w-7 p-0 md:hidden', isLoggingOut && 'pl-3')}
+                >
+                    <Icon name="logout" size={32} className="size-8" />
+                </Button>
             )}
         </div>
     )

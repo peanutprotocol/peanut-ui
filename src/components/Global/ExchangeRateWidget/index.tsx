@@ -4,14 +4,14 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { FC, useCallback, useEffect, useMemo } from 'react'
-import { Icon, IconName } from '../Icons/Icon'
+import { type FC, useCallback, useEffect, useMemo } from 'react'
+import { Icon, type IconName } from '../Icons/Icon'
 import { Button } from '@/components/0_Bruddle'
 
 interface IExchangeRateWidgetProps {
     ctaLabel: string
     ctaIcon: IconName
-    ctaAction: () => void
+    ctaAction: (sourceCurrency: string, destinationCurrency: string) => void
 }
 
 const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, ctaAction }) => {
@@ -212,7 +212,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
             )}
 
             <Button
-                onClick={ctaAction}
+                onClick={() => ctaAction(sourceCurrency, destinationCurrency)}
                 icon={ctaIcon}
                 iconSize={13}
                 shadowSize="4"

@@ -1,8 +1,8 @@
 'use client'
 
-import { ITokenPriceData, Account } from '@/interfaces'
+import { type ITokenPriceData, type Account } from '@/interfaces'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
-import React, { createContext, ReactNode, useContext, useMemo, useState, useCallback } from 'react'
+import React, { createContext, type ReactNode, useContext, useMemo, useState, useCallback } from 'react'
 
 export interface WithdrawMethod {
     type: 'bridge' | 'manteca' | 'crypto'

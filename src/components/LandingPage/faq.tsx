@@ -4,7 +4,7 @@ import { Eyes, PeanutsBG } from '@/assets'
 import { MarqueeComp } from '@/components/Global/MarqueeWrapper'
 import { Box } from '@chakra-ui/react'
 import { useState } from 'react'
-import { FAQsPanel, FAQsProps } from '../Global/FAQs'
+import { FAQsPanel, type FAQsProps } from '../Global/FAQs'
 
 type LocalFAQsProps = FAQsProps & {
     marquee: {

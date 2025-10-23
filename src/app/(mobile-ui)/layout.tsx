@@ -7,7 +7,6 @@ import WalletNavigation from '@/components/Global/WalletNavigation'
 import { ThemeProvider } from '@/config'
 import { useAuth } from '@/context/authContext'
 import { hasValidJwtToken } from '@/utils/auth'
-import { isIOS } from '@/utils/general.utils'
 import classNames from 'classnames'
 import { usePathname } from 'next/navigation'
 import PullToRefresh from 'pulltorefreshjs'
@@ -15,13 +14,15 @@ import { useEffect, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import '../../styles/globals.css'
 import SupportDrawer from '@/components/Global/SupportDrawer'
-import { useSupportModalContext } from '@/context/SupportModalContext'
 import JoinWaitlistPage from '@/components/Invites/JoinWaitlistPage'
 import { useRouter } from 'next/navigation'
 import { Banner } from '@/components/Global/Banner'
+import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
+import { useSetupStore } from '@/redux/hooks'
+import ForceIOSPWAInstall from '@/components/ForceIOSPWAInstall'
 
 // Allow access to some public paths without authentication
-const publicPathRegex = /^\/(request\/pay|claim|pay\/.+$|support|invite)/
+const publicPathRegex = /^\/(request\/pay|claim|pay\/.+$|support|invite|dev)/
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     const pathName = usePathname()
@@ -29,12 +30,13 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const [isReady, setIsReady] = useState(false)
     const [hasToken, setHasToken] = useState(false)
     const isUserLoggedIn = !!user?.user.userId || false
-    const { setIsSupportModalOpen } = useSupportModalContext()
     const isHome = pathName === '/home'
     const isHistory = pathName === '/history'
     const isSupport = pathName === '/support'
     const alignStart = isHome || isHistory || isSupport
     const router = useRouter()
+    const { deviceType: detectedDeviceType } = useDeviceType()
+    const { showIosPwaInstallScreen } = useSetupStore()
 
     useEffect(() => {
         // check for JWT token
@@ -49,7 +51,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         if (typeof window === 'undefined') return
 
         // Only initialize pull-to-refresh on iOS devices
-        if (!isIOS()) return
+        if (detectedDeviceType !== DeviceType.IOS) return
 
         PullToRefresh.init({
             mainElement: 'body',
@@ -90,6 +92,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 <PeanutLoading />
             </div>
         )
+    }
+
+    // After setup flow is completed, show ios pwa install screen if not in pwa
+    if (!isPublicPath && showIosPwaInstallScreen) {
+        return <ForceIOSPWAInstall />
     }
 
     // Show waitlist page if user doesn't have app access

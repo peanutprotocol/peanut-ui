@@ -1,4 +1,4 @@
-import { HTMLAttributes } from 'react'
+import { type HTMLAttributes } from 'react'
 import { twMerge } from 'tailwind-merge'
 
 interface PageContainerProps extends HTMLAttributes<HTMLDivElement> {

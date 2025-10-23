@@ -1,15 +1,17 @@
 'use client'
 
-import StatusBadge, { StatusType } from '@/components/Global/Badges/StatusBadge'
+import StatusBadge, { type StatusType } from '@/components/Global/Badges/StatusBadge'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
-import { TransactionType } from '@/components/TransactionDetails/TransactionCard'
+import { type TransactionType } from '@/components/TransactionDetails/TransactionCard'
 import { printableAddress } from '@/utils'
 import Image from 'next/image'
 import React from 'react'
 import { isAddress as isWalletAddress } from 'viem'
 import Card from '../Global/Card'
-import { Icon, IconName } from '../Global/Icons/Icon'
+import { Icon, type IconName } from '../Global/Icons/Icon'
 import { VerifiedUserLabel } from '../UserHeader'
+import { useRouter } from 'next/navigation'
+import { twMerge } from 'tailwind-merge'
 
 export type TransactionDirection =
     | 'send'
@@ -36,6 +38,7 @@ interface TransactionDetailsHeaderCardProps {
     transactionType?: TransactionType
     avatarUrl?: string
     haveSentMoneyToUser?: boolean
+    isAvatarClickable?: boolean
 }
 
 const getTitle = (
@@ -166,35 +169,45 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     transactionType,
     avatarUrl,
     haveSentMoneyToUser = false,
+    isAvatarClickable = false,
 }) => {
+    const router = useRouter()
     const typeForAvatar =
         transactionType ?? (direction === 'add' ? 'add' : direction === 'withdraw' ? 'withdraw' : 'send')
 
     const icon = getIcon(direction, isLinkTransaction)
 
+    const handleUserPfpClick = () => {
+        if (isAvatarClickable) {
+            router.push(`/${userName}`)
+        }
+    }
+
     return (
         <Card className="relative p-4 md:p-6" position="single">
             <div className="flex items-center gap-3">
-                {avatarUrl ? (
-                    <div className="flex h-16 w-16 items-center justify-center rounded-full">
-                        <Image
-                            src={avatarUrl}
-                            alt="Icon"
-                            className="size-full rounded-full object-cover"
-                            width={160}
-                            height={160}
+                <div className={twMerge(isAvatarClickable && 'cursor-pointer')} onClick={handleUserPfpClick}>
+                    {avatarUrl ? (
+                        <div className="flex h-16 w-16 items-center justify-center rounded-full">
+                            <Image
+                                src={avatarUrl}
+                                alt="Icon"
+                                className="size-full rounded-full object-cover"
+                                width={160}
+                                height={160}
+                            />
+                        </div>
+                    ) : (
+                        <TransactionAvatarBadge
+                            initials={initials}
+                            userName={userName}
+                            isLinkTransaction={isLinkTransaction}
+                            transactionType={typeForAvatar}
+                            context="header"
+                            size="medium"
                         />
-                    </div>
-                ) : (
-                    <TransactionAvatarBadge
-                        initials={initials}
-                        userName={userName}
-                        isLinkTransaction={isLinkTransaction}
-                        transactionType={typeForAvatar}
-                        context="header"
-                        size="medium"
-                    />
-                )}
+                    )}
+                </div>
                 <div className="space-y-1">
                     <h2 className="flex items-center gap-2 text-sm font-medium text-grey-1">
                         {icon && <Icon name={icon} size={10} />}
@@ -205,6 +218,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                             className="flex items-center gap-1"
                             haveSentMoneyToUser={haveSentMoneyToUser}
                             iconSize={18}
+                            onNameClick={isAvatarClickable ? handleUserPfpClick : undefined}
                         />
                     </h2>
                     <h1

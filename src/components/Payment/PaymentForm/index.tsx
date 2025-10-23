@@ -8,7 +8,7 @@ import ActionModal from '@/components/Global/ActionModal'
 import AddressLink from '@/components/Global/AddressLink'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import FileUploadInput from '@/components/Global/FileUploadInput'
-import { IconName } from '@/components/Global/Icons/Icon'
+import { type IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import UserCard from '@/components/User/UserCard'
@@ -16,9 +16,9 @@ import { PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { tokenSelectorContext } from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
-import { InitiatePaymentPayload, usePaymentInitiator } from '@/hooks/usePaymentInitiator'
+import { type InitiatePaymentPayload, usePaymentInitiator } from '@/hooks/usePaymentInitiator'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { ParsedURL } from '@/lib/url-parser/types/payment'
+import { type ParsedURL } from '@/lib/url-parser/types/payment'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { walletActions } from '@/redux/slices/wallet-slice'
@@ -31,7 +31,7 @@ import { formatUnits } from 'viem'
 import { useAccount } from 'wagmi'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { useUserByUsername } from '@/hooks/useUserByUsername'
-import { PaymentFlow } from '@/app/[...recipient]/client'
+import { type PaymentFlow } from '@/app/[...recipient]/client'
 import MantecaFulfillment from '../Views/MantecaFulfillment.view'
 import { invitesApi } from '@/services/invites'
 import { EInviteType } from '@/services/services.types'
@@ -69,7 +69,14 @@ export const PaymentForm = ({
     const dispatch = useAppDispatch()
     const router = useRouter()
     const { user, fetchUser } = useAuth()
-    const { requestDetails, chargeDetails, daimoError, error: paymentStoreError, attachmentOptions } = usePaymentStore()
+    const {
+        requestDetails,
+        chargeDetails,
+        daimoError,
+        error: paymentStoreError,
+        attachmentOptions,
+        currentView,
+    } = usePaymentStore()
     const {
         setShowExternalWalletFulfillMethods,
         setExternalWalletFulfillMethod,
@@ -178,6 +185,12 @@ export const PaymentForm = ({
     }, [dispatch, recipient])
 
     useEffect(() => {
+        // Skip balance check if on CONFIRM or STATUS view, or if transaction is being processed
+        // (balance has been optimistically updated in these states)
+        if (currentView === 'CONFIRM' || currentView === 'STATUS' || isProcessing) {
+            return
+        }
+
         dispatch(paymentActions.setError(null))
 
         const currentInputAmountStr = String(inputTokenAmount)
@@ -261,6 +274,8 @@ export const PaymentForm = ({
         selectedTokenData,
         isExternalWalletConnected,
         isExternalWalletFlow,
+        currentView,
+        isProcessing,
     ])
 
     // fetch token price

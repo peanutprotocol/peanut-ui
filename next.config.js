@@ -1,9 +1,19 @@
 const os = require('os')
+const { execSync } = require('child_process')
 const withBundleAnalyzer = require('@next/bundle-analyzer')({
-    enabled: process.env.ANALYZE === 'true',
+    // Only enable in production builds when explicitly requested
+    enabled: process.env.ANALYZE === 'true' && process.env.NODE_ENV !== 'development',
 })
 
 const redirectsConfig = require('./redirects.json')
+
+// Get git commit hash at build time
+let gitCommitHash = 'unknown'
+try {
+    gitCommitHash = execSync('git rev-parse --short=7 HEAD').toString().trim()
+} catch (error) {
+    console.warn('Could not get git commit hash:', error.message)
+}
 const interfaces = os.networkInterfaces()
 let ipAddress = 'Unable to determine IP address'
 
@@ -24,6 +34,9 @@ try {
 
 /** @type {import('next').NextConfig} */
 let nextConfig = {
+    env: {
+        NEXT_PUBLIC_GIT_COMMIT_HASH: gitCommitHash,
+    },
     images: {
         remotePatterns: [
             {
@@ -36,12 +49,39 @@ let nextConfig = {
             },
         ],
     },
+
+    // Turbopack configuration for faster dev builds
+    turbopack: {
+        resolveAlias: {
+            // Optimize common aliases
+            '@': './src',
+        },
+    },
+
+    // External packages that shouldn't be bundled (server-side only)
+    serverExternalPackages: [],
+
+    // Disable source maps in production (already handled by Sentry)
+    productionBrowserSourceMaps: false,
+
+    // Transpile packages for better compatibility
+    transpilePackages: ['@squirrel-labs/peanut-sdk'],
+
+    // Experimental features for optimization
+    experimental: {
+        // Optimize package imports for tree-shaking
+        optimizePackageImports: ['@chakra-ui/react', 'framer-motion', '@headlessui/react'],
+        // Speed up webpack builds (fallback mode when not using --turbo)
+        webpackBuildWorker: true,
+    },
+
     webpack: (config, { isServer, dev }) => {
         if (!dev || !process.env.NEXT_TURBO) {
             if (isServer) {
                 config.ignoreWarnings = [{ module: /@opentelemetry\/instrumentation/, message: /Critical dependency/ }]
             }
         }
+
         return config
     },
     reactStrictMode: false,

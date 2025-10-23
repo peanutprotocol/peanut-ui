@@ -1,20 +1,22 @@
 import { APPLE_PAY, GOOGLE_PAY, MERCADO_PAGO, SOLANA_ICON, TRON_ICON, PIX } from '@/assets'
 import { BINANCE_LOGO, LEMON_LOGO, RIPIO_LOGO } from '@/assets/exchanges'
 import { METAMASK_LOGO, RAINBOW_LOGO, TRUST_WALLET_LOGO } from '@/assets/wallets'
-import { IconName } from '@/components/Global/Icons/Icon'
-import { StaticImageData } from 'next/image'
+import { type IconName } from '@/components/Global/Icons/Icon'
+import { type StaticImageData } from 'next/image'
 
 // ref: https://docs.manteca.dev/cripto/key-concepts/exchanges-multi-country#Available-Exchanges
+// DISABLED most exchanges because manteca support is fragile, and we need to
+// check kyc for all countries
 export const MantecaSupportedExchanges = {
     AR: 'ARGENTINA',
-    CL: 'CHILE',
+    //CL: 'CHILE',
     BR: 'BRAZIL',
-    CO: 'COLOMBIA',
-    PA: 'PANAMA',
-    CR: 'COSTA_RICA',
-    GT: 'GUATEMALA',
-    // MX: 'MEXICO', // manteca supports MEXICO, but mercado pago doesnt support qr payments for mexico
-    PH: 'PHILIPPINES',
+    //CO: 'COLOMBIA',
+    //PA: 'PANAMA',
+    //CR: 'COSTA_RICA',
+    //GT: 'GUATEMALA',
+    // MX: 'MEXICO',
+    //PH: 'PHILIPPINES',
     BO: 'BOLIVIA',
 }
 
@@ -2541,7 +2543,7 @@ export const ALL_COUNTRIES_ALPHA3_TO_ALPHA2: { [key: string]: string } = {
 
 const enabledBankWithdrawCountries = new Set([...Object.values(BRIDGE_ALPHA3_TO_ALPHA2), 'US', 'MX', 'AR', 'BO'])
 
-const enabledBankDepositCountries = new Set([...Object.values(BRIDGE_ALPHA3_TO_ALPHA2), 'US', 'AR'])
+const enabledBankDepositCountries = new Set([...Object.values(BRIDGE_ALPHA3_TO_ALPHA2), 'US', 'MX', 'AR'])
 
 // Helper function to check if a country code is enabled for bank transfers
 // Handles both 2-letter and 3-letter country codes

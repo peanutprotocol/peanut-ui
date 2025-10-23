@@ -1,21 +1,21 @@
 'use client'
 
-import { StatusType } from '@/components/Global/Badges/StatusBadge'
+import { type StatusType } from '@/components/Global/Badges/StatusBadge'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import ConfirmPaymentView from '@/components/Payment/Views/Confirm.payment.view'
-import ValidationErrorView, { ValidationErrorViewProps } from '@/components/Payment/Views/Error.validation.view'
+import ValidationErrorView, { type ValidationErrorViewProps } from '@/components/Payment/Views/Error.validation.view'
 import InitialPaymentView from '@/components/Payment/Views/Initial.payment.view'
 import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
 import PublicProfile from '@/components/Profile/components/PublicProfile'
 import { TransactionDetailsReceipt } from '@/components/TransactionDetails/TransactionDetailsReceipt'
-import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
+import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { useAuth } from '@/context/authContext'
 import { useCurrency } from '@/hooks/useCurrency'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
-import { EParseUrlError, parsePaymentURL, ParseUrlError } from '@/lib/url-parser/parser'
-import { ParsedURL } from '@/lib/url-parser/types/payment'
+import { EParseUrlError, parsePaymentURL, type ParseUrlError } from '@/lib/url-parser/parser'
+import { type ParsedURL } from '@/lib/url-parser/types/payment'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
@@ -33,6 +33,9 @@ import NavHeader from '@/components/Global/NavHeader'
 import { ReqFulfillBankFlowManager } from '@/components/Request/views/ReqFulfillBankFlowManager'
 import SupportCTA from '@/components/Global/SupportCTA'
 import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermineBankRequestType'
+import { useQuery } from '@tanstack/react-query'
+import { pointsApi } from '@/services/points'
+import { PointsAction } from '@/services/services.types'
 
 export type PaymentFlow = 'request_pay' | 'external_wallet' | 'direct_pay' | 'withdraw'
 interface Props {
@@ -70,6 +73,30 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         fulfillUsingManteca,
     } = useRequestFulfillmentFlow()
     const { requestType } = useDetermineBankRequestType(chargeDetails?.requestLink.recipientAccount.userId ?? '')
+
+    // Calculate points API call
+    // Points are ALWAYS calculated based on USD value (per PR.md: "1c in cost = 10 pts")
+    // Pre-fetch points when in confirm view (request_pay) or status view (direct_pay)
+    // For request_pay: calculate on CONFIRM (before payment)
+    // For direct_pay: calculate on STATUS (after payment completes)
+
+    const shouldFetchPoints =
+        user?.user.userId &&
+        usdAmount &&
+        chargeDetails?.uuid &&
+        ((flow === 'request_pay' && currentView === 'CONFIRM') || (flow === 'direct_pay' && currentView === 'STATUS'))
+
+    const { data: pointsData } = useQuery({
+        queryKey: ['calculate-points', chargeDetails?.uuid, flow],
+        queryFn: () =>
+            pointsApi.calculatePoints({
+                actionType: PointsAction.P2P_REQUEST_PAYMENT,
+                usdAmount: Number(usdAmount),
+                otherUserId: chargeDetails?.requestLink.recipientAccount.userId,
+            }),
+        enabled: !!shouldFetchPoints,
+        refetchOnWindowFocus: false,
+    })
 
     // determine if the current user is the recipient of the transaction
     const isCurrentUserRecipient = chargeDetails?.requestLink.recipientAccount?.userId === user?.user.userId
@@ -167,7 +194,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                     dispatch(paymentActions.setView('INITIAL'))
                 }
             } else {
-                setError(getErrorProps({ error, isUser: !!user }))
+                setError(getErrorProps({ error, isUser: !!user, recipient }))
             }
         }
 
@@ -541,6 +568,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                             }
                             isExternalWalletFlow={isExternalWalletFlow}
                             redirectTo={isExternalWalletFlow ? '/add-money' : '/send'}
+                            points={pointsData?.estimatedPoints}
                         />
                     )}
                 </>
@@ -559,14 +587,26 @@ const getDefaultError: (isUser: boolean) => ValidationErrorViewProps = (isUser) 
     redirectTo: isUser ? '/home' : '/setup',
 })
 
-function getErrorProps({ error, isUser }: { error: ParseUrlError; isUser: boolean }): ValidationErrorViewProps {
+function getErrorProps({
+    error,
+    isUser,
+    recipient,
+}: {
+    error: ParseUrlError
+    isUser: boolean
+    recipient: string[]
+}): ValidationErrorViewProps {
+    const username = recipient[0] || 'unknown'
+
     switch (error.message) {
         case EParseUrlError.INVALID_RECIPIENT:
             return {
-                title: 'Invalid Recipient',
-                message: 'The recipient you are trying to pay is invalid. Please check the URL and try again.',
-                buttonText: isUser ? 'Go to home' : 'Create your Peanut Wallet',
-                redirectTo: isUser ? '/home' : '/setup',
+                title: `We don't know any @${username}`,
+                message: 'Are you sure you clicked on the right link?',
+                buttonText: 'Go back to home',
+                redirectTo: '/home',
+                showLearnMore: false,
+                supportMessageTemplate: 'I clicked on this link but got an error: {url}',
             }
         case EParseUrlError.INVALID_CHAIN:
             return {

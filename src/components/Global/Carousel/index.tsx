@@ -10,13 +10,14 @@ const Carousel = ({ children }: { children: React.ReactNode }) => {
             <div className="flex w-full gap-2">{children}</div>
 
             <div className="flex gap-2">
-                {scrollSnaps.map((_, index) => (
-                    <button
-                        className={`size-2 rounded-full ${selectedIndex === index ? 'bg-primary-1' : 'bg-grey-2'}`}
-                        key={index}
-                        onClick={() => onDotButtonClick(index)}
-                    />
-                ))}
+                {scrollSnaps.length > 1 &&
+                    scrollSnaps.map((_, index) => (
+                        <button
+                            className={`size-2 rounded-full ${selectedIndex === index ? 'bg-primary-1' : 'bg-grey-2'}`}
+                            key={index}
+                            onClick={() => onDotButtonClick(index)}
+                        />
+                    ))}
             </div>
         </div>
     )

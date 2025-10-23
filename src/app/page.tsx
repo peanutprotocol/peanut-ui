@@ -13,6 +13,7 @@ import {
     RegulatedRails,
 } from '@/components/LandingPage'
 import Footer from '@/components/LandingPage/Footer'
+import Manteca from '@/components/LandingPage/Manteca'
 import { useFooterVisibility } from '@/context/footerVisibility'
 import { useEffect, useState, useRef } from 'react'
 
@@ -192,6 +193,8 @@ export default function LandingPage() {
             <RegulatedRails />
             <Marquee {...marqueeProps} />
             <YourMoney />
+            <Marquee {...marqueeProps} />
+            <Manteca />
             <Marquee {...marqueeProps} />
             <SecurityBuiltIn />
             <Marquee {...marqueeProps} />

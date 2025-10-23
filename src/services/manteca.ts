@@ -1,9 +1,9 @@
 import { PEANUT_API_URL, PEANUT_API_KEY } from '@/constants'
 import {
-    MantecaDepositResponseData,
-    MantecaWithdrawData,
-    MantecaWithdrawResponse,
-    CreateMantecaOnrampParams,
+    type MantecaDepositResponseData,
+    type MantecaWithdrawData,
+    type MantecaWithdrawResponse,
+    type CreateMantecaOnrampParams,
 } from '@/types/manteca.types'
 import { fetchWithSentry } from '@/utils'
 import Cookies from 'js-cookie'
@@ -33,6 +33,13 @@ export type QrPayment = {
         merchant: {
             name: string
         }
+    }
+    perk?: {
+        eligible: boolean
+        discountPercentage: number
+        claimed?: boolean
+        amountSponsored?: number
+        txHash?: string
     }
 }
 
@@ -129,6 +136,28 @@ export const mantecaApi = {
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}))
             throw new Error(errorData.message || `QR payment failed: ${response.statusText}`)
+        }
+
+        return response.json()
+    },
+    claimPerk: async (
+        mantecaTransferId: string
+    ): Promise<{
+        success: boolean
+        perk: { sponsored: boolean; amountSponsored: number; discountPercentage: number; txHash?: string }
+    }> => {
+        const response = await fetchWithSentry(`${PEANUT_API_URL}/perks/claim`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+            },
+            body: JSON.stringify({ mantecaTransferId }),
+        })
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}))
+            throw new Error(errorData.message || `Perk claim failed: ${response.statusText}`)
         }
 
         return response.json()

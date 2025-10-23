@@ -2,17 +2,17 @@
 import { Button } from '@/components/0_Bruddle'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import FileUploadInput from '@/components/Global/FileUploadInput'
-import GeneralRecipientInput, { GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
+import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
-import ValidationErrorView, { ValidationErrorViewProps } from '@/components/Payment/Views/Error.validation.view'
+import ValidationErrorView, { type ValidationErrorViewProps } from '@/components/Payment/Views/Error.validation.view'
 import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
 import UserCard from '@/components/User/UserCard'
 import { loadingStateContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useUserStore } from '@/redux/hooks'
-import { IAttachmentOptions } from '@/redux/types/send-flow.types'
+import { type IAttachmentOptions } from '@/redux/types/send-flow.types'
 import { usersApi } from '@/services/users'
 import { formatAmount, printableUsdc } from '@/utils'
 import { captureException } from '@sentry/nextjs'
@@ -90,10 +90,16 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
         setLoadingState('Requesting')
         setErrorState({ showError: false, errorMessage: '' })
         try {
+            // Determine the recipient address
+            const toAddress = authUser?.user.userId ? address : recipient.address
+            if (!toAddress) {
+                throw new Error('No recipient address available')
+            }
+
             await usersApi.requestByUsername({
                 username: recipientUser!.username,
                 amount: currentInputValue,
-                toAddress: authUser?.user.userId ? address : recipient.address,
+                toAddress,
                 attachment: attachmentOptions,
             })
             setLoadingState('Idle')

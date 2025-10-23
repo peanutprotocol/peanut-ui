@@ -1,14 +1,15 @@
 import { useState, useMemo, useCallback } from 'react'
-import Card, { CardPosition } from '@/components/Global/Card'
+import Card, { type CardPosition } from '@/components/Global/Card'
 import { KycStatusDrawer } from './KycStatusDrawer'
 import { useUserStore } from '@/redux/hooks'
 import AvatarWithBadge from '../Profile/AvatarWithBadge'
-import StatusBadge, { StatusType } from '../Global/Badges/StatusBadge'
+import StatusBadge, { type StatusType } from '../Global/Badges/StatusBadge'
 import { useWebSocket } from '@/hooks/useWebSocket'
-import { BridgeKycStatus, formatDate } from '@/utils'
-import { HTMLAttributes } from 'react'
+import { type BridgeKycStatus, formatDate } from '@/utils'
+import { type HTMLAttributes } from 'react'
 import { twMerge } from 'tailwind-merge'
-import { IUserKycVerification } from '@/interfaces'
+import { type IUserKycVerification } from '@/interfaces'
+import { Icon } from '@/components/Global/Icons/Icon'
 
 // this component shows the current kyc status and opens a drawer with more details on click
 export const KycStatusItem = ({
@@ -59,6 +60,9 @@ export const KycStatusItem = ({
         }
     }, [bridgeKycStartedAt, verification])
 
+    // Check if KYC is approved to show points earned
+    const isApproved = kycStatus === 'approved' || kycStatus === 'ACTIVE'
+
     if (!kycStatus || kycStatus === 'not_started') {
         return null
     }
@@ -72,12 +76,15 @@ export const KycStatusItem = ({
                 }}
                 className={twMerge('cursor-pointer', className)}
             >
-                <div className="flex items-center gap-4">
-                    <KYCStatusIcon />
-                    <div className="flex-1">
-                        <p className="font-semibold">Identity verification</p>
-                        <p className="text-sm text-grey-1">{subtitle}</p>
+                <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                        <KYCStatusIcon />
+                        <div className="flex-1">
+                            <p className="font-semibold">Identity verification</p>
+                            <p className="text-sm text-grey-1">{subtitle}</p>
+                        </div>
                     </div>
+                    {isApproved && <Icon name="check" size={16} className="text-success-1" />}
                 </div>
             </Card>
 

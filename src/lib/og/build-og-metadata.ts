@@ -31,7 +31,7 @@ export function buildOgMetadata({ siteUrl, type, username, amount }: BuildArgs):
     return {
         title,
         description:
-            'Peanut Protocol | Payment Infrastructure – Seamless payment infrastructure for sending and receiving digital assets.',
+            'Peanut | Payment Infrastructure – Seamless payment infrastructure for sending and receiving digital assets.',
         openGraph: {
             title,
             description: 'Seamless payment infrastructure for sending and receiving digital assets.',

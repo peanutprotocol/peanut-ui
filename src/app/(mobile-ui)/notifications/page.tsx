@@ -1,7 +1,7 @@
 'use client'
 
 import PageContainer from '@/components/0_Bruddle/PageContainer'
-import Card, { CardPosition } from '@/components/Global/Card'
+import Card, { type CardPosition } from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { notificationsApi, type InAppItem } from '@/services/notifications'

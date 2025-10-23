@@ -1,5 +1,5 @@
 import { useUserStore } from '@/redux/hooks'
-import { ApiUser, usersApi } from '@/services/users'
+import { type ApiUser, usersApi } from '@/services/users'
 import { useEffect, useRef, useState } from 'react'
 import { useDebounce } from './useDebounce'
 

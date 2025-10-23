@@ -3,14 +3,14 @@ import { KycCompleted } from './states/KycCompleted'
 import { KycFailed } from './states/KycFailed'
 import { KycProcessing } from './states/KycProcessing'
 import PeanutLoading from '@/components/Global/PeanutLoading'
-import { Drawer, DrawerContent } from '../Global/Drawer'
-import { BridgeKycStatus } from '@/utils'
+import { Drawer, DrawerContent, DrawerTitle } from '../Global/Drawer'
+import { type BridgeKycStatus } from '@/utils'
 import { getKycDetails } from '@/app/actions/users'
-import { IUserKycVerification, MantecaKycStatus } from '@/interfaces'
+import { type IUserKycVerification, MantecaKycStatus } from '@/interfaces'
 import { useUserStore } from '@/redux/hooks'
 import { useBridgeKycFlow } from '@/hooks/useBridgeKycFlow'
 import { useMantecaKycFlow } from '@/hooks/useMantecaKycFlow'
-import { CountryData, countryData } from '@/components/AddMoney/consts'
+import { type CountryData, countryData } from '@/components/AddMoney/consts'
 import IFrameWrapper from '@/components/Global/IframeWrapper'
 
 // a helper to categorize the kyc status from the user object
@@ -157,7 +157,10 @@ export const KycStatusDrawer = ({ isOpen, onClose, verification, bridgeKycStatus
     return (
         <>
             <Drawer open={isOpen} onOpenChange={onClose}>
-                <DrawerContent className="p-5 pb-12">{renderContent()}</DrawerContent>
+                <DrawerContent className="p-5 pb-12">
+                    <DrawerTitle className="sr-only">KYC Status</DrawerTitle>
+                    {renderContent()}
+                </DrawerContent>
             </Drawer>
             <IFrameWrapper {...bridgeIframeOptions} onClose={handleBridgeIframeClose} />
             <IFrameWrapper {...mantecaIframeOptions} onClose={handleMantecaIframeClose} />

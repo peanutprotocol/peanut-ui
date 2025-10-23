@@ -270,6 +270,107 @@ Firefox input[type='number'] {
     animation: rock 2s infinite ease-in-out;
 }
 
+/* Perk animations - Progressive shake intensities */
+@keyframes perkShakeWeak {
+    0%,
+    100% {
+        transform: translateX(0) rotate(0deg);
+    }
+    10%,
+    30%,
+    50%,
+    70%,
+    90% {
+        transform: translateX(-4px) rotate(-0.5deg);
+    }
+    20%,
+    40%,
+    60%,
+    80% {
+        transform: translateX(4px) rotate(0.5deg);
+    }
+}
+
+@keyframes perkShakeMedium {
+    0%,
+    100% {
+        transform: translateX(0) rotate(0deg);
+    }
+    10%,
+    30%,
+    50%,
+    70%,
+    90% {
+        transform: translateX(-8px) rotate(-1deg);
+    }
+    20%,
+    40%,
+    60%,
+    80% {
+        transform: translateX(8px) rotate(1deg);
+    }
+}
+
+@keyframes perkShakeStrong {
+    0%,
+    100% {
+        transform: translate(0, 0) rotate(0deg);
+    }
+    10%,
+    30%,
+    50%,
+    70%,
+    90% {
+        transform: translate(-12px, -2px) rotate(-1.5deg);
+    }
+    20%,
+    40%,
+    60%,
+    80% {
+        transform: translate(12px, 2px) rotate(1.5deg);
+    }
+}
+
+@keyframes perkShakeIntense {
+    0%,
+    100% {
+        transform: translate(0, 0) rotate(0deg);
+    }
+    10%,
+    30%,
+    50%,
+    70%,
+    90% {
+        transform: translate(-16px, -3px) rotate(-2deg);
+    }
+    20%,
+    40%,
+    60%,
+    80% {
+        transform: translate(16px, 3px) rotate(2deg);
+    }
+}
+
+.perk-shake-weak {
+    animation: perkShakeWeak 0.15s ease-in-out infinite;
+    transform-origin: center center;
+}
+
+.perk-shake-medium {
+    animation: perkShakeMedium 0.12s ease-in-out infinite;
+    transform-origin: center center;
+}
+
+.perk-shake-strong {
+    animation: perkShakeStrong 0.1s ease-in-out infinite;
+    transform-origin: center center;
+}
+
+.perk-shake-intense {
+    animation: perkShakeIntense 0.08s ease-in-out infinite;
+    transform-origin: center center;
+}
+
 .text-link-decoration {
     @apply underline decoration-neutral-400 decoration-2 underline-offset-4 transition-colors duration-200 hover:decoration-primary-1;
 }

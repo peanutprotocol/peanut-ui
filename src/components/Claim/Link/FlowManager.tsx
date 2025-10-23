@@ -4,9 +4,9 @@ import { InitialClaimLinkView } from './Initial.view'
 import * as _consts from '../Claim.consts'
 import * as interfaces from '@/interfaces'
 import {
-    IOfframpSuccessScreenProps,
+    type IOfframpSuccessScreenProps,
     OfframpType,
-    IOfframpConfirmScreenProps,
+    type IOfframpConfirmScreenProps,
 } from '@/components/Offramp/Offramp.consts'
 
 type ClaimPropsType = _consts.IClaimScreenProps | IOfframpSuccessScreenProps | IOfframpConfirmScreenProps

@@ -4,12 +4,13 @@ import ErrorAlert from '@/components/Global/ErrorAlert'
 import { Icon } from '@/components/Global/Icons/Icon'
 import Modal from '@/components/Global/Modal'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
-import { BeforeInstallPromptEvent, ScreenId } from '@/components/Setup/Setup.types'
+import { type BeforeInstallPromptEvent, type ScreenId } from '@/components/Setup/Setup.types'
 import { useAuth } from '@/context/authContext'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import { captureException } from '@sentry/nextjs'
+import { DeviceType } from '@/hooks/useGetDeviceType'
 
 const StepTitle = ({ text }: { text: string }) => <h3 className="text-xl font-extrabold leading-6">{text}</h3>
 
@@ -21,7 +22,7 @@ const InstallPWA = ({
 }: {
     canInstall?: boolean
     deferredPrompt?: BeforeInstallPromptEvent | null
-    deviceType?: 'ios' | 'android' | 'desktop'
+    deviceType?: DeviceType
     screenId?: ScreenId
 }) => {
     const toast = useToast()
@@ -87,7 +88,7 @@ const InstallPWA = ({
     }, [])
 
     useEffect(() => {
-        if (screenId === 'pwa-install' && (deviceType === 'desktop' || deviceType === 'ios')) {
+        if (screenId === 'pwa-install' && (deviceType === DeviceType.WEB || deviceType === DeviceType.IOS)) {
             const timer = setTimeout(() => {
                 setShowModal(true)
             }, 500)
@@ -200,10 +201,10 @@ const InstallPWA = ({
         case 'android-initial-pwa-install':
             return <AndroidPWASpecificInstallFlow />
         case 'pwa-install':
-            if (deviceType === 'android') {
+            if (deviceType === DeviceType.ANDROID) {
                 return <AndroidPWASpecificInstallFlow />
             }
-            if (deviceType === 'desktop') {
+            if (deviceType === DeviceType.WEB) {
                 return (
                     <>
                         <div className="flex flex-col gap-4">

@@ -1,7 +1,7 @@
 import * as consts from '@/constants'
 import * as interfaces from '@/interfaces'
-import { IOfframpSuccessScreenProps, IOfframpConfirmScreenProps } from '../Offramp/Offramp.consts'
-import { ClaimLinkData } from '@/services/sendLinks'
+import { type IOfframpSuccessScreenProps, type IOfframpConfirmScreenProps } from '../Offramp/Offramp.consts'
+import { type ClaimLinkData } from '@/services/sendLinks'
 import { type PeanutCrossChainRoute } from '@/services/swap'
 export type ClaimType = 'claim' | 'claimxchain'
 
@@ -36,8 +36,8 @@ export interface IClaimScreenProps {
     setRecipient: (recipient: { name: string | undefined; address: string }) => void
     tokenPrice: number
     setTokenPrice: (price: number) => void
-    transactionHash: string
-    setTransactionHash: (hash: string) => void
+    transactionHash: string | undefined
+    setTransactionHash: (hash: string | undefined) => void
     estimatedPoints: number
     setEstimatedPoints: (points: number) => void
     attachment: { message: string | undefined; attachmentUrl: string | undefined }

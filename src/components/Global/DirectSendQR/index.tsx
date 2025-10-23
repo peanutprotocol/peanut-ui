@@ -16,7 +16,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useMemo, useState, type ChangeEvent } from 'react'
 import { twMerge } from 'tailwind-merge'
 import ActionModal from '../ActionModal'
-import { Icon, IconName } from '../Icons/Icon'
+import { Icon, type IconName } from '../Icons/Icon'
 import { EQrType, NAME_BY_QR_TYPE, parseEip681, recognizeQr } from './utils'
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL!
@@ -293,6 +293,9 @@ export default function DirectSendQr({
             case EQrType.MERCADO_PAGO:
             case EQrType.ARGENTINA_QR3:
             case EQrType.PIX:
+            case EQrType.SIMPLEFI_STATIC:
+            case EQrType.SIMPLEFI_DYNAMIC:
+            case EQrType.SIMPLEFI_USER_SPECIFIED:
                 {
                     const timestamp = Date.now()
                     // Casing matters, so send original instead of normalized

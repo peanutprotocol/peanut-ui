@@ -59,15 +59,15 @@ export const printableAddress = (address: string, firstCharsLen?: number, lastCh
 }
 
 /**
- * Validates if a string is a valid ENS name format
- * Checks that the string follows the ENS domain pattern with required TLD
- * e.g., 'vitalik.eth', 'domain.xyz'
+ * Validates ens name accordingto EIP-137
  *
- * @param ensName - The ENS name to validate
- * @returns true if the string is a valid ENS format, false otherwise
+ * <domain> ::= <label> | <domain> "." <label>
+ * <label> ::=  any valid string label per [UTS46](https://unicode.org/reports/tr46/)
+ *
+ * @see https://eips.ethereum.org/EIPS/eip-137#name-syntax
  */
 export const validateEnsName = (ensName: string = ''): boolean => {
-    return /^[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)?$/.test(ensName)
+    return /^(?:[-a-zA-Z0-9]+\.)+[-a-zA-Z0-9]+$/.test(ensName)
 }
 
 export function jsonStringify(data: any): string {
@@ -121,11 +121,9 @@ export const getFromLocalStorage = (key: string) => {
         }
         const data = localStorage.getItem(key)
         if (data === null) {
-            console.log(`No data found in localStorage for ${key}`)
             return null
         }
         const parsedData = jsonParse(data)
-        console.log(`Retrieved ${key} from localStorage:`, parsedData)
         return parsedData
     } catch (error) {
         Sentry.captureException(error)
@@ -1070,7 +1068,7 @@ export function getChainName(chainId: string): string | undefined {
 }
 
 export const getHeaderTitle = (pathname: string) => {
-    return consts.pathTitles[pathname] || 'Peanut Protocol' // default title if path not found
+    return consts.pathTitles[pathname] || 'Peanut' // default title if path not found
 }
 
 /**
@@ -1282,17 +1280,6 @@ export function isPeanutWalletToken(tokenAddress: string, chainId: string): bool
     const supportedTokens: string[] | undefined = PEANUT_WALLET_SUPPORTED_TOKENS[chainId]
     if (!supportedTokens) return false
     return supportedTokens.some((t) => areEvmAddressesEqual(t, tokenAddress))
-}
-
-/**
- * Detects if the user is on an iOS device
- * @returns true if the user is on iOS, false otherwise
- */
-export function isIOS(): boolean {
-    if (typeof window === 'undefined') return false
-
-    const userAgent = window.navigator.userAgent.toLowerCase()
-    return /iphone|ipad|ipod/.test(userAgent)
 }
 
 /**

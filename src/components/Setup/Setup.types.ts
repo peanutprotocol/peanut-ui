@@ -1,4 +1,5 @@
 export type ScreenId =
+    | 'landing'
     | 'welcome'
     | 'signup'
     | 'passkey-permission'
@@ -15,6 +16,7 @@ export type ScreenId =
 export type LayoutType = 'signup' | 'standard' | 'android-initial-pwa-install'
 
 export type ScreenProps = {
+    landing: undefined
     welcome: undefined
     signup: undefined
     'passkey-permission': {

@@ -2,11 +2,12 @@ import starImage from '@/assets/icons/star.png'
 import { Button } from '@/components/0_Bruddle'
 import CloudsBackground from '@/components/0_Bruddle/CloudsBackground'
 import Icon from '@/components/Global/Icon'
-import { BeforeInstallPromptEvent, LayoutType, ScreenId } from '@/components/Setup/Setup.types'
+import { type BeforeInstallPromptEvent, type LayoutType, type ScreenId } from '@/components/Setup/Setup.types'
 import InstallPWA from '@/components/Setup/Views/InstallPWA'
+import { DeviceType } from '@/hooks/useGetDeviceType'
 import classNames from 'classnames'
 import Image from 'next/image'
-import { Children, ReactNode, cloneElement, memo, type ReactElement } from 'react'
+import { Children, type ReactNode, cloneElement, memo, type ReactElement } from 'react'
 import { twMerge } from 'tailwind-merge'
 
 /**
@@ -31,7 +32,7 @@ interface SetupWrapperProps {
     direction?: number
     deferredPrompt?: BeforeInstallPromptEvent | null
     canInstall?: boolean
-    deviceType?: 'ios' | 'android' | 'desktop'
+    deviceType?: DeviceType
 }
 
 // define responsive height classes for different layout types
@@ -44,10 +45,10 @@ const IMAGE_CONTAINER_CLASSES: Record<LayoutType, string> = {
 // define animated star decorations positions and sizes
 // each array element represents a star with specific positioning and animation
 const STAR_POSITIONS = [
-    'left-[10%] md:left-[15%] lg:left-[15%] animate-rock-delay-1 top-[15%] md:top-[20%]  size-13 md:size-14',
-    'right-[10%] md:right-[15%] lg:right-[15%] animate-rock top-[10%] md:top-[20%] size-10 md:size-14',
-    'left-[10%] md:left-[15%] lg:left-[15%] animate-rock-delay-2 bottom-[15%] md:bottom-[20%] size-12 md:size-14',
-    'right-[10%] md:right-[15%] lg:right-[15%] animate-rock-delay-2 bottom-[30%] size-6 md:size-14',
+    'left-[10%] md:left-[15%] lg:left-[15%] top-[15%] md:top-[20%]  size-13 md:size-14',
+    'right-[10%] md:right-[15%] lg:right-[15%] top-[10%] md:top-[20%] size-10 md:size-14',
+    'left-[10%] md:left-[15%] lg:left-[15%] bottom-[15%] md:bottom-[20%] size-12 md:size-14',
+    'right-[10%] md:right-[15%] lg:right-[15%] bottom-[30%] size-6 md:size-14',
 ] as const
 
 /**
@@ -189,7 +190,7 @@ export const SetupWrapper = memo(
                 <Navigation
                     showBackButton={showBackButton}
                     showSkipButton={
-                        showSkipButton || (screenId === 'pwa-install' && (!canInstall || deviceType === 'desktop'))
+                        showSkipButton || (screenId === 'pwa-install' && (!canInstall || deviceType === DeviceType.WEB))
                     }
                     onBack={onBack}
                     onSkip={onSkip}

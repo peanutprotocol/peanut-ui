@@ -13,8 +13,9 @@ export type ChainId = (typeof allChains)[number]['id']
  * @see https://viem.sh/docs/clients/transports/fallback#fallback-transport
  */
 export function getTransportWithFallback(chainId: ChainId): Transport {
-    const providerUrls = rpcUrls[chainId]
-    if (!providerUrls) {
+    // Handle circular dependency during module initialization (e.g., in tests)
+    const providerUrls = rpcUrls?.[chainId]
+    if (!providerUrls || !Array.isArray(providerUrls) || providerUrls.length === 0) {
         // If no premium providers are configured, viem will use a default one
         return http()
     }

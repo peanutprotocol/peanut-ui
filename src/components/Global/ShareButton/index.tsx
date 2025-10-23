@@ -29,7 +29,7 @@ const ShareButton = ({
     url,
     generateUrl,
     generateText,
-    title = 'Peanut Protocol',
+    title = 'Peanut',
     text,
     onSuccess,
     onError,

@@ -1,19 +1,19 @@
 'use client'
 
-import { IClaimScreenProps } from '../../Claim.consts'
-import { DynamicBankAccountForm, IBankAccountDetails } from '@/components/AddWithdraw/DynamicBankAccountForm'
+import { type IClaimScreenProps } from '../../Claim.consts'
+import { DynamicBankAccountForm, type IBankAccountDetails } from '@/components/AddWithdraw/DynamicBankAccountForm'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useCallback, useContext, useState, useRef, useEffect } from 'react'
 import { loadingStateContext } from '@/context'
 import { createBridgeExternalAccountForGuest } from '@/app/actions/external-accounts'
 import { confirmOfframp, createOfframp, createOfframpForGuest } from '@/app/actions/offramp'
-import { Address, formatUnits } from 'viem'
+import { type Address, formatUnits } from 'viem'
 import { ErrorHandler, formatTokenAmount } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import useClaimLink from '../../useClaimLink'
-import { AddBankAccountPayload } from '@/app/actions/types/users.types'
+import { type AddBankAccountPayload } from '@/app/actions/types/users.types'
 import { useAuth } from '@/context/authContext'
-import { TCreateOfframpRequest, TCreateOfframpResponse } from '@/services/services.types'
+import { type TCreateOfframpRequest, type TCreateOfframpResponse } from '@/services/services.types'
 import { getOfframpCurrencyConfig } from '@/utils/bridge.utils'
 import { getBridgeChainName, getBridgeTokenName } from '@/utils/bridge-accounts.utils'
 import peanut from '@squirrel-labs/peanut-sdk'
@@ -25,7 +25,7 @@ import { ConfirmBankClaimView } from './Confirm.bank-claim.view'
 import { CountryListRouter } from '@/components/Common/CountryListRouter'
 import NavHeader from '@/components/Global/NavHeader'
 import { useWebSocket } from '@/hooks/useWebSocket'
-import { BridgeKycStatus } from '@/utils/bridge-accounts.utils'
+import { type BridgeKycStatus } from '@/utils/bridge-accounts.utils'
 import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
 import { useAppDispatch } from '@/redux/hooks'
 import { bankFormActions } from '@/redux/slices/bank-form-slice'
@@ -108,9 +108,14 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                     address: details.depositInstructions.toAddress,
                     link: claimLinkData.link,
                 })
+
+                if (!claimTx) {
+                    throw new Error('Failed to claim link - no transaction hash returned')
+                }
+
                 // if a user is logged in, associate the claim with their account.
                 // this helps track their activity correctly.
-                if (user && claimTx) {
+                if (user) {
                     try {
                         await sendLinksApi.associateClaim(claimTx)
                     } catch (e) {
@@ -448,7 +453,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                 <CountryListRouter
                     flow="claim"
                     claimLinkData={claimLinkData}
-                    inputTitle="Which country do you want to receive to?"
+                    inputTitle="Select your bank account's country"
                 />
             )
         case ClaimBankFlowStep.BankDetailsForm:
@@ -469,7 +474,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                         ref={formRef}
                         key={selectedCountry?.id}
                         country={getCountryCodeForWithdraw(selectedCountry?.id ?? '')}
-                        countryName={selectedCountry?.title ?? ''}
+                        countryName={selectedCountry?.path ?? ''}
                         onSuccess={handleSuccess}
                         flow={'claim'}
                         hideEmailInput={bankClaimType === BankClaimType.GuestBankClaim}

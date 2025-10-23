@@ -1,6 +1,6 @@
-import React, { FC } from 'react'
+import React, { type FC } from 'react'
 import Card from '../Card'
-import { PaymentInfoRow, PaymentInfoRowProps } from '@/components/Payment/PaymentInfoRow'
+import { PaymentInfoRow, type PaymentInfoRowProps } from '@/components/Payment/PaymentInfoRow'
 
 export interface MantecaCardRow extends PaymentInfoRowProps {
     key: React.Key

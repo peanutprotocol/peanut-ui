@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { default as NextImage, ImageProps } from 'next/image'
+import { default as NextImage, type ImageProps } from 'next/image'
 
 const Image = ({ className, ...props }: ImageProps) => {
     const [loaded, setLoaded] = useState(false)

@@ -9,11 +9,12 @@
         "noEmit": true,
         "esModuleInterop": true,
         "module": "esnext",
-        "moduleResolution": "node",
+        "moduleResolution": "bundler",
         "resolveJsonModule": true,
         "isolatedModules": true,
         "jsx": "preserve",
         "incremental": true,
+        "tsBuildInfoFile": ".next/.tsbuildinfo",
         "plugins": [
             {
                 "name": "next"
@@ -23,7 +24,8 @@
             "@/*": ["./src/*"],
             "@/animations/*": ["./src/assets/animations/*"]
         },
-        "types": ["@serwist/next/typings", "jest"]
+        "types": ["@serwist/next/typings", "jest"],
+        "verbatimModuleSyntax": true
     },
     "include": [
         "next-env.d.ts",

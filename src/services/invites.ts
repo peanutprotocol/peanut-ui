@@ -2,7 +2,7 @@ import { validateInviteCode } from '@/app/actions/invites'
 import { PEANUT_API_URL } from '@/constants'
 import { fetchWithSentry } from '@/utils'
 import Cookies from 'js-cookie'
-import { EInviteType, Invite } from './services.types'
+import { EInviteType, type PointsInvitesResponse } from './services.types'
 
 export const invitesApi = {
     acceptInvite: async (inviteCode: string, type: EInviteType): Promise<{ success: boolean }> => {
@@ -25,22 +25,28 @@ export const invitesApi = {
         }
     },
 
-    getInvites: async (): Promise<Invite[]> => {
+    getInvites: async (): Promise<PointsInvitesResponse> => {
         try {
             const jwtToken = Cookies.get('jwt-token')
-            if (!jwtToken) return []
-            const response = await fetchWithSentry(`${PEANUT_API_URL}/invites`, {
+            if (!jwtToken) {
+                throw new Error('No JWT token found')
+            }
+
+            const response = await fetchWithSentry(`${PEANUT_API_URL}/points/invites`, {
                 method: 'GET',
                 headers: {
                     Authorization: `Bearer ${jwtToken}`,
                     'Content-Type': 'application/json',
                 },
             })
-            if (!response.ok) return []
-            const invitesRes = await response.json().catch(() => ({}))
-            return invitesRes.invites || []
-        } catch {
-            return []
+            if (!response.ok) {
+                throw new Error('Failed to fetch invites')
+            }
+            const invitesRes: PointsInvitesResponse = await response.json()
+            return invitesRes
+        } catch (e) {
+            console.log(e)
+            throw new Error('Failed to fetch invites')
         }
     },
 

@@ -1,17 +1,17 @@
 'use client'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard, {
-    PeanutActionDetailsCardRecipientType,
-    PeanutActionDetailsCardTransactionType,
+    type PeanutActionDetailsCardRecipientType,
+    type PeanutActionDetailsCardTransactionType,
 } from '@/components/Global/PeanutActionDetailsCard'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { formatUnits } from 'viem'
 import { formatTokenAmount, printableAddress } from '@/utils/general.utils'
 import { CountryList } from '@/components/Common/CountryList'
-import { ClaimLinkData } from '@/services/sendLinks'
-import { CountryData, MantecaSupportedExchanges } from '@/components/AddMoney/consts'
+import { type ClaimLinkData } from '@/services/sendLinks'
+import { type CountryData, MantecaSupportedExchanges } from '@/components/AddMoney/consts'
 import useSavedAccounts from '@/hooks/useSavedAccounts'
-import { ParsedURL } from '@/lib/url-parser/types/payment'
+import { type ParsedURL } from '@/lib/url-parser/types/payment'
 import { useCallback, useMemo } from 'react'
 import { RequestFulfillmentBankFlowStep, useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import { usePaymentStore } from '@/redux/hooks'

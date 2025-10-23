@@ -1,8 +1,9 @@
 'use client'
+import '@/utils/crypto-polyfill' // Polyfill crypto.randomUUID for DaimoPayProvider
 import { JustaNameContext } from '@/config/justaname.config'
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
 import {
-    AppKitNetwork,
+    type AppKitNetwork,
     arbitrum,
     base,
     bsc,
@@ -29,8 +30,8 @@ const projectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID ?? ''
 
 // 2. Create wagmiConfig
 const metadata = {
-    name: 'Peanut Protocol',
-    description: 'Peanut protocol - send crypto with links',
+    name: 'Peanut',
+    description: 'Peanut - global instant money',
     url: process.env.NEXT_PUBLIC_BASE_URL || 'https://peanut.me', // origin must match your domain & subdomain
     icons: [`${process.env.NEXT_PUBLIC_BASE_URL}/favicon.ico`],
 }
@@ -55,7 +56,7 @@ createAppKit({
     metadata,
     projectId,
     features: {
-        analytics: true,
+        analytics: false, // no app-kit analytics plz
         socials: false,
         email: false,
         onramp: true,

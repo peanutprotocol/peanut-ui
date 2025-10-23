@@ -1,5 +1,5 @@
 import { BASE_URL } from '@/constants'
-import { Metadata } from 'next'
+import { type Metadata } from 'next'
 
 export function generateMetadata({
     title,

@@ -1,5 +1,5 @@
-import { Button, ButtonProps } from '@/components/0_Bruddle/Button'
-import { IconProps as GlobalIconProps, Icon, IconName } from '@/components/Global/Icons/Icon'
+import { Button, type ButtonProps } from '@/components/0_Bruddle/Button'
+import { type IconProps as GlobalIconProps, Icon, type IconName } from '@/components/Global/Icons/Icon'
 import Loading from '@/components/Global/Loading'
 import BaseModal from '@/components/Global/Modal'
 import React from 'react'
@@ -42,6 +42,7 @@ export interface ActionModalProps {
     buttonProps?: ButtonProps
     footer?: React.ReactNode
     content?: React.ReactNode
+    classOverlay?: string
 }
 
 const ActionModal: React.FC<ActionModalProps> = ({
@@ -67,6 +68,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
     buttonProps,
     footer,
     content,
+    classOverlay,
 }) => {
     const defaultModalPanelClasses = 'max-w-[85%]'
     const defaultIconContainerClassName = 'bg-primary-1' // default pink background
@@ -108,6 +110,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
                 defaultModalPanelClasses,
                 modalPanelClassName
             )}
+            classOverlay={classOverlay}
         >
             <div className={twMerge('flex flex-col items-center gap-4 p-6 text-center', contentContainerClassName)}>
                 {iconContent && (

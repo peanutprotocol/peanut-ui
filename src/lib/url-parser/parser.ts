@@ -5,7 +5,7 @@ import { validateAmount } from '../validation/amount'
 import { validateAndResolveRecipient } from '../validation/recipient'
 import { getChainDetails, getTokenAndChainDetails } from '../validation/token'
 import { AmountValidationError } from './errors'
-import { ParsedURL } from './types/payment'
+import { type ParsedURL } from './types/payment'
 import { areEvmAddressesEqual } from '@/utils'
 
 export function parseAmountAndToken(amountString: string): { amount?: string; token?: string } {

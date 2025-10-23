@@ -2,10 +2,10 @@
 
 import { ARBITRUM_ICON, OTHER_CHAINS_ICON } from '@/assets'
 import { Card } from '@/components/0_Bruddle'
-import { Drawer, DrawerContent } from '@/components/Global/Drawer'
+import { Drawer, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import React, { Dispatch, SetStateAction, useState } from 'react'
+import React, { type Dispatch, type SetStateAction, useState } from 'react'
 import TokenAndNetworkConfirmationModal from '@/components/Global/TokenAndNetworkConfirmationModal'
 
 const CryptoMethodDrawer = ({
@@ -24,6 +24,7 @@ const CryptoMethodDrawer = ({
         <>
             <Drawer open={isDrawerOpen} onOpenChange={showRiskModal ? undefined : closeDrawer}>
                 <DrawerContent className="p-5 pb-14">
+                    <DrawerTitle className="sr-only">Select a deposit method</DrawerTitle>
                     <div className="mx-auto space-y-4 md:max-w-2xl">
                         <h2 className="text-base font-bold">Select a deposit method</h2>
 

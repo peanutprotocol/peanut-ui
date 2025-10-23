@@ -37,21 +37,26 @@ const validateVapidEnv = () => {
 }
 
 // initialize webpush with try-catch
+// NOTE: This is legacy code - we now use OneSignal for push notifications
+// TODO: Remove this entire file once PushProvider is fully migrated to OneSignal
 try {
     const { vapidSubject, vapidPublicKey, vapidPrivateKey } = validateVapidEnv()
 
     webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey)
 } catch (error) {
-    console.error('Failed to initialize web push:', error)
-    // in development, provide more helpful error message
-    if (process.env.NODE_ENV === 'development') {
-        console.info(`
-            Please ensure you have the following environment variables set:
-            - NEXT_PUBLIC_VAPID_SUBJECT (usually a mailto: URL)
-            - NEXT_PUBLIC_VAPID_PUBLIC_KEY
-            - VAPID_PRIVATE_KEY
-        `)
-        console.log('VAPID Subject:', process.env.NEXT_PUBLIC_VAPID_SUBJECT)
+    // Silently fail in test environment to avoid breaking tests
+    if (process.env.NODE_ENV !== 'test') {
+        console.error('Failed to initialize web push:', error)
+        // in development, provide more helpful error message
+        if (process.env.NODE_ENV === 'development') {
+            console.info(`
+                Please ensure you have the following environment variables set:
+                - NEXT_PUBLIC_VAPID_SUBJECT (usually a mailto: URL)
+                - NEXT_PUBLIC_VAPID_PUBLIC_KEY
+                - VAPID_PRIVATE_KEY
+            `)
+            console.log('VAPID Subject:', process.env.NEXT_PUBLIC_VAPID_SUBJECT)
+        }
     }
 }
 

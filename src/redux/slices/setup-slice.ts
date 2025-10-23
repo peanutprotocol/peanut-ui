@@ -1,7 +1,7 @@
-import { ISetupStep } from '@/components/Setup/Setup.types'
-import { createSlice, PayloadAction } from '@reduxjs/toolkit'
+import { type ISetupStep } from '@/components/Setup/Setup.types'
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
 import { SETUP } from '../constants'
-import { ISetupState } from '../types/setup.types'
+import { type ISetupState } from '../types/setup.types'
 import { EInviteType } from '@/services/services.types'
 
 const initialState: ISetupState = {
@@ -13,6 +13,7 @@ const initialState: ISetupState = {
     steps: [],
     inviteCode: '',
     inviteType: EInviteType.DIRECT,
+    showIosPwaInstallScreen: false,
 }
 
 const setupSlice = createSlice({
@@ -58,6 +59,9 @@ const setupSlice = createSlice({
         },
         setInviteType: (state, action: PayloadAction<EInviteType>) => {
             state.inviteType = action.payload
+        },
+        setShowIosPwaInstallScreen: (state, action: PayloadAction<boolean>) => {
+            state.showIosPwaInstallScreen = action.payload
         },
     },
 })

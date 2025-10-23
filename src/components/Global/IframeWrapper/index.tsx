@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Modal from '../Modal'
-import { Button, ButtonVariant } from '@/components/0_Bruddle'
-import { Icon, IconName } from '../Icons/Icon'
+import { Button, type ButtonVariant } from '@/components/0_Bruddle'
+import { Icon, type IconName } from '../Icons/Icon'
 import ActionModal from '../ActionModal'
 import { useRouter } from 'next/navigation'
 import StartVerificationView from './StartVerificationView'
@@ -144,16 +144,15 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                             className="rounded-md"
                             sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-top-navigation-by-user-activation"
                         />
-                        <div className="flex h-[15%] w-full flex-col items-center justify-center gap-4 px-5">
+                        <div className="flex h-[15%] w-full flex-col items-center justify-center gap-2 px-5">
                             <Button
-                                variant={'stroke'}
-                                className={`max-w-md`}
+                                variant={'transparent'}
+                                className={`h-8 max-w-md font-normal underline`}
                                 onClick={() => {
                                     setModalVariant('stop-verification')
                                     setIsHelpModalOpen(true)
                                 }}
                                 shadowType="primary"
-                                shadowSize="4"
                             >
                                 Stop verification process
                             </Button>
@@ -165,8 +164,8 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                                 }}
                                 className="flex items-center gap-1"
                             >
-                                <Icon name="peanut-support" size={16} />
-                                <p className="text-xs font-medium underline">Having trouble?</p>
+                                <Icon name="peanut-support" size={16} className="text-grey-1" />
+                                <p className="text-xs font-medium text-grey-1 underline">Having trouble?</p>
                             </button>
                         </div>
                     </div>

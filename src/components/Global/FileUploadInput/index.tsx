@@ -1,9 +1,10 @@
+/* Uncomment to enable file upload */
 import BaseInput from '@/components/0_Bruddle/BaseInput'
-import { checkifImageType, fetchWithSentry } from '@/utils'
-import * as Sentry from '@sentry/nextjs'
-import { useEffect, useState } from 'react'
+//import { checkifImageType, fetchWithSentry } from '@/utils'
+//import * as Sentry from '@sentry/nextjs'
+//import { useEffect, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
-import { Icon } from '../Icons/Icon'
+//import { Icon } from '../Icons/Icon'
 
 export interface IFileUploadInputProps {
     attachmentOptions: {
@@ -28,6 +29,7 @@ const FileUploadInput = ({
     className,
     onBlur,
 }: IFileUploadInputProps) => {
+    /*
     const [fileType, setFileType] = useState<string>('')
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -70,9 +72,11 @@ const FileUploadInput = ({
                 })
         }
     }, [attachmentOptions.fileUrl])
+    */
 
     return (
         <div className="relative w-full">
+            {/*
             <div className="absolute right-2 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center bg-white">
                 <BaseInput
                     type="file"
@@ -101,8 +105,9 @@ const FileUploadInput = ({
                     )}
                 </label>
             </div>
+            */}
             <BaseInput
-                placeholder={placeholder ? placeholder : 'Add reference or upload file (optional)'}
+                placeholder={placeholder ? placeholder : 'Add reference (optional)'}
                 className={twMerge('pr-12', className)}
                 value={attachmentOptions.message}
                 maxLength={140}

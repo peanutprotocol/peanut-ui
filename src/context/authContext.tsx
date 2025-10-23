@@ -8,7 +8,7 @@ import { fetchWithSentry, removeFromCookie, syncLocalStorageToCookie, clearRedir
 import { useAppKit } from '@reown/appkit/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { createContext, ReactNode, useContext, useState, useEffect, useMemo } from 'react'
+import { createContext, type ReactNode, useContext, useState, useEffect, useMemo } from 'react'
 import { captureException } from '@sentry/nextjs'
 
 interface AuthContextType {

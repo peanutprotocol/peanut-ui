@@ -1,5 +1,5 @@
 import { USER } from '@/constants'
-import { IUserProfile } from '@/interfaces'
+import { type IUserProfile } from '@/interfaces'
 import { useAppDispatch, useUserStore } from '@/redux/hooks'
 import { userActions } from '@/redux/slices/user-slice'
 import { fetchWithSentry } from '@/utils'

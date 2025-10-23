@@ -6,7 +6,7 @@ import Footer from '@/components/LandingPage/Footer'
 export default function ExchangePage() {
     return (
         <Layout className="enable-select !m-0 w-full !p-0">
-            <NoFees />
+            <NoFees className="flex h-full flex-col items-center justify-center" />
             <Footer />
         </Layout>
     )
