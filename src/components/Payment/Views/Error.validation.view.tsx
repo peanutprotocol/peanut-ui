@@ -15,6 +15,7 @@ export type ValidationErrorViewProps = {
     redirectTo: string
     showLearnMore?: boolean
     supportMessageTemplate?: string
+    supportButtonText?: string
 }
 
 function ValidationErrorView({
@@ -24,6 +25,7 @@ function ValidationErrorView({
     redirectTo,
     showLearnMore = true,
     supportMessageTemplate,
+    supportButtonText = 'Talk to support',
 }: ValidationErrorViewProps) {
     const router = useRouter()
     const { openSupportWithMessage } = useSupportModalContext()
@@ -74,7 +76,7 @@ function ValidationErrorView({
                         variant="stroke"
                         className="w-full"
                     >
-                        Talk to support
+                        {supportButtonText}
                     </Button>
                 )}
             </div>
