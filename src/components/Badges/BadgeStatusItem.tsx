@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import Card, { CardPosition } from '@/components/Global/Card'
+import Card, { type CardPosition } from '@/components/Global/Card'
 import { BadgeStatusDrawer } from './BadgeStatusDrawer'
 import Image from 'next/image'
 import InvitesIcon from '../Home/InvitesIcon'
