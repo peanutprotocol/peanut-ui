@@ -19,8 +19,6 @@ interface AvatarWithBadgeProps {
     inlineStyle?: React.CSSProperties // for dynamic background colors based on username (hex codes)
     textColor?: string
     iconFillColor?: string
-    showStatusPill?: boolean
-    statusPillStatus?: StatusPillType
     logo?: StaticImageData
 }
 
@@ -36,8 +34,6 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
     inlineStyle,
     textColor,
     iconFillColor,
-    showStatusPill,
-    statusPillStatus,
     logo,
 }) => {
     const sizeClasses: Record<AvatarSize, string> = {
@@ -117,8 +113,6 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
                     initials
                 )}
             </div>
-
-            {showStatusPill && statusPillStatus && <StatusPill status={statusPillStatus} />}
         </div>
     )
 }

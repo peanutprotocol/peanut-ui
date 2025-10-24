@@ -10,6 +10,7 @@ import { getAddress, isAddress, erc20Abi } from 'viem'
 import * as wagmiChains from 'wagmi/chains'
 import { getPublicClient, type ChainId } from '@/app/actions/clients'
 import { NATIVE_TOKEN_ADDRESS, SQUID_ETH_ADDRESS } from './token.utils'
+import { type ChargeEntry } from '@/services/services.types'
 
 export function urlBase64ToUint8Array(base64String: string) {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -377,8 +378,8 @@ export const formatNumberForDisplay = (
     })
 }
 
-export function formatCurrency(valueStr: string | undefined): string {
-    return formatNumberForDisplay(valueStr, { maxDecimals: 2, minDecimals: 2 })
+export function formatCurrency(valueStr: string | undefined, maxDecimals: number = 2, minDecimals: number = 2): string {
+    return formatNumberForDisplay(valueStr, { maxDecimals, minDecimals })
 }
 
 /**
@@ -1356,4 +1357,23 @@ export const getValidRedirectUrl = (redirectUrl: string, fallbackRoute: string) 
         // Reject external redirects, go to home instead
         return fallbackRoute
     }
+}
+
+export const getContributorsFromCharge = (charges: ChargeEntry[]) => {
+    return charges.map((charge) => {
+        const successfulPayment = charge.payments.at(-1)
+        let username = successfulPayment?.payerAccount?.user?.username
+        if (successfulPayment?.payerAccount?.type === 'evm-address') {
+            username = successfulPayment.payerAccount.identifier
+        }
+
+        return {
+            uuid: charge.uuid,
+            payments: charge.payments,
+            amount: charge.tokenAmount,
+            username,
+            fulfillmentPayment: charge.fulfillmentPayment,
+            isUserVerified: successfulPayment?.payerAccount?.user?.bridgeKycStatus === 'approved',
+        }
+    })
 }
