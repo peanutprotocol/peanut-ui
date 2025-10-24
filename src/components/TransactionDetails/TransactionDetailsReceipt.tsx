@@ -262,6 +262,12 @@ export const TransactionDetailsReceipt = ({
         return false
     }, [transaction, isPendingSentLink, isPendingRequester, isPendingRequestee])
 
+    const isQRPayment =
+        transaction &&
+        [EHistoryEntryType.MANTECA_QR_PAYMENT, EHistoryEntryType.SIMPLEFI_QR_PAYMENT].includes(
+            transaction.extraDataForDrawer!.originalType
+        )
+
     const requestPotContributors = useMemo(() => {
         if (!transaction || !transaction.requestPotPayments) return []
         return getContributorsFromCharge(transaction.requestPotPayments)
@@ -1186,9 +1192,23 @@ export const TransactionDetailsReceipt = ({
                 </div>
             )}
 
+            {isQRPayment && (
+                <Button
+                    onClick={() => {
+                        router.push(`/request?amount=${transaction.amount}&merchant=${transaction.userName}`)
+                    }}
+                    icon="split"
+                    shadowSize="4"
+                >
+                    Split this bill
+                </Button>
+            )}
+
             {shouldShowShareReceipt && !!getReceiptUrl(transaction) && (
                 <div className="pr-1">
-                    <ShareButton url={getReceiptUrl(transaction)!}>Share Receipt</ShareButton>
+                    <ShareButton variant={isQRPayment ? 'primary-soft' : 'purple'} url={getReceiptUrl(transaction)!}>
+                        Share Receipt
+                    </ShareButton>
                 </div>
             )}
 

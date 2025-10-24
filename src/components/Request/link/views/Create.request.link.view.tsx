@@ -43,11 +43,12 @@ export const CreateRequestLinkView = () => {
     const queryClient = useQueryClient()
     const searchParams = useSearchParams()
     const paramsAmount = searchParams.get('amount')
+    const sanitizedAmount = paramsAmount && !isNaN(parseFloat(paramsAmount)) ? paramsAmount : ''
     const merchant = searchParams.get('merchant')
     const merchantComment = merchant ? `Bill split for ${merchant}` : null
 
     // Core state
-    const [tokenValue, setTokenValue] = useState<string>(paramsAmount || '')
+    const [tokenValue, setTokenValue] = useState<string>(sanitizedAmount)
     const [attachmentOptions, setAttachmentOptions] = useState<IAttachmentOptions>({
         message: merchantComment || '',
         fileUrl: '',
