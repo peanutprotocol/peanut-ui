@@ -1,12 +1,11 @@
 'use client'
 
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS, peanutPublicClient } from '@/constants'
+import { PEANUT_WALLET_CHAIN } from '@/constants'
 import { useAppDispatch, useWalletStore } from '@/redux/hooks'
 import { walletActions } from '@/redux/slices/wallet-slice'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect } from 'react'
 import type { Hex, Address } from 'viem'
-import { erc20Abi, parseUnits, encodeFunctionData } from 'viem'
 import { useZeroDev } from '../useZeroDev'
 import { useAuth } from '@/context/authContext'
 import { AccountType } from '@/interfaces'
@@ -24,11 +23,13 @@ export const useWallet = () => {
     const isValidAddress = !address || !userAddress || userAddress.toLowerCase() === address.toLowerCase()
 
     // Use TanStack Query for auto-refreshing balance
+    // only fetch balance if address is valid AND defined
+    const shouldFetchBalance = isValidAddress && !!address
     const {
         data: balanceFromQuery,
         isLoading: isFetchingBalance,
         refetch: refetchBalance,
-    } = useBalance(isValidAddress ? (address as Address | undefined) : undefined)
+    } = useBalance(shouldFetchBalance ? (address as Address) : undefined)
 
     // Sync TanStack Query balance with Redux (for backward compatibility)
     useEffect(() => {
@@ -87,6 +88,9 @@ export const useWallet = () => {
               ? BigInt(reduxBalance)
               : undefined
 
+    // consider balance as fetching if: query is loading OR address isn't loaded yet OR user isn't loaded yet
+    const isBalanceLoading = isFetchingBalance || !address || !user
+
     return {
         address,
         balance,
@@ -94,6 +98,6 @@ export const useWallet = () => {
         sendTransactions,
         sendMoney,
         fetchBalance,
-        isFetchingBalance,
+        isFetchingBalance: isBalanceLoading,
     }
 }
