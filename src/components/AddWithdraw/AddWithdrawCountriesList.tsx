@@ -5,7 +5,6 @@ import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
-import { SearchResultCard } from '@/components/SearchUsers/SearchResultCard'
 import { getColorForUsername } from '@/utils/color.utils'
 import Image, { type StaticImageData } from 'next/image'
 import { useParams, useRouter } from 'next/navigation'
@@ -27,6 +26,7 @@ import { bankFormActions } from '@/redux/slices/bank-form-slice'
 import { InitiateBridgeKYCModal } from '../Kyc/InitiateBridgeKYCModal'
 import useKycStatus from '@/hooks/useKycStatus'
 import KycVerifiedOrReviewModal from '../Global/KycVerifiedOrReviewModal'
+import { ActionListCard } from '@/components/ActionListCard'
 
 interface AddWithdrawCountriesListProps {
     flow: 'add' | 'withdraw'
@@ -284,7 +284,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 <h2 className="text-base font-bold">{title}</h2>
                 <div className="flex flex-col">
                     {paymentMethods.map((method, index) => (
-                        <SearchResultCard
+                        <ActionListCard
                             key={method.id}
                             isDisabled={method.isSoon}
                             title={method.title}

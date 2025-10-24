@@ -1,10 +1,10 @@
 'use client'
 import { type CardPosition } from '@/components/Global/Card'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
-import { SearchResultCard } from '@/components/SearchUsers/SearchResultCard'
 import Image from 'next/image'
 import { twMerge } from 'tailwind-merge'
 import { ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '../consts'
+import { ActionListCard } from '@/components/ActionListCard'
 
 export interface DepositMethod {
     type: 'crypto' | 'country'
@@ -60,7 +60,7 @@ export const DepositMethodList = ({ methods, onItemClick, isAllMethodsView = fal
                 const countryCodeForFlag = twoLetterCountryCode.toLowerCase() ?? ''
 
                 return (
-                    <SearchResultCard
+                    <ActionListCard
                         key={`${method.type}-${method.id}`}
                         title={method.title}
                         description={method.description || method.currency}
