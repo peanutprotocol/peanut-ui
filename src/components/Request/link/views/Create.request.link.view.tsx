@@ -23,7 +23,7 @@ import { fetchTokenSymbol, getRequestLink, isNativeCurrency, printableUsdc } fro
 import * as Sentry from '@sentry/nextjs'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useQueryClient } from '@tanstack/react-query'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 
 export const CreateRequestLinkView = () => {
@@ -41,11 +41,15 @@ export const CreateRequestLinkView = () => {
     } = useContext(context.tokenSelectorContext)
     const { setLoadingState } = useContext(context.loadingStateContext)
     const queryClient = useQueryClient()
+    const searchParams = useSearchParams()
+    const paramsAmount = searchParams.get('amount')
+    const merchant = searchParams.get('merchant')
+    const merchantComment = merchant ? `Bill split for ${merchant}` : null
 
     // Core state
-    const [tokenValue, setTokenValue] = useState<string>('')
+    const [tokenValue, setTokenValue] = useState<string>(paramsAmount || '')
     const [attachmentOptions, setAttachmentOptions] = useState<IAttachmentOptions>({
-        message: '',
+        message: merchantComment || '',
         fileUrl: '',
         rawFile: undefined,
     })
@@ -255,17 +259,7 @@ export const CreateRequestLinkView = () => {
     const handleDebouncedChange = useCallback(async () => {
         if (isCreatingLink || isUpdatingRequest) return
 
-        // If no request exists but we have content, create request
-        if (!requestId && (debouncedAttachmentOptions.rawFile || debouncedAttachmentOptions.message)) {
-            if (!tokenValue || parseFloat(tokenValue) <= 0) return
-
-            const link = await createRequestLink(debouncedAttachmentOptions)
-            if (link) {
-                setGeneratedLink(link)
-            }
-        }
-        // If request exists and content changed (including clearing), update it
-        else if (requestId) {
+        if (requestId) {
             // Check for unsaved changes inline to avoid dependency issues
             const lastSaved = lastSavedAttachmentRef.current
             const hasChanges =
@@ -276,15 +270,7 @@ export const CreateRequestLinkView = () => {
                 await updateRequestLink(debouncedAttachmentOptions)
             }
         }
-    }, [
-        debouncedAttachmentOptions,
-        requestId,
-        tokenValue,
-        isCreatingLink,
-        isUpdatingRequest,
-        createRequestLink,
-        updateRequestLink,
-    ])
+    }, [debouncedAttachmentOptions, requestId, isCreatingLink, isUpdatingRequest, updateRequestLink])
 
     useEffect(() => {
         handleDebouncedChange()
