@@ -2,7 +2,7 @@
 
 import { supportedPeanutChains } from '@/constants'
 import { tokenSelectorContext } from '@/context'
-import { IPeanutChainDetails, IUserBalance } from '@/interfaces'
+import { type IPeanutChainDetails, type IUserBalance } from '@/interfaces'
 import { calculateValuePerChain, formatTokenAmount } from '@/utils'
 import { Menu, Transition } from '@headlessui/react'
 import { useContext, useMemo, useState } from 'react'

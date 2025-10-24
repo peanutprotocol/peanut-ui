@@ -1,6 +1,6 @@
 import { AccountType } from '@/interfaces'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
-import useGetExchangeRate, { IExchangeRate } from '@/hooks/useGetExchangeRate'
+import useGetExchangeRate, { type IExchangeRate } from '@/hooks/useGetExchangeRate'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
 
 interface IExchangeRateProps extends Omit<IExchangeRate, 'enabled'> {

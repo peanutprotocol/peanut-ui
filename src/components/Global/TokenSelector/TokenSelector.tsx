@@ -1,19 +1,19 @@
 'use client'
 
 import Image from 'next/image'
-import React, { ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import React, { type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 
 import { Button } from '@/components/0_Bruddle'
 import Divider from '@/components/0_Bruddle/Divider'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { tokenSelectorContext } from '@/context'
-import { IToken, IUserBalance } from '@/interfaces'
+import { type IToken, type IUserBalance } from '@/interfaces'
 import { areEvmAddressesEqual, formatTokenAmount, isNativeCurrency, getChainName } from '@/utils'
 import { SQUID_ETH_ADDRESS } from '@/utils/token.utils'
 import { useAppKit, useAppKitAccount, useDisconnect } from '@reown/appkit/react'
 import EmptyState from '../EmptyStates/EmptyState'
-import { Icon, IconName } from '../Icons/Icon'
+import { Icon, type IconName } from '../Icons/Icon'
 import NetworkButton from './Components/NetworkButton'
 import NetworkListView from './Components/NetworkListView'
 import ScrollableList from './Components/ScrollableList'
@@ -25,7 +25,7 @@ import {
     TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS,
 } from './TokenSelector.consts'
 import { fetchWalletBalances } from '@/app/actions/tokens'
-import { Drawer, DrawerContent } from '../Drawer'
+import { Drawer, DrawerContent, DrawerTitle } from '../Drawer'
 
 interface SectionProps {
     title: string
@@ -574,6 +574,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
 
             <Drawer open={isDrawerOpen} onOpenChange={closeDrawer}>
                 <DrawerContent className="p-5">
+                    <DrawerTitle className="sr-only">Select Token and Network</DrawerTitle>
                     <div ref={contentRef} className="mx-auto md:max-w-2xl">
                         {showNetworkList ? (
                             <NetworkListView

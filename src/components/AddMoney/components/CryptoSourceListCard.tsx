@@ -1,9 +1,9 @@
 'use client'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { SearchResultCard } from '@/components/SearchUsers/SearchResultCard'
-import Image, { StaticImageData } from 'next/image'
+import Image, { type StaticImageData } from 'next/image'
 import { twMerge } from 'tailwind-merge'
-import { CryptoSource } from '../consts'
+import { type CryptoSource } from '../consts'
 
 interface CryptoSourceListCardProps {
     sources: CryptoSource[]

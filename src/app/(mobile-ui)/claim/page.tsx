@@ -1,9 +1,10 @@
-import { getLinkDetails } from '@/app/actions/claimLinks'
 import { Claim } from '@/components'
-import { BASE_URL } from '@/constants'
+import { BASE_URL, PEANUT_WALLET_TOKEN_DECIMALS, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
 import { formatAmount, resolveAddressToUsername } from '@/utils'
-import { Metadata } from 'next'
+import { type Metadata } from 'next'
 import getOrigin from '@/lib/hosting/get-origin'
+import { sendLinksApi } from '@/services/sendLinks'
+import { formatUnits } from 'viem'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,30 +12,53 @@ async function getClaimLinkData(searchParams: { [key: string]: string | string[]
     if (!searchParams.i || !searchParams.c) return null
 
     try {
-        const queryParams = new URLSearchParams()
-        Object.entries(searchParams).forEach(([key, val]) => {
-            if (Array.isArray(val)) {
-                val.forEach((v) => queryParams.append(key, v))
-            } else if (val) {
-                queryParams.append(key, val)
-            }
+        // Use backend API with belt-and-suspenders logic (DB + blockchain fallback)
+        const contractVersion = (searchParams.v as string) || 'v4.3'
+
+        const sendLink = await sendLinksApi.getByParams({
+            chainId: searchParams.c as string,
+            depositIdx: searchParams.i as string,
+            contractVersion,
         })
+        // Backend always provides token details (from DB or blockchain fallback)
+        // Use fallback from consts if not available
+        const tokenDecimals = sendLink.tokenDecimals ?? PEANUT_WALLET_TOKEN_DECIMALS
+        const tokenSymbol = sendLink.tokenSymbol ?? PEANUT_WALLET_TOKEN_SYMBOL
 
-        const url = `${siteUrl}/claim?${queryParams.toString()}`
-        const linkDetails = await getLinkDetails(url)
+        // Transform to linkDetails format for metadata`
+        const linkDetails = {
+            senderAddress: sendLink.senderAddress,
+            tokenAmount: formatUnits(sendLink.amount, tokenDecimals),
+            tokenSymbol,
+            claimed: sendLink.status === 'CLAIMED' || sendLink.status === 'CANCELLED',
+        }
 
-        // Get username from sender address
-        const username = linkDetails?.senderAddress
-            ? await resolveAddressToUsername(linkDetails.senderAddress, siteUrl)
-            : null
+        // Get username from sender - use sender.username if available (from backend)
+        let username: string | null = sendLink.sender?.username || null
+
+        // If no username in backend data, try ENS resolution with timeout
+        if (!username && linkDetails.senderAddress) {
+            try {
+                // ENS race condition - catch errors to prevent Promise.race from throwing
+                const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000))
+                const resolvePromise = resolveAddressToUsername(linkDetails.senderAddress, siteUrl).catch((err) => {
+                    console.error('ENS resolution failed:', err)
+                    return null
+                })
+                username = await Promise.race([resolvePromise, timeoutPromise])
+            } catch (ensError) {
+                console.error('ENS resolution failed:', ensError)
+                username = null
+            }
+        }
 
         if (username) {
-            console.log('username', username)
+            console.log('Resolved username:', username)
         }
 
         return { linkDetails, username }
     } catch (e) {
-        console.log('error: ', e)
+        console.error('Error fetching claim link data:', e)
         return null
     }
 }

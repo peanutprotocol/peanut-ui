@@ -1,4 +1,4 @@
-import { FC, SVGProps } from 'react'
+import { type FC, type SVGProps } from 'react'
 
 export const UserIdIcon: FC<SVGProps<SVGSVGElement>> = (props) => (
     <svg width="19" height="20" viewBox="0 0 19 20" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>

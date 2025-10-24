@@ -1,4 +1,4 @@
-import { FC, SVGProps } from 'react'
+import { type FC, type SVGProps } from 'react'
 
 export const ShieldIcon: FC<SVGProps<SVGSVGElement>> = (props) => {
     return (

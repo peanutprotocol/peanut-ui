@@ -6,9 +6,8 @@ import { getContract } from 'viem'
 
 import { getPublicClient, type ChainId } from '@/app/actions/clients'
 import { fetchTokenDetails } from '@/app/actions/tokens'
-import { getLinkFromReceipt, fetchWithSentry, jsonParse } from '@/utils'
-import { PEANUT_API_URL, PEANUT_WALLET_CHAIN } from '@/constants'
-import type { SendLink } from '@/services/services.types'
+import { getLinkFromReceipt } from '@/utils'
+import { PEANUT_WALLET_CHAIN } from '@/constants'
 
 export const getLinkDetails = unstable_cache(
     async (link: string): Promise<any> => {
@@ -81,34 +80,4 @@ export async function getNextDepositIndex(contractVersion: string): Promise<numb
         functionName: 'getDepositCount',
         args: [],
     })) as number
-}
-
-export async function claimSendLink(
-    pubKey: string,
-    recipient: string,
-    password: string,
-    waitForTx: boolean,
-    campaignTag?: string // optional campaign tag
-): Promise<SendLink | { error: string }> {
-    const response = await fetchWithSentry(`${PEANUT_API_URL}/send-links/${pubKey}/claim`, {
-        method: 'POST',
-        headers: {
-            'api-key': process.env.PEANUT_API_KEY!,
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            recipient,
-            password,
-            waitForTx,
-            campaignTag,
-        }),
-    })
-    if (!response.ok) {
-        const body = await response.json()
-        if (!!body.error || !!body.message) {
-            return { error: body.message ?? body.error }
-        }
-        return { error: `HTTP error! status: ${response.status}` }
-    }
-    return jsonParse(await response.text()) as SendLink
 }

@@ -11,10 +11,8 @@ import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useAppDispatch } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { invitesApi } from '@/services/invites'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { getFromLocalStorage, sanitizeRedirectURL } from '@/utils'
 import ErrorAlert from '@/components/Global/ErrorAlert'
-import { useAuth } from '@/context/authContext'
+import { useLogin } from '@/hooks/useLogin'
 
 const JoinWaitlist = () => {
     const [inviteCode, setInviteCode] = useState('')
@@ -23,13 +21,10 @@ const JoinWaitlist = () => {
     const [isLoading, setisLoading] = useState(false)
     const [error, setError] = useState('')
 
-    const { handleLogin, isLoggingIn } = useZeroDev()
     const toast = useToast()
     const { handleNext } = useSetupFlow()
     const dispatch = useAppDispatch()
-    const router = useRouter()
-    const searchParams = useSearchParams()
-    const { user } = useAuth()
+    const { handleLoginClick, isLoggingIn } = useLogin()
 
     const validateInviteCode = async (inviteCode: string): Promise<boolean> => {
         try {
@@ -62,39 +57,17 @@ const JoinWaitlist = () => {
 
     const onLoginClick = async () => {
         try {
-            await handleLogin()
+            await handleLoginClick()
         } catch (e) {
             handleError(e)
         }
     }
 
-    // Wait for user to be fetched, then redirect
-    useEffect(() => {
-        if (user) {
-            const localStorageRedirect = getFromLocalStorage('redirect')
-            const redirect_uri = searchParams.get('redirect_uri')
-            if (redirect_uri) {
-                let decodedRedirect = redirect_uri
-                try {
-                    decodedRedirect = decodeURIComponent(redirect_uri)
-                } catch {}
-                const sanitizedRedirectUrl = sanitizeRedirectURL(decodedRedirect)
-                router.push(sanitizedRedirectUrl)
-            } else if (localStorageRedirect) {
-                localStorage.removeItem('redirect')
-                const sanitizedLocalRedirect = sanitizeRedirectURL(String(localStorageRedirect))
-                router.push(sanitizedLocalRedirect)
-            } else {
-                router.push('/home')
-            }
-        }
-    }, [user, router, searchParams])
-
     return (
         <div className="flex flex-col gap-4">
             <div className="flex items-center gap-2">
                 <ValidatedInput
-                    placeholder="Do you have an invite code?"
+                    placeholder="Enter invite code"
                     value={inviteCode}
                     debounceTime={750}
                     validate={validateInviteCode}
@@ -111,6 +84,17 @@ const JoinWaitlist = () => {
                         'rounded-sm'
                     )}
                 />
+                <Button
+                    disabled={!isValid || isChanging || isLoading || inviteCode.length === 0}
+                    onClick={() => {
+                        dispatch(setupActions.setInviteCode(inviteCode))
+                        handleNext()
+                    }}
+                    shadowSize="4"
+                    className="h-12 w-4/12"
+                >
+                    Next
+                </Button>
             </div>
 
             {error && (
@@ -119,23 +103,20 @@ const JoinWaitlist = () => {
                 </div>
             )}
 
-            <Button
-                disabled={(inviteCode.length !== 0 && !!error) || isLoading}
-                onClick={() => {
-                    if (inviteCode.length !== 0) {
-                        dispatch(setupActions.setInviteCode(inviteCode))
-                    }
+            <div className="flex items-center gap-4 py-2">
+                <div className="h-px flex-1 bg-grey-1" />
+                <span className="text-sm text-grey-1">or</span>
+                <div className="h-px flex-1 bg-grey-1" />
+            </div>
 
+            <Button
+                onClick={() => {
                     handleNext()
                 }}
                 shadowSize="4"
             >
-                {inviteCode.length > 0 ? 'Claim your spot' : 'Join Waitlist'}
+                Join waitlist
             </Button>
-
-            <button disabled={isLoggingIn} onClick={onLoginClick} className="text-sm underline">
-                {isLoggingIn ? 'Please wait..' : 'Already have an account? Log in!'}
-            </button>
         </div>
     )
 }

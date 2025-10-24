@@ -14,11 +14,13 @@ export type TransactionDetailsRowKey =
     | 'networkFee'
     | 'fee'
     | 'peanutFee'
+    | 'points'
     | 'comment'
     | 'attachment'
     | 'mantecaDepositInfo'
+    | 'closed'
 
-// rder of the rows in the receipt
+// order of the rows in the receipt
 export const transactionDetailsRowKeys: TransactionDetailsRowKey[] = [
     'createdAt',
     'to',
@@ -33,9 +35,11 @@ export const transactionDetailsRowKeys: TransactionDetailsRowKey[] = [
     'transferId',
     'depositInstructions',
     'peanutFee',
+    'points',
     'comment',
     'networkFee',
     'attachment',
+    'closed',
 ]
 
 export const getBankAccountLabel = (type: string) => {

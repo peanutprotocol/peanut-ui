@@ -1,4 +1,4 @@
-import { IconName } from '../Icons/Icon'
+import { type IconName } from '../Icons/Icon'
 
 export const POST_SIGNUP_ACTIONS = [
     {

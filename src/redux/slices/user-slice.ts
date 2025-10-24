@@ -1,7 +1,7 @@
-import { IUserProfile } from '@/interfaces'
-import { createSlice, PayloadAction } from '@reduxjs/toolkit'
+import { type IUserProfile } from '@/interfaces'
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
 import { AUTH_SLICE } from '../constants'
-import { IAuthState } from '../types/user.types'
+import { type IAuthState } from '../types/user.types'
 
 const initialState: IAuthState = {
     user: null,

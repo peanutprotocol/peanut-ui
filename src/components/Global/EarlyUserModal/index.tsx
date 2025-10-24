@@ -32,22 +32,26 @@ const EarlyUserModal = () => {
             content={
                 <>
                     <p className="text-sm text-grey-1">
-                        <span className="block">
-                            Peanut is now <b>invite-only</b> and you're in!
-                        </span>
-                        <span className="mt-2 block">
-                            <b>Friends you invite </b>→ you earn a cut of their fees
-                        </span>
-                        <span className="block">
-                            <b> Their invites </b> → you earn a cut of the cut
+                        <span className="block">Peanut is now invite-only and you're in!</span>
+                        <span>
+                            <b>Friends you invite →</b> you earn a cut of their fees. <b>Their invites →</b> you earn a
+                            cut of their cut.
                         </span>
                     </p>
+
                     <ShareButton
                         generateText={() => Promise.resolve(generateInvitesShareText(inviteLink))}
                         title="Share your invite link"
                     >
                         Share Invite link
                     </ShareButton>
+                    <a
+                        className="text-sm text-grey-1 underline"
+                        href="https://docs.peanut.me/og-and-invites"
+                        target="_blank"
+                    >
+                        Learn more
+                    </a>
                 </>
             }
         />

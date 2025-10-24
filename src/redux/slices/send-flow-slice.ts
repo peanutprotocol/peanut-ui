@@ -2,12 +2,12 @@ import { createSlice } from '@reduxjs/toolkit'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { SEND_FLOW_SLICE } from '../constants'
 import {
-    ErrorState,
-    IAttachmentOptions,
-    ISendFlowState,
-    Recipient,
-    SendFlowTxnType,
-    SendFlowView,
+    type ErrorState,
+    type IAttachmentOptions,
+    type ISendFlowState,
+    type Recipient,
+    type SendFlowTxnType,
+    type SendFlowView,
 } from '../types/send-flow.types'
 
 const initialState: ISendFlowState = {

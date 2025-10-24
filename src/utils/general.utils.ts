@@ -10,6 +10,7 @@ import { getAddress, isAddress, erc20Abi } from 'viem'
 import * as wagmiChains from 'wagmi/chains'
 import { getPublicClient, type ChainId } from '@/app/actions/clients'
 import { NATIVE_TOKEN_ADDRESS, SQUID_ETH_ADDRESS } from './token.utils'
+import { type ChargeEntry } from '@/services/services.types'
 
 export function urlBase64ToUint8Array(base64String: string) {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -59,15 +60,15 @@ export const printableAddress = (address: string, firstCharsLen?: number, lastCh
 }
 
 /**
- * Validates if a string is a valid ENS name format
- * Checks that the string follows the ENS domain pattern with required TLD
- * e.g., 'vitalik.eth', 'domain.xyz'
+ * Validates ens name accordingto EIP-137
  *
- * @param ensName - The ENS name to validate
- * @returns true if the string is a valid ENS format, false otherwise
+ * <domain> ::= <label> | <domain> "." <label>
+ * <label> ::=  any valid string label per [UTS46](https://unicode.org/reports/tr46/)
+ *
+ * @see https://eips.ethereum.org/EIPS/eip-137#name-syntax
  */
 export const validateEnsName = (ensName: string = ''): boolean => {
-    return /^[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)?$/.test(ensName)
+    return /^(?:[-a-zA-Z0-9]+\.)+[-a-zA-Z0-9]+$/.test(ensName)
 }
 
 export function jsonStringify(data: any): string {
@@ -121,11 +122,9 @@ export const getFromLocalStorage = (key: string) => {
         }
         const data = localStorage.getItem(key)
         if (data === null) {
-            console.log(`No data found in localStorage for ${key}`)
             return null
         }
         const parsedData = jsonParse(data)
-        console.log(`Retrieved ${key} from localStorage:`, parsedData)
         return parsedData
     } catch (error) {
         Sentry.captureException(error)
@@ -379,8 +378,8 @@ export const formatNumberForDisplay = (
     })
 }
 
-export function formatCurrency(valueStr: string | undefined): string {
-    return formatNumberForDisplay(valueStr, { maxDecimals: 2, minDecimals: 2 })
+export function formatCurrency(valueStr: string | undefined, maxDecimals: number = 2, minDecimals: number = 2): string {
+    return formatNumberForDisplay(valueStr, { maxDecimals, minDecimals })
 }
 
 /**
@@ -1070,7 +1069,7 @@ export function getChainName(chainId: string): string | undefined {
 }
 
 export const getHeaderTitle = (pathname: string) => {
-    return consts.pathTitles[pathname] || 'Peanut Protocol' // default title if path not found
+    return consts.pathTitles[pathname] || 'Peanut' // default title if path not found
 }
 
 /**
@@ -1214,18 +1213,27 @@ export const clearRedirectUrl = () => {
     }
 }
 
-export const sanitizeRedirectURL = (redirectUrl: string): string => {
+export const sanitizeRedirectURL = (redirectUrl: string): string | null => {
     try {
         const u = new URL(redirectUrl, window.location.origin)
+        // Only allow same-origin URLs
         if (u.origin === window.location.origin) {
             return u.pathname + u.search + u.hash
         }
+        console.log('Rejecting off-origin URL:', redirectUrl)
+        // Reject off-origin URLs
+        return null
     } catch {
-        if (redirectUrl.startsWith('/')) {
-            return redirectUrl
+        // For strings that can't be parsed as URLs, only allow relative paths
+        if (redirectUrl.startsWith('/') && !redirectUrl.startsWith('//')) {
+            // Additional check: ensure it doesn't contain a protocol
+            if (!redirectUrl.includes('://')) {
+                return redirectUrl
+            }
         }
+        // Reject anything else (including protocol-relative URLs like //evil.com)
+        return null
     }
-    return redirectUrl
 }
 
 export const formatPaymentStatus = (status: string): string => {
@@ -1276,17 +1284,6 @@ export function isPeanutWalletToken(tokenAddress: string, chainId: string): bool
 }
 
 /**
- * Detects if the user is on an iOS device
- * @returns true if the user is on iOS, false otherwise
- */
-export function isIOS(): boolean {
-    if (typeof window === 'undefined') return false
-
-    const userAgent = window.navigator.userAgent.toLowerCase()
-    return /iphone|ipad|ipod/.test(userAgent)
-}
-
-/**
  * Detects if the user is on an Android device
  * @returns true if the user is on Android, false otherwise
  */
@@ -1321,11 +1318,62 @@ export function slugify(text: string): string {
 }
 
 export const generateInvitesShareText = (inviteLink: string) => {
-    return `I’m using Peanut, an invite-only app for easy payments. With it you can pay friends, use merchants, and move money in and out of your bank, even cross-border. Here’s my invite: ${inviteLink}`
+    return `I'm using Peanut, an invite-only app for easy payments. With it you can pay friends, use merchants, and move money in and out of your bank, even cross-border. Here's my invite: ${inviteLink}`
+}
+
+/**
+ * Generate a deterministic 3-digit suffix from username
+ * This is purely cosmetic and derived from a hash of the username
+ */
+export const generateInviteCodeSuffix = (username: string): string => {
+    const lowerUsername = username.toLowerCase()
+    // Create a simple hash from the username
+    const hash = lowerUsername.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+    // Generate 3 digits between 100-999
+    const threeDigits = 100 + (hash % 900)
+    return threeDigits.toString()
 }
 
 export const generateInviteCodeLink = (username: string) => {
-    const inviteCode = `${username.toUpperCase()}INVITESYOU`
+    const suffix = generateInviteCodeSuffix(username)
+    const inviteCode = `${username.toUpperCase()}INVITESYOU${suffix}`
     const inviteLink = `${consts.BASE_URL}/invite?code=${inviteCode}`
     return { inviteLink, inviteCode }
+}
+
+export const getValidRedirectUrl = (redirectUrl: string, fallbackRoute: string) => {
+    let decodedRedirect = redirectUrl
+    try {
+        decodedRedirect = decodeURIComponent(redirectUrl)
+    } catch {
+        // if decoding URI fails, push to /login as fallback
+        return fallbackRoute
+    }
+    const sanitizedRedirectUrl = sanitizeRedirectURL(decodedRedirect)
+    // Only redirect if the URL is safe (same-origin)
+    if (sanitizedRedirectUrl) {
+        return sanitizedRedirectUrl
+    } else {
+        // Reject external redirects, go to home instead
+        return fallbackRoute
+    }
+}
+
+export const getContributorsFromCharge = (charges: ChargeEntry[]) => {
+    return charges.map((charge) => {
+        const successfulPayment = charge.payments.at(-1)
+        let username = successfulPayment?.payerAccount?.user?.username
+        if (successfulPayment?.payerAccount?.type === 'evm-address') {
+            username = successfulPayment.payerAccount.identifier
+        }
+
+        return {
+            uuid: charge.uuid,
+            payments: charge.payments,
+            amount: charge.tokenAmount,
+            username,
+            fulfillmentPayment: charge.fulfillmentPayment,
+            isUserVerified: successfulPayment?.payerAccount?.user?.bridgeKycStatus === 'approved',
+        }
+    })
 }

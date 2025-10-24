@@ -5,41 +5,140 @@ import Card, { getCardPosition } from '@/components/Global/Card'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
+import NavigationArrow from '@/components/Global/NavigationArrow'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import ShareButton from '@/components/Global/ShareButton'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
 import { VerifiedUserLabel } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
 import { invitesApi } from '@/services/invites'
-import { Invite } from '@/services/services.types'
-import { generateInvitesShareText } from '@/utils'
+import { generateInviteCodeLink, generateInvitesShareText } from '@/utils'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
+import { STAR_STRAIGHT_ICON, TIER_0_BADGE, TIER_1_BADGE, TIER_2_BADGE, TIER_3_BADGE } from '@/assets'
+import Image from 'next/image'
+import { pointsApi } from '@/services/points'
+import EmptyState from '@/components/Global/EmptyStates/EmptyState'
+import { getInitialsFromName } from '@/utils'
+import { type PointsInvite } from '@/services/services.types'
+import { useEffect } from 'react'
 
 const PointsPage = () => {
     const router = useRouter()
-    const { user } = useAuth()
-    const { data: invites, isLoading } = useQuery({
+    const { user, fetchUser } = useAuth()
+
+    const getTierBadge = (tier: number) => {
+        const badges = [TIER_0_BADGE, TIER_1_BADGE, TIER_2_BADGE, TIER_3_BADGE]
+        return badges[tier] || TIER_0_BADGE
+    }
+    const {
+        data: invites,
+        isLoading,
+        isError: isInvitesError,
+        error: invitesError,
+    } = useQuery({
         queryKey: ['invites', user?.user.userId],
         queryFn: () => invitesApi.getInvites(),
         enabled: !!user?.user.userId,
     })
 
+    const {
+        data: tierInfo,
+        isLoading: isTierInfoLoading,
+        isError: isTierInfoError,
+        error: tierInfoError,
+    } = useQuery({
+        queryKey: ['tierInfo', user?.user.userId],
+        queryFn: () => pointsApi.getTierInfo(),
+        enabled: !!user?.user.userId,
+    })
     const username = user?.user.username
-    const inviteCode = username ? `${username.toUpperCase()}INVITESYOU` : ''
-    const inviteLink = `${process.env.NEXT_PUBLIC_BASE_URL}/invite?code=${inviteCode}`
+    const { inviteCode, inviteLink } = generateInviteCodeLink(username ?? '')
 
-    if (isLoading) {
-        return <PeanutLoading coverFullScreen />
+    useEffect(() => {
+        // Re-fetch user to get the latest invitees list for showing heart Icon
+        fetchUser()
+    }, [])
+
+    if (isLoading || isTierInfoLoading || !tierInfo?.data) {
+        return <PeanutLoading />
+    }
+
+    if (isInvitesError || isTierInfoError) {
+        console.error('Error loading points data:', invitesError ?? tierInfoError)
+
+        return (
+            <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
+                <EmptyState icon="alert" title="Error loading points!" description="Please contact Support." />
+            </div>
+        )
     }
 
     return (
         <PageContainer className="flex flex-col">
-            <NavHeader title="Invites" onPrev={() => router.back()} />
+            <NavHeader title="Points" onPrev={() => router.back()} />
 
             <section className="mx-auto mb-auto mt-10 w-full space-y-4">
-                {user?.invitedBy && (
-                    <p className="text-sm">
+                <Card className="flex flex-col items-center justify-center gap-3 p-6">
+                    <div className="flex items-center gap-2">
+                        <Image src={STAR_STRAIGHT_ICON} alt="star" width={24} height={24} />
+                        <h2 className="text-4xl font-black text-black">
+                            {tierInfo.data.totalPoints} {tierInfo.data.totalPoints === 1 ? 'Point' : 'Points'}
+                        </h2>
+                    </div>
+
+                    {/* Progressive progress bar */}
+                    <div className="flex w-full items-center gap-3">
+                        <Image
+                            src={getTierBadge(tierInfo?.data.currentTier)}
+                            alt={`Tier ${tierInfo?.data.currentTier}`}
+                            width={32}
+                            height={32}
+                        />
+                        <div className="relative h-2 w-full overflow-hidden rounded-full bg-grey-2">
+                            <div
+                                className="h-full rounded-full bg-gradient-to-r from-primary-1 to-primary-2 transition-all duration-500"
+                                style={{
+                                    width: `${
+                                        tierInfo?.data.currentTier >= 2
+                                            ? 100
+                                            : Math.pow(
+                                                  Math.min(
+                                                      1,
+                                                      tierInfo.data.nextTierThreshold > 0
+                                                          ? tierInfo.data.totalPoints / tierInfo.data.nextTierThreshold
+                                                          : 0
+                                                  ),
+                                                  0.6
+                                              ) * 100
+                                    }%`,
+                                }}
+                            />
+                        </div>
+                        {tierInfo?.data.currentTier < 2 && (
+                            <Image
+                                src={getTierBadge(tierInfo?.data.currentTier + 1)}
+                                alt={`Tier ${tierInfo?.data.currentTier + 1}`}
+                                width={32}
+                                height={32}
+                            />
+                        )}
+                    </div>
+
+                    <div className="text-center">
+                        <p className="text-base text-grey-1">You&apos;re at tier {tierInfo?.data.currentTier}.</p>
+                        {tierInfo?.data.currentTier < 2 ? (
+                            <p className="text-sm text-grey-1">
+                                {tierInfo.data.pointsToNextTier}{' '}
+                                {tierInfo.data.pointsToNextTier === 1 ? 'point' : 'points'} needed to level up
+                            </p>
+                        ) : (
+                            <p className="text-sm text-grey-1">You&apos;ve reached the max tier!</p>
+                        )}
+                    </div>
+                </Card>
+                {user?.invitedBy ? (
+                    <p className="text-center text-sm">
                         <span
                             onClick={() => router.push(`/${user.invitedBy}`)}
                             className="inline-flex cursor-pointer items-center gap-1 font-bold"
@@ -48,17 +147,24 @@ const PointsPage = () => {
                         </span>{' '}
                         invited you and earned points. Now it's your turn! Invite friends and get 20% of their points.
                     </p>
+                ) : (
+                    <div className="mx-3 flex items-center gap-2">
+                        <Icon name="info" className="size-4 flex-shrink-0 text-black" />
+                        <p className="text-sm text-black">
+                            Do stuff on Peanut and get points. Invite friends and pocket 20% of their points, too.
+                        </p>
+                    </div>
                 )}
 
                 <h1 className="font-bold">Invite friends with your code</h1>
                 <div className="flex w-full items-center justify-between gap-3">
                     <Card className="flex w-full items-center justify-between py-3.5">
                         <p className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-bold md:text-base">{`${inviteCode}`}</p>
-                        <CopyToClipboard textToCopy={inviteCode} />
+                        <CopyToClipboard textToCopy={inviteCode} iconSize="4" />
                     </Card>
                 </div>
 
-                {invites && invites.length > 0 && (
+                {invites && invites?.invitees && invites.invitees.length > 0 && (
                     <>
                         <ShareButton
                             generateText={() => Promise.resolve(generateInvitesShareText(inviteLink))}
@@ -66,17 +172,30 @@ const PointsPage = () => {
                         >
                             Share Invite link
                         </ShareButton>
-                        <h2 className="!mt-8 font-bold">People you invited</h2>
+                        <div
+                            className="!mt-8 flex cursor-pointer items-center justify-between"
+                            onClick={() => router.push('/points/invites')}
+                        >
+                            <h2 className="font-bold">People you invited</h2>
+                            <NavigationArrow className="text-black" />
+                        </div>
                         <div>
-                            {invites?.map((invite: Invite, i: number) => {
-                                const username = invite.invitee.username
-                                const isVerified = invite.invitee.bridgeKycStatus === 'approved'
+                            {invites.invitees?.map((invite: PointsInvite, i: number) => {
+                                const username = invite.username
+                                const fullName = invite.fullName
+                                const isVerified = invite.kycStatus === 'approved'
+                                const pointsEarned = Math.floor(invite.totalPoints * 0.2)
                                 return (
-                                    <Card key={invite.id} position={getCardPosition(i, invites.length)}>
+                                    <Card
+                                        key={invite.inviteeId}
+                                        position={getCardPosition(i, invites.invitees.length)}
+                                        onClick={() => router.push(`/${username}`)}
+                                        className="cursor-pointer"
+                                    >
                                         <div className="flex items-center justify-between gap-4">
                                             <div className="flex items-center gap-3">
                                                 <TransactionAvatarBadge
-                                                    initials={username}
+                                                    initials={getInitialsFromName(fullName ?? username)}
                                                     userName={username}
                                                     isLinkTransaction={false}
                                                     transactionType={'send'}
@@ -84,7 +203,6 @@ const PointsPage = () => {
                                                     size="small"
                                                 />
                                             </div>
-
                                             <div className="min-w-0 flex-1 truncate font-roboto text-[16px] font-medium">
                                                 <VerifiedUserLabel
                                                     name={username}
@@ -92,6 +210,9 @@ const PointsPage = () => {
                                                     isVerified={isVerified}
                                                 />
                                             </div>
+                                            <p className="text-grey-1">
+                                                +{pointsEarned} {pointsEarned === 1 ? 'pt' : 'pts'}
+                                            </p>
                                         </div>
                                     </Card>
                                 )
@@ -99,7 +220,8 @@ const PointsPage = () => {
                         </div>
                     </>
                 )}
-                {invites?.length === 0 && (
+
+                {invites?.invitees?.length === 0 && (
                     <Card className="flex flex-col items-center justify-center gap-4 py-4">
                         <div className="flex items-center justify-center rounded-full bg-primary-1 p-2">
                             <Icon name="trophy" />

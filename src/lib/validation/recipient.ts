@@ -7,7 +7,7 @@ import { usersApi } from '@/services/users'
 import { fetchWithSentry } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import { RecipientValidationError } from '../url-parser/errors'
-import { RecipientType } from '../url-parser/types/payment'
+import { type RecipientType } from '../url-parser/types/payment'
 
 export async function validateAndResolveRecipient(
     recipient: string,

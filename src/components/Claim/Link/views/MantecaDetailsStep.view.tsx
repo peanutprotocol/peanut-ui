@@ -3,7 +3,7 @@
 import { Button } from '@/components/0_Bruddle'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { MercadoPagoStep } from '@/types/manteca.types'
-import { Dispatch, FC, SetStateAction, useState } from 'react'
+import { type Dispatch, type FC, type SetStateAction, useState } from 'react'
 import { MANTECA_COUNTRIES_CONFIG } from '@/constants'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import { validateCbuCvuAlias } from '@/utils/withdraw.utils'

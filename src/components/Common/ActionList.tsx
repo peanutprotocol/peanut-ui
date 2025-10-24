@@ -4,7 +4,7 @@ import { SearchResultCard } from '../SearchUsers/SearchResultCard'
 import StatusBadge from '../Global/Badges/StatusBadge'
 import IconStack from '../Global/IconStack'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
-import { ClaimLinkData } from '@/services/sendLinks'
+import { type ClaimLinkData } from '@/services/sendLinks'
 import { formatUnits } from 'viem'
 import { useMemo, useState } from 'react'
 import ActionModal from '@/components/Global/ActionModal'
@@ -17,12 +17,12 @@ import { PEANUTMAN_LOGO } from '@/assets/peanut'
 import { BankClaimType, useDetermineBankClaimType } from '@/hooks/useDetermineBankClaimType'
 import useSavedAccounts from '@/hooks/useSavedAccounts'
 import { RequestFulfillmentBankFlowStep, useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
-import { ParsedURL } from '@/lib/url-parser/types/payment'
+import { type ParsedURL } from '@/lib/url-parser/types/payment'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermineBankRequestType'
 import { GuestVerificationModal } from '../Global/GuestVerificationModal'
 import ActionListDaimoPayButton from './ActionListDaimoPayButton'
-import { ACTION_METHODS, PaymentMethod } from '@/constants/actionlist.consts'
+import { ACTION_METHODS, type PaymentMethod } from '@/constants/actionlist.consts'
 import useClaimLink from '../Claim/useClaimLink'
 import { setupActions } from '@/redux/slices/setup-slice'
 import starStraightImage from '@/assets/icons/starStraight.svg'
@@ -204,7 +204,7 @@ export default function ActionList({
             const inviteCode = `${username}INVITESYOU`
             dispatch(setupActions.setInviteCode(inviteCode))
             dispatch(setupActions.setInviteType(EInviteType.PAYMENT_LINK))
-            router.push(`/setup?step=signup&redirect_uri=${redirectUri}`)
+            router.push(`/invite?code=${inviteCode}&redirect_uri=${redirectUri}`)
         } else {
             router.push(`/setup?redirect_uri=${redirectUri}`)
         }
@@ -233,7 +233,7 @@ export default function ActionList({
                 </Button>
             )}
             {isInviteLink && !userHasAppAccess && username && (
-                <div className="!mt-6 flex w-full items-center justify-between">
+                <div className="!mt-6 flex w-full items-center justify-center gap-1 md:gap-2">
                     <Image src={starStraightImage.src} alt="star" width={20} height={20} />{' '}
                     <p className="text-center text-sm">Invited by {username}, you have early access!</p>
                     <Image src={starStraightImage.src} alt="star" width={20} height={20} />

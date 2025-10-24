@@ -16,7 +16,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useMemo, useState, type ChangeEvent } from 'react'
 import { twMerge } from 'tailwind-merge'
 import ActionModal from '../ActionModal'
-import { Icon, IconName } from '../Icons/Icon'
+import { Icon, type IconName } from '../Icons/Icon'
 import { EQrType, NAME_BY_QR_TYPE, parseEip681, recognizeQr } from './utils'
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL!
@@ -173,13 +173,11 @@ export default function DirectSendQr({
     icon = 'qr-code',
     className = '',
     ctaTitle,
-    iconClassName,
     disabled = false,
 }: {
     className?: string
     ctaTitle?: string
     icon?: IconName
-    iconClassName?: string
     disabled?: boolean
 }) {
     const [isQRScannerOpen, setIsQRScannerOpen] = useState(false)
@@ -293,6 +291,9 @@ export default function DirectSendQr({
             case EQrType.MERCADO_PAGO:
             case EQrType.ARGENTINA_QR3:
             case EQrType.PIX:
+            case EQrType.SIMPLEFI_STATIC:
+            case EQrType.SIMPLEFI_DYNAMIC:
+            case EQrType.SIMPLEFI_USER_SPECIFIED:
                 {
                     const timestamp = Date.now()
                     // Casing matters, so send original instead of normalized
@@ -404,13 +405,12 @@ export default function DirectSendQr({
                 shadowSize="4"
                 shadowType="primary"
                 className={twMerge(
-                    'mx-auto h-20 w-20 cursor-pointer justify-center rounded-full p-0 hover:bg-primary-1/100',
+                    'mx-auto h-20 w-20 cursor-pointer justify-center rounded-full p-3 hover:bg-primary-1/100',
                     className
                 )}
                 disabled={disabled}
             >
-                <Icon name={icon} className={twMerge('custom-size', iconClassName)} />
-                {ctaTitle && ctaTitle}
+                <Icon name={icon} className="custom-size h-full" />
             </Button>
 
             <Modal

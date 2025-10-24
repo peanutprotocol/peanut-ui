@@ -1,8 +1,8 @@
 import ActionModal from '@/components/Global/ActionModal'
 import { Slider } from '@/components/Slider'
 import { ARBITRUM_ICON } from '@/assets'
-import { NetworkConfig } from '@/components/Global/TokenSelector/TokenSelector.consts'
-import { CryptoToken } from '@/components/AddMoney/consts'
+import { type NetworkConfig } from '@/components/Global/TokenSelector/TokenSelector.consts'
+import { type CryptoToken } from '@/components/AddMoney/consts'
 import Image from 'next/image'
 
 export default function TokenAndNetworkConfirmationModal({

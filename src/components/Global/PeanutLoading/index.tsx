@@ -11,7 +11,7 @@ export default function PeanutLoading({ coverFullScreen = false }: { coverFullSc
             )}
         >
             <div className={twMerge('animate-spin')}>
-                <img src={PEANUTMAN_LOGO.src} alt="logo" className="h-6 sm:h-10" />
+                <img src={PEANUTMAN_LOGO.src} alt="logo" className="h-10" />
                 <span className="sr-only">Loading...</span>
             </div>
         </div>

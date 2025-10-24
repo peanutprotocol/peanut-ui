@@ -15,6 +15,7 @@ import Card from '../Global/Card'
 import ShowNameToggle from './components/ShowNameToggle'
 import ShareButton from '../Global/ShareButton'
 import CopyToClipboard from '../Global/CopyToClipboard'
+import KycVerifiedOrReviewModal from '../Global/KycVerifiedOrReviewModal'
 
 export const Profile = () => {
     const { logoutUser, isLoggingOut, user } = useAuth()
@@ -22,7 +23,7 @@ export const Profile = () => {
     const [isInviteFriendsModalOpen, setIsInviteFriendsModalOpen] = useState(false)
     const [showInitiateKycModal, setShowInitiateKycModal] = useState(false)
     const router = useRouter()
-    const { isUserKycApproved } = useKycStatus()
+    const { isUserKycApproved, isUserBridgeKycUnderReview } = useKycStatus()
 
     const logout = async () => {
         await logoutUser()
@@ -37,6 +38,7 @@ export const Profile = () => {
         <div className="h-full w-full bg-background">
             <NavHeader
                 hideLabel
+                showLogoutBtn
                 onPrev={() => {
                     // Check if the referrer is from the same domain (internal navigation)
                     const isInternalReferrer = checkIfInternalNavigation()
@@ -76,11 +78,7 @@ export const Profile = () => {
                             label="Identity Verification"
                             href="/profile/identity-verification"
                             onClick={() => {
-                                if (isUserKycApproved) {
-                                    setIsKycApprovedModalOpen(true)
-                                } else {
-                                    setShowInitiateKycModal(true)
-                                }
+                                setShowInitiateKycModal(true)
                             }}
                             position="middle"
                             endIcon={isUserKycApproved ? 'check' : undefined}
@@ -136,20 +134,9 @@ export const Profile = () => {
                 </div>
             </div>
 
-            <ActionModal
-                visible={isKycApprovedModalOpen}
+            <KycVerifiedOrReviewModal
+                isKycApprovedModalOpen={isKycApprovedModalOpen}
                 onClose={() => setIsKycApprovedModalOpen(false)}
-                title="You’re already verified"
-                description="Your identity has already been successfully verified. No further action is needed."
-                icon="shield"
-                ctas={[
-                    {
-                        text: 'Go back',
-                        shadowSize: '4',
-                        className: 'md:py-2',
-                        onClick: () => setIsKycApprovedModalOpen(false),
-                    },
-                ]}
             />
 
             <ActionModal
@@ -164,7 +151,7 @@ export const Profile = () => {
                             <Card className="flex items-center justify-between py-2">
                                 <p className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-bold ">{`${inviteData.inviteCode}`}</p>
 
-                                <CopyToClipboard textToCopy={`${inviteData.inviteCode}`} />
+                                <CopyToClipboard textToCopy={`${inviteData.inviteCode}`} iconSize="4" />
                             </Card>
                         </div>
                         <ShareButton

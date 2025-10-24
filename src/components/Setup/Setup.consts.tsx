@@ -2,9 +2,10 @@ import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF
 import peanutWithGlassesAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_06.gif'
 import happyPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_03.gif'
 import { PEANUTMAN_MOBILE, ThinkingPeanut } from '@/assets'
-import { ISetupStep } from '@/components/Setup/Setup.types'
-import { InstallPWA, SetupPasskey, SignupStep, JoinBetaStep, CollectEmail } from '@/components/Setup/Views'
+import type { ISetupStep } from '@/components/Setup/Setup.types'
+import { InstallPWA, SetupPasskey, SignupStep, JoinBetaStep, CollectEmail, LandingStep } from '@/components/Setup/Views'
 import JoinWaitlist from './Views/JoinWaitlist'
+import ForceIOSPWAInstall from '../ForceIOSPWAInstall'
 
 export const setupSteps: ISetupStep[] = [
     {
@@ -44,14 +45,24 @@ export const setupSteps: ISetupStep[] = [
         imageClassName: 'w-[50%] md:w-[30%] h-auto mt-16 md:mt-0',
     },
     {
+        screenId: 'landing',
+        layoutType: 'signup',
+        title: 'Peanut makes dollars easy.',
+        description: 'Create your wallet in seconds to save, send, or cash out dollars fast.',
+        image: chillPeanutAnim.src,
+        component: LandingStep,
+        showBackButton: false,
+        showSkipButton: false,
+        contentClassName: 'flex flex-col items-center justify-center gap-5',
+    },
+    {
         screenId: 'welcome',
         layoutType: 'signup',
         title: 'Peanut is invite-only',
-        description:
-            'Enter your invite code to continue. Don’t have one? Join the waitlist and we’ll reach out when you’re eligible.',
+        description: `Enter your invite code to continue or join the waitlist. We'll reach out when you're eligible.`,
         image: chillPeanutAnim.src,
         component: JoinWaitlist,
-        showBackButton: false,
+        showBackButton: true,
         showSkipButton: false,
         contentClassName: 'flex flex-col items-center justify-center gap-5',
     },

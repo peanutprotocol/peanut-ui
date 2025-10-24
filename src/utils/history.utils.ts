@@ -1,11 +1,12 @@
-import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
-import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
+import { MERCADO_PAGO, PIX, SIMPLEFI } from '@/assets/payment-apps'
+import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { getFromLocalStorage } from '@/utils'
 import { PEANUT_WALLET_TOKEN_DECIMALS, BASE_URL } from '@/constants'
 import { formatUnits } from 'viem'
-import { Hash } from 'viem'
+import { type Hash } from 'viem'
 import { getTokenDetails } from '@/utils'
 import { getCurrencyPrice } from '@/app/actions/currency'
+import { type ChargeEntry } from '@/services/services.types'
 
 export enum EHistoryEntryType {
     REQUEST = 'REQUEST',
@@ -18,9 +19,11 @@ export enum EHistoryEntryType {
     BRIDGE_ONRAMP = 'BRIDGE_ONRAMP',
     BANK_SEND_LINK_CLAIM = 'BANK_SEND_LINK_CLAIM',
     MANTECA_QR_PAYMENT = 'MANTECA_QR_PAYMENT',
+    SIMPLEFI_QR_PAYMENT = 'SIMPLEFI_QR_PAYMENT',
     MANTECA_OFFRAMP = 'MANTECA_OFFRAMP',
     MANTECA_ONRAMP = 'MANTECA_ONRAMP',
     BRIDGE_GUEST_OFFRAMP = 'BRIDGE_GUEST_OFFRAMP',
+    PERK_REWARD = 'PERK_REWARD',
 }
 export function historyTypeToNumber(type: EHistoryEntryType): number {
     return Object.values(EHistoryEntryType).indexOf(type)
@@ -64,6 +67,12 @@ export enum EHistoryStatus {
     REFUNDED = 'REFUNDED',
     CANCELED = 'CANCELED',
     ERROR = 'ERROR',
+    approved = 'approved',
+    pending = 'pending',
+    refunded = 'refunded',
+    canceled = 'canceled', // from simplefi, canceled with only one l
+    expired = 'expired',
+    CLOSED = 'CLOSED',
 }
 
 export const FINAL_STATES: HistoryStatus[] = [
@@ -74,6 +83,7 @@ export const FINAL_STATES: HistoryStatus[] = [
     EHistoryStatus.REFUNDED,
     EHistoryStatus.CANCELED,
     EHistoryStatus.ERROR,
+    EHistoryStatus.CLOSED,
 ]
 
 export type HistoryEntryType = `${EHistoryEntryType}`
@@ -121,6 +131,10 @@ export type HistoryEntry = {
     createdAt?: string | Date
     completedAt?: string | Date
     isVerified?: boolean
+    points?: number
+    isRequestLink?: boolean // true if the transaction is a request pot link
+    charges?: ChargeEntry[]
+    totalAmountCollected?: number
 }
 
 export function isFinalState(transaction: Pick<HistoryEntry, 'status'>): boolean {
@@ -132,6 +146,7 @@ export function getReceiptUrl(transaction: TransactionDetails): string | undefin
         transaction.extraDataForDrawer?.originalType &&
         [
             EHistoryEntryType.MANTECA_QR_PAYMENT,
+            EHistoryEntryType.SIMPLEFI_QR_PAYMENT,
             EHistoryEntryType.MANTECA_OFFRAMP,
             EHistoryEntryType.MANTECA_ONRAMP,
             EHistoryEntryType.SEND_LINK,
@@ -159,6 +174,9 @@ export function getAvatarUrl(transaction: TransactionDetails): string | undefine
             default:
                 return undefined
         }
+    }
+    if (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.SIMPLEFI_QR_PAYMENT) {
+        return SIMPLEFI
     }
 }
 
@@ -207,7 +225,14 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
             break
         }
         case EHistoryEntryType.REQUEST: {
-            link = `${BASE_URL}/${entry.recipientAccount.username || entry.recipientAccount.identifier}?chargeId=${entry.uuid}`
+            // if link is a request link, we need to add the token amount and symbol to the link, also use id param instead of chargeId
+            if (entry.isRequestLink) {
+                const tokenCurrency = entry.tokenSymbol
+                const tokenAmount = entry.amount
+                link = `${BASE_URL}/${entry.recipientAccount.username || entry.recipientAccount.identifier}/${tokenAmount}${tokenCurrency}?id=${entry.uuid}`
+            } else {
+                link = `${BASE_URL}/${entry.recipientAccount.username || entry.recipientAccount.identifier}?chargeId=${entry.uuid}`
+            }
             tokenSymbol = entry.tokenSymbol
             usdAmount = entry.amount.toString()
             break
@@ -240,8 +265,16 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
                 entry.currency.code = entry.currency.code.toUpperCase()
             }
             if (usdAmount === entry.currency?.amount && entry.currency?.code && entry.currency?.code !== 'USD') {
-                const price = await getCurrencyPrice(entry.currency.code)
-                usdAmount = (Number(entry.currency.amount) * price.sell).toString()
+                try {
+                    const price = await getCurrencyPrice(entry.currency.code)
+                    usdAmount = (Number(entry.currency.amount) / price.buy).toString()
+                } catch (error) {
+                    console.error(
+                        `[completeHistoryEntry] Failed to fetch currency price for ${entry.currency.code}:`,
+                        error
+                    )
+                    // Fallback: use original amount (already set above)
+                }
             }
             break
         }
@@ -254,8 +287,16 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
                 entry.currency.code = entry.currency.code.toUpperCase()
             }
             if (usdAmount === entry.currency?.amount && entry.currency?.code && entry.currency?.code !== 'USD') {
-                const price = await getCurrencyPrice(entry.currency.code)
-                entry.currency.amount = (Number(entry.amount) * price.buy).toString()
+                try {
+                    const price = await getCurrencyPrice(entry.currency.code)
+                    entry.currency.amount = (Number(entry.amount) / price.sell).toString()
+                } catch (error) {
+                    console.error(
+                        `[completeHistoryEntry] Failed to fetch currency price for ${entry.currency.code}:`,
+                        error
+                    )
+                    // Fallback: use original amount (already set above)
+                }
             }
             break
         }

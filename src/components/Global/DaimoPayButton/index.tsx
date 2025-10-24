@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle'
-import { IconName } from '@/components/Global/Icons/Icon'
+import { type IconName } from '@/components/Global/Icons/Icon'
 import { PEANUT_WALLET_TOKEN } from '@/constants'
 import { DaimoPayButton as DaimoPayButtonSDK, useDaimoPayUI } from '@daimo/pay'
 import { useCallback, useEffect } from 'react'

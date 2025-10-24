@@ -4,12 +4,12 @@ import { CryptoSourceListCard } from '@/components/AddMoney/components/CryptoSou
 import {
     CRYPTO_EXCHANGES,
     CRYPTO_WALLETS,
-    CryptoSource,
-    CryptoToken,
+    type CryptoSource,
+    type CryptoToken,
     DEPOSIT_CRYPTO_TOKENS,
 } from '@/components/AddMoney/consts'
 import { CryptoDepositQR } from '@/components/AddMoney/views/CryptoDepositQR.view'
-import NetworkSelectionView, { SelectedNetwork } from '@/components/AddMoney/views/NetworkSelection.view'
+import NetworkSelectionView, { type SelectedNetwork } from '@/components/AddMoney/views/NetworkSelection.view'
 import TokenSelectionView from '@/components/AddMoney/views/TokenSelection.view'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutLoading from '@/components/Global/PeanutLoading'
@@ -120,15 +120,20 @@ const AddMoneyCryptoPage = ({ headerTitle, onBack, depositAddress }: AddMoneyCry
             return <PeanutLoading />
         }
 
-        if (isConnected && !peanutWalletAddress) {
+        // Ensure we have a valid deposit address
+        const finalDepositAddress = depositAddress ?? peanutWalletAddress
+        if (!finalDepositAddress) {
             router.push('/')
             return null
         }
+
         return (
             <CryptoDepositQR
                 tokenName={selectedToken.symbol}
+                tokenIcon={selectedToken.icon}
                 chainName={selectedNetwork.name}
-                depositAddress={depositAddress ?? peanutWalletAddress}
+                chainIcon={selectedNetwork.iconUrl}
+                depositAddress={finalDepositAddress}
                 onBack={() => router.back()}
             />
         )

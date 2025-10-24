@@ -2,7 +2,7 @@
 import { updateUserById } from '@/app/actions/users'
 import { Button } from '@/components/0_Bruddle'
 import { BRIDGE_ALPHA3_TO_ALPHA2, MantecaSupportedExchanges } from '@/components/AddMoney/consts'
-import { UserDetailsForm, UserDetailsFormData } from '@/components/AddMoney/UserDetailsForm'
+import { UserDetailsForm, type UserDetailsFormData } from '@/components/AddMoney/UserDetailsForm'
 import { CountryList } from '@/components/Common/CountryList'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import IframeWrapper from '@/components/Global/IframeWrapper'
@@ -125,9 +125,6 @@ const IdentityVerificationView = () => {
     const isVerifiedForCountry = useCallback(
         (code: string) => {
             const upper = code.toUpperCase()
-            // bridge approval covers us/mx/sepa generally
-            if (isBridgeSupportedCountry(upper) && isUserBridgeKycApproved) return true
-            // manteca per-geo check
             const mantecaActive =
                 user?.user.kycVerifications?.some(
                     (v) =>
@@ -135,7 +132,7 @@ const IdentityVerificationView = () => {
                         (v.mantecaGeo || '').toUpperCase() === upper &&
                         v.status === MantecaKycStatus.ACTIVE
                 ) ?? false
-            return mantecaActive
+            return isMantecaSupportedCountry(upper) ? mantecaActive : isUserBridgeKycApproved
         },
         [user]
     )

@@ -1,4 +1,4 @@
-import { ApiUser, RecentUser } from '@/services/users'
+import { type ApiUser, type RecentUser } from '@/services/users'
 import { twMerge } from 'tailwind-merge'
 import Card from '../Global/Card'
 import EmptyState from '../Global/EmptyStates/EmptyState'

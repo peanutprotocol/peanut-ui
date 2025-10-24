@@ -1,7 +1,7 @@
-import { StatusType } from '@/components/Global/Badges/StatusBadge'
-import { TransactionType as TransactionCardType } from '@/components/TransactionDetails/TransactionCard'
-import { TransactionDirection } from '@/components/TransactionDetails/TransactionDetailsHeaderCard'
-import { EHistoryEntryType, EHistoryUserRole, HistoryEntry } from '@/hooks/useTransactionHistory'
+import { type StatusType } from '@/components/Global/Badges/StatusBadge'
+import { type TransactionType as TransactionCardType } from '@/components/TransactionDetails/TransactionCard'
+import { type TransactionDirection } from '@/components/TransactionDetails/TransactionDetailsHeaderCard'
+import { EHistoryEntryType, EHistoryUserRole, type HistoryEntry } from '@/hooks/useTransactionHistory'
 import {
     getExplorerUrl,
     getInitialsFromName,
@@ -10,9 +10,10 @@ import {
     getTokenLogo,
     getChainLogo,
 } from '@/utils/general.utils'
-import { StatusPillType } from '../Global/StatusPill'
+import { type StatusPillType } from '../Global/StatusPill'
 import type { Address } from 'viem'
 import { PEANUT_WALLET_CHAIN } from '@/constants'
+import { type HistoryEntryPerkReward, type ChargeEntry } from '@/services/services.types'
 
 /**
  * @fileoverview maps raw transaction history data from the api/hook to the format needed by ui components.
@@ -66,6 +67,16 @@ export interface TransactionDetails {
         fulfillmentType?: 'bridge' | 'wallet'
         bridgeTransferId?: string
         avatarUrl?: string
+        perkReward?: HistoryEntryPerkReward
+        perk?: {
+            claimed: boolean
+            discountPercentage: number
+            amountSponsored?: number
+            txHash?: string
+            merchantInfo?: {
+                promoDescription?: string
+            }
+        }
         depositInstructions?: {
             amount: string
             currency: string
@@ -118,6 +129,10 @@ export interface TransactionDetails {
     claimedAt?: string | Date
     createdAt?: string | Date
     completedAt?: string | Date
+    points?: number
+    isRequestPotLink?: boolean
+    requestPotPayments?: ChargeEntry[]
+    totalAmountCollected: number
 }
 
 /**
@@ -309,6 +324,22 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             nameForDetails = entry.recipientAccount?.identifier || 'Merchant'
             isPeerActuallyUser = false
             break
+        case EHistoryEntryType.SIMPLEFI_QR_PAYMENT:
+            direction = 'qr_payment'
+            transactionCardType = 'pay'
+            nameForDetails = entry.recipientAccount?.identifier || 'Merchant'
+            // We dont have merchant name so we try to prettify the slug,
+            // replacing dashws with speaces and making the first letter uppercase
+            nameForDetails = nameForDetails.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+            isPeerActuallyUser = false
+            break
+        case EHistoryEntryType.PERK_REWARD:
+            direction = 'receive'
+            transactionCardType = 'receive'
+            nameForDetails = 'Peanut Perk!'
+            fullName = 'Peanut Perks'
+            isPeerActuallyUser = false
+            break
         default:
             direction = 'send'
             transactionCardType = 'send'
@@ -370,15 +401,22 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             case 'SUCCESSFUL':
             case 'CLAIMED':
             case 'PAID':
+            case 'APPROVED':
                 uiStatus = 'completed'
                 break
             case 'FAILED':
             case 'ERROR':
+            case 'CANCELED':
+            case 'EXPIRED':
                 uiStatus = 'failed'
                 break
             case 'CANCELLED':
             case 'EXPIRED':
                 uiStatus = 'cancelled'
+                break
+            case 'CLOSED':
+                // If the total amount collected is 0, the link is treated as cancelled
+                uiStatus = entry.totalAmountCollected === 0 ? 'cancelled' : 'closed'
                 break
             default:
                 {
@@ -478,6 +516,16 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             rewardData,
             fulfillmentType: entry.extraData?.fulfillmentType,
             bridgeTransferId: entry.extraData?.bridgeTransferId,
+            perkReward: entry.extraData?.perkReward as HistoryEntryPerkReward | undefined,
+            perk: entry.extraData?.perk as
+                | {
+                      claimed: boolean
+                      discountPercentage: number
+                      amountSponsored?: number
+                      txHash?: string
+                      merchantInfo?: { promoDescription?: string }
+                  }
+                | undefined,
             depositInstructions:
                 entry.type === EHistoryEntryType.BRIDGE_ONRAMP || entry.extraData?.fulfillmentType === 'bridge'
                     ? entry.extraData?.depositInstructions
@@ -485,6 +533,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             receipt: entry.extraData?.receipt,
         },
         sourceView: 'history',
+        points: entry.points,
         bankAccountDetails:
             entry.type === EHistoryEntryType.BRIDGE_OFFRAMP ||
             (entry.type === EHistoryEntryType.BANK_SEND_LINK_CLAIM && entry.userRole === EHistoryUserRole.RECIPIENT)
@@ -497,6 +546,9 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         createdAt: entry.createdAt,
         completedAt: entry.completedAt,
         haveSentMoneyToUser: entry.extraData?.haveSentMoneyToUser as boolean,
+        isRequestPotLink: entry.isRequestLink,
+        requestPotPayments: entry.charges,
+        totalAmountCollected: entry.totalAmountCollected ?? 0,
     }
 
     return {

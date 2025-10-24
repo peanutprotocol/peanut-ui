@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { fetchWithSentry } from '@/utils'
+import { SELF_URL } from '@/constants'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -37,7 +38,7 @@ async function sendDiscordNotification(healthData: any) {
 
         const roleMention = shouldMentionRole ? '<@&1187109195389083739> ' : ''
 
-        const message = `${roleMention}🚨 **Peanut Protocol Health Alert** 🚨
+        const message = `${roleMention}🚨 **Peanut Health Alert** 🚨
 
 System Status: **${healthData.status.toUpperCase()}**
 Health Score: ${healthData.healthScore}%
@@ -74,33 +75,41 @@ export async function GET() {
     const startTime = Date.now()
 
     try {
-        const services = ['mobula', 'squid', 'zerodev', 'rpc', 'justaname', 'backend']
+        const services = ['mobula', 'squid', 'zerodev', 'rpc', 'justaname', 'backend', 'manteca']
+        const HEALTH_CHECK_TIMEOUT = 8000 // 8 seconds per service
 
         const healthChecks = await Promise.allSettled(
             services.map(async (service) => {
-                // Use localhost in development, production URL otherwise
-                const isDev = process.env.NODE_ENV === 'development'
-                const baseUrl = isDev
-                    ? 'http://localhost:3000'
-                    : process.env.NEXT_PUBLIC_BASE_URL || 'https://peanut.to'
-                const response = await fetchWithSentry(`${baseUrl}/api/health/${service}`, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    cache: 'no-store',
-                    next: { revalidate: 0 },
+                const timeoutPromise = new Promise((_, reject) => {
+                    setTimeout(
+                        () => reject(new Error(`${service} health check timeout after ${HEALTH_CHECK_TIMEOUT}ms`)),
+                        HEALTH_CHECK_TIMEOUT
+                    )
                 })
 
-                if (!response.ok) {
-                    throw new Error(`Health check failed with status ${response.status}`)
-                }
+                // Race the fetch against the timeout
+                const healthCheckPromise = (async () => {
+                    const response = await fetchWithSentry(`${SELF_URL}/api/health/${service}`, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        cache: 'no-store',
+                        next: { revalidate: 0 },
+                    })
 
-                const data = await response.json()
-                return {
-                    service,
-                    ...data,
-                }
+                    if (!response.ok) {
+                        throw new Error(`Health check failed with status ${response.status}`)
+                    }
+
+                    const data = await response.json()
+                    return {
+                        service,
+                        ...data,
+                    }
+                })()
+
+                return Promise.race([healthCheckPromise, timeoutPromise])
             })
         )
 

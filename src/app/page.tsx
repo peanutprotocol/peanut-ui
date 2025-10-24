@@ -13,6 +13,7 @@ import {
     RegulatedRails,
 } from '@/components/LandingPage'
 import Footer from '@/components/LandingPage/Footer'
+import Manteca from '@/components/LandingPage/Manteca'
 import { useFooterVisibility } from '@/context/footerVisibility'
 import { useEffect, useState, useRef } from 'react'
 
@@ -36,8 +37,9 @@ export default function LandingPage() {
             message: ['No fees', 'Instant', '24/7', 'USD', 'EUR', 'CRYPTO', 'GLOBAL', 'SELF-CUSTODIAL'],
         },
         primaryCta: {
-            label: 'JOIN WAITLIST',
+            label: 'SIGN UP',
             href: '/setup',
+            subtext: 'takes 10 seconds',
         },
     }
 
@@ -68,6 +70,11 @@ export default function LandingPage() {
                 id: '4',
                 question: 'What happens to my funds if Peanut’s servers were breached?',
                 answer: "Nothing. Your funds sit in your self‑custodied smart account (not on Peanut servers). Every transfer still needs a signature from your biometric passkey, so a server‑side attacker has no way to move a cent without the private key sealed in your device's Secure Enclave. Even if Peanut were offline, you could point any ERC‑4337‑compatible wallet at your smart account and recover access independently.",
+            },
+            {
+                id: '5',
+                question: 'How does Peanut make money?',
+                answer: 'We plan to charge merchants for accepting Peanut as a payment method, whilst still being much cheaper than VISA and Mastercard. For users, we only charge minimal amounts!',
             },
         ],
         marquee: {
@@ -186,6 +193,8 @@ export default function LandingPage() {
             <RegulatedRails />
             <Marquee {...marqueeProps} />
             <YourMoney />
+            <Marquee {...marqueeProps} />
+            <Manteca />
             <Marquee {...marqueeProps} />
             <SecurityBuiltIn />
             <Marquee {...marqueeProps} />

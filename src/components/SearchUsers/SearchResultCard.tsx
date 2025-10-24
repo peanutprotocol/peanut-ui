@@ -1,4 +1,4 @@
-import Card, { CardPosition } from '@/components/Global/Card'
+import Card, { type CardPosition } from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
 import React from 'react'
 import { twMerge } from 'tailwind-merge'

@@ -9,9 +9,9 @@ import { twMerge } from 'tailwind-merge'
 import { Tooltip } from '../Tooltip'
 import { useMemo } from 'react'
 import { isAddress } from 'viem'
-import { printableAddress } from '@/utils'
 import useKycStatus from '@/hooks/useKycStatus'
 import { useAuth } from '@/context/authContext'
+import AddressLink from '../Global/AddressLink'
 
 interface UserHeaderProps {
     username: string
@@ -50,6 +50,7 @@ export const VerifiedUserLabel = ({
     iconSize = 14,
     haveSentMoneyToUser = false,
     isAuthenticatedUserVerified = false,
+    onNameClick,
 }: {
     name: string
     username: string
@@ -58,6 +59,7 @@ export const VerifiedUserLabel = ({
     iconSize?: number
     haveSentMoneyToUser?: boolean
     isAuthenticatedUserVerified?: boolean
+    onNameClick?: () => void
 }) => {
     const { invitedUsernamesSet, user } = useAuth()
     // determine badge and tooltip content based on verification status
@@ -77,8 +79,8 @@ export const VerifiedUserLabel = ({
     }
 
     const isCryptoAddress = useMemo(() => {
-        return isAddress(name)
-    }, [name])
+        return isAddress(username)
+    }, [username])
 
     // O(1) lookup in pre-computed Set
     const isInvitedByLoggedInUser = invitedUsernamesSet.has(username)
@@ -87,23 +89,33 @@ export const VerifiedUserLabel = ({
 
     return (
         <div className="flex items-center gap-1.5">
-            <div className={twMerge('font-semibold md:text-base', className)}>
-                {isCryptoAddress ? printableAddress(name, 4, 4) : name}
-            </div>
+            {isCryptoAddress ? (
+                <AddressLink
+                    isLink={false}
+                    className={twMerge('font-semibold md:text-base', className)}
+                    address={username}
+                />
+            ) : (
+                <div
+                    className={twMerge('font-semibold md:text-base', className, onNameClick && 'cursor-pointer')}
+                    onClick={onNameClick}
+                >
+                    {name}
+                </div>
+            )}
+
             {badge && (
                 <Tooltip id="verified-user-label" content={tooltipContent} position="top">
                     {badge}
                 </Tooltip>
             )}
-            {isInvitedByLoggedInUser && (
-                <Tooltip id="invited-by-user" content="You've invited this user." position="top">
+            {(isInvitedByLoggedInUser || isInviter) && (
+                <Tooltip
+                    id={isInviter ? 'inviter-user' : 'invited-by-user'}
+                    content={isInviter ? 'You were invited by this user.' : "You've invited this user."}
+                    position="top"
+                >
                     <Icon name="invite-heart" size={iconSize} />
-                </Tooltip>
-            )}
-
-            {isInviter && (
-                <Tooltip id="inviter-user" content="You were invited by this user." position="top">
-                    <Icon name="inviter-heart" size={iconSize} />
                 </Tooltip>
             )}
         </div>

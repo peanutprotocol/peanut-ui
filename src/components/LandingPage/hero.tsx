@@ -10,6 +10,7 @@ type CTAButton = {
     label: string
     href: string
     isExternal?: boolean
+    subtext?: string
 }
 
 type HeroProps = {
@@ -138,6 +139,9 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 
                         {cta.label}
                     </Button>
                 </a>
+                {cta.subtext && (
+                    <span className="mt-2 block text-center text-sm italic text-n-1 md:text-base">{cta.subtext}</span>
+                )}
 
                 {renderArrows(variant, arrowOpacity, buttonVisible)}
             </motion.div>

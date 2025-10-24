@@ -1,6 +1,6 @@
 import { sanitizeBankAccount } from '@/utils/format.utils'
 import { useState } from 'react'
-import { UseFormRegister, UseFormSetValue } from 'react-hook-form'
+import { type UseFormRegister, type UseFormSetValue } from 'react-hook-form'
 
 interface IUSBankAccountInputProps {
     register: UseFormRegister<any>

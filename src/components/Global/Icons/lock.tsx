@@ -1,4 +1,4 @@
-import { FC, SVGProps } from 'react'
+import { type FC, type SVGProps } from 'react'
 
 export const LockIcon: FC<SVGProps<SVGSVGElement>> = (props) => {
     return (

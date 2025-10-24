@@ -31,7 +31,7 @@ import { useSupportModalContext } from '@/context/SupportModalContext'
 import {
     MantecaAccountType,
     MANTECA_COUNTRIES_CONFIG,
-    MantecaBankCode,
+    type MantecaBankCode,
     MANTECA_DEPOSIT_ADDRESS,
     TRANSACTIONS,
 } from '@/constants'
@@ -266,6 +266,12 @@ export default function MantecaWithdrawFlow() {
     }, [])
 
     useEffect(() => {
+        // Skip balance check if transaction is being processed
+        // (balance has been optimistically updated in these states)
+        if (isLoading) {
+            return
+        }
+
         if (!usdAmount || usdAmount === '0.00' || isNaN(Number(usdAmount)) || balance === undefined) {
             setBalanceErrorMessage(null)
             return
@@ -280,7 +286,7 @@ export default function MantecaWithdrawFlow() {
         } else {
             setBalanceErrorMessage(null)
         }
-    }, [usdAmount, balance])
+    }, [usdAmount, balance, isLoading])
 
     useEffect(() => {
         if (step === 'success') {
@@ -392,6 +398,7 @@ export default function MantecaWithdrawFlow() {
                         walletBalance={
                             balance ? formatAmount(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS)) : undefined
                         }
+                        isInitialInputUsd
                     />
                     <Button
                         variant="purple"

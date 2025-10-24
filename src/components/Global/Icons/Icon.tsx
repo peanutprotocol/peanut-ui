@@ -1,4 +1,4 @@
-import { ComponentType, FC, SVGProps } from 'react'
+import { type ComponentType, type FC, type SVGProps } from 'react'
 import { AchievementsIcon } from './achievements'
 import { AlertIcon } from './alert'
 import { ArrowDownIcon } from './arrow-down'
@@ -63,7 +63,7 @@ import { ShieldIcon } from './shield'
 import { TrophyIcon } from './trophy'
 import { InviteHeartIcon } from './invite-heart'
 import { LockIcon } from './lock'
-import { InviterHeartIcon } from './inviter-heart'
+import { SplitIcon } from './split'
 
 // available icon names
 export type IconName =
@@ -131,8 +131,7 @@ export type IconName =
     | 'trophy'
     | 'invite-heart'
     | 'lock'
-    | 'inviter-heart'
-
+    | 'split'
 export interface IconProps extends SVGProps<SVGSVGElement> {
     name: IconName
     size?: number | string
@@ -204,7 +203,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     trophy: TrophyIcon,
     'invite-heart': InviteHeartIcon,
     lock: LockIcon,
-    'inviter-heart': InviterHeartIcon,
+    split: SplitIcon,
 }
 
 export const Icon: FC<IconProps> = ({ name, size = 24, width, height, ...props }) => {

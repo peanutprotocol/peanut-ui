@@ -1,6 +1,6 @@
 import { Button } from '@/components/0_Bruddle'
 import { Icon } from '../Icons/Icon'
-import { ReactNode } from 'react'
+import { type ReactNode } from 'react'
 
 interface FlowHeaderProps {
     onPrev?: () => void

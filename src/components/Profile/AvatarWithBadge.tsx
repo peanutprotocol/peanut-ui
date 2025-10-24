@@ -2,8 +2,8 @@ import { getInitialsFromName } from '@/utils'
 import { getColorForUsername } from '@/utils/color.utils'
 import React, { useMemo } from 'react'
 import { twMerge } from 'tailwind-merge'
-import { Icon, IconName } from '../Global/Icons/Icon'
-import StatusPill, { StatusPillType } from '../Global/StatusPill'
+import { Icon, type IconName } from '../Global/Icons/Icon'
+import StatusPill, { type StatusPillType } from '../Global/StatusPill'
 import Image, { type StaticImageData } from 'next/image'
 
 export type AvatarSize = 'extra-small' | 'small' | 'medium' | 'large'
@@ -19,8 +19,6 @@ interface AvatarWithBadgeProps {
     inlineStyle?: React.CSSProperties // for dynamic background colors based on username (hex codes)
     textColor?: string
     iconFillColor?: string
-    showStatusPill?: boolean
-    statusPillStatus?: StatusPillType
     logo?: StaticImageData
 }
 
@@ -36,8 +34,6 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
     inlineStyle,
     textColor,
     iconFillColor,
-    showStatusPill,
-    statusPillStatus,
     logo,
 }) => {
     const sizeClasses: Record<AvatarSize, string> = {
@@ -117,8 +113,6 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
                     initials
                 )}
             </div>
-
-            {showStatusPill && statusPillStatus && <StatusPill status={statusPillStatus} />}
         </div>
     )
 }

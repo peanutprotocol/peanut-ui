@@ -1,9 +1,9 @@
-import Card, { CardPosition } from '@/components/Global/Card'
-import { Icon, IconName } from '@/components/Global/Icons/Icon'
+import Card, { type CardPosition } from '@/components/Global/Card'
+import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
 import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
-import { TransactionDirection } from '@/components/TransactionDetails/TransactionDetailsHeaderCard'
-import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
+import { type TransactionDirection } from '@/components/TransactionDetails/TransactionDetailsHeaderCard'
+import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import {
     formatNumberForDisplay,
@@ -16,9 +16,11 @@ import {
 } from '@/utils'
 import React from 'react'
 import Image from 'next/image'
-import StatusPill, { StatusPillType } from '../Global/StatusPill'
+import StatusPill, { type StatusPillType } from '../Global/StatusPill'
 import { VerifiedUserLabel } from '../UserHeader'
 import { isAddress } from 'viem'
+import { EHistoryEntryType } from '@/utils/history.utils'
+import { PerkIcon } from './PerkIcon'
 
 export type TransactionType =
     | 'send'
@@ -71,6 +73,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     }
 
     const isLinkTx = transaction.extraDataForDrawer?.isLinkTransaction ?? false
+    const isPerkReward = transaction.extraDataForDrawer?.originalType === EHistoryEntryType.PERK_REWARD
     const userNameForAvatar = transaction.fullName || transaction.userName
     const avatarUrl = getAvatarUrl(transaction)
     let displayName = name
@@ -85,8 +88,17 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     if (!isStableCoin(transaction.tokenSymbol ?? 'USDC')) {
         usdAmount = Number(transaction.currency?.amount ?? amount)
     }
-    const formattedAmount = formatCurrency(Math.abs(usdAmount).toString())
-    const displayAmount = `${sign}$${formattedAmount}`
+
+    const formattedAmount = formatCurrency(Math.abs(usdAmount).toString(), 2, 0)
+    const formattedTotalAmountCollected = formatCurrency(transaction.totalAmountCollected.toString(), 2, 0)
+
+    let displayAmount = `${sign}$${formattedAmount}`
+
+    if (transaction.isRequestPotLink && Number(transaction.amount) > 0) {
+        displayAmount = `$${formattedTotalAmountCollected} / $${formattedAmount}`
+    } else if (transaction.isRequestPotLink && Number(transaction.amount) === 0) {
+        displayAmount = `$${formattedTotalAmountCollected}`
+    }
 
     let currencyDisplayAmount: string | undefined
     if (transaction.currency && transaction.currency.code.toUpperCase() !== 'USD') {
@@ -101,7 +113,13 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         {/* txn avatar component handles icon/initials/colors */}
-                        {avatarUrl ? (
+                        {/* <div className="relative"> */}
+                        {isPerkReward ? (
+                            <>
+                                <PerkIcon size="medium" />
+                                {status && <StatusPill status={status} />}
+                            </>
+                        ) : avatarUrl ? (
                             <div className={'relative flex h-12 w-12 items-center justify-center rounded-full'}>
                                 <Image
                                     src={avatarUrl}
@@ -121,7 +139,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                 transactionType={type}
                                 context="card"
                                 size="small"
-                                status={status}
+                                // status={status}
                             />
                         )}
                         <div className="flex flex-col">
@@ -138,19 +156,22 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                 </div>
                             </div>
                             {/* display the action icon and type text */}
-                            <div className="flex items-center gap-1 text-sm font-medium text-gray-1">
+                            <div className="flex items-center gap-2 text-xs font-medium text-gray-1">
                                 {getActionIcon(type, transaction.direction)}
-                                <span className="capitalize">{getActionText(type)}</span>
+                                <span className="capitalize">{isPerkReward ? 'Refund' : getActionText(type)}</span>
+                                {status && <StatusPill status={status} />}
                             </div>
                         </div>
                     </div>
 
                     {/* amount and status on the right side */}
-                    <div className="flex flex-col items-end">
-                        <span className="font-semibold">{displayAmount}</span>
-                        {currencyDisplayAmount && (
-                            <span className="text-sm font-medium text-gray-1">{currencyDisplayAmount}</span>
-                        )}
+                    <div className="flex items-center gap-2">
+                        <div className="flex flex-col items-end gap-1">
+                            <span className="font-semibold">{displayAmount}</span>
+                            {currencyDisplayAmount && (
+                                <span className="text-sm font-medium text-gray-1">{currencyDisplayAmount}</span>
+                            )}
+                        </div>
                     </div>
                 </div>
             </Card>
@@ -170,7 +191,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
 // helper functions
 function getActionIcon(type: TransactionType, direction: TransactionDirection): React.ReactNode {
     let iconName: IconName | null = null
-    let iconSize = 8
+    let iconSize = 7
 
     switch (type) {
         case 'send':
@@ -191,9 +212,11 @@ function getActionIcon(type: TransactionType, direction: TransactionDirection): 
         case 'cashout':
         case 'claim_external':
         case 'bank_claim':
-        case 'pay':
             iconName = 'arrow-up'
             iconSize = 8
+            break
+        case 'pay':
+            iconName = 'arrow-up-right'
             break
         case 'add':
         case 'bank_deposit':

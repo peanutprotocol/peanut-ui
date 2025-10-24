@@ -1,5 +1,5 @@
 import * as consts from '@/constants'
-import { fetchWithSentry, BridgeKycStatus } from '@/utils'
+import { fetchWithSentry, type BridgeKycStatus } from '@/utils'
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
 

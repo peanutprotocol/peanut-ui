@@ -10,10 +10,10 @@ import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { AccountType, Account } from '@/interfaces'
+import { AccountType, type Account } from '@/interfaces'
 import { formatIban, shortenStringLong, isTxReverted } from '@/utils/general.utils'
 import { useParams, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
 import { ErrorHandler, getBridgeChainName } from '@/utils'
 import { getOfframpCurrencyConfig } from '@/utils/bridge.utils'
@@ -21,6 +21,9 @@ import { createOfframp, confirmOfframp } from '@/app/actions/offramp'
 import { useAuth } from '@/context/authContext'
 import ExchangeRate from '@/components/ExchangeRate'
 import countryCurrencyMappings from '@/constants/countryCurrencyMapping'
+import { useQuery } from '@tanstack/react-query'
+import { pointsApi } from '@/services/points'
+import { PointsAction } from '@/services/services.types'
 
 type View = 'INITIAL' | 'SUCCESS'
 
@@ -39,6 +42,26 @@ export default function WithdrawBankPage() {
             country.toLowerCase() === currency.country.toLowerCase() ||
             currency.path?.toLowerCase() === country.toLowerCase()
     )?.currencyCode
+
+    // Calculate points API call
+    const { data: pointsData } = useQuery({
+        queryKey: ['calculate-points', 'withdraw', bankAccount?.id, amountToWithdraw],
+        queryFn: () =>
+            pointsApi.calculatePoints({
+                actionType: PointsAction.BRIDGE_TRANSFER,
+                usdAmount: Number(amountToWithdraw),
+            }),
+        enabled: !!(user?.user.userId && amountToWithdraw && bankAccount),
+        refetchOnWindowFocus: false,
+    })
+
+    // non-eur sepa countries that are currently experiencing issues
+    const isNonEuroSepaCountry = !!(
+        nonEuroCurrency &&
+        nonEuroCurrency !== 'EUR' &&
+        nonEuroCurrency !== 'USD' &&
+        nonEuroCurrency !== 'MXN'
+    )
 
     useEffect(() => {
         if (!amountToWithdraw) {
@@ -243,9 +266,27 @@ export default function WithdrawBankPage() {
                         <ExchangeRate accountType={bankAccount.type} nonEuroCurrency={nonEuroCurrency} />
                         <PaymentInfoRow hideBottomBorder label="Fee" value={`$ 0.00`} />
                     </Card>
+
+                    {isNonEuroSepaCountry && (
+                        <div className="rounded-sm border border-yellow-500 bg-yellow-50 p-4">
+                            <div className="flex items-start gap-3">
+                                <div className="mt-0.5 text-xl">⚠️</div>
+                                <div className="flex-1">
+                                    <p className="text-sm font-semibold text-yellow-800">
+                                        Service Temporarily Unavailable
+                                    </p>
+                                    <p className="mt-1 text-xs text-yellow-700">
+                                        Withdrawals to {nonEuroCurrency} bank accounts are temporarily unavailable.
+                                        Please try again later.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {error.showError ? (
                         <Button
-                            disabled={isLoading}
+                            disabled={isLoading || isNonEuroSepaCountry}
                             onClick={handleCreateAndInitiateOfframp}
                             loading={isLoading}
                             shadowSize="4"
@@ -262,10 +303,10 @@ export default function WithdrawBankPage() {
                             iconSize={12}
                             shadowSize="4"
                             onClick={handleCreateAndInitiateOfframp}
-                            disabled={isLoading || !bankAccount}
+                            disabled={isLoading || !bankAccount || isNonEuroSepaCountry}
                             className="w-full"
                         >
-                            Withdraw
+                            {isNonEuroSepaCountry ? 'Temporarily Unavailable' : 'Withdraw'}
                         </Button>
                     )}
                     {error.showError && <ErrorAlert description={error.errorMessage} />}
@@ -277,6 +318,7 @@ export default function WithdrawBankPage() {
                     isWithdrawFlow
                     currencyAmount={`$${amountToWithdraw}`}
                     message={bankAccount ? shortenStringLong(bankAccount.identifier.toUpperCase()) : ''}
+                    points={pointsData?.estimatedPoints}
                 />
             )}
         </div>

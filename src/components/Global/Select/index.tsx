@@ -18,7 +18,7 @@ type SelectProps = {
     classOption?: string
     placeholder?: string
     items: SelectItem[]
-    value: SelectItem | null
+    value: SelectItem | null | undefined
     onChange: (item: SelectItem) => void
     up?: boolean
     small?: boolean
@@ -44,7 +44,7 @@ const Select = ({
     return (
         <div className={`relative ${className}`}>
             {label && <div className="mb-3 text-xs font-bold">{label}</div>}
-            <Listbox value={value} onChange={onChange}>
+            <Listbox value={value || undefined} onChange={onChange}>
                 {({ open }) => (
                     <>
                         <Listbox.Button

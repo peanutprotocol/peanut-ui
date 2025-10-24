@@ -1,9 +1,11 @@
 import { PEANUT_WALLET_TOKEN_DECIMALS, STABLE_COINS } from '@/constants'
 import { tokenSelectorContext } from '@/context'
-import { formatAmountWithoutComma, formatTokenAmount } from '@/utils'
+import { formatAmountWithoutComma, formatTokenAmount, formatCurrency } from '@/utils'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import Icon from '../Icon'
 import { twMerge } from 'tailwind-merge'
+import { Icon as IconComponent } from '@/components/Global/Icons/Icon'
+import { Slider } from '../Slider'
 
 interface TokenAmountInputProps {
     className?: string
@@ -22,6 +24,11 @@ interface TokenAmountInputProps {
     }
     hideCurrencyToggle?: boolean
     hideBalance?: boolean
+    showInfoText?: boolean
+    infoText?: string
+    showSlider?: boolean
+    maxAmount?: number
+    isInitialInputUsd?: boolean
 }
 
 const TokenAmountInput = ({
@@ -37,6 +44,11 @@ const TokenAmountInput = ({
     setUsdValue,
     hideCurrencyToggle = false,
     hideBalance = false,
+    infoText,
+    showInfoText,
+    showSlider = false,
+    maxAmount,
+    isInitialInputUsd = false,
 }: TokenAmountInputProps) => {
     const { selectedTokenData } = useContext(tokenSelectorContext)
     const inputRef = useRef<HTMLInputElement>(null)
@@ -44,7 +56,7 @@ const TokenAmountInput = ({
 
     // Store display value for input field (what user sees when typing)
     const [displayValue, setDisplayValue] = useState<string>(tokenValue || '')
-    const [isInputUsd, setIsInputUsd] = useState<boolean>(!currency)
+    const [isInputUsd, setIsInputUsd] = useState<boolean>(!currency || isInitialInputUsd)
     const [displaySymbol, setDisplaySymbol] = useState<string>('')
     const [alternativeDisplayValue, setAlternativeDisplayValue] = useState<string>('0.00')
     const [alternativeDisplaySymbol, setAlternativeDisplaySymbol] = useState<string>('')
@@ -126,6 +138,17 @@ const TokenAmountInput = ({
         [displayMode, currency?.price, selectedTokenData?.price, calculateAlternativeValue]
     )
 
+    const onSliderValueChange = useCallback(
+        (value: number[]) => {
+            if (maxAmount) {
+                const selectedPercentage = value[0]
+                const selectedAmount = parseFloat(((selectedPercentage / 100) * maxAmount).toFixed(4)).toString()
+                onChange(selectedAmount, isInputUsd)
+            }
+        },
+        [maxAmount, onChange]
+    )
+
     const showConversion = useMemo(() => {
         return !hideCurrencyToggle && (displayMode === 'TOKEN' || displayMode === 'FIAT')
     }, [hideCurrencyToggle, displayMode])
@@ -192,6 +215,13 @@ const TokenAmountInput = ({
 
     const formRef = useRef<HTMLFormElement>(null)
 
+    const sliderValue = useMemo(() => {
+        if (!maxAmount || !tokenValue) return [0]
+        const tokenNum = parseFloat(tokenValue.replace(/,/g, ''))
+        const usdValue = tokenNum * (selectedTokenData?.price ?? 1)
+        return [(usdValue / maxAmount) * 100]
+    }, [maxAmount, tokenValue, selectedTokenData?.price])
+
     const handleContainerClick = () => {
         if (inputRef.current) {
             inputRef.current.focus()
@@ -201,7 +231,7 @@ const TokenAmountInput = ({
     return (
         <form
             ref={formRef}
-            className={`relative cursor-text rounded-sm border border-n-1 bg-white p-2 dark:border-white ${className}`}
+            className={`relative cursor-text rounded-sm border border-n-1 bg-white p-4 dark:border-white ${className}`}
             action=""
             onClick={handleContainerClick}
         >
@@ -211,7 +241,8 @@ const TokenAmountInput = ({
 
                     {/* Input */}
                     <input
-                        className={`h-12 w-[4ch] max-w-80 bg-transparent text-6xl font-black outline-none transition-colors placeholder:text-h1 placeholder:text-gray-1 focus:border-primary-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1`}
+                        autoFocus
+                        className={`h-12 w-[4ch] max-w-80 bg-transparent text-6xl font-black caret-primary-1 outline-none transition-colors placeholder:text-h1 placeholder:text-gray-1 focus:border-primary-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1`}
                         placeholder={'0.00'}
                         onChange={(e) => {
                             const value = formatAmountWithoutComma(e.target.value)
@@ -240,7 +271,11 @@ const TokenAmountInput = ({
                 {/* Conversion */}
                 {showConversion && (
                     <label className={twMerge('text-lg font-bold', !Number(alternativeDisplayValue) && 'text-gray-1')}>
-                        ≈ {alternativeDisplayValue} {alternativeDisplaySymbol}
+                        ≈{' '}
+                        {displayMode === 'TOKEN'
+                            ? alternativeDisplayValue
+                            : formatCurrency(alternativeDisplayValue.replace(',', ''))}{' '}
+                        {alternativeDisplaySymbol}
                     </label>
                 )}
 
@@ -252,7 +287,6 @@ const TokenAmountInput = ({
                     </div>
                 )}
             </div>
-
             {/* Conversion toggle */}
             {showConversion && (
                 <div
@@ -274,6 +308,17 @@ const TokenAmountInput = ({
                     }}
                 >
                     <Icon name={'switch'} className="ml-5 rotate-90 cursor-pointer" width={32} height={32} />
+                </div>
+            )}
+            {showInfoText && infoText && (
+                <div className="mx-auto flex w-fit items-center gap-2 rounded-full bg-grey-2 p-1.5">
+                    <IconComponent name="info" size={12} className="text-grey-1" />
+                    <p className="text-[10px] font-bold text-grey-1">{infoText}</p>
+                </div>
+            )}
+            {showSlider && maxAmount && (
+                <div className="mt-2 h-14">
+                    <Slider onValueChange={onSliderValueChange} value={sliderValue} />
                 </div>
             )}
         </form>

@@ -1,4 +1,4 @@
-import { ISetupStep } from '@/components/Setup/Setup.types'
+import { type ISetupStep } from '@/components/Setup/Setup.types'
 import { EInviteType } from '@/services/services.types'
 
 export interface ISetupState {
@@ -10,4 +10,5 @@ export interface ISetupState {
     telegramHandle: string
     inviteCode: string
     inviteType: EInviteType
+    showIosPwaInstallScreen: boolean
 }

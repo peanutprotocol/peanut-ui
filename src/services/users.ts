@@ -5,12 +5,12 @@ import {
     PEANUT_WALLET_TOKEN_DECIMALS,
     PEANUT_WALLET_TOKEN_SYMBOL,
 } from '@/constants'
-import { AccountType, IUserKycVerification } from '@/interfaces'
-import { IAttachmentOptions } from '@/redux/types/send-flow.types'
+import { AccountType, type IUserKycVerification } from '@/interfaces'
+import { type IAttachmentOptions } from '@/redux/types/send-flow.types'
 import { fetchWithSentry } from '@/utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { chargesApi } from './charges'
-import { TCharge } from './services.types'
+import { type TCharge } from './services.types'
 import Cookies from 'js-cookie'
 
 type ApiAccount = {

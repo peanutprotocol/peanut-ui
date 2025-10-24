@@ -1,25 +1,41 @@
 'use client'
+/**
+ * @todo This file needs significant DRY (Don't Repeat Yourself) refactoring and consolidation
+ * - Multiple repeated UI patterns and logic that could be extracted into reusable components
+ * - Complex conditional rendering that could be simplified
+ * - Duplicated status/type checking logic that could be centralized
+ * - Large component that could be split into smaller focused components
+ */
 
-import Card from '@/components/Global/Card'
+import Card, { getCardPosition } from '@/components/Global/Card'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
-import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
+import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useUserStore } from '@/redux/hooks'
 import { chargesApi } from '@/services/charges'
-import { sendLinksApi } from '@/services/sendLinks'
+import useClaimLink from '@/components/Claim/useClaimLink'
 import { formatAmount, formatDate, getInitialsFromName, isStableCoin, formatCurrency, getAvatarUrl } from '@/utils'
-import { getDisplayCurrencySymbol } from '@/utils/currency'
-import { formatIban, printableAddress, shortenAddress, shortenStringLong, slugify } from '@/utils/general.utils'
+import {
+    formatIban,
+    getContributorsFromCharge,
+    printableAddress,
+    shortenAddress,
+    shortenStringLong,
+    slugify,
+} from '@/utils/general.utils'
 import { cancelOnramp } from '@/app/actions/onramp'
 import { captureException } from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
+import Image from 'next/image'
 import React, { useMemo, useState, useEffect } from 'react'
 import { Button } from '../0_Bruddle'
 import DisplayIcon from '../Global/DisplayIcon'
 import { Icon } from '../Global/Icons/Icon'
+import { PerkIcon } from './PerkIcon'
+import { STAR_STRAIGHT_ICON } from '@/assets/icons'
 import QRCodeWrapper from '../Global/QRCodeWrapper'
 import ShareButton from '../Global/ShareButton'
 import { TransactionDetailsHeaderCard } from './TransactionDetailsHeaderCard'
@@ -28,10 +44,15 @@ import MoreInfo from '../Global/MoreInfo'
 import CancelSendLinkModal from '../Global/CancelSendLinkModal'
 import { twMerge } from 'tailwind-merge'
 import { isAddress } from 'viem'
-import { getBankAccountLabel, TransactionDetailsRowKey, transactionDetailsRowKeys } from './transaction-details.utils'
+import {
+    getBankAccountLabel,
+    type TransactionDetailsRowKey,
+    transactionDetailsRowKeys,
+} from './transaction-details.utils'
 import { useSupportModalContext } from '@/context/SupportModalContext'
 import { useRouter } from 'next/navigation'
 import { countryData } from '@/components/AddMoney/consts'
+import { useToast } from '@/components/0_Bruddle/Toast'
 import {
     MANTECA_COUNTRIES_CONFIG,
     MANTECA_ARG_DEPOSIT_CUIT,
@@ -40,6 +61,9 @@ import {
 import { mantecaApi } from '@/services/manteca'
 import { getReceiptUrl } from '@/utils/history.utils'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
+import TransactionCard from './TransactionCard'
+import ContributorCard from '../Global/Contributors/ContributorCard'
+import { requestsApi } from '@/services/requests'
 
 export const TransactionDetailsReceipt = ({
     transaction,
@@ -70,17 +94,20 @@ export const TransactionDetailsReceipt = ({
     const { user } = useUserStore()
     const queryClient = useQueryClient()
     const { fetchBalance } = useWallet()
+    const { cancelLinkAndClaim, pollForClaimConfirmation } = useClaimLink()
     const [showBankDetails, setShowBankDetails] = useState(false)
-    const [showCancelLinkModal, setShowCancelLinkModal] = useState(isModalOpen)
+    const [showCancelLinkModal, setShowCancelLinkModal] = useState(false)
     const [tokenData, setTokenData] = useState<{ symbol: string; icon: string } | null>(null)
     const [isTokenDataLoading, setIsTokenDataLoading] = useState(true)
     const { setIsSupportModalOpen } = useSupportModalContext()
+    const toast = useToast()
     const router = useRouter()
     const [cancelLinkText, setCancelLinkText] = useState<'Cancelling' | 'Cancelled' | 'Cancel link'>('Cancel link')
 
+    // Sync modal state to parent if callback is provided
     useEffect(() => {
         setIsModalOpen?.(showCancelLinkModal)
-    }, [showCancelLinkModal])
+    }, [showCancelLinkModal, setIsModalOpen])
 
     const isGuestBankClaim = useMemo(() => {
         if (!transaction) return false
@@ -94,6 +121,14 @@ export const TransactionDetailsReceipt = ({
             transaction.extraDataForDrawer?.originalType === EHistoryEntryType.REQUEST &&
             transaction.extraDataForDrawer?.fulfillmentType === 'bridge'
         )
+    }, [transaction])
+
+    // check if token is usdc on arbitrum to hide token/network section
+    const isPeanutWalletToken = useMemo(() => {
+        if (!transaction) return false
+        const tokenSymbol = transaction.tokenSymbol?.toUpperCase()
+        const chainName = transaction.tokenDisplayDetails?.chainName?.toLowerCase()
+        return tokenSymbol === PEANUT_WALLET_TOKEN_SYMBOL && chainName === PEANUT_WALLET_CHAIN.name.toLowerCase()
     }, [transaction])
 
     // config to determine which rows are visible in the receipt
@@ -117,6 +152,7 @@ export const TransactionDetailsReceipt = ({
             tokenAndNetwork: !!(
                 transaction.tokenDisplayDetails &&
                 transaction.sourceView === 'history' &&
+                !isPeanutWalletToken &&
                 // hide token and network for send links in acitvity drawer for sender
                 !(
                     transaction.extraDataForDrawer?.originalType === EHistoryEntryType.SEND_LINK &&
@@ -152,7 +188,8 @@ export const TransactionDetailsReceipt = ({
                 transaction.extraDataForDrawer?.depositInstructions &&
                 transaction.extraDataForDrawer.depositInstructions.bank_name
             ),
-            peanutFee: transaction.status !== 'pending',
+            peanutFee: false, // Perk fee logic removed - perks now show as separate transactions
+            points: !!(transaction.points && transaction.points > 0),
             comment: !!transaction.memo?.trim(),
             networkFee: !!(transaction.networkFeeDetails && transaction.sourceView === 'status'),
             attachment: !!transaction.attachmentUrl,
@@ -160,6 +197,7 @@ export const TransactionDetailsReceipt = ({
                 !isPublic &&
                 transaction.extraDataForDrawer?.originalType === EHistoryEntryType.MANTECA_ONRAMP &&
                 transaction.status === 'pending',
+            closed: !!(transaction.status === 'closed' && transaction.cancelledDate),
         }
     }, [transaction, isPendingBankRequest])
 
@@ -215,6 +253,7 @@ export const TransactionDetailsReceipt = ({
         if (
             [
                 EHistoryEntryType.MANTECA_QR_PAYMENT,
+                EHistoryEntryType.SIMPLEFI_QR_PAYMENT,
                 EHistoryEntryType.MANTECA_OFFRAMP,
                 EHistoryEntryType.MANTECA_ONRAMP,
             ].includes(transaction.extraDataForDrawer!.originalType)
@@ -223,13 +262,18 @@ export const TransactionDetailsReceipt = ({
         return false
     }, [transaction, isPendingSentLink, isPendingRequester, isPendingRequestee])
 
-    // check if token is usdc on arbitrum to hide token/network section
-    const isPeanutWalletToken = useMemo(() => {
-        if (!transaction) return false
-        const tokenSymbol = transaction.tokenSymbol?.toUpperCase()
-        const chainName = transaction.tokenDisplayDetails?.chainName?.toLowerCase()
-        return tokenSymbol === PEANUT_WALLET_TOKEN_SYMBOL && chainName === PEANUT_WALLET_CHAIN.name.toLowerCase()
+    const isQRPayment =
+        transaction &&
+        [EHistoryEntryType.MANTECA_QR_PAYMENT, EHistoryEntryType.SIMPLEFI_QR_PAYMENT].includes(
+            transaction.extraDataForDrawer!.originalType
+        )
+
+    const requestPotContributors = useMemo(() => {
+        if (!transaction || !transaction.requestPotPayments) return []
+        return getContributorsFromCharge(transaction.requestPotPayments)
     }, [transaction])
+
+    const formattedTotalAmountCollected = formatCurrency(transaction?.totalAmountCollected?.toString() ?? '0', 2, 0)
 
     useEffect(() => {
         const getTokenDetails = async () => {
@@ -252,13 +296,18 @@ export const TransactionDetailsReceipt = ({
                 const res = await fetch(
                     `https://api.coingecko.com/api/v3/coins/${chainName}/contract/${transaction.tokenAddress}`
                 )
+
+                if (!res.ok) {
+                    throw new Error(`CoinGecko API error: ${res.status} ${res.statusText}`)
+                }
+
                 const tokenDetails = await res.json()
                 setTokenData({
                     symbol: tokenDetails.symbol,
                     icon: tokenDetails.image.large,
                 })
             } catch (e) {
-                console.error(e)
+                console.error('Failed to fetch token details from CoinGecko:', e)
                 setTokenData(null)
             } finally {
                 setIsTokenDataLoading(false)
@@ -270,47 +319,25 @@ export const TransactionDetailsReceipt = ({
 
     if (!transaction) return null
 
-    // format data for display with proper handling for different transaction types
-    let amountDisplay = ''
+    let usdAmount: number | bigint = 0
 
     if (transactionAmount) {
-        // if transactionAmount is provided (from TransactionCard), use it
-        amountDisplay = transactionAmount.replace(/[+-]/g, '').replace(/\$/, '$ ')
-    } else if (
-        (transaction.direction === 'bank_deposit' ||
-            transaction.direction === 'bank_withdraw' ||
-            transaction.direction === 'bank_request_fulfillment') &&
-        transaction.currency?.code &&
-        transaction.currency.code.toUpperCase() !== 'USD'
-    ) {
-        // handle bank deposits/withdrawals with non-USD currency
-        const isCompleted = transaction.status === 'completed'
-
-        if (isCompleted) {
-            // for completed transactions: show USD amount (amount is already in USD)
-            const amount = transaction.amount || 0
-            const numericAmount = typeof amount === 'bigint' ? Number(amount) : Number(amount)
-            amountDisplay = `$ ${formatAmount(isNaN(numericAmount) ? 0 : numericAmount)}`
-        } else {
-            // for non-completed transactions: show original currency
-            const currencyAmount = transaction.currency?.amount || transaction.amount.toString()
-            const numericAmount = Number(currencyAmount)
-            const currencySymbol = getDisplayCurrencySymbol(transaction.currency.code)
-            amountDisplay = `${currencySymbol} ${formatAmount(isNaN(numericAmount) ? 0 : numericAmount)}`
-        }
-    } else {
-        // default: use currency amount if provided, otherwise fallback to raw amount - never show token value, only USD
-        if (transaction.currency?.amount && transaction.currency?.code) {
-            const numericAmount = Number(transaction.currency.amount)
-            const amount = isNaN(numericAmount) ? 0 : numericAmount
-            const currencySymbol = getDisplayCurrencySymbol(transaction.currency.code)
-            amountDisplay = `${currencySymbol} ${formatAmount(amount)}`
-        } else {
-            const amount = transaction.amount || 0
-            const numericAmount = typeof amount === 'bigint' ? Number(amount) : Number(amount)
-            amountDisplay = `$ ${formatAmount(isNaN(numericAmount) ? 0 : numericAmount)}`
-        }
+        // if transactionAmount is provided as a string, parse it
+        const parsed = parseFloat(transactionAmount.replace(/[\+\-\$]/g, ''))
+        usdAmount = isNaN(parsed) ? 0 : parsed
+    } else if (transaction.amount !== undefined && transaction.amount !== null) {
+        // fallback to transaction.amount
+        usdAmount = transaction.amount
+    } else if (transaction.currency?.amount) {
+        // last fallback to currency amount
+        const parsed = parseFloat(String(transaction.currency.amount))
+        usdAmount = isNaN(parsed) ? 0 : parsed
     }
+
+    // ensure we have a valid number for display
+    const numericAmount = typeof usdAmount === 'bigint' ? Number(usdAmount) : usdAmount
+    const safeAmount = isNaN(numericAmount) || numericAmount === null || numericAmount === undefined ? 0 : numericAmount
+    let amountDisplay = `$${formatCurrency(Math.abs(safeAmount).toString())}`
 
     const feeDisplay = transaction.fee !== undefined ? formatAmount(transaction.fee as number) : 'N/A'
 
@@ -334,15 +361,131 @@ export const TransactionDetailsReceipt = ({
         }
     }
 
+    if (transaction.isRequestPotLink && Number(transaction.amount) > 0) {
+        amountDisplay = `$${formatCurrency(transaction.amount.toString())}`
+    } else if (transaction.isRequestPotLink && Number(transaction.amount) === 0) {
+        amountDisplay = `$${formattedTotalAmountCollected} collected`
+    }
+
     // Show profile button only if txn is completed, not to/by a guest user and its a send/request/receive txn
-    const showUserProfileButton =
+    const isAvatarClickable =
         !!transaction &&
-        transaction.status === 'completed' &&
+        !transaction.extraDataForDrawer?.isLinkTransaction &&
         !!transaction.userName &&
         !isAddress(transaction.userName) &&
         (transaction.extraDataForDrawer?.transactionCardType === 'send' ||
             transaction.extraDataForDrawer?.transactionCardType === 'request' ||
             transaction.extraDataForDrawer?.transactionCardType === 'receive')
+
+    const closeRequestLink = async () => {
+        if (isPendingRequester && setIsLoading && onClose) {
+            setIsLoading(true)
+            try {
+                if (transaction.isRequestPotLink) {
+                    await requestsApi.close(transaction.id)
+                } else {
+                    await chargesApi.cancel(transaction.id)
+                }
+                await queryClient.invalidateQueries({
+                    queryKey: [TRANSACTIONS],
+                })
+                setIsLoading(false)
+                onClose()
+            } catch (error) {
+                captureException(error)
+                console.error('Error canceling charge:', error)
+                setIsLoading(false)
+            }
+        }
+    }
+    // Special rendering for PERK_REWARD type
+    const isPerkReward = transaction.extraDataForDrawer?.originalType === EHistoryEntryType.PERK_REWARD
+    const perkRewardData = transaction.extraDataForDrawer?.perkReward
+
+    if (isPerkReward && perkRewardData) {
+        return (
+            <div ref={contentRef} className={twMerge('space-y-4', className)}>
+                {/* Perk Reward Header - Top section with logo, amount, and status */}
+                <Card position="single" className="px-4 py-6">
+                    <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                            <PerkIcon size="medium" />
+                            <div className="flex flex-col">
+                                <h2 className="text-lg font-semibold text-gray-900">Peanut Perk</h2>
+                                <p className="text-2xl font-bold text-gray-900">{amountDisplay}</p>
+                            </div>
+                        </div>
+                        <div className="flex-shrink-0">
+                            {transaction.status === 'completed' ? (
+                                <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
+                                    Completed
+                                </span>
+                            ) : transaction.status === 'pending' || transaction.status === 'processing' ? (
+                                <span className="rounded-full bg-yellow-100 px-3 py-1 text-xs font-medium text-yellow-700">
+                                    Processing
+                                </span>
+                            ) : (
+                                <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
+                                    {transaction.status}
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                    <p className="mt-3 text-sm text-gray-600">
+                        Earn points, climb tiers, and unlock even better perks.
+                    </p>
+                </Card>
+
+                {/* Perk Details - Middle section with date, reason, and link */}
+                <Card position="single" className="px-4 py-0">
+                    <PaymentInfoRow
+                        label="Received"
+                        value={formatDate(new Date(transaction.date))}
+                        hideBottomBorder={false}
+                    />
+                    <PaymentInfoRow
+                        label="Reason"
+                        value={perkRewardData.reason}
+                        // hideBottomBorder={!perkRewardData.originatingTxId}
+                        hideBottomBorder={true}
+                    />
+                    {/* 
+                    
+                    {perkRewardData.originatingTxId && (
+                        <PaymentInfoRow
+                            label="Originating payment"
+                            value={
+                                <button
+                                    className="flex items-center gap-1 text-sm font-medium text-primary-1 hover:underline"
+                                    onClick={() => {
+                                        // Close current drawer so user can find the transaction in history
+                                        if (onClose) {
+                                            onClose()
+                                        }
+                                        // Navigate to home where they can see both transactions
+                                        router.push('/home')
+                                    }}
+                                >
+                                    <span>View in history</span>
+                                    <Icon name="arrow-up-right" size={12} />
+                                </button>
+                            }
+                            hideBottomBorder={true}
+                        />
+                    )} */}
+                </Card>
+
+                {/* Support link section */}
+                <button
+                    onClick={() => setIsSupportModalOpen(true)}
+                    className="flex w-full items-center justify-center gap-2 text-sm font-medium text-grey-1 underline transition-colors hover:text-black"
+                >
+                    <Icon name="peanut-support" size={16} className="text-grey-1" />
+                    Issues with this transaction?
+                </button>
+            </div>
+        )
+    }
 
     return (
         <div ref={contentRef} className={twMerge('space-y-4', className)}>
@@ -363,7 +506,40 @@ export const TransactionDetailsReceipt = ({
                 transactionType={transaction.extraDataForDrawer?.transactionCardType}
                 avatarUrl={avatarUrl ?? getAvatarUrl(transaction)}
                 haveSentMoneyToUser={transaction.haveSentMoneyToUser}
+                isAvatarClickable={isAvatarClickable}
+                showProgessBar={transaction.isRequestPotLink}
+                goal={Number(transaction.amount)}
+                progress={Number(formattedTotalAmountCollected)}
+                isRequestPotTransaction={transaction.isRequestPotLink}
+                isTransactionClosed={transaction.status === 'closed'}
             />
+
+            {/* Perk eligibility banner */}
+            {transaction.extraDataForDrawer?.perk?.claimed && transaction.status !== 'pending' && (
+                <Card position="single" className="px-4 py-4">
+                    <div className="flex items-center gap-3">
+                        <PerkIcon size="small" />
+                        <div className="flex flex-col gap-1">
+                            <span className="font-semibold text-gray-900">Eligible for a Peanut Perk!</span>
+                            <span className="text-sm text-gray-600">
+                                {(() => {
+                                    const percentage = transaction.extraDataForDrawer.perk.discountPercentage
+                                    const amount = transaction.extraDataForDrawer.perk.amountSponsored
+                                    const amountStr = amount ? `$${amount.toFixed(2)}` : ''
+
+                                    if (percentage === 100) {
+                                        return `You received a full refund${amount ? ` (${amountStr})` : ''} as a Peanut Perk.`
+                                    } else if (percentage > 100) {
+                                        return `You received ${percentage}% back${amount ? ` (${amountStr})` : ''} — that's more than you paid!`
+                                    } else {
+                                        return `You received ${percentage}% cashback${amount ? ` (${amountStr})` : ''} as a Peanut Perk.`
+                                    }
+                                })()}
+                            </span>
+                        </div>
+                    </div>
+                </Card>
+            )}
 
             {/* details card (date, fee, memo) and more */}
             <Card position={shouldShowQrShare ? 'first' : 'single'} className="px-4 py-0" border={true}>
@@ -396,53 +572,57 @@ export const TransactionDetailsReceipt = ({
                     {rowVisibilityConfig.tokenAndNetwork &&
                         transaction.tokenDisplayDetails &&
                         tokenData?.icon &&
-                        tokenData?.symbol &&
-                        !isPeanutWalletToken && (
+                        tokenData?.symbol && (
                             <>
                                 {!isStableCoin(transaction.tokenSymbol ?? 'USDC') && (
                                     <PaymentInfoRow label="Token amount" value={transaction.amount} />
                                 )}
-                                <PaymentInfoRow
-                                    label="Token and network"
-                                    value={
-                                        isTokenDataLoading ? (
-                                            <div className="h-6 w-32 animate-pulse rounded bg-gray-200" />
-                                        ) : (
-                                            <div className="flex items-center gap-2">
-                                                <div className="relative flex h-6 w-6 min-w-[24px] items-center justify-center">
-                                                    {/* Main token icon */}
-                                                    <DisplayIcon
-                                                        iconUrl={tokenData.icon}
-                                                        altText={tokenData.symbol || 'token'}
-                                                        fallbackName={tokenData.symbol || 'T'}
-                                                        sizeClass="h-6 w-6"
-                                                    />
-                                                    {/* Smaller chain icon, absolutely positioned */}
-                                                    {transaction.tokenDisplayDetails.chainIconUrl && (
-                                                        <div className="absolute -bottom-1 -right-1">
-                                                            <DisplayIcon
-                                                                iconUrl={transaction.tokenDisplayDetails.chainIconUrl}
-                                                                altText={
-                                                                    transaction.tokenDisplayDetails.chainName || 'chain'
-                                                                }
-                                                                fallbackName={
-                                                                    transaction.tokenDisplayDetails.chainName || 'C'
-                                                                }
-                                                                sizeClass="h-3.5 w-3.5 text-[7px]"
-                                                                className="rounded-full border-2 border-white dark:border-grey-4"
-                                                            />
-                                                        </div>
-                                                    )}
+                                {!isPeanutWalletToken && (
+                                    <PaymentInfoRow
+                                        label="Token and network"
+                                        value={
+                                            isTokenDataLoading ? (
+                                                <div className="h-6 w-32 animate-pulse rounded bg-gray-200" />
+                                            ) : (
+                                                <div className="flex items-center gap-2">
+                                                    <div className="relative flex h-6 w-6 min-w-[24px] items-center justify-center">
+                                                        {/* Main token icon */}
+                                                        <DisplayIcon
+                                                            iconUrl={tokenData.icon}
+                                                            altText={tokenData.symbol || 'token'}
+                                                            fallbackName={tokenData.symbol || 'T'}
+                                                            sizeClass="h-6 w-6"
+                                                        />
+                                                        {/* Smaller chain icon, absolutely positioned */}
+                                                        {transaction.tokenDisplayDetails.chainIconUrl && (
+                                                            <div className="absolute -bottom-1 -right-1">
+                                                                <DisplayIcon
+                                                                    iconUrl={
+                                                                        transaction.tokenDisplayDetails.chainIconUrl
+                                                                    }
+                                                                    altText={
+                                                                        transaction.tokenDisplayDetails.chainName ||
+                                                                        'chain'
+                                                                    }
+                                                                    fallbackName={
+                                                                        transaction.tokenDisplayDetails.chainName || 'C'
+                                                                    }
+                                                                    sizeClass="h-3.5 w-3.5 text-[7px]"
+                                                                    className="rounded-full border-2 border-white dark:border-grey-4"
+                                                                />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <span>
+                                                        {tokenData.symbol.toUpperCase()} on{' '}
+                                                        {transaction.tokenDisplayDetails.chainName}
+                                                    </span>
                                                 </div>
-                                                <span>
-                                                    {tokenData.symbol.toUpperCase()} on{' '}
-                                                    {transaction.tokenDisplayDetails.chainName}
-                                                </span>
-                                            </div>
-                                        )
-                                    }
-                                    hideBottomBorder={shouldHideBorder('tokenAndNetwork')}
-                                />
+                                            )
+                                        }
+                                        hideBottomBorder={shouldHideBorder('tokenAndNetwork')}
+                                    />
+                                )}
                             </>
                         )}
 
@@ -478,6 +658,18 @@ export const TransactionDetailsReceipt = ({
                                     label="Cancelled"
                                     value={formatDate(new Date(transaction.cancelledDate))}
                                     hideBottomBorder={shouldHideBorder('cancelled')}
+                                />
+                            )}
+                        </>
+                    )}
+
+                    {rowVisibilityConfig.closed && (
+                        <>
+                            {transaction.cancelledDate && (
+                                <PaymentInfoRow
+                                    label="Closed at"
+                                    value={formatDate(new Date(transaction.cancelledDate))}
+                                    hideBottomBorder={shouldHideBorder('closed')}
                                 />
                             )}
                         </>
@@ -843,6 +1035,19 @@ export const TransactionDetailsReceipt = ({
                             hideBottomBorder={shouldHideBorder('peanutFee')}
                         />
                     )}
+                    {rowVisibilityConfig.points && transaction.points && (
+                        <PaymentInfoRow
+                            label="Points earned"
+                            value={
+                                <div className="flex items-center gap-2">
+                                    <Image src={STAR_STRAIGHT_ICON} alt="star" width={16} height={16} />
+                                    <span>{transaction.points}</span>
+                                </div>
+                            }
+                            hideBottomBorder={shouldHideBorder('points')}
+                            onClick={() => router.push('/points')}
+                        />
+                    )}
                     {rowVisibilityConfig.comment && (
                         <PaymentInfoRow
                             label="Comment"
@@ -931,31 +1136,12 @@ export const TransactionDetailsReceipt = ({
                         iconClassName="p-1"
                         loading={isLoading}
                         disabled={isLoading}
-                        onClick={() => {
-                            setIsLoading(true)
-                            chargesApi
-                                .cancel(transaction.id)
-                                .then(() => {
-                                    queryClient
-                                        .invalidateQueries({
-                                            queryKey: [TRANSACTIONS],
-                                        })
-                                        .then(() => {
-                                            setIsLoading(false)
-                                            onClose()
-                                        })
-                                })
-                                .catch((error) => {
-                                    captureException(error)
-                                    console.error('Error canceling charge:', error)
-                                    setIsLoading(false)
-                                })
-                        }}
+                        onClick={closeRequestLink}
                         variant={'primary-soft'}
                         shadowSize="4"
                         className="flex w-full items-center gap-1"
                     >
-                        Cancel request
+                        {transaction.totalAmountCollected > 0 ? 'Close request' : 'Cancel request'}
                     </Button>
                 </div>
             )}
@@ -1006,28 +1192,26 @@ export const TransactionDetailsReceipt = ({
                 </div>
             )}
 
+            {isQRPayment && (
+                <Button
+                    onClick={() => {
+                        router.push(`/request?amount=${transaction.amount}&merchant=${transaction.userName}`)
+                    }}
+                    icon="split"
+                    shadowSize="4"
+                >
+                    Split this bill
+                </Button>
+            )}
+
             {shouldShowShareReceipt && !!getReceiptUrl(transaction) && (
                 <div className="pr-1">
-                    <ShareButton url={getReceiptUrl(transaction)!}>Share Receipt</ShareButton>
+                    <ShareButton variant={isQRPayment ? 'primary-soft' : 'purple'} url={getReceiptUrl(transaction)!}>
+                        Share Receipt
+                    </ShareButton>
                 </div>
             )}
 
-            {showUserProfileButton && (
-                <div className="pr-1">
-                    <Button
-                        onClick={() => router.push(`/${transaction.userName}`)}
-                        shadowSize="4"
-                        variant={
-                            transaction.extraDataForDrawer?.transactionCardType === 'request'
-                                ? 'purple'
-                                : 'primary-soft'
-                        }
-                        className="flex w-full items-center gap-1"
-                    >
-                        Go to {transaction.userName} profile
-                    </Button>
-                </div>
-            )}
             {/* Cancel deposit button for bridge_onramp transactions in awaiting_funds state */}
             {transaction.direction === 'bank_deposit' &&
                 transaction.extraDataForDrawer?.originalType !== EHistoryEntryType.REQUEST &&
@@ -1168,36 +1352,91 @@ export const TransactionDetailsReceipt = ({
                     showCancelLinkModal={showCancelLinkModal}
                     setshowCancelLinkModal={setShowCancelLinkModal}
                     amount={amountDisplay}
-                    onClick={() => {
-                        setIsLoading(true)
-                        setCancelLinkText('Cancelling')
-                        setShowCancelLinkModal(false)
-                        sendLinksApi
-                            .claim(user!.user.username!, transaction.extraDataForDrawer!.link!)
-                            .then(() => {
-                                // Claiming takes time, so we need to invalidate both transaction query types
-                                setTimeout(() => {
-                                    fetchBalance()
-                                    queryClient
-                                        .invalidateQueries({
-                                            queryKey: [TRANSACTIONS],
-                                        })
-                                        .then(async () => {
-                                            setIsLoading(false)
-                                            setCancelLinkText('Cancelled')
-                                            await new Promise((resolve) => setTimeout(resolve, 2000))
-                                            onClose()
-                                        })
-                                }, 3000)
+                    isLoading={isLoading}
+                    onClick={async () => {
+                        try {
+                            setIsLoading(true)
+                            setCancelLinkText('Cancelling')
+
+                            if (!user?.accounts) {
+                                throw new Error('User not found for cancellation')
+                            }
+                            const walletAddress = user.accounts.find((acc) => acc.type === 'peanut-wallet')?.identifier
+                            if (!walletAddress) {
+                                throw new Error('No wallet address found for cancellation')
+                            }
+
+                            // Validate transaction data
+                            if (!transaction.extraDataForDrawer?.link) {
+                                throw new Error('No link found for cancellation')
+                            }
+
+                            // Cancel the link by claiming it back
+                            await cancelLinkAndClaim({
+                                link: transaction.extraDataForDrawer.link,
+                                walletAddress,
+                                userId: user?.user?.userId,
                             })
-                            .catch((error) => {
-                                captureException(error)
-                                console.error('Error claiming link:', error)
+
+                            try {
+                                // Wait for transaction confirmation
+                                const isConfirmed = await pollForClaimConfirmation(transaction.extraDataForDrawer.link)
+
+                                if (!isConfirmed) {
+                                    console.warn('Transaction confirmation timeout - proceeding with refresh')
+                                }
+
+                                // Update UI and queries
+                                fetchBalance()
+                                await queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+
                                 setIsLoading(false)
-                                setCancelLinkText('Cancel link')
-                            })
+                                setShowCancelLinkModal(false)
+                                setCancelLinkText('Cancelled')
+                                toast.success('Link cancelled successfully!')
+
+                                // Brief delay for toast visibility
+                                await new Promise((resolve) => setTimeout(resolve, 1500))
+                                onClose()
+                            } catch (invalidateError) {
+                                console.error('Failed to update after claim:', invalidateError)
+                                captureException(invalidateError, {
+                                    tags: { feature: 'cancel-link' },
+                                    extra: { userId: user?.user?.userId },
+                                })
+
+                                // Still close drawer even if invalidation fails
+                                setIsLoading(false)
+                                setShowCancelLinkModal(false)
+                                setCancelLinkText('Cancelled')
+                                toast.success('Link cancelled! Refresh to see updated balance.')
+                                await new Promise((resolve) => setTimeout(resolve, 1500))
+                                onClose()
+                            }
+                        } catch (error: any) {
+                            captureException(error)
+                            console.error('Error claiming link:', error)
+                            setIsLoading(false)
+                            setCancelLinkText('Cancel link')
+                            toast.error('Failed to cancel link. Please try again.')
+                        }
                     }}
                 />
+            )}
+
+            {requestPotContributors.length > 0 && (
+                <>
+                    <h2 className="text-base font-bold text-black">Contributors ({requestPotContributors.length})</h2>
+                    <div className="max-h-36 overflow-y-auto">
+                        {requestPotContributors.map((contributor, index) => (
+                            <ContributorCard
+                                position={getCardPosition(index, requestPotContributors.length)}
+                                key={contributor.uuid}
+                                contributor={contributor}
+                            />
+                        ))}
+                    </div>
+                </>
             )}
         </div>
     )

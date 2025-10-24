@@ -1,6 +1,6 @@
 import { PEANUT_LOGO } from '@/assets'
 import DirectSendQr from '@/components/Global/DirectSendQR'
-import { Icon, IconName, Icon as NavIcon } from '@/components/Global/Icons/Icon'
+import { Icon, type IconName, Icon as NavIcon } from '@/components/Global/Icons/Icon'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { useSupportModalContext } from '@/context/SupportModalContext'
 import { useUserStore } from '@/redux/hooks'

@@ -1,8 +1,8 @@
 'use client'
 
-import ActionModal, { ActionModalButtonProps } from '@/components/Global/ActionModal'
+import ActionModal, { type ActionModalButtonProps } from '@/components/Global/ActionModal'
 import { useToast } from '@/components/0_Bruddle/Toast'
-import { IconName } from '@/components/Global/Icons/Icon'
+import { type IconName } from '@/components/Global/Icons/Icon'
 import { copyTextToClipboardWithFallback } from '@/utils/general.utils'
 import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'

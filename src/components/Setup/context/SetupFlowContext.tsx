@@ -1,5 +1,5 @@
-import { createContext, ReactNode, useContext, useState } from 'react'
-import { ISetupStep, ScreenId, ScreenProps } from '../Setup.types'
+import { createContext, type ReactNode, useContext, useState } from 'react'
+import { type ISetupStep, type ScreenId, type ScreenProps } from '../Setup.types'
 
 interface SetupFlowContextType {
     currentStep: number

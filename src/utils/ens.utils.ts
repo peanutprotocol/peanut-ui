@@ -10,12 +10,17 @@ import { mainnet } from 'viem/chains'
  */
 export async function resolveAddressToUsername(address: string, siteUrl: string): Promise<string | null> {
     try {
-        const mainnetRpcUrl = rpcUrls[mainnet.id]?.[0]!
+        const mainnetRpcUrl = rpcUrls[mainnet.id]?.[0]
+        if (!mainnetRpcUrl) {
+            console.error('ENS resolution: No mainnet RPC URL configured')
+            return null
+        }
 
         const ensDomain = process.env.NEXT_PUBLIC_JUSTANAME_ENS_DOMAIN
 
         if (!ensDomain || ensDomain.trim() === '') {
-            throw new Error('NEXT_PUBLIC_JUSTANAME_ENS_DOMAIN environment variable is required and cannot be empty')
+            console.error('ENS resolution: NEXT_PUBLIC_JUSTANAME_ENS_DOMAIN environment variable is not set')
+            return null
         }
 
         const justAName = JustaName.init({

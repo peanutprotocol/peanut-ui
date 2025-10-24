@@ -1,7 +1,7 @@
 'use client'
 
 import { PEANUTMAN_WAVING } from '@/assets'
-import ActionModal, { ActionModalButtonProps } from '@/components/Global/ActionModal'
+import ActionModal, { type ActionModalButtonProps } from '@/components/Global/ActionModal'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 
