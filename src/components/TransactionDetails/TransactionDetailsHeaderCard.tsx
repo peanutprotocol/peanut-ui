@@ -226,7 +226,11 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                         {icon && <Icon name={icon} size={10} />}
                         <VerifiedUserLabel
                             username={userName}
-                            name={getTitle(direction, userName, isLinkTransaction, status) as string}
+                            name={
+                                isRequestPotTransaction
+                                    ? userName
+                                    : (getTitle(direction, userName, isLinkTransaction, status) as string)
+                            }
                             isVerified={isVerified}
                             className="flex items-center gap-1"
                             haveSentMoneyToUser={haveSentMoneyToUser}
