@@ -53,7 +53,7 @@ import { EInviteType } from '@/services/services.types'
 export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     // get campaign tag from claim link url
     const params = useSearchParams()
-    const campaignTag = params.get('campaign')
+    const campaignTag = params.get('campaignTag')
 
     const {
         onNext,

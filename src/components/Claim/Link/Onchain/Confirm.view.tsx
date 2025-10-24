@@ -18,6 +18,7 @@ import * as _consts from '../../Claim.consts'
 import useClaimLink from '../../useClaimLink'
 import { useAuth } from '@/context/authContext'
 import { sendLinksApi } from '@/services/sendLinks'
+import { useSearchParams } from 'next/navigation'
 
 export const ConfirmClaimLinkView = ({
     onNext,
@@ -40,6 +41,10 @@ export const ConfirmClaimLinkView = ({
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
+
+    // get campaign tag from claim link url for badge assignment
+    const params = useSearchParams()
+    const campaignTag = params.get('campaignTag')
 
     // We may need this when we re add rewards via specific tokens
     // If not, feel free to remove
@@ -92,6 +97,7 @@ export const ConfirmClaimLinkView = ({
                 claimTxHash = await claimLink({
                     address: recipient ? recipient.address : (address ?? ''),
                     link: claimLinkData.link,
+                    campaignTag: campaignTag ?? undefined, // badge assignment: pass campaign tag
                     // Note: Confirm view is used for external wallet claims (no optimistic return)
                     // Optimistic return is only for Peanut Wallet claims in Initial.view.tsx
                 })
