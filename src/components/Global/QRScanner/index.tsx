@@ -272,7 +272,10 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                                 <PayMethodLogo src={MERCADO_PAGO} alt="Mercado Pago" name="Mercado Pago" />
                                 <PayMethodLogo src={PIX} alt="PIX" name="PIX" />
                                 <PayMethodLogo src={ETHEREUM_ICON} alt="Ethereum and EVMs" name="ETH & EVMs" />
+                                {/*
+                                    Enable once we have confirmation of merchant support for arbitrum
                                 <PayMethodLogo src={SIMPLEFI} alt="Simplefi" name="Simplefi" />
+                                */}
                             </div>
                         </div>
                     </div>

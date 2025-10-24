@@ -12,7 +12,7 @@ import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionA
 import { VerifiedUserLabel } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
 import { invitesApi } from '@/services/invites'
-import { generateInvitesShareText } from '@/utils'
+import { generateInviteCodeLink, generateInvitesShareText } from '@/utils'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { STAR_STRAIGHT_ICON, TIER_0_BADGE, TIER_1_BADGE, TIER_2_BADGE, TIER_3_BADGE } from '@/assets'
@@ -53,8 +53,7 @@ const PointsPage = () => {
         enabled: !!user?.user.userId,
     })
     const username = user?.user.username
-    const inviteCode = username ? `${username.toUpperCase()}INVITESYOU` : ''
-    const inviteLink = `${process.env.NEXT_PUBLIC_BASE_URL}/invite?code=${inviteCode}`
+    const { inviteCode, inviteLink } = generateInviteCodeLink(username ?? '')
 
     useEffect(() => {
         // Re-fetch user to get the latest invitees list for showing heart Icon
@@ -101,7 +100,7 @@ const PointsPage = () => {
                                 className="h-full rounded-full bg-gradient-to-r from-primary-1 to-primary-2 transition-all duration-500"
                                 style={{
                                     width: `${
-                                        tierInfo?.data.currentTier >= 3
+                                        tierInfo?.data.currentTier >= 2
                                             ? 100
                                             : Math.pow(
                                                   Math.min(
@@ -116,7 +115,7 @@ const PointsPage = () => {
                                 }}
                             />
                         </div>
-                        {tierInfo?.data.currentTier < 3 && (
+                        {tierInfo?.data.currentTier < 2 && (
                             <Image
                                 src={getTierBadge(tierInfo?.data.currentTier + 1)}
                                 alt={`Tier ${tierInfo?.data.currentTier + 1}`}
@@ -128,7 +127,7 @@ const PointsPage = () => {
 
                     <div className="text-center">
                         <p className="text-base text-grey-1">You&apos;re at tier {tierInfo?.data.currentTier}.</p>
-                        {tierInfo?.data.currentTier < 3 ? (
+                        {tierInfo?.data.currentTier < 2 ? (
                             <p className="text-sm text-grey-1">
                                 {tierInfo.data.pointsToNextTier}{' '}
                                 {tierInfo.data.pointsToNextTier === 1 ? 'point' : 'points'} needed to level up

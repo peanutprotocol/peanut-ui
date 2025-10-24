@@ -1,3 +1,4 @@
+import { ConsoleGreeting } from '@/components/Global/ConsoleGreeting'
 import { ScreenOrientationLocker } from '@/components/Global/ScreenOrientationLocker'
 import { TranslationSafeWrapper } from '@/components/Global/TranslationSafeWrapper'
 import { PeanutProvider } from '@/config'
@@ -86,6 +87,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <body
                 className={`${roboto.variable} ${londrina.variable} ${knerdOutline.variable} ${knerdFilled.variable} ${sniglet.variable} ${robotoFlexBold.variable} chakra-ui-light font-sans`}
             >
+                <ConsoleGreeting />
                 <ScreenOrientationLocker />
                 <PeanutProvider>
                     <ContextProvider>

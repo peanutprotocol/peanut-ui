@@ -5,16 +5,18 @@ import { type IconName } from '@/components/Global/Icons/Icon'
 import { type StaticImageData } from 'next/image'
 
 // ref: https://docs.manteca.dev/cripto/key-concepts/exchanges-multi-country#Available-Exchanges
+// DISABLED most exchanges because manteca support is fragile, and we need to
+// check kyc for all countries
 export const MantecaSupportedExchanges = {
     AR: 'ARGENTINA',
-    CL: 'CHILE',
+    //CL: 'CHILE',
     BR: 'BRAZIL',
-    CO: 'COLOMBIA',
-    PA: 'PANAMA',
-    CR: 'COSTA_RICA',
-    GT: 'GUATEMALA',
-    // MX: 'MEXICO', // manteca supports MEXICO, but mercado pago doesnt support qr payments for mexico
-    PH: 'PHILIPPINES',
+    //CO: 'COLOMBIA',
+    //PA: 'PANAMA',
+    //CR: 'COSTA_RICA',
+    //GT: 'GUATEMALA',
+    // MX: 'MEXICO',
+    //PH: 'PHILIPPINES',
     BO: 'BOLIVIA',
 }
 

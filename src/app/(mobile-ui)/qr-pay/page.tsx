@@ -42,8 +42,9 @@ import { STAR_STRAIGHT_ICON } from '@/assets'
 import { useAuth } from '@/context/authContext'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import type { HistoryEntry } from '@/hooks/useTransactionHistory'
+import { completeHistoryEntry } from '@/utils/history.utils'
 
-const MAX_QR_PAYMENT_AMOUNT = '200'
+const MAX_QR_PAYMENT_AMOUNT = '2000'
 
 type PaymentProcessor = 'MANTECA' | 'SIMPLEFI'
 
@@ -138,7 +139,7 @@ export default function QRPayPage() {
     }
 
     const handleSimpleFiStatusUpdate = useCallback(
-        (entry: HistoryEntry) => {
+        async (entry: HistoryEntry) => {
             if (!pendingSimpleFiPaymentId || entry.uuid !== pendingSimpleFiPaymentId) {
                 return
             }
@@ -149,22 +150,64 @@ export default function QRPayPage() {
 
             console.log('[SimpleFi WebSocket] Received status update:', entry.status)
 
+            // Process entry through completeHistoryEntry to format amounts correctly
+            let completedEntry
+            try {
+                completedEntry = await completeHistoryEntry(entry)
+            } catch (error) {
+                console.error('[SimpleFi WebSocket] Failed to process entry:', error)
+                captureException(error, {
+                    tags: { feature: 'simplefi-websocket' },
+                    extra: { entryUuid: entry.uuid },
+                })
+                setIsWaitingForWebSocket(false)
+                setPendingSimpleFiPaymentId(null)
+                setErrorMessage('We received an update, but failed to process it. Please check your history.')
+                setIsSuccess(false)
+                setLoadingState('Idle')
+                return
+            }
+
             setIsWaitingForWebSocket(false)
             setPendingSimpleFiPaymentId(null)
 
-            switch (entry.status) {
-                case 'approved':
+            switch (completedEntry.status) {
+                case 'approved': {
+                    // Guard against missing currency or simpleFiPayment data
+                    if (!completedEntry.currency?.code || !completedEntry.currency?.amount) {
+                        console.error('[SimpleFi WebSocket] Currency data missing on approval')
+                        captureException(new Error('SimpleFi payment approved but currency details missing'), {
+                            extra: { entryUuid: completedEntry.uuid },
+                        })
+                        setErrorMessage('Payment approved, but details are incomplete. Please check your history.')
+                        setIsSuccess(false)
+                        setLoadingState('Idle')
+                        break
+                    }
+
+                    if (!simpleFiPayment) {
+                        console.error('[SimpleFi WebSocket] SimpleFi payment details missing on approval')
+                        captureException(new Error('SimpleFi payment details missing on approval'), {
+                            extra: { entryUuid: completedEntry.uuid },
+                        })
+                        setErrorMessage('Payment approved, but details are missing. Please check your history.')
+                        setIsSuccess(false)
+                        setLoadingState('Idle')
+                        break
+                    }
+
                     setSimpleFiPayment({
-                        id: entry.uuid,
-                        usdAmount: entry.amount,
-                        currency: entry.currency!.code,
-                        currencyAmount: entry.currency!.amount,
-                        price: simpleFiPayment!.price,
-                        address: simpleFiPayment!.address,
+                        id: completedEntry.uuid,
+                        usdAmount: completedEntry.extraData?.usdAmount || completedEntry.amount,
+                        currency: completedEntry.currency.code,
+                        currencyAmount: completedEntry.currency.amount,
+                        price: simpleFiPayment.price,
+                        address: simpleFiPayment.address,
                     })
                     setIsSuccess(true)
                     setLoadingState('Idle')
                     break
+                }
 
                 case 'expired':
                 case 'canceled':
@@ -175,7 +218,7 @@ export default function QRPayPage() {
                     break
 
                 default:
-                    console.log('[SimpleFi WebSocket] Unknown status:', entry.status)
+                    console.log('[SimpleFi WebSocket] Unknown status:', completedEntry.status)
             }
         },
         [pendingSimpleFiPaymentId, simpleFiPayment, setLoadingState]
@@ -660,6 +703,12 @@ export default function QRPayPage() {
 
     // Check user balance
     useEffect(() => {
+        // Skip balance check if transaction is being processed
+        // (balance has been optimistically updated in these states)
+        if (isLoading || isWaitingForWebSocket) {
+            return
+        }
+
         if (!usdAmount || usdAmount === '0.00' || isNaN(Number(usdAmount)) || balance === undefined) {
             setBalanceErrorMessage(null)
             return
@@ -672,7 +721,7 @@ export default function QRPayPage() {
         } else {
             setBalanceErrorMessage(null)
         }
-    }, [usdAmount, balance])
+    }, [usdAmount, balance, isLoading, isWaitingForWebSocket])
 
     useEffect(() => {
         if (isSuccess) {
@@ -875,7 +924,16 @@ export default function QRPayPage() {
                             <div className="flex flex-col gap-2">
                                 <h2 className="text-lg font-bold">Eligible for a Peanut Perk!</h2>
                                 <p className="text-sm text-gray-600">
-                                    This bill can be covered by Peanut. Claim it now to unlock your reward.
+                                    {(() => {
+                                        const percentage = qrPayment?.perk?.discountPercentage || 100
+                                        if (percentage === 100) {
+                                            return 'This bill can be covered by Peanut. Claim it now to unlock your reward.'
+                                        } else if (percentage > 100) {
+                                            return `You're getting ${percentage}% back — that's more than you paid! Claim it now.`
+                                        } else {
+                                            return `You're getting ${percentage}% cashback! Claim it now to unlock your reward.`
+                                        }
+                                    })()}
                                 </p>
                             </div>
                         </Card>
@@ -890,9 +948,16 @@ export default function QRPayPage() {
                             <div className="flex flex-col gap-2">
                                 <h2 className="text-2xl font-bold">Peanut got you!</h2>
                                 <p className="text-base text-gray-900">
-                                    {qrPayment?.perk?.discountPercentage === 100
-                                        ? 'We sponsored this bill! Earn points, climb tiers and unlock even better perks.'
-                                        : `We gave you ${qrPayment?.perk?.discountPercentage}% off! Earn points, climb tiers and unlock even better perks.`}
+                                    {(() => {
+                                        const percentage = qrPayment?.perk?.discountPercentage || 100
+                                        if (percentage === 100) {
+                                            return 'We paid for this bill! Earn points, climb tiers and unlock even better perks.'
+                                        } else if (percentage > 100) {
+                                            return `We gave you ${percentage}% back — that's more than you paid! Earn points, climb tiers and unlock even better perks.`
+                                        } else {
+                                            return `We gave you ${percentage}% cashback! Earn points, climb tiers and unlock even better perks.`
+                                        }
+                                    })()}
                                 </p>
                             </div>
                         </Card>
@@ -917,10 +982,18 @@ export default function QRPayPage() {
                                         cancelHold()
                                     }
                                 }}
+                                onContextMenu={(e) => {
+                                    // Prevent context menu from appearing
+                                    e.preventDefault()
+                                }}
                                 shadowSize="4"
                                 disabled={isClaimingPerk}
                                 loading={isClaimingPerk}
-                                className="relative overflow-hidden"
+                                className="relative touch-manipulation select-none overflow-hidden"
+                                style={{
+                                    WebkitTouchCallout: 'none',
+                                    WebkitTapHighlightColor: 'transparent',
+                                }}
                             >
                                 {/* Black progress fill from left to right */}
                                 <div

@@ -90,10 +90,16 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
         setLoadingState('Requesting')
         setErrorState({ showError: false, errorMessage: '' })
         try {
+            // Determine the recipient address
+            const toAddress = authUser?.user.userId ? address : recipient.address
+            if (!toAddress) {
+                throw new Error('No recipient address available')
+            }
+
             await usersApi.requestByUsername({
                 username: recipientUser!.username,
                 amount: currentInputValue,
-                toAddress: authUser?.user.userId ? address : recipient.address,
+                toAddress,
                 attachment: attachmentOptions,
             })
             setLoadingState('Idle')

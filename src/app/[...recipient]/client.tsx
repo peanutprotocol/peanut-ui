@@ -194,7 +194,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                     dispatch(paymentActions.setView('INITIAL'))
                 }
             } else {
-                setError(getErrorProps({ error, isUser: !!user }))
+                setError(getErrorProps({ error, isUser: !!user, recipient }))
             }
         }
 
@@ -494,7 +494,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     return (
         <div className={twMerge('mx-auto min-h-[inherit] w-full space-y-8 self-center')}>
             {!user && parsedPaymentData?.recipient?.recipientType !== 'USERNAME' && (
-                <div className="absolute left-0 top-0 md:top-18">
+                <div className="absolute left-0 top-0 z-50 md:top-22 md:z-0">
                     <GenericBanner
                         message="THIS FEATURE IS CURRENTLY IN TESTING - ONLY USE WITH SMALL AMOUNTS"
                         marqueeClassName="flex h-11 items-center justify-center border-b-2 border-black"
@@ -588,14 +588,26 @@ const getDefaultError: (isUser: boolean) => ValidationErrorViewProps = (isUser) 
     redirectTo: isUser ? '/home' : '/setup',
 })
 
-function getErrorProps({ error, isUser }: { error: ParseUrlError; isUser: boolean }): ValidationErrorViewProps {
+function getErrorProps({
+    error,
+    isUser,
+    recipient,
+}: {
+    error: ParseUrlError
+    isUser: boolean
+    recipient: string[]
+}): ValidationErrorViewProps {
+    const username = recipient[0] || 'unknown'
+
     switch (error.message) {
         case EParseUrlError.INVALID_RECIPIENT:
             return {
-                title: 'Invalid Recipient',
-                message: 'The recipient you are trying to pay is invalid. Please check the URL and try again.',
-                buttonText: isUser ? 'Go to home' : 'Create your Peanut Wallet',
-                redirectTo: isUser ? '/home' : '/setup',
+                title: `We don't know any @${username}`,
+                message: 'Are you sure you clicked on the right link?',
+                buttonText: 'Go back to home',
+                redirectTo: '/home',
+                showLearnMore: false,
+                supportMessageTemplate: 'I clicked on this link but got an error: {url}',
             }
         case EParseUrlError.INVALID_CHAIN:
             return {

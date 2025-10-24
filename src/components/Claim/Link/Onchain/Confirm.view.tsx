@@ -31,7 +31,7 @@ export const ConfirmClaimLinkView = ({
     attachment,
     selectedRoute,
 }: _consts.IClaimScreenProps) => {
-    const { address, fetchBalance } = useWallet()
+    const { address } = useWallet()
     const { user } = useAuth()
     const { claimLinkXchain, claimLink } = useClaimLink()
     const { selectedChainID, selectedTokenAddress, isXChain } = useContext(tokenSelectorContext)
@@ -79,7 +79,7 @@ export const ConfirmClaimLinkView = ({
         })
 
         try {
-            let claimTxHash = ''
+            let claimTxHash: string | undefined = ''
             if (selectedRoute) {
                 claimTxHash = await claimLinkXchain({
                     address: recipient ? recipient.address : (address ?? ''),
@@ -92,10 +92,16 @@ export const ConfirmClaimLinkView = ({
                 claimTxHash = await claimLink({
                     address: recipient ? recipient.address : (address ?? ''),
                     link: claimLinkData.link,
+                    // Note: Confirm view is used for external wallet claims (no optimistic return)
+                    // Optimistic return is only for Peanut Wallet claims in Initial.view.tsx
                 })
                 setClaimType('claim')
             }
+
+            // Note: claimTxHash may be undefined if optimistic return is used
+            // SUCCESS view will handle balance/transaction refresh after polling
             if (claimTxHash) {
+                // Synchronous claim - transaction confirmed
                 // associate the claim with the user so it shows up in their activity
                 if (user) {
                     try {
@@ -117,12 +123,11 @@ export const ConfirmClaimLinkView = ({
                         attachmentUrl: attachment.attachmentUrl ? attachment.attachmentUrl : undefined,
                     } as unknown as IExtendedLinkDetails,
                 })
-                setTransactionHash(claimTxHash)
-                onNext()
-                fetchBalance()
-            } else {
-                throw new Error('Error claiming link')
             }
+
+            setTransactionHash(claimTxHash)
+            onNext()
+            // Note: Balance/transaction refresh handled by mutation or SUCCESS view
         } catch (error) {
             const errorString = ErrorHandler(error)
             setErrorState({

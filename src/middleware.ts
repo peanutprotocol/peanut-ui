@@ -1,16 +1,16 @@
 // middleware.ts
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
-import { notFound } from 'next/navigation'
 import maintenanceConfig from '@/config/underMaintenance.config'
 
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl
 
-    // Block /dev/ routes in production, but allow /devin, /devouring etc
-    if (process.env.NODE_ENV === 'production' && pathname.startsWith('/dev/')) {
-        return notFound()
-    }
+    // /dev/ routes are now accessible in production for testing
+    // Uncomment below to block /dev/ routes in production if needed
+    // if (process.env.NODE_ENV === 'production' && pathname.startsWith('/dev/')) {
+    //     return new NextResponse(null, { status: 404 })
+    // }
 
     // check if full maintenance mode is enabled
     if (maintenanceConfig.enableFullMaintenance) {

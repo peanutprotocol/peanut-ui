@@ -125,9 +125,6 @@ const IdentityVerificationView = () => {
     const isVerifiedForCountry = useCallback(
         (code: string) => {
             const upper = code.toUpperCase()
-            // bridge approval covers us/mx/sepa generally
-            if (isBridgeSupportedCountry(upper) && isUserBridgeKycApproved) return true
-            // manteca per-geo check
             const mantecaActive =
                 user?.user.kycVerifications?.some(
                     (v) =>
@@ -135,7 +132,7 @@ const IdentityVerificationView = () => {
                         (v.mantecaGeo || '').toUpperCase() === upper &&
                         v.status === MantecaKycStatus.ACTIVE
                 ) ?? false
-            return mantecaActive
+            return isMantecaSupportedCountry(upper) ? mantecaActive : isUserBridgeKycApproved
         },
         [user]
     )

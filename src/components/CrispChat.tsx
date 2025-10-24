@@ -1,7 +1,10 @@
 'use client'
 
 import Script from 'next/script'
+import { useEffect } from 'react'
 import { useSupportModalContext } from '@/context/SupportModalContext'
+import { useCrispUserData } from '@/hooks/useCrispUserData'
+import { setCrispUserData } from '@/utils/crisp'
 
 export const CrispButton = ({ children, ...rest }: React.HTMLAttributes<HTMLButtonElement>) => {
     const { setIsSupportModalOpen } = useSupportModalContext()
@@ -18,6 +21,39 @@ export const CrispButton = ({ children, ...rest }: React.HTMLAttributes<HTMLButt
 }
 
 export default function CrispChat() {
+    const userData = useCrispUserData()
+
+    useEffect(() => {
+        // Only set user data if we have a username
+        if (!userData.username || typeof window === 'undefined') return
+
+        // Wait for Crisp to be fully loaded
+        const setData = () => {
+            if (window.$crisp) {
+                setCrispUserData(window.$crisp, userData)
+            }
+        }
+
+        // Try to set immediately
+        setData()
+
+        // Also listen for Crisp session loaded event
+        if (window.$crisp) {
+            window.$crisp.push(['on', 'session:loaded', setData])
+        }
+
+        // Fallback: try again after a delay
+        const timer = setTimeout(setData, 2000)
+
+        return () => {
+            clearTimeout(timer)
+            if (window.$crisp) {
+                window.$crisp.push(['off', 'session:loaded', setData])
+            }
+        }
+    }, [userData])
+
+    // thought: we need to version pin this script
     return (
         <Script strategy="afterInteractive">
             {`

@@ -122,11 +122,9 @@ export const getFromLocalStorage = (key: string) => {
         }
         const data = localStorage.getItem(key)
         if (data === null) {
-            console.log(`No data found in localStorage for ${key}`)
             return null
         }
         const parsedData = jsonParse(data)
-        console.log(`Retrieved ${key} from localStorage:`, parsedData)
         return parsedData
     } catch (error) {
         Sentry.captureException(error)
@@ -1320,11 +1318,25 @@ export function slugify(text: string): string {
 }
 
 export const generateInvitesShareText = (inviteLink: string) => {
-    return `I’m using Peanut, an invite-only app for easy payments. With it you can pay friends, use merchants, and move money in and out of your bank, even cross-border. Here’s my invite: ${inviteLink}`
+    return `I'm using Peanut, an invite-only app for easy payments. With it you can pay friends, use merchants, and move money in and out of your bank, even cross-border. Here's my invite: ${inviteLink}`
+}
+
+/**
+ * Generate a deterministic 3-digit suffix from username
+ * This is purely cosmetic and derived from a hash of the username
+ */
+export const generateInviteCodeSuffix = (username: string): string => {
+    const lowerUsername = username.toLowerCase()
+    // Create a simple hash from the username
+    const hash = lowerUsername.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+    // Generate 3 digits between 100-999
+    const threeDigits = 100 + (hash % 900)
+    return threeDigits.toString()
 }
 
 export const generateInviteCodeLink = (username: string) => {
-    const inviteCode = `${username.toUpperCase()}INVITESYOU`
+    const suffix = generateInviteCodeSuffix(username)
+    const inviteCode = `${username.toUpperCase()}INVITESYOU${suffix}`
     const inviteLink = `${consts.BASE_URL}/invite?code=${inviteCode}`
     return { inviteLink, inviteCode }
 }

@@ -1,4 +1,11 @@
 'use client'
+/**
+ * @todo This file needs significant DRY (Don't Repeat Yourself) refactoring and consolidation
+ * - Multiple repeated UI patterns and logic that could be extracted into reusable components
+ * - Complex conditional rendering that could be simplified
+ * - Duplicated status/type checking logic that could be centralized
+ * - Large component that could be split into smaller focused components
+ */
 
 import Card, { getCardPosition } from '@/components/Global/Card'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
@@ -8,7 +15,7 @@ import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHisto
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useUserStore } from '@/redux/hooks'
 import { chargesApi } from '@/services/charges'
-import { sendLinksApi } from '@/services/sendLinks'
+import useClaimLink from '@/components/Claim/useClaimLink'
 import { formatAmount, formatDate, getInitialsFromName, isStableCoin, formatCurrency, getAvatarUrl } from '@/utils'
 import {
     formatIban,
@@ -27,6 +34,7 @@ import React, { useMemo, useState, useEffect } from 'react'
 import { Button } from '../0_Bruddle'
 import DisplayIcon from '../Global/DisplayIcon'
 import { Icon } from '../Global/Icons/Icon'
+import { PerkIcon } from './PerkIcon'
 import { STAR_STRAIGHT_ICON } from '@/assets/icons'
 import QRCodeWrapper from '../Global/QRCodeWrapper'
 import ShareButton from '../Global/ShareButton'
@@ -44,6 +52,7 @@ import {
 import { useSupportModalContext } from '@/context/SupportModalContext'
 import { useRouter } from 'next/navigation'
 import { countryData } from '@/components/AddMoney/consts'
+import { useToast } from '@/components/0_Bruddle/Toast'
 import {
     MANTECA_COUNTRIES_CONFIG,
     MANTECA_ARG_DEPOSIT_CUIT,
@@ -85,17 +94,20 @@ export const TransactionDetailsReceipt = ({
     const { user } = useUserStore()
     const queryClient = useQueryClient()
     const { fetchBalance } = useWallet()
+    const { cancelLinkAndClaim, pollForClaimConfirmation } = useClaimLink()
     const [showBankDetails, setShowBankDetails] = useState(false)
-    const [showCancelLinkModal, setShowCancelLinkModal] = useState(isModalOpen)
+    const [showCancelLinkModal, setShowCancelLinkModal] = useState(false)
     const [tokenData, setTokenData] = useState<{ symbol: string; icon: string } | null>(null)
     const [isTokenDataLoading, setIsTokenDataLoading] = useState(true)
     const { setIsSupportModalOpen } = useSupportModalContext()
+    const toast = useToast()
     const router = useRouter()
     const [cancelLinkText, setCancelLinkText] = useState<'Cancelling' | 'Cancelled' | 'Cancel link'>('Cancel link')
 
+    // Sync modal state to parent if callback is provided
     useEffect(() => {
         setIsModalOpen?.(showCancelLinkModal)
-    }, [showCancelLinkModal])
+    }, [showCancelLinkModal, setIsModalOpen])
 
     const isGuestBankClaim = useMemo(() => {
         if (!transaction) return false
@@ -176,7 +188,7 @@ export const TransactionDetailsReceipt = ({
                 transaction.extraDataForDrawer?.depositInstructions &&
                 transaction.extraDataForDrawer.depositInstructions.bank_name
             ),
-            peanutFee: !!(transaction.extraDataForDrawer?.perk?.claimed && transaction.status !== 'pending'),
+            peanutFee: false, // Perk fee logic removed - perks now show as separate transactions
             points: !!(transaction.points && transaction.points > 0),
             comment: !!transaction.memo?.trim(),
             networkFee: !!(transaction.networkFeeDetails && transaction.sourceView === 'status'),
@@ -380,29 +392,100 @@ export const TransactionDetailsReceipt = ({
             }
         }
     }
+    // Special rendering for PERK_REWARD type
+    const isPerkReward = transaction.extraDataForDrawer?.originalType === EHistoryEntryType.PERK_REWARD
+    const perkRewardData = transaction.extraDataForDrawer?.perkReward
+
+    if (isPerkReward && perkRewardData) {
+        return (
+            <div ref={contentRef} className={twMerge('space-y-4', className)}>
+                {/* Perk Reward Header - Top section with logo, amount, and status */}
+                <Card position="single" className="px-4 py-6">
+                    <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                            <PerkIcon size="medium" />
+                            <div className="flex flex-col">
+                                <h2 className="text-lg font-semibold text-gray-900">Peanut Perk</h2>
+                                <p className="text-2xl font-bold text-gray-900">{amountDisplay}</p>
+                            </div>
+                        </div>
+                        <div className="flex-shrink-0">
+                            {transaction.status === 'completed' ? (
+                                <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
+                                    Completed
+                                </span>
+                            ) : transaction.status === 'pending' || transaction.status === 'processing' ? (
+                                <span className="rounded-full bg-yellow-100 px-3 py-1 text-xs font-medium text-yellow-700">
+                                    Processing
+                                </span>
+                            ) : (
+                                <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
+                                    {transaction.status}
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                    <p className="mt-3 text-sm text-gray-600">
+                        Earn points, climb tiers, and unlock even better perks.
+                    </p>
+                </Card>
+
+                {/* Perk Details - Middle section with date, reason, and link */}
+                <Card position="single" className="px-4 py-0">
+                    <PaymentInfoRow
+                        label="Received"
+                        value={formatDate(new Date(transaction.date))}
+                        hideBottomBorder={false}
+                    />
+                    <PaymentInfoRow
+                        label="Reason"
+                        value={perkRewardData.reason}
+                        // hideBottomBorder={!perkRewardData.originatingTxId}
+                        hideBottomBorder={true}
+                    />
+                    {/* 
+                    
+                    {perkRewardData.originatingTxId && (
+                        <PaymentInfoRow
+                            label="Originating payment"
+                            value={
+                                <button
+                                    className="flex items-center gap-1 text-sm font-medium text-primary-1 hover:underline"
+                                    onClick={() => {
+                                        // Close current drawer so user can find the transaction in history
+                                        if (onClose) {
+                                            onClose()
+                                        }
+                                        // Navigate to home where they can see both transactions
+                                        router.push('/home')
+                                    }}
+                                >
+                                    <span>View in history</span>
+                                    <Icon name="arrow-up-right" size={12} />
+                                </button>
+                            }
+                            hideBottomBorder={true}
+                        />
+                    )} */}
+                </Card>
+
+                {/* Support link section */}
+                <button
+                    onClick={() => setIsSupportModalOpen(true)}
+                    className="flex w-full items-center justify-center gap-2 text-sm font-medium text-grey-1 underline transition-colors hover:text-black"
+                >
+                    <Icon name="peanut-support" size={16} className="text-grey-1" />
+                    Issues with this transaction?
+                </button>
+            </div>
+        )
+    }
 
     return (
         <div ref={contentRef} className={twMerge('space-y-4', className)}>
             {/* show qr code at the top if applicable */}
             {shouldShowQrShare && transaction.extraDataForDrawer?.link && (
                 <QRCodeWrapper url={transaction.extraDataForDrawer.link} />
-            )}
-
-            {/* Perk banner */}
-            {transaction.extraDataForDrawer?.perk?.claimed && transaction.status === 'completed' && (
-                <Card position="single" className="px-4 py-4">
-                    <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-yellow-400">
-                            <Image src={STAR_STRAIGHT_ICON} alt="Perk" width={22} height={22} />
-                        </div>
-                        <div className="flex flex-col gap-1">
-                            <span className="font-semibold text-gray-900">Peanut got you!</span>
-                            <span className="text-sm text-gray-600">
-                                We sponsored this bill! Earn points, climb tiers, and unlock even better perks.
-                            </span>
-                        </div>
-                    </div>
-                </Card>
             )}
 
             {/* transaction header card */}
@@ -417,7 +500,6 @@ export const TransactionDetailsReceipt = ({
                 transactionType={transaction.extraDataForDrawer?.transactionCardType}
                 avatarUrl={avatarUrl ?? getAvatarUrl(transaction)}
                 haveSentMoneyToUser={transaction.haveSentMoneyToUser}
-                hasPerk={!!transaction.extraDataForDrawer?.perk?.claimed}
                 isAvatarClickable={isAvatarClickable}
                 showProgessBar={transaction.isRequestPotLink}
                 goal={Number(transaction.amount)}
@@ -425,6 +507,33 @@ export const TransactionDetailsReceipt = ({
                 isRequestPotTransaction={transaction.isRequestPotLink}
                 isTransactionClosed={transaction.status === 'closed'}
             />
+
+            {/* Perk eligibility banner */}
+            {transaction.extraDataForDrawer?.perk?.claimed && transaction.status !== 'pending' && (
+                <Card position="single" className="px-4 py-4">
+                    <div className="flex items-center gap-3">
+                        <PerkIcon size="small" />
+                        <div className="flex flex-col gap-1">
+                            <span className="font-semibold text-gray-900">Eligible for a Peanut Perk!</span>
+                            <span className="text-sm text-gray-600">
+                                {(() => {
+                                    const percentage = transaction.extraDataForDrawer.perk.discountPercentage
+                                    const amount = transaction.extraDataForDrawer.perk.amountSponsored
+                                    const amountStr = amount ? `$${amount.toFixed(2)}` : ''
+
+                                    if (percentage === 100) {
+                                        return `You received a full refund${amount ? ` (${amountStr})` : ''} as a Peanut Perk.`
+                                    } else if (percentage > 100) {
+                                        return `You received ${percentage}% back${amount ? ` (${amountStr})` : ''} — that's more than you paid!`
+                                    } else {
+                                        return `You received ${percentage}% cashback${amount ? ` (${amountStr})` : ''} as a Peanut Perk.`
+                                    }
+                                })()}
+                            </span>
+                        </div>
+                    </div>
+                </Card>
+            )}
 
             {/* details card (date, fee, memo) and more */}
             <Card position={shouldShowQrShare ? 'first' : 'single'} className="px-4 py-0" border={true}>
@@ -1223,34 +1332,74 @@ export const TransactionDetailsReceipt = ({
                     showCancelLinkModal={showCancelLinkModal}
                     setshowCancelLinkModal={setShowCancelLinkModal}
                     amount={amountDisplay}
-                    onClick={() => {
-                        setIsLoading(true)
-                        setCancelLinkText('Cancelling')
-                        setShowCancelLinkModal(false)
-                        sendLinksApi
-                            .claim(user!.user.username!, transaction.extraDataForDrawer!.link!)
-                            .then(() => {
-                                // Claiming takes time, so we need to invalidate both transaction query types
-                                setTimeout(() => {
-                                    fetchBalance()
-                                    queryClient
-                                        .invalidateQueries({
-                                            queryKey: [TRANSACTIONS],
-                                        })
-                                        .then(async () => {
-                                            setIsLoading(false)
-                                            setCancelLinkText('Cancelled')
-                                            await new Promise((resolve) => setTimeout(resolve, 2000))
-                                            onClose()
-                                        })
-                                }, 3000)
+                    isLoading={isLoading}
+                    onClick={async () => {
+                        try {
+                            setIsLoading(true)
+                            setCancelLinkText('Cancelling')
+
+                            if (!user?.accounts) {
+                                throw new Error('User not found for cancellation')
+                            }
+                            const walletAddress = user.accounts.find((acc) => acc.type === 'peanut-wallet')?.identifier
+                            if (!walletAddress) {
+                                throw new Error('No wallet address found for cancellation')
+                            }
+
+                            // Validate transaction data
+                            if (!transaction.extraDataForDrawer?.link) {
+                                throw new Error('No link found for cancellation')
+                            }
+
+                            // Cancel the link by claiming it back
+                            await cancelLinkAndClaim({
+                                link: transaction.extraDataForDrawer.link,
+                                walletAddress,
+                                userId: user?.user?.userId,
                             })
-                            .catch((error) => {
-                                captureException(error)
-                                console.error('Error claiming link:', error)
+
+                            try {
+                                // Wait for transaction confirmation
+                                const isConfirmed = await pollForClaimConfirmation(transaction.extraDataForDrawer.link)
+
+                                if (!isConfirmed) {
+                                    console.warn('Transaction confirmation timeout - proceeding with refresh')
+                                }
+
+                                // Update UI and queries
+                                fetchBalance()
+                                await queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+
                                 setIsLoading(false)
-                                setCancelLinkText('Cancel link')
-                            })
+                                setShowCancelLinkModal(false)
+                                setCancelLinkText('Cancelled')
+                                toast.success('Link cancelled successfully!')
+
+                                // Brief delay for toast visibility
+                                await new Promise((resolve) => setTimeout(resolve, 1500))
+                                onClose()
+                            } catch (invalidateError) {
+                                console.error('Failed to update after claim:', invalidateError)
+                                captureException(invalidateError, {
+                                    tags: { feature: 'cancel-link' },
+                                    extra: { userId: user?.user?.userId },
+                                })
+
+                                // Still close drawer even if invalidation fails
+                                setIsLoading(false)
+                                setShowCancelLinkModal(false)
+                                setCancelLinkText('Cancelled')
+                                toast.success('Link cancelled! Refresh to see updated balance.')
+                                await new Promise((resolve) => setTimeout(resolve, 1500))
+                                onClose()
+                            }
+                        } catch (error: any) {
+                            captureException(error)
+                            console.error('Error claiming link:', error)
+                            setIsLoading(false)
+                            setCancelLinkText('Cancel link')
+                            toast.error('Failed to cancel link. Please try again.')
+                        }
                     }}
                 />
             )}

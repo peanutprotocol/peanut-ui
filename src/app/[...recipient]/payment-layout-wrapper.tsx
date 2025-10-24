@@ -1,6 +1,7 @@
 'use client'
 
 import GuestLoginModal from '@/components/Global/GuestLoginModal'
+import SupportDrawer from '@/components/Global/SupportDrawer'
 import TopNavbar from '@/components/Global/TopNavbar'
 import WalletNavigation from '@/components/Global/WalletNavigation'
 import { ThemeProvider } from '@/config'
@@ -64,8 +65,9 @@ export default function PaymentLayoutWrapper({ children }: { children: React.Rea
                 </div>
             </div>
 
-            {/* Modal */}
+            {/* Modals */}
             <GuestLoginModal />
+            <SupportDrawer />
         </div>
     )
 }

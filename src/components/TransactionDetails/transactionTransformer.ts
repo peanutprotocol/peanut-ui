@@ -13,7 +13,7 @@ import {
 import { type StatusPillType } from '../Global/StatusPill'
 import type { Address } from 'viem'
 import { PEANUT_WALLET_CHAIN } from '@/constants'
-import { type HistoryEntryPerk, type ChargeEntry } from '@/services/services.types'
+import { type HistoryEntryPerkReward, type ChargeEntry } from '@/services/services.types'
 
 /**
  * @fileoverview maps raw transaction history data from the api/hook to the format needed by ui components.
@@ -67,7 +67,16 @@ export interface TransactionDetails {
         fulfillmentType?: 'bridge' | 'wallet'
         bridgeTransferId?: string
         avatarUrl?: string
-        perk?: HistoryEntryPerk
+        perkReward?: HistoryEntryPerkReward
+        perk?: {
+            claimed: boolean
+            discountPercentage: number
+            amountSponsored?: number
+            txHash?: string
+            merchantInfo?: {
+                promoDescription?: string
+            }
+        }
         depositInstructions?: {
             amount: string
             currency: string
@@ -324,6 +333,13 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             nameForDetails = nameForDetails.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
             isPeerActuallyUser = false
             break
+        case EHistoryEntryType.PERK_REWARD:
+            direction = 'receive'
+            transactionCardType = 'receive'
+            nameForDetails = 'Peanut Perk!'
+            fullName = 'Peanut Perks'
+            isPeerActuallyUser = false
+            break
         default:
             direction = 'send'
             transactionCardType = 'send'
@@ -500,7 +516,16 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             rewardData,
             fulfillmentType: entry.extraData?.fulfillmentType,
             bridgeTransferId: entry.extraData?.bridgeTransferId,
-            perk: entry.extraData?.perk as HistoryEntryPerk | undefined,
+            perkReward: entry.extraData?.perkReward as HistoryEntryPerkReward | undefined,
+            perk: entry.extraData?.perk as
+                | {
+                      claimed: boolean
+                      discountPercentage: number
+                      amountSponsored?: number
+                      txHash?: string
+                      merchantInfo?: { promoDescription?: string }
+                  }
+                | undefined,
             depositInstructions:
                 entry.type === EHistoryEntryType.BRIDGE_ONRAMP || entry.extraData?.fulfillmentType === 'bridge'
                     ? entry.extraData?.depositInstructions

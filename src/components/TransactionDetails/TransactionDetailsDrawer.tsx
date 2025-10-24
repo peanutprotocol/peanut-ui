@@ -45,7 +45,7 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                 }
             }}
         >
-            <DrawerContent className="py-5">
+            <DrawerContent className={`py-5 ${isModalOpen ? '!z-[10]' : ''}`}>
                 <DrawerTitle className="sr-only">Transaction Details</DrawerTitle>
                 <TransactionDetailsReceipt
                     isLoading={isLoading}

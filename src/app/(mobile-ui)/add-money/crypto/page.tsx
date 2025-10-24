@@ -120,17 +120,20 @@ const AddMoneyCryptoPage = ({ headerTitle, onBack, depositAddress }: AddMoneyCry
             return <PeanutLoading />
         }
 
-        if (isConnected && !peanutWalletAddress) {
+        // Ensure we have a valid deposit address
+        const finalDepositAddress = depositAddress ?? peanutWalletAddress
+        if (!finalDepositAddress) {
             router.push('/')
             return null
         }
+
         return (
             <CryptoDepositQR
                 tokenName={selectedToken.symbol}
                 tokenIcon={selectedToken.icon}
                 chainName={selectedNetwork.name}
                 chainIcon={selectedNetwork.iconUrl}
-                depositAddress={depositAddress ?? peanutWalletAddress}
+                depositAddress={finalDepositAddress}
                 onBack={() => router.back()}
             />
         )

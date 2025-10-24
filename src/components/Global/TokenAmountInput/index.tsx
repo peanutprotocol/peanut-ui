@@ -28,6 +28,7 @@ interface TokenAmountInputProps {
     infoText?: string
     showSlider?: boolean
     maxAmount?: number
+    isInitialInputUsd?: boolean
 }
 
 const TokenAmountInput = ({
@@ -47,6 +48,7 @@ const TokenAmountInput = ({
     showInfoText,
     showSlider = false,
     maxAmount,
+    isInitialInputUsd = false,
 }: TokenAmountInputProps) => {
     const { selectedTokenData } = useContext(tokenSelectorContext)
     const inputRef = useRef<HTMLInputElement>(null)
@@ -54,7 +56,7 @@ const TokenAmountInput = ({
 
     // Store display value for input field (what user sees when typing)
     const [displayValue, setDisplayValue] = useState<string>(tokenValue || '')
-    const [isInputUsd, setIsInputUsd] = useState<boolean>(!currency)
+    const [isInputUsd, setIsInputUsd] = useState<boolean>(!currency || isInitialInputUsd)
     const [displaySymbol, setDisplaySymbol] = useState<string>('')
     const [alternativeDisplayValue, setAlternativeDisplayValue] = useState<string>('0.00')
     const [alternativeDisplaySymbol, setAlternativeDisplaySymbol] = useState<string>('')
@@ -239,13 +241,13 @@ const TokenAmountInput = ({
 
                     {/* Input */}
                     <input
-                        className={`h-12 w-[4ch] max-w-80 bg-transparent text-6xl font-black outline-none transition-colors placeholder:text-h1 placeholder:text-gray-1 focus:border-primary-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1`}
+                        autoFocus
+                        className={`h-12 w-[4ch] max-w-80 bg-transparent text-6xl font-black caret-primary-1 outline-none transition-colors placeholder:text-h1 placeholder:text-gray-1 focus:border-primary-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1`}
                         placeholder={'0.00'}
                         onChange={(e) => {
                             const value = formatAmountWithoutComma(e.target.value)
                             onChange(value, isInputUsd)
                         }}
-                        autoFocus
                         ref={inputRef}
                         inputMode="decimal"
                         type={inputType}
@@ -269,7 +271,10 @@ const TokenAmountInput = ({
                 {/* Conversion */}
                 {showConversion && (
                     <label className={twMerge('text-lg font-bold', !Number(alternativeDisplayValue) && 'text-gray-1')}>
-                        ≈ {displayMode === 'TOKEN' ? alternativeDisplayValue : formatCurrency(alternativeDisplayValue)}{' '}
+                        ≈{' '}
+                        {displayMode === 'TOKEN'
+                            ? alternativeDisplayValue
+                            : formatCurrency(alternativeDisplayValue.replace(',', ''))}{' '}
                         {alternativeDisplaySymbol}
                     </label>
                 )}

@@ -39,7 +39,6 @@ interface TransactionDetailsHeaderCardProps {
     transactionType?: TransactionType
     avatarUrl?: string
     haveSentMoneyToUser?: boolean
-    hasPerk?: boolean
     isAvatarClickable?: boolean
     showProgessBar?: boolean
     progress?: number
@@ -176,7 +175,6 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     transactionType,
     avatarUrl,
     haveSentMoneyToUser = false,
-    hasPerk = false,
     isAvatarClickable = false,
     showProgessBar = false,
     progress,
@@ -243,8 +241,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                     <h1
                         className={twMerge(
                             'text-3xl font-extrabold md:text-4xl',
-                            (status === 'cancelled' || hasPerk) && 'line-through',
-                            status === 'cancelled' && 'text-grey-1',
+                            status === 'cancelled' && 'text-grey-1 line-through',
                             isNoGoalSet && 'text-xl text-black md:text-3xl'
                         )}
                     >

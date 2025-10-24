@@ -16,12 +16,8 @@ import type { Hash } from 'viem'
 import { formatUnits } from 'viem'
 import * as _consts from '../../Claim.consts'
 import Image from 'next/image'
-import { PEANUT_LOGO_BLACK, PEANUTMAN_LOGO, STAR_STRAIGHT_ICON } from '@/assets'
+import { PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
 import CreateAccountButton from '@/components/Global/CreateAccountButton'
-import { pointsApi } from '@/services/points'
-import { PointsAction } from '@/services/services.types'
-import PeanutLoading from '@/components/Global/PeanutLoading'
-import { usePointsConfetti } from '@/hooks/usePointsConfetti'
 
 export const SuccessClaimLinkView = ({
     transactionHash,
@@ -36,24 +32,8 @@ export const SuccessClaimLinkView = ({
     const queryClient = useQueryClient()
     const { offrampDetails, claimType, bankDetails } = useClaimBankFlow()
 
-    const queryKey = useMemo(() => ['calculate-points', 'claim-link', claimLinkData.link], [claimLinkData.link])
-
-    const { data: pointsData, isLoading: isPointsDataLoading } = useQuery({
-        queryKey,
-        queryFn: () =>
-            pointsApi.calculatePoints({
-                actionType: PointsAction.P2P_SEND_LINK,
-                usdAmount: Number(
-                    formatTokenAmount(
-                        Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)) * (tokenPrice ?? 0)
-                    )
-                ),
-                otherUserId: claimLinkData?.senderAddress,
-            }),
-        // Fetch only for logged in users.
-        enabled: !!authUser?.user.userId,
-        refetchOnWindowFocus: false,
-    })
+    // @dev: Claimers don't earn points (only senders do), so we don't call calculatePoints
+    // Points will show in activity history once the sender's transaction is processed
 
     useEffect(() => {
         queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
@@ -66,9 +46,33 @@ export const SuccessClaimLinkView = ({
             try {
                 const link = await sendLinksApi.get(claimLinkData.link)
                 if (link.claim) {
-                    setTransactionHash(link.claim?.txHash)
+                    const txHash = link.claim.txHash
+                    setTransactionHash(txHash)
+
+                    // Force immediate refetch of balance and transactions
+                    // This runs inside the polling callback, so it works even if component unmounts
+                    // Using refetchQueries to bypass staleTime and force immediate refetch
+                    queryClient.refetchQueries({
+                        queryKey: [TRANSACTIONS],
+                        type: 'active', // Only refetch currently mounted queries
+                    })
+                    queryClient.refetchQueries({
+                        queryKey: ['balance'],
+                        type: 'active', // Only refetch currently mounted queries
+                    })
+
+                    // Update user profile (points, etc)
+                    fetchUser()
+
+                    console.log('✅ Claim confirmed. WebSocket will handle backend updates:', txHash) // Poll every 1 second
+
                     return true
                 } else if (link.status === ESendLinkStatus.FAILED) {
+                    // Claim failed after optimistic return - show error to user
+                    console.error('Claim failed:', link.events?.[link.events.length - 1]?.reason || 'Unknown error')
+                    // TODO: Show error UI to user instead of silent failure
+                    // For now, setting txHash to 'FAILED' to stop showing loading state
+                    setTransactionHash('FAILED')
                     return true
                 }
                 return false
@@ -90,7 +94,7 @@ export const SuccessClaimLinkView = ({
 
         // Clean up the interval when component unmounts or transactionHash changes
         return () => clearInterval(intervalId)
-    }, [transactionHash, claimLinkData.link])
+    }, [transactionHash, claimLinkData.link, queryClient, fetchUser])
 
     const tokenDetails = useMemo(() => {
         if (!claimLinkData) return null
@@ -141,9 +145,6 @@ export const SuccessClaimLinkView = ({
         title: isBankClaim ? 'You will receive' : 'You claimed',
     }
 
-    const pointsDivRef = useRef<HTMLDivElement>(null)
-    usePointsConfetti(pointsData?.estimatedPoints, pointsDivRef)
-
     const renderButtons = () => {
         if (authUser?.user.userId) {
             return (
@@ -162,10 +163,6 @@ export const SuccessClaimLinkView = ({
         return <CreateAccountButton onClick={() => router.push('/setup')} />
     }
 
-    if (isPointsDataLoading) {
-        return <PeanutLoading />
-    }
-
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
             <SoundPlayer sound="success" />
@@ -180,15 +177,6 @@ export const SuccessClaimLinkView = ({
             </div>
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 <PeanutActionDetailsCard {...cardProps} />
-                {pointsData && (
-                    <div ref={pointsDivRef} className="flex justify-center gap-2">
-                        <Image src={STAR_STRAIGHT_ICON} alt="star" width={20} height={20} />
-                        <p className="text-sm font-medium text-black">
-                            You&apos;ve earned {pointsData.estimatedPoints}{' '}
-                            {pointsData.estimatedPoints === 1 ? 'point' : 'points'}!
-                        </p>
-                    </div>
-                )}
                 {renderButtons()}
             </div>
         </div>

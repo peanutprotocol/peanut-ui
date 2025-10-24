@@ -17,6 +17,9 @@ import { KycStatusItem } from '../Kyc/KycStatusItem'
 import { isKycStatusItem, type KycHistoryEntry } from '@/hooks/useBridgeKycFlow'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
+import { completeHistoryEntry } from '@/utils/history.utils'
+import { formatUnits } from 'viem'
+import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 
 /**
  * component to display a preview of the most recent transactions on the home page.
@@ -81,70 +84,110 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
 
     useEffect(() => {
         if (!isLoading && historyData?.entries) {
-            // Start with the fetched entries
-            const entries: Array<HistoryEntry | KycHistoryEntry> = [...historyData.entries]
+            let cancelled = false
 
-            // process websocket entries: update existing or add new ones
-            // Sort by timestamp ascending to process oldest entries first
-            const sortedWsEntries = [...wsHistoryEntries].sort(
-                (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-            )
-            sortedWsEntries.forEach((wsEntry) => {
-                const existingIndex = entries.findIndex((entry) => entry.uuid === wsEntry.uuid)
+            // Process entries asynchronously to handle completeHistoryEntry
+            const processEntries = async () => {
+                // Start with the fetched entries
+                const entries: Array<HistoryEntry | KycHistoryEntry> = [...historyData.entries]
 
-                if (existingIndex !== -1) {
-                    // update existing entry with latest websocket data
-                    if (wsEntry.extraData) {
-                        wsEntry.extraData.usdAmount = wsEntry.amount.toString()
-                    } else {
-                        wsEntry.extraData = { usdAmount: wsEntry.amount.toString() }
+                // process websocket entries: update existing or add new ones
+                // Sort by timestamp ascending to process oldest entries first
+                const sortedWsEntries = [...wsHistoryEntries].sort(
+                    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+                )
+
+                // Process WebSocket entries through completeHistoryEntry to format amounts correctly
+                for (const wsEntry of sortedWsEntries) {
+                    // Check cancellation before processing each entry
+                    if (cancelled) return
+
+                    let completedEntry
+                    try {
+                        completedEntry = await completeHistoryEntry(wsEntry)
+                    } catch (error) {
+                        console.error('[HomeHistory] Failed to process WebSocket entry:', error)
+                        Sentry.captureException(error, {
+                            tags: { feature: 'websocket-home-history' },
+                            extra: { entryType: wsEntry.type, entryUuid: wsEntry.uuid },
+                        })
+
+                        // Fallback: Use raw entry with proper amount formatting
+                        let fallbackAmount = wsEntry.amount.toString()
+
+                        if (wsEntry.type === 'DEPOSIT' && wsEntry.extraData?.blockNumber) {
+                            try {
+                                fallbackAmount = formatUnits(BigInt(wsEntry.amount), PEANUT_WALLET_TOKEN_DECIMALS)
+                            } catch (formatError) {
+                                console.error('[HomeHistory fallback] Failed to format deposit amount:', formatError)
+                                fallbackAmount = '0.00' // Safer than showing wei
+                            }
+                        }
+
+                        completedEntry = {
+                            ...wsEntry,
+                            timestamp: new Date(wsEntry.timestamp),
+                            extraData: {
+                                ...wsEntry.extraData,
+                                usdAmount: fallbackAmount,
+                            },
+                        }
                     }
-                    wsEntry.extraData.link = `${BASE_URL}/${wsEntry.recipientAccount.username || wsEntry.recipientAccount.identifier}?chargeId=${wsEntry.uuid}`
-                    entries[existingIndex] = wsEntry
-                } else {
-                    // add new entry if it doesn't exist
-                    if (wsEntry.extraData) {
-                        wsEntry.extraData.usdAmount = wsEntry.amount.toString()
+
+                    const existingIndex = entries.findIndex((entry) => entry.uuid === completedEntry.uuid)
+
+                    if (existingIndex !== -1) {
+                        // update existing entry with latest websocket data
+                        entries[existingIndex] = completedEntry
                     } else {
-                        wsEntry.extraData = { usdAmount: wsEntry.amount.toString() }
+                        // add new entry if it doesn't exist
+                        entries.push(completedEntry)
                     }
-                    wsEntry.extraData.link = `${BASE_URL}/${wsEntry.recipientAccount.username || wsEntry.recipientAccount.identifier}?chargeId=${wsEntry.uuid}`
-                    entries.push(wsEntry)
                 }
-            })
 
-            // Add KYC status item if applicable and not on a public page
-            // and the user is viewing their own history
-            if (isSameUser && !isPublic) {
-                if (user?.user?.bridgeKycStatus && user.user.bridgeKycStatus !== 'not_started') {
-                    entries.push({
-                        isKyc: true,
-                        timestamp: user.user.bridgeKycStartedAt ?? new Date(0).toISOString(),
-                        uuid: 'bridge-kyc-status-item',
-                        bridgeKycStatus: user.user.bridgeKycStatus,
+                // Add KYC status item if applicable and not on a public page
+                // and the user is viewing their own history
+                if (isSameUser && !isPublic) {
+                    if (user?.user?.bridgeKycStatus && user.user.bridgeKycStatus !== 'not_started') {
+                        entries.push({
+                            isKyc: true,
+                            timestamp: user.user.bridgeKycStartedAt ?? new Date(0).toISOString(),
+                            uuid: 'bridge-kyc-status-item',
+                            bridgeKycStatus: user.user.bridgeKycStatus,
+                        })
+                    }
+                    user?.user.kycVerifications?.forEach((verification) => {
+                        entries.push({
+                            isKyc: true,
+                            timestamp: verification.approvedAt ?? new Date(0).toISOString(),
+                            uuid: verification.providerUserId ?? `${verification.provider}-${verification.mantecaGeo}`,
+                            verification,
+                        })
                     })
                 }
-                user?.user.kycVerifications?.forEach((verification) => {
-                    entries.push({
-                        isKyc: true,
-                        timestamp: verification.approvedAt ?? new Date(0).toISOString(),
-                        uuid: verification.providerUserId ?? `${verification.provider}-${verification.mantecaGeo}`,
-                        verification,
-                    })
+
+                // Check cancellation before setting state
+                if (cancelled) return
+
+                // Sort entries by date in descending order
+                entries.sort((a, b) => {
+                    const dateA = new Date(a.timestamp || 0).getTime()
+                    const dateB = new Date(b.timestamp || 0).getTime()
+                    return dateB - dateA
                 })
+
+                // Limit to the most recent entries
+                setCombinedEntries(entries.slice(0, isPublic ? 20 : 5))
             }
 
-            // Sort entries by date in descending order
-            entries.sort((a, b) => {
-                const dateA = new Date(a.timestamp || 0).getTime()
-                const dateB = new Date(b.timestamp || 0).getTime()
-                return dateB - dateA
-            })
+            processEntries()
 
-            // Limit to the most recent entries
-            setCombinedEntries(entries.slice(0, isPublic ? 20 : 5))
+            // Cleanup function to prevent state updates after unmount
+            return () => {
+                cancelled = true
+            }
         }
-    }, [historyData, wsHistoryEntries, isPublic, user, isLoading])
+    }, [historyData, wsHistoryEntries, isPublic, user, isLoading, isSameUser])
 
     const pendingRequests = useMemo(() => {
         if (!combinedEntries.length) return []

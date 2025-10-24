@@ -357,6 +357,8 @@ export type SendLink = {
     senderAddress: string
     amount: bigint
     tokenAddress: string
+    tokenDecimals: number
+    tokenSymbol: string
     sender: {
         userId: string
         username: string
@@ -366,7 +368,7 @@ export type SendLink = {
             identifier: string
             type: string
         }[]
-    }
+    } | null
     claim?: {
         amount: string
         txHash: string
@@ -386,6 +388,7 @@ export type SendLink = {
     events: {
         timestamp: Date
         status: SendLinkStatus
+        reason?: string
     }[]
 }
 
@@ -457,10 +460,11 @@ export interface CalculatePointsRequest {
     otherUserId?: string
 }
 
-// Perks system types
-export interface HistoryEntryPerk {
-    claimed: boolean
+// Perks system - Unified interface (all perks are V2 campaigns now)
+export interface HistoryEntryPerkReward {
+    reason: string
     discountPercentage: number
-    amountSponsored?: number
-    txHash?: string
+    originatingTxId?: string
+    originatingTxType?: string
+    perkName?: string
 }

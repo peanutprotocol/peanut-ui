@@ -165,34 +165,22 @@ export default function Home() {
                 setShowBalanceWarningModal(true)
             }
         }
-    }, [balance, isFetchingBalance, showIOSPWAInstallModal, showAddMoneyPromptModal, user])
-
-    // effect for showing balance warning modal
-    useEffect(() => {
-        if (isFetchingBalance || balance === undefined || !user) return
-
-        if (typeof window !== 'undefined') {
-            const hasSeenBalanceWarning = getFromLocalStorage(`${user!.user.userId}-hasSeenBalanceWarning`)
-            const balanceInUsd = Number(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS))
-
-            // show if:
-            // 1. balance is above the threshold
-            // 2. user hasn't seen this warning in the current session
-            // 3. no other modals are currently active
-            if (
-                balanceInUsd > BALANCE_WARNING_THRESHOLD &&
-                !hasSeenBalanceWarning &&
-                !showIOSPWAInstallModal &&
-                !showAddMoneyPromptModal
-            ) {
-                setShowBalanceWarningModal(true)
-            }
-        }
-    }, [balance, isFetchingBalance, showIOSPWAInstallModal, showAddMoneyPromptModal, user])
+    }, [
+        balance,
+        isFetchingBalance,
+        showIOSPWAInstallModal,
+        showAddMoneyPromptModal,
+        isPostSignupActionModalVisible,
+        user,
+    ])
 
     // effect for showing add money prompt modal
     useEffect(() => {
         if (typeof window === 'undefined' || isFetchingBalance || !user) return
+
+        // Don't show modal if balance is still loading (undefined)
+        if (balance === undefined) return
+
         const hasSeenAddMoneyPromptThisSession = sessionStorage.getItem('hasSeenAddMoneyPromptThisSession')
         const showNoMoreJailModal = sessionStorage.getItem('showNoMoreJailModal')
 
@@ -231,6 +219,7 @@ export default function Home() {
         isPostSignupActionModalVisible,
         showAddMoneyPromptModal,
         user,
+        address,
     ])
 
     if (isLoading) {
