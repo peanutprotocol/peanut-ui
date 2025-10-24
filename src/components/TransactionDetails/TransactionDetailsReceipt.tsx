@@ -323,7 +323,7 @@ export const TransactionDetailsReceipt = ({
 
     if (transactionAmount) {
         // if transactionAmount is provided as a string, parse it
-        const parsed = parseFloat(transactionAmount.replace(/[\+\-\$]/g, ''))
+        const parsed = parseFloat(transactionAmount.replace(/[\+\-\$,]/g, ''))
         usdAmount = isNaN(parsed) ? 0 : parsed
     } else if (transaction.amount !== undefined && transaction.amount !== null) {
         // fallback to transaction.amount
