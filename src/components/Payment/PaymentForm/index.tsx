@@ -22,7 +22,7 @@ import { type ParsedURL } from '@/lib/url-parser/types/payment'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { walletActions } from '@/redux/slices/wallet-slice'
-import { areEvmAddressesEqual, ErrorHandler, formatAmount, formatCurrency } from '@/utils'
+import { areEvmAddressesEqual, ErrorHandler, formatAmount, formatCurrency, getContributorsFromCharge } from '@/utils'
 import { useAppKit, useDisconnect } from '@reown/appkit/react'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -35,6 +35,8 @@ import { type PaymentFlow } from '@/app/[...recipient]/client'
 import MantecaFulfillment from '../Views/MantecaFulfillment.view'
 import { invitesApi } from '@/services/invites'
 import { EInviteType } from '@/services/services.types'
+import ContributorCard from '@/components/Global/Contributors/ContributorCard'
+import { getCardPosition } from '@/components/Global/Card'
 
 export type PaymentFlowProps = {
     isExternalWalletFlow?: boolean
@@ -49,6 +51,7 @@ export type PaymentFlowProps = {
     setCurrencyAmount?: (currencyvalue: string | undefined) => void
     headerTitle?: string
     flow?: PaymentFlow
+    showRequestPotInitialView?: boolean
 }
 
 export type PaymentFormProps = ParsedURL & PaymentFlowProps
@@ -65,6 +68,7 @@ export const PaymentForm = ({
     isDirectUsdPayment,
     headerTitle,
     flow,
+    showRequestPotInitialView,
 }: PaymentFormProps) => {
     const dispatch = useAppDispatch()
     const router = useRouter()
@@ -222,7 +226,11 @@ export const PaymentForm = ({
                 }
             } else {
                 // regular send/pay
-                if (isActivePeanutWallet && areEvmAddressesEqual(selectedTokenAddress, PEANUT_WALLET_TOKEN)) {
+                if (
+                    !showRequestPotInitialView && // don't apply balance check on request pot payment initial view
+                    isActivePeanutWallet &&
+                    areEvmAddressesEqual(selectedTokenAddress, PEANUT_WALLET_TOKEN)
+                ) {
                     // peanut wallet payment
                     const walletNumeric = parseFloat(String(peanutWalletBalance).replace(/,/g, ''))
                     if (walletNumeric < parsedInputAmount) {
@@ -274,6 +282,7 @@ export const PaymentForm = ({
         selectedTokenData,
         isExternalWalletConnected,
         isExternalWalletFlow,
+        showRequestPotInitialView,
         currentView,
         isProcessing,
     ])
@@ -323,6 +332,11 @@ export const PaymentForm = ({
         const recipientExists = !!recipient
         const walletConnected = isConnected
 
+        // If its requestPotPayment, we only need to check if the recipient exists, amount is set, and token is selected
+        if (showRequestPotInitialView) {
+            return recipientExists && amountIsSet && tokenSelected && showRequestPotInitialView
+        }
+
         return recipientExists && amountIsSet && tokenSelected && walletConnected
     }, [
         recipient,
@@ -365,7 +379,8 @@ export const PaymentForm = ({
         if (inviteError) {
             setInviteError(false)
         }
-        if (isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow) {
+        // Invites will be handled in the payment page, skip this step for request pots initial view
+        if (!showRequestPotInitialView && isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow) {
             // If the user doesn't have app access, accept the invite before claiming the link
             if (recipient.recipientType === 'USERNAME' && !user?.user.hasAppAccess) {
                 const isAccepted = await handleAcceptInvite()
@@ -375,12 +390,14 @@ export const PaymentForm = ({
             return
         }
 
-        if (!isExternalWalletConnected && isExternalWalletFlow) {
+        // skip this step for request pots initial view
+        if (!showRequestPotInitialView && !isExternalWalletConnected && isExternalWalletFlow) {
             openReownModal()
             return
         }
 
-        if (!isConnected) {
+        // skip this step for request pots initial view
+        if (!showRequestPotInitialView && !isConnected) {
             dispatch(walletActions.setSignInModalVisible(true))
             return
         }
@@ -437,6 +454,7 @@ export const PaymentForm = ({
                   ? 'DIRECT_SEND'
                   : 'REQUEST',
             attachmentOptions: attachmentOptions,
+            returnAfterChargeCreation: !!showRequestPotInitialView, // For request pot initial view, return after charge creation without initiating payment
         }
 
         console.log('Initiating payment with payload:', payload)
@@ -446,7 +464,7 @@ export const PaymentForm = ({
         if (result.status === 'Success') {
             dispatch(paymentActions.setView('STATUS'))
         } else if (result.status === 'Charge Created') {
-            if (!fulfillUsingManteca) {
+            if (!fulfillUsingManteca && !showRequestPotInitialView) {
                 dispatch(paymentActions.setView('CONFIRM'))
             }
         } else if (result.status === 'Error') {
@@ -473,6 +491,7 @@ export const PaymentForm = ({
         requestedTokenPrice,
         inviteError,
         handleAcceptInvite,
+        showRequestPotInitialView,
     ])
 
     const getButtonText = () => {
@@ -486,6 +505,10 @@ export const PaymentForm = ({
 
         if (isProcessing) {
             return 'Send'
+        }
+
+        if (showRequestPotInitialView) {
+            return 'Pay'
         }
 
         if (isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow) {
@@ -516,11 +539,13 @@ export const PaymentForm = ({
     }
 
     const getButtonIcon = (): IconName | undefined => {
-        if (!isExternalWalletConnected && isExternalWalletFlow) return 'wallet-outline'
+        if (!showRequestPotInitialView && !isExternalWalletConnected && isExternalWalletFlow) return 'wallet-outline'
 
-        if (isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow) return 'arrow-down'
+        if (!showRequestPotInitialView && isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow)
+            return 'arrow-down'
 
-        if (!isProcessing && isActivePeanutWallet && !isExternalWalletFlow) return 'arrow-up-right'
+        if (!showRequestPotInitialView && !isProcessing && isActivePeanutWallet && !isExternalWalletFlow)
+            return 'arrow-up-right'
 
         return undefined
     }
@@ -613,13 +638,19 @@ export const PaymentForm = ({
         }
     }
 
+    const contributors = getContributorsFromCharge(requestDetails?.charges || [])
+
+    const totalAmountCollected = requestDetails?.totalCollectedAmount ?? 0
+
     if (fulfillUsingManteca && chargeDetails) {
         return <MantecaFulfillment />
     }
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
-            <NavHeader onPrev={handleGoBack} title={headerTitle ?? (isExternalWalletFlow ? 'Add Money' : 'Send')} />
+            {!showRequestPotInitialView && (
+                <NavHeader onPrev={handleGoBack} title={headerTitle ?? (isExternalWalletFlow ? 'Add Money' : 'Send')} />
+            )}
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 {isExternalWalletConnected && isUsingExternalWallet && (
                     <Button
@@ -645,7 +676,7 @@ export const PaymentForm = ({
                 {/* Recipient Info Card */}
                 {recipient && !isExternalWalletFlow && (
                     <UserCard
-                        type="send"
+                        type={showRequestPotInitialView ? 'request_pay' : 'send'}
                         username={recipientDisplayName}
                         recipientType={recipient.recipientType}
                         size="small"
@@ -653,6 +684,9 @@ export const PaymentForm = ({
                         fileUrl={requestDetails?.attachmentUrl || chargeDetails?.requestLink?.attachmentUrl || ''}
                         isVerified={recipientKycStatus === 'approved'}
                         haveSentMoneyToUser={recipientUserId ? interactions[recipientUserId] || false : false}
+                        amount={showRequestPotInitialView && amount ? Number(amount) : undefined}
+                        amountCollected={showRequestPotInitialView ? totalAmountCollected : undefined}
+                        isRequestPot={showRequestPotInitialView}
                     />
                 )}
 
@@ -666,11 +700,17 @@ export const PaymentForm = ({
                     }}
                     setCurrencyAmount={setCurrencyAmount}
                     className="w-full"
-                    disabled={!isExternalWalletFlow && (!!requestDetails?.tokenAmount || !!chargeDetails?.tokenAmount)}
+                    disabled={
+                        !showRequestPotInitialView &&
+                        !isExternalWalletFlow &&
+                        (!!requestDetails?.tokenAmount || !!chargeDetails?.tokenAmount)
+                    }
                     walletBalance={isActivePeanutWallet ? peanutWalletBalance : undefined}
                     currency={currency}
                     hideCurrencyToggle={!currency}
                     hideBalance={isExternalWalletFlow}
+                    showSlider={showRequestPotInitialView && amount ? Number(amount) > 0 : false}
+                    maxAmount={showRequestPotInitialView && amount ? Number(amount) : undefined}
                 />
 
                 {/*
@@ -708,7 +748,8 @@ export const PaymentForm = ({
                 )}
 
                 <div className="space-y-4">
-                    {isPeanutWalletConnected && (!error || isInsufficientBalanceError) && (
+                    {(showRequestPotInitialView ||
+                        (isPeanutWalletConnected && (!error || isInsufficientBalanceError))) && (
                         <Button
                             variant="purple"
                             loading={isAcceptingInvite || isProcessing}
@@ -751,6 +792,20 @@ export const PaymentForm = ({
                     )}
                 </div>
             </div>
+
+            {showRequestPotInitialView && (
+                <div>
+                    <h2 className="mb-4 text-base font-bold text-black">Contributors ({contributors.length})</h2>
+                    {contributors.map((contributor, index) => (
+                        <ContributorCard
+                            position={getCardPosition(index, contributors.length)}
+                            key={contributor.uuid}
+                            contributor={contributor}
+                        />
+                    ))}
+                </div>
+            )}
+
             <ActionModal
                 visible={disconnectWagmiModal}
                 onClose={() => setDisconnectWagmiModal(false)}

@@ -7,7 +7,7 @@
  * - Large component that could be split into smaller focused components
  */
 
-import Card from '@/components/Global/Card'
+import Card, { getCardPosition } from '@/components/Global/Card'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { TRANSACTIONS } from '@/constants/query.consts'
@@ -17,7 +17,14 @@ import { useUserStore } from '@/redux/hooks'
 import { chargesApi } from '@/services/charges'
 import useClaimLink from '@/components/Claim/useClaimLink'
 import { formatAmount, formatDate, getInitialsFromName, isStableCoin, formatCurrency, getAvatarUrl } from '@/utils'
-import { formatIban, printableAddress, shortenAddress, shortenStringLong, slugify } from '@/utils/general.utils'
+import {
+    formatIban,
+    getContributorsFromCharge,
+    printableAddress,
+    shortenAddress,
+    shortenStringLong,
+    slugify,
+} from '@/utils/general.utils'
 import { cancelOnramp } from '@/app/actions/onramp'
 import { captureException } from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
@@ -54,6 +61,9 @@ import {
 import { mantecaApi } from '@/services/manteca'
 import { getReceiptUrl } from '@/utils/history.utils'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
+import TransactionCard from './TransactionCard'
+import ContributorCard from '../Global/Contributors/ContributorCard'
+import { requestsApi } from '@/services/requests'
 
 export const TransactionDetailsReceipt = ({
     transaction,
@@ -187,6 +197,7 @@ export const TransactionDetailsReceipt = ({
                 !isPublic &&
                 transaction.extraDataForDrawer?.originalType === EHistoryEntryType.MANTECA_ONRAMP &&
                 transaction.status === 'pending',
+            closed: !!(transaction.status === 'closed' && transaction.cancelledDate),
         }
     }, [transaction, isPendingBankRequest])
 
@@ -251,6 +262,19 @@ export const TransactionDetailsReceipt = ({
         return false
     }, [transaction, isPendingSentLink, isPendingRequester, isPendingRequestee])
 
+    const isQRPayment =
+        transaction &&
+        [EHistoryEntryType.MANTECA_QR_PAYMENT, EHistoryEntryType.SIMPLEFI_QR_PAYMENT].includes(
+            transaction.extraDataForDrawer!.originalType
+        )
+
+    const requestPotContributors = useMemo(() => {
+        if (!transaction || !transaction.requestPotPayments) return []
+        return getContributorsFromCharge(transaction.requestPotPayments)
+    }, [transaction])
+
+    const formattedTotalAmountCollected = formatCurrency(transaction?.totalAmountCollected?.toString() ?? '0', 2, 0)
+
     useEffect(() => {
         const getTokenDetails = async () => {
             if (!transaction) {
@@ -313,7 +337,7 @@ export const TransactionDetailsReceipt = ({
     // ensure we have a valid number for display
     const numericAmount = typeof usdAmount === 'bigint' ? Number(usdAmount) : usdAmount
     const safeAmount = isNaN(numericAmount) || numericAmount === null || numericAmount === undefined ? 0 : numericAmount
-    const amountDisplay = `$ ${formatCurrency(Math.abs(safeAmount).toString())}`
+    let amountDisplay = `$${formatCurrency(Math.abs(safeAmount).toString())}`
 
     const feeDisplay = transaction.fee !== undefined ? formatAmount(transaction.fee as number) : 'N/A'
 
@@ -337,6 +361,12 @@ export const TransactionDetailsReceipt = ({
         }
     }
 
+    if (transaction.isRequestPotLink && Number(transaction.amount) > 0) {
+        amountDisplay = `$${formatCurrency(transaction.amount.toString())}`
+    } else if (transaction.isRequestPotLink && Number(transaction.amount) === 0) {
+        amountDisplay = `$${formattedTotalAmountCollected} collected`
+    }
+
     // Show profile button only if txn is completed, not to/by a guest user and its a send/request/receive txn
     const isAvatarClickable =
         !!transaction &&
@@ -347,6 +377,27 @@ export const TransactionDetailsReceipt = ({
             transaction.extraDataForDrawer?.transactionCardType === 'request' ||
             transaction.extraDataForDrawer?.transactionCardType === 'receive')
 
+    const closeRequestLink = async () => {
+        if (isPendingRequester && setIsLoading && onClose) {
+            setIsLoading(true)
+            try {
+                if (transaction.isRequestPotLink) {
+                    await requestsApi.close(transaction.id)
+                } else {
+                    await chargesApi.cancel(transaction.id)
+                }
+                await queryClient.invalidateQueries({
+                    queryKey: [TRANSACTIONS],
+                })
+                setIsLoading(false)
+                onClose()
+            } catch (error) {
+                captureException(error)
+                console.error('Error canceling charge:', error)
+                setIsLoading(false)
+            }
+        }
+    }
     // Special rendering for PERK_REWARD type
     const isPerkReward = transaction.extraDataForDrawer?.originalType === EHistoryEntryType.PERK_REWARD
     const perkRewardData = transaction.extraDataForDrawer?.perkReward
@@ -456,6 +507,11 @@ export const TransactionDetailsReceipt = ({
                 avatarUrl={avatarUrl ?? getAvatarUrl(transaction)}
                 haveSentMoneyToUser={transaction.haveSentMoneyToUser}
                 isAvatarClickable={isAvatarClickable}
+                showProgessBar={transaction.isRequestPotLink}
+                goal={Number(transaction.amount)}
+                progress={Number(formattedTotalAmountCollected)}
+                isRequestPotTransaction={transaction.isRequestPotLink}
+                isTransactionClosed={transaction.status === 'closed'}
             />
 
             {/* Perk eligibility banner */}
@@ -602,6 +658,18 @@ export const TransactionDetailsReceipt = ({
                                     label="Cancelled"
                                     value={formatDate(new Date(transaction.cancelledDate))}
                                     hideBottomBorder={shouldHideBorder('cancelled')}
+                                />
+                            )}
+                        </>
+                    )}
+
+                    {rowVisibilityConfig.closed && (
+                        <>
+                            {transaction.cancelledDate && (
+                                <PaymentInfoRow
+                                    label="Closed at"
+                                    value={formatDate(new Date(transaction.cancelledDate))}
+                                    hideBottomBorder={shouldHideBorder('closed')}
                                 />
                             )}
                         </>
@@ -1068,31 +1136,12 @@ export const TransactionDetailsReceipt = ({
                         iconClassName="p-1"
                         loading={isLoading}
                         disabled={isLoading}
-                        onClick={() => {
-                            setIsLoading(true)
-                            chargesApi
-                                .cancel(transaction.id)
-                                .then(() => {
-                                    queryClient
-                                        .invalidateQueries({
-                                            queryKey: [TRANSACTIONS],
-                                        })
-                                        .then(() => {
-                                            setIsLoading(false)
-                                            onClose()
-                                        })
-                                })
-                                .catch((error) => {
-                                    captureException(error)
-                                    console.error('Error canceling charge:', error)
-                                    setIsLoading(false)
-                                })
-                        }}
+                        onClick={closeRequestLink}
                         variant={'primary-soft'}
                         shadowSize="4"
                         className="flex w-full items-center gap-1"
                     >
-                        Cancel request
+                        {transaction.totalAmountCollected > 0 ? 'Close request' : 'Cancel request'}
                     </Button>
                 </div>
             )}
@@ -1143,9 +1192,23 @@ export const TransactionDetailsReceipt = ({
                 </div>
             )}
 
+            {isQRPayment && (
+                <Button
+                    onClick={() => {
+                        router.push(`/request?amount=${transaction.amount}&merchant=${transaction.userName}`)
+                    }}
+                    icon="split"
+                    shadowSize="4"
+                >
+                    Split this bill
+                </Button>
+            )}
+
             {shouldShowShareReceipt && !!getReceiptUrl(transaction) && (
                 <div className="pr-1">
-                    <ShareButton url={getReceiptUrl(transaction)!}>Share Receipt</ShareButton>
+                    <ShareButton variant={isQRPayment ? 'primary-soft' : 'purple'} url={getReceiptUrl(transaction)!}>
+                        Share Receipt
+                    </ShareButton>
                 </div>
             )}
 
@@ -1359,6 +1422,21 @@ export const TransactionDetailsReceipt = ({
                         }
                     }}
                 />
+            )}
+
+            {requestPotContributors.length > 0 && (
+                <>
+                    <h2 className="text-base font-bold text-black">Contributors ({requestPotContributors.length})</h2>
+                    <div className="max-h-36 overflow-y-auto">
+                        {requestPotContributors.map((contributor, index) => (
+                            <ContributorCard
+                                position={getCardPosition(index, requestPotContributors.length)}
+                                key={contributor.uuid}
+                                contributor={contributor}
+                            />
+                        ))}
+                    </div>
+                </>
             )}
         </div>
     )

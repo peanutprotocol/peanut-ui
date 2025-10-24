@@ -6,12 +6,15 @@ import { useEffect, useState } from 'react'
 import { useNotifications } from './useNotifications'
 import { useRouter } from 'next/navigation'
 import useKycStatus from './useKycStatus'
+import { MERCADO_PAGO } from '@/assets'
+import type { StaticImageData } from 'next/image'
 
 export type Banner = {
     id: string
     title: string
     description: string
     icon: IconName
+    logo?: StaticImageData
     // optional handlers for notification banner
     onClick?: () => void | Promise<void>
     onClose?: () => void
@@ -51,12 +54,13 @@ export const useBanners = () => {
             // TODO: Add manteca KYC check after manteca is implemented
             _banners.push({
                 id: 'kyc-banner',
-                title: 'Unlock bank & local payments',
-                description: 'Complete verification to add, withdraw or pay using Banks, Mercado Pago, and more.',
+                title: 'Unlock payments in Argentina',
+                description: 'Complete verification to pay with Mercado Pago QR codes',
                 icon: 'shield',
                 onClick: () => {
                     router.push('/profile/identity-verification')
                 },
+                logo: MERCADO_PAGO,
             })
         }
 

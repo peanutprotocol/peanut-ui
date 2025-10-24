@@ -1,20 +1,21 @@
 import { PEANUT_API_URL } from '@/constants'
 import { type CreateRequestRequest, type TRequestResponse } from './services.types'
-import { fetchWithSentry } from '@/utils'
+import { fetchWithSentry, jsonStringify } from '@/utils'
+import Cookies from 'js-cookie'
 
 export const requestsApi = {
     create: async (data: CreateRequestRequest): Promise<TRequestResponse> => {
-        const formData = new FormData()
-
-        Object.entries(data).forEach(([key, value]) => {
-            if (value !== undefined) {
-                formData.append(key, value)
-            }
-        })
-
-        const response = await fetchWithSentry('/api/proxy/withFormData/requests', {
+        const token = Cookies.get('jwt-token')
+        if (!token) {
+            throw new Error('Authentication token not found. Please log in again.')
+        }
+        const response = await fetchWithSentry(`${PEANUT_API_URL}/requests`, {
             method: 'POST',
-            body: formData,
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+            body: jsonStringify(data),
         })
 
         if (!response.ok) {
@@ -37,17 +38,17 @@ export const requestsApi = {
     },
 
     update: async (id: string, data: Partial<CreateRequestRequest>): Promise<TRequestResponse> => {
-        const formData = new FormData()
-
-        Object.entries(data).forEach(([key, value]) => {
-            if (value !== undefined) {
-                formData.append(key, value)
-            }
-        })
-
-        const response = await fetchWithSentry(`/api/proxy/withFormData/requests/${id}`, {
+        const token = Cookies.get('jwt-token')
+        if (!token) {
+            throw new Error('Authentication token not found. Please log in again.')
+        }
+        const response = await fetchWithSentry(`${PEANUT_API_URL}/requests/${id}`, {
             method: 'PATCH',
-            body: formData,
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+            body: jsonStringify(data),
         })
 
         if (!response.ok) {
@@ -82,6 +83,23 @@ export const requestsApi = {
                 return null
             }
             throw new Error('Failed to fetch requests')
+        }
+        return response.json()
+    },
+
+    close: async (uuid: string): Promise<TRequestResponse> => {
+        const token = Cookies.get('jwt-token')
+        if (!token) {
+            throw new Error('Authentication token not found. Please log in again.')
+        }
+        const response = await fetchWithSentry(`${PEANUT_API_URL}/requests/${uuid}`, {
+            method: 'DELETE',
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        })
+        if (!response.ok) {
+            throw new Error(`Failed to close request: ${response.statusText}`)
         }
         return response.json()
     },

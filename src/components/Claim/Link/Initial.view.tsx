@@ -620,7 +620,15 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         return () => {
             isMounted = false
         }
-    }, [claimLinkData.tokenAddress, refetchXchainRoute, isReward, fetchRoute, recipient.address, selectedTokenData])
+    }, [
+        claimLinkData.tokenAddress,
+        refetchXchainRoute,
+        isReward,
+        fetchRoute,
+        selectedTokenData,
+        inputChanging,
+        recipient.address,
+    ])
 
     useEffect(() => {
         if ((recipientType === 'iban' || recipientType === 'us') && selectedRoute) {
@@ -630,11 +638,9 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         setHasFetchedRoute(false)
     }, [recipientType])
 
+    // Set token selection for Peanut Wallet (only when NOT claiming to external wallet)
     useEffect(() => {
-        setSelectedRoute(undefined)
-        setHasFetchedRoute(false)
-
-        if (isPeanutWallet) {
+        if (isPeanutWallet && !claimToExternalWallet) {
             setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
             setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
             if (!isPeanutChain) {
@@ -642,11 +648,16 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 setIsXChain(true)
             }
         }
+    }, [isPeanutWallet, isPeanutChain, claimToExternalWallet])
 
-        if (address && !recipient.address) {
+    // Clear recipient when switching to external wallet
+    useEffect(() => {
+        if (claimToExternalWallet && recipient.address === address) {
+            setRecipient({ name: undefined, address: '' })
+        } else if (!claimToExternalWallet && address) {
             setRecipient({ name: undefined, address })
         }
-    }, [isPeanutWallet, address, isPeanutChain])
+    }, [claimToExternalWallet, address])
 
     // Set isXChain flag and validate existing route against selected token
     useEffect(() => {
@@ -926,7 +937,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     removeParamStep()
                     setShowVerificationModal(false)
                 }}
-                description="The sender isn't verified, so please create an account and verify your identity to have the funds deposited to your bank."
+                description="The sender isn't verified for this method. You'll have to create an account, verify your identity,  and then your funds will be deposited to your bank."
             />
         </div>
     )

@@ -6,6 +6,7 @@ import { formatUnits } from 'viem'
 import { type Hash } from 'viem'
 import { getTokenDetails } from '@/utils'
 import { getCurrencyPrice } from '@/app/actions/currency'
+import { type ChargeEntry } from '@/services/services.types'
 
 export enum EHistoryEntryType {
     REQUEST = 'REQUEST',
@@ -71,6 +72,7 @@ export enum EHistoryStatus {
     refunded = 'refunded',
     canceled = 'canceled', // from simplefi, canceled with only one l
     expired = 'expired',
+    CLOSED = 'CLOSED',
 }
 
 export const FINAL_STATES: HistoryStatus[] = [
@@ -81,6 +83,7 @@ export const FINAL_STATES: HistoryStatus[] = [
     EHistoryStatus.REFUNDED,
     EHistoryStatus.CANCELED,
     EHistoryStatus.ERROR,
+    EHistoryStatus.CLOSED,
 ]
 
 export type HistoryEntryType = `${EHistoryEntryType}`
@@ -129,6 +132,9 @@ export type HistoryEntry = {
     completedAt?: string | Date
     isVerified?: boolean
     points?: number
+    isRequestLink?: boolean // true if the transaction is a request pot link
+    charges?: ChargeEntry[]
+    totalAmountCollected?: number
 }
 
 export function isFinalState(transaction: Pick<HistoryEntry, 'status'>): boolean {
@@ -219,7 +225,14 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
             break
         }
         case EHistoryEntryType.REQUEST: {
-            link = `${BASE_URL}/${entry.recipientAccount.username || entry.recipientAccount.identifier}?chargeId=${entry.uuid}`
+            // if link is a request link, we need to add the token amount and symbol to the link, also use id param instead of chargeId
+            if (entry.isRequestLink) {
+                const tokenCurrency = entry.tokenSymbol
+                const tokenAmount = entry.amount
+                link = `${BASE_URL}/${entry.recipientAccount.username || entry.recipientAccount.identifier}/${tokenAmount}${tokenCurrency}?id=${entry.uuid}`
+            } else {
+                link = `${BASE_URL}/${entry.recipientAccount.username || entry.recipientAccount.identifier}?chargeId=${entry.uuid}`
+            }
             tokenSymbol = entry.tokenSymbol
             usdAmount = entry.amount.toString()
             break

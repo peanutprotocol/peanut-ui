@@ -1,6 +1,6 @@
 import { generateMetadata } from '@/app/metadata'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
-import { RequestRouterView } from '@/components/Request/views/RequestRouter.view'
+import { CreateRequestLinkView } from '@/components/Request/link/views/Create.request.link.view'
 
 export const metadata = generateMetadata({
     title: 'Request Money | Peanut',
@@ -13,7 +13,7 @@ export const metadata = generateMetadata({
 export default function RequestPage() {
     return (
         <PageContainer>
-            <RequestRouterView />
+            <CreateRequestLinkView />
         </PageContainer>
     )
 }
