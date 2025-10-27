@@ -151,7 +151,7 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
                     if (user?.user?.bridgeKycStatus && user.user.bridgeKycStatus !== 'not_started') {
                         entries.push({
                             isKyc: true,
-                            timestamp: user.user.bridgeKycStartedAt ?? new Date(0).toISOString(),
+                            timestamp: user.user.bridgeKycStartedAt ?? user.user.createdAt ?? new Date().toISOString(),
                             uuid: 'bridge-kyc-status-item',
                             bridgeKycStatus: user.user.bridgeKycStatus,
                         })
@@ -159,7 +159,7 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
                     user?.user.kycVerifications?.forEach((verification) => {
                         entries.push({
                             isKyc: true,
-                            timestamp: verification.approvedAt ?? new Date(0).toISOString(),
+                            timestamp: verification.approvedAt ?? verification.updatedAt ?? verification.createdAt,
                             uuid: verification.providerUserId ?? `${verification.provider}-${verification.mantecaGeo}`,
                             verification,
                         })
