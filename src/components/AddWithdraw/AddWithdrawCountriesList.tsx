@@ -7,7 +7,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { getColorForUsername } from '@/utils/color.utils'
 import Image, { type StaticImageData } from 'next/image'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import EmptyState from '../Global/EmptyStates/EmptyState'
 import { useAuth } from '@/context/authContext'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -35,6 +35,12 @@ interface AddWithdrawCountriesListProps {
 const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const router = useRouter()
     const params = useParams()
+    const searchParams = useSearchParams()
+
+    // check if coming from send flow and what type
+    const methodParam = searchParams.get('method')
+    const isFromSendFlow = !!(methodParam && ['bank', 'crypto'].includes(methodParam))
+    const isBankFromSend = methodParam === 'bank' && isFromSendFlow
 
     // hooks
     const { deviceType } = useDeviceType()
@@ -123,7 +129,8 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             }
 
             if (currentCountry) {
-                router.push(`/withdraw/${currentCountry.path}/bank`)
+                const queryParams = isBankFromSend ? `?method=${methodParam}` : ''
+                router.push(`/withdraw/${currentCountry.path}/bank${queryParams}`)
             }
             return {}
         }
@@ -161,9 +168,14 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     }
 
     const handleWithdrawMethodClick = (method: SpecificPaymentMethod) => {
+        // preserve method param only if coming from bank send flow (not crypto)
+        const methodQueryParam = isBankFromSend ? `?method=${methodParam}` : ''
+
         if (method.path && method.path.includes('/manteca')) {
             // Manteca methods route directly (has own amount input)
-            router.push(method.path)
+            const separator = method.path.includes('?') ? '&' : '?'
+            const additionalParams = isBankFromSend ? `${separator}method=${methodParam}` : ''
+            router.push(`${method.path}${additionalParams}`)
         } else if (method.id.includes('default-bank-withdraw') || method.id.includes('sepa-instant-withdraw')) {
             if (isUserBridgeKycUnderReview) {
                 setShowKycStatusModal(true)
@@ -177,7 +189,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 currency: currentCountry?.currency,
                 title: method.title,
             })
-            router.push('/withdraw')
+            router.push(`/withdraw${methodQueryParam}`)
             return
         } else if (method.id.includes('crypto-withdraw')) {
             setSelectedMethod({
@@ -185,10 +197,12 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 countryPath: 'crypto',
                 title: 'Crypto',
             })
-            router.push('/withdraw')
+            router.push(`/withdraw${methodQueryParam}`)
         } else if (method.path) {
             // Other methods with paths
-            router.push(method.path)
+            const separator = method.path.includes('?') ? '&' : '?'
+            const additionalParams = isBankFromSend ? `${separator}method=${methodParam}` : ''
+            router.push(`${method.path}${additionalParams}`)
         }
     }
 
@@ -249,7 +263,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         return (
             <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
                 <NavHeader
-                    title={flow === 'withdraw' ? 'Withdraw' : 'Add money'}
+                    title={flow === 'withdraw' ? (isBankFromSend ? 'Send' : 'Withdraw') : 'Add money'}
                     onPrev={() => {
                         // clear DynamicBankAccountForm data
                         dispatch(bankFormActions.clearFormData())
@@ -347,6 +361,9 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 onPrev={() => {
                     if (flow === 'add') {
                         router.push('/add-money')
+                    } else if (isBankFromSend) {
+                        // if coming from bank send flow, preserve the method param
+                        router.push(`/withdraw?method=${methodParam}`)
                     } else {
                         router.back()
                     }

@@ -11,7 +11,7 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { formatAmount } from '@/utils'
 import { getCountryFromAccount } from '@/utils/bridge.utils'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState, useRef, useContext } from 'react'
 import { formatUnits } from 'viem'
 
@@ -19,7 +19,14 @@ type WithdrawStep = 'inputAmount' | 'selectMethod'
 
 export default function WithdrawPage() {
     const router = useRouter()
+    const searchParams = useSearchParams()
     const { selectedTokenData } = useContext(tokenSelectorContext)
+
+    // check if coming from send flow based on method query param
+    const methodParam = searchParams.get('method')
+    const isFromSendFlow = !!(methodParam && ['bank', 'crypto'].includes(methodParam))
+    const isCryptoFromSend = methodParam === 'crypto' && isFromSendFlow
+    const isBankFromSend = methodParam === 'bank' && isFromSendFlow
 
     const {
         amountToWithdraw: amountFromContext,
@@ -33,9 +40,24 @@ export default function WithdrawPage() {
         setShowAllWithdrawMethods,
     } = useWithdrawFlow()
 
-    const initialStep: WithdrawStep = selectedMethod ? 'inputAmount' : 'selectMethod'
+    // only go to input amount if method is selected OR if it's crypto from send (bank needs method selection first)
+    const initialStep: WithdrawStep = selectedMethod || isCryptoFromSend ? 'inputAmount' : 'selectMethod'
 
     const [step, setStep] = useState<WithdrawStep>(initialStep)
+
+    // automatically set crypto method when coming from send flow with method=crypto
+    useEffect(() => {
+        if (isCryptoFromSend && !selectedMethod) {
+            setSelectedMethod({
+                type: 'crypto',
+                title: 'Crypto',
+                countryPath: undefined,
+            })
+        } else if (isBankFromSend && !selectedMethod) {
+            // for bank, just show all methods - don't auto-select
+            setShowAllWithdrawMethods(true)
+        }
+    }, [isCryptoFromSend, isBankFromSend, selectedMethod, setSelectedMethod, setShowAllWithdrawMethods])
 
     // flag to know if user has manually entered something
     const userTypedRef = useRef<boolean>(false)
@@ -68,12 +90,12 @@ export default function WithdrawPage() {
     }, [setError, amountFromContext])
 
     useEffect(() => {
-        if (selectedMethod) {
+        if (selectedMethod || isCryptoFromSend) {
             setStep('inputAmount')
             if (amountFromContext && !rawTokenAmount) {
                 setRawTokenAmount(amountFromContext)
             }
-        } else {
+        } else if (!selectedMethod) {
             setStep('selectMethod')
             // clear the raw token amount when switching back to method selection
             if (step !== 'selectMethod') {
@@ -81,7 +103,7 @@ export default function WithdrawPage() {
                 setTokenInputKey((k) => k + 1)
             }
         }
-    }, [selectedMethod, amountFromContext, step, rawTokenAmount])
+    }, [selectedMethod, isCryptoFromSend, amountFromContext, step, rawTokenAmount])
 
     useEffect(() => {
         // If amount is available (i.e) user clicked back from select method view, show all methods
@@ -116,7 +138,7 @@ export default function WithdrawPage() {
             // determine message
             let message = ''
             if (usdEquivalent < 1) {
-                message = 'Minimum withdrawal is 1.'
+                message = isFromSendFlow ? 'Minimum send amount is $1.' : 'Minimum withdrawal is $1.'
             } else if (amount > maxDecimalAmount) {
                 message = 'Amount exceeds your wallet balance.'
             } else {
@@ -125,7 +147,7 @@ export default function WithdrawPage() {
             setError({ showError: true, errorMessage: message })
             return false
         },
-        [maxDecimalAmount, setError, selectedTokenData?.price]
+        [maxDecimalAmount, setError, selectedTokenData?.price, isFromSendFlow]
     )
 
     const handleTokenAmountChange = useCallback(
@@ -180,25 +202,35 @@ export default function WithdrawPage() {
             setUsdAmount(usdVal.toString())
 
             // Route based on selected method type
+            // preserve method param if coming from send flow
+            const methodQueryParam = isFromSendFlow ? `method=${methodParam}` : ''
+
             if (selectedBankAccount) {
                 const country = getCountryFromAccount(selectedBankAccount)
                 if (country) {
-                    router.push(`/withdraw/${country.path}/bank`)
+                    const queryParams = isFromSendFlow ? `?${methodQueryParam}` : ''
+                    router.push(`/withdraw/${country.path}/bank${queryParams}`)
                 } else {
                     throw new Error('Failed to get country from bank account')
                 }
             } else if (selectedMethod.type === 'crypto') {
-                router.push('/withdraw/crypto')
+                const queryParams = isFromSendFlow ? `?${methodQueryParam}` : ''
+                router.push(`/withdraw/crypto${queryParams}`)
             } else if (selectedMethod.type === 'manteca') {
                 // Route directly to Manteca with method and country params
-                const methodParam = selectedMethod.title?.toLowerCase().replace(/\s+/g, '-') || 'bank-transfer'
-                router.push(`/withdraw/manteca?method=${methodParam}&country=${selectedMethod.countryPath}`)
+                const mantecaMethodParam = selectedMethod.title?.toLowerCase().replace(/\s+/g, '-') || 'bank-transfer'
+                const additionalParams = isFromSendFlow ? `&${methodQueryParam}` : ''
+                router.push(
+                    `/withdraw/manteca?method=${mantecaMethodParam}&country=${selectedMethod.countryPath}${additionalParams}`
+                )
             } else if (selectedMethod.type === 'bridge' && selectedMethod.countryPath) {
                 // Bridge countries go to country page for bank account form
-                router.push(`/withdraw/${selectedMethod.countryPath}`)
+                const queryParams = isFromSendFlow ? `?${methodQueryParam}` : ''
+                router.push(`/withdraw/${selectedMethod.countryPath}${queryParams}`)
             } else if (selectedMethod.countryPath) {
                 // Other countries go to their country pages
-                router.push(`/withdraw/${selectedMethod.countryPath}`)
+                const queryParams = isFromSendFlow ? `?${methodQueryParam}` : ''
+                router.push(`/withdraw/${selectedMethod.countryPath}${queryParams}`)
             }
         }
     }
@@ -221,16 +253,24 @@ export default function WithdrawPage() {
         return (
             <div className="flex min-h-[inherit] flex-col justify-start space-y-8">
                 <NavHeader
-                    title="Withdraw"
+                    title={isFromSendFlow ? 'Send' : 'Withdraw'}
                     onPrev={() => {
-                        // Go back to method selection
-                        setSelectedMethod(null)
-                        setStep('selectMethod')
+                        // if crypto from send, go back to send page
+                        if (isCryptoFromSend) {
+                            setSelectedMethod(null)
+                            router.push('/send')
+                        } else {
+                            // otherwise go back to method selection
+                            setSelectedMethod(null)
+                            setStep('selectMethod')
+                        }
                     }}
                 />
                 <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
                     <div className="space-y-1">
-                        <div className="text-xl font-bold">Amount to withdraw</div>
+                        <div className="text-xl font-bold">
+                            {isFromSendFlow ? 'Amount to send' : 'Amount to withdraw'}
+                        </div>
                     </div>
                     <TokenAmountInput
                         key={tokenInputKey} // force re-render to clear any internal state
@@ -258,10 +298,15 @@ export default function WithdrawPage() {
         return (
             <AddWithdrawRouterView
                 flow="withdraw"
-                pageTitle="Withdraw"
-                mainHeading="How would you like to withdraw?"
+                pageTitle={isBankFromSend ? 'Send' : 'Withdraw'}
+                mainHeading={isBankFromSend ? 'How would you like to send?' : 'How would you like to withdraw?'}
                 onBackClick={() => {
-                    router.push('/home')
+                    // if bank from send flow, go back to send page
+                    if (isBankFromSend) {
+                        router.push('/send')
+                    } else {
+                        router.push('/home')
+                    }
                 }}
             />
         )
