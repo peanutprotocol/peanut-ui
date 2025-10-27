@@ -19,9 +19,6 @@ export interface CreateRequestRequest {
     tokenAddress: string
     tokenDecimals: string
     tokenSymbol: string
-    attachment?: File
-    mimeType?: string
-    filename?: string
 }
 
 export interface TRequestResponse {
@@ -48,6 +45,7 @@ export interface TRequestResponse {
             username: string
         }
     }
+    totalCollectedAmount: number
 }
 
 export interface ChargeEntry {
@@ -462,10 +460,11 @@ export interface CalculatePointsRequest {
     otherUserId?: string
 }
 
-// Perks system types
-export interface HistoryEntryPerk {
-    claimed: boolean
+// Perks system - Unified interface (all perks are V2 campaigns now)
+export interface HistoryEntryPerkReward {
+    reason: string
     discountPercentage: number
-    amountSponsored?: number
-    txHash?: string
+    originatingTxId?: string
+    originatingTxType?: string
+    perkName?: string
 }

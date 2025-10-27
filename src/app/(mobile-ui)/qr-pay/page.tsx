@@ -43,6 +43,8 @@ import { useAuth } from '@/context/authContext'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import type { HistoryEntry } from '@/hooks/useTransactionHistory'
 import { completeHistoryEntry } from '@/utils/history.utils'
+import { useSupportModalContext } from '@/context/SupportModalContext'
+import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
 
 const MAX_QR_PAYMENT_AMOUNT = '2000'
 
@@ -84,6 +86,10 @@ export default function QRPayPage() {
     const { user } = useAuth()
     const [pendingSimpleFiPaymentId, setPendingSimpleFiPaymentId] = useState<string | null>(null)
     const [isWaitingForWebSocket, setIsWaitingForWebSocket] = useState(false)
+    const [shouldRetry, setShouldRetry] = useState(true)
+    const { setIsSupportModalOpen } = useSupportModalContext()
+    const [waitingForMerchantAmount, setWaitingForMerchantAmount] = useState(false)
+    const retryCount = useRef(0)
 
     const paymentProcessor: PaymentProcessor | null = useMemo(() => {
         switch (qrType) {
@@ -131,12 +137,6 @@ export default function QRPayPage() {
             holdStartTimeRef.current = null
         }
     }, [])
-
-    // Reset SimpleFi payment state
-    const resetSimpleFiState = () => {
-        setPendingSimpleFiPaymentId(null)
-        setIsWaitingForWebSocket(false)
-    }
 
     const handleSimpleFiStatusUpdate = useCallback(
         async (entry: HistoryEntry) => {
@@ -387,15 +387,26 @@ export default function QRPayPage() {
     useEffect(() => {
         if (paymentProcessor !== 'MANTECA') return
         if (!qrCode || !isPaymentProcessorQR(qrCode)) return
-        if (!!paymentLock) return
+        if (!!paymentLock || !shouldRetry) return
 
+        setShouldRetry(false)
         setLoadingState('Fetching details')
         mantecaApi
             .initiateQrPayment({ qrCode })
-            .then((pl) => setPaymentLock(pl))
-            .catch((error) => setErrorInitiatingPayment(error.message))
+            .then((pl) => {
+                setWaitingForMerchantAmount(false)
+                setPaymentLock(pl)
+            })
+            .catch((error) => {
+                if (error.message.includes("provider can't decode it")) {
+                    setWaitingForMerchantAmount(true)
+                } else {
+                    setErrorInitiatingPayment(error.message)
+                    setWaitingForMerchantAmount(false)
+                }
+            })
             .finally(() => setLoadingState('Idle'))
-    }, [paymentLock, qrCode, setLoadingState, paymentProcessor])
+    }, [paymentLock, qrCode, setLoadingState, paymentProcessor, shouldRetry])
 
     const merchantName = useMemo(() => {
         if (paymentProcessor === 'SIMPLEFI') {
@@ -703,6 +714,12 @@ export default function QRPayPage() {
 
     // Check user balance
     useEffect(() => {
+        // Skip balance check if transaction is being processed
+        // (balance has been optimistically updated in these states)
+        if (isLoading || isWaitingForWebSocket) {
+            return
+        }
+
         if (!usdAmount || usdAmount === '0.00' || isNaN(Number(usdAmount)) || balance === undefined) {
             setBalanceErrorMessage(null)
             return
@@ -715,7 +732,7 @@ export default function QRPayPage() {
         } else {
             setBalanceErrorMessage(null)
         }
-    }, [usdAmount, balance])
+    }, [usdAmount, balance, isLoading, isWaitingForWebSocket])
 
     useEffect(() => {
         if (isSuccess) {
@@ -723,7 +740,7 @@ export default function QRPayPage() {
         }
     }, [isSuccess])
 
-    const handleOrderNotReadyRetry = useCallback(async () => {
+    const handleSimplefiRetry = useCallback(async () => {
         setShowOrderNotReadyModal(false)
         if (!simpleFiQrData || simpleFiQrData.type !== 'SIMPLEFI_STATIC') return
 
@@ -752,6 +769,27 @@ export default function QRPayPage() {
             setLoadingState('Idle')
         }
     }, [simpleFiQrData, setLoadingState])
+
+    useEffect(() => {
+        if (paymentProcessor !== 'SIMPLEFI') return
+        if (!shouldRetry) return
+        setShouldRetry(false)
+        handleSimplefiRetry()
+    }, [shouldRetry, handleSimplefiRetry])
+
+    useEffect(() => {
+        if (waitingForMerchantAmount && !shouldRetry) {
+            if (retryCount.current < 3) {
+                retryCount.current++
+                setTimeout(() => {
+                    setShouldRetry(true)
+                }, 3000)
+            } else {
+                setWaitingForMerchantAmount(false)
+                setShowOrderNotReadyModal(true)
+            }
+        }
+    }, [waitingForMerchantAmount, shouldRetry])
 
     if (!!errorInitiatingPayment) {
         return (
@@ -840,25 +878,57 @@ export default function QRPayPage() {
         )
     }
 
+    if (waitingForMerchantAmount) {
+        return (
+            <div className="my-auto flex h-full w-full flex-col items-center justify-center space-y-4">
+                <div className="relative">
+                    <Image
+                        src={chillPeanutAnim.src}
+                        alt="Peanut Mascot"
+                        width={20}
+                        height={20}
+                        className="absolute z-0 h-32 w-32 -translate-y-20 translate-x-26"
+                    />
+                    <Card className="relative z-10 flex w-full flex-col items-center gap-4 p-4">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-1 p-3">
+                            <Icon name="clock" className="h-full" />
+                        </div>
+                        <p className="font-medium">Waiting for the merchant to set the amount</p>
+                    </Card>
+                </div>
+            </div>
+        )
+    }
+
     if (showOrderNotReadyModal) {
         return (
-            <div className="my-auto flex h-full flex-col justify-center space-y-4">
-                <Card className="shadow-4 space-y-2">
-                    <div className="space-y-2">
-                        <h1 className="text-3xl font-extrabold">Order Not Ready</h1>
-                        <p className="text-lg">Please notify the cashier that you're ready to pay, then tap Retry.</p>
+            <div className="my-auto flex h-full w-full flex-col justify-center space-y-4">
+                <Card className="flex w-full flex-col items-center gap-2 p-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-1 p-3">
+                        <Icon name="qr-code" className="h-full" />
                     </div>
-                    <div className="h-[1px] bg-black"></div>
-
-                    <div className="flex flex-col space-y-3">
-                        <Button onClick={handleOrderNotReadyRetry} variant="purple" shadowSize="4">
-                            Retry Payment
-                        </Button>
-                        <Button onClick={() => router.back()} variant="primary-soft" shadowSize="4">
-                            Cancel
-                        </Button>
-                    </div>
+                    <span className="text-lg font-bold">We couldn't get the amount</span>
+                    <p className="max-w-52 text-center font-normal text-grey-1">
+                        Ask the merchant to enter it and scan the QR again.
+                    </p>
                 </Card>
+                <Button
+                    onClick={() => {
+                        setShowOrderNotReadyModal(false)
+                        setShouldRetry(true)
+                    }}
+                    variant="purple"
+                    shadowSize="4"
+                >
+                    Scan the code again
+                </Button>
+                <button
+                    onClick={() => setIsSupportModalOpen(true)}
+                    className="flex w-full items-center justify-center gap-2 text-sm font-medium text-grey-1 transition-colors hover:text-black"
+                >
+                    <Icon name="peanut-support" size={16} className="text-grey-1" />
+                    Having trouble?
+                </button>
             </div>
         )
     }
@@ -918,7 +988,16 @@ export default function QRPayPage() {
                             <div className="flex flex-col gap-2">
                                 <h2 className="text-lg font-bold">Eligible for a Peanut Perk!</h2>
                                 <p className="text-sm text-gray-600">
-                                    This bill can be covered by Peanut. Claim it now to unlock your reward.
+                                    {(() => {
+                                        const percentage = qrPayment?.perk?.discountPercentage || 100
+                                        if (percentage === 100) {
+                                            return 'This bill can be covered by Peanut. Claim it now to unlock your reward.'
+                                        } else if (percentage > 100) {
+                                            return `You're getting ${percentage}% back — that's more than you paid! Claim it now.`
+                                        } else {
+                                            return `You're getting ${percentage}% cashback! Claim it now to unlock your reward.`
+                                        }
+                                    })()}
                                 </p>
                             </div>
                         </Card>
@@ -933,9 +1012,16 @@ export default function QRPayPage() {
                             <div className="flex flex-col gap-2">
                                 <h2 className="text-2xl font-bold">Peanut got you!</h2>
                                 <p className="text-base text-gray-900">
-                                    {qrPayment?.perk?.discountPercentage === 100
-                                        ? 'We sponsored this bill! Earn points, climb tiers and unlock even better perks.'
-                                        : `We gave you ${qrPayment?.perk?.discountPercentage}% off! Earn points, climb tiers and unlock even better perks.`}
+                                    {(() => {
+                                        const percentage = qrPayment?.perk?.discountPercentage || 100
+                                        if (percentage === 100) {
+                                            return 'We paid for this bill! Earn points, climb tiers and unlock even better perks.'
+                                        } else if (percentage > 100) {
+                                            return `We gave you ${percentage}% back — that's more than you paid! Earn points, climb tiers and unlock even better perks.`
+                                        } else {
+                                            return `We gave you ${percentage}% cashback! Earn points, climb tiers and unlock even better perks.`
+                                        }
+                                    })()}
                                 </p>
                             </div>
                         </Card>
@@ -960,10 +1046,18 @@ export default function QRPayPage() {
                                         cancelHold()
                                     }
                                 }}
+                                onContextMenu={(e) => {
+                                    // Prevent context menu from appearing
+                                    e.preventDefault()
+                                }}
                                 shadowSize="4"
                                 disabled={isClaimingPerk}
                                 loading={isClaimingPerk}
-                                className="relative overflow-hidden"
+                                className="relative touch-manipulation select-none overflow-hidden"
+                                style={{
+                                    WebkitTouchCallout: 'none',
+                                    WebkitTapHighlightColor: 'transparent',
+                                }}
                             >
                                 {/* Black progress fill from left to right */}
                                 <div
@@ -1015,6 +1109,7 @@ export default function QRPayPage() {
                                                     exchange_rate: currency.price.toString(),
                                                 },
                                             },
+                                            totalAmountCollected: Number(usdAmount),
                                         })
                                     }}
                                 >
@@ -1096,6 +1191,7 @@ export default function QRPayPage() {
                                             exchange_rate: currency.price.toString(),
                                         },
                                     },
+                                    totalAmountCollected: Number(usdAmount),
                                 })
                             }}
                         >

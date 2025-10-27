@@ -39,6 +39,7 @@ const HomeBanners = () => {
                             setBanners(banners.filter((b) => b.id !== banner.id))
                         }}
                         onClick={banner.onClick}
+                        logo={banner.logo}
                     />
                 )
             })}

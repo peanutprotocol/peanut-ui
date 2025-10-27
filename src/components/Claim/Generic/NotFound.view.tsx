@@ -6,11 +6,10 @@ export const NotFoundClaimLink = () => {
     return (
         <ValidationErrorView
             title="This link seems broken!"
-            message="Are you sure you clicked on the right link?"
+            message="Are you sure you clicked on the right link? Was this link just created? Try again in a few seconds."
             buttonText="Go back to home"
             redirectTo="/home"
             showLearnMore={false}
-            supportMessageTemplate="I clicked on this link but got an error: {url}"
         />
     )
 }

@@ -10,6 +10,7 @@ import { isAddress as isWalletAddress } from 'viem'
 import Card from '../Global/Card'
 import { Icon, type IconName } from '../Global/Icons/Icon'
 import { VerifiedUserLabel } from '../UserHeader'
+import ProgressBar from '../Global/ProgressBar'
 import { useRouter } from 'next/navigation'
 import { twMerge } from 'tailwind-merge'
 
@@ -38,8 +39,12 @@ interface TransactionDetailsHeaderCardProps {
     transactionType?: TransactionType
     avatarUrl?: string
     haveSentMoneyToUser?: boolean
-    hasPerk?: boolean
     isAvatarClickable?: boolean
+    showProgessBar?: boolean
+    progress?: number
+    goal?: number
+    isRequestPotTransaction?: boolean
+    isTransactionClosed: boolean
 }
 
 const getTitle = (
@@ -170,8 +175,12 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     transactionType,
     avatarUrl,
     haveSentMoneyToUser = false,
-    hasPerk = false,
     isAvatarClickable = false,
+    showProgessBar = false,
+    progress,
+    goal,
+    isRequestPotTransaction,
+    isTransactionClosed,
 }) => {
     const router = useRouter()
     const typeForAvatar =
@@ -184,6 +193,8 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
             router.push(`/${userName}`)
         }
     }
+
+    const isNoGoalSet = isRequestPotTransaction && goal === 0
 
     return (
         <Card className="relative p-4 md:p-6" position="single">
@@ -206,31 +217,49 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                             isLinkTransaction={isLinkTransaction}
                             transactionType={typeForAvatar}
                             context="header"
-                            size="medium"
+                            size="small"
                         />
                     )}
                 </div>
-                <div className="space-y-1">
+                <div className="w-full space-y-1">
                     <h2 className="flex items-center gap-2 text-sm font-medium text-grey-1">
                         {icon && <Icon name={icon} size={10} />}
                         <VerifiedUserLabel
                             username={userName}
-                            name={getTitle(direction, userName, isLinkTransaction, status) as string}
+                            name={
+                                isRequestPotTransaction
+                                    ? userName
+                                    : (getTitle(direction, userName, isLinkTransaction, status) as string)
+                            }
                             isVerified={isVerified}
                             className="flex items-center gap-1"
                             haveSentMoneyToUser={haveSentMoneyToUser}
                             iconSize={18}
                             onNameClick={isAvatarClickable ? handleUserPfpClick : undefined}
                         />
+
+                        <div className="ml-auto">
+                            {status && <StatusBadge status={status} size="small" className="py-0" />}
+                        </div>
                     </h2>
                     <h1
-                        className={`text-3xl font-extrabold md:text-4xl ${status === 'cancelled' || hasPerk ? 'line-through' : ''} ${status === 'cancelled' ? 'text-grey-1' : ''}`}
+                        className={twMerge(
+                            'text-3xl font-extrabold md:text-4xl',
+                            status === 'cancelled' && 'text-grey-1 line-through',
+                            isNoGoalSet && 'text-xl text-black md:text-3xl'
+                        )}
                     >
                         {amountDisplay}
                     </h1>
+
+                    {isNoGoalSet && <h4 className="text-sm font-medium text-black">No goal set</h4>}
                 </div>
             </div>
-            <div className="absolute bottom-4 right-4">{status && <StatusBadge status={status} size="small" />}</div>
+            {!isNoGoalSet && showProgessBar && goal !== undefined && progress !== undefined && (
+                <div className="mt-4">
+                    <ProgressBar goal={goal} progress={progress} isClosed={isTransactionClosed} />
+                </div>
+            )}
         </Card>
     )
 }

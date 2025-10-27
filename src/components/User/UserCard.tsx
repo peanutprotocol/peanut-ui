@@ -7,9 +7,11 @@ import Card from '../Global/Card'
 import { Icon, type IconName } from '../Global/Icons/Icon'
 import AvatarWithBadge, { type AvatarSize } from '../Profile/AvatarWithBadge'
 import { VerifiedUserLabel } from '../UserHeader'
+import { twMerge } from 'tailwind-merge'
+import ProgressBar from '../Global/ProgressBar'
 
 interface UserCardProps {
-    type: 'send' | 'request' | 'received_link'
+    type: 'send' | 'request' | 'received_link' | 'request_pay'
     username: string
     fullName?: string
     recipientType?: RecipientType
@@ -18,6 +20,9 @@ interface UserCardProps {
     fileUrl?: string
     isVerified?: boolean
     haveSentMoneyToUser?: boolean
+    amount?: number
+    amountCollected?: number
+    isRequestPot?: boolean
 }
 
 const UserCard = ({
@@ -30,6 +35,9 @@ const UserCard = ({
     fileUrl,
     isVerified,
     haveSentMoneyToUser,
+    amount,
+    amountCollected,
+    isRequestPot,
 }: UserCardProps) => {
     const getIcon = (): IconName | undefined => {
         if (type === 'send') return 'arrow-up-right'
@@ -43,6 +51,7 @@ const UserCard = ({
         if (type === 'send') title = `You're sending money to`
         if (type === 'request') title = `Requesting money from`
         if (type === 'received_link') title = `You received`
+        if (type === 'request_pay') title = `${fullName ?? username} is requesting`
 
         return (
             <div className="flex items-center gap-2 text-xs font-normal text-grey-1">
@@ -51,36 +60,58 @@ const UserCard = ({
         )
     }, [type])
 
+    const getAddressLinkTitle = () => {
+        if (isRequestPot && amount && amount > 0) return `$${amount}` // If goal is set.
+        if (!amount && isRequestPot) return `Pay what you want` // If no goal is set.
+
+        return username
+    }
+
     return (
-        <Card className="flex items-center gap-2 p-4">
-            <AvatarWithBadge
-                icon={recipientType !== 'USERNAME' ? 'wallet-outline' : undefined}
-                inlineStyle={{
-                    backgroundColor:
-                        recipientType !== 'USERNAME' ? '#FFD700' : getColorForUsername(fullName || username).lightShade,
-                    color:
-                        recipientType !== 'USERNAME'
-                            ? AVATAR_TEXT_DARK
-                            : getColorForUsername(fullName || username).darkShade,
-                }}
-                size={size}
-                name={fullName || username}
-            />
-            <div>
-                {getTitle()}
-                {recipientType !== 'USERNAME' ? (
-                    <AddressLink address={username} className="text-base font-medium" />
-                ) : (
-                    <VerifiedUserLabel
-                        name={fullName || username}
-                        username={username}
-                        isVerified={isVerified}
-                        haveSentMoneyToUser={haveSentMoneyToUser}
-                        className="text-base font-medium"
-                    />
-                )}
-                <Attachment message={message ?? ''} fileUrl={fileUrl ?? ''} />
+        <Card className="flex flex-col items-center gap-4 p-4">
+            <div className="flex w-full items-center gap-2">
+                <AvatarWithBadge
+                    icon={recipientType !== 'USERNAME' ? 'wallet-outline' : undefined}
+                    inlineStyle={{
+                        backgroundColor:
+                            recipientType !== 'USERNAME'
+                                ? '#FFD700'
+                                : getColorForUsername(fullName || username).lightShade,
+                        color:
+                            recipientType !== 'USERNAME'
+                                ? AVATAR_TEXT_DARK
+                                : getColorForUsername(fullName || username).darkShade,
+                    }}
+                    size={size}
+                    name={fullName || username}
+                />
+                <div>
+                    {getTitle()}
+                    {recipientType !== 'USERNAME' || type === 'request_pay' ? (
+                        <AddressLink
+                            // address={amount ? `$${amount}` : username}
+                            address={getAddressLinkTitle()}
+                            className={twMerge(
+                                'text-base font-medium',
+                                type === 'request_pay' && 'text-2xl font-extrabold text-black md:text-3xl'
+                            )}
+                            isLink={type !== 'request_pay'}
+                        />
+                    ) : (
+                        <VerifiedUserLabel
+                            name={fullName ?? username}
+                            username={username}
+                            isVerified={isVerified}
+                            haveSentMoneyToUser={haveSentMoneyToUser}
+                            className="text-base font-medium"
+                        />
+                    )}
+                    <Attachment message={message ?? ''} fileUrl={fileUrl ?? ''} />
+                </div>
             </div>
+            {amount !== undefined && amountCollected !== undefined && type === 'request_pay' && amount > 0 && (
+                <ProgressBar goal={amount} progress={amountCollected} isClosed={amountCollected >= amount} />
+            )}
         </Card>
     )
 }

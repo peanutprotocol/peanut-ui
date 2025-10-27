@@ -18,6 +18,7 @@ export type TransactionDetailsRowKey =
     | 'comment'
     | 'attachment'
     | 'mantecaDepositInfo'
+    | 'closed'
 
 // order of the rows in the receipt (must match actual rendering order in component)
 export const transactionDetailsRowKeys: TransactionDetailsRowKey[] = [
@@ -39,6 +40,7 @@ export const transactionDetailsRowKeys: TransactionDetailsRowKey[] = [
     'networkFee',
     'peanutFee',
     'attachment',
+    'closed',
 ]
 
 export const getBankAccountLabel = (type: string) => {
