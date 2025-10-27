@@ -164,7 +164,7 @@ const HistoryPage = () => {
             if (!b.earnedAt) return
             entries.push({
                 isBadge: true,
-                uuid: `badge-${b.code}-${new Date(b.earnedAt).getTime()}`,
+                uuid: b.id,
                 timestamp: new Date(b.earnedAt).toISOString(),
                 code: b.code,
                 name: b.name,

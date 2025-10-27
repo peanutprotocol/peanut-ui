@@ -15,16 +15,15 @@ const CODE_TO_PATH: Record<string, string> = {
 
 // public-facing descriptions for badges (third-person perspective)
 const PUBLIC_DESCRIPTIONS: Record<string, string> = {
-    BETA_TESTER: `They broke things so others don't have to. Welcome to the chaos club — Beta Tester badge unlocked.`,
-    OG_2025_10_12: 'They used v0.1 with pride (and occasional pain).',
+    BETA_TESTER: `They broke things so others don't have to. Welcome to the chaos club.`,
+    OG_2025_10_12: 'This is a real OG. They were with Peanut before it was cool.',
     DEVCONNECT_BA_2025: 'Not anon. Touched grass, shook hands, breathed the same air as Vitalik.',
-    PRODUCT_HUNT: 'Hope Dealer — Their upvote felt like a VC term sheet.',
-    MOST_RESTAURANTS_DEVCON: 'Gas Guzzler (IRL Edition) — burned calories like ETH in a bull run.',
-    BIG_SPENDER_5K: 'Wallet Warrior - They moved like they own the bank. Top spender badge unlocked.',
+    PRODUCT_HUNT: 'Hope Dealer. Their upvote felt like a VC term sheet!',
+    MOST_RESTAURANTS_DEVCON: 'This person is a real gourmet!',
+    BIG_SPENDER_5K: 'This person is a top spender.',
     MOST_PAYMENTS_DEVCON: `Money Machine - They move money like it's light work. Most payments made!`,
-    MOST_INVITES: 'Human Airdrop Mechanism — they onboarded more wallets than Coinbase ads.',
-    BIGGEST_REQUEST_POT:
-        'High Roller or Master Beggar? They created the pot with the highest number of contributors. Respect... we think?',
+    MOST_INVITES: 'Onboarded more users than Coinbase ads!',
+    BIGGEST_REQUEST_POT: 'High Roller or Master Beggar? They created the pot with the highest number of contributors.',
 }
 
 export function getBadgeIcon(code?: string) {

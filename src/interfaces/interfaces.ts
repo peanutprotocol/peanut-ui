@@ -259,6 +259,7 @@ export interface User {
     createdAt: string
     accounts: Account[]
     badges?: Array<{
+        id?: string
         code: string
         name: string
         description: string | null
