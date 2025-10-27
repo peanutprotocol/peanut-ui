@@ -54,8 +54,8 @@ export default function WithdrawPage() {
                 countryPath: undefined,
             })
         } else if (isBankFromSend && !selectedMethod) {
-            // for bank, just show all methods - don't auto-select
-            setShowAllWithdrawMethods(true)
+            // for bank from send flow, prefer showing saved accounts first
+            setShowAllWithdrawMethods(false)
         }
     }, [isCryptoFromSend, isBankFromSend, selectedMethod, setSelectedMethod, setShowAllWithdrawMethods])
 

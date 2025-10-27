@@ -26,6 +26,9 @@ interface CountryListViewProps {
     onCryptoClick?: (flow: 'add' | 'withdraw') => void
     flow?: 'add' | 'withdraw'
     getRightContent?: (country: CountryData, isSupported: boolean) => ReactNode
+    // when true and viewMode is 'add-withdraw', disable countries that are not supported
+    // this is used for the send -> bank flow to prevent selecting unsupported countries
+    enforceSupportedCountries?: boolean
 }
 
 /**
@@ -46,6 +49,7 @@ export const CountryList = ({
     onCryptoClick,
     flow,
     getRightContent,
+    enforceSupportedCountries,
 }: CountryListViewProps) => {
     const searchParams = useSearchParams()
     // get currencyCode from search params
@@ -142,8 +146,13 @@ export const CountryList = ({
                             let isSupported = false
 
                             if (viewMode === 'add-withdraw') {
-                                // all countries supported for claim-request
-                                isSupported = true
+                                // for send->bank flow, enforce only bridge or manteca supported countries
+                                if (enforceSupportedCountries) {
+                                    isSupported = isBridgeSupportedCountry
+                                } else {
+                                    // otherwise allow all countries
+                                    isSupported = true
+                                }
                             } else if (viewMode === 'general-verification') {
                                 // all countries can verify even if they cant
                                 // withdraw

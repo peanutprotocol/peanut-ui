@@ -265,10 +265,26 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 <NavHeader
                     title={flow === 'withdraw' ? (isBankFromSend ? 'Send' : 'Withdraw') : 'Add money'}
                     onPrev={() => {
-                        // clear DynamicBankAccountForm data
+                        // clear dynamicbankaccountform data
                         dispatch(bankFormActions.clearFormData())
                         // ensure kyc modal isn't open so late success events don't flip view
                         setIsKycModalOpen(false)
+
+                        // if coming from send flow, go back to amount input on /withdraw?method=bank
+                        if (flow === 'withdraw' && isBankFromSend) {
+                            if (currentCountry) {
+                                setSelectedMethod({
+                                    type: 'bridge',
+                                    countryPath: currentCountry.path,
+                                    currency: currentCountry.currency,
+                                    title: 'To Bank',
+                                })
+                            }
+                            router.push(`/withdraw?method=${methodParam}`)
+                            return
+                        }
+
+                        // otherwise go back to list
                         setView('list')
                     }}
                 />
@@ -362,7 +378,13 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                     if (flow === 'add') {
                         router.push('/add-money')
                     } else if (isBankFromSend) {
-                        // if coming from bank send flow, preserve the method param
+                        // if coming from bank send flow: set method and go to amount input view
+                        setSelectedMethod({
+                            type: 'bridge',
+                            countryPath: currentCountry.path,
+                            currency: currentCountry.currency,
+                            title: 'To Bank',
+                        })
                         router.push(`/withdraw?method=${methodParam}`)
                     } else {
                         router.back()

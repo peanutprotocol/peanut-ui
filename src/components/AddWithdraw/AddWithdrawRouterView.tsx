@@ -274,8 +274,21 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
             <CountryList
                 inputTitle={mainHeading}
                 viewMode="add-withdraw"
+                enforceSupportedCountries={isBankFromSend}
                 onCountryClick={(country) => {
-                    // preserve method param if coming from send flow
+                    // from send flow (bank): set method in context and stay on /withdraw?method=bank
+                    if (flow === 'withdraw' && isBankFromSend) {
+                        // set selected method and let withdraw page move to amount input
+                        setSelectedMethod({
+                            type: 'bridge',
+                            countryPath: country.path,
+                            currency: country.currency,
+                            title: country.title,
+                        })
+                        return
+                    }
+
+                    // default behaviour: navigate to country page
                     const queryParams = isBankFromSend ? `?method=${methodParam}` : ''
                     const countryPath = `${baseRoute}/${country.path}${queryParams}`
                     if (flow === 'add' && user) {

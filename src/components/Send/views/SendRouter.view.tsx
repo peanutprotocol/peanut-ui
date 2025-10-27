@@ -80,9 +80,15 @@ export const SendRouterView = () => {
     }
 
     const handlePrev = () => {
-        // reset send flow state when leaving link creation flow
+        // reset send flow state and navigate deterministically
+        // when in sub-views (link or contacts), go back to base send page
+        // otherwise, go to home
         dispatch(sendFlowActions.resetSendFlow())
-        router.back()
+        if (isSendingByLink || isSendingToContacts) {
+            router.push('/send')
+        } else {
+            router.push('/home')
+        }
     }
 
     const handleLinkCtaClick = () => {
