@@ -113,23 +113,19 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         {/* txn avatar component handles icon/initials/colors */}
-                        {/* <div className="relative"> */}
                         {isPerkReward ? (
                             <>
-                                <PerkIcon size="medium" />
-                                {status && <StatusPill status={status} />}
+                                <PerkIcon size="extra-small" />
                             </>
                         ) : avatarUrl ? (
-                            <div className={'relative flex h-12 w-12 items-center justify-center rounded-full'}>
+                            <div className={'relative flex size-8 items-center justify-center rounded-full'}>
                                 <Image
                                     src={avatarUrl}
                                     alt="Icon"
-                                    className="size-12 object-contain"
+                                    className="size-9 object-contain"
                                     width={30}
                                     height={30}
                                 />
-
-                                {status && <StatusPill status={status} />}
                             </div>
                         ) : (
                             <TransactionAvatarBadge
@@ -138,8 +134,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                 isLinkTransaction={isLinkTx}
                                 transactionType={type}
                                 context="card"
-                                size="small"
-                                // status={status}
+                                size="extra-small"
                             />
                         )}
                         <div className="flex flex-col">
