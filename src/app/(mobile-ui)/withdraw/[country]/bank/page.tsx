@@ -29,7 +29,14 @@ import { useSearchParams } from 'next/navigation'
 type View = 'INITIAL' | 'SUCCESS'
 
 export default function WithdrawBankPage() {
-    const { amountToWithdraw, selectedBankAccount: bankAccount, error, setError } = useWithdrawFlow()
+    const {
+        amountToWithdraw,
+        selectedBankAccount: bankAccount,
+        error,
+        setError,
+        setAmountToWithdraw,
+        setSelectedMethod,
+    } = useWithdrawFlow()
     const { user, fetchUser } = useAuth()
     const { address, sendMoney } = useWallet()
     const router = useRouter()
@@ -230,7 +237,15 @@ export default function WithdrawBankPage() {
             <NavHeader
                 title={fromSendFlow ? 'Send' : 'Withdraw'}
                 icon={view === 'SUCCESS' ? 'cancel' : undefined}
-                onPrev={view === 'SUCCESS' ? () => router.push('/home') : () => router.back()}
+                onPrev={() => {
+                    setAmountToWithdraw('')
+                    setSelectedMethod(null)
+                    if (view === 'SUCCESS') {
+                        router.push('/home')
+                    } else {
+                        router.back()
+                    }
+                }}
             />
 
             {view === 'INITIAL' && (

@@ -45,7 +45,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     // hooks
     const { deviceType } = useDeviceType()
     const { user, fetchUser } = useAuth()
-    const { setSelectedBankAccount, amountToWithdraw, setSelectedMethod } = useWithdrawFlow()
+    const { setSelectedBankAccount, amountToWithdraw, setSelectedMethod, setAmountToWithdraw } = useWithdrawFlow()
     const dispatch = useAppDispatch()
 
     // component level states
@@ -267,6 +267,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                     onPrev={() => {
                         // clear dynamicbankaccountform data
                         dispatch(bankFormActions.clearFormData())
+                        setAmountToWithdraw('')
                         // ensure kyc modal isn't open so late success events don't flip view
                         setIsKycModalOpen(false)
 
@@ -285,6 +286,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                         }
 
                         // otherwise go back to list
+                        setSelectedMethod(null)
                         setView('list')
                     }}
                 />
@@ -375,6 +377,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             <NavHeader
                 title={currentCountry.title}
                 onPrev={() => {
+                    setAmountToWithdraw('')
                     if (flow === 'add') {
                         router.push('/add-money')
                     } else if (isBankFromSend) {
@@ -387,6 +390,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                         })
                         router.push(`/withdraw?method=${methodParam}`)
                     } else {
+                        setSelectedMethod(null)
                         router.back()
                     }
                 }}
