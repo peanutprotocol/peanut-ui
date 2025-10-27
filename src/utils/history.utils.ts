@@ -286,16 +286,27 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
             if (entry.currency?.code) {
                 entry.currency.code = entry.currency.code.toUpperCase()
             }
-            if (usdAmount === entry.currency?.amount && entry.currency?.code && entry.currency?.code !== 'USD') {
-                try {
-                    const price = await getCurrencyPrice(entry.currency.code)
-                    entry.currency.amount = (Number(entry.amount) / price.sell).toString()
-                } catch (error) {
-                    console.error(
-                        `[completeHistoryEntry] Failed to fetch currency price for ${entry.currency.code}:`,
-                        error
-                    )
-                    // Fallback: use original amount (already set above)
+            // when bridge returns non-usd currency on pending states, it may mirror the usd amount.
+            // convert it using current fx rate if it looks unconverted (missing or ~equal to usd amount).
+            if (entry.currency?.code && entry.currency.code !== 'USD') {
+                const usdNum = Number(usdAmount)
+                const hasCurrencyAmount = !!entry.currency.amount
+                const currNum = hasCurrencyAmount ? Number(entry.currency.amount) : NaN
+                const approximatelyEqual = hasCurrencyAmount && isFinite(currNum) && Math.abs(currNum - usdNum) < 0.01
+
+                if (!hasCurrencyAmount || !isFinite(currNum) || approximatelyEqual) {
+                    try {
+                        const price = await getCurrencyPrice(entry.currency.code)
+                        // off-ramp: convert usd -> local using sell price (local per usd)
+                        const converted = Number.isFinite(usdNum) && price?.sell ? usdNum * price.sell : usdNum
+                        entry.currency.amount = converted.toString()
+                    } catch (error) {
+                        console.error(
+                            `[completeHistoryEntry] Failed to fetch currency price for ${entry.currency.code}:`,
+                            error
+                        )
+                        // fallback: keep existing amount
+                    }
                 }
             }
             break
