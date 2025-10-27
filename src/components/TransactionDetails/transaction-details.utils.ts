@@ -26,6 +26,7 @@ export const transactionDetailsRowKeys: TransactionDetailsRowKey[] = [
     'cancelled',
     'claimed',
     'completed',
+    'closed',
     'to',
     'tokenAndNetwork',
     'txId',
@@ -40,7 +41,6 @@ export const transactionDetailsRowKeys: TransactionDetailsRowKey[] = [
     'networkFee',
     'peanutFee',
     'attachment',
-    'closed',
 ]
 
 export const getBankAccountLabel = (type: string) => {
