@@ -1,9 +1,9 @@
 'use client'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
-import { SearchResultCard } from '@/components/SearchUsers/SearchResultCard'
 import Image, { type StaticImageData } from 'next/image'
 import { twMerge } from 'tailwind-merge'
 import { type CryptoSource } from '../consts'
+import { ActionListCard } from '@/components/ActionListCard'
 
 interface CryptoSourceListCardProps {
     sources: CryptoSource[]
@@ -22,7 +22,7 @@ export const CryptoSourceListCard = ({ sources, onItemClick }: CryptoSourceListC
     return (
         <div className="flex flex-col">
             {sources.map((source, index) => (
-                <SearchResultCard
+                <ActionListCard
                     key={source.id}
                     title={source.name}
                     className="px-4 py-3"

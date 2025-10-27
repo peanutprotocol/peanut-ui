@@ -1,11 +1,15 @@
+'use client'
 import { useMemo } from 'react'
 import { useTransactionHistory, type HistoryEntry } from '@/hooks/useTransactionHistory'
 import { type RecentUser } from '@/services/users'
 
 export function useRecentUsers() {
-    const { data } = useTransactionHistory({ mode: 'latest', limit: 20 })
+    const { data, isLoading } = useTransactionHistory({ mode: 'latest', limit: 20 })
+
     const recentTransactions = useMemo(() => {
-        if (!data) return []
+        if (!data) {
+            return []
+        }
         return data.entries.reduce((acc: RecentUser[], entry: HistoryEntry) => {
             let account
             if (entry.userRole === 'SENDER') {
@@ -29,5 +33,5 @@ export function useRecentUsers() {
         }, [])
     }, [data])
 
-    return recentTransactions
+    return { recentTransactions, isFetchingRecentUsers: isLoading }
 }

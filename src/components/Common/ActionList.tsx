@@ -1,6 +1,5 @@
 'use client'
 
-import { SearchResultCard } from '../SearchUsers/SearchResultCard'
 import StatusBadge from '../Global/Badges/StatusBadge'
 import IconStack from '../Global/IconStack'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
@@ -22,15 +21,16 @@ import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermineBankRequestType'
 import { GuestVerificationModal } from '../Global/GuestVerificationModal'
 import ActionListDaimoPayButton from './ActionListDaimoPayButton'
-import { ACTION_METHODS, type PaymentMethod } from '@/constants/actionlist.consts'
+import { type PaymentMethod } from '@/constants/actionlist.consts'
 import useClaimLink from '../Claim/useClaimLink'
 import { setupActions } from '@/redux/slices/setup-slice'
 import starStraightImage from '@/assets/icons/starStraight.svg'
 import { useAuth } from '@/context/authContext'
 import { EInviteType } from '@/services/services.types'
 import ConfirmInviteModal from '../Global/ConfirmInviteModal'
-import { useGeoLocation } from '@/hooks/useGeoLocation'
 import Loading from '../Global/Loading'
+import { ActionListCard } from '../ActionListCard'
+import { useGeoFilteredPaymentOptions } from '@/hooks/useGeoFilteredPaymentOptions'
 
 interface IActionListProps {
     flow: 'claim' | 'request'
@@ -85,7 +85,21 @@ export default function ActionList({
 
     const dispatch = useAppDispatch()
 
-    const { countryCode: userGeoLocationCountryCode, isLoading: isGeoLoading } = useGeoLocation()
+    const requiresVerification = useMemo(() => {
+        if (flow === 'claim') {
+            return claimType === BankClaimType.GuestKycNeeded || claimType === BankClaimType.ReceiverKycNeeded
+        }
+        if (flow === 'request') {
+            return requestType === BankRequestType.GuestKycNeeded || requestType === BankRequestType.PayerKycNeeded
+        }
+        return false
+    }, [claimType, requestType, flow])
+
+    // use the hook to filter and sort payment methods based on geolocation
+    const { filteredMethods: sortedActionMethods, isLoading: isGeoLoading } = useGeoFilteredPaymentOptions({
+        sortUnavailable: true,
+        isMethodUnavailable: (method) => method.soon || (method.id === 'bank' && requiresVerification),
+    })
 
     const handleMethodClick = async (method: PaymentMethod) => {
         if (flow === 'claim' && claimLinkData) {
@@ -155,41 +169,6 @@ export default function ActionList({
             }
         }
     }
-
-    const geolocatedMethods = useMemo(() => {
-        // show pix in brazil and mercado pago in other countries
-        return ACTION_METHODS.filter((method) => {
-            if (userGeoLocationCountryCode === 'BR' && method.id === 'mercadopago') {
-                return false
-            }
-            if (userGeoLocationCountryCode !== 'BR' && method.id === 'pix') {
-                return false
-            }
-            return true
-        })
-    }, [userGeoLocationCountryCode])
-
-    const requiresVerification = useMemo(() => {
-        if (flow === 'claim') {
-            return claimType === BankClaimType.GuestKycNeeded || claimType === BankClaimType.ReceiverKycNeeded
-        }
-        if (flow === 'request') {
-            return requestType === BankRequestType.GuestKycNeeded || requestType === BankRequestType.PayerKycNeeded
-        }
-        return false
-    }, [claimType, requestType, flow])
-
-    const sortedActionMethods = useMemo(() => {
-        return [...geolocatedMethods].sort((a, b) => {
-            const aIsUnavailable = a.soon || (a.id === 'bank' && requiresVerification)
-            const bIsUnavailable = b.soon || (b.id === 'bank' && requiresVerification)
-
-            if (aIsUnavailable === bIsUnavailable) {
-                return 0
-            }
-            return aIsUnavailable ? 1 : -1
-        })
-    }, [requiresVerification])
 
     const handleContinueWithPeanut = () => {
         if (flow === 'claim') {
@@ -320,7 +299,7 @@ export const MethodCard = ({
     requiresVerification?: boolean
 }) => {
     return (
-        <SearchResultCard
+        <ActionListCard
             position="single"
             description={method.description}
             descriptionClassName="text-[12px]"

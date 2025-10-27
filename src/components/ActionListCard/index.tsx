@@ -4,7 +4,7 @@ import React from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '../0_Bruddle'
 
-interface SearchResultCardProps {
+interface ActionListCardProps {
     title: string | React.ReactNode
     description?: string
     leftIcon?: React.ReactNode
@@ -16,7 +16,7 @@ interface SearchResultCardProps {
     descriptionClassName?: string
 }
 
-export const SearchResultCard = ({
+export const ActionListCard = ({
     title,
     description,
     leftIcon,
@@ -26,7 +26,7 @@ export const SearchResultCard = ({
     rightContent,
     isDisabled = false,
     descriptionClassName,
-}: SearchResultCardProps) => {
+}: ActionListCardProps) => {
     const handleCardClick = () => {
         onClick()
     }

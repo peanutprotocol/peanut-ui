@@ -13,7 +13,7 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { AccountType, type Account } from '@/interfaces'
 import { formatIban, shortenStringLong, isTxReverted } from '@/utils/general.utils'
 import { useParams, useRouter } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
 import { ErrorHandler, getBridgeChainName } from '@/utils'
 import { getOfframpCurrencyConfig } from '@/utils/bridge.utils'
@@ -24,6 +24,7 @@ import countryCurrencyMappings from '@/constants/countryCurrencyMapping'
 import { useQuery } from '@tanstack/react-query'
 import { pointsApi } from '@/services/points'
 import { PointsAction } from '@/services/services.types'
+import { useSearchParams } from 'next/navigation'
 
 type View = 'INITIAL' | 'SUCCESS'
 
@@ -32,10 +33,15 @@ export default function WithdrawBankPage() {
     const { user, fetchUser } = useAuth()
     const { address, sendMoney } = useWallet()
     const router = useRouter()
+    const searchParams = useSearchParams()
     const [isLoading, setIsLoading] = useState(false)
     const [view, setView] = useState<View>('INITIAL')
     const params = useParams()
     const country = params.country as string
+
+    // check if we came from send flow - using method param to detect (only bank goes through this page)
+    const methodParam = searchParams.get('method')
+    const fromSendFlow = methodParam === 'bank'
 
     const nonEuroCurrency = countryCurrencyMappings.find(
         (currency) =>
@@ -222,7 +228,7 @@ export default function WithdrawBankPage() {
     return (
         <div className="flex min-h-[inherit] w-full flex-col justify-start gap-8 self-start">
             <NavHeader
-                title="Withdraw"
+                title={fromSendFlow ? 'Send' : 'Withdraw'}
                 icon={view === 'SUCCESS' ? 'cancel' : undefined}
                 onPrev={view === 'SUCCESS' ? () => router.push('/home') : () => router.back()}
             />
