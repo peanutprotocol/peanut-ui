@@ -76,7 +76,7 @@ export function useExchangeRate({
         return typeof destinationAmount === 'number' ? destinationAmount.toFixed(2) : String(destinationAmount)
     }, [lastEditedField, destinationInputValue, destinationAmount])
 
-    // Client-side cached exchange rate (2 minutes)
+    // Client-side cached exchange rate (5 minutes)
     const {
         data: rateData,
         isFetching,
@@ -88,9 +88,10 @@ export function useExchangeRate({
             if (!res.ok) throw new Error('Failed to fetch exchange rate')
             return res.json()
         },
-        staleTime: 2 * 60 * 1000, // 2 minutes
+        staleTime: 5 * 60 * 1000, // 5 minutes
         gcTime: 10 * 60 * 1000, // garbage collect after 10 minutes
-        refetchOnWindowFocus: false,
+        refetchOnWindowFocus: true, // Refresh rates when user returns to tab
+        refetchInterval: 5 * 60 * 1000, // Auto-refresh every 5 minutes
         enabled: enabled && !!sourceCurrency && !!destinationCurrency,
     })
 

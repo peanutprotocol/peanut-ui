@@ -301,6 +301,12 @@ export const useCreateLink = () => {
         }
     }
 
+    // @dev TODO: Fix edge case - balance validation should also check loadingState.isLoading
+    // Current: NOT tracked by usePendingTransactions + validation doesn't check isLoading
+    // Edge case: If user rapidly creates links, insufficient balance error could briefly show
+    // Fix: Add isLoading check to Initial.link.send.view.tsx useEffect (line 98)
+    // Better: Wrap in useMutation with mutationKey: [BALANCE_DECREASE, SEND_LINK]
+    // Priority: Low (rare edge case in less common flow)
     const createLink = useCallback(
         async (amount: bigint) => {
             setLoadingState('Generating details')

@@ -40,6 +40,7 @@ import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { useQueryClient } from '@tanstack/react-query'
 import { captureException } from '@sentry/nextjs'
 import useKycStatus from '@/hooks/useKycStatus'
+import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 
 type MantecaWithdrawStep = 'amountInput' | 'bankDetails' | 'review' | 'success' | 'failure'
 
@@ -68,6 +69,7 @@ export default function MantecaWithdrawFlow() {
     const { setIsSupportModalOpen } = useSupportModalContext()
     const queryClient = useQueryClient()
     const { isUserBridgeKycApproved } = useKycStatus()
+    const { hasPendingTransactions } = usePendingTransactions()
 
     // Get method and country from URL parameters
     const selectedMethodType = searchParams.get('method') // mercadopago, pix, bank-transfer, etc.
@@ -267,8 +269,8 @@ export default function MantecaWithdrawFlow() {
 
     useEffect(() => {
         // Skip balance check if transaction is being processed
-        // (balance has been optimistically updated in these states)
-        if (isLoading) {
+        // Use hasPendingTransactions to prevent race condition with optimistic updates
+        if (hasPendingTransactions) {
             return
         }
 
@@ -286,7 +288,7 @@ export default function MantecaWithdrawFlow() {
         } else {
             setBalanceErrorMessage(null)
         }
-    }, [usdAmount, balance, isLoading])
+    }, [usdAmount, balance, hasPendingTransactions])
 
     useEffect(() => {
         if (step === 'success') {
