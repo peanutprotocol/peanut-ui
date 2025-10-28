@@ -300,6 +300,10 @@ export const PaymentForm = ({
         if (!requestedTokenPriceData?.price || !requestDetails?.tokenAmount) return
 
         const tokenAmount = parseFloat(requestDetails.tokenAmount)
+        if (isNaN(tokenAmount) || tokenAmount <= 0) return
+
+        if (isNaN(requestedTokenPriceData.price) || requestedTokenPriceData.price === 0) return
+
         const usdValue = formatAmount(tokenAmount * requestedTokenPriceData.price)
         setInputTokenAmount(usdValue)
         setUsdValue(usdValue)
@@ -423,7 +427,21 @@ export const PaymentForm = ({
             requestedTokenPriceData?.price &&
             (requestedChain !== selectedChainID || !areEvmAddressesEqual(requestedToken, selectedTokenAddress))
         ) {
-            tokenAmount = (parseFloat(inputUsdValue) / requestedTokenPriceData.price).toString()
+            // Validate price before division
+            if (isNaN(requestedTokenPriceData.price) || requestedTokenPriceData.price === 0) {
+                console.error('Invalid token price for conversion')
+                dispatch(paymentActions.setError('Cannot calculate token amount: invalid price data'))
+                return
+            }
+
+            const usdAmount = parseFloat(inputUsdValue)
+            if (isNaN(usdAmount)) {
+                console.error('Invalid USD amount')
+                dispatch(paymentActions.setError('Invalid amount entered'))
+                return
+            }
+
+            tokenAmount = (usdAmount / requestedTokenPriceData.price).toString()
         }
 
         const payload: InitiatePaymentPayload = {
@@ -539,7 +557,12 @@ export const PaymentForm = ({
     useEffect(() => {
         if (!inputTokenAmount) return
         if (selectedTokenData?.price) {
-            setUsdValue((parseFloat(inputTokenAmount) * selectedTokenData.price).toString())
+            const amount = parseFloat(inputTokenAmount)
+            if (isNaN(amount) || amount < 0) return
+
+            if (isNaN(selectedTokenData.price) || selectedTokenData.price === 0) return
+
+            setUsdValue((amount * selectedTokenData.price).toString())
         }
     }, [inputTokenAmount, selectedTokenData?.price])
 
