@@ -1,5 +1,10 @@
 import * as consts from '@/constants'
-import { PEANUT_WALLET_SUPPORTED_TOKENS, STABLE_COINS, USER_OPERATION_REVERT_REASON_TOPIC } from '@/constants'
+import {
+    PEANUT_WALLET_SUPPORTED_TOKENS,
+    STABLE_COINS,
+    USER_OPERATION_REVERT_REASON_TOPIC,
+    ENS_NAME_REGEX,
+} from '@/constants'
 import * as interfaces from '@/interfaces'
 import { AccountType } from '@/interfaces'
 import * as Sentry from '@sentry/nextjs'
@@ -67,7 +72,7 @@ export const printableAddress = (address: string, firstCharsLen?: number, lastCh
  * @see https://eips.ethereum.org/EIPS/eip-137#name-syntax
  */
 export const validateEnsName = (ensName: string = ''): boolean => {
-    return /^(?:[-a-zA-Z0-9]+\.)+[-a-zA-Z0-9]+$/.test(ensName)
+    return ENS_NAME_REGEX.test(ensName)
 }
 
 export function jsonStringify(data: any): string {
