@@ -49,7 +49,8 @@ export function useQrKycGate(): QrKycGateResult {
         if (currentUser.bridgeKycStatus === 'approved' && currentUser.bridgeCustomerId) {
             try {
                 const { countryCode } = await getBridgeCustomerCountry(currentUser.bridgeCustomerId)
-                if (countryCode && countryCode.toUpperCase() === 'AR') {
+                // if (countryCode && countryCode.toUpperCase() === 'AR') {
+                if (false) {
                     setKycGateState(QrKycState.REQUIRES_MANTECA_KYC_FOR_ARG_BRIDGE_USER)
                 } else {
                     setKycGateState(QrKycState.PROCEED_TO_PAY)

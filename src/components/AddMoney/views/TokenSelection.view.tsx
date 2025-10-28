@@ -1,11 +1,11 @@
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import { getCardPosition } from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
-import { SearchResultCard } from '@/components/SearchUsers/SearchResultCard'
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
 import Image from 'next/image'
 import React from 'react'
 import { type CryptoToken, DEPOSIT_CRYPTO_TOKENS } from '../consts'
+import { ActionListCard } from '@/components/ActionListCard'
 
 interface TokenSelectionViewProps {
     headerTitle?: string
@@ -25,7 +25,7 @@ const TokenSelectionView: React.FC<TokenSelectionViewProps> = ({ headerTitle, on
                         const isDisabled = token.symbol.toLowerCase() !== PEANUT_WALLET_TOKEN_SYMBOL.toLowerCase()
 
                         return (
-                            <SearchResultCard
+                            <ActionListCard
                                 isDisabled={isDisabled}
                                 key={token.id}
                                 title={token.symbol}

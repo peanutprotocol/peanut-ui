@@ -1,5 +1,4 @@
-import React, { useCallback, useState, useRef } from 'react'
-import { SearchResultCard } from '../SearchUsers/SearchResultCard'
+import { useCallback, useState, useRef } from 'react'
 import IconStack from '../Global/IconStack'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
@@ -10,6 +9,7 @@ import DaimoPayButton from '../Global/DaimoPayButton'
 import { ACTION_METHODS } from '@/constants/actionlist.consts'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import ConfirmInviteModal from '../Global/ConfirmInviteModal'
+import { ActionListCard } from '../ActionListCard'
 
 interface ActionListDaimoPayButtonProps {
     handleContinueWithPeanut: () => void
@@ -162,7 +162,7 @@ const ActionListDaimoPayButton = ({ handleContinueWithPeanut, showConfirmModal }
                     daimoPayButtonClickRef.current = onClick
 
                     return (
-                        <SearchResultCard
+                        <ActionListCard
                             isDisabled={loading || isProcessing}
                             position="single"
                             description={method.description}

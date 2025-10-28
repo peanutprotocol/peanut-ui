@@ -433,8 +433,8 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                             variant="purple"
                             shadowSize="4"
                             className="!mt-4 w-full"
-                            loading={isSubmitting || isCheckingBICValid}
-                            disabled={isSubmitting || !isValid || isCheckingBICValid}
+                            loading={isSubmitting || isCheckingBICValid || isValidating}
+                            disabled={isSubmitting || !isValid || isCheckingBICValid || isValidating}
                         >
                             Review
                         </Button>

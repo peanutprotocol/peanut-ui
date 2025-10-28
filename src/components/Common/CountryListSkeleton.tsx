@@ -1,6 +1,6 @@
 'use client'
+import { ActionListCard } from '../ActionListCard'
 import { getCardPosition } from '../Global/Card'
-import { SearchResultCard } from '../SearchUsers/SearchResultCard'
 
 /**
  * Displays a country list skeleton!
@@ -11,7 +11,7 @@ export const CountryListSkeleton = () => {
             {Array.from({ length: 10 }).map((_, index) => {
                 const position = getCardPosition(index, 5)
                 return (
-                    <SearchResultCard
+                    <ActionListCard
                         key={index}
                         title={<div className="h-4 w-24 animate-pulse rounded bg-gray-200" />}
                         position={position}
