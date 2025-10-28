@@ -96,7 +96,7 @@ export const useTokenPrice = ({
             } catch (error) {
                 // Preserve Sentry error reporting from original implementation
                 Sentry.captureException(error)
-                console.log('error fetching tokenPrice, falling back to tokenDenomination')
+                console.error('error fetching tokenPrice, falling back to tokenDenomination')
                 return undefined
             }
         },

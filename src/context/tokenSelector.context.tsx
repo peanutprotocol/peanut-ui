@@ -19,13 +19,9 @@ import { interfaces } from '@squirrel-labs/peanut-sdk'
 export const tokenSelectorContext = createContext({
     selectedTokenAddress: '',
     selectedChainID: '',
-    selectedTokenDecimals: 0 as number | undefined,
-    setSelectedTokenDecimals: (decimals: number | undefined) => {},
     setSelectedTokenAddress: (address: string) => {},
     setSelectedChainID: (chainID: string) => {},
     updateSelectedChainID: (chainID: string) => {},
-    selectedTokenPrice: 0 as number | undefined,
-    setSelectedTokenPrice: (price: number | undefined) => {},
     refetchXchainRoute: false as boolean,
     setRefetchXchainRoute: (value: boolean) => {},
     resetTokenContextProvider: () => {},
@@ -85,9 +81,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
         isPeanutWallet,
     })
 
-    // Derive values from query data (no manual state management)
-    const selectedTokenPrice = tokenPriceData?.price
-    const selectedTokenDecimals = tokenPriceData?.decimals
+    // Derive selectedTokenData from query (single source of truth)
     const selectedTokenData = tokenPriceData
 
     // Trigger xchain route refetch when token data changes
@@ -113,31 +107,17 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
 
         setSelectedChainID(tokenData.chainId)
         setSelectedTokenAddress(tokenData.address)
-        // Note: decimals, price, and data are now managed by useTokenPrice hook
+        // Note: decimals, price, and data are now automatically managed by useTokenPrice hook
     }, [isPeanutWallet])
-
-    // Provide setters for backward compatibility (some components might use them)
-    // These are no-ops now since values are managed by useTokenPrice
-    const setSelectedTokenPrice = useCallback(() => {
-        console.warn('setSelectedTokenPrice is deprecated - token price is now managed by useTokenPrice hook')
-    }, [])
-
-    const setSelectedTokenDecimals = useCallback(() => {
-        console.warn('setSelectedTokenDecimals is deprecated - token decimals are now managed by useTokenPrice hook')
-    }, [])
 
     return (
         <tokenSelectorContext.Provider
             value={{
-                setSelectedTokenDecimals,
                 selectedTokenAddress,
                 setSelectedTokenAddress,
-                selectedTokenDecimals,
                 selectedChainID,
                 setSelectedChainID: setSelectedChainID,
                 updateSelectedChainID,
-                selectedTokenPrice,
-                setSelectedTokenPrice,
                 refetchXchainRoute,
                 setRefetchXchainRoute,
                 resetTokenContextProvider,
