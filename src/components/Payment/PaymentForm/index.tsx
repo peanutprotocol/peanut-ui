@@ -648,9 +648,8 @@ export const PaymentForm = ({
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
-            {!showRequestPotInitialView && (
-                <NavHeader onPrev={handleGoBack} title={headerTitle ?? (isExternalWalletFlow ? 'Add Money' : 'Send')} />
-            )}
+            <NavHeader onPrev={handleGoBack} title={headerTitle ?? (isExternalWalletFlow ? 'Add Money' : 'Pay')} />
+
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 {isExternalWalletConnected && isUsingExternalWallet && (
                     <Button
@@ -793,7 +792,7 @@ export const PaymentForm = ({
                 </div>
             </div>
 
-            {showRequestPotInitialView && (
+            {showRequestPotInitialView && contributors.length > 0 && (
                 <div>
                     <h2 className="mb-4 text-base font-bold text-black">Contributors ({contributors.length})</h2>
                     {contributors.map((contributor, index) => (

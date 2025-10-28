@@ -383,6 +383,23 @@ export function formatCurrency(valueStr: string | undefined, maxDecimals: number
 }
 
 /**
+ * Sanitizes a numeric input string to limit decimal places
+ * @param value - The input value to sanitize
+ * @param maxDecimals - Maximum number of decimal places allowed (default: 2)
+ * @returns Sanitized string with limited decimals
+ * @example
+ * sanitizeDecimalInput('123.456', 2) // '123.45'
+ * sanitizeDecimalInput('123.4', 2) // '123.4'
+ * sanitizeDecimalInput('123', 2) // '123'
+ */
+export function sanitizeDecimalInput(value: string, maxDecimals: number = 2): string {
+    if (!value) return ''
+    const regex = new RegExp(`^\\d*\\.?\\d{0,${maxDecimals}}`)
+    const match = value.match(regex)
+    return match ? match[0] : ''
+}
+
+/**
  * formats a number by:
  * - displaying 2 significant digits for small numbers (<0.01)
  * - removing unnecessary trailing zeros after decimal point

@@ -1,11 +1,12 @@
 import { PEANUT_WALLET_TOKEN_DECIMALS, STABLE_COINS } from '@/constants'
 import { tokenSelectorContext } from '@/context'
-import { formatAmountWithoutComma, formatTokenAmount, formatCurrency } from '@/utils'
+import { formatAmountWithoutComma, formatTokenAmount, formatCurrency, sanitizeDecimalInput } from '@/utils'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import Icon from '../Icon'
 import { twMerge } from 'tailwind-merge'
 import { Icon as IconComponent } from '@/components/Global/Icons/Icon'
 import { Slider } from '../Slider'
+import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 
 interface TokenAmountInputProps {
     className?: string
@@ -53,6 +54,10 @@ const TokenAmountInput = ({
     const { selectedTokenData } = useContext(tokenSelectorContext)
     const inputRef = useRef<HTMLInputElement>(null)
     const inputType = useMemo(() => (window.innerWidth < 640 ? 'text' : 'number'), [])
+    const [isFocused, setIsFocused] = useState(false)
+    const { deviceType } = useDeviceType()
+    // Only autofocus on desktop (WEB), not on mobile devices (IOS/ANDROID)
+    const shouldAutoFocus = deviceType === DeviceType.WEB
 
     // Store display value for input field (what user sees when typing)
     const [displayValue, setDisplayValue] = useState<string>(tokenValue || '')
@@ -239,33 +244,43 @@ const TokenAmountInput = ({
                 <div className="flex items-center gap-1 font-bold">
                     <label className={`text-xl ${displayValue ? 'text-black' : 'text-gray-1'}`}>{displaySymbol}</label>
 
-                    {/* Input */}
-                    <input
-                        autoFocus
-                        className={`h-12 w-[4ch] max-w-80 bg-transparent text-6xl font-black caret-primary-1 outline-none transition-colors placeholder:text-h1 placeholder:text-gray-1 focus:border-primary-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1`}
-                        placeholder={'0.00'}
-                        onChange={(e) => {
-                            const value = formatAmountWithoutComma(e.target.value)
-                            onChange(value, isInputUsd)
-                        }}
-                        ref={inputRef}
-                        inputMode="decimal"
-                        type={inputType}
-                        value={displayValue}
-                        step="any"
-                        min="0"
-                        autoComplete="off"
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                                e.preventDefault()
-                                if (onSubmit) onSubmit()
-                            }
-                        }}
-                        onBlur={() => {
-                            if (onBlur) onBlur()
-                        }}
-                        disabled={disabled}
-                    />
+                    {/* Input with fake caret */}
+                    <div className="relative">
+                        <input
+                            autoFocus={shouldAutoFocus}
+                            className={`h-12 w-[4ch] max-w-80 bg-transparent text-6xl font-black caret-primary-1 outline-none transition-colors placeholder:text-h1 placeholder:text-gray-1 focus:border-primary-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1`}
+                            placeholder={'0.00'}
+                            onChange={(e) => {
+                                let value = formatAmountWithoutComma(e.target.value)
+                                // Limit to 2 decimal places
+                                value = sanitizeDecimalInput(value, 2)
+                                onChange(value, isInputUsd)
+                            }}
+                            ref={inputRef}
+                            inputMode="decimal"
+                            type={inputType}
+                            value={displayValue}
+                            step="any"
+                            min="0"
+                            autoComplete="off"
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    e.preventDefault()
+                                    if (onSubmit) onSubmit()
+                                }
+                            }}
+                            onFocus={() => setIsFocused(true)}
+                            onBlur={() => {
+                                setIsFocused(false)
+                                if (onBlur) onBlur()
+                            }}
+                            disabled={disabled}
+                        />
+                        {/* Fake blinking caret shown when not focused and input is empty */}
+                        {!isFocused && !displayValue && (
+                            <div className="animate-blink pointer-events-none absolute left-0 top-1/2 h-12 w-[1px] -translate-y-1/2 bg-primary-1" />
+                        )}
+                    </div>
                 </div>
 
                 {/* Conversion */}
