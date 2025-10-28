@@ -23,6 +23,12 @@ export const tokenSelectorContext = createContext({
     selectedTokenAddress: '',
     selectedChainID: '',
     selectedTokenDecimals: 0 as number | undefined,
+    devconnectTokenAddress: '',
+    devconnectChainId: '',
+    devconnectRecipientAddress: '',
+    setDevconnectTokenAddress: (address: string) => {},
+    setDevconnectChainId: (chainId: string) => {},
+    setDevconnectRecipientAddress: (address: string) => {},
     setSelectedTokenDecimals: (decimals: number | undefined) => {},
     setSelectedTokenAddress: (address: string) => {},
     setSelectedChainID: (chainID: string) => {},
@@ -81,6 +87,9 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
     const [supportedSquidChainsAndTokens, setSupportedSquidChainsAndTokens] = useState<
         Record<string, interfaces.ISquidChain & { networkName: string; tokens: interfaces.ISquidToken[] }>
     >({})
+    const [devconnectTokenAddress, setDevconnectTokenAddress] = useState<string>('')
+    const [devconnectChainId, setDevconnectChainId] = useState<string>('')
+    const [devconnectRecipientAddress, setDevconnectRecipientAddress] = useState<string>('')
 
     const updateSelectedChainID = (chainID: string) => {
         setSelectedTokenAddress(NATIVE_TOKEN_ADDRESS)
@@ -215,6 +224,12 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
                 supportedSquidChainsAndTokens,
                 selectedTokenBalance,
                 setSelectedTokenBalance,
+                devconnectTokenAddress,
+                setDevconnectTokenAddress,
+                devconnectChainId,
+                setDevconnectChainId,
+                devconnectRecipientAddress,
+                setDevconnectRecipientAddress,
             }}
         >
             {children}

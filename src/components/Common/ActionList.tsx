@@ -5,7 +5,7 @@ import IconStack from '../Global/IconStack'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { type ClaimLinkData } from '@/services/sendLinks'
 import { formatUnits } from 'viem'
-import { useMemo, useState } from 'react'
+import { useContext, useMemo, useState } from 'react'
 import ActionModal from '@/components/Global/ActionModal'
 import Divider from '../0_Bruddle/Divider'
 import { Button } from '../0_Bruddle'
@@ -21,7 +21,7 @@ import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermineBankRequestType'
 import { GuestVerificationModal } from '../Global/GuestVerificationModal'
 import ActionListDaimoPayButton from './ActionListDaimoPayButton'
-import { type PaymentMethod } from '@/constants/actionlist.consts'
+import { DEVCONNECT_CLAIM_METHODS, type PaymentMethod } from '@/constants/actionlist.consts'
 import useClaimLink from '../Claim/useClaimLink'
 import { setupActions } from '@/redux/slices/setup-slice'
 import starStraightImage from '@/assets/icons/starStraight.svg'
@@ -31,6 +31,7 @@ import ConfirmInviteModal from '../Global/ConfirmInviteModal'
 import Loading from '../Global/Loading'
 import { ActionListCard } from '../ActionListCard'
 import { useGeoFilteredPaymentOptions } from '@/hooks/useGeoFilteredPaymentOptions'
+import { tokenSelectorContext } from '@/context'
 
 interface IActionListProps {
     flow: 'claim' | 'request'
@@ -38,6 +39,8 @@ interface IActionListProps {
     requestLinkData?: ParsedURL
     isLoggedIn: boolean
     isInviteLink?: boolean
+    showDevconnectMethod?: boolean
+    setExternalWalletRecipient?: (recipient: { name: string | undefined; address: string }) => void
 }
 
 /**
@@ -54,6 +57,8 @@ export default function ActionList({
     flow,
     requestLinkData,
     isInviteLink = false,
+    showDevconnectMethod,
+    setExternalWalletRecipient,
 }: IActionListProps) {
     const router = useRouter()
     const {
@@ -82,6 +87,13 @@ export default function ActionList({
     const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null)
     const [showInviteModal, setShowInviteModal] = useState(false)
     const { user } = useAuth()
+    const {
+        setSelectedTokenAddress,
+        setSelectedChainID,
+        devconnectChainId,
+        devconnectRecipientAddress,
+        devconnectTokenAddress,
+    } = useContext(tokenSelectorContext)
 
     const dispatch = useAppDispatch()
 
@@ -99,6 +111,7 @@ export default function ActionList({
     const { filteredMethods: sortedActionMethods, isLoading: isGeoLoading } = useGeoFilteredPaymentOptions({
         sortUnavailable: true,
         isMethodUnavailable: (method) => method.soon || (method.id === 'bank' && requiresVerification),
+        methods: showDevconnectMethod ? DEVCONNECT_CLAIM_METHODS : undefined,
     })
 
     const handleMethodClick = async (method: PaymentMethod) => {
@@ -132,6 +145,16 @@ export default function ActionList({
                     }
                     setRegionalMethodType(method.id)
                     setClaimToMercadoPago(true)
+                    break
+                case 'devconnect':
+                    setExternalWalletRecipient?.({
+                        address: devconnectRecipientAddress, // Address sent from devconnect app
+                        name: undefined,
+                    })
+                    // For devconnect claims we need to set address and chain from the url params
+                    setSelectedTokenAddress(devconnectTokenAddress)
+                    setSelectedChainID(devconnectChainId)
+                    setClaimToExternalWallet(true)
                     break
                 case 'exchange-or-wallet':
                     setClaimToExternalWallet(true)
@@ -234,7 +257,7 @@ export default function ActionList({
                     return (
                         <MethodCard
                             onClick={() => {
-                                if (isInviteLink && !userHasAppAccess) {
+                                if (isInviteLink && !userHasAppAccess && method.id !== 'devconnect') {
                                     setSelectedMethod(method)
                                     setShowInviteModal(true)
                                 } else {

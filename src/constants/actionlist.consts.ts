@@ -1,4 +1,4 @@
-import { MERCADO_PAGO, PIX } from '@/assets'
+import { DEVCONNECT_LOGO, MERCADO_PAGO, PIX } from '@/assets'
 import { METAMASK_LOGO, TRUST_WALLET_SMALL_LOGO } from '@/assets/wallets'
 import binanceIcon from '@/assets/exchanges/binance.svg'
 
@@ -35,6 +35,23 @@ export const ACTION_METHODS: PaymentMethod[] = [
         title: 'Pix',
         description: 'Instant transfers',
         icons: [PIX],
+        soon: false,
+    },
+    {
+        id: 'exchange-or-wallet',
+        title: 'Exchange or Wallet',
+        description: 'Binance, Metamask and more',
+        icons: [binanceIcon, TRUST_WALLET_SMALL_LOGO, METAMASK_LOGO],
+        soon: false,
+    },
+]
+
+export const DEVCONNECT_CLAIM_METHODS: PaymentMethod[] = [
+    {
+        id: 'devconnect',
+        title: 'Devconnect',
+        description: 'LOREM IPSUM',
+        icons: [DEVCONNECT_LOGO],
         soon: false,
     },
     {
