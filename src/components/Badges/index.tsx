@@ -5,13 +5,13 @@ import type { StaticImageData } from 'next/image'
 import NavHeader from '../Global/NavHeader'
 import { useRouter } from 'next/navigation'
 import { getBadgeIcon } from './badge.utils'
-import { SearchResultCard } from '../SearchUsers/SearchResultCard'
 import { getCardPosition } from '../Global/Card'
 import EmptyState from '../Global/EmptyStates/EmptyState'
 import { Icon } from '../Global/Icons/Icon'
 import ActionModal from '../Global/ActionModal'
 import { useMemo, useState } from 'react'
 import { useUserStore } from '@/redux/hooks'
+import { ActionListCard } from '../ActionListCard'
 
 type BadgeView = { title: string; description: string; logo: string | StaticImageData }
 
@@ -63,7 +63,7 @@ export const Badges = () => {
             <div className="space-y-4">
                 <div>
                     {badges.map((badge, idx) => (
-                        <SearchResultCard
+                        <ActionListCard
                             key={idx}
                             title={badge.title}
                             rightContent={<div className="hidden" />}
