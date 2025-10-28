@@ -106,5 +106,22 @@ export const useTokenPrice = ({
         refetchOnWindowFocus: true, // Refresh when user returns to tab
         retry: 2, // Retry failed requests twice
         retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000), // Exponential backoff, max 5s
+        // Centralized validation: reject invalid prices at the hook level
+        // This protects all consumers from division by zero / NaN errors
+        select: (data) => {
+            if (!data) return undefined
+
+            // Validate price is a valid positive number
+            if (typeof data.price !== 'number' || isNaN(data.price) || data.price <= 0) {
+                console.warn('[useTokenPrice] Invalid price detected, returning undefined:', {
+                    tokenAddress,
+                    chainId,
+                    price: data.price,
+                })
+                return undefined
+            }
+
+            return data
+        },
     })
 }
