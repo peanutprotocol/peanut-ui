@@ -29,6 +29,7 @@ import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHisto
 import { loadingStateContext } from '@/context'
 import { getCurrencyPrice } from '@/app/actions/currency'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
+import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 import { captureException } from '@sentry/nextjs'
 import { isPaymentProcessorQR, parseSimpleFiQr, EQrType } from '@/components/Global/DirectSendQR/utils'
 import type { SimpleFiQrData } from '@/components/Global/DirectSendQR/utils'
@@ -75,6 +76,7 @@ export default function QRPayPage() {
     const { isLoading, loadingState, setLoadingState } = useContext(loadingStateContext)
     const { shouldBlockPay, kycGateState } = useQrKycGate()
     const queryClient = useQueryClient()
+    const { hasPendingTransactions } = usePendingTransactions()
     const [isShaking, setIsShaking] = useState(false)
     const [shakeIntensity, setShakeIntensity] = useState<ShakeIntensity>('none')
     const [isClaimingPerk, setIsClaimingPerk] = useState(false)
@@ -715,8 +717,7 @@ export default function QRPayPage() {
     // Check user balance
     useEffect(() => {
         // Skip balance check if transaction is being processed
-        // (balance has been optimistically updated in these states)
-        if (isLoading || isWaitingForWebSocket) {
+        if (hasPendingTransactions || isWaitingForWebSocket) {
             return
         }
 
@@ -732,7 +733,7 @@ export default function QRPayPage() {
         } else {
             setBalanceErrorMessage(null)
         }
-    }, [usdAmount, balance, isLoading, isWaitingForWebSocket])
+    }, [usdAmount, balance, hasPendingTransactions, isWaitingForWebSocket])
 
     useEffect(() => {
         if (isSuccess) {

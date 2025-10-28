@@ -18,6 +18,7 @@ import { useAuth } from '@/context/authContext'
 import { useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import { type InitiatePaymentPayload, usePaymentInitiator } from '@/hooks/usePaymentInitiator'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 import { type ParsedURL } from '@/lib/url-parser/types/payment'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
@@ -115,6 +116,7 @@ export const PaymentForm = ({
     const [_isFetchingTokenPrice, setIsFetchingTokenPrice] = useState<boolean>(false)
 
     const { initiatePayment, isProcessing, error: initiatorError } = usePaymentInitiator()
+    const { hasPendingTransactions } = usePendingTransactions()
 
     const peanutWalletBalance = useMemo(() => {
         return balance !== undefined ? formatCurrency(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS)) : ''
@@ -189,9 +191,8 @@ export const PaymentForm = ({
     }, [dispatch, recipient])
 
     useEffect(() => {
-        // Skip balance check if on CONFIRM or STATUS view, or if transaction is being processed
-        // (balance has been optimistically updated in these states)
-        if (currentView === 'CONFIRM' || currentView === 'STATUS' || isProcessing) {
+        // Skip balance check if on CONFIRM or STATUS view, or if transaction is being processed, or if we have pending txs
+        if (currentView === 'CONFIRM' || currentView === 'STATUS' || isProcessing || hasPendingTransactions) {
             return
         }
 
@@ -285,6 +286,7 @@ export const PaymentForm = ({
         showRequestPotInitialView,
         currentView,
         isProcessing,
+        hasPendingTransactions,
     ])
 
     // fetch token price

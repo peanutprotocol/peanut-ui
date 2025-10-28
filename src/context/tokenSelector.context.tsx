@@ -1,8 +1,6 @@
 'use client'
-import React, { createContext, useEffect, useState, useCallback } from 'react'
+import React, { createContext, useState, useCallback, useMemo, useEffect } from 'react'
 
-import { getSquidChainsAndTokens } from '@/app/actions/squid'
-import { fetchTokenPrice } from '@/app/actions/tokens'
 import {
     PEANUT_WALLET_CHAIN,
     PEANUT_WALLET_TOKEN,
@@ -10,13 +8,12 @@ import {
     PEANUT_WALLET_TOKEN_IMG_URL,
     PEANUT_WALLET_TOKEN_NAME,
     PEANUT_WALLET_TOKEN_SYMBOL,
-    STABLE_COINS,
-    supportedMobulaChains,
 } from '@/constants'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { useSquidChainsAndTokens } from '@/hooks/useSquidChainsAndTokens'
+import { useTokenPrice } from '@/hooks/useTokenPrice'
 import { type ITokenPriceData } from '@/interfaces'
 import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
-import * as Sentry from '@sentry/nextjs'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
 
 export const tokenSelectorContext = createContext({
@@ -69,18 +66,37 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
 
     const [selectedTokenAddress, setSelectedTokenAddress] = useState(PEANUT_WALLET_TOKEN)
     const [selectedChainID, setSelectedChainID] = useState(PEANUT_WALLET_CHAIN.id.toString())
-    const [selectedTokenPrice, setSelectedTokenPrice] = useState<number | undefined>(isPeanutWallet ? 1 : undefined)
     const [refetchXchainRoute, setRefetchXchainRoute] = useState<boolean>(false)
-    const [selectedTokenDecimals, setSelectedTokenDecimals] = useState<number | undefined>(PEANUT_WALLET_TOKEN_DECIMALS)
     const [isXChain, setIsXChain] = useState<boolean>(false)
-    const [isFetchingTokenData, setIsFetchingTokenData] = useState<boolean>(false)
-    const [selectedTokenData, setSelectedTokenData] = useState<ITokenPriceData | undefined>(
-        isPeanutWallet ? peanutWalletTokenData : undefined
-    )
     const [selectedTokenBalance, setSelectedTokenBalance] = useState<string | undefined>(undefined)
-    const [supportedSquidChainsAndTokens, setSupportedSquidChainsAndTokens] = useState<
-        Record<string, interfaces.ISquidChain & { networkName: string; tokens: interfaces.ISquidToken[] }>
-    >({})
+
+    // Fetch Squid chains and tokens (cached for 24 hours - static data)
+    const { data: supportedSquidChainsAndTokens = {} } = useSquidChainsAndTokens()
+
+    // Fetch token price using TanStack Query (replaces manual useEffect + state)
+    const {
+        data: tokenPriceData,
+        isLoading: isFetchingTokenData,
+        isFetching,
+    } = useTokenPrice({
+        tokenAddress: selectedTokenAddress,
+        chainId: selectedChainID,
+        supportedSquidChainsAndTokens,
+        isPeanutWallet,
+    })
+
+    // Derive values from query data (no manual state management)
+    const selectedTokenPrice = tokenPriceData?.price
+    const selectedTokenDecimals = tokenPriceData?.decimals
+    const selectedTokenData = tokenPriceData
+
+    // Trigger xchain route refetch when token data changes
+    // This preserves the original behavior where setRefetchXchainRoute(true) was called
+    useEffect(() => {
+        if (isFetching) {
+            setRefetchXchainRoute(true)
+        }
+    }, [isFetching])
 
     const updateSelectedChainID = (chainID: string) => {
         setSelectedTokenAddress(NATIVE_TOKEN_ADDRESS)
@@ -92,105 +108,22 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
             ? {
                   address: PEANUT_WALLET_TOKEN,
                   chainId: PEANUT_WALLET_CHAIN.id.toString(),
-                  decimals: PEANUT_WALLET_TOKEN_DECIMALS,
               }
             : emptyTokenData
 
         setSelectedChainID(tokenData.chainId)
         setSelectedTokenAddress(tokenData.address)
-        setSelectedTokenDecimals(tokenData.decimals)
-        setSelectedTokenPrice(isPeanutWallet ? 1 : undefined)
-        setSelectedTokenData(isPeanutWallet ? peanutWalletTokenData : undefined)
+        // Note: decimals, price, and data are now managed by useTokenPrice hook
     }, [isPeanutWallet])
 
-    useEffect(() => {
-        let isCurrent = true // flag to check if the component is still mounted
+    // Provide setters for backward compatibility (some components might use them)
+    // These are no-ops now since values are managed by useTokenPrice
+    const setSelectedTokenPrice = useCallback(() => {
+        console.warn('setSelectedTokenPrice is deprecated - token price is now managed by useTokenPrice hook')
+    }, [])
 
-        async function fetchAndSetTokenPrice(tokenAddress: string, chainId: string) {
-            try {
-                // First check if it's a Peanut Wallet USDC
-                if (isPeanutWallet && tokenAddress === PEANUT_WALLET_TOKEN) {
-                    setSelectedTokenData({
-                        price: 1,
-                        decimals: PEANUT_WALLET_TOKEN_DECIMALS,
-                        symbol: PEANUT_WALLET_TOKEN_SYMBOL,
-                        name: PEANUT_WALLET_TOKEN_NAME,
-                        address: PEANUT_WALLET_TOKEN,
-                        chainId: PEANUT_WALLET_CHAIN.id.toString(),
-                        logoURI: PEANUT_WALLET_TOKEN_IMG_URL,
-                    } as ITokenPriceData)
-                    setSelectedTokenPrice(1)
-                    setSelectedTokenDecimals(PEANUT_WALLET_TOKEN_DECIMALS)
-                    return
-                }
-
-                // Then check if it's a known stablecoin from our supported tokens
-                const token = supportedSquidChainsAndTokens[chainId]?.tokens.find(
-                    (t) => t.address.toLowerCase() === tokenAddress.toLowerCase()
-                )
-
-                if (token && STABLE_COINS.includes(token.symbol.toUpperCase())) {
-                    setSelectedTokenData({
-                        price: 1,
-                        decimals: token.decimals,
-                        symbol: token.symbol,
-                        name: token.name,
-                        address: token.address,
-                        chainId: chainId,
-                        logoURI: token.logoURI,
-                    } as ITokenPriceData)
-                    setSelectedTokenPrice(1)
-                    setSelectedTokenDecimals(token.decimals)
-                    return
-                }
-
-                // If not a known stablecoin, proceed with price fetch
-                if (!supportedMobulaChains.some((chain) => chain.chainId == chainId)) {
-                    setSelectedTokenData(undefined)
-                    setSelectedTokenPrice(undefined)
-                    setSelectedTokenDecimals(undefined)
-                    return
-                }
-
-                const tokenPriceResponse = await fetchTokenPrice(tokenAddress, chainId)
-                if (!isCurrent) return
-
-                if (tokenPriceResponse?.price) {
-                    setSelectedTokenPrice(tokenPriceResponse.price)
-                    setSelectedTokenDecimals(tokenPriceResponse.decimals)
-                    setSelectedTokenData(tokenPriceResponse)
-                } else {
-                    setSelectedTokenData(undefined)
-                    setSelectedTokenPrice(undefined)
-                    setSelectedTokenDecimals(undefined)
-                }
-            } catch (error) {
-                Sentry.captureException(error)
-                console.log('error fetching tokenPrice, falling back to tokenDenomination')
-            } finally {
-                if (isCurrent) {
-                    setIsFetchingTokenData(false)
-                }
-            }
-        }
-
-        if (selectedTokenAddress && selectedChainID) {
-            setIsFetchingTokenData(true)
-            setSelectedTokenData(undefined)
-            setRefetchXchainRoute(true)
-            setSelectedTokenPrice(undefined)
-            setSelectedTokenDecimals(undefined)
-
-            fetchAndSetTokenPrice(selectedTokenAddress, selectedChainID)
-            return () => {
-                isCurrent = false
-                setIsFetchingTokenData(false)
-            }
-        }
-    }, [selectedTokenAddress, selectedChainID, isPeanutWallet, supportedSquidChainsAndTokens])
-
-    useEffect(() => {
-        getSquidChainsAndTokens().then(setSupportedSquidChainsAndTokens)
+    const setSelectedTokenDecimals = useCallback(() => {
+        console.warn('setSelectedTokenDecimals is deprecated - token decimals are now managed by useTokenPrice hook')
     }, [])
 
     return (
