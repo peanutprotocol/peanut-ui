@@ -1,7 +1,7 @@
 import { useAuth } from '@/context/authContext'
 import { useZeroDev } from './useZeroDev'
 import { useEffect } from 'react'
-import { getFromLocalStorage, getValidRedirectUrl, sanitizeRedirectURL } from '@/utils'
+import { getRedirectUrl, getValidRedirectUrl, clearRedirectUrl } from '@/utils'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 /**
@@ -29,13 +29,13 @@ export const useLogin = () => {
     // Wait for user to be fetched, then redirect
     useEffect(() => {
         if (user) {
-            const localStorageRedirect = getFromLocalStorage('redirect')
+            const localStorageRedirect = getRedirectUrl()
             const redirect_uri = searchParams.get('redirect_uri')
             if (redirect_uri) {
                 const validRedirectUrl = getValidRedirectUrl(redirect_uri, '/home')
                 router.push(validRedirectUrl)
             } else if (localStorageRedirect) {
-                localStorage.removeItem('redirect')
+                clearRedirectUrl()
                 const validRedirectUrl = getValidRedirectUrl(String(localStorageRedirect), '/home')
                 router.push(validRedirectUrl)
             } else {

@@ -1,6 +1,6 @@
 'use client'
 
-import { getFromLocalStorage } from '@/utils'
+import { getRedirectUrl, clearRedirectUrl } from '@/utils'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import ActionModal from '../ActionModal'
@@ -25,7 +25,7 @@ export const PostSignupActionManager = ({
     const { user } = useAuth()
 
     const checkClaimModalAfterKYC = () => {
-        const redirectUrl = getFromLocalStorage('redirect')
+        const redirectUrl = getRedirectUrl()
         if (user?.user.bridgeKycStatus === 'approved' && redirectUrl) {
             const matchedAction = POST_SIGNUP_ACTIONS.find((action) => action.pathPattern.test(redirectUrl))
             if (matchedAction) {
@@ -33,7 +33,7 @@ export const PostSignupActionManager = ({
                     ...matchedAction.config,
                     action: () => {
                         router.push(redirectUrl)
-                        localStorage.removeItem('redirect')
+                        clearRedirectUrl()
                         setShowModal(false)
                     },
                 })
@@ -57,7 +57,7 @@ export const PostSignupActionManager = ({
             visible={showModal}
             onClose={() => {
                 setShowModal(false)
-                localStorage.removeItem('redirect')
+                clearRedirectUrl()
             }}
             preventClose // Prevent closing the modal by clicking outside
             title={actionConfig.title}

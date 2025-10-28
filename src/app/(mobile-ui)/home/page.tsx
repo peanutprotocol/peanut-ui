@@ -13,14 +13,7 @@ import { UserHeader } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useUserStore } from '@/redux/hooks'
-import {
-    formatExtendedNumber,
-    getUserPreferences,
-    printableUsdc,
-    updateUserPreferences,
-    getFromLocalStorage,
-    saveToLocalStorage,
-} from '@/utils'
+import { formatExtendedNumber, getUserPreferences, printableUsdc, updateUserPreferences, getRedirectUrl } from '@/utils'
 import { useDisconnect } from '@reown/appkit/react'
 import Link from 'next/link'
 import { useEffect, useMemo, useState, useCallback } from 'react'
@@ -124,7 +117,7 @@ export default function Home() {
             const isIOS = deviceType === DeviceType.IOS
             const isStandalone = window.matchMedia('(display-mode: standalone)').matches
             const hasSeenModalThisSession = sessionStorage.getItem('hasSeenIOSPWAPromptThisSession')
-            const redirectUrl = getFromLocalStorage('redirect')
+            const redirectUrl = getRedirectUrl()
 
             if (
                 isIOS &&
@@ -147,7 +140,10 @@ export default function Home() {
         if (isFetchingBalance || balance === undefined || !user) return
 
         if (typeof window !== 'undefined') {
-            const hasSeenBalanceWarning = getFromLocalStorage(`${user!.user.userId}-hasSeenBalanceWarning`)
+            const userPreferences = getUserPreferences(user.user.userId)
+            const hasSeenBalanceWarning =
+                (userPreferences?.hasSeenBalanceWarning?.expiry ?? 0) > Date.now() &&
+                userPreferences?.hasSeenBalanceWarning?.value
             const balanceInUsd = Number(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS))
 
             // show if:
@@ -292,7 +288,9 @@ export default function Home() {
                 visible={showBalanceWarningModal}
                 onCloseAction={() => {
                     setShowBalanceWarningModal(false)
-                    saveToLocalStorage(`${user!.user.userId}-hasSeenBalanceWarning`, 'true', BALANCE_WARNING_EXPIRY)
+                    updateUserPreferences(user!.user.userId, {
+                        hasSeenBalanceWarning: { value: true, expiry: BALANCE_WARNING_EXPIRY },
+                    })
                 }}
             />
 

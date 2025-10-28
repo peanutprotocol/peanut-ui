@@ -9,7 +9,7 @@ import { useAuth } from '@/context/authContext'
 import { createKernelMigrationAccount } from '@zerodev/sdk/accounts'
 import { useAppDispatch } from '@/redux/hooks'
 import { zerodevActions } from '@/redux/slices/zerodev-slice'
-import { getFromCookie, getFromLocalStorage } from '@/utils'
+import { getFromCookie, updateUserPreferences, getUserPreferences } from '@/utils'
 import { PasskeyValidatorContractVersion, toPasskeyValidator, toWebAuthnKey } from '@zerodev/passkey-validator'
 import {
     createKernelAccount,
@@ -163,15 +163,22 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
 
     // lifecycle hooks
     useEffect(() => {
-        const storedWebAuthnKey =
-            getFromLocalStorage(LOCAL_STORAGE_WEB_AUTHN_KEY) || getFromCookie(LOCAL_STORAGE_WEB_AUTHN_KEY)
+        if (!user?.user.userId) return
+        const userPreferences = getUserPreferences(user.user.userId)
+        const storedWebAuthnKey = userPreferences?.webAuthnKey ?? getFromCookie(LOCAL_STORAGE_WEB_AUTHN_KEY)
         if (storedWebAuthnKey) {
             setWebAuthnKey(storedWebAuthnKey)
         } else {
             // avoid mixed state
             logoutUser()
         }
-    }, [])
+    }, [user?.user.userId])
+
+    useEffect(() => {
+        if (user?.user.userId && !!webAuthnKey) {
+            updateUserPreferences(user.user.userId, { webAuthnKey })
+        }
+    }, [user?.user.userId, webAuthnKey])
 
     useEffect(() => {
         let isMounted = true

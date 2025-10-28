@@ -9,8 +9,7 @@ import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { type IExtendedLinkDetails } from '@/interfaces'
-import { ErrorHandler, formatTokenAmount, saveClaimedLinkToLocalStorage, printableAddress, isStableCoin } from '@/utils'
+import { ErrorHandler, formatTokenAmount, printableAddress, isStableCoin } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import { useContext, useState, useMemo } from 'react'
 import { formatUnits } from 'viem'
@@ -111,20 +110,7 @@ export const ConfirmClaimLinkView = ({
                         console.error('Failed to associate claim', e)
                     }
                 }
-                saveClaimedLinkToLocalStorage({
-                    address: recipient ? recipient.address : (address ?? ''),
-                    data: {
-                        ...claimLinkData,
-                        depositDate: new Date(),
-                        USDTokenPrice: tokenPrice,
-                        points: estimatedPoints,
-                        txHash: claimTxHash,
-                        message: attachment.message ? attachment.message : undefined,
-                        attachmentUrl: attachment.attachmentUrl ? attachment.attachmentUrl : undefined,
-                    } as unknown as IExtendedLinkDetails,
-                })
             }
-
             setTransactionHash(claimTxHash)
             onNext()
             // Note: Balance/transaction refresh handled by mutation or SUCCESS view

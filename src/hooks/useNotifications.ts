@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import OneSignal from 'react-onesignal'
-import { getFromLocalStorage, saveToLocalStorage } from '@/utils'
+import { getUserPreferences, updateUserPreferences } from '@/utils'
 import { useUserStore } from '@/redux/hooks'
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
@@ -100,8 +100,10 @@ export function useNotifications() {
             return
         }
 
-        const modalClosed = Boolean(getFromLocalStorage('notif_modal_closed'))
-        const bannerShowAtVal = getFromLocalStorage('notif_banner_show_at')
+        const userPreferences = getUserPreferences(user?.user.userId)
+
+        const modalClosed = userPreferences?.notifModalClosed ?? false
+        const bannerShowAtVal = userPreferences?.notifBannerShowAt
 
         // if permission is denied, do not show the modal, rely on the reminder banner schedule
         // the banner copy guides user to enable notifications from device settings
@@ -111,7 +113,7 @@ export function useNotifications() {
             // schedule banner if not already scheduled
             if (!bannerShowAtVal && modalClosed) {
                 const showAt = Date.now() + (useShortDelays() ? TEN_SECONDS_MS : SEVEN_DAYS_MS)
-                saveToLocalStorage('notif_banner_show_at', showAt)
+                updateUserPreferences(user?.user.userId, { notifBannerShowAt: showAt })
             }
         } else {
             // if permission is default and user already opted in at onesignal level, hide prompts
@@ -148,7 +150,14 @@ export function useNotifications() {
         } else {
             setShowReminderBanner(false)
         }
-    }, [getPermissionGranted, isPushSubscriptionOptedIn, sdkReady, oneSignalInitialized, permissionState])
+    }, [
+        getPermissionGranted,
+        isPushSubscriptionOptedIn,
+        sdkReady,
+        oneSignalInitialized,
+        permissionState,
+        user?.user.userId,
+    ])
 
     // initialize onesignal sdk
     useEffect(() => {
@@ -349,8 +358,7 @@ export function useNotifications() {
         setShowPermissionModal(false)
         // schedule banner based on environment
         const showAt = Date.now() + (useShortDelays() ? TEN_SECONDS_MS : SEVEN_DAYS_MS)
-        saveToLocalStorage('notif_modal_closed', true)
-        saveToLocalStorage('notif_banner_show_at', showAt)
+        updateUserPreferences(user?.user.userId, { notifModalClosed: true, notifBannerShowAt: showAt })
 
         // schedule banner to show at exact time
         if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current)
@@ -367,12 +375,12 @@ export function useNotifications() {
     // re-evaluate ui state after permission request
     const afterPermissionAttempt = useCallback(async () => {
         // mark modal as closed to prevent it from showing again
-        saveToLocalStorage('notif_modal_closed', true)
+        updateUserPreferences(user?.user.userId, { notifModalClosed: true })
 
         // if permission was denied, schedule the banner
         if (permissionState === 'denied') {
             const showAt = Date.now() + (useShortDelays() ? TEN_SECONDS_MS : SEVEN_DAYS_MS)
-            saveToLocalStorage('notif_banner_show_at', showAt)
+            updateUserPreferences(user?.user.userId, { notifBannerShowAt: showAt })
         }
 
         // immediately re-evaluate ui visibility after requesting permission
@@ -383,7 +391,7 @@ export function useNotifications() {
     const snoozeReminderBanner = useCallback(() => {
         // schedule next banner based on environment
         const showAt = Date.now() + (useShortDelays() ? TEN_SECONDS_MS : SEVEN_DAYS_MS)
-        saveToLocalStorage('notif_banner_show_at', showAt)
+        updateUserPreferences(user?.user.userId, { notifBannerShowAt: showAt })
         setShowReminderBanner(false)
 
         // schedule next banner appearance
