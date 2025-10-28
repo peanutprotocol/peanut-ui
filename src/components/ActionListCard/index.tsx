@@ -42,9 +42,9 @@ export const ActionListCard = ({
             )}
         >
             <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+                <div className="flex min-w-0 flex-1 items-center gap-3">
                     {leftIcon}
-                    <div className="flex flex-col">
+                    <div className="flex min-w-0 flex-1 flex-col">
                         <div className="font-medium">{title}</div>
                         {description && (
                             <div className={twMerge('text-sm text-grey-1', descriptionClassName)}>{description}</div>

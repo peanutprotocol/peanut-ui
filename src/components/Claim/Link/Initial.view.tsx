@@ -51,6 +51,10 @@ import { invitesApi } from '@/services/invites'
 import { EInviteType } from '@/services/services.types'
 
 export const InitialClaimLinkView = (props: IClaimScreenProps) => {
+    // get campaign tag from claim link url
+    const params = useSearchParams()
+    const campaignTag = params.get('campaignTag')
+
     const {
         onNext,
         claimLinkData,
@@ -212,10 +216,10 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
 
                 let recipientAddress: string | undefined
                 if (isPeanutWallet) {
-                    // Use wallet address from useWallet hook
+                    // use wallet address from useWallet hook
                     recipientAddress = address
                 } else {
-                    // Use external wallet address
+                    // use external wallet address
                     recipientAddress = recipient?.address
                 }
 
@@ -223,11 +227,11 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     throw new Error('No recipient address available')
                 }
 
-                // Use secure SDK claim (password stays client-side, only signature sent to backend)
+                // use secure SDK claim (password stays client-side, only signature sent to backend)
                 let claimTxHash: string | undefined
-                // Performance optimization: Pass deposit details to skip RPC call on backend
-                // Determine contractType: 0 for native ETH, 1 for ERC20 tokens
-                // @dev todo: this should be fetched in backend ideally. Might break ETH sendlinks.
+                // performance optimization: pass deposit details to skip RPC call on backend
+                // determine contractType: 0 for native ETH, 1 for ERC20 tokens
+                // @dev todo: this should be fetched in backend ideally. might break ETH sendlinks.
                 const isNativeToken =
                     claimLinkData.tokenAddress === NATIVE_TOKEN_ADDRESS || claimLinkData.tokenAddress === zeroAddress
                 const contractType = isNativeToken ? 0 : 1
@@ -244,7 +248,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     senderAddress: claimLinkData.senderAddress,
                 }
 
-                // Check if cross-chain claiming is needed
+                // check if cross-chain claiming is needed
                 if (isXChain) {
                     if (!selectedTokenData?.chainId || !selectedTokenData?.address) {
                         throw new Error('Selected token data is required for cross-chain claims')
@@ -257,17 +261,18 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     })
                     setClaimType('claimxchain')
                 } else {
-                    // Regular P2P claim with optimistic return for faster UX
+                    // regular P2P claim with optimistic return for faster UX
                     claimTxHash = await claimLink({
                         address: recipientAddress,
                         link: claimLinkData.link,
-                        depositDetails, // Performance: Skip RPC call
-                        optimisticReturn: true, // UX: Return immediately, poll for txHash
+                        depositDetails, // performance: skip RPC call
+                        optimisticReturn: true, // UX: return immediately, poll for txHash
+                        campaignTag: campaignTag ?? undefined, // badge assignment: pass campaign tag
                     })
                     setClaimType('claim')
                 }
 
-                // Associate the claim with the user so it shows up in their activity
+                // associate the claim with the user so it shows up in their activity
                 if (user && claimTxHash) {
                     try {
                         await sendLinksApi.associateClaim(claimTxHash)
@@ -280,11 +285,11 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 setTransactionHash(claimTxHash)
                 onCustom('SUCCESS')
 
-                // Note: With optimisticReturn, balance/transactions refresh happens in SUCCESS view
-                // after polling confirms the transaction. Only refresh immediately if we have txHash.
+                // note: with optimisticReturn, balance/transactions refresh happens in SUCCESS view
+                // after polling confirms the transaction. only refresh immediately if we have txHash.
                 if (claimTxHash) {
-                    // Synchronous claim - transaction is confirmed
-                    // Force immediate refetch to bypass staleTime
+                    // synchronous claim - transaction is confirmed
+                    // force immediate refetch to bypass staleTime
                     if (isPeanutWallet) {
                         queryClient.refetchQueries({
                             queryKey: ['balance'],
@@ -296,7 +301,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                         type: 'active',
                     })
                 } else {
-                    // Optimistic return - transaction still processing
+                    // optimistic return - transaction still processing
                     // SUCCESS view will refresh after polling detects txHash
                 }
             } catch (error) {
@@ -314,6 +319,11 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             claimLinkData.link,
             claimLinkData.chainId,
             claimLinkData.tokenAddress,
+            claimLinkData.pubKey,
+            claimLinkData.amount,
+            claimLinkData.status,
+            claimLinkData.createdAt,
+            claimLinkData.senderAddress,
             isPeanutWallet,
             fetchBalance,
             recipient.address,
@@ -327,6 +337,9 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             setTransactionHash,
             queryClient,
             isXChain,
+            address,
+            campaignTag,
+            fetchUser,
         ]
     )
 

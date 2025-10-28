@@ -17,7 +17,6 @@ import { captureException } from '@sentry/nextjs'
 import { next_proxy_url } from '@/constants'
 import { CLAIM_LINK, CLAIM_LINK_XCHAIN, TRANSACTIONS } from '@/constants/query.consts'
 import { loadingStateContext } from '@/context'
-import { useWallet } from '@/hooks/wallet/useWallet'
 import { isTestnetChain } from '@/utils'
 import { sendLinksApi, ESendLinkStatus } from '@/services/sendLinks'
 
@@ -84,6 +83,7 @@ async function createClaimPayload(link: string, recipientAddress: string, onlyRe
 /**
  * Claims a link through the Peanut API
  * @param optimisticReturn - If true, returns immediately (202) and lets frontend poll for txHash
+ * @param campaignTag - Optional campaign tag for badge assignment
  * @returns Transaction hash if available, or undefined if processing asynchronously
  */
 async function executeClaim({
@@ -91,6 +91,7 @@ async function executeClaim({
     recipientAddress,
     depositDetails,
     optimisticReturn = false,
+    campaignTag,
     baseUrl = `${next_proxy_url}/claim-v3`,
 }: {
     link: string
@@ -107,6 +108,7 @@ async function executeClaim({
         senderAddress: string
     }
     optimisticReturn?: boolean
+    campaignTag?: string
     baseUrl?: string
 }): Promise<string | undefined> {
     const payload = await createClaimPayload(link, recipientAddress)
@@ -120,6 +122,8 @@ async function executeClaim({
         ...(depositDetails && { depositDetails }),
         // UX optimization: Return immediately without waiting for blockchain confirmation
         ...(optimisticReturn && { optimisticReturn: true }),
+        // Badge assignment: Pass campaign tag for badge awarding
+        ...(campaignTag && { campaignTag }),
     })
 
     // Handle 202 Accepted (optimistic response) - txHash will be available via polling
@@ -268,6 +272,7 @@ const useClaimLink = () => {
             link,
             depositDetails,
             optimisticReturn,
+            campaignTag,
         }: {
             address: string
             link: string
@@ -283,12 +288,14 @@ const useClaimLink = () => {
                 senderAddress: string
             }
             optimisticReturn?: boolean
+            campaignTag?: string
         }) => {
             return await executeClaim({
                 link,
                 recipientAddress: address,
                 depositDetails,
                 optimisticReturn,
+                campaignTag,
             })
         },
         ...sharedMutationConfig,
@@ -338,6 +345,7 @@ const useClaimLink = () => {
      * Legacy wrapper for backward compatibility
      * Use claimLinkMutation.mutateAsync() directly for better type safety
      * @param optimisticReturn - If true, returns immediately and lets SUCCESS view poll for txHash
+     * @param campaignTag - Optional campaign tag for badge assignment
      * @returns Transaction hash if available, or undefined if processing asynchronously
      */
     const claimLink = async ({
@@ -345,6 +353,7 @@ const useClaimLink = () => {
         link,
         depositDetails,
         optimisticReturn,
+        campaignTag,
     }: {
         address: string
         link: string
@@ -360,8 +369,9 @@ const useClaimLink = () => {
             senderAddress: string
         }
         optimisticReturn?: boolean
+        campaignTag?: string
     }): Promise<string | undefined> => {
-        return await claimLinkMutation.mutateAsync({ address, link, depositDetails, optimisticReturn })
+        return await claimLinkMutation.mutateAsync({ address, link, depositDetails, optimisticReturn, campaignTag })
     }
 
     /**
@@ -426,22 +436,26 @@ const useClaimLink = () => {
      * @param link - The link to cancel
      * @param walletAddress - The user's wallet address to claim back to
      * @param userId - Optional user ID for error tracking
+     * @param campaignTag - Optional campaign tag (usually not needed for cancellations)
      * @returns The transaction hash if available, or undefined if processing asynchronously
      */
     const cancelLinkAndClaim = async ({
         link,
         walletAddress,
         userId,
+        campaignTag,
     }: {
         link: string
         walletAddress: string
         userId?: string
+        campaignTag?: string
     }): Promise<string | undefined> => {
         try {
             // Use secure SDK claim (password stays client-side)
             const txHash = await claimLink({
                 address: walletAddress,
                 link,
+                campaignTag,
             })
 
             if (txHash) {
