@@ -1,11 +1,14 @@
+'use client'
+
 import { PEANUT_WALLET_TOKEN_DECIMALS, STABLE_COINS } from '@/constants'
 import { tokenSelectorContext } from '@/context'
-import { formatAmountWithoutComma, formatTokenAmount, formatCurrency } from '@/utils'
+import { formatTokenAmount, formatCurrency } from '@/utils'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import Icon from '../Icon'
 import { twMerge } from 'tailwind-merge'
 import { Icon as IconComponent } from '@/components/Global/Icons/Icon'
 import { Slider } from '../Slider'
+import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 
 interface TokenAmountInputProps {
     className?: string
@@ -29,6 +32,8 @@ interface TokenAmountInputProps {
     showSlider?: boolean
     maxAmount?: number
     isInitialInputUsd?: boolean
+    defaultSliderValue?: number
+    defaultSliderSuggestedAmount?: number
 }
 
 const TokenAmountInput = ({
@@ -49,10 +54,16 @@ const TokenAmountInput = ({
     showSlider = false,
     maxAmount,
     isInitialInputUsd = false,
+    defaultSliderValue,
+    defaultSliderSuggestedAmount,
 }: TokenAmountInputProps) => {
     const { selectedTokenData } = useContext(tokenSelectorContext)
     const inputRef = useRef<HTMLInputElement>(null)
     const inputType = useMemo(() => (window.innerWidth < 640 ? 'text' : 'number'), [])
+    const [isFocused, setIsFocused] = useState(false)
+    const { deviceType } = useDeviceType()
+    // Only autofocus on desktop (WEB), not on mobile devices (IOS/ANDROID)
+    const shouldAutoFocus = deviceType === DeviceType.WEB
 
     // Store display value for input field (what user sees when typing)
     const [displayValue, setDisplayValue] = useState<string>(tokenValue || '')
@@ -228,6 +239,17 @@ const TokenAmountInput = ({
         }
     }
 
+    // Sync default slider suggested amount to the input
+    useEffect(() => {
+        if (defaultSliderSuggestedAmount) {
+            const formattedAmount = formatTokenAmount(defaultSliderSuggestedAmount.toString(), 2)
+            if (formattedAmount) {
+                setTokenValue(formattedAmount)
+                setDisplayValue(formattedAmount)
+            }
+        }
+    }, [defaultSliderSuggestedAmount])
+
     return (
         <form
             ref={formRef}
@@ -239,33 +261,48 @@ const TokenAmountInput = ({
                 <div className="flex items-center gap-1 font-bold">
                     <label className={`text-xl ${displayValue ? 'text-black' : 'text-gray-1'}`}>{displaySymbol}</label>
 
-                    {/* Input */}
-                    <input
-                        autoFocus
-                        className={`h-12 w-[4ch] max-w-80 bg-transparent text-6xl font-black caret-primary-1 outline-none transition-colors placeholder:text-h1 placeholder:text-gray-1 focus:border-primary-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1`}
-                        placeholder={'0.00'}
-                        onChange={(e) => {
-                            const value = formatAmountWithoutComma(e.target.value)
-                            onChange(value, isInputUsd)
-                        }}
-                        ref={inputRef}
-                        inputMode="decimal"
-                        type={inputType}
-                        value={displayValue}
-                        step="any"
-                        min="0"
-                        autoComplete="off"
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                                e.preventDefault()
-                                if (onSubmit) onSubmit()
-                            }
-                        }}
-                        onBlur={() => {
-                            if (onBlur) onBlur()
-                        }}
-                        disabled={disabled}
-                    />
+                    {/* Input with fake caret */}
+                    <div className="relative">
+                        <input
+                            autoFocus={shouldAutoFocus}
+                            className={`h-12 w-[4ch] max-w-80 bg-transparent text-6xl font-black caret-primary-1 outline-none transition-colors placeholder:text-h1 placeholder:text-gray-1 focus:border-primary-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1`}
+                            placeholder={'0.00'}
+                            onChange={(e) => {
+                                let value = e.target.value
+                                // USD/currency → 2 decimals; token input → allow `decimals` (<= 6)
+                                const maxDecimals =
+                                    displayMode === 'FIAT' || displayMode === 'STABLE' || isInputUsd ? 2 : decimals
+                                const formattedAmount = formatTokenAmount(value, maxDecimals, true)
+                                if (formattedAmount !== undefined) {
+                                    value = formattedAmount
+                                }
+                                onChange(value, isInputUsd)
+                            }}
+                            ref={inputRef}
+                            inputMode="decimal"
+                            type={inputType}
+                            value={displayValue}
+                            step="any"
+                            min="0"
+                            autoComplete="off"
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    e.preventDefault()
+                                    if (onSubmit) onSubmit()
+                                }
+                            }}
+                            onFocus={() => setIsFocused(true)}
+                            onBlur={() => {
+                                setIsFocused(false)
+                                if (onBlur) onBlur()
+                            }}
+                            disabled={disabled}
+                        />
+                        {/* Fake blinking caret shown when not focused and input is empty */}
+                        {!isFocused && !displayValue && (
+                            <div className="pointer-events-none absolute left-0 top-1/2 h-12 w-[1px] -translate-y-1/2 animate-blink bg-primary-1" />
+                        )}
+                    </div>
                 </div>
 
                 {/* Conversion */}
@@ -318,7 +355,11 @@ const TokenAmountInput = ({
             )}
             {showSlider && maxAmount && (
                 <div className="mt-2 h-14">
-                    <Slider onValueChange={onSliderValueChange} value={sliderValue} />
+                    <Slider
+                        onValueChange={onSliderValueChange}
+                        value={sliderValue}
+                        defaultValue={[defaultSliderValue ? defaultSliderValue : 100]}
+                    />
                 </div>
             )}
         </form>

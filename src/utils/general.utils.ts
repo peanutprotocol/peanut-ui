@@ -448,15 +448,33 @@ export function formatAmountWithSignificantDigits(amount: number, significantDig
     return floorFixed(amount, fractionDigits)
 }
 
-export function formatTokenAmount(amount?: number, maxFractionDigits?: number) {
+export function formatTokenAmount(amount?: number | string, maxFractionDigits?: number, forInput: boolean = false) {
     if (amount === undefined) return undefined
     maxFractionDigits = maxFractionDigits ?? 6
 
+    // For input mode, preserve progressive typing (e.g., "1.", "0.")
+    if (forInput && typeof amount === 'string') {
+        const s = amount.trim()
+        if (s === '') return ''
+        const m = s.match(/^(\d*)(?:\.(\d*))?$/)
+        if (!m) return '' // invalid → empty
+        const whole = m[1] ?? ''
+        const fracRaw = m[2] // undefined ⇒ no dot; '' ⇒ dot present with no digits
+        if (fracRaw === undefined) return whole
+        if (maxFractionDigits === 0) return whole
+        const frac = (fracRaw ?? '').slice(0, maxFractionDigits)
+        return `${whole}.${frac}`
+    }
+
+    const amountNumber = typeof amount === 'string' ? parseFloat(amount) : amount
+
+    // check for NaN after conversion
+    if (isNaN(amountNumber)) return undefined
+
     // floor the amount
-    const flooredAmount = Math.floor(amount * Math.pow(10, maxFractionDigits)) / Math.pow(10, maxFractionDigits)
+    const flooredAmount = Math.floor(amountNumber * Math.pow(10, maxFractionDigits)) / Math.pow(10, maxFractionDigits)
 
     // Convert number to string to count significant digits
-
     const amountString = flooredAmount.toFixed(maxFractionDigits)
     const significantDigits = amountString.replace(/^0+\./, '').replace(/\.$/, '').replace(/0+$/, '').length
 
@@ -469,14 +487,6 @@ export function formatTokenAmount(amount?: number, maxFractionDigits?: number) {
         maximumFractionDigits: maxFractionDigits,
     })
     return formattedAmount
-}
-
-export const formatAmountWithoutComma = (input: string) => {
-    const numericValue = input.replace(/,/g, '.')
-    const regex = new RegExp(`^[0-9]*\\.?[0-9]*$`)
-    if (numericValue === '' || regex.test(numericValue)) {
-        return numericValue
-    } else return ''
 }
 
 export async function copyTextToClipboardWithFallback(text: string) {

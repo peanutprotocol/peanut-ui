@@ -36,6 +36,8 @@ interface RequestFulfillmentFlowContextType {
     setFulfillUsingManteca: (fulfillUsingManteca: boolean) => void
     regionalMethodType: 'mercadopago' | 'pix'
     setRegionalMethodType: (regionalMethodType: 'mercadopago' | 'pix') => void
+    triggerPayWithPeanut: boolean
+    setTriggerPayWithPeanut: (triggerPayWithPeanut: boolean) => void
 }
 
 const RequestFulfillmentFlowContext = createContext<RequestFulfillmentFlowContextType | undefined>(undefined)
@@ -53,6 +55,7 @@ export const RequestFulfilmentFlowContextProvider: React.FC<{ children: ReactNod
     const [requesterDetails, setRequesterDetails] = useState<User | null>(null)
     const [fulfillUsingManteca, setFulfillUsingManteca] = useState(false)
     const [regionalMethodType, setRegionalMethodType] = useState<'mercadopago' | 'pix'>('mercadopago')
+    const [triggerPayWithPeanut, setTriggerPayWithPeanut] = useState(false) // To trigger the pay with peanut from Action List
 
     const resetFlow = useCallback(() => {
         setExternalWalletFulfillMethod(null)
@@ -90,6 +93,8 @@ export const RequestFulfilmentFlowContextProvider: React.FC<{ children: ReactNod
             setFulfillUsingManteca,
             regionalMethodType,
             setRegionalMethodType,
+            triggerPayWithPeanut,
+            setTriggerPayWithPeanut,
         }),
         [
             resetFlow,
@@ -103,6 +108,7 @@ export const RequestFulfilmentFlowContextProvider: React.FC<{ children: ReactNod
             requesterDetails,
             fulfillUsingManteca,
             regionalMethodType,
+            triggerPayWithPeanut,
         ]
     )
 
