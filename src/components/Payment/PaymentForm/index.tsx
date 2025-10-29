@@ -93,6 +93,8 @@ export const PaymentForm = ({
         setExternalWalletFulfillMethod,
         fulfillUsingManteca,
         setFulfillUsingManteca,
+        triggerPayWithPeanut,
+        setTriggerPayWithPeanut,
     } = useRequestFulfillmentFlow()
     const recipientUsername = !chargeDetails && recipient?.recipientType === 'USERNAME' ? recipient.identifier : null
     const { user: recipientUser } = useUserByUsername(recipientUsername)
@@ -585,6 +587,14 @@ export const PaymentForm = ({
             handleInitiatePayment()
         }
     }, [fulfillUsingManteca, chargeDetails, handleInitiatePayment])
+
+    // Trigger payment with peanut from action list
+    useEffect(() => {
+        if (triggerPayWithPeanut) {
+            handleInitiatePayment()
+            setTriggerPayWithPeanut(false)
+        }
+    }, [triggerPayWithPeanut])
 
     const isInsufficientBalanceError = useMemo(() => {
         return error?.includes("You don't have enough balance.")
