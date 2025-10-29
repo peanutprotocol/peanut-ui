@@ -17,6 +17,13 @@ function Slider({
     // Use internal state for the slider value to enable magnetic snapping
     const [internalValue, setInternalValue] = React.useState<number[]>(defaultValue || controlledValue)
 
+    // Sync internal state when controlled value changes from external source
+    React.useEffect(() => {
+        if (controlledValue !== undefined && controlledValue[0] !== internalValue[0]) {
+            setInternalValue(controlledValue)
+        }
+    }, [controlledValue])
+
     // Check if current value is at a snap point (exact match)
     const activeSnapPoint = React.useMemo(() => {
         return SNAP_POINTS.find((snapPoint) => Math.abs(internalValue[0] - snapPoint) < 0.5)
