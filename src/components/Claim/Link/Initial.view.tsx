@@ -95,6 +95,8 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         resetFlow: resetClaimBankFlow,
         claimToMercadoPago,
         setClaimToMercadoPago,
+        hideTokenSelector,
+        setHideTokenSelector,
     } = useClaimBankFlow()
     const { setLoadingState, isLoading } = useContext(loadingStateContext)
     const {
@@ -719,8 +721,9 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         } else if (!claimToExternalWallet && address) {
             setRecipient({ name: undefined, address })
         }
-        // Clear recipient and set token selection to USDC Arbitrum when user clicks back from devconnect claim flow
+        // Clear recipient, enable token selector and set token selection to USDC Arbitrum when user clicks back from devconnect claim flow
         else if (!claimToExternalWallet && !address && isDevconnectClaimFlow) {
+            setHideTokenSelector(false)
             setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
             setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
             setRecipient({ name: undefined, address: '' })
@@ -895,7 +898,8 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 {/* Token Selector
                  * We don't want to show this if we're claiming to peanut wallet. Else its okay
                  */}
-                {recipientType !== 'iban' &&
+                {!hideTokenSelector &&
+                    recipientType !== 'iban' &&
                     recipientType !== 'us' &&
                     claimBankFlowStep !== ClaimBankFlowStep.BankCountryList &&
                     !!claimToExternalWallet && (

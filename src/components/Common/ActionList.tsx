@@ -67,6 +67,7 @@ export default function ActionList({
         setShowVerificationModal,
         setClaimToMercadoPago,
         setRegionalMethodType,
+        setHideTokenSelector,
     } = useClaimBankFlow()
     const [showMinAmountError, setShowMinAmountError] = useState(false)
     const { claimType } = useDetermineBankClaimType(claimLinkData?.sender?.userId ?? '')
@@ -154,6 +155,7 @@ export default function ActionList({
                     // For devconnect claims we need to set address and chain from the url params
                     setSelectedTokenAddress(devconnectTokenAddress)
                     setSelectedChainID(devconnectChainId)
+                    setHideTokenSelector(true)
                     setClaimToExternalWallet(true)
                     break
                 case 'exchange-or-wallet':
