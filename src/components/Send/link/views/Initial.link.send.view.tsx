@@ -18,6 +18,7 @@ import { parseUnits } from 'viem'
 import { Button } from '../../../0_Bruddle'
 import FileUploadInput from '../../../Global/FileUploadInput'
 import TokenAmountInput from '../../../Global/TokenAmountInput'
+import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 
 const LinkSendInitialView = () => {
     const dispatch = useAppDispatch()
@@ -29,6 +30,7 @@ const LinkSendInitialView = () => {
 
     const { fetchBalance, balance } = useWallet()
     const queryClient = useQueryClient()
+    const { hasPendingTransactions } = usePendingTransactions()
 
     const peanutWalletBalance = useMemo(() => {
         return balance !== undefined ? printableUsdc(balance) : ''
@@ -96,6 +98,12 @@ const LinkSendInitialView = () => {
     }, [isLoading, tokenValue, createLink, fetchBalance, dispatch, queryClient, setLoadingState, attachmentOptions])
 
     useEffect(() => {
+        // Skip balance check if transaction is pending
+        // (balance may be optimistically updated during transaction)
+        if (hasPendingTransactions) {
+            return
+        }
+
         if (!peanutWalletBalance || !tokenValue) {
             // Clear error state when no balance or token value
             dispatch(
@@ -124,7 +132,7 @@ const LinkSendInitialView = () => {
                 })
             )
         }
-    }, [peanutWalletBalance, tokenValue, dispatch])
+    }, [peanutWalletBalance, tokenValue, dispatch, hasPendingTransactions])
 
     return (
         <div className="w-full space-y-4">

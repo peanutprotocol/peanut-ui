@@ -3,7 +3,6 @@
 import Icon from '@/components/Global/Icon'
 import TransactionCard from '@/components/TransactionDetails/TransactionCard'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
-import { BASE_URL } from '@/constants'
 import { EHistoryEntryType, type HistoryEntry, useTransactionHistory } from '@/hooks/useTransactionHistory'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useUserStore } from '@/redux/hooks'
@@ -16,6 +15,7 @@ import EmptyState from '../Global/EmptyStates/EmptyState'
 import { KycStatusItem } from '../Kyc/KycStatusItem'
 import { isKycStatusItem, type KycHistoryEntry } from '@/hooks/useBridgeKycFlow'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { BadgeStatusItem, isBadgeHistoryItem } from '@/components/Badges/BadgeStatusItem'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { completeHistoryEntry } from '@/utils/history.utils'
 import { formatUnits } from 'viem'
@@ -90,6 +90,21 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
             const processEntries = async () => {
                 // Start with the fetched entries
                 const entries: Array<HistoryEntry | KycHistoryEntry> = [...historyData.entries]
+
+                // inject badge entries using user's badges (newest first) and earnedAt chronology
+                const badges = user?.user?.badges ?? []
+                badges.forEach((b) => {
+                    if (!b.earnedAt) return
+                    entries.push({
+                        isBadge: true,
+                        uuid: b.id,
+                        timestamp: new Date(b.earnedAt).toISOString(),
+                        code: b.code,
+                        name: b.name,
+                        description: b.description ?? undefined,
+                        iconUrl: b.iconUrl ?? undefined,
+                    } as any)
+                })
 
                 // process websocket entries: update existing or add new ones
                 // Sort by timestamp ascending to process oldest entries first
@@ -342,6 +357,11 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
                                     }
                                 />
                             )
+                        }
+
+                        // render badge milestone entries
+                        if (isBadgeHistoryItem(item)) {
+                            return <BadgeStatusItem key={item.uuid} position={position} entry={item} />
                         }
 
                         // map the raw history entry to the format needed by the ui components

@@ -258,6 +258,16 @@ export interface User {
     showFullName: boolean
     createdAt: string
     accounts: Account[]
+    badges?: Array<{
+        id?: string
+        code: string
+        name: string
+        description: string | null
+        iconUrl: string | null
+        color: string | null
+        earnedAt: string | Date
+        isVisible?: boolean
+    }>
 }
 
 // based on the API's AccountType

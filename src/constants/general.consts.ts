@@ -215,3 +215,5 @@ export const ROUTE_NOT_FOUND_ERROR =
 
 // Perk claim UI constants
 export const PERK_HOLD_DURATION_MS = 1500 // 1.5 seconds hold duration for claiming perks
+
+export const ENS_NAME_REGEX = /^(?:[-a-zA-Z0-9]+\.)+[-a-zA-Z0-9]+$/

@@ -7,9 +7,10 @@ import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_SYMBOL, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 import { AccountType, type Account } from '@/interfaces'
 import { formatIban, shortenStringLong, isTxReverted } from '@/utils/general.utils'
 import { useParams, useRouter } from 'next/navigation'
@@ -25,6 +26,7 @@ import { useQuery } from '@tanstack/react-query'
 import { pointsApi } from '@/services/points'
 import { PointsAction } from '@/services/services.types'
 import { useSearchParams } from 'next/navigation'
+import { parseUnits } from 'viem'
 
 type View = 'INITIAL' | 'SUCCESS'
 
@@ -38,13 +40,15 @@ export default function WithdrawBankPage() {
         setSelectedMethod,
     } = useWithdrawFlow()
     const { user, fetchUser } = useAuth()
-    const { address, sendMoney } = useWallet()
+    const { address, sendMoney, balance } = useWallet()
     const router = useRouter()
     const searchParams = useSearchParams()
     const [isLoading, setIsLoading] = useState(false)
     const [view, setView] = useState<View>('INITIAL')
     const params = useParams()
     const country = params.country as string
+    const [balanceErrorMessage, setBalanceErrorMessage] = useState<string | null>(null)
+    const { hasPendingTransactions } = usePendingTransactions()
 
     // check if we came from send flow - using method param to detect (only bank goes through this page)
     const methodParam = searchParams.get('method')
@@ -228,6 +232,26 @@ export default function WithdrawBankPage() {
         fetchUser()
     }, [])
 
+    // Balance validation
+    useEffect(() => {
+        // Skip balance check if transaction is pending
+        if (hasPendingTransactions) {
+            return
+        }
+
+        if (!amountToWithdraw || amountToWithdraw === '0' || isNaN(Number(amountToWithdraw)) || balance === undefined) {
+            setBalanceErrorMessage(null)
+            return
+        }
+
+        const withdrawAmount = parseUnits(amountToWithdraw, PEANUT_WALLET_TOKEN_DECIMALS)
+        if (withdrawAmount > balance) {
+            setBalanceErrorMessage('Not enough balance to complete withdrawal.')
+        } else {
+            setBalanceErrorMessage(null)
+        }
+    }, [amountToWithdraw, balance, hasPendingTransactions])
+
     if (!bankAccount) {
         return null
     }
@@ -324,13 +348,14 @@ export default function WithdrawBankPage() {
                             iconSize={12}
                             shadowSize="4"
                             onClick={handleCreateAndInitiateOfframp}
-                            disabled={isLoading || !bankAccount || isNonEuroSepaCountry}
+                            disabled={isLoading || !bankAccount || isNonEuroSepaCountry || !!balanceErrorMessage}
                             className="w-full"
                         >
                             {isNonEuroSepaCountry ? 'Temporarily Unavailable' : 'Withdraw'}
                         </Button>
                     )}
                     {error.showError && <ErrorAlert description={error.errorMessage} />}
+                    {balanceErrorMessage && <ErrorAlert description={balanceErrorMessage} />}
                 </div>
             )}
 

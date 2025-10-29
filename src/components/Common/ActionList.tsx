@@ -29,6 +29,7 @@ import { useAuth } from '@/context/authContext'
 import { EInviteType } from '@/services/services.types'
 import ConfirmInviteModal from '../Global/ConfirmInviteModal'
 import Loading from '../Global/Loading'
+import { useWallet } from '@/hooks/wallet/useWallet'
 import { ActionListCard } from '../ActionListCard'
 import { useGeoFilteredPaymentOptions } from '@/hooks/useGeoFilteredPaymentOptions'
 
@@ -63,6 +64,7 @@ export default function ActionList({
         setClaimToMercadoPago,
         setRegionalMethodType,
     } = useClaimBankFlow()
+    const { balance } = useWallet()
     const [showMinAmountError, setShowMinAmountError] = useState(false)
     const { claimType } = useDetermineBankClaimType(claimLinkData?.sender?.userId ?? '')
     const { chargeDetails } = usePaymentStore()
@@ -77,11 +79,14 @@ export default function ActionList({
         setFlowStep: setRequestFulfilmentBankFlowStep,
         setFulfillUsingManteca,
         setRegionalMethodType: setRequestFulfillmentRegionalMethodType,
+        setTriggerPayWithPeanut,
     } = useRequestFulfillmentFlow()
     const [isGuestVerificationModalOpen, setIsGuestVerificationModalOpen] = useState(false)
     const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null)
     const [showInviteModal, setShowInviteModal] = useState(false)
     const { user } = useAuth()
+    const [isUsePeanutBalanceModalShown, setIsUsePeanutBalanceModalShown] = useState(false)
+    const [showUsePeanutBalanceModal, setShowUsePeanutBalanceModal] = useState(false)
 
     const dispatch = useAppDispatch()
 
@@ -100,6 +105,10 @@ export default function ActionList({
         sortUnavailable: true,
         isMethodUnavailable: (method) => method.soon || (method.id === 'bank' && requiresVerification),
     })
+
+    // Check if user has enough Peanut balance to pay for the request
+    const amountInUsd = usdAmount ? parseFloat(usdAmount) : 0
+    const hasSufficientPeanutBalance = user && balance && Number(balance) >= amountInUsd
 
     const handleMethodClick = async (method: PaymentMethod) => {
         if (flow === 'claim' && claimLinkData) {
@@ -138,9 +147,13 @@ export default function ActionList({
                     break
             }
         } else if (flow === 'request' && requestLinkData) {
-            const amountInUsd = usdAmount ? parseFloat(usdAmount) : 0
             if (method.id === 'bank' && amountInUsd < 1) {
                 setShowMinAmountError(true)
+                return
+            }
+
+            if (!isUsePeanutBalanceModalShown && hasSufficientPeanutBalance) {
+                setShowUsePeanutBalanceModal(true)
                 return
             }
             switch (method.id) {
@@ -222,12 +235,24 @@ export default function ActionList({
             <div className="space-y-2">
                 {sortedActionMethods.map((method) => {
                     if (flow === 'request' && method.id === 'exchange-or-wallet') {
+                        const shouldShowPeanutBalanceModal = !isUsePeanutBalanceModalShown && hasSufficientPeanutBalance
                         return (
-                            <ActionListDaimoPayButton
-                                handleContinueWithPeanut={handleContinueWithPeanut}
+                            <div
                                 key={method.id}
-                                showConfirmModal={isInviteLink && !userHasAppAccess}
-                            />
+                                onClick={() => {
+                                    if (shouldShowPeanutBalanceModal) {
+                                        setShowUsePeanutBalanceModal(true)
+                                    }
+                                }}
+                            >
+                                {/* Disable daimo pay button if peanut balance is enough to pay for the request */}
+                                <div style={{ pointerEvents: shouldShowPeanutBalanceModal ? 'none' : 'auto' }}>
+                                    <ActionListDaimoPayButton
+                                        handleContinueWithPeanut={handleContinueWithPeanut}
+                                        showConfirmModal={isInviteLink && !userHasAppAccess}
+                                    />
+                                </div>
+                            </div>
                         )
                     }
 
@@ -284,6 +309,32 @@ export default function ActionList({
                     setShowInviteModal(false)
                     setSelectedMethod(null)
                 }}
+            />
+
+            <ActionModal
+                visible={showUsePeanutBalanceModal}
+                onClose={() => {
+                    setShowUsePeanutBalanceModal(false)
+                    setIsUsePeanutBalanceModalShown(true)
+                }}
+                title="Use your Peanut balance instead"
+                description={
+                    'You already have enough funds in your Peanut account. Using this method is instant and avoids delays.'
+                }
+                icon="user-plus"
+                ctas={[
+                    {
+                        text: 'Pay with Peanut',
+                        shadowSize: '4',
+                        onClick: () => {
+                            setShowUsePeanutBalanceModal(false)
+                            setTriggerPayWithPeanut(true)
+                        },
+                    },
+                ]}
+                iconContainerClassName="bg-primary-1"
+                preventClose={false}
+                modalPanelClassName="max-w-md mx-8"
             />
         </div>
     )

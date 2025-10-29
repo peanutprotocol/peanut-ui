@@ -1,6 +1,5 @@
 'use client'
 
-import { fetchTokenPrice } from '@/app/actions/tokens'
 import { PEANUT_LOGO_BLACK } from '@/assets'
 import { PEANUTMAN_LOGO } from '@/assets/peanut'
 import { Button } from '@/components/0_Bruddle'
@@ -18,6 +17,9 @@ import { useAuth } from '@/context/authContext'
 import { useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import { type InitiatePaymentPayload, usePaymentInitiator } from '@/hooks/usePaymentInitiator'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
+import { useTokenPrice } from '@/hooks/useTokenPrice'
+import { useSquidChainsAndTokens } from '@/hooks/useSquidChainsAndTokens'
 import { type ParsedURL } from '@/lib/url-parser/types/payment'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
@@ -86,6 +88,8 @@ export const PaymentForm = ({
         setExternalWalletFulfillMethod,
         fulfillUsingManteca,
         setFulfillUsingManteca,
+        triggerPayWithPeanut,
+        setTriggerPayWithPeanut,
     } = useRequestFulfillmentFlow()
     const recipientUsername = !chargeDetails && recipient?.recipientType === 'USERNAME' ? recipient.identifier : null
     const { user: recipientUser } = useUserByUsername(recipientUsername)
@@ -100,6 +104,17 @@ export const PaymentForm = ({
     const { interactions } = useUserInteractions(recipientUserId ? [recipientUserId] : [])
     const { isConnected: isPeanutWalletConnected, balance } = useWallet()
     const { isConnected: isExternalWalletConnected, status } = useAccount()
+
+    // Fetch Squid chains and tokens for token price lookup
+    const { data: supportedSquidChainsAndTokens = {} } = useSquidChainsAndTokens()
+
+    // Fetch token price for request details (xchain requests)
+    const { data: requestedTokenPriceData } = useTokenPrice({
+        tokenAddress: requestDetails?.tokenAddress,
+        chainId: requestDetails?.chainId,
+        supportedSquidChainsAndTokens,
+        isPeanutWallet: false, // Request details are always external tokens
+    })
     const [initialSetupDone, setInitialSetupDone] = useState(false)
     const [inputTokenAmount, setInputTokenAmount] = useState<string>(
         chargeDetails?.tokenAmount || requestDetails?.tokenAmount || amount || ''
@@ -111,10 +126,9 @@ export const PaymentForm = ({
     const [disconnectWagmiModal, setDisconnectWagmiModal] = useState<boolean>(false)
     const [inputUsdValue, setInputUsdValue] = useState<string>('')
     const [usdValue, setUsdValue] = useState<string>('')
-    const [requestedTokenPrice, setRequestedTokenPrice] = useState<number>(0)
-    const [_isFetchingTokenPrice, setIsFetchingTokenPrice] = useState<boolean>(false)
 
     const { initiatePayment, isProcessing, error: initiatorError } = usePaymentInitiator()
+    const { hasPendingTransactions } = usePendingTransactions()
 
     const peanutWalletBalance = useMemo(() => {
         return balance !== undefined ? formatCurrency(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS)) : ''
@@ -128,13 +142,11 @@ export const PaymentForm = ({
     }, [paymentStoreError, initiatorError, inviteError])
 
     const {
-        selectedTokenPrice,
         selectedChainID,
         selectedTokenAddress,
         selectedTokenData,
         setSelectedChainID,
         setSelectedTokenAddress,
-        setSelectedTokenDecimals,
         selectedTokenBalance,
     } = useContext(tokenSelectorContext)
     const { open: openReownModal } = useAppKit()
@@ -155,7 +167,7 @@ export const PaymentForm = ({
     const isActivePeanutWallet = useMemo(() => !!user && isPeanutWalletConnected, [user, isPeanutWalletConnected])
 
     useEffect(() => {
-        if (initialSetupDone) return
+        if (initialSetupDone || showRequestPotInitialView) return
 
         if (amount) {
             setInputTokenAmount(amount)
@@ -167,20 +179,18 @@ export const PaymentForm = ({
                 const defaultToken = chain.tokens.find((t) => t.symbol.toLowerCase() === 'usdc')
                 if (defaultToken) {
                     setSelectedTokenAddress(defaultToken.address)
-                    setSelectedTokenDecimals(defaultToken.decimals)
+                    // Note: decimals automatically derived by useTokenPrice hook
                 }
             }
         }
 
         if (token) {
             setSelectedTokenAddress((token.address || requestDetails?.tokenAddress) ?? '')
-            if (token.decimals) {
-                setSelectedTokenDecimals(token.decimals)
-            }
+            // Note: decimals automatically derived by useTokenPrice hook
         }
 
         setInitialSetupDone(true)
-    }, [chain, token, amount, initialSetupDone, requestDetails])
+    }, [chain, token, amount, initialSetupDone, requestDetails, showRequestPotInitialView])
 
     // reset error when component mounts or recipient changes
     useEffect(() => {
@@ -189,9 +199,8 @@ export const PaymentForm = ({
     }, [dispatch, recipient])
 
     useEffect(() => {
-        // Skip balance check if on CONFIRM or STATUS view, or if transaction is being processed
-        // (balance has been optimistically updated in these states)
-        if (currentView === 'CONFIRM' || currentView === 'STATUS' || isProcessing) {
+        // Skip balance check if on CONFIRM or STATUS view, or if transaction is being processed, or if we have pending txs
+        if (currentView === 'CONFIRM' || currentView === 'STATUS' || isProcessing || hasPendingTransactions) {
             return
         }
 
@@ -285,39 +294,22 @@ export const PaymentForm = ({
         showRequestPotInitialView,
         currentView,
         isProcessing,
+        hasPendingTransactions,
     ])
 
-    // fetch token price
+    // Calculate USD value when requested token price is available
     useEffect(() => {
-        if (!requestDetails?.tokenAddress || !requestDetails?.chainId) return
+        if (showRequestPotInitialView || !requestedTokenPriceData?.price || !requestDetails?.tokenAmount) return
 
-        const getTokenPriceData = async () => {
-            setIsFetchingTokenPrice(true)
-            try {
-                const priceData = await fetchTokenPrice(requestDetails.tokenAddress, requestDetails.chainId)
+        const tokenAmount = parseFloat(requestDetails.tokenAmount)
+        if (isNaN(tokenAmount) || tokenAmount <= 0) return
 
-                if (priceData) {
-                    setRequestedTokenPrice(priceData.price)
+        if (isNaN(requestedTokenPriceData.price) || requestedTokenPriceData.price === 0) return
 
-                    if (requestDetails?.tokenAmount) {
-                        // calculate USD value
-                        const tokenAmount = parseFloat(requestDetails.tokenAmount)
-                        const usdValue = formatAmount(tokenAmount * priceData.price)
-                        setInputTokenAmount(usdValue)
-                        setUsdValue(usdValue)
-                    }
-                } else {
-                    console.log('Failed to fetch token price data')
-                }
-            } catch (error) {
-                console.error('Error fetching token price:', error)
-            } finally {
-                setIsFetchingTokenPrice(false)
-            }
-        }
-
-        getTokenPriceData()
-    }, [requestDetails])
+        const usdValue = formatAmount(tokenAmount * requestedTokenPriceData.price)
+        setInputTokenAmount(usdValue)
+        setUsdValue(usdValue)
+    }, [requestedTokenPriceData?.price, requestDetails?.tokenAmount, showRequestPotInitialView])
 
     const canInitiatePayment = useMemo<boolean>(() => {
         let amountIsSet = false
@@ -339,6 +331,7 @@ export const PaymentForm = ({
 
         return recipientExists && amountIsSet && tokenSelected && walletConnected
     }, [
+        showRequestPotInitialView,
         recipient,
         inputTokenAmount,
         usdValue,
@@ -434,10 +427,24 @@ export const PaymentForm = ({
         let tokenAmount = inputTokenAmount
         if (
             requestedToken &&
-            requestedTokenPrice &&
+            requestedTokenPriceData?.price &&
             (requestedChain !== selectedChainID || !areEvmAddressesEqual(requestedToken, selectedTokenAddress))
         ) {
-            tokenAmount = (parseFloat(inputUsdValue) / requestedTokenPrice).toString()
+            // Validate price before division
+            if (isNaN(requestedTokenPriceData.price) || requestedTokenPriceData.price === 0) {
+                console.error('Invalid token price for conversion')
+                dispatch(paymentActions.setError('Cannot calculate token amount: invalid price data'))
+                return
+            }
+
+            const usdAmount = parseFloat(inputUsdValue)
+            if (isNaN(usdAmount)) {
+                console.error('Invalid USD amount')
+                dispatch(paymentActions.setError('Invalid amount entered'))
+                return
+            }
+
+            tokenAmount = (usdAmount / requestedTokenPriceData.price).toString()
         }
 
         const payload: InitiatePaymentPayload = {
@@ -488,7 +495,7 @@ export const PaymentForm = ({
         selectedTokenAddress,
         selectedChainID,
         inputUsdValue,
-        requestedTokenPrice,
+        requestedTokenPriceData?.price,
         inviteError,
         handleAcceptInvite,
         showRequestPotInitialView,
@@ -552,10 +559,15 @@ export const PaymentForm = ({
 
     useEffect(() => {
         if (!inputTokenAmount) return
-        if (selectedTokenPrice) {
-            setUsdValue((parseFloat(inputTokenAmount) * selectedTokenPrice).toString())
+        if (selectedTokenData?.price) {
+            const amount = parseFloat(inputTokenAmount)
+            if (isNaN(amount) || amount < 0) return
+
+            if (isNaN(selectedTokenData.price) || selectedTokenData.price === 0) return
+
+            setUsdValue((amount * selectedTokenData.price).toString())
         }
-    }, [inputTokenAmount, selectedTokenPrice])
+    }, [inputTokenAmount, selectedTokenData?.price])
 
     // Initialize inputTokenAmount
     useEffect(() => {
@@ -578,6 +590,14 @@ export const PaymentForm = ({
             handleInitiatePayment()
         }
     }, [fulfillUsingManteca, chargeDetails, handleInitiatePayment])
+
+    // Trigger payment with peanut from action list
+    useEffect(() => {
+        if (triggerPayWithPeanut) {
+            handleInitiatePayment()
+            setTriggerPayWithPeanut(false)
+        }
+    }, [triggerPayWithPeanut, handleInitiatePayment, setTriggerPayWithPeanut])
 
     const isInsufficientBalanceError = useMemo(() => {
         return error?.includes("You don't have enough balance.")
@@ -642,15 +662,57 @@ export const PaymentForm = ({
 
     const totalAmountCollected = requestDetails?.totalCollectedAmount ?? 0
 
+    const defaultSliderValue = useMemo(() => {
+        const charges = requestDetails?.charges
+        const totalAmount = requestDetails?.tokenAmount ? parseFloat(requestDetails.tokenAmount) : 0
+        const totalCollected = totalAmountCollected
+
+        if (totalAmount <= 0) return { percentage: 0, suggestedAmount: 0 }
+
+        // No charges yet - suggest 100% (full pot)
+        if (!charges || charges.length === 0) {
+            return { percentage: 100, suggestedAmount: totalAmount }
+        }
+
+        // Calculate average contribution from existing charges
+        const contributionAmounts = charges
+            .map((charge) => parseFloat(charge.tokenAmount))
+            .filter((amount) => !isNaN(amount) && amount > 0)
+
+        if (contributionAmounts.length === 0) return { percentage: 0, suggestedAmount: 0 }
+
+        const avgContribution = contributionAmounts.reduce((sum, amt) => sum + amt, 0) / contributionAmounts.length
+
+        // Calculate remaining amount (could be negative if over-contributed)
+        const remaining = totalAmount - totalCollected
+        let suggestedAmount: number
+
+        // If pot is already full or over-filled, suggest minimum contribution
+        if (remaining <= 0) {
+            // Pot is full/overfilled - suggest the smallest previous contribution or 10% of pot
+            const minContribution = Math.min(...contributionAmounts)
+            suggestedAmount = Math.min(minContribution, totalAmount * 0.1)
+        } else if (remaining < avgContribution) {
+            // If remaining is less than average, suggest the remaining amount
+            suggestedAmount = remaining
+        } else {
+            // Otherwise, suggest the average contribution (most common pattern)
+            suggestedAmount = avgContribution
+        }
+
+        // Convert amount to percentage of total pot
+        const percentage = (suggestedAmount / totalAmount) * 100
+        // Cap at 100% max
+        return { percentage: Math.min(percentage, 100), suggestedAmount }
+    }, [requestDetails?.charges, requestDetails?.tokenAmount, totalAmountCollected])
+
     if (fulfillUsingManteca && chargeDetails) {
         return <MantecaFulfillment />
     }
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
-            {!showRequestPotInitialView && (
-                <NavHeader onPrev={handleGoBack} title={headerTitle ?? (isExternalWalletFlow ? 'Add Money' : 'Send')} />
-            )}
+            <NavHeader onPrev={handleGoBack} title={headerTitle ?? (isExternalWalletFlow ? 'Add Money' : 'Pay')} />
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 {isExternalWalletConnected && isUsingExternalWallet && (
                     <Button
@@ -711,6 +773,8 @@ export const PaymentForm = ({
                     hideBalance={isExternalWalletFlow}
                     showSlider={showRequestPotInitialView && amount ? Number(amount) > 0 : false}
                     maxAmount={showRequestPotInitialView && amount ? Number(amount) : undefined}
+                    defaultSliderValue={defaultSliderValue.percentage}
+                    defaultSliderSuggestedAmount={defaultSliderValue.suggestedAmount}
                 />
 
                 {/*
@@ -793,7 +857,7 @@ export const PaymentForm = ({
                 </div>
             </div>
 
-            {showRequestPotInitialView && (
+            {showRequestPotInitialView && contributors.length > 0 && (
                 <div>
                     <h2 className="mb-4 text-base font-bold text-black">Contributors ({contributors.length})</h2>
                     {contributors.map((contributor, index) => (

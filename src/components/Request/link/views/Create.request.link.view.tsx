@@ -9,7 +9,7 @@ import PeanutActionCard from '@/components/Global/PeanutActionCard'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import ShareButton from '@/components/Global/ShareButton'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
-import { BASE_URL, PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import * as context from '@/context'
 import { useAuth } from '@/context/authContext'
@@ -17,9 +17,8 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { type IToken } from '@/interfaces'
 import { type IAttachmentOptions } from '@/redux/types/send-flow.types'
-import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
-import { fetchTokenSymbol, getRequestLink, isNativeCurrency, printableUsdc } from '@/utils'
+import { fetchTokenSymbol, formatTokenAmount, getRequestLink, isNativeCurrency, printableUsdc } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useQueryClient } from '@tanstack/react-query'
@@ -31,19 +30,17 @@ export const CreateRequestLinkView = () => {
     const router = useRouter()
     const { address, isConnected, balance } = useWallet()
     const { user } = useAuth()
-    const {
-        selectedTokenPrice,
-        selectedChainID,
-        setSelectedChainID,
-        selectedTokenAddress,
-        setSelectedTokenAddress,
-        selectedTokenData,
-    } = useContext(context.tokenSelectorContext)
+    const { selectedChainID, setSelectedChainID, selectedTokenAddress, setSelectedTokenAddress, selectedTokenData } =
+        useContext(context.tokenSelectorContext)
     const { setLoadingState } = useContext(context.loadingStateContext)
     const queryClient = useQueryClient()
     const searchParams = useSearchParams()
     const paramsAmount = searchParams.get('amount')
-    const sanitizedAmount = paramsAmount && !isNaN(parseFloat(paramsAmount)) ? paramsAmount : ''
+    // Sanitize amount and limit to 2 decimal places
+    const sanitizedAmount = useMemo(() => {
+        if (!paramsAmount || isNaN(parseFloat(paramsAmount))) return ''
+        return formatTokenAmount(paramsAmount, 2) ?? ''
+    }, [paramsAmount])
     const merchant = searchParams.get('merchant')
     const merchantComment = merchant ? `Bill split for ${merchant}` : null
 
@@ -80,9 +77,9 @@ export const CreateRequestLinkView = () => {
     const peanutWalletBalance = useMemo(() => (balance !== undefined ? printableUsdc(balance) : ''), [balance])
 
     const usdValue = useMemo(() => {
-        if (!selectedTokenPrice || !tokenValue) return ''
-        return (parseFloat(tokenValue) * selectedTokenPrice).toString()
-    }, [tokenValue, selectedTokenPrice])
+        if (!selectedTokenData?.price || !tokenValue) return ''
+        return (parseFloat(tokenValue) * selectedTokenData.price).toString()
+    }, [tokenValue, selectedTokenData?.price])
 
     const recipientAddress = useMemo(() => {
         if (!isConnected || !address) return ''
