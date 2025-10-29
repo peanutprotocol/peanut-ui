@@ -4,6 +4,7 @@ import { AddWithdrawRouterView } from '@/components/AddWithdraw/AddWithdrawRoute
 import { useOnrampFlow } from '@/context'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
+import { checkIfInternalNavigation } from '@/utils'
 
 export default function AddMoneyPage() {
     const router = useRouter()
@@ -14,11 +15,12 @@ export default function AddMoneyPage() {
     }, [])
 
     const handleBack = () => {
-        // Check if there's a previous page in history
-        if (window.history.length > 1) {
+        // Check if the referrer is from the same domain (internal navigation)
+        const isInternalReferrer = checkIfInternalNavigation()
+
+        if (isInternalReferrer && window.history.length > 1) {
             router.back()
         } else {
-            // Fallback to home if no history
             router.push('/home')
         }
     }
