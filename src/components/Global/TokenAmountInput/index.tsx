@@ -30,6 +30,7 @@ interface TokenAmountInputProps {
     showSlider?: boolean
     maxAmount?: number
     isInitialInputUsd?: boolean
+    defaultSliderValue?: number
 }
 
 const TokenAmountInput = ({
@@ -50,6 +51,7 @@ const TokenAmountInput = ({
     showSlider = false,
     maxAmount,
     isInitialInputUsd = false,
+    defaultSliderValue,
 }: TokenAmountInputProps) => {
     const { selectedTokenData } = useContext(tokenSelectorContext)
     const inputRef = useRef<HTMLInputElement>(null)
@@ -333,7 +335,11 @@ const TokenAmountInput = ({
             )}
             {showSlider && maxAmount && (
                 <div className="mt-2 h-14">
-                    <Slider onValueChange={onSliderValueChange} value={sliderValue} />
+                    <Slider
+                        onValueChange={onSliderValueChange}
+                        value={sliderValue}
+                        defaultValue={[defaultSliderValue ? defaultSliderValue : 100]}
+                    />
                 </div>
             )}
         </form>

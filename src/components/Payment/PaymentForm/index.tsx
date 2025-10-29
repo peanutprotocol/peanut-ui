@@ -22,7 +22,14 @@ import { type ParsedURL } from '@/lib/url-parser/types/payment'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { walletActions } from '@/redux/slices/wallet-slice'
-import { areEvmAddressesEqual, ErrorHandler, formatAmount, formatCurrency, getContributorsFromCharge } from '@/utils'
+import {
+    areEvmAddressesEqual,
+    ErrorHandler,
+    formatAmount,
+    formatCurrency,
+    getContributorsFromCharge,
+    sanitizeDecimalInput,
+} from '@/utils'
 import { useAppKit, useDisconnect } from '@reown/appkit/react'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -155,7 +162,7 @@ export const PaymentForm = ({
     const isActivePeanutWallet = useMemo(() => !!user && isPeanutWalletConnected, [user, isPeanutWalletConnected])
 
     useEffect(() => {
-        if (initialSetupDone) return
+        if (initialSetupDone || showRequestPotInitialView) return
 
         if (amount) {
             setInputTokenAmount(amount)
@@ -180,7 +187,7 @@ export const PaymentForm = ({
         }
 
         setInitialSetupDone(true)
-    }, [chain, token, amount, initialSetupDone, requestDetails])
+    }, [chain, token, amount, initialSetupDone, requestDetails, showRequestPotInitialView])
 
     // reset error when component mounts or recipient changes
     useEffect(() => {
@@ -289,7 +296,7 @@ export const PaymentForm = ({
 
     // fetch token price
     useEffect(() => {
-        if (!requestDetails?.tokenAddress || !requestDetails?.chainId) return
+        if (showRequestPotInitialView || !requestDetails?.tokenAddress || !requestDetails?.chainId) return
 
         const getTokenPriceData = async () => {
             setIsFetchingTokenPrice(true)
@@ -317,7 +324,7 @@ export const PaymentForm = ({
         }
 
         getTokenPriceData()
-    }, [requestDetails])
+    }, [requestDetails, showRequestPotInitialView])
 
     const canInitiatePayment = useMemo<boolean>(() => {
         let amountIsSet = false
@@ -642,6 +649,51 @@ export const PaymentForm = ({
 
     const totalAmountCollected = requestDetails?.totalCollectedAmount ?? 0
 
+    const defaultSliderPercentage = useMemo(() => {
+        const charges = requestDetails?.charges
+        const totalAmount = requestDetails?.tokenAmount ? parseFloat(requestDetails.tokenAmount) : 0
+        const totalCollected = totalAmountCollected
+
+        if (totalAmount <= 0) return 0
+
+        // No charges yet - suggest 100% (full pot)
+        if (!charges || charges.length === 0) {
+            return 100
+        }
+
+        // Calculate average contribution from existing charges
+        const contributionAmounts = charges
+            .map((charge) => parseFloat(charge.tokenAmount))
+            .filter((amount) => !isNaN(amount) && amount > 0)
+
+        if (contributionAmounts.length === 0) return 0
+
+        const avgContribution = contributionAmounts.reduce((sum, amt) => sum + amt, 0) / contributionAmounts.length
+
+        // Calculate remaining amount (could be negative if over-contributed)
+        const remaining = totalAmount - totalCollected
+        let suggestedAmount: number
+
+        // If pot is already full or over-filled, suggest minimum contribution
+        if (remaining <= 0) {
+            // Pot is full/overfilled - suggest the smallest previous contribution or 10% of pot
+            const minContribution = Math.min(...contributionAmounts)
+            suggestedAmount = Math.min(minContribution, totalAmount * 0.1)
+        } else if (remaining < avgContribution) {
+            // If remaining is less than average, suggest the remaining amount
+            suggestedAmount = remaining
+        } else {
+            // Otherwise, suggest the average contribution (most common pattern)
+            suggestedAmount = avgContribution
+        }
+
+        // Convert amount to percentage of total pot
+        const percentage = (suggestedAmount / totalAmount) * 100
+        setInputTokenAmount(sanitizeDecimalInput(suggestedAmount.toString()))
+        // Cap at 100% max
+        return Math.min(percentage, 100)
+    }, [requestDetails?.charges, requestDetails?.tokenAmount, totalAmountCollected])
+
     if (fulfillUsingManteca && chargeDetails) {
         return <MantecaFulfillment />
     }
@@ -710,6 +762,7 @@ export const PaymentForm = ({
                     hideBalance={isExternalWalletFlow}
                     showSlider={showRequestPotInitialView && amount ? Number(amount) > 0 : false}
                     maxAmount={showRequestPotInitialView && amount ? Number(amount) : undefined}
+                    defaultSliderValue={defaultSliderPercentage}
                 />
 
                 {/*
