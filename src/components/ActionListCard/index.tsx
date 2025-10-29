@@ -4,7 +4,7 @@ import React from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '../0_Bruddle'
 
-interface SearchResultCardProps {
+interface ActionListCardProps {
     title: string | React.ReactNode
     description?: string
     leftIcon?: React.ReactNode
@@ -16,7 +16,7 @@ interface SearchResultCardProps {
     descriptionClassName?: string
 }
 
-export const SearchResultCard = ({
+export const ActionListCard = ({
     title,
     description,
     leftIcon,
@@ -26,7 +26,7 @@ export const SearchResultCard = ({
     rightContent,
     isDisabled = false,
     descriptionClassName,
-}: SearchResultCardProps) => {
+}: ActionListCardProps) => {
     const handleCardClick = () => {
         onClick()
     }
@@ -42,9 +42,9 @@ export const SearchResultCard = ({
             )}
         >
             <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+                <div className="flex min-w-0 flex-1 items-center gap-3">
                     {leftIcon}
-                    <div className="flex flex-col">
+                    <div className="flex min-w-0 flex-1 flex-col">
                         <div className="font-medium">{title}</div>
                         {description && (
                             <div className={twMerge('text-sm text-grey-1', descriptionClassName)}>{description}</div>

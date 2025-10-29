@@ -3,7 +3,7 @@ import { parseUnits, encodeFunctionData, erc20Abi } from 'viem'
 import type { Address, Hash, Hex, TransactionReceipt } from 'viem'
 import { PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS, PEANUT_WALLET_CHAIN } from '@/constants'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
-import { TRANSACTIONS } from '@/constants/query.consts'
+import { TRANSACTIONS, BALANCE_DECREASE, SEND_MONEY } from '@/constants/query.consts'
 
 type SendMoneyParams = {
     toAddress: Address
@@ -37,6 +37,7 @@ export const useSendMoney = ({ address, handleSendUserOpEncoded }: UseSendMoneyO
     const queryClient = useQueryClient()
 
     return useMutation({
+        mutationKey: [BALANCE_DECREASE, SEND_MONEY],
         mutationFn: async ({ toAddress, amountInUsd }: SendMoneyParams) => {
             const amountToSend = parseUnits(amountInUsd, PEANUT_WALLET_TOKEN_DECIMALS)
 

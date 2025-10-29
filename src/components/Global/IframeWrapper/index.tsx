@@ -139,10 +139,10 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                         <iframe
                             key={src}
                             src={src}
-                            allow="camera;"
+                            allow="camera *; fullscreen *"
                             style={{ width: '100%', height: '85%', border: 'none' }}
                             className="rounded-md"
-                            sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-top-navigation-by-user-activation"
+                            sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-top-navigation-by-user-activation allow-media-devices"
                         />
                         <div className="flex h-[15%] w-full flex-col items-center justify-center gap-2 px-5">
                             <Button

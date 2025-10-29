@@ -39,7 +39,6 @@ import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
 import SetupNotificationsModal from '@/components/Notifications/SetupNotificationsModal'
 import { useNotifications } from '@/hooks/useNotifications'
-import NotificationNavigation from '@/components/Notifications/NotificationNavigation'
 import useKycStatus from '@/hooks/useKycStatus'
 import HomeBanners from '@/components/Home/HomeBanners'
 import InvitesIcon from '@/components/Home/InvitesIcon'
@@ -176,7 +175,7 @@ export default function Home() {
 
     // effect for showing add money prompt modal
     useEffect(() => {
-        if (typeof window === 'undefined' || isFetchingBalance || !user) return
+        if (typeof window === 'undefined' || isFetchingBalance || !user || !address) return
 
         // Don't show modal if balance is still loading (undefined)
         if (balance === undefined) return

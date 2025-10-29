@@ -1,6 +1,6 @@
 import { getExchangeRate } from '@/app/actions/exchange-rate'
 import { AccountType } from '@/interfaces'
-import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 
 export interface IExchangeRate {
     accountType: AccountType
@@ -8,23 +8,16 @@ export interface IExchangeRate {
 }
 
 /**
- * Used to get exchange rate for a given account type
+ * Used to get exchange rate for a given account type using TanStack Query
  * @returns {string, boolean} The exchange rate for the given account type and a boolean indicating if the rate is being fetched
  */
 export default function useGetExchangeRate({ accountType, enabled = true }: IExchangeRate) {
-    const [exchangeRate, setExchangeRate] = useState<string | null>(null)
-    const [isFetchingRate, setIsFetchingRate] = useState(enabled)
-
-    useEffect(() => {
-        const fetchExchangeRate = async () => {
-            setIsFetchingRate(true)
-            // reset previous value to avoid showing a stale rate for a new account type
-            setExchangeRate(null)
-
+    const { data: exchangeRate, isFetching: isFetchingRate } = useQuery({
+        queryKey: ['exchangeRate', accountType],
+        queryFn: async () => {
+            // US accounts have 1:1 exchange rate
             if (accountType === AccountType.US) {
-                setExchangeRate('1')
-                setIsFetchingRate(false)
-                return
+                return '1'
             }
 
             try {
@@ -32,24 +25,24 @@ export default function useGetExchangeRate({ accountType, enabled = true }: IExc
 
                 if (rateError) {
                     console.error('Failed to fetch exchange rate:', rateError)
-                    // set default rate to 1 for error cases
-                    setExchangeRate('1')
-                    return
+                    // Return default rate to 1 for error cases
+                    return '1'
                 }
 
-                if (data) {
-                    setExchangeRate(data.sell_rate)
-                }
+                return data?.sell_rate || '1'
             } catch (error) {
                 console.error('An error occurred while fetching the exchange rate:', error)
-            } finally {
-                setIsFetchingRate(false)
+                return '1'
             }
-        }
-        if (enabled) {
-            fetchExchangeRate()
-        }
-    }, [accountType, enabled])
+        },
+        enabled,
+        staleTime: 5 * 60 * 1000, // 5 minutes
+        gcTime: 10 * 60 * 1000, // Garbage collect after 10 minutes
+        refetchOnWindowFocus: true, // Refresh rates when user returns to tab
+        refetchInterval: 5 * 60 * 1000, // Auto-refresh every 5 minutes
+        retry: 3,
+        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    })
 
-    return { exchangeRate, isFetchingRate }
+    return { exchangeRate: exchangeRate ?? null, isFetchingRate }
 }

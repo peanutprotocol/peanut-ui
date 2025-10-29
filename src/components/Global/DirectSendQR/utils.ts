@@ -1,5 +1,6 @@
-import { getTokenSymbol, validateEnsName, getTokenDecimals } from '@/utils'
+import { getTokenSymbol, getTokenDecimals } from '@/utils'
 import { isAddress, formatUnits } from 'viem'
+import { ENS_NAME_REGEX } from '@/constants'
 
 export enum EQrType {
     PEANUT_URL = 'PEANUT_URL',
@@ -96,6 +97,7 @@ const REGEXES_BY_TYPE: { [key in QrType]?: RegExp } = {
     [EQrType.BITCOIN_ONCHAIN]: /^(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,39}$/,
     [EQrType.BITCOIN_INVOICE]: /^ln(bc|tb|bcrt)([0-9]{1,}[a-z0-9]+){1}$/,
     [EQrType.PIX]: PIX_REGEX,
+    [EQrType.ENS_NAME]: ENS_NAME_REGEX,
     [EQrType.XRP_ADDRESS]: /^r[0-9a-zA-Z]{24,34}$/,
     [EQrType.TRON_ADDRESS]: /^T[1-9A-HJ-NP-Za-km-z]{33}$/,
     [EQrType.SOLANA_ADDRESS]: /^[1-9A-HJ-NP-Za-km-z]{32,44}$/,
@@ -111,9 +113,6 @@ export function recognizeQr(data: string): QrType | null {
     }
     if (isAddress(data)) {
         return EQrType.EVM_ADDRESS
-    }
-    if (validateEnsName(data)) {
-        return EQrType.ENS_NAME
     }
 
     for (const [type, regex] of Object.entries(REGEXES_BY_TYPE)) {

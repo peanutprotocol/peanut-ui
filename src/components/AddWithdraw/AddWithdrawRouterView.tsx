@@ -68,6 +68,10 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
     const searchParams = useSearchParams()
     const currencyCode = searchParams.get('currencyCode')
 
+    // check if coming from send flow
+    const methodParam = searchParams.get('method')
+    const isBankFromSend = methodParam === 'bank' && flow === 'withdraw'
+
     // determine if we should show the full list of methods (countries/crypto) instead of the default view
     let shouldShowAllMethods = flow === 'withdraw' ? showAllWithdrawMethods : localShowAllMethods
     const setShouldShowAllMethods = flow === 'withdraw' ? setShowAllWithdrawMethods : setLocalShowAllMethods
@@ -201,8 +205,10 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                         title: 'To Bank',
                     })
                     if (account.type === AccountType.MANTECA) {
+                        // preserve method param if coming from send flow
+                        const additionalParams = isBankFromSend ? `&method=${methodParam}` : ''
                         router.push(
-                            `/withdraw/manteca?country=${account.details.countryName}&destination=${account.identifier}`
+                            `/withdraw/manteca?country=${account.details.countryName}&destination=${account.identifier}${additionalParams}`
                         )
                     }
                 }}
@@ -268,8 +274,23 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
             <CountryList
                 inputTitle={mainHeading}
                 viewMode="add-withdraw"
+                enforceSupportedCountries={isBankFromSend}
                 onCountryClick={(country) => {
-                    const countryPath = `${baseRoute}/${country.path}`
+                    // from send flow (bank): set method in context and stay on /withdraw?method=bank
+                    if (flow === 'withdraw' && isBankFromSend) {
+                        // set selected method and let withdraw page move to amount input
+                        setSelectedMethod({
+                            type: 'bridge',
+                            countryPath: country.path,
+                            currency: country.currency,
+                            title: country.title,
+                        })
+                        return
+                    }
+
+                    // default behaviour: navigate to country page
+                    const queryParams = isBankFromSend ? `?method=${methodParam}` : ''
+                    const countryPath = `${baseRoute}/${country.path}${queryParams}`
                     if (flow === 'add' && user) {
                         saveRecentMethod(user.user.userId, country, countryPath)
                     }
@@ -283,7 +304,9 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                     if (flow === 'add') {
                         setIsDrawerOpen(true)
                     } else {
-                        const cryptoPath = `${baseRoute}/crypto`
+                        // preserve method param if coming from send flow (though crypto shouldn't show this screen)
+                        const queryParams = methodParam ? `?method=${methodParam}` : ''
+                        const cryptoPath = `${baseRoute}/crypto${queryParams}`
                         // Set crypto method and navigate to main page for amount input
                         setSelectedMethod({
                             type: 'crypto',

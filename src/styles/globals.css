@@ -3,6 +3,11 @@
 @tailwind utilities;
 
 @layer base {
+    /* Force light mode - prevent browser dark mode */
+    :root {
+        color-scheme: light only;
+    }
+
     body {
         /* disable text selection */
         @apply select-none;
