@@ -13,12 +13,22 @@ export default function AddMoneyPage() {
         resetOnrampFlow()
     }, [])
 
+    const handleBack = () => {
+        // Check if there's a previous page in history
+        if (window.history.length > 1) {
+            router.back()
+        } else {
+            // Fallback to home if no history
+            router.push('/home')
+        }
+    }
+
     return (
         <AddWithdrawRouterView
             flow="add"
             pageTitle="Add Money"
             mainHeading="Where to add money from?"
-            onBackClick={() => router.push('/home')}
+            onBackClick={handleBack}
         />
     )
 }

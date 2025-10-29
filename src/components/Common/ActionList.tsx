@@ -5,7 +5,7 @@ import IconStack from '../Global/IconStack'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { type ClaimLinkData } from '@/services/sendLinks'
 import { formatUnits } from 'viem'
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import ActionModal from '@/components/Global/ActionModal'
 import Divider from '../0_Bruddle/Divider'
 import { Button } from '../0_Bruddle'
@@ -87,6 +87,7 @@ export default function ActionList({
     const { user } = useAuth()
     const [isUsePeanutBalanceModalShown, setIsUsePeanutBalanceModalShown] = useState(false)
     const [showUsePeanutBalanceModal, setShowUsePeanutBalanceModal] = useState(false)
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null)
 
     const dispatch = useAppDispatch()
 
@@ -100,17 +101,32 @@ export default function ActionList({
         return false
     }, [claimType, requestType, flow])
 
+    // Memoize the callback to prevent unnecessary re-sorts
+    const isMethodUnavailable = useCallback(
+        (method: PaymentMethod) => method.soon || (method.id === 'bank' && requiresVerification),
+        [requiresVerification]
+    )
+
     // use the hook to filter and sort payment methods based on geolocation
     const { filteredMethods: sortedActionMethods, isLoading: isGeoLoading } = useGeoFilteredPaymentOptions({
         sortUnavailable: true,
-        isMethodUnavailable: (method) => method.soon || (method.id === 'bank' && requiresVerification),
+        isMethodUnavailable,
     })
 
     // Check if user has enough Peanut balance to pay for the request
     const amountInUsd = usdAmount ? parseFloat(usdAmount) : 0
     const hasSufficientPeanutBalance = user && balance && Number(balance) >= amountInUsd
 
-    const handleMethodClick = async (method: PaymentMethod) => {
+    const handleMethodClick = async (method: PaymentMethod, bypassBalanceModal = false) => {
+        // For request flow: Check if user has sufficient Peanut balance and hasn't dismissed the modal
+        if (flow === 'request' && requestLinkData && !bypassBalanceModal) {
+            if (!isUsePeanutBalanceModalShown && hasSufficientPeanutBalance) {
+                setSelectedPaymentMethod(method) // Store the method they want to use
+                setShowUsePeanutBalanceModal(true)
+                return // Show modal, don't proceed with method yet
+            }
+        }
+
         if (flow === 'claim' && claimLinkData) {
             const amountInUsd = parseFloat(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals))
             if (method.id === 'bank' && amountInUsd < 5) {
@@ -152,10 +168,6 @@ export default function ActionList({
                 return
             }
 
-            if (!isUsePeanutBalanceModalShown && hasSufficientPeanutBalance) {
-                setShowUsePeanutBalanceModal(true)
-                return
-            }
             switch (method.id) {
                 case 'bank':
                     if (requestType === BankRequestType.GuestKycNeeded) {
@@ -235,23 +247,21 @@ export default function ActionList({
             <div className="space-y-2">
                 {sortedActionMethods.map((method) => {
                     if (flow === 'request' && method.id === 'exchange-or-wallet') {
-                        const shouldShowPeanutBalanceModal = !isUsePeanutBalanceModalShown && hasSufficientPeanutBalance
                         return (
-                            <div
-                                key={method.id}
-                                onClick={() => {
-                                    if (shouldShowPeanutBalanceModal) {
-                                        setShowUsePeanutBalanceModal(true)
-                                    }
-                                }}
-                            >
-                                {/* Disable daimo pay button if peanut balance is enough to pay for the request */}
-                                <div style={{ pointerEvents: shouldShowPeanutBalanceModal ? 'none' : 'auto' }}>
-                                    <ActionListDaimoPayButton
-                                        handleContinueWithPeanut={handleContinueWithPeanut}
-                                        showConfirmModal={isInviteLink && !userHasAppAccess}
-                                    />
-                                </div>
+                            <div key={method.id}>
+                                <ActionListDaimoPayButton
+                                    handleContinueWithPeanut={handleContinueWithPeanut}
+                                    showConfirmModal={isInviteLink && !userHasAppAccess}
+                                    onBeforeShow={() => {
+                                        // Check balance before showing Daimo widget
+                                        if (!isUsePeanutBalanceModalShown && hasSufficientPeanutBalance) {
+                                            setSelectedPaymentMethod(method)
+                                            setShowUsePeanutBalanceModal(true)
+                                            return false // Don't show Daimo yet
+                                        }
+                                        return true // Proceed with Daimo
+                                    }}
+                                />
                             </div>
                         )
                     }
@@ -316,6 +326,7 @@ export default function ActionList({
                 onClose={() => {
                     setShowUsePeanutBalanceModal(false)
                     setIsUsePeanutBalanceModalShown(true)
+                    setSelectedPaymentMethod(null)
                 }}
                 title="Use your Peanut balance instead"
                 description={
@@ -328,7 +339,23 @@ export default function ActionList({
                         shadowSize: '4',
                         onClick: () => {
                             setShowUsePeanutBalanceModal(false)
+                            setIsUsePeanutBalanceModalShown(true)
+                            setSelectedPaymentMethod(null)
                             setTriggerPayWithPeanut(true)
+                        },
+                    },
+                    {
+                        text: 'Continue',
+                        shadowSize: '4',
+                        variant: 'stroke',
+                        onClick: () => {
+                            setShowUsePeanutBalanceModal(false)
+                            setIsUsePeanutBalanceModalShown(true)
+                            // Proceed with the method the user originally selected
+                            if (selectedPaymentMethod) {
+                                handleMethodClick(selectedPaymentMethod, true) // true = bypass modal check
+                            }
+                            setSelectedPaymentMethod(null)
                         },
                     },
                 ]}

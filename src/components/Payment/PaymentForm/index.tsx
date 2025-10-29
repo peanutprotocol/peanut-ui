@@ -235,12 +235,8 @@ export const PaymentForm = ({
                 }
             } else {
                 // regular send/pay
-                if (
-                    !showRequestPotInitialView && // don't apply balance check on request pot payment initial view
-                    isActivePeanutWallet &&
-                    areEvmAddressesEqual(selectedTokenAddress, PEANUT_WALLET_TOKEN)
-                ) {
-                    // peanut wallet payment
+                if (isActivePeanutWallet && areEvmAddressesEqual(selectedTokenAddress, PEANUT_WALLET_TOKEN)) {
+                    // peanut wallet payment - ALWAYS check balance (including request pots)
                     const walletNumeric = parseFloat(String(peanutWalletBalance).replace(/,/g, ''))
                     if (walletNumeric < parsedInputAmount) {
                         dispatch(paymentActions.setError('Insufficient balance'))
@@ -372,8 +368,8 @@ export const PaymentForm = ({
         if (inviteError) {
             setInviteError(false)
         }
-        // Invites will be handled in the payment page, skip this step for request pots initial view
-        if (!showRequestPotInitialView && isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow) {
+        // Handle insufficient balance - redirect to add money
+        if (isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow) {
             // If the user doesn't have app access, accept the invite before claiming the link
             if (recipient.recipientType === 'USERNAME' && !user?.user.hasAppAccess) {
                 const isAccepted = await handleAcceptInvite()
@@ -514,10 +510,7 @@ export const PaymentForm = ({
             return 'Send'
         }
 
-        if (showRequestPotInitialView) {
-            return 'Pay'
-        }
-
+        // Check insufficient balance BEFORE other conditions
         if (isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow) {
             return (
                 <div className="flex items-center gap-1">
@@ -528,6 +521,10 @@ export const PaymentForm = ({
                     </div>
                 </div>
             )
+        }
+
+        if (showRequestPotInitialView) {
+            return 'Pay'
         }
 
         if (isActivePeanutWallet) {
@@ -546,12 +543,11 @@ export const PaymentForm = ({
     }
 
     const getButtonIcon = (): IconName | undefined => {
-        if (!showRequestPotInitialView && !isExternalWalletConnected && isExternalWalletFlow) return 'wallet-outline'
+        if (!isExternalWalletConnected && isExternalWalletFlow) return 'wallet-outline'
 
-        if (!showRequestPotInitialView && isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow)
-            return 'arrow-down'
+        if (isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow) return 'arrow-down'
 
-        if (!showRequestPotInitialView && !isProcessing && isActivePeanutWallet && !isExternalWalletFlow)
+        if (!isProcessing && isActivePeanutWallet && !isExternalWalletFlow && !showRequestPotInitialView)
             return 'arrow-up-right'
 
         return undefined
