@@ -388,23 +388,6 @@ export function formatCurrency(valueStr: string | undefined, maxDecimals: number
 }
 
 /**
- * Sanitizes a numeric input string to limit decimal places
- * @param value - The input value to sanitize
- * @param maxDecimals - Maximum number of decimal places allowed (default: 2)
- * @returns Sanitized string with limited decimals
- * @example
- * sanitizeDecimalInput('123.456', 2) // '123.45'
- * sanitizeDecimalInput('123.4', 2) // '123.4'
- * sanitizeDecimalInput('123', 2) // '123'
- */
-export function sanitizeDecimalInput(value: string, maxDecimals: number = 2): string {
-    if (!value) return ''
-    const regex = new RegExp(`^\\d*\\.?\\d{0,${maxDecimals}}`)
-    const match = value.match(regex)
-    return match ? match[0] : ''
-}
-
-/**
  * formats a number by:
  * - displaying 2 significant digits for small numbers (<0.01)
  * - removing unnecessary trailing zeros after decimal point
@@ -465,15 +448,38 @@ export function formatAmountWithSignificantDigits(amount: number, significantDig
     return floorFixed(amount, fractionDigits)
 }
 
-export function formatTokenAmount(amount?: number, maxFractionDigits?: number) {
+export function formatTokenAmount(amount?: number | string, maxFractionDigits?: number, forInput: boolean = false) {
     if (amount === undefined) return undefined
     maxFractionDigits = maxFractionDigits ?? 6
 
+    // For input mode, preserve the raw string for better UX
+    if (forInput && typeof amount === 'string') {
+        // Allow partial inputs like "0.", "0.0", etc.
+        const trimmed = amount.trim()
+
+        // Allow empty string
+        if (trimmed === '') return ''
+
+        // Validate and limit decimal places
+        const regex = new RegExp(`^\\d*\\.?\\d{0,${maxFractionDigits}}$`)
+        if (!regex.test(trimmed)) {
+            // If invalid, truncate to valid format
+            const match = trimmed.match(new RegExp(`^\\d*\\.?\\d{0,${maxFractionDigits}}`))
+            return match ? match[0] : undefined
+        }
+
+        return trimmed
+    }
+
+    const amountNumber = typeof amount === 'string' ? parseFloat(amount) : amount
+
+    // check for NaN after conversion
+    if (isNaN(amountNumber)) return undefined
+
     // floor the amount
-    const flooredAmount = Math.floor(amount * Math.pow(10, maxFractionDigits)) / Math.pow(10, maxFractionDigits)
+    const flooredAmount = Math.floor(amountNumber * Math.pow(10, maxFractionDigits)) / Math.pow(10, maxFractionDigits)
 
     // Convert number to string to count significant digits
-
     const amountString = flooredAmount.toFixed(maxFractionDigits)
     const significantDigits = amountString.replace(/^0+\./, '').replace(/\.$/, '').replace(/0+$/, '').length
 
@@ -486,14 +492,6 @@ export function formatTokenAmount(amount?: number, maxFractionDigits?: number) {
         maximumFractionDigits: maxFractionDigits,
     })
     return formattedAmount
-}
-
-export const formatAmountWithoutComma = (input: string) => {
-    const numericValue = input.replace(/,/g, '.')
-    const regex = new RegExp(`^[0-9]*\\.?[0-9]*$`)
-    if (numericValue === '' || regex.test(numericValue)) {
-        return numericValue
-    } else return ''
 }
 
 export async function copyTextToClipboardWithFallback(text: string) {

@@ -24,14 +24,7 @@ import { type ParsedURL } from '@/lib/url-parser/types/payment'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { walletActions } from '@/redux/slices/wallet-slice'
-import {
-    areEvmAddressesEqual,
-    ErrorHandler,
-    formatAmount,
-    formatCurrency,
-    getContributorsFromCharge,
-    sanitizeDecimalInput,
-} from '@/utils'
+import { areEvmAddressesEqual, ErrorHandler, formatAmount, formatCurrency, getContributorsFromCharge } from '@/utils'
 import { useAppKit, useDisconnect } from '@reown/appkit/react'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -720,7 +713,6 @@ export const PaymentForm = ({
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
             <NavHeader onPrev={handleGoBack} title={headerTitle ?? (isExternalWalletFlow ? 'Add Money' : 'Pay')} />
-
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 {isExternalWalletConnected && isUsingExternalWallet && (
                     <Button

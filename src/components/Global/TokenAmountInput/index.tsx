@@ -2,7 +2,7 @@
 
 import { PEANUT_WALLET_TOKEN_DECIMALS, STABLE_COINS } from '@/constants'
 import { tokenSelectorContext } from '@/context'
-import { formatAmountWithoutComma, formatTokenAmount, formatCurrency, sanitizeDecimalInput } from '@/utils'
+import { formatTokenAmount, formatCurrency } from '@/utils'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import Icon from '../Icon'
 import { twMerge } from 'tailwind-merge'
@@ -241,8 +241,11 @@ const TokenAmountInput = ({
 
     useEffect(() => {
         if (defaultSliderSuggestedAmount) {
-            setTokenValue(sanitizeDecimalInput(defaultSliderSuggestedAmount.toString(), 2))
-            setDisplayValue(sanitizeDecimalInput(defaultSliderSuggestedAmount.toString(), 2))
+            const formattedAmount = formatTokenAmount(defaultSliderSuggestedAmount.toString(), 2)
+            if (formattedAmount) {
+                setTokenValue(formattedAmount)
+                setDisplayValue(formattedAmount)
+            }
         }
     }, [defaultSliderSuggestedAmount])
 
@@ -264,11 +267,14 @@ const TokenAmountInput = ({
                             className={`h-12 w-[4ch] max-w-80 bg-transparent text-6xl font-black caret-primary-1 outline-none transition-colors placeholder:text-h1 placeholder:text-gray-1 focus:border-primary-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1`}
                             placeholder={'0.00'}
                             onChange={(e) => {
-                                let value = formatAmountWithoutComma(e.target.value)
+                                let value = e.target.value
                                 // USD/currency → 2 decimals; token input → allow `decimals` (<= 6)
                                 const maxDecimals =
                                     displayMode === 'FIAT' || displayMode === 'STABLE' || isInputUsd ? 2 : decimals
-                                value = sanitizeDecimalInput(value, maxDecimals)
+                                const formattedAmount = formatTokenAmount(value, maxDecimals, true)
+                                if (formattedAmount !== undefined) {
+                                    value = formattedAmount
+                                }
                                 onChange(value, isInputUsd)
                             }}
                             ref={inputRef}
@@ -293,7 +299,7 @@ const TokenAmountInput = ({
                         />
                         {/* Fake blinking caret shown when not focused and input is empty */}
                         {!isFocused && !displayValue && (
-                            <div className="pointer-events-none absolute left-0 top-1/2 h-12 w-[1px] -translate-y-1/2 animate-blink bg-primary-1" />
+                            <div className="animate-blink pointer-events-none absolute left-0 top-1/2 h-12 w-[1px] -translate-y-1/2 bg-primary-1" />
                         )}
                     </div>
                 </div>
