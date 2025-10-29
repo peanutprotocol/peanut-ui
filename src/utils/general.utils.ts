@@ -452,23 +452,18 @@ export function formatTokenAmount(amount?: number | string, maxFractionDigits?: 
     if (amount === undefined) return undefined
     maxFractionDigits = maxFractionDigits ?? 6
 
-    // For input mode, preserve the raw string for better UX
+    // For input mode, preserve progressive typing (e.g., "1.", "0.")
     if (forInput && typeof amount === 'string') {
-        // Allow partial inputs like "0.", "0.0", etc.
-        const trimmed = amount.trim()
-
-        // Allow empty string
-        if (trimmed === '') return ''
-
-        // Validate and limit decimal places
-        const regex = new RegExp(`^\\d*\\.?\\d{0,${maxFractionDigits}}$`)
-        if (!regex.test(trimmed)) {
-            // If invalid, truncate to valid format
-            const match = trimmed.match(new RegExp(`^\\d*\\.?\\d{0,${maxFractionDigits}}`))
-            return match ? match[0] : undefined
-        }
-
-        return trimmed
+        const s = amount.trim()
+        if (s === '') return ''
+        const m = s.match(/^(\d*)(?:\.(\d*))?$/)
+        if (!m) return '' // invalid → empty
+        const whole = m[1] ?? ''
+        const fracRaw = m[2] // undefined ⇒ no dot; '' ⇒ dot present with no digits
+        if (fracRaw === undefined) return whole
+        if (maxFractionDigits === 0) return whole
+        const frac = (fracRaw ?? '').slice(0, maxFractionDigits)
+        return `${whole}.${frac}`
     }
 
     const amountNumber = typeof amount === 'string' ? parseFloat(amount) : amount
