@@ -33,6 +33,7 @@ interface TokenAmountInputProps {
     maxAmount?: number
     isInitialInputUsd?: boolean
     defaultSliderValue?: number
+    defaultSliderSuggestedAmount?: number
 }
 
 const TokenAmountInput = ({
@@ -54,6 +55,7 @@ const TokenAmountInput = ({
     maxAmount,
     isInitialInputUsd = false,
     defaultSliderValue,
+    defaultSliderSuggestedAmount,
 }: TokenAmountInputProps) => {
     const { selectedTokenData } = useContext(tokenSelectorContext)
     const inputRef = useRef<HTMLInputElement>(null)
@@ -236,6 +238,13 @@ const TokenAmountInput = ({
             inputRef.current.focus()
         }
     }
+
+    useEffect(() => {
+        if (defaultSliderSuggestedAmount) {
+            setTokenValue(sanitizeDecimalInput(defaultSliderSuggestedAmount.toString(), 2))
+            setDisplayValue(sanitizeDecimalInput(defaultSliderSuggestedAmount.toString(), 2))
+        }
+    }, [defaultSliderSuggestedAmount])
 
     return (
         <form

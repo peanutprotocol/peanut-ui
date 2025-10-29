@@ -669,16 +669,16 @@ export const PaymentForm = ({
 
     const totalAmountCollected = requestDetails?.totalCollectedAmount ?? 0
 
-    const defaultSliderPercentage = useMemo(() => {
+    const defaultSliderValue = useMemo(() => {
         const charges = requestDetails?.charges
         const totalAmount = requestDetails?.tokenAmount ? parseFloat(requestDetails.tokenAmount) : 0
         const totalCollected = totalAmountCollected
 
-        if (totalAmount <= 0) return 0
+        if (totalAmount <= 0) return { percentage: 0, suggestedAmount: 0 }
 
         // No charges yet - suggest 100% (full pot)
         if (!charges || charges.length === 0) {
-            return 100
+            return { percentage: 100, suggestedAmount: totalAmount }
         }
 
         // Calculate average contribution from existing charges
@@ -686,7 +686,7 @@ export const PaymentForm = ({
             .map((charge) => parseFloat(charge.tokenAmount))
             .filter((amount) => !isNaN(amount) && amount > 0)
 
-        if (contributionAmounts.length === 0) return 0
+        if (contributionAmounts.length === 0) return { percentage: 0, suggestedAmount: 0 }
 
         const avgContribution = contributionAmounts.reduce((sum, amt) => sum + amt, 0) / contributionAmounts.length
 
@@ -709,9 +709,8 @@ export const PaymentForm = ({
 
         // Convert amount to percentage of total pot
         const percentage = (suggestedAmount / totalAmount) * 100
-        setInputTokenAmount(sanitizeDecimalInput(suggestedAmount.toString()))
         // Cap at 100% max
-        return Math.min(percentage, 100)
+        return { percentage: Math.min(percentage, 100), suggestedAmount }
     }, [requestDetails?.charges, requestDetails?.tokenAmount, totalAmountCollected])
 
     if (fulfillUsingManteca && chargeDetails) {
@@ -782,7 +781,8 @@ export const PaymentForm = ({
                     hideBalance={isExternalWalletFlow}
                     showSlider={showRequestPotInitialView && amount ? Number(amount) > 0 : false}
                     maxAmount={showRequestPotInitialView && amount ? Number(amount) : undefined}
-                    defaultSliderValue={defaultSliderPercentage}
+                    defaultSliderValue={defaultSliderValue.percentage}
+                    defaultSliderSuggestedAmount={defaultSliderValue.suggestedAmount}
                 />
 
                 {/*
