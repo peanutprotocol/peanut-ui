@@ -128,14 +128,14 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
 
     const paramsDevconnectTokenAddress = searchParams.get('tokenAddress')
     const paramsDevconnectChainId = searchParams.get('chainId')
-    const paramsdevconnectRecipientAddress = searchParams.get('address')
+    const paramsDevconnectRecipientAddress = searchParams.get('address')
 
     useEffect(() => {
         // Validate devconnect token and chain are supported by Squid
         if (
             campaignTag === 'devconnect_ba_2025' &&
             paramsDevconnectTokenAddress &&
-            paramsdevconnectRecipientAddress &&
+            paramsDevconnectRecipientAddress &&
             paramsDevconnectChainId &&
             Object.keys(supportedSquidChainsAndTokens).length > 0
         ) {
@@ -157,11 +157,11 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 )
             }
 
-            const isValidRecipient = isAddress(paramsdevconnectRecipientAddress)
+            const isValidDevconnectRecipient = isAddress(paramsDevconnectRecipientAddress)
 
-            if (isSupported && isValidRecipient) {
+            if (isSupported && isValidDevconnectRecipient) {
                 setDevconnectChainId(paramsDevconnectChainId)
-                setDevconnectRecipientAddress(paramsdevconnectRecipientAddress)
+                setDevconnectRecipientAddress(paramsDevconnectRecipientAddress)
                 setDevconnectTokenAddress(paramsDevconnectTokenAddress)
                 setisDevconnectClaimFlow(true)
             }
@@ -169,7 +169,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     }, [
         paramsDevconnectTokenAddress,
         paramsDevconnectChainId,
-        paramsdevconnectRecipientAddress,
+        paramsDevconnectRecipientAddress,
         supportedSquidChainsAndTokens,
         setDevconnectChainId,
         setDevconnectRecipientAddress,
