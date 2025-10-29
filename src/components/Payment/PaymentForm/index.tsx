@@ -604,7 +604,7 @@ export const PaymentForm = ({
             handleInitiatePayment()
             setTriggerPayWithPeanut(false)
         }
-    }, [triggerPayWithPeanut])
+    }, [triggerPayWithPeanut, handleInitiatePayment, setTriggerPayWithPeanut])
 
     const isInsufficientBalanceError = useMemo(() => {
         return error?.includes("You don't have enough balance.")
