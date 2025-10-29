@@ -602,6 +602,13 @@ export const usePaymentInitiator = () => {
         ]
     )
 
+    // @dev TODO: Refactor to TanStack Query mutation for architectural consistency
+    // Current: This async function works correctly (protected by isProcessing state)
+    // but is NOT tracked by usePendingTransactions mutation system.
+    // Future improvement: Wrap in useMutation for consistency with other balance-decreasing ops.
+    //   mutationKey: [BALANCE_DECREASE, INITIATE_PAYMENT]
+    // Complexity: HIGH - complex state/Redux integration. Low priority.
+    //
     // initiate and process payments
     const initiatePayment = useCallback(
         async (payload: InitiatePaymentPayload): Promise<InitiationResult> => {

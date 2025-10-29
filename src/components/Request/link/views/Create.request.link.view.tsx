@@ -31,14 +31,8 @@ export const CreateRequestLinkView = () => {
     const router = useRouter()
     const { address, isConnected, balance } = useWallet()
     const { user } = useAuth()
-    const {
-        selectedTokenPrice,
-        selectedChainID,
-        setSelectedChainID,
-        selectedTokenAddress,
-        setSelectedTokenAddress,
-        selectedTokenData,
-    } = useContext(context.tokenSelectorContext)
+    const { selectedChainID, setSelectedChainID, selectedTokenAddress, setSelectedTokenAddress, selectedTokenData } =
+        useContext(context.tokenSelectorContext)
     const { setLoadingState } = useContext(context.loadingStateContext)
     const queryClient = useQueryClient()
     const searchParams = useSearchParams()
@@ -80,9 +74,9 @@ export const CreateRequestLinkView = () => {
     const peanutWalletBalance = useMemo(() => (balance !== undefined ? printableUsdc(balance) : ''), [balance])
 
     const usdValue = useMemo(() => {
-        if (!selectedTokenPrice || !tokenValue) return ''
-        return (parseFloat(tokenValue) * selectedTokenPrice).toString()
-    }, [tokenValue, selectedTokenPrice])
+        if (!selectedTokenData?.price || !tokenValue) return ''
+        return (parseFloat(tokenValue) * selectedTokenData.price).toString()
+    }, [tokenValue, selectedTokenData?.price])
 
     const recipientAddress = useMemo(() => {
         if (!isConnected || !address) return ''

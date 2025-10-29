@@ -1,6 +1,5 @@
 'use client'
 
-import { fetchTokenPrice } from '@/app/actions/tokens'
 import { PEANUT_LOGO_BLACK } from '@/assets'
 import { PEANUTMAN_LOGO } from '@/assets/peanut'
 import { Button } from '@/components/0_Bruddle'
@@ -18,6 +17,9 @@ import { useAuth } from '@/context/authContext'
 import { useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import { type InitiatePaymentPayload, usePaymentInitiator } from '@/hooks/usePaymentInitiator'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
+import { useTokenPrice } from '@/hooks/useTokenPrice'
+import { useSquidChainsAndTokens } from '@/hooks/useSquidChainsAndTokens'
 import { type ParsedURL } from '@/lib/url-parser/types/payment'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
@@ -100,6 +102,17 @@ export const PaymentForm = ({
     const { interactions } = useUserInteractions(recipientUserId ? [recipientUserId] : [])
     const { isConnected: isPeanutWalletConnected, balance } = useWallet()
     const { isConnected: isExternalWalletConnected, status } = useAccount()
+
+    // Fetch Squid chains and tokens for token price lookup
+    const { data: supportedSquidChainsAndTokens = {} } = useSquidChainsAndTokens()
+
+    // Fetch token price for request details (xchain requests)
+    const { data: requestedTokenPriceData } = useTokenPrice({
+        tokenAddress: requestDetails?.tokenAddress,
+        chainId: requestDetails?.chainId,
+        supportedSquidChainsAndTokens,
+        isPeanutWallet: false, // Request details are always external tokens
+    })
     const [initialSetupDone, setInitialSetupDone] = useState(false)
     const [inputTokenAmount, setInputTokenAmount] = useState<string>(
         chargeDetails?.tokenAmount || requestDetails?.tokenAmount || amount || ''
@@ -111,10 +124,9 @@ export const PaymentForm = ({
     const [disconnectWagmiModal, setDisconnectWagmiModal] = useState<boolean>(false)
     const [inputUsdValue, setInputUsdValue] = useState<string>('')
     const [usdValue, setUsdValue] = useState<string>('')
-    const [requestedTokenPrice, setRequestedTokenPrice] = useState<number>(0)
-    const [_isFetchingTokenPrice, setIsFetchingTokenPrice] = useState<boolean>(false)
 
     const { initiatePayment, isProcessing, error: initiatorError } = usePaymentInitiator()
+    const { hasPendingTransactions } = usePendingTransactions()
 
     const peanutWalletBalance = useMemo(() => {
         return balance !== undefined ? formatCurrency(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS)) : ''
@@ -128,13 +140,11 @@ export const PaymentForm = ({
     }, [paymentStoreError, initiatorError, inviteError])
 
     const {
-        selectedTokenPrice,
         selectedChainID,
         selectedTokenAddress,
         selectedTokenData,
         setSelectedChainID,
         setSelectedTokenAddress,
-        setSelectedTokenDecimals,
         selectedTokenBalance,
     } = useContext(tokenSelectorContext)
     const { open: openReownModal } = useAppKit()
@@ -167,16 +177,14 @@ export const PaymentForm = ({
                 const defaultToken = chain.tokens.find((t) => t.symbol.toLowerCase() === 'usdc')
                 if (defaultToken) {
                     setSelectedTokenAddress(defaultToken.address)
-                    setSelectedTokenDecimals(defaultToken.decimals)
+                    // Note: decimals automatically derived by useTokenPrice hook
                 }
             }
         }
 
         if (token) {
             setSelectedTokenAddress((token.address || requestDetails?.tokenAddress) ?? '')
-            if (token.decimals) {
-                setSelectedTokenDecimals(token.decimals)
-            }
+            // Note: decimals automatically derived by useTokenPrice hook
         }
 
         setInitialSetupDone(true)
@@ -189,9 +197,8 @@ export const PaymentForm = ({
     }, [dispatch, recipient])
 
     useEffect(() => {
-        // Skip balance check if on CONFIRM or STATUS view, or if transaction is being processed
-        // (balance has been optimistically updated in these states)
-        if (currentView === 'CONFIRM' || currentView === 'STATUS' || isProcessing) {
+        // Skip balance check if on CONFIRM or STATUS view, or if transaction is being processed, or if we have pending txs
+        if (currentView === 'CONFIRM' || currentView === 'STATUS' || isProcessing || hasPendingTransactions) {
             return
         }
 
@@ -285,39 +292,22 @@ export const PaymentForm = ({
         showRequestPotInitialView,
         currentView,
         isProcessing,
+        hasPendingTransactions,
     ])
 
-    // fetch token price
+    // Calculate USD value when requested token price is available
     useEffect(() => {
-        if (!requestDetails?.tokenAddress || !requestDetails?.chainId) return
+        if (!requestedTokenPriceData?.price || !requestDetails?.tokenAmount) return
 
-        const getTokenPriceData = async () => {
-            setIsFetchingTokenPrice(true)
-            try {
-                const priceData = await fetchTokenPrice(requestDetails.tokenAddress, requestDetails.chainId)
+        const tokenAmount = parseFloat(requestDetails.tokenAmount)
+        if (isNaN(tokenAmount) || tokenAmount <= 0) return
 
-                if (priceData) {
-                    setRequestedTokenPrice(priceData.price)
+        if (isNaN(requestedTokenPriceData.price) || requestedTokenPriceData.price === 0) return
 
-                    if (requestDetails?.tokenAmount) {
-                        // calculate USD value
-                        const tokenAmount = parseFloat(requestDetails.tokenAmount)
-                        const usdValue = formatAmount(tokenAmount * priceData.price)
-                        setInputTokenAmount(usdValue)
-                        setUsdValue(usdValue)
-                    }
-                } else {
-                    console.log('Failed to fetch token price data')
-                }
-            } catch (error) {
-                console.error('Error fetching token price:', error)
-            } finally {
-                setIsFetchingTokenPrice(false)
-            }
-        }
-
-        getTokenPriceData()
-    }, [requestDetails])
+        const usdValue = formatAmount(tokenAmount * requestedTokenPriceData.price)
+        setInputTokenAmount(usdValue)
+        setUsdValue(usdValue)
+    }, [requestedTokenPriceData?.price, requestDetails?.tokenAmount])
 
     const canInitiatePayment = useMemo<boolean>(() => {
         let amountIsSet = false
@@ -434,10 +424,24 @@ export const PaymentForm = ({
         let tokenAmount = inputTokenAmount
         if (
             requestedToken &&
-            requestedTokenPrice &&
+            requestedTokenPriceData?.price &&
             (requestedChain !== selectedChainID || !areEvmAddressesEqual(requestedToken, selectedTokenAddress))
         ) {
-            tokenAmount = (parseFloat(inputUsdValue) / requestedTokenPrice).toString()
+            // Validate price before division
+            if (isNaN(requestedTokenPriceData.price) || requestedTokenPriceData.price === 0) {
+                console.error('Invalid token price for conversion')
+                dispatch(paymentActions.setError('Cannot calculate token amount: invalid price data'))
+                return
+            }
+
+            const usdAmount = parseFloat(inputUsdValue)
+            if (isNaN(usdAmount)) {
+                console.error('Invalid USD amount')
+                dispatch(paymentActions.setError('Invalid amount entered'))
+                return
+            }
+
+            tokenAmount = (usdAmount / requestedTokenPriceData.price).toString()
         }
 
         const payload: InitiatePaymentPayload = {
@@ -488,7 +492,7 @@ export const PaymentForm = ({
         selectedTokenAddress,
         selectedChainID,
         inputUsdValue,
-        requestedTokenPrice,
+        requestedTokenPriceData?.price,
         inviteError,
         handleAcceptInvite,
         showRequestPotInitialView,
@@ -552,10 +556,15 @@ export const PaymentForm = ({
 
     useEffect(() => {
         if (!inputTokenAmount) return
-        if (selectedTokenPrice) {
-            setUsdValue((parseFloat(inputTokenAmount) * selectedTokenPrice).toString())
+        if (selectedTokenData?.price) {
+            const amount = parseFloat(inputTokenAmount)
+            if (isNaN(amount) || amount < 0) return
+
+            if (isNaN(selectedTokenData.price) || selectedTokenData.price === 0) return
+
+            setUsdValue((amount * selectedTokenData.price).toString())
         }
-    }, [inputTokenAmount, selectedTokenPrice])
+    }, [inputTokenAmount, selectedTokenData?.price])
 
     // Initialize inputTokenAmount
     useEffect(() => {

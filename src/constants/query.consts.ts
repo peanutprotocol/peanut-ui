@@ -2,3 +2,13 @@ export const USER = 'user'
 export const TRANSACTIONS = 'transactions'
 export const CLAIM_LINK = 'claimLink'
 export const CLAIM_LINK_XCHAIN = 'claimLinkXChain'
+
+// Balance-decreasing operations (for mutation tracking)
+export const BALANCE_DECREASE = 'balance-decrease'
+export const SEND_MONEY = 'send-money'
+export const SEND_LINK = 'send-link'
+export const SEND_TRANSACTIONS = 'send-transactions'
+export const INITIATE_PAYMENT = 'initiate-payment'
+export const QR_PAYMENT = 'qr-payment'
+export const WITHDRAW_MANTECA = 'withdraw-manteca'
+export const WITHDRAW_BRIDGE = 'withdraw-bridge'
