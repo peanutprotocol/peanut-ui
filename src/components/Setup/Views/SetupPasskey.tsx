@@ -10,7 +10,7 @@ import * as Sentry from '@sentry/nextjs'
 import { WalletProviderType, AccountType } from '@/interfaces'
 import { WebAuthnError } from '@simplewebauthn/browser'
 import Link from 'next/link'
-import { getFromCookie, getFromLocalStorage, getValidRedirectUrl, sanitizeRedirectURL } from '@/utils'
+import { getFromCookie, getRedirectUrl, getValidRedirectUrl, clearRedirectUrl } from '@/utils'
 import { POST_SIGNUP_ACTIONS } from '@/components/Global/PostSignupActionManager/post-signup-action.consts'
 
 const SetupPasskey = () => {
@@ -54,7 +54,7 @@ const SetupPasskey = () => {
                         // If redirect_uri was invalid, fall through to other redirect logic
                     }
 
-                    const localStorageRedirect = getFromLocalStorage('redirect')
+                    const localStorageRedirect = getRedirectUrl()
                     // redirect based on post signup action config
                     if (localStorageRedirect) {
                         const matchedAction = POST_SIGNUP_ACTIONS.find((action) =>
@@ -63,7 +63,7 @@ const SetupPasskey = () => {
                         if (matchedAction) {
                             router.push('/home')
                         } else {
-                            localStorage.removeItem('redirect')
+                            clearRedirectUrl()
                             const validRedirectUrl = getValidRedirectUrl(localStorageRedirect, '/home')
                             router.push(validRedirectUrl)
                         }

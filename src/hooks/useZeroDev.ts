@@ -6,7 +6,7 @@ import { useAuth } from '@/context/authContext'
 import { useKernelClient } from '@/context/kernelClient.context'
 import { useAppDispatch, useSetupStore, useZerodevStore } from '@/redux/hooks'
 import { zerodevActions } from '@/redux/slices/zerodev-slice'
-import { getFromCookie, removeFromCookie, saveToCookie, saveToLocalStorage } from '@/utils'
+import { getFromCookie, removeFromCookie, saveToCookie } from '@/utils'
 import { toWebAuthnKey, WebAuthnMode } from '@zerodev/passkey-validator'
 import { useCallback, useContext } from 'react'
 import type { TransactionReceipt, Hex, Hash } from 'viem'
@@ -31,7 +31,7 @@ class PasskeyError extends Error {
     }
 }
 
-const LOCAL_STORAGE_WEB_AUTHN_KEY = 'web-authn-key'
+const WEB_AUTHN_COOKIE_KEY = 'web-authn-key'
 
 export const useZeroDev = () => {
     const dispatch = useAppDispatch()
@@ -76,8 +76,7 @@ export const useZeroDev = () => {
             }
 
             setWebAuthnKey(webAuthnKey)
-            saveToLocalStorage(LOCAL_STORAGE_WEB_AUTHN_KEY, webAuthnKey)
-            saveToCookie(LOCAL_STORAGE_WEB_AUTHN_KEY, webAuthnKey, 90)
+            saveToCookie(WEB_AUTHN_COOKIE_KEY, webAuthnKey, 90)
         } catch (e) {
             if ((e as Error).message.includes('pending')) {
                 return
@@ -107,8 +106,7 @@ export const useZeroDev = () => {
             })
 
             setWebAuthnKey(webAuthnKey)
-            saveToLocalStorage(LOCAL_STORAGE_WEB_AUTHN_KEY, webAuthnKey)
-            saveToCookie(LOCAL_STORAGE_WEB_AUTHN_KEY, webAuthnKey, 90)
+            saveToCookie(WEB_AUTHN_COOKIE_KEY, webAuthnKey, 90)
         } catch (e) {
             const error = e as Error
             if (error.name === 'NotAllowedError') {
