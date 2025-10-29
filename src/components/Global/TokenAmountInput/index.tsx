@@ -1,3 +1,5 @@
+'use client'
+
 import { PEANUT_WALLET_TOKEN_DECIMALS, STABLE_COINS } from '@/constants'
 import { tokenSelectorContext } from '@/context'
 import { formatAmountWithoutComma, formatTokenAmount, formatCurrency, sanitizeDecimalInput } from '@/utils'
@@ -254,8 +256,10 @@ const TokenAmountInput = ({
                             placeholder={'0.00'}
                             onChange={(e) => {
                                 let value = formatAmountWithoutComma(e.target.value)
-                                // Limit to 2 decimal places
-                                value = sanitizeDecimalInput(value, 2)
+                                // USD/currency → 2 decimals; token input → allow `decimals` (<= 6)
+                                const maxDecimals =
+                                    displayMode === 'FIAT' || displayMode === 'STABLE' || isInputUsd ? 2 : decimals
+                                value = sanitizeDecimalInput(value, maxDecimals)
                                 onChange(value, isInputUsd)
                             }}
                             ref={inputRef}

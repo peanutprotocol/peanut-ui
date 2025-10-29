@@ -122,7 +122,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                 <Image
                                     src={avatarUrl}
                                     alt="Icon"
-                                    className="size-9 object-contain"
+                                    className="size-8 object-contain"
                                     width={30}
                                     height={30}
                                 />
