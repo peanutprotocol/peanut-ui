@@ -239,6 +239,7 @@ const TokenAmountInput = ({
         }
     }
 
+    // Sync default slider suggested amount to the input
     useEffect(() => {
         if (defaultSliderSuggestedAmount) {
             const formattedAmount = formatTokenAmount(defaultSliderSuggestedAmount.toString(), 2)
