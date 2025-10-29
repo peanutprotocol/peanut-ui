@@ -91,37 +91,40 @@ const GeneralRecipientInput = ({
         }
     }, [])
 
-    const onInputUpdate = useCallback((update: InputUpdate) => {
-        const sanitizedValue =
-            recipientType.current === 'iban' || recipientType.current === 'us'
-                ? sanitizeBankAccount(update.value)
-                : update.value.trim().replace(`${BASE_URL}/`, '')
+    const onInputUpdate = useCallback(
+        (update: InputUpdate) => {
+            const sanitizedValue =
+                recipientType.current === 'iban' || recipientType.current === 'us'
+                    ? sanitizeBankAccount(update.value)
+                    : update.value.trim().replace(`${BASE_URL}/`, '')
 
-        let _update: GeneralRecipientUpdate
-        if (update.isValid) {
-            errorMessage.current = ''
-            _update = {
-                recipient:
-                    'ens' === recipientType.current || (!isWithdrawal && 'username' === recipientType.current)
-                        ? { address: resolvedAddress.current, name: sanitizedValue }
-                        : { address: sanitizedValue, name: undefined },
-                type: recipientType.current,
-                isValid: true,
-                isChanging: update.isChanging,
-                errorMessage: '',
+            let _update: GeneralRecipientUpdate
+            if (update.isValid) {
+                errorMessage.current = ''
+                _update = {
+                    recipient:
+                        'ens' === recipientType.current || (!isWithdrawal && 'username' === recipientType.current)
+                            ? { address: resolvedAddress.current, name: sanitizedValue }
+                            : { address: sanitizedValue, name: undefined },
+                    type: recipientType.current,
+                    isValid: true,
+                    isChanging: update.isChanging,
+                    errorMessage: '',
+                }
+            } else {
+                resolvedAddress.current = ''
+                _update = {
+                    recipient: { address: sanitizedValue, name: undefined },
+                    type: recipientType.current,
+                    isValid: false,
+                    isChanging: update.isChanging,
+                    errorMessage: errorMessage.current,
+                }
             }
-        } else {
-            resolvedAddress.current = ''
-            _update = {
-                recipient: { address: sanitizedValue, name: undefined },
-                type: recipientType.current,
-                isValid: false,
-                isChanging: update.isChanging,
-                errorMessage: errorMessage.current,
-            }
-        }
-        onUpdate(_update)
-    }, [])
+            onUpdate(_update)
+        },
+        [isWithdrawal, onUpdate]
+    )
 
     const formatDisplayValue = (value: string) => {
         if (recipientType.current === 'iban' || recipientType.current === 'us') {

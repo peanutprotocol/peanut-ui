@@ -146,7 +146,9 @@ export const saveToCookie = (key: string, data: any, expiryDays?: number) => {
         }
 
         // Add default cookie attributes for security
-        cookieString += '; path=/; SameSite=Lax'
+        // Only add Secure flag in HTTPS contexts to avoid breaking local development
+        const isSecure = typeof window !== 'undefined' && window.location.protocol === 'https:'
+        cookieString += `; path=/; SameSite=Lax${isSecure ? '; Secure' : ''}`
 
         document.cookie = cookieString
         console.log(`Saved ${key} to cookie:`, data)

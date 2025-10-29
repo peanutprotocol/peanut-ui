@@ -31,7 +31,7 @@ class PasskeyError extends Error {
     }
 }
 
-const LOCAL_STORAGE_WEB_AUTHN_KEY = 'web-authn-key'
+const WEB_AUTHN_COOKIE_KEY = 'web-authn-key'
 
 export const useZeroDev = () => {
     const dispatch = useAppDispatch()
@@ -76,7 +76,7 @@ export const useZeroDev = () => {
             }
 
             setWebAuthnKey(webAuthnKey)
-            saveToCookie(LOCAL_STORAGE_WEB_AUTHN_KEY, webAuthnKey, 90)
+            saveToCookie(WEB_AUTHN_COOKIE_KEY, webAuthnKey, 90)
         } catch (e) {
             if ((e as Error).message.includes('pending')) {
                 return
@@ -106,7 +106,7 @@ export const useZeroDev = () => {
             })
 
             setWebAuthnKey(webAuthnKey)
-            saveToCookie(LOCAL_STORAGE_WEB_AUTHN_KEY, webAuthnKey, 90)
+            saveToCookie(WEB_AUTHN_COOKIE_KEY, webAuthnKey, 90)
         } catch (e) {
             const error = e as Error
             if (error.name === 'NotAllowedError') {

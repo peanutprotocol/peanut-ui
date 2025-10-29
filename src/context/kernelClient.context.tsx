@@ -31,7 +31,7 @@ type GenericSmartAccountClient<C extends Chain = Chain> = KernelAccountClient<Tr
 
 type WebAuthnKey = Awaited<ReturnType<typeof toWebAuthnKey>>
 
-const LOCAL_STORAGE_WEB_AUTHN_KEY = 'web-authn-key'
+const WEB_AUTHN_COOKIE_KEY = 'web-authn-key'
 
 const KernelClientContext = createContext<KernelClientContextType | undefined>(undefined)
 
@@ -165,14 +165,14 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
     useEffect(() => {
         if (!user?.user.userId) return
         const userPreferences = getUserPreferences(user.user.userId)
-        const storedWebAuthnKey = userPreferences?.webAuthnKey ?? getFromCookie(LOCAL_STORAGE_WEB_AUTHN_KEY)
+        const storedWebAuthnKey = userPreferences?.webAuthnKey ?? getFromCookie(WEB_AUTHN_COOKIE_KEY)
         if (storedWebAuthnKey) {
             setWebAuthnKey(storedWebAuthnKey)
         } else {
             // avoid mixed state
             logoutUser()
         }
-    }, [user?.user.userId])
+    }, [user?.user.userId, logoutUser])
 
     useEffect(() => {
         if (user?.user.userId && !!webAuthnKey) {

@@ -289,7 +289,7 @@ export default function Home() {
                 onCloseAction={() => {
                     setShowBalanceWarningModal(false)
                     updateUserPreferences(user!.user.userId, {
-                        hasSeenBalanceWarning: { value: true, expiry: BALANCE_WARNING_EXPIRY },
+                        hasSeenBalanceWarning: { value: true, expiry: Date.now() + BALANCE_WARNING_EXPIRY * 1000 },
                     })
                 }}
             />

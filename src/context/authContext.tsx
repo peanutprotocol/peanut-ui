@@ -58,7 +58,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { user: authUser } = useUserStore()
     const toast = useToast()
     const queryClient = useQueryClient()
-    const LOCAL_STORAGE_WEB_AUTHN_KEY = 'web-authn-key'
+    const WEB_AUTHN_COOKIE_KEY = 'web-authn-key'
 
     const { data: user, isLoading: isFetchingUser, refetch: fetchUser } = useUserQuery(!authUser?.user.userId)
 
@@ -70,7 +70,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     useEffect(() => {
         if (user) {
-            syncLocalStorageToCookie(LOCAL_STORAGE_WEB_AUTHN_KEY)
+            syncLocalStorageToCookie(WEB_AUTHN_COOKIE_KEY)
         }
     }, [user])
 
@@ -145,7 +145,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
             if (response.ok) {
                 updateUserPreferences(user?.user.userId, { webAuthnKey: undefined })
-                removeFromCookie(LOCAL_STORAGE_WEB_AUTHN_KEY)
+                removeFromCookie(WEB_AUTHN_COOKIE_KEY)
                 clearRedirectUrl()
                 queryClient.invalidateQueries()
 
@@ -171,8 +171,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setIsLoggingOut(false)
         }
     }, [fetchUser, isLoggingOut, user])
-
-    console.log({ user })
 
     return (
         <AuthContext.Provider
