@@ -19,8 +19,6 @@ import {
 import { createAppKit } from '@reown/appkit/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { WagmiProvider, cookieToInitialState, type Config } from 'wagmi'
-import { DaimoPayProvider } from '@daimo/pay'
-import { DAIMO_THEME } from '@/constants/daimo.consts'
 
 // 0. Setup queryClient
 const queryClient = new QueryClient()
@@ -48,64 +46,83 @@ const wagmiAdapter = new WagmiAdapter({
     ssr: true,
 })
 
-// 6. Lazy AppKit initialization
-// Only initialize when user actually needs to connect external wallet
+// 6. AppKit initialization with SSR compatibility and PWA resilience
+// Strategy:
+// - Initialize eagerly for SSR (Next.js prerendering requires it)
+// - Handle PWA cold launch failures gracefully with retry mechanism
 
-/**
- * Timeout wrapper to prevent indefinite hangs on network issues
- */
-const withTimeout = <T,>(promise: Promise<T>, ms: number, operation: string): Promise<T> => {
-    return Promise.race([
-        promise,
-        new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`${operation} timed out after ${ms}ms`)), ms)),
-    ])
-}
-
+let appKitInitialized = false
 let initPromise: Promise<void> | null = null
 
+/**
+ * Initializes or ensures AppKit is initialized.
+ * Safe to call multiple times - will only initialize once successfully.
+ *
+ * @returns Promise that resolves when AppKit is ready
+ */
 export const initializeAppKit = async (): Promise<void> => {
-    // Return existing promise if initialization is in progress or already complete
+    // Already initialized successfully
+    if (appKitInitialized) return Promise.resolve()
+
+    // Initialization in progress
     if (initPromise) return initPromise
 
     initPromise = (async () => {
         try {
-            // Wrap in timeout to prevent indefinite hangs (network issues, Reown API down)
-            await withTimeout(
-                Promise.resolve(
-                    createAppKit({
-                        adapters: [wagmiAdapter],
-                        defaultNetwork: mainnet,
-                        networks,
-                        metadata,
-                        projectId,
-                        features: {
-                            analytics: false, // no app-kit analytics plz
-                            socials: false,
-                            email: false,
-                            onramp: true,
-                        },
-                        themeVariables: {
-                            '--w3m-border-radius-master': '0px',
-                            '--w3m-color-mix': 'white',
-                        },
-                    })
-                ),
-                10000, // 10 second timeout
-                'Wallet connection initialization'
-            )
+            createAppKit({
+                adapters: [wagmiAdapter],
+                defaultNetwork: mainnet,
+                networks,
+                metadata,
+                projectId,
+                features: {
+                    analytics: false, // no app-kit analytics plz
+                    socials: false,
+                    email: false,
+                    onramp: true,
+                },
+                themeVariables: {
+                    '--w3m-border-radius-master': '0px',
+                    '--w3m-color-mix': 'white',
+                },
+            })
+            appKitInitialized = true
         } catch (error) {
             // Reset promise on error to allow retry
             initPromise = null
-            const message =
-                error instanceof Error && error.message.includes('timed out')
-                    ? 'Wallet connection timed out. Please check your internet and try again.'
-                    : 'Unable to initialize wallet connection. Please check your internet connection.'
             console.warn('AppKit initialization failed (will retry on next attempt):', error)
-            throw new Error(message)
+            throw new Error('Unable to initialize wallet connection. Please check your internet connection.')
         }
     })()
 
     return initPromise
+}
+
+// Initialize AppKit (required for components using useAppKit/useDisconnect hooks)
+// Components on critical paths (TokenSelector, PaymentForm, home page) need this
+// Note: createAppKit() itself is lightweight - expensive network requests (wallet icons,
+// analytics) only happen when user actually opens the modal
+try {
+    createAppKit({
+        adapters: [wagmiAdapter],
+        defaultNetwork: mainnet,
+        networks,
+        metadata,
+        projectId,
+        features: {
+            analytics: false, // Disable Coinbase analytics tracking
+            socials: false,
+            email: false,
+            onramp: true,
+        },
+        themeVariables: {
+            '--w3m-border-radius-master': '0px',
+            '--w3m-color-mix': 'white',
+        },
+    })
+    appKitInitialized = true
+} catch (error) {
+    console.warn('AppKit initialization failed:', error)
 }
 
 export function ContextProvider({ children, cookies }: { children: React.ReactNode; cookies: string | null }) {
@@ -121,12 +138,7 @@ export function ContextProvider({ children, cookies }: { children: React.ReactNo
     return (
         <WagmiProvider config={wagmiAdapter.wagmiConfig} initialState={initialState}>
             <QueryClientProvider client={queryClient}>
-                <DaimoPayProvider
-                    options={{ embedGoogleFonts: true, disableMobileInjector: true }}
-                    customTheme={DAIMO_THEME}
-                >
-                    <JustaNameContext>{children}</JustaNameContext>
-                </DaimoPayProvider>
+                <JustaNameContext>{children}</JustaNameContext>
             </QueryClientProvider>
         </WagmiProvider>
     )

@@ -2,8 +2,6 @@ import { Button } from '@/components/0_Bruddle'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import Modal from '@/components/Global/Modal'
 import { useZeroDev } from '@/hooks/useZeroDev'
-import { initializeAppKit } from '@/config/wagmi.config'
-import { useAppKit } from '@reown/appkit/react'
 import Link from 'next/link'
 import { useAppDispatch, useWalletStore } from '@/redux/hooks'
 import { walletActions } from '@/redux/slices/wallet-slice'
@@ -11,7 +9,6 @@ import { walletActions } from '@/redux/slices/wallet-slice'
 const GuestLoginModal = () => {
     const dispatch = useAppDispatch()
     const { signInModalVisible } = useWalletStore()
-    const web3Modal = useAppKit()
     const { handleLogin, isLoggingIn } = useZeroDev()
     const toast = useToast()
 
@@ -39,29 +36,6 @@ const GuestLoginModal = () => {
                 <Link href={'/setup'} className="text-h8 underline" onClick={closeModal}>
                     Don't have a Peanut wallet? Get one now.
                 </Link>
-                <div className="my-2 flex w-full items-center gap-4">
-                    <div className="h-px flex-1 bg-gray-200" />
-                    <span className="text-sm text-gray-500">or</span>
-                    <div className="h-px flex-1 bg-gray-200" />
-                </div>
-                <Button
-                    disabled={isLoggingIn}
-                    variant="dark"
-                    shadowType="secondary"
-                    onClick={async () => {
-                        try {
-                            await initializeAppKit()
-                            await web3Modal.open()
-                        } catch (e) {
-                            console.error(e)
-                            toast.error('Error connecting wallet')
-                        } finally {
-                            closeModal()
-                        }
-                    }}
-                >
-                    Connect External Wallet
-                </Button>
             </div>
         </Modal>
     )

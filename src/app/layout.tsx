@@ -66,7 +66,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
-        <html lang="en" style={{ colorScheme: 'light' }}>
+        <html lang="en" style={{ colorScheme: 'light' }} data-theme="light">
             <head>
                 <meta name="color-scheme" content="light" />
                 {process.env.NODE_ENV !== 'development' && process.env.NEXT_PUBLIC_GA_KEY && (

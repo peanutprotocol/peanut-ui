@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Perk claiming uses optimistic UI updates for instant feedback (claim happens in background)
 - Dev pages excluded from production builds for faster compile times
 - Removed Points V1 legacy fields from `Account` and `IUserProfile` interfaces
+- **⚡ Performance: Eliminated 61+ unnecessary API polling requests** - Isolated DaimoPayProvider to only 2 pages that actually use Daimo payments (was wrapping entire app, causing continuous polling to `pay-api.daimo.xyz/untronHasAvailableReceivers` on every page). Removed unused "Connect External Wallet" option from sign-in modal and dead `addBYOW()` function from auth context. Disabled AppKit analytics tracking. Savings: ~16 KB bandwidth and 61+ requests eliminated per session for 98% of page views, measurably faster initial page loads.
 
 ### Fixed
 

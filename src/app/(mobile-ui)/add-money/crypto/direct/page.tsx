@@ -5,6 +5,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import DaimoPayButton from '@/components/Global/DaimoPayButton'
+import { DaimoPayWrapper } from '@/components/Global/DaimoPayWrapper'
 import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useRouter } from 'next/navigation'
@@ -57,51 +58,53 @@ export default function AddMoneyCryptoDirectPage() {
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
-            <NavHeader
-                onPrev={() => {
-                    if (window.history.length > 1) {
-                        router.back()
-                    } else {
-                        router.push('/')
-                    }
-                }}
-                title={'Add Money'}
-            />
-            <div className="my-auto flex h-full flex-col justify-center space-y-4">
-                <div className="text-sm font-bold">How much do you want to add?</div>
-                <TokenAmountInput
-                    tokenValue={inputTokenAmount}
-                    setTokenValue={(value: string | undefined) => setInputTokenAmount(value || '')}
-                    className="w-full"
-                    currency={{
-                        code: 'USD',
-                        symbol: '$',
-                        price: 1,
+        <DaimoPayWrapper>
+            <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+                <NavHeader
+                    onPrev={() => {
+                        if (window.history.length > 1) {
+                            router.back()
+                        } else {
+                            router.push('/')
+                        }
                     }}
-                    hideCurrencyToggle
-                    hideBalance
+                    title={'Add Money'}
                 />
+                <div className="my-auto flex h-full flex-col justify-center space-y-4">
+                    <div className="text-sm font-bold">How much do you want to add?</div>
+                    <TokenAmountInput
+                        tokenValue={inputTokenAmount}
+                        setTokenValue={(value: string | undefined) => setInputTokenAmount(value || '')}
+                        className="w-full"
+                        currency={{
+                            code: 'USD',
+                            symbol: '$',
+                            price: 1,
+                        }}
+                        hideCurrencyToggle
+                        hideBalance
+                    />
 
-                {address && (
-                    <DaimoPayButton
-                        amount={inputTokenAmount}
-                        toAddress={address}
-                        onPaymentCompleted={onPaymentCompleted}
-                        variant="purple"
-                        icon="plus"
-                        iconSize={16}
-                        minAmount={0.1}
-                        maxAmount={30_000}
-                        onValidationError={setError}
-                        disabled={inputTokenAmount === '0.00'}
-                    >
-                        Add Money
-                    </DaimoPayButton>
-                )}
+                    {address && (
+                        <DaimoPayButton
+                            amount={inputTokenAmount}
+                            toAddress={address}
+                            onPaymentCompleted={onPaymentCompleted}
+                            variant="purple"
+                            icon="plus"
+                            iconSize={16}
+                            minAmount={0.1}
+                            maxAmount={30_000}
+                            onValidationError={setError}
+                            disabled={inputTokenAmount === '0.00'}
+                        >
+                            Add Money
+                        </DaimoPayButton>
+                    )}
 
-                <div className="min-h-[20px]">{error && <ErrorAlert description={error} />}</div>
+                    <div className="min-h-[20px]">{error && <ErrorAlert description={error} />}</div>
+                </div>
             </div>
-        </div>
+        </DaimoPayWrapper>
     )
 }

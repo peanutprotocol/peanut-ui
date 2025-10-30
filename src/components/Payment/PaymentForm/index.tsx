@@ -383,14 +383,16 @@ export const PaymentForm = ({
 
         // skip this step for request pots initial view
         if (!showRequestPotInitialView && !isExternalWalletConnected && isExternalWalletFlow) {
-            initializeAppKit().catch((error) => {
+            try {
+                await initializeAppKit()
+                openReownModal()
+            } catch (error) {
                 console.error('Failed to initialize AppKit:', error)
                 Sentry.captureException(error, {
                     tags: { context: 'payment_form_external_wallet' },
                     extra: { flow: 'external_wallet_payment' },
                 })
-            })
-            openReownModal()
+            }
             return
         }
 

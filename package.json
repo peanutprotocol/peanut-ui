@@ -141,14 +141,15 @@
         ],
         "moduleNameMapper": {
             "\\.(svg|png|jpg|jpeg|gif)$": "jest-transform-stub",
-            "^@/(.*)$": "<rootDir>/src/$1",
+            "^@/config/wagmi\\.config$": "<rootDir>/src/utils/__mocks__/wagmi-config.ts",
             "^wagmi/chains$": "<rootDir>/src/utils/__mocks__/wagmi.ts",
             "^@squirrel-labs/peanut-sdk$": "<rootDir>/src/utils/__mocks__/peanut-sdk.ts",
             "^@reown/appkit/react$": "<rootDir>/src/utils/__mocks__/reown-appkit.ts",
             "^@justaname\\.id/react$": "<rootDir>/src/utils/__mocks__/justaname.ts",
             "^web-push$": "<rootDir>/src/utils/__mocks__/web-push.ts",
             "^next/cache$": "<rootDir>/src/utils/__mocks__/next-cache.ts",
-            "^@zerodev/sdk(.*)$": "<rootDir>/src/utils/__mocks__/zerodev-sdk.ts"
+            "^@zerodev/sdk(.*)$": "<rootDir>/src/utils/__mocks__/zerodev-sdk.ts",
+            "^@/(.*)$": "<rootDir>/src/$1"
         },
         "setupFilesAfterEnv": [
             "<rootDir>/jest.setup.ts"

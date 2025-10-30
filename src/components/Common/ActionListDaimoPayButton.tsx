@@ -10,6 +10,7 @@ import { ACTION_METHODS } from '@/constants/actionlist.consts'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import ConfirmInviteModal from '../Global/ConfirmInviteModal'
 import { ActionListCard } from '../ActionListCard'
+import { DaimoPayWrapper } from '../Global/DaimoPayWrapper'
 
 interface ActionListDaimoPayButtonProps {
     handleContinueWithPeanut: () => void
@@ -141,7 +142,7 @@ const ActionListDaimoPayButton = ({
     if (!method || !parsedPaymentData) return null
 
     return (
-        <>
+        <DaimoPayWrapper>
             <DaimoPayButton
                 amount={usdAmount ?? '0.10'}
                 toAddress={parsedPaymentData.recipient.resolvedAddress}
@@ -210,7 +211,7 @@ const ActionListDaimoPayButton = ({
                     setConfirmLoseInvite(false)
                 }}
             />
-        </>
+        </DaimoPayWrapper>
     )
 }
 

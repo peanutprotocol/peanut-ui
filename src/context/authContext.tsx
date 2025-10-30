@@ -11,8 +11,6 @@ import {
     clearRedirectUrl,
     updateUserPreferences,
 } from '@/utils'
-import { initializeAppKit } from '@/config/wagmi.config'
-import { useAppKit } from '@reown/appkit/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { createContext, type ReactNode, useContext, useState, useEffect, useMemo, useCallback } from 'react'
@@ -23,7 +21,6 @@ interface AuthContextType {
     userId: string | undefined
     username: string | undefined
     fetchUser: () => Promise<interfaces.IUserProfile | null>
-    addBYOW: () => Promise<void>
     addAccount: ({
         accountIdentifier,
         accountType,
@@ -54,7 +51,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
  */
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const router = useRouter()
-    const { open: web3modalOpen } = useAppKit()
     const dispatch = useAppDispatch()
     const { user: authUser } = useUserStore()
     const toast = useToast()
@@ -81,19 +77,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const [isLoggingOut, setIsLoggingOut] = useState(false)
-
-    const addBYOW = async () => {
-        // we open the web3modal, so the user can disconnect the previous wallet,
-        // connect a new wallet and allow the useEffect(..., [wagmiAddress]) in walletContext take over
-        try {
-            await initializeAppKit()
-            web3modalOpen()
-        } catch (error) {
-            console.error('Failed to initialize wallet connection:', error)
-            toast.error('Unable to connect wallet. Please check your internet connection.')
-            captureException(error)
-        }
-    }
 
     const addAccount = async ({
         accountIdentifier,
@@ -187,7 +170,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 userId: user?.user?.userId,
                 username: user?.user?.username ?? undefined,
                 fetchUser: legacy_fetchUser,
-                addBYOW,
                 addAccount,
                 isFetchingUser,
                 logoutUser,
