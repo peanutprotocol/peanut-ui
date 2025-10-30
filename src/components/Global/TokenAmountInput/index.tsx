@@ -154,7 +154,11 @@ const TokenAmountInput = ({
             if (maxAmount) {
                 const selectedPercentage = value[0]
                 const selectedAmount = parseFloat(((selectedPercentage / 100) * maxAmount).toFixed(4)).toString()
-                onChange(selectedAmount, isInputUsd)
+                const maxDecimals = displayMode === 'FIAT' || displayMode === 'STABLE' || isInputUsd ? 2 : decimals
+                const formattedAmount = formatTokenAmount(selectedAmount, maxDecimals, true)
+                if (formattedAmount) {
+                    onChange(formattedAmount, isInputUsd)
+                }
             }
         },
         [maxAmount, onChange]

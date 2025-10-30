@@ -902,6 +902,8 @@ export const getContributorsFromCharge = (charges: ChargeEntry[]) => {
             username = successfulPayment.payerAccount.identifier
         }
 
+        const isPeanutUser = successfulPayment?.payerAccount?.type === AccountType.PEANUT_WALLET
+
         return {
             uuid: charge.uuid,
             payments: charge.payments,
@@ -909,6 +911,7 @@ export const getContributorsFromCharge = (charges: ChargeEntry[]) => {
             username,
             fulfillmentPayment: charge.fulfillmentPayment,
             isUserVerified: successfulPayment?.payerAccount?.user?.bridgeKycStatus === 'approved',
+            isPeanutUser,
         }
     })
 }
