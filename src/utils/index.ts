@@ -6,6 +6,8 @@ export * from './sentry.utils'
 export * from './token.utils'
 export * from './ens.utils'
 export * from './history.utils'
+export * from './auth.utils'
+export * from './webauthn.utils'
 
 // Bridge utils - explicit exports to avoid naming conflicts
 export {

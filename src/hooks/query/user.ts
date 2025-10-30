@@ -24,7 +24,14 @@ export const useUserQuery = (dependsOn?: boolean) => {
 
             return userData
         } else {
-            console.warn('Failed to fetch user. Probably not logged in.')
+            // RECOVERY FIX: Log error status for debugging
+            if (userResponse.status === 400 || userResponse.status === 500) {
+                console.error('Failed to fetch user with error status:', userResponse.status)
+                // This indicates a backend issue - user might be in broken state
+                // The KernelClientProvider recovery logic will handle cleanup
+            } else {
+                console.warn('Failed to fetch user. Probably not logged in.')
+            }
             return null
         }
     }
