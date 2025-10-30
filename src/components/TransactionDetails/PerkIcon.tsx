@@ -1,7 +1,7 @@
 import Image from 'next/image'
 import { STAR_STRAIGHT_ICON } from '@/assets'
 
-type PerkIconSize = 'small' | 'medium' | 'large'
+type PerkIconSize = 'extra-small' | 'small' | 'medium' | 'large'
 
 interface PerkIconProps {
     size?: PerkIconSize
@@ -9,6 +9,10 @@ interface PerkIconProps {
 }
 
 const sizeConfig = {
+    'extra-small': {
+        container: 'h-8 w-8',
+        icon: { width: 16, height: 16 },
+    },
     small: {
         container: 'h-10 w-10',
         icon: { width: 22, height: 22 },

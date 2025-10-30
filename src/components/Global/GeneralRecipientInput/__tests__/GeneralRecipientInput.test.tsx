@@ -31,13 +31,6 @@ jest.mock('@/app/actions/ens', () => ({
     resolveEns: jest.fn(),
 }))
 
-jest.mock('@/hooks/useRecentRecipients', () => ({
-    useRecentRecipients: jest.fn(() => ({
-        getSuggestions: () => [],
-        addRecipient: jest.fn(),
-    })),
-}))
-
 // Mock viem's isAddress function
 jest.mock('viem', () => ({
     isAddress: (address: string) => address.startsWith('0x') && address.length === 42,

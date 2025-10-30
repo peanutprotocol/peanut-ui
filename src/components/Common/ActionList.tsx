@@ -5,7 +5,7 @@ import IconStack from '../Global/IconStack'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { type ClaimLinkData } from '@/services/sendLinks'
 import { formatUnits } from 'viem'
-import { useContext, useMemo, useState } from 'react'
+import { useContext, useCallback, useMemo, useState } from 'react'
 import ActionModal from '@/components/Global/ActionModal'
 import Divider from '../0_Bruddle/Divider'
 import { Button } from '../0_Bruddle'
@@ -29,6 +29,7 @@ import { useAuth } from '@/context/authContext'
 import { EInviteType } from '@/services/services.types'
 import ConfirmInviteModal from '../Global/ConfirmInviteModal'
 import Loading from '../Global/Loading'
+import { useWallet } from '@/hooks/wallet/useWallet'
 import { ActionListCard } from '../ActionListCard'
 import { useGeoFilteredPaymentOptions } from '@/hooks/useGeoFilteredPaymentOptions'
 import { tokenSelectorContext } from '@/context'
@@ -69,6 +70,7 @@ export default function ActionList({
         setRegionalMethodType,
         setHideTokenSelector,
     } = useClaimBankFlow()
+    const { balance } = useWallet()
     const [showMinAmountError, setShowMinAmountError] = useState(false)
     const { claimType } = useDetermineBankClaimType(claimLinkData?.sender?.userId ?? '')
     const { chargeDetails } = usePaymentStore()
@@ -83,6 +85,7 @@ export default function ActionList({
         setFlowStep: setRequestFulfilmentBankFlowStep,
         setFulfillUsingManteca,
         setRegionalMethodType: setRequestFulfillmentRegionalMethodType,
+        setTriggerPayWithPeanut,
     } = useRequestFulfillmentFlow()
     const [isGuestVerificationModalOpen, setIsGuestVerificationModalOpen] = useState(false)
     const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null)
@@ -95,6 +98,9 @@ export default function ActionList({
         devconnectRecipientAddress,
         devconnectTokenAddress,
     } = useContext(tokenSelectorContext)
+    const [isUsePeanutBalanceModalShown, setIsUsePeanutBalanceModalShown] = useState(false)
+    const [showUsePeanutBalanceModal, setShowUsePeanutBalanceModal] = useState(false)
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null)
 
     const dispatch = useAppDispatch()
 
@@ -108,6 +114,12 @@ export default function ActionList({
         return false
     }, [claimType, requestType, flow])
 
+    // Memoize the callback to prevent unnecessary re-sorts
+    const isMethodUnavailable = useCallback(
+        (method: PaymentMethod) => method.soon || (method.id === 'bank' && requiresVerification),
+        [requiresVerification]
+    )
+
     // use the hook to filter and sort payment methods based on geolocation
     const { filteredMethods: sortedActionMethods, isLoading: isGeoLoading } = useGeoFilteredPaymentOptions({
         sortUnavailable: true,
@@ -115,7 +127,20 @@ export default function ActionList({
         methods: showDevconnectMethod ? DEVCONNECT_CLAIM_METHODS : undefined,
     })
 
-    const handleMethodClick = async (method: PaymentMethod) => {
+    // Check if user has enough Peanut balance to pay for the request
+    const amountInUsd = usdAmount ? parseFloat(usdAmount) : 0
+    const hasSufficientPeanutBalance = user && balance && Number(balance) >= amountInUsd
+
+    const handleMethodClick = async (method: PaymentMethod, bypassBalanceModal = false) => {
+        // For request flow: Check if user has sufficient Peanut balance and hasn't dismissed the modal
+        if (flow === 'request' && requestLinkData && !bypassBalanceModal) {
+            if (!isUsePeanutBalanceModalShown && hasSufficientPeanutBalance) {
+                setSelectedPaymentMethod(method) // Store the method they want to use
+                setShowUsePeanutBalanceModal(true)
+                return // Show modal, don't proceed with method yet
+            }
+        }
+
         if (flow === 'claim' && claimLinkData) {
             const amountInUsd = parseFloat(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals))
             if (method.id === 'bank' && amountInUsd < 5) {
@@ -163,11 +188,11 @@ export default function ActionList({
                     break
             }
         } else if (flow === 'request' && requestLinkData) {
-            const amountInUsd = usdAmount ? parseFloat(usdAmount) : 0
             if (method.id === 'bank' && amountInUsd < 1) {
                 setShowMinAmountError(true)
                 return
             }
+
             switch (method.id) {
                 case 'bank':
                     if (requestType === BankRequestType.GuestKycNeeded) {
@@ -248,11 +273,21 @@ export default function ActionList({
                 {sortedActionMethods.map((method) => {
                     if (flow === 'request' && method.id === 'exchange-or-wallet') {
                         return (
-                            <ActionListDaimoPayButton
-                                handleContinueWithPeanut={handleContinueWithPeanut}
-                                key={method.id}
-                                showConfirmModal={isInviteLink && !userHasAppAccess}
-                            />
+                            <div key={method.id}>
+                                <ActionListDaimoPayButton
+                                    handleContinueWithPeanut={handleContinueWithPeanut}
+                                    showConfirmModal={isInviteLink && !userHasAppAccess}
+                                    onBeforeShow={() => {
+                                        // Check balance before showing Daimo widget
+                                        if (!isUsePeanutBalanceModalShown && hasSufficientPeanutBalance) {
+                                            setSelectedPaymentMethod(method)
+                                            setShowUsePeanutBalanceModal(true)
+                                            return false // Don't show Daimo yet
+                                        }
+                                        return true // Proceed with Daimo
+                                    }}
+                                />
+                            </div>
                         )
                     }
 
@@ -309,6 +344,49 @@ export default function ActionList({
                     setShowInviteModal(false)
                     setSelectedMethod(null)
                 }}
+            />
+
+            <ActionModal
+                visible={showUsePeanutBalanceModal}
+                onClose={() => {
+                    setShowUsePeanutBalanceModal(false)
+                    setIsUsePeanutBalanceModalShown(true)
+                    setSelectedPaymentMethod(null)
+                }}
+                title="Use your Peanut balance instead"
+                description={
+                    'You already have enough funds in your Peanut account. Using this method is instant and avoids delays.'
+                }
+                icon="user-plus"
+                ctas={[
+                    {
+                        text: 'Pay with Peanut',
+                        shadowSize: '4',
+                        onClick: () => {
+                            setShowUsePeanutBalanceModal(false)
+                            setIsUsePeanutBalanceModalShown(true)
+                            setSelectedPaymentMethod(null)
+                            setTriggerPayWithPeanut(true)
+                        },
+                    },
+                    {
+                        text: 'Continue',
+                        shadowSize: '4',
+                        variant: 'stroke',
+                        onClick: () => {
+                            setShowUsePeanutBalanceModal(false)
+                            setIsUsePeanutBalanceModalShown(true)
+                            // Proceed with the method the user originally selected
+                            if (selectedPaymentMethod) {
+                                handleMethodClick(selectedPaymentMethod, true) // true = bypass modal check
+                            }
+                            setSelectedPaymentMethod(null)
+                        },
+                    },
+                ]}
+                iconContainerClassName="bg-primary-1"
+                preventClose={false}
+                modalPanelClassName="max-w-md mx-8"
             />
         </div>
     )

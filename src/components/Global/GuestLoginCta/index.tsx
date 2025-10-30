@@ -3,6 +3,7 @@ import Divider from '@/components/0_Bruddle/Divider'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { sanitizeRedirectURL, saveRedirectUrl } from '@/utils'
+import { initializeAppKit } from '@/config/wagmi.config'
 import { useAppKit } from '@reown/appkit/react'
 import * as Sentry from '@sentry/nextjs'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -81,7 +82,15 @@ const GuestLoginCta = ({ hideConnectWallet = false, view }: GuestLoginCtaProps) 
                 <>
                     <Divider text="or" />
                     <Button
-                        onClick={() => openReownModal()}
+                        onClick={async () => {
+                            try {
+                                await initializeAppKit()
+                                openReownModal()
+                            } catch (error) {
+                                toast.error('Unable to connect wallet. Please check your internet connection.')
+                                Sentry.captureException(error)
+                            }
+                        }}
                         variant="transparent-light"
                         className="flex w-full items-center justify-center gap-2 border border-black bg-purple-5 text-sm text-black hover:bg-purple-5 md:text-base"
                     >

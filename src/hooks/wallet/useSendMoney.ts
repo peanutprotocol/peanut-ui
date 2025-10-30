@@ -4,6 +4,7 @@ import type { Address, Hash, Hex, TransactionReceipt } from 'viem'
 import { PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS, PEANUT_WALLET_CHAIN } from '@/constants'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { TRANSACTIONS, BALANCE_DECREASE, SEND_MONEY } from '@/constants/query.consts'
+import { useToast } from '@/components/0_Bruddle/Toast'
 
 type SendMoneyParams = {
     toAddress: Address
@@ -35,6 +36,7 @@ type UseSendMoneyOptions = {
  */
 export const useSendMoney = ({ address, handleSendUserOpEncoded }: UseSendMoneyOptions) => {
     const queryClient = useQueryClient()
+    const toast = useToast()
 
     return useMutation({
         mutationKey: [BALANCE_DECREASE, SEND_MONEY],
@@ -106,6 +108,12 @@ export const useSendMoney = ({ address, handleSendUserOpEncoded }: UseSendMoneyO
             }
 
             console.error('[useSendMoney] Transaction failed, rolled back balance:', error)
+
+            // Display user-friendly error message
+            // Check for stale key error with enhanced message from useZeroDev
+            if ((error as any)?.isStaleKeyError) {
+                toast.error((error as Error).message)
+            }
         },
     })
 }

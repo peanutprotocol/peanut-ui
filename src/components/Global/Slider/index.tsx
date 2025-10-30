@@ -15,11 +15,11 @@ function Slider({
     ...props
 }: React.ComponentProps<typeof SliderPrimitive.Root>) {
     // Use internal state for the slider value to enable magnetic snapping
-    const [internalValue, setInternalValue] = React.useState<number[]>(controlledValue || defaultValue)
+    const [internalValue, setInternalValue] = React.useState<number[]>(defaultValue || controlledValue)
 
-    // Sync with controlled value if it changes externally
+    // Sync internal state when controlled value changes from external source
     React.useEffect(() => {
-        if (controlledValue) {
+        if (controlledValue !== undefined && controlledValue[0] !== internalValue[0]) {
             setInternalValue(controlledValue)
         }
     }, [controlledValue])

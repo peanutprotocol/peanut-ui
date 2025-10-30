@@ -1,4 +1,4 @@
-import { useCallback, useState, useRef } from 'react'
+import { useCallback, useState, useRef, useEffect } from 'react'
 import IconStack from '../Global/IconStack'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
@@ -10,13 +10,19 @@ import { ACTION_METHODS } from '@/constants/actionlist.consts'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import ConfirmInviteModal from '../Global/ConfirmInviteModal'
 import { ActionListCard } from '../ActionListCard'
+import { DaimoPayWrapper } from '../Global/DaimoPayWrapper'
 
 interface ActionListDaimoPayButtonProps {
     handleContinueWithPeanut: () => void
     showConfirmModal: boolean
+    onBeforeShow?: () => boolean | Promise<boolean>
 }
 
-const ActionListDaimoPayButton = ({ handleContinueWithPeanut, showConfirmModal }: ActionListDaimoPayButtonProps) => {
+const ActionListDaimoPayButton = ({
+    handleContinueWithPeanut,
+    showConfirmModal,
+    onBeforeShow,
+}: ActionListDaimoPayButtonProps) => {
     const dispatch = useAppDispatch()
     const searchParams = useSearchParams()
     const method = ACTION_METHODS.find((method) => method.id === 'exchange-or-wallet')
@@ -130,23 +136,33 @@ const ActionListDaimoPayButton = ({ handleContinueWithPeanut, showConfirmModal }
                 }
             }
         },
-        [chargeDetails, completeDaimoPayment, dispatch]
+        [chargeDetails, completeDaimoPayment, dispatch, peanutWalletAddress]
     )
 
     if (!method || !parsedPaymentData) return null
 
     return (
-        <>
+        <DaimoPayWrapper>
             <DaimoPayButton
                 amount={usdAmount ?? '0.10'}
                 toAddress={parsedPaymentData.recipient.resolvedAddress}
                 onPaymentCompleted={handleCompleteDaimoPayment}
                 onBeforeShow={async () => {
+                    // First check if parent wants to intercept (e.g. show balance modal)
+                    if (onBeforeShow) {
+                        const shouldProceed = await onBeforeShow()
+                        if (!shouldProceed) {
+                            return false
+                        }
+                    }
+
+                    // Then check invite modal
                     if (!confirmLoseInvite && showConfirmModal) {
                         setShowInviteModal(true)
                         return false
                     }
-                    // Don't reset confirmLoseInvite here - let it be reset only when modal is closed or payment is initiated
+
+                    // Finally initiate payment
                     return await handleInitiateDaimoPayment()
                 }}
                 disabled={!usdAmount}
@@ -195,7 +211,7 @@ const ActionListDaimoPayButton = ({ handleContinueWithPeanut, showConfirmModal }
                     setConfirmLoseInvite(false)
                 }}
             />
-        </>
+        </DaimoPayWrapper>
     )
 }
 

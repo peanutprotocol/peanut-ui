@@ -187,6 +187,10 @@ module.exports = {
                     '50%': { opacity: '0.3' },
                     '100%': { opacity: '1' },
                 },
+                blink: {
+                    '0%, 50%': { opacity: '1' },
+                    '50.01%, 100%': { opacity: '0' },
+                },
             },
             animation: {
                 colorPulse: 'colorPulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
@@ -194,6 +198,7 @@ module.exports = {
                 pulsate: 'pulsate 1.5s ease-in-out infinite',
                 'pulsate-slow': 'pulsateDeep 4s ease-in-out infinite',
                 'pulse-strong': 'pulse-strong 1s ease-in-out infinite',
+                blink: 'blink 1.5s step-end infinite',
             },
             opacity: {
                 85: '.85',

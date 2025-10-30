@@ -1,4 +1,5 @@
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
+import { BALANCE_DECREASE, INITIATE_PAYMENT } from '@/constants/query.consts'
 import { tokenSelectorContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { type ParsedURL } from '@/lib/url-parser/types/payment'
@@ -26,6 +27,7 @@ import { getRoute, type PeanutCrossChainRoute } from '@/services/swap'
 import { estimateTransactionCostUsd } from '@/app/actions/tokens'
 import { captureException } from '@sentry/nextjs'
 import { useRouter } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 
 enum ELoadingStep {
     IDLE = 'Idle',
@@ -82,6 +84,7 @@ export const usePaymentInitiator = () => {
     const router = useRouter()
     const config = useConfig()
     const { chain: connectedWalletChain } = useWagmiAccount()
+    const queryClient = useQueryClient()
 
     const [slippagePercentage, setSlippagePercentage] = useState<number | undefined>(undefined)
     const [unsignedTx, setUnsignedTx] = useState<peanutInterfaces.IPeanutUnsignedTransaction | null>(null)
@@ -602,12 +605,22 @@ export const usePaymentInitiator = () => {
         ]
     )
 
-    // @dev TODO: Refactor to TanStack Query mutation for architectural consistency
-    // Current: This async function works correctly (protected by isProcessing state)
-    // but is NOT tracked by usePendingTransactions mutation system.
-    // Future improvement: Wrap in useMutation for consistency with other balance-decreasing ops.
-    //   mutationKey: [BALANCE_DECREASE, INITIATE_PAYMENT]
-    // Complexity: HIGH - complex state/Redux integration. Low priority.
+    // @dev Architecture Note: initiatePayment flow and mutation tracking
+    //
+    // Current: This async function uses state-based lifecycle (isProcessing, loadingStep)
+    // rather than TanStack Query mutations. This is INTENTIONAL because:
+    // 1. It has two phases: charge preparation (no balance change) + payment execution (balance decrease)
+    // 2. Only the payment execution phase triggers balance-decreasing mutations (via sendMoney/sendTransactions)
+    // 3. sendMoney already properly wraps mutations with mutationKey: [BALANCE_DECREASE, SEND_MONEY]
+    // 4. usePendingTransactions tracks ALL balance-decreasing operations globally
+    //
+    // Bug fix (2025-10): Added guard at line 648 to prevent premature payment execution when
+    // fetching existing charges. Previously, fetching an existing charge (chargeCreated=false)
+    // without skipChargeCreation=true would fall through and trigger sendMoney() prematurely,
+    // causing optimistic balance updates before user confirmed payment.
+    //
+    // Future consideration: Could wrap entire initiatePayment in useMutation, but complexity is HIGH
+    // due to two-phase flow, Redux integration, and multiple return points. Current architecture works.
     //
     // initiate and process payments
     const initiatePayment = useCallback(
@@ -628,19 +641,25 @@ export const usePaymentInitiator = () => {
                 console.log('Proceeding with charge details:', determinedChargeDetails.uuid)
 
                 // 2. handle charge state
-                if (
-                    payload.returnAfterChargeCreation || // For request pot payment, return after charge creation
+                // Return early if:
+                // a) Explicitly told to return after charge creation (request pot initial view)
+                // b) Charge was just created AND needs special handling (external wallet/cross-chain)
+                // c) Fetching existing charge WITHOUT explicit skipChargeCreation (not from CONFIRM view)
+                const shouldReturnAfterCharge =
+                    payload.returnAfterChargeCreation ||
                     (chargeCreated &&
                         (payload.isExternalWalletFlow ||
                             !isPeanutWallet ||
                             (isPeanutWallet &&
                                 (!areEvmAddressesEqual(determinedChargeDetails.tokenAddress, PEANUT_WALLET_TOKEN) ||
-                                    determinedChargeDetails.chainId !== PEANUT_WALLET_CHAIN.id.toString()))))
-                ) {
+                                    determinedChargeDetails.chainId !== PEANUT_WALLET_CHAIN.id.toString())))) ||
+                    // NEW: If charge exists (not created) and we're NOT explicitly skipping charge creation,
+                    // then we're in "prepare" mode and shouldn't execute payment yet
+                    (!chargeCreated && payload.chargeId && !payload.skipChargeCreation)
+
+                if (shouldReturnAfterCharge) {
                     console.log(
-                        `Charge created. Transitioning to Confirm view for: ${
-                            payload.isExternalWalletFlow ? 'Add Money Flow' : 'External Wallet'
-                        }.`
+                        `Charge ready. Returning without payment execution. (chargeCreated: ${chargeCreated}, skipChargeCreation: ${payload.skipChargeCreation})`
                     )
                     setLoadingStep('Charge Created')
                     return { status: 'Charge Created', charge: determinedChargeDetails, success: false }

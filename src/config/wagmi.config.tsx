@@ -19,8 +19,6 @@ import {
 import { createAppKit } from '@reown/appkit/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { WagmiProvider, cookieToInitialState, type Config } from 'wagmi'
-import { DaimoPayProvider } from '@daimo/pay'
-import { DAIMO_THEME } from '@/constants/daimo.consts'
 
 // 0. Setup queryClient
 const queryClient = new QueryClient()
@@ -48,24 +46,84 @@ const wagmiAdapter = new WagmiAdapter({
     ssr: true,
 })
 
-// 6. Create AppKit
-createAppKit({
-    adapters: [wagmiAdapter],
-    defaultNetwork: mainnet,
-    networks,
-    metadata,
-    projectId,
-    features: {
-        analytics: false, // no app-kit analytics plz
-        socials: false,
-        email: false,
-        onramp: true,
-    },
-    themeVariables: {
-        '--w3m-border-radius-master': '0px',
-        '--w3m-color-mix': 'white',
-    },
-})
+// 6. AppKit initialization with SSR compatibility and PWA resilience
+// Strategy:
+// - Initialize eagerly for SSR (Next.js prerendering requires it)
+// - Handle PWA cold launch failures gracefully with retry mechanism
+
+let appKitInitialized = false
+let initPromise: Promise<void> | null = null
+
+/**
+ * Initializes or ensures AppKit is initialized.
+ * Safe to call multiple times - will only initialize once successfully.
+ *
+ * @returns Promise that resolves when AppKit is ready
+ */
+export const initializeAppKit = async (): Promise<void> => {
+    // Already initialized successfully
+    if (appKitInitialized) return Promise.resolve()
+
+    // Initialization in progress
+    if (initPromise) return initPromise
+
+    initPromise = (async () => {
+        try {
+            createAppKit({
+                adapters: [wagmiAdapter],
+                defaultNetwork: mainnet,
+                networks,
+                metadata,
+                projectId,
+                features: {
+                    analytics: false, // no app-kit analytics plz
+                    socials: false,
+                    email: false,
+                    onramp: true,
+                },
+                themeVariables: {
+                    '--w3m-border-radius-master': '0px',
+                    '--w3m-color-mix': 'white',
+                },
+            })
+            appKitInitialized = true
+        } catch (error) {
+            // Reset promise on error to allow retry
+            initPromise = null
+            console.warn('AppKit initialization failed (will retry on next attempt):', error)
+            throw new Error('Unable to initialize wallet connection. Please check your internet connection.')
+        }
+    })()
+
+    return initPromise
+}
+
+// Initialize AppKit (required for components using useAppKit/useDisconnect hooks)
+// Components on critical paths (TokenSelector, PaymentForm, home page) need this
+// Note: createAppKit() itself is lightweight - expensive network requests (wallet icons,
+// analytics) only happen when user actually opens the modal
+try {
+    createAppKit({
+        adapters: [wagmiAdapter],
+        defaultNetwork: mainnet,
+        networks,
+        metadata,
+        projectId,
+        features: {
+            analytics: false, // Disable Coinbase analytics tracking
+            socials: false,
+            email: false,
+            onramp: true,
+        },
+        themeVariables: {
+            '--w3m-border-radius-master': '0px',
+            '--w3m-color-mix': 'white',
+        },
+    })
+    appKitInitialized = true
+} catch (error) {
+    console.warn('AppKit initialization failed:', error)
+}
 
 export function ContextProvider({ children, cookies }: { children: React.ReactNode; cookies: string | null }) {
     /**
@@ -80,12 +138,7 @@ export function ContextProvider({ children, cookies }: { children: React.ReactNo
     return (
         <WagmiProvider config={wagmiAdapter.wagmiConfig} initialState={initialState}>
             <QueryClientProvider client={queryClient}>
-                <DaimoPayProvider
-                    options={{ embedGoogleFonts: true, disableMobileInjector: true }}
-                    customTheme={DAIMO_THEME}
-                >
-                    <JustaNameContext>{children}</JustaNameContext>
-                </DaimoPayProvider>
+                <JustaNameContext>{children}</JustaNameContext>
             </QueryClientProvider>
         </WagmiProvider>
     )

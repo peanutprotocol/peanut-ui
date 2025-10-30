@@ -25,7 +25,9 @@ import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { walletActions } from '@/redux/slices/wallet-slice'
 import { areEvmAddressesEqual, ErrorHandler, formatAmount, formatCurrency, getContributorsFromCharge } from '@/utils'
+import { initializeAppKit } from '@/config/wagmi.config'
 import { useAppKit, useDisconnect } from '@reown/appkit/react'
+import * as Sentry from '@sentry/nextjs'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
@@ -88,6 +90,8 @@ export const PaymentForm = ({
         setExternalWalletFulfillMethod,
         fulfillUsingManteca,
         setFulfillUsingManteca,
+        triggerPayWithPeanut,
+        setTriggerPayWithPeanut,
     } = useRequestFulfillmentFlow()
     const recipientUsername = !chargeDetails && recipient?.recipientType === 'USERNAME' ? recipient.identifier : null
     const { user: recipientUser } = useUserByUsername(recipientUsername)
@@ -165,7 +169,7 @@ export const PaymentForm = ({
     const isActivePeanutWallet = useMemo(() => !!user && isPeanutWalletConnected, [user, isPeanutWalletConnected])
 
     useEffect(() => {
-        if (initialSetupDone) return
+        if (initialSetupDone || showRequestPotInitialView) return
 
         if (amount) {
             setInputTokenAmount(amount)
@@ -188,7 +192,7 @@ export const PaymentForm = ({
         }
 
         setInitialSetupDone(true)
-    }, [chain, token, amount, initialSetupDone, requestDetails])
+    }, [chain, token, amount, initialSetupDone, requestDetails, showRequestPotInitialView])
 
     // reset error when component mounts or recipient changes
     useEffect(() => {
@@ -233,12 +237,8 @@ export const PaymentForm = ({
                 }
             } else {
                 // regular send/pay
-                if (
-                    !showRequestPotInitialView && // don't apply balance check on request pot payment initial view
-                    isActivePeanutWallet &&
-                    areEvmAddressesEqual(selectedTokenAddress, PEANUT_WALLET_TOKEN)
-                ) {
-                    // peanut wallet payment
+                if (isActivePeanutWallet && areEvmAddressesEqual(selectedTokenAddress, PEANUT_WALLET_TOKEN)) {
+                    // peanut wallet payment - ALWAYS check balance (including request pots)
                     const walletNumeric = parseFloat(String(peanutWalletBalance).replace(/,/g, ''))
                     if (walletNumeric < parsedInputAmount) {
                         dispatch(paymentActions.setError('Insufficient balance'))
@@ -297,7 +297,7 @@ export const PaymentForm = ({
 
     // Calculate USD value when requested token price is available
     useEffect(() => {
-        if (!requestedTokenPriceData?.price || !requestDetails?.tokenAmount) return
+        if (showRequestPotInitialView || !requestedTokenPriceData?.price || !requestDetails?.tokenAmount) return
 
         const tokenAmount = parseFloat(requestDetails.tokenAmount)
         if (isNaN(tokenAmount) || tokenAmount <= 0) return
@@ -307,7 +307,7 @@ export const PaymentForm = ({
         const usdValue = formatAmount(tokenAmount * requestedTokenPriceData.price)
         setInputTokenAmount(usdValue)
         setUsdValue(usdValue)
-    }, [requestedTokenPriceData?.price, requestDetails?.tokenAmount])
+    }, [requestedTokenPriceData?.price, requestDetails?.tokenAmount, showRequestPotInitialView])
 
     const canInitiatePayment = useMemo<boolean>(() => {
         let amountIsSet = false
@@ -329,6 +329,7 @@ export const PaymentForm = ({
 
         return recipientExists && amountIsSet && tokenSelected && walletConnected
     }, [
+        showRequestPotInitialView,
         recipient,
         inputTokenAmount,
         usdValue,
@@ -369,8 +370,8 @@ export const PaymentForm = ({
         if (inviteError) {
             setInviteError(false)
         }
-        // Invites will be handled in the payment page, skip this step for request pots initial view
-        if (!showRequestPotInitialView && isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow) {
+        // Handle insufficient balance - redirect to add money
+        if (isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow) {
             // If the user doesn't have app access, accept the invite before claiming the link
             if (recipient.recipientType === 'USERNAME' && !user?.user.hasAppAccess) {
                 const isAccepted = await handleAcceptInvite()
@@ -382,7 +383,16 @@ export const PaymentForm = ({
 
         // skip this step for request pots initial view
         if (!showRequestPotInitialView && !isExternalWalletConnected && isExternalWalletFlow) {
-            openReownModal()
+            try {
+                await initializeAppKit()
+                openReownModal()
+            } catch (error) {
+                console.error('Failed to initialize AppKit:', error)
+                Sentry.captureException(error, {
+                    tags: { context: 'payment_form_external_wallet' },
+                    extra: { flow: 'external_wallet_payment' },
+                })
+            }
             return
         }
 
@@ -511,10 +521,7 @@ export const PaymentForm = ({
             return 'Send'
         }
 
-        if (showRequestPotInitialView) {
-            return 'Pay'
-        }
-
+        // Check insufficient balance BEFORE other conditions
         if (isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow) {
             return (
                 <div className="flex items-center gap-1">
@@ -525,6 +532,10 @@ export const PaymentForm = ({
                     </div>
                 </div>
             )
+        }
+
+        if (showRequestPotInitialView) {
+            return 'Pay'
         }
 
         if (isActivePeanutWallet) {
@@ -543,12 +554,11 @@ export const PaymentForm = ({
     }
 
     const getButtonIcon = (): IconName | undefined => {
-        if (!showRequestPotInitialView && !isExternalWalletConnected && isExternalWalletFlow) return 'wallet-outline'
+        if (!isExternalWalletConnected && isExternalWalletFlow) return 'wallet-outline'
 
-        if (!showRequestPotInitialView && isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow)
-            return 'arrow-down'
+        if (isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow) return 'arrow-down'
 
-        if (!showRequestPotInitialView && !isProcessing && isActivePeanutWallet && !isExternalWalletFlow)
+        if (!isProcessing && isActivePeanutWallet && !isExternalWalletFlow && !showRequestPotInitialView)
             return 'arrow-up-right'
 
         return undefined
@@ -587,6 +597,14 @@ export const PaymentForm = ({
             handleInitiatePayment()
         }
     }, [fulfillUsingManteca, chargeDetails, handleInitiatePayment])
+
+    // Trigger payment with peanut from action list
+    useEffect(() => {
+        if (triggerPayWithPeanut) {
+            handleInitiatePayment()
+            setTriggerPayWithPeanut(false)
+        }
+    }, [triggerPayWithPeanut, handleInitiatePayment, setTriggerPayWithPeanut])
 
     const isInsufficientBalanceError = useMemo(() => {
         return error?.includes("You don't have enough balance.")
@@ -651,15 +669,57 @@ export const PaymentForm = ({
 
     const totalAmountCollected = requestDetails?.totalCollectedAmount ?? 0
 
+    const defaultSliderValue = useMemo(() => {
+        const charges = requestDetails?.charges
+        const totalAmount = requestDetails?.tokenAmount ? parseFloat(requestDetails.tokenAmount) : 0
+        const totalCollected = totalAmountCollected
+
+        if (totalAmount <= 0) return { percentage: 0, suggestedAmount: 0 }
+
+        // No charges yet - suggest 100% (full pot)
+        if (!charges || charges.length === 0) {
+            return { percentage: 100, suggestedAmount: totalAmount }
+        }
+
+        // Calculate average contribution from existing charges
+        const contributionAmounts = charges
+            .map((charge) => parseFloat(charge.tokenAmount))
+            .filter((amount) => !isNaN(amount) && amount > 0)
+
+        if (contributionAmounts.length === 0) return { percentage: 0, suggestedAmount: 0 }
+
+        const avgContribution = contributionAmounts.reduce((sum, amt) => sum + amt, 0) / contributionAmounts.length
+
+        // Calculate remaining amount (could be negative if over-contributed)
+        const remaining = totalAmount - totalCollected
+        let suggestedAmount: number
+
+        // If pot is already full or over-filled, suggest minimum contribution
+        if (remaining <= 0) {
+            // Pot is full/overfilled - suggest the smallest previous contribution or 10% of pot
+            const minContribution = Math.min(...contributionAmounts)
+            suggestedAmount = Math.min(minContribution, totalAmount * 0.1)
+        } else if (remaining < avgContribution) {
+            // If remaining is less than average, suggest the remaining amount
+            suggestedAmount = remaining
+        } else {
+            // Otherwise, suggest the average contribution (most common pattern)
+            suggestedAmount = avgContribution
+        }
+
+        // Convert amount to percentage of total pot
+        const percentage = (suggestedAmount / totalAmount) * 100
+        // Cap at 100% max
+        return { percentage: Math.min(percentage, 100), suggestedAmount }
+    }, [requestDetails?.charges, requestDetails?.tokenAmount, totalAmountCollected])
+
     if (fulfillUsingManteca && chargeDetails) {
         return <MantecaFulfillment />
     }
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
-            {!showRequestPotInitialView && (
-                <NavHeader onPrev={handleGoBack} title={headerTitle ?? (isExternalWalletFlow ? 'Add Money' : 'Send')} />
-            )}
+            <NavHeader onPrev={handleGoBack} title={headerTitle ?? (isExternalWalletFlow ? 'Add Money' : 'Pay')} />
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 {isExternalWalletConnected && isUsingExternalWallet && (
                     <Button
@@ -720,6 +780,8 @@ export const PaymentForm = ({
                     hideBalance={isExternalWalletFlow}
                     showSlider={showRequestPotInitialView && amount ? Number(amount) > 0 : false}
                     maxAmount={showRequestPotInitialView && amount ? Number(amount) : undefined}
+                    defaultSliderValue={defaultSliderValue.percentage}
+                    defaultSliderSuggestedAmount={defaultSliderValue.suggestedAmount}
                 />
 
                 {/*
@@ -802,7 +864,7 @@ export const PaymentForm = ({
                 </div>
             </div>
 
-            {showRequestPotInitialView && (
+            {showRequestPotInitialView && contributors.length > 0 && (
                 <div>
                     <h2 className="mb-4 text-base font-bold text-black">Contributors ({contributors.length})</h2>
                     {contributors.map((contributor, index) => (
