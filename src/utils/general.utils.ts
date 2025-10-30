@@ -655,7 +655,7 @@ export const getHeaderTitle = (pathname: string) => {
  * @param amount - The number or string to format.
  * @returns A formatted string with appropriate suffix.
  */
-export const formatExtendedNumber = (amount: string | number): string => {
+export const formatExtendedNumber = (amount: string | number, minDigitsForFomatting: number = 6): string => {
     // Handle null/undefined/invalid inputs
     if (!amount && amount !== 0) return '0'
 
@@ -669,7 +669,7 @@ export const formatExtendedNumber = (amount: string | number): string => {
     const totalDigits = amount.toString().replace(/[.-]/g, '').length
 
     // If 6 or fewer digits, just use formatAmount
-    if (totalDigits <= 6) {
+    if (totalDigits <= minDigitsForFomatting) {
         return formatAmount(num)
     }
 

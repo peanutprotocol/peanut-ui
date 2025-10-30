@@ -2,6 +2,7 @@ import { COIN_ICON } from '@/assets'
 import Image from 'next/image'
 import React from 'react'
 import { twMerge } from 'tailwind-merge'
+import { formatExtendedNumber } from '@/utils/general.utils'
 
 interface ProgressBarProps {
     goal: number
@@ -12,14 +13,42 @@ interface ProgressBarProps {
 const ProgressBar: React.FC<ProgressBarProps> = ({ goal, progress, isClosed }) => {
     const isOverGoal = progress > goal && goal > 0
     const isGoalAchieved = progress >= goal && !isOverGoal && goal > 0
-    const totalValue = isOverGoal ? progress : goal
+
+    // Calculate actual ratio and enforce minimum visual distance when over goal
+    const MIN_VISUAL_DISTANCE = 30 // 30% minimum distance between markers
+    let totalValue = isOverGoal ? progress : goal
+    let visualGoalPercentage = 0
+    let visualProgressPercentage = 0
+
+    if (isOverGoal && goal > 0) {
+        const actualRatio = (progress / goal) * 100
+        if (actualRatio < 100 + MIN_VISUAL_DISTANCE) {
+            // Progress is too close to goal, enforce minimum distance
+            // Map goal to ~90% and progress to 100%
+            visualGoalPercentage = 100 - MIN_VISUAL_DISTANCE
+            visualProgressPercentage = 100
+        } else {
+            // Progress is far enough, show actual ratio
+            totalValue = progress
+            visualGoalPercentage = (goal / totalValue) * 100
+            visualProgressPercentage = 100
+        }
+    }
 
     // Guard against division by zero and clamp percentages to valid ranges
-    const goalPercentage = totalValue > 0 ? Math.min(Math.max((goal / totalValue) * 100, 0), 100) : 0
-    const progressPercentage = totalValue > 0 ? Math.min(Math.max((progress / totalValue) * 100, 0), 100) : 0
+    const goalPercentage = isOverGoal
+        ? visualGoalPercentage
+        : totalValue > 0
+          ? Math.min(Math.max((goal / totalValue) * 100, 0), 100)
+          : 0
+    const progressPercentage = isOverGoal
+        ? visualProgressPercentage
+        : totalValue > 0
+          ? Math.min(Math.max((progress / totalValue) * 100, 0), 100)
+          : 0
     const percentage = goal > 0 ? Math.min(Math.max(Math.round((progress / goal) * 100), 0), 100) : 0
 
-    const formatCurrency = (value: number) => `$${value.toFixed(2)}`
+    const formatCurrency = (value: number) => `$${formatExtendedNumber(value, 4)}`
 
     const getStatusText = () => {
         if (isOverGoal) return 'Goal exceeded!'
