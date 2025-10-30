@@ -90,7 +90,7 @@ export const useWallet = () => {
     const isBalanceLoading = !isAddressReady || isFetchingBalance
 
     return {
-        address,
+        address: isAddressReady ? address : undefined, // populate address only if it is validated and matches the user's wallet address
         balance,
         isConnected: isKernelClientReady,
         sendTransactions,

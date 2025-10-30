@@ -19,6 +19,12 @@ import { interfaces } from '@squirrel-labs/peanut-sdk'
 export const tokenSelectorContext = createContext({
     selectedTokenAddress: '',
     selectedChainID: '',
+    devconnectTokenAddress: '',
+    devconnectChainId: '',
+    devconnectRecipientAddress: '',
+    setDevconnectTokenAddress: (address: string) => {},
+    setDevconnectChainId: (chainId: string) => {},
+    setDevconnectRecipientAddress: (address: string) => {},
     setSelectedTokenAddress: (address: string) => {},
     setSelectedChainID: (chainID: string) => {},
     updateSelectedChainID: (chainID: string) => {},
@@ -65,6 +71,9 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
     const [refetchXchainRoute, setRefetchXchainRoute] = useState<boolean>(false)
     const [isXChain, setIsXChain] = useState<boolean>(false)
     const [selectedTokenBalance, setSelectedTokenBalance] = useState<string | undefined>(undefined)
+    const [devconnectTokenAddress, setDevconnectTokenAddress] = useState<string>('')
+    const [devconnectChainId, setDevconnectChainId] = useState<string>('')
+    const [devconnectRecipientAddress, setDevconnectRecipientAddress] = useState<string>('')
 
     // Fetch Squid chains and tokens (cached for 24 hours - static data)
     const { data: supportedSquidChainsAndTokens = {} } = useSquidChainsAndTokens()
@@ -128,6 +137,12 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
                 supportedSquidChainsAndTokens,
                 selectedTokenBalance,
                 setSelectedTokenBalance,
+                devconnectTokenAddress,
+                setDevconnectTokenAddress,
+                devconnectChainId,
+                setDevconnectChainId,
+                devconnectRecipientAddress,
+                setDevconnectRecipientAddress,
             }}
         >
             {children}
