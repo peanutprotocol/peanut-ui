@@ -1,7 +1,6 @@
 'use client'
 
 import ActionModal from '@/components/Global/ActionModal'
-import { Icon } from '@/components/Global/Icons/Icon'
 import InfoCard from '@/components/Global/InfoCard'
 import { Slider } from '@/components/Slider'
 
@@ -35,50 +34,33 @@ export const OnrampConfirmationModal = ({
             }
             content={
                 <div className="flex w-full flex-col gap-4">
-                    <InfoCard variant="default">
-                        <ol className="mr-auto list-inside list-disc space-y-1 text-left text-sm">
-                            <li>Bank details to send money to</li>
-                            <li>A deposit reference code</li>
-                        </ol>
-                    </InfoCard>
+                    <InfoCard variant="default" items={['Bank details to send money to', 'A deposit reference code']} />
                     <h2 className="mr-auto font-bold">You MUST:</h2>
-                    <InfoCard variant="info">
-                        <div className="flex items-center justify-start gap-2">
-                            <Icon name="check" width={16} height={16} className="text-secondary-7" />
-                            <span className="text-xs md:text-sm">
+                    <InfoCard
+                        variant="info"
+                        itemIcon="check"
+                        itemIconClassName="text-secondary-7"
+                        items={[
+                            <>
                                 Send exactly{' '}
                                 <b>
                                     {currency}
-                                    {amount}{' '}
-                                </b>
+                                    {amount}
+                                </b>{' '}
                                 (the exact amount shown)
-                            </span>
-                        </div>
+                            </>,
+                            'Copy the reference code exactly',
+                            'Paste it in the description/reference field',
+                        ]}
+                    />
 
-                        <div className="flex items-center justify-start gap-2">
-                            <Icon name="check" width={16} height={16} className="text-secondary-7" />
-                            <span className="text-xs md:text-sm">Copy the reference code exactly</span>
-                        </div>
-                        <div className="flex items-center justify-start gap-2">
-                            <Icon name="check" width={16} height={16} className="text-secondary-7" />
-                            <span className="text-xs md:text-sm">Paste it in the description/reference field</span>
-                        </div>
-                    </InfoCard>
-
-                    <InfoCard variant="error">
-                        <div className="flex w-full items-start justify-center gap-2">
-                            <Icon name="alert" width={30} height={30} className="text-error-5" />
-                            <div className="flex flex-col items-start gap-1">
-                                <span className="text-start text-xs font-bold md:text-sm">
-                                    If the amount or reference don't match:
-                                </span>
-                                <span className="text-start text-xs md:text-sm">
-                                    Your deposit will fail and it will take 2 to 10 days to return to your bank and
-                                    might incur fees.
-                                </span>
-                            </div>
-                        </div>
-                    </InfoCard>
+                    <InfoCard
+                        variant="error"
+                        icon="alert"
+                        iconClassName="text-error-5"
+                        title="If the amount or reference don't match:"
+                        description="Your deposit will fail and it will take 2 to 10 days to return to your bank and might incur fees."
+                    />
                 </div>
             }
             preventClose={false}

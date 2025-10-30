@@ -26,7 +26,6 @@ import { getCurrencyConfig, getCurrencySymbol, getMinimumAmount } from '@/utils/
 import { OnrampConfirmationModal } from '@/components/AddMoney/components/OnrampConfirmationModal'
 import { InitiateBridgeKYCModal } from '@/components/Kyc/InitiateBridgeKYCModal'
 import InfoCard from '@/components/Global/InfoCard'
-import { Icon } from '@/components/Global/Icons/Icon'
 
 type AddStep = 'inputAmount' | 'kyc' | 'loading' | 'collectUserDetails' | 'showDetails'
 
@@ -345,12 +344,11 @@ export default function OnrampBankPage() {
                         hideBalance={true}
                     />
 
-                    <InfoCard variant="error">
-                        <div className="flex items-center justify-center gap-2">
-                            <Icon name="alert" width={16} height={16} />
-                            <span className="text-xs md:text-sm"> This must match what you send from your bank!</span>
-                        </div>
-                    </InfoCard>
+                    <InfoCard
+                        variant="error"
+                        icon="alert"
+                        description="This must match what you send from your bank!"
+                    />
                     <Button
                         variant="purple"
                         shadowSize="4"

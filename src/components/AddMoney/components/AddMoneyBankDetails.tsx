@@ -17,7 +17,6 @@ import { formatAmount } from '@/utils'
 import useGetExchangeRate from '@/hooks/useGetExchangeRate'
 import { AccountType } from '@/interfaces'
 import InfoCard from '@/components/Global/InfoCard'
-import { Icon } from '@/components/Global/Icons/Icon'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import { Button } from '@/components/0_Bruddle'
 
@@ -181,12 +180,7 @@ Please use these details to complete your bank transfer.`
                         />
                     </div>
 
-                    <InfoCard variant="error" className="mt-4">
-                        <div className="flex items-center justify-start gap-2">
-                            <Icon name="alert" width={16} height={16} />
-                            <span className="text-xs md:text-sm"> Send exactly this amount!</span>
-                        </div>
-                    </InfoCard>
+                    <InfoCard variant="error" className="mt-4" icon="alert" description="Send exactly this amount!" />
                 </Card>
 
                 <Card className="p-4">
@@ -202,12 +196,12 @@ Please use these details to complete your bank transfer.`
                         />
                     </div>
 
-                    <InfoCard variant="error" className="mt-4">
-                        <div className="flex items-center justify-start gap-2">
-                            <Icon name="alert" width={16} height={16} />
-                            <span className="text-xs md:text-sm">Paste in your bank's reference field</span>
-                        </div>
-                    </InfoCard>
+                    <InfoCard
+                        variant="error"
+                        className="mt-4"
+                        icon="alert"
+                        description="Paste in your bank's reference field"
+                    />
                 </Card>
 
                 <Card className="gap-2 rounded-sm">
@@ -269,23 +263,15 @@ Please use these details to complete your bank transfer.`
                     )}
                 </Card>
 
-                <InfoCard variant="warning">
-                    <div className="flex w-full items-start justify-start gap-2">
-                        <Icon name="alert" width={16} height={16} />
-                        <div className="flex flex-col items-start gap-1">
-                            <span className="text-start text-xs font-bold md:text-sm">
-                                Double check in your bank before sending:
-                            </span>
-                            <ol className="mr-auto list-inside list-disc space-y-1 text-left text-xs md:text-sm">
-                                <li>Amount: {formatCurrencyAmount(amount, onrampCurrency)} (exact)</li>
-                                <li>
-                                    Reference: {onrampData?.depositInstructions?.depositMessage || 'Loading...'}{' '}
-                                    (included)
-                                </li>
-                            </ol>
-                        </div>
-                    </div>
-                </InfoCard>
+                <InfoCard
+                    variant="warning"
+                    icon="alert"
+                    title="Double check in your bank before sending:"
+                    items={[
+                        `Amount: ${formatCurrencyAmount(amount, onrampCurrency)} (exact)`,
+                        `Reference: ${onrampData?.depositInstructions?.depositMessage || 'Loading...'} (included)`,
+                    ]}
+                />
 
                 <Button onClick={() => router.push('/home')} variant="purple" className="w-full" shadowSize="4">
                     I've sent the transfer
