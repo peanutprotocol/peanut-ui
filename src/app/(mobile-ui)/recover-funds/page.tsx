@@ -7,7 +7,7 @@ import { type IUserBalance } from '@/interfaces'
 import { useState, useEffect, useMemo, useCallback, useContext } from 'react'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { fetchWalletBalances } from '@/app/actions/tokens'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, nativeCurrencyAddresses } from '@/constants'
 import { areEvmAddressesEqual, isTxReverted, getExplorerUrl } from '@/utils'
 import { type RecipientState } from '@/context/WithdrawFlowContext'
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
@@ -23,6 +23,11 @@ import { useRouter } from 'next/navigation'
 import { loadingStateContext } from '@/context'
 import Icon from '@/components/Global/Icon'
 import { captureException } from '@sentry/nextjs'
+
+// Helper function to check if a token is native ETH
+const isNativeToken = (tokenAddress: string): boolean => {
+    return nativeCurrencyAddresses.some((nativeAddr) => areEvmAddressesEqual(nativeAddr, tokenAddress))
+}
 
 export default function RecoverFundsPage() {
     const [tokenBalances, setTokenBalances] = useState<IUserBalance[]>([])
@@ -76,17 +81,33 @@ export default function RecoverFundsPage() {
         setErrorMessage('')
         const amountStr = selectedBalance.amount.toFixed(selectedBalance.decimals)
         const amount = parseUnits(amountStr, selectedBalance.decimals)
-        const data = encodeFunctionData({
-            abi: erc20Abi,
-            functionName: 'transfer',
-            args: [recipient.address as Address, amount],
-        })
+
         let receipt: TransactionReceipt | null
         let userOpHash: Hash
+
         try {
-            const result = await sendTransactions([{ to: selectedBalance.address, data }])
-            receipt = result.receipt
-            userOpHash = result.userOpHash
+            // Check if the token is native ETH
+            if (isNativeToken(selectedBalance.address)) {
+                // For native ETH, send a simple value transfer
+                const result = await sendTransactions([
+                    {
+                        to: recipient.address as Address,
+                        value: amount,
+                    },
+                ])
+                receipt = result.receipt
+                userOpHash = result.userOpHash
+            } else {
+                // For ERC20 tokens, encode the transfer function
+                const data = encodeFunctionData({
+                    abi: erc20Abi,
+                    functionName: 'transfer',
+                    args: [recipient.address as Address, amount],
+                })
+                const result = await sendTransactions([{ to: selectedBalance.address, data }])
+                receipt = result.receipt
+                userOpHash = result.userOpHash
+            }
         } catch (error) {
             setErrorMessage('Error sending transaction, please try again')
             setIsSigning(false)
