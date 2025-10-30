@@ -188,8 +188,14 @@ export default function ActionList({
                     break
             }
         } else if (flow === 'request' && requestLinkData) {
-            if (method.id === 'bank' && amountInUsd < 1) {
-                setShowMinAmountError(true)
+            // @dev TODO: Fix req fulfillment with bank properly post devconnect
+            if (method.id === 'bank') {
+                if (user?.user) {
+                    router.push('/add-money')
+                } else {
+                    const redirectUri = encodeURIComponent('/add-money')
+                    router.push(`/setup?redirect_uri=${redirectUri}`)
+                }
                 return
             }
 
