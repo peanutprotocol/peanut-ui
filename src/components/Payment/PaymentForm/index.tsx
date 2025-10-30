@@ -26,6 +26,7 @@ import { paymentActions } from '@/redux/slices/payment-slice'
 import { walletActions } from '@/redux/slices/wallet-slice'
 import { areEvmAddressesEqual, ErrorHandler, formatAmount, formatCurrency, getContributorsFromCharge } from '@/utils'
 import { useAppKit, useDisconnect } from '@reown/appkit/react'
+import { initializeAppKit } from '@/config/wagmi.config'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
@@ -39,6 +40,7 @@ import { invitesApi } from '@/services/invites'
 import { EInviteType } from '@/services/services.types'
 import ContributorCard from '@/components/Global/Contributors/ContributorCard'
 import { getCardPosition } from '@/components/Global/Card'
+import * as Sentry from '@sentry/nextjs'
 
 export type PaymentFlowProps = {
     isExternalWalletFlow?: boolean
@@ -367,8 +369,6 @@ export const PaymentForm = ({
         }
     }
 
-    console.log(inputTokenAmount, 'inputTokenAmount')
-
     const handleInitiatePayment = useCallback(async () => {
         // clear invite error
         if (inviteError) {
@@ -387,8 +387,16 @@ export const PaymentForm = ({
 
         // skip this step for request pots initial view
         if (!showRequestPotInitialView && !isExternalWalletConnected && isExternalWalletFlow) {
-            openReownModal()
-            return
+            try {
+                await initializeAppKit()
+                openReownModal()
+            } catch (error) {
+                console.error('Failed to initialize AppKit:', error)
+                Sentry.captureException(error, {
+                    tags: { context: 'payment_form_external_wallet' },
+                    extra: { flow: 'external_wallet_payment' },
+                })
+            }
         }
 
         // skip this step for request pots initial view
