@@ -11,6 +11,7 @@ import {
     clearRedirectUrl,
     updateUserPreferences,
 } from '@/utils'
+import { initializeAppKit } from '@/config/wagmi.config'
 import { useAppKit } from '@reown/appkit/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
@@ -84,7 +85,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const addBYOW = async () => {
         // we open the web3modal, so the user can disconnect the previous wallet,
         // connect a new wallet and allow the useEffect(..., [wagmiAddress]) in walletContext take over
-        web3modalOpen()
+        try {
+            await initializeAppKit()
+            web3modalOpen()
+        } catch (error) {
+            console.error('Failed to initialize wallet connection:', error)
+            toast.error('Unable to connect wallet. Please check your internet connection.')
+            captureException(error)
+        }
     }
 
     const addAccount = async ({

@@ -11,6 +11,7 @@ import { tokenSelectorContext } from '@/context'
 import { type IToken, type IUserBalance } from '@/interfaces'
 import { areEvmAddressesEqual, formatTokenAmount, isNativeCurrency, getChainName } from '@/utils'
 import { SQUID_ETH_ADDRESS } from '@/utils/token.utils'
+import { initializeAppKit } from '@/config/wagmi.config'
 import { useAppKit, useAppKitAccount, useDisconnect } from '@reown/appkit/react'
 import EmptyState from '../EmptyStates/EmptyState'
 import { Icon, type IconName } from '../Icons/Icon'
@@ -382,7 +383,14 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                             className="h-6 text-xs font-normal text-grey-1 underline"
                             onClick={async () => {
                                 await disconnectWallet()
-                                setTimeout(() => openAppkitModal(), 300)
+                                setTimeout(async () => {
+                                    try {
+                                        await initializeAppKit()
+                                        openAppkitModal()
+                                    } catch (error) {
+                                        console.error('Failed to initialize AppKit:', error)
+                                    }
+                                }, 300)
                             }}
                         >
                             Try connecting to a different wallet.

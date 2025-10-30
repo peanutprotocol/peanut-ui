@@ -48,24 +48,43 @@ const wagmiAdapter = new WagmiAdapter({
     ssr: true,
 })
 
-// 6. Create AppKit
-createAppKit({
-    adapters: [wagmiAdapter],
-    defaultNetwork: mainnet,
-    networks,
-    metadata,
-    projectId,
-    features: {
-        analytics: false, // no app-kit analytics plz
-        socials: false,
-        email: false,
-        onramp: true,
-    },
-    themeVariables: {
-        '--w3m-border-radius-master': '0px',
-        '--w3m-color-mix': 'white',
-    },
-})
+// 6. Lazy AppKit initialization
+// Only initialize when user actually needs to connect external wallet
+let initPromise: Promise<void> | null = null
+
+export const initializeAppKit = async (): Promise<void> => {
+    // Return existing promise if initialization is in progress or already complete
+    if (initPromise) return initPromise
+
+    initPromise = (async () => {
+        try {
+            createAppKit({
+                adapters: [wagmiAdapter],
+                defaultNetwork: mainnet,
+                networks,
+                metadata,
+                projectId,
+                features: {
+                    analytics: false, // no app-kit analytics plz
+                    socials: false,
+                    email: false,
+                    onramp: true,
+                },
+                themeVariables: {
+                    '--w3m-border-radius-master': '0px',
+                    '--w3m-color-mix': 'white',
+                },
+            })
+        } catch (error) {
+            // Reset promise on error to allow retry
+            initPromise = null
+            console.warn('AppKit initialization failed (will retry on next attempt):', error)
+            throw new Error('Unable to initialize wallet connection. Please check your internet connection.')
+        }
+    })()
+
+    return initPromise
+}
 
 export function ContextProvider({ children, cookies }: { children: React.ReactNode; cookies: string | null }) {
     /**

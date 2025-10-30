@@ -25,6 +25,7 @@ import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { walletActions } from '@/redux/slices/wallet-slice'
 import { areEvmAddressesEqual, ErrorHandler, formatAmount, formatCurrency, getContributorsFromCharge } from '@/utils'
+import { initializeAppKit } from '@/config/wagmi.config'
 import { useAppKit, useDisconnect } from '@reown/appkit/react'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -381,6 +382,9 @@ export const PaymentForm = ({
 
         // skip this step for request pots initial view
         if (!showRequestPotInitialView && !isExternalWalletConnected && isExternalWalletFlow) {
+            initializeAppKit().catch((error) => {
+                console.error('Failed to initialize AppKit:', error)
+            })
             openReownModal()
             return
         }
