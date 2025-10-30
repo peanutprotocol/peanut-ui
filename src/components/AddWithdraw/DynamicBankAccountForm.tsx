@@ -18,6 +18,7 @@ import useSavedAccounts from '@/hooks/useSavedAccounts'
 import { useAppDispatch, useAppSelector } from '@/redux/hooks'
 import { bankFormActions } from '@/redux/slices/bank-form-slice'
 import { useDebounce } from '@/hooks/useDebounce'
+import { Icon } from '../Global/Icons/Icon'
 
 const isIBANCountry = (country: string) => {
     return BRIDGE_ALPHA3_TO_ALPHA2[country.toUpperCase()] !== undefined
@@ -428,6 +429,11 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                 })}
                             </>
                         )}
+
+                        <div className="flex items-center gap-2 text-gray-1">
+                            <Icon name="info" className="size-4" />
+                            <p className="text-sm">You can only withdraw to accounts under your name.</p>
+                        </div>
                         <Button
                             type="submit"
                             variant="purple"
