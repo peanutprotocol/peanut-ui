@@ -171,6 +171,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         paramsDevconnectChainId,
         paramsDevconnectRecipientAddress,
         supportedSquidChainsAndTokens,
+        campaignTag,
         setDevconnectChainId,
         setDevconnectRecipientAddress,
         setDevconnectTokenAddress,
