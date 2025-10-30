@@ -4,13 +4,22 @@ import { useAppDispatch, useSetupStore } from '@/redux/hooks'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useAuth } from '@/context/authContext'
+import { useDeviceType } from '@/hooks/useGetDeviceType'
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import * as Sentry from '@sentry/nextjs'
 import { WalletProviderType, AccountType } from '@/interfaces'
 import { WebAuthnError } from '@simplewebauthn/browser'
 import Link from 'next/link'
-import { getFromCookie, getRedirectUrl, getValidRedirectUrl, clearRedirectUrl } from '@/utils'
+import {
+    getFromCookie,
+    getRedirectUrl,
+    getValidRedirectUrl,
+    clearRedirectUrl,
+    clearAuthState,
+    withWebAuthnRetry,
+    getWebAuthnErrorMessage,
+} from '@/utils'
 import { POST_SIGNUP_ACTIONS } from '@/components/Global/PostSignupActionManager/post-signup-action.consts'
 
 const SetupPasskey = () => {
@@ -20,6 +29,7 @@ const SetupPasskey = () => {
     const { handleRegister, address } = useZeroDev()
     const { user, isFetchingUser } = useAuth()
     const { addAccount } = useAuth()
+    const { deviceType } = useDeviceType()
     const [error, setError] = useState<string | null>(null)
     const router = useRouter()
     const searchParams = useSearchParams()
@@ -74,7 +84,11 @@ const SetupPasskey = () => {
                 .catch((e) => {
                     Sentry.captureException(e)
                     console.error('Error adding account', e)
-                    setError('Error adding account')
+                    setError('Error adding account. Please try refreshing the page.')
+
+                    // CRITICAL FIX: Clear auth state if account creation fails
+                    // This prevents the user from getting stuck in an unrecoverable state
+                    clearAuthState(user?.user.userId)
                 })
                 .finally(() => {
                     dispatch(setupActions.setLoading(false))
@@ -92,22 +106,22 @@ const SetupPasskey = () => {
                         onClick={async () => {
                             dispatch(setupActions.setLoading(true))
                             try {
-                                await handleRegister(username)
+                                // Use retry wrapper for transient errors (NotReadableError, etc.)
+                                await withWebAuthnRetry(() => handleRegister(username), 'passkey-registration')
                             } catch (e) {
                                 if (e instanceof WebAuthnError) {
-                                    // https://github.com/MasterKale/SimpleWebAuthn/blob/master/packages/browser/src/helpers/identifyRegistrationError.ts
-                                    if (
-                                        e.message.includes('timed out or was not allowed') ||
-                                        e.message.includes('denied permission')
-                                    ) {
-                                        setError('Passkey registration timed out or cancelled. Please try again.')
-                                        dispatch(setupActions.setLoading(false))
-                                        return
-                                    } else {
-                                        setError(e.message)
-                                    }
+                                    // WebAuthn errors: NO state was saved yet (state only saved AFTER success)
+                                    // User can safely retry without losing username/setup progress
+                                    setError(getWebAuthnErrorMessage(e, deviceType))
                                 } else {
-                                    setError('Error registering passkey.')
+                                    // Network/backend errors: might have partial state, clear it
+                                    clearAuthState(user?.user.userId)
+                                    const error = e as Error
+                                    setError(
+                                        error.name
+                                            ? getWebAuthnErrorMessage(error, deviceType)
+                                            : 'Error registering passkey. Please try again.'
+                                    )
                                 }
                                 console.error('Error registering passkey:', e)
                                 Sentry.captureException(e)
