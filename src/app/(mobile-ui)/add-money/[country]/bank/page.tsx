@@ -16,7 +16,7 @@ import { useCreateOnramp } from '@/hooks/useCreateOnramp'
 import { useRouter, useParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { formatUnits } from 'viem'
-import Icon from '@/components/Global/Icon'
+// import Icon from '@/components/Global/Icon'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { UserDetailsForm, type UserDetailsFormData } from '@/components/AddMoney/UserDetailsForm'
@@ -25,6 +25,8 @@ import AddMoneyBankDetails from '@/components/AddMoney/components/AddMoneyBankDe
 import { getCurrencyConfig, getCurrencySymbol, getMinimumAmount } from '@/utils/bridge.utils'
 import { OnrampConfirmationModal } from '@/components/AddMoney/components/OnrampConfirmationModal'
 import { InitiateBridgeKYCModal } from '@/components/Kyc/InitiateBridgeKYCModal'
+import InfoCard from '@/components/Global/InfoCard'
+import { Icon } from '@/components/Global/Icons/Icon'
 
 type AddStep = 'inputAmount' | 'kyc' | 'loading' | 'collectUserDetails' | 'showDetails'
 
@@ -342,10 +344,13 @@ export default function OnrampBankPage() {
                         }
                         hideBalance={true}
                     />
-                    <div className="flex items-center gap-2 text-xs text-grey-1">
-                        <Icon name="info" width={16} height={16} />
-                        <span>This must exactly match what you send from your bank</span>
-                    </div>
+
+                    <InfoCard variant="error">
+                        <div className="flex items-center justify-center gap-2">
+                            <Icon name="alert" width={16} height={16} />
+                            <span className="text-xs md:text-sm"> This must match what you send from your bank!</span>
+                        </div>
+                    </InfoCard>
                     <Button
                         variant="purple"
                         shadowSize="4"
@@ -368,6 +373,8 @@ export default function OnrampBankPage() {
                     visible={showWarningModal}
                     onClose={handleWarningCancel}
                     onConfirm={handleWarningConfirm}
+                    amount={rawTokenAmount}
+                    currency={getCurrencySymbol(getCurrencyConfig(selectedCountry.id, 'onramp').currency)}
                 />
             </div>
         )

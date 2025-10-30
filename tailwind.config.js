@@ -27,6 +27,7 @@ module.exports = {
                     6: '#E9EEFB',
                     7: '#5883FF',
                     8: '#D4B6FF',
+                    9: '#D6E1FF',
                 },
                 grey: {
                     1: '#5F646D',
@@ -57,6 +58,9 @@ module.exports = {
                     6: '#885B00',
                     7: '#FFE6B3',
                     8: '#FAE184',
+                    9: '#FDE047',
+                    10: '#FEFCE8',
+                    11: '#CA8A04',
                 },
                 green: {
                     1: '#98E9AB',
@@ -113,6 +117,8 @@ module.exports = {
                     2: '#EA8282',
                     3: '#FF4A4A',
                     4: '#FC5555',
+                    5: '#FF3B30',
+                    6: '#FFE9E9',
                 },
             },
             zIndex: {

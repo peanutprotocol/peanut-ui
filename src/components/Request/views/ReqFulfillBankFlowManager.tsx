@@ -18,7 +18,7 @@ import ErrorAlert from '@/components/Global/ErrorAlert'
 import { Button } from '@/components/0_Bruddle'
 import { updateUserById } from '@/app/actions/users'
 import { type Address } from 'viem'
-import { getCurrencyConfig, getMinimumAmount } from '@/utils/bridge.utils'
+import { getCurrencyConfig, getCurrencySymbol, getMinimumAmount } from '@/utils/bridge.utils'
 import { getCurrencyPrice } from '@/app/actions/currency'
 
 /**
@@ -188,6 +188,8 @@ export const ReqFulfillBankFlowManager = ({ parsedPaymentData }: { parsedPayment
                     onConfirm={() => {
                         handleOnrampConfirmation()
                     }}
+                    amount={chargeDetails?.tokenAmount ?? '0'}
+                    currency={getCurrencySymbol(getCurrencyConfig(selectedCountry?.id ?? '', 'onramp').currency)}
                 />
             )
         case RequestFulfillmentBankFlowStep.DepositBankDetails:

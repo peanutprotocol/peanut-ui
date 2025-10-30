@@ -2,23 +2,24 @@
 
 import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
-import PeanutActionDetailsCard, { type PeanutActionDetailsCardProps } from '@/components/Global/PeanutActionDetailsCard'
 import ShareButton from '@/components/Global/ShareButton'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
-import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
 import { useOnrampFlow } from '@/context/OnrampFlowContext'
 import { useRouter, useParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo } from 'react'
 import { ALL_COUNTRIES_ALPHA3_TO_ALPHA2, type CountryData, countryData } from '@/components/AddMoney/consts'
 import { formatCurrencyAmount } from '@/utils/currency'
 import { formatBankAccountDisplay } from '@/utils/format.utils'
-import Icon from '@/components/Global/Icon'
 import { getCurrencyConfig, getCurrencySymbol } from '@/utils/bridge.utils'
 import { RequestFulfillmentBankFlowStep, useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import { usePaymentStore } from '@/redux/hooks'
-import { formatAmount, printableAddress } from '@/utils'
+import { formatAmount } from '@/utils'
 import useGetExchangeRate from '@/hooks/useGetExchangeRate'
 import { AccountType } from '@/interfaces'
+import InfoCard from '@/components/Global/InfoCard'
+import { Icon } from '@/components/Global/Icons/Icon'
+import CopyToClipboard from '@/components/Global/CopyToClipboard'
+import { Button } from '@/components/0_Bruddle'
 
 interface IAddMoneyBankDetails {
     flow?: 'add-money' | 'request-fulfillment'
@@ -141,7 +142,7 @@ ${routingLabel}: ${routingValue}`
         }
 
         bankDetails += `
-Deposit Message: ${onrampData?.depositInstructions?.depositMessage || 'Loading...'}
+Deposit Reference: ${onrampData?.depositInstructions?.depositMessage || 'Loading...'}
 
 Please use these details to complete your bank transfer.`
 
@@ -156,67 +157,74 @@ Please use these details to complete your bank transfer.`
         }
     }
 
-    const peanutActionDetailsCardProps = useMemo<PeanutActionDetailsCardProps>(() => {
-        if (isAddMoneyFlow) {
-            return {
-                avatarSize: 'small',
-                transactionType: 'ADD_MONEY_BANK_ACCOUNT',
-                recipientType: 'BANK_ACCOUNT',
-                recipientName: 'Your Bank Account',
-                amount: amount ?? '0',
-                tokenSymbol: PEANUT_WALLET_TOKEN_SYMBOL,
-                countryCodeForFlag: countryCodeForFlag,
-                currencySymbol: getCurrencySymbol(onrampCurrency),
-            }
-        } else {
-            return {
-                avatarSize: 'small',
-                transactionType: 'REQUEST_PAYMENT',
-                recipientType: 'USERNAME',
-                recipientName:
-                    chargeDetails?.requestLink.recipientAccount.user.username ??
-                    printableAddress(chargeDetails?.requestLink.recipientAddress as string),
-                amount: isFetchingRate ? '-' : amountBasedOnCurrencyExchangeRate(amount ?? '0'),
-                tokenSymbol: '',
-                countryCodeForFlag: countryCodeForFlag,
-                currencySymbol: getCurrencySymbol(onrampCurrency),
-            }
-        }
-    }, [
-        isAddMoneyFlow,
-        amount,
-        countryCodeForFlag,
-        onrampCurrency,
-        chargeDetails,
-        isFetchingRate,
-        amountBasedOnCurrencyExchangeRate,
-    ])
-
     if (!amount) {
         return null
     }
 
     return (
         <div className="flex h-full w-full flex-col justify-start gap-8 self-start">
-            <NavHeader title={isAddMoneyFlow ? 'Add Money' : 'Send'} onPrev={handleBack} />
+            <NavHeader title={'Transfer details'} onPrev={handleBack} />
 
             <div className="my-auto flex h-full w-full flex-col justify-center space-y-4 pb-5">
-                <PeanutActionDetailsCard {...peanutActionDetailsCardProps} />
+                {/* <PeanutActionDetailsCard {...peanutActionDetailsCardProps} /> */}
 
-                <Card className="rounded-sm">
-                    {flow === 'add-money' && (
-                        <PaymentInfoRow label={'Amount'} value={formatCurrencyAmount(amount, onrampCurrency)} />
-                    )}
+                <Card className="p-4">
+                    <p className="text-xs font-normal text-gray-1">Amount to send</p>
+                    <div className="flex items-baseline gap-2">
+                        <p className="text-2xl font-extrabold text-black md:text-4xl">
+                            {formatCurrencyAmount(amount, onrampCurrency)}
+                        </p>
+                        <CopyToClipboard
+                            textToCopy={formatCurrencyAmount(amount, onrampCurrency)}
+                            fill="black"
+                            iconSize="3"
+                        />
+                    </div>
+
+                    <InfoCard variant="error" className="mt-4">
+                        <div className="flex items-center justify-start gap-2">
+                            <Icon name="alert" width={16} height={16} />
+                            <span className="text-xs md:text-sm"> Send exactly this amount!</span>
+                        </div>
+                    </InfoCard>
+                </Card>
+
+                <Card className="p-4">
+                    <p className="text-xs font-normal text-gray-1">Deposit reference</p>
+                    <div className="flex items-baseline gap-2">
+                        <p className="text-xl font-extrabold text-black md:text-4xl">
+                            {onrampData?.depositInstructions?.depositMessage || 'Loading...'}
+                        </p>
+                        <CopyToClipboard
+                            textToCopy={onrampData?.depositInstructions?.depositMessage || 'Loading...'}
+                            fill="black"
+                            iconSize="3"
+                        />
+                    </div>
+
+                    <InfoCard variant="error" className="mt-4">
+                        <div className="flex items-center justify-start gap-2">
+                            <Icon name="alert" width={16} height={16} />
+                            <span className="text-xs md:text-sm">Paste in your bank's reference field</span>
+                        </div>
+                    </InfoCard>
+                </Card>
+
+                <Card className="gap-2 rounded-sm">
+                    <h1 className="text-xs">Bank Details</h1>
+
                     <PaymentInfoRow
                         label={'Bank Name'}
                         value={onrampData?.depositInstructions?.bankName || 'Loading...'}
                         allowCopy={!!onrampData?.depositInstructions?.bankName}
+                        hideBottomBorder
                     />
                     {currentCountryDetails?.id !== 'MX' && (
                         <PaymentInfoRow
                             label={'Bank Address'}
                             value={onrampData?.depositInstructions?.bankAddress || 'Loading...'}
                             allowCopy={!!onrampData?.depositInstructions?.bankAddress}
+                            hideBottomBorder
                         />
                     )}
                     {currentCountryDetails?.id !== 'MX' && (
@@ -239,6 +247,7 @@ Please use these details to complete your bank transfer.`
                                 onrampData?.depositInstructions?.bankAccountNumber ||
                                 onrampData?.depositInstructions?.iban
                             }
+                            hideBottomBorder
                         />
                     )}
                     {currentCountryDetails?.id !== 'MX' && (
@@ -255,26 +264,37 @@ Please use these details to complete your bank transfer.`
                                     onrampData?.depositInstructions?.bic
                                 )
                             }
+                            hideBottomBorder
                         />
                     )}
-                    <PaymentInfoRow
-                        hideBottomBorder
-                        label={'Deposit Message'}
-                        value={onrampData?.depositInstructions?.depositMessage || 'Loading...'}
-                        moreInfoText="Make sure you enter this exact message as the transfer concept or description. If it's not included, the deposit can't be processed."
-                        allowCopy={!!onrampData?.depositInstructions?.depositMessage}
-                    />
                 </Card>
 
-                <div className="flex items-center gap-2 text-xs text-grey-1">
-                    <Icon name="info" width={16} height={16} />
-                    <span>Include the Deposit Message exactly as shown. It's required to process your deposit.</span>
-                </div>
+                <InfoCard variant="warning">
+                    <div className="flex w-full items-start justify-start gap-2">
+                        <Icon name="alert" width={16} height={16} />
+                        <div className="flex flex-col items-start gap-1">
+                            <span className="text-start text-xs font-bold md:text-sm">
+                                Double check in your bank before sending:
+                            </span>
+                            <ol className="mr-auto list-inside list-disc space-y-1 text-left text-xs md:text-sm">
+                                <li>Amount: {formatCurrencyAmount(amount, onrampCurrency)} (exact)</li>
+                                <li>
+                                    Reference: {onrampData?.depositInstructions?.depositMessage || 'Loading...'}{' '}
+                                    (included)
+                                </li>
+                            </ol>
+                        </div>
+                    </div>
+                </InfoCard>
+
+                <Button onClick={() => router.push('/home')} variant="purple" className="w-full" shadowSize="4">
+                    I've sent the transfer
+                </Button>
 
                 <ShareButton
                     generateText={generateBankDetails}
                     title="Bank Transfer Details"
-                    variant="purple"
+                    variant="primary-soft"
                     className="w-full"
                 >
                     Share Details
