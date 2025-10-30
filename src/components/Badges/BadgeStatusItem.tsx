@@ -45,7 +45,7 @@ export const BadgeStatusItem = ({
                 onClick={() => setIsDrawerOpen(true)}
             >
                 {/* badge icon */}
-                <div className={'relative flex h-12 w-12 items-center justify-center rounded-full'}>
+                <div className={'relative flex h-8 w-8 items-center justify-center rounded-full'}>
                     <Image
                         src={getBadgeIcon(entry.code)}
                         alt={`${entry.name} icon`}
