@@ -25,9 +25,7 @@ import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { walletActions } from '@/redux/slices/wallet-slice'
 import { areEvmAddressesEqual, ErrorHandler, formatAmount, formatCurrency, getContributorsFromCharge } from '@/utils'
-import { initializeAppKit } from '@/config/wagmi.config'
 import { useAppKit, useDisconnect } from '@reown/appkit/react'
-import * as Sentry from '@sentry/nextjs'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
@@ -237,8 +235,12 @@ export const PaymentForm = ({
                 }
             } else {
                 // regular send/pay
-                if (isActivePeanutWallet && areEvmAddressesEqual(selectedTokenAddress, PEANUT_WALLET_TOKEN)) {
-                    // peanut wallet payment - ALWAYS check balance (including request pots)
+                if (
+                    !showRequestPotInitialView && // don't apply balance check on request pot payment initial view
+                    isActivePeanutWallet &&
+                    areEvmAddressesEqual(selectedTokenAddress, PEANUT_WALLET_TOKEN)
+                ) {
+                    // peanut wallet payment
                     const walletNumeric = parseFloat(String(peanutWalletBalance).replace(/,/g, ''))
                     if (walletNumeric < parsedInputAmount) {
                         dispatch(paymentActions.setError('Insufficient balance'))
@@ -365,13 +367,15 @@ export const PaymentForm = ({
         }
     }
 
+    console.log(inputTokenAmount, 'inputTokenAmount')
+
     const handleInitiatePayment = useCallback(async () => {
         // clear invite error
         if (inviteError) {
             setInviteError(false)
         }
-        // Handle insufficient balance - redirect to add money
-        if (isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow) {
+        // Invites will be handled in the payment page, skip this step for request pots initial view
+        if (!showRequestPotInitialView && isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow) {
             // If the user doesn't have app access, accept the invite before claiming the link
             if (recipient.recipientType === 'USERNAME' && !user?.user.hasAppAccess) {
                 const isAccepted = await handleAcceptInvite()
@@ -383,16 +387,7 @@ export const PaymentForm = ({
 
         // skip this step for request pots initial view
         if (!showRequestPotInitialView && !isExternalWalletConnected && isExternalWalletFlow) {
-            try {
-                await initializeAppKit()
-                openReownModal()
-            } catch (error) {
-                console.error('Failed to initialize AppKit:', error)
-                Sentry.captureException(error, {
-                    tags: { context: 'payment_form_external_wallet' },
-                    extra: { flow: 'external_wallet_payment' },
-                })
-            }
+            openReownModal()
             return
         }
 
@@ -521,7 +516,10 @@ export const PaymentForm = ({
             return 'Send'
         }
 
-        // Check insufficient balance BEFORE other conditions
+        if (showRequestPotInitialView) {
+            return 'Pay'
+        }
+
         if (isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow) {
             return (
                 <div className="flex items-center gap-1">
@@ -532,10 +530,6 @@ export const PaymentForm = ({
                     </div>
                 </div>
             )
-        }
-
-        if (showRequestPotInitialView) {
-            return 'Pay'
         }
 
         if (isActivePeanutWallet) {
@@ -554,11 +548,12 @@ export const PaymentForm = ({
     }
 
     const getButtonIcon = (): IconName | undefined => {
-        if (!isExternalWalletConnected && isExternalWalletFlow) return 'wallet-outline'
+        if (!showRequestPotInitialView && !isExternalWalletConnected && isExternalWalletFlow) return 'wallet-outline'
 
-        if (isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow) return 'arrow-down'
+        if (!showRequestPotInitialView && isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow)
+            return 'arrow-down'
 
-        if (!isProcessing && isActivePeanutWallet && !isExternalWalletFlow && !showRequestPotInitialView)
+        if (!showRequestPotInitialView && !isProcessing && isActivePeanutWallet && !isExternalWalletFlow)
             return 'arrow-up-right'
 
         return undefined
