@@ -30,7 +30,7 @@ export const useUserQuery = (dependsOn?: boolean) => {
                 // This indicates a backend issue - user might be in broken state
                 // The KernelClientProvider recovery logic will handle cleanup
             } else {
-            console.warn('Failed to fetch user. Probably not logged in.')
+                console.warn('Failed to fetch user. Probably not logged in.')
             }
             return null
         }
