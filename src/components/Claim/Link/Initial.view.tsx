@@ -228,7 +228,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 errorMessage: '',
             })
 
-            if (recipient.address === '') return
+            if (!isPeanutWallet && recipient.address === '') return
 
             // If the user doesn't have app access, accept the invite before claiming the link
             if (!user?.user.hasAppAccess) {
@@ -826,7 +826,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
 
     useEffect(() => {
         const stepFromURL = searchParams.get('step')
-        if (user && claimLinkData.status !== 'CLAIMED') {
+        if (user && address && claimLinkData.status !== 'CLAIMED' && selectedTokenData) {
             removeParamStep()
             if (stepFromURL === 'claim' && isPeanutWallet) {
                 handleClaimLink(false, true)
@@ -834,7 +834,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 setClaimToMercadoPago(true)
             }
         }
-    }, [user, searchParams, isPeanutWallet])
+    }, [user, searchParams, isPeanutWallet, selectedTokenData, address])
 
     if (claimBankFlowStep) {
         return <BankFlowManager {...props} />
