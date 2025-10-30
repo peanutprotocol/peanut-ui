@@ -44,5 +44,10 @@
         "source": "/events",
         "destination": "https://luma.com/zwh7l3ro",
         "permanent": false
+    },
+    {
+        "source": "/foodie",
+        "destination": "https://peanutprotocol.notion.site/Peanut-Foodie-Guide-29a83811757980e79896f2a610d6591a",
+        "permanent": false
     }
 ]
