@@ -332,14 +332,54 @@ export function formatAmountWithSignificantDigits(amount: number, significantDig
     return floorFixed(amount, fractionDigits)
 }
 
+/**
+ * Detects the user's decimal separator based on their locale
+ * Caches the result to avoid repeated checks
+ */
+let cachedDecimalSeparator: string | null = null
+function getUserDecimalSeparator(): string {
+    if (cachedDecimalSeparator !== null) return cachedDecimalSeparator
+
+    // Detect separator from user's locale
+    // Format 1.1 in their locale and see what separator they use
+    try {
+        const formatted = (1.1).toLocaleString(navigator.language)
+        cachedDecimalSeparator = formatted.charAt(1) // Gets the separator between 1 and 1
+        return cachedDecimalSeparator
+    } catch {
+        // Fallback to dot if detection fails
+        cachedDecimalSeparator = '.'
+        return '.'
+    }
+}
+
 export function formatTokenAmount(amount?: number | string, maxFractionDigits?: number, forInput: boolean = false) {
     if (amount === undefined) return undefined
     maxFractionDigits = maxFractionDigits ?? 6
 
     // For input mode, preserve progressive typing (e.g., "1.", "0.")
     if (forInput && typeof amount === 'string') {
-        const s = amount.trim()
+        let s = amount.trim()
         if (s === '') return ''
+
+        // Normalize input based on user's locale
+        // In Argentina/EU: comma is decimal, dot might be thousands
+        // In US: dot is decimal, comma might be thousands
+        const userDecimalSep = getUserDecimalSeparator()
+
+        if (userDecimalSep === ',') {
+            // User's locale uses comma as decimal (Argentina, Spain, Germany, etc.)
+            // Replace dots with empty (strip thousands separators)
+            // Keep commas as decimal separators, then normalize to dot for processing
+            s = s.replace(/\./g, '') // Remove dot thousands separators
+            s = s.replace(',', '.') // Convert comma decimal to dot
+        } else {
+            // User's locale uses dot as decimal (US, UK, etc.)
+            // Replace commas with empty (strip thousands separators)
+            // Keep dots as decimal separators
+            s = s.replace(/,/g, '') // Remove comma thousands separators
+        }
+
         const m = s.match(/^(\d*)(?:\.(\d*))?$/)
         if (!m) return '' // invalid → empty
         const whole = m[1] ?? ''
