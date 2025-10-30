@@ -7,7 +7,7 @@ import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { useOnrampFlow } from '@/context/OnrampFlowContext'
 import { useRouter, useParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo } from 'react'
-import { ALL_COUNTRIES_ALPHA3_TO_ALPHA2, type CountryData, countryData } from '@/components/AddMoney/consts'
+import { type CountryData, countryData } from '@/components/AddMoney/consts'
 import { formatCurrencyAmount } from '@/utils/currency'
 import { formatBankAccountDisplay } from '@/utils/format.utils'
 import { getCurrencyConfig, getCurrencySymbol } from '@/utils/bridge.utils'
@@ -169,8 +169,6 @@ Please use these details to complete your bank transfer.`
             <NavHeader title={'Transfer details'} onPrev={handleBack} />
 
             <div className="my-auto flex h-full w-full flex-col justify-center space-y-4 pb-5">
-                {/* <PeanutActionDetailsCard {...peanutActionDetailsCardProps} /> */}
-
                 <Card className="p-4">
                     <p className="text-xs font-normal text-gray-1">Amount to send</p>
                     <div className="flex items-baseline gap-2">
@@ -187,11 +185,13 @@ Please use these details to complete your bank transfer.`
                         <p className="text-xl font-extrabold text-black md:text-4xl">
                             {onrampData?.depositInstructions?.depositMessage || 'Loading...'}
                         </p>
-                        <CopyToClipboard
-                            textToCopy={onrampData?.depositInstructions?.depositMessage || 'Loading...'}
-                            fill="black"
-                            iconSize="3"
-                        />
+                        {onrampData?.depositInstructions?.depositMessage && (
+                            <CopyToClipboard
+                                textToCopy={onrampData.depositInstructions.depositMessage}
+                                fill="black"
+                                iconSize="3"
+                            />
+                        )}
                     </div>
 
                     <InfoCard
