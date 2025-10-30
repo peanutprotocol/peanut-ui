@@ -168,8 +168,13 @@ export const PaymentForm = ({
 
     const isActivePeanutWallet = useMemo(() => !!user && isPeanutWalletConnected, [user, isPeanutWalletConnected])
 
+    const isRequestPotLink = !!chargeDetails?.requestLink
+
     useEffect(() => {
-        if (initialSetupDone || showRequestPotInitialView) return
+        // skip this step for request pot payments
+        // Amount is set by the user so we dont need to manually update it
+        // chain and token are also USDC arb always, for cross-chain we use Daimo
+        if (initialSetupDone || showRequestPotInitialView || isRequestPotLink) return
 
         if (amount) {
             setInputTokenAmount(amount)
@@ -192,7 +197,7 @@ export const PaymentForm = ({
         }
 
         setInitialSetupDone(true)
-    }, [chain, token, amount, initialSetupDone, requestDetails, showRequestPotInitialView])
+    }, [chain, token, amount, initialSetupDone, requestDetails, showRequestPotInitialView, isRequestPotLink])
 
     // reset error when component mounts or recipient changes
     useEffect(() => {
@@ -301,7 +306,16 @@ export const PaymentForm = ({
 
     // Calculate USD value when requested token price is available
     useEffect(() => {
-        if (showRequestPotInitialView || !requestedTokenPriceData?.price || !requestDetails?.tokenAmount) return
+        // skip this step for request pot payments
+        // Amount is set by the user so we dont need to manually update it
+        // No usd conversion needed because amount will always be USDC
+        if (
+            showRequestPotInitialView ||
+            !requestedTokenPriceData?.price ||
+            !requestDetails?.tokenAmount ||
+            isRequestPotLink
+        )
+            return
 
         const tokenAmount = parseFloat(requestDetails.tokenAmount)
         if (isNaN(tokenAmount) || tokenAmount <= 0) return
@@ -309,9 +323,10 @@ export const PaymentForm = ({
         if (isNaN(requestedTokenPriceData.price) || requestedTokenPriceData.price === 0) return
 
         const usdValue = formatAmount(tokenAmount * requestedTokenPriceData.price)
+
         setInputTokenAmount(usdValue)
         setUsdValue(usdValue)
-    }, [requestedTokenPriceData?.price, requestDetails?.tokenAmount, showRequestPotInitialView])
+    }, [requestedTokenPriceData?.price, requestDetails?.tokenAmount, showRequestPotInitialView, isRequestPotLink])
 
     const canInitiatePayment = useMemo<boolean>(() => {
         let amountIsSet = false
@@ -581,10 +596,12 @@ export const PaymentForm = ({
 
     // Initialize inputTokenAmount
     useEffect(() => {
-        if (amount && !inputTokenAmount && !initialSetupDone) {
+        // skip this step for request pot payments
+        // Amount is set by the user so we dont need to manually update it
+        if (amount && !inputTokenAmount && !initialSetupDone && !showRequestPotInitialView) {
             setInputTokenAmount(amount)
         }
-    }, [amount, inputTokenAmount, initialSetupDone])
+    }, [amount, inputTokenAmount, initialSetupDone, showRequestPotInitialView])
 
     useEffect(() => {
         const stepFromURL = searchParams.get('step')
@@ -620,6 +637,7 @@ export const PaymentForm = ({
 
         // ensure inputTokenAmount is a valid positive number before allowing payment
         const numericAmount = parseFloat(inputTokenAmount)
+
         if (isNaN(numericAmount) || numericAmount <= 0) {
             if (!isExternalWalletFlow) return true
         }
@@ -691,24 +709,8 @@ export const PaymentForm = ({
 
         if (contributionAmounts.length === 0) return { percentage: 0, suggestedAmount: 0 }
 
-        const avgContribution = contributionAmounts.reduce((sum, amt) => sum + amt, 0) / contributionAmounts.length
-
-        // Calculate remaining amount (could be negative if over-contributed)
-        const remaining = totalAmount - totalCollected
-        let suggestedAmount: number
-
-        // If pot is already full or over-filled, suggest minimum contribution
-        if (remaining <= 0) {
-            // Pot is full/overfilled - suggest the smallest previous contribution or 10% of pot
-            const minContribution = Math.min(...contributionAmounts)
-            suggestedAmount = Math.min(minContribution, totalAmount * 0.1)
-        } else if (remaining < avgContribution) {
-            // If remaining is less than average, suggest the remaining amount
-            suggestedAmount = remaining
-        } else {
-            // Otherwise, suggest the average contribution (most common pattern)
-            suggestedAmount = avgContribution
-        }
+        // suggest the average contribution (most common pattern)
+        const suggestedAmount = contributionAmounts.reduce((sum, amt) => sum + amt, 0) / contributionAmounts.length
 
         // Convert amount to percentage of total pot
         const percentage = (suggestedAmount / totalAmount) * 100

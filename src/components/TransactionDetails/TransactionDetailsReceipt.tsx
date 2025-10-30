@@ -1459,7 +1459,7 @@ export const TransactionDetailsReceipt = ({
             {requestPotContributors.length > 0 && (
                 <>
                     <h2 className="text-base font-bold text-black">Contributors ({requestPotContributors.length})</h2>
-                    <div className="max-h-36 overflow-y-auto">
+                    <div className="overflow-y-auto">
                         {requestPotContributors.map((contributor, index) => (
                             <ContributorCard
                                 position={getCardPosition(index, requestPotContributors.length)}
