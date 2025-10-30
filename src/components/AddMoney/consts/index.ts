@@ -2532,7 +2532,6 @@ export const BRIDGE_ALPHA3_TO_ALPHA2: { [key: string]: string } = {
 
 export const MANTECA_ALPHA3_TO_ALPHA2: { [key: string]: string } = {
     ARG: 'AR',
-    BOL: 'BO',
     BRA: 'BR',
 }
 
@@ -2541,7 +2540,7 @@ export const ALL_COUNTRIES_ALPHA3_TO_ALPHA2: { [key: string]: string } = {
     ...MANTECA_ALPHA3_TO_ALPHA2,
 }
 
-const enabledBankWithdrawCountries = new Set([...Object.values(BRIDGE_ALPHA3_TO_ALPHA2), 'US', 'MX', 'AR', 'BO'])
+const enabledBankWithdrawCountries = new Set([...Object.values(BRIDGE_ALPHA3_TO_ALPHA2), 'US', 'MX', 'AR'])
 
 const enabledBankDepositCountries = new Set([...Object.values(BRIDGE_ALPHA3_TO_ALPHA2), 'US', 'MX', 'AR'])
 
