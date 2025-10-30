@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Perk claiming uses optimistic UI updates for instant feedback (claim happens in background)
 - Dev pages excluded from production builds for faster compile times
 - Removed Points V1 legacy fields from `Account` and `IUserProfile` interfaces
+- **⚡ Performance: Eliminated 61+ unnecessary API polling requests** - Isolated DaimoPayProvider to only 2 pages that actually use Daimo payments (was wrapping entire app, causing continuous polling to `pay-api.daimo.xyz/untronHasAvailableReceivers` on every page). Removed unused "Connect External Wallet" option from sign-in modal and dead `addBYOW()` function from auth context. Disabled AppKit analytics tracking. Savings: ~16 KB bandwidth and 61+ requests eliminated per session for 98% of page views, measurably faster initial page loads.
 
 ### Fixed
 
@@ -34,4 +35,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Auto-refreshing balance**: Balance now automatically refreshes every 30 seconds and when app regains focus
 - **Real-time transaction history**: New transactions appear instantly via WebSocket integration with TanStack Query cache
 - **Optimistic updates**: Sending money now shows instant UI feedback with automatic rollback on error
-- **🐛 Critical: Unrecoverable loading state on passkey registration failure** - Fixed infinite loading when passkey registration succeeded but backend user creation failed. Added `clearAuthState()` utility to clean up auth cookies on errors, compatible with user-scoped localStorage architecture. Added retry logic for transient Android `NotReadableError` and platform-specific error messages.
+- **🐛 Critical: Unrecoverable loading state and stale passkey errors** - Fixed infinite loading when passkey registration succeeded but backend user creation failed. Fixed AA24 signature errors and "wapk unauthorized" errors caused by stale webAuthnKey from failed login/registration attempts. Added `clearAuthState()` utility that cleans up auth cookies on errors, with defensive detection of stale key errors (AA24/wapk) in transaction signing. Stale key errors during transactions now show user-friendly error messages. Added retry logic for transient Android `NotReadableError` and platform-specific error messages.
+- **🐛 PWA crash on cold launch (iOS)** - Fixed app crash when opening PWA immediately after installation. Web3Modal/AppKit now lazy-loads with 10-second timeout only when user needs to connect external wallet, preventing network errors during offline PWA startup. Promise-based initialization prevents race conditions and allows retry on failure.
