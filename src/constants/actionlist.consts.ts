@@ -50,7 +50,7 @@ export const DEVCONNECT_CLAIM_METHODS: PaymentMethod[] = [
     {
         id: 'devconnect',
         title: 'Devconnect',
-        description: 'LOREM IPSUM',
+        description: 'Claim to your Devconnect wallet',
         icons: [DEVCONNECT_LOGO],
         soon: false,
     },
