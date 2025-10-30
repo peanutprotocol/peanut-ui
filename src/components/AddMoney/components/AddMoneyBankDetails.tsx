@@ -91,12 +91,6 @@ export default function AddMoneyBankDetails({ flow = 'add-money' }: IAddMoneyBan
         return countryData.find((c) => c.id === 'US')
     }, [isAddMoneyFlow, requestFulfilmentSelectedCountry, currentCountryName])
 
-    const countryCodeForFlag = useMemo(() => {
-        const countryId = currentCountryDetails?.id || 'USA'
-        const countryCode = ALL_COUNTRIES_ALPHA3_TO_ALPHA2[countryId] || countryId // if countryId is not in countryCodeMap, use countryId because for some countries countryId is of 2 digit and countryCodeMap is a mapping of 3 digit to 2 digit country codes
-        return countryCode?.toLowerCase() || 'us'
-    }, [currentCountryDetails])
-
     const onrampCurrency = getCurrencyConfig(currentCountryDetails?.id || 'US', 'onramp').currency
 
     useEffect(() => {
@@ -109,8 +103,18 @@ export default function AddMoneyBankDetails({ flow = 'add-money' }: IAddMoneyBan
         }
     }, [amount, router, isAddMoneyFlow])
 
+    const formattedCurrencyAmount = useMemo(() => {
+        if (!amount) return ''
+
+        if (flow === 'request-fulfillment') {
+            return formatCurrencyAmount(amount, 'USD') // Request fulfillment flow is in USD
+        }
+
+        return formatCurrencyAmount(amount, onrampCurrency)
+    }, [amount, onrampCurrency, flow])
+
     const generateBankDetails = async () => {
-        const formattedAmount = formatCurrencyAmount(amount ?? '0', onrampCurrency)
+        const formattedAmount = formattedCurrencyAmount
         const isMexico = currentCountryDetails?.id === 'MX'
 
         let bankDetails = `Bank Transfer Details:
@@ -170,14 +174,8 @@ Please use these details to complete your bank transfer.`
                 <Card className="p-4">
                     <p className="text-xs font-normal text-gray-1">Amount to send</p>
                     <div className="flex items-baseline gap-2">
-                        <p className="text-2xl font-extrabold text-black md:text-4xl">
-                            {formatCurrencyAmount(amount, onrampCurrency)}
-                        </p>
-                        <CopyToClipboard
-                            textToCopy={formatCurrencyAmount(amount, onrampCurrency)}
-                            fill="black"
-                            iconSize="3"
-                        />
+                        <p className="text-2xl font-extrabold text-black md:text-4xl">{formattedCurrencyAmount}</p>
+                        <CopyToClipboard textToCopy={formattedCurrencyAmount} fill="black" iconSize="3" />
                     </div>
 
                     <InfoCard variant="error" className="mt-4" icon="alert" description="Send exactly this amount!" />
@@ -268,7 +266,7 @@ Please use these details to complete your bank transfer.`
                     icon="alert"
                     title="Double check in your bank before sending:"
                     items={[
-                        `Amount: ${formatCurrencyAmount(amount, onrampCurrency)} (exact)`,
+                        `Amount: ${formattedCurrencyAmount} (exact)`,
                         `Reference: ${onrampData?.depositInstructions?.depositMessage || 'Loading...'} (included)`,
                     ]}
                 />

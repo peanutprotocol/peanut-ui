@@ -189,7 +189,7 @@ export const ReqFulfillBankFlowManager = ({ parsedPaymentData }: { parsedPayment
                         handleOnrampConfirmation()
                     }}
                     amount={chargeDetails?.tokenAmount ?? '0'}
-                    currency={getCurrencySymbol(getCurrencyConfig(selectedCountry?.id ?? '', 'onramp').currency)}
+                    currency={'$'}
                 />
             )
         case RequestFulfillmentBankFlowStep.DepositBankDetails:
