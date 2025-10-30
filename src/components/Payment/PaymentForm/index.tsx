@@ -27,6 +27,7 @@ import { walletActions } from '@/redux/slices/wallet-slice'
 import { areEvmAddressesEqual, ErrorHandler, formatAmount, formatCurrency, getContributorsFromCharge } from '@/utils'
 import { initializeAppKit } from '@/config/wagmi.config'
 import { useAppKit, useDisconnect } from '@reown/appkit/react'
+import * as Sentry from '@sentry/nextjs'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
@@ -384,6 +385,10 @@ export const PaymentForm = ({
         if (!showRequestPotInitialView && !isExternalWalletConnected && isExternalWalletFlow) {
             initializeAppKit().catch((error) => {
                 console.error('Failed to initialize AppKit:', error)
+                Sentry.captureException(error, {
+                    tags: { context: 'payment_form_external_wallet' },
+                    extra: { flow: 'external_wallet_payment' },
+                })
             })
             openReownModal()
             return

@@ -50,6 +50,17 @@ const wagmiAdapter = new WagmiAdapter({
 
 // 6. Lazy AppKit initialization
 // Only initialize when user actually needs to connect external wallet
+
+/**
+ * Timeout wrapper to prevent indefinite hangs on network issues
+ */
+const withTimeout = <T,>(promise: Promise<T>, ms: number, operation: string): Promise<T> => {
+    return Promise.race([
+        promise,
+        new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`${operation} timed out after ${ms}ms`)), ms)),
+    ])
+}
+
 let initPromise: Promise<void> | null = null
 
 export const initializeAppKit = async (): Promise<void> => {
@@ -58,28 +69,39 @@ export const initializeAppKit = async (): Promise<void> => {
 
     initPromise = (async () => {
         try {
-            createAppKit({
-                adapters: [wagmiAdapter],
-                defaultNetwork: mainnet,
-                networks,
-                metadata,
-                projectId,
-                features: {
-                    analytics: false, // no app-kit analytics plz
-                    socials: false,
-                    email: false,
-                    onramp: true,
-                },
-                themeVariables: {
-                    '--w3m-border-radius-master': '0px',
-                    '--w3m-color-mix': 'white',
-                },
-            })
+            // Wrap in timeout to prevent indefinite hangs (network issues, Reown API down)
+            await withTimeout(
+                Promise.resolve(
+                    createAppKit({
+                        adapters: [wagmiAdapter],
+                        defaultNetwork: mainnet,
+                        networks,
+                        metadata,
+                        projectId,
+                        features: {
+                            analytics: false, // no app-kit analytics plz
+                            socials: false,
+                            email: false,
+                            onramp: true,
+                        },
+                        themeVariables: {
+                            '--w3m-border-radius-master': '0px',
+                            '--w3m-color-mix': 'white',
+                        },
+                    })
+                ),
+                10000, // 10 second timeout
+                'Wallet connection initialization'
+            )
         } catch (error) {
             // Reset promise on error to allow retry
             initPromise = null
+            const message =
+                error instanceof Error && error.message.includes('timed out')
+                    ? 'Wallet connection timed out. Please check your internet and try again.'
+                    : 'Unable to initialize wallet connection. Please check your internet connection.'
             console.warn('AppKit initialization failed (will retry on next attempt):', error)
-            throw new Error('Unable to initialize wallet connection. Please check your internet connection.')
+            throw new Error(message)
         }
     })()
 

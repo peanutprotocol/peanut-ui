@@ -36,11 +36,15 @@ const WEB_AUTHN_COOKIE_KEY = 'web-authn-key'
 /**
  * Detects if an error is due to stale/invalid webAuthnKey
  * AA24 = EntryPoint signature verification failed
- * wapk = WebAuthn Public Key unauthorized
+ * wapk = WebAuthn Public Key unauthorized (ZeroDev-specific)
+ *
+ * Note: Intentionally strict to avoid false positives on generic auth errors
  */
 const isStaleKeyError = (error: unknown): boolean => {
     const errorStr = String(error).toLowerCase()
-    return errorStr.includes('aa24') || errorStr.includes('wapk') || errorStr.includes('unauthorized')
+    // AA24 = ERC-4337 EntryPoint signature verification failed
+    // wapk + unauthorized = ZeroDev's specific WebAuthn key error (not generic 401)
+    return errorStr.includes('aa24') || (errorStr.includes('wapk') && errorStr.includes('unauthorized'))
 }
 
 export const useZeroDev = () => {
@@ -154,8 +158,8 @@ export const useZeroDev = () => {
             } catch (error) {
                 console.error('Error sending UserOp:', error)
 
-                // Detect stale webAuthnKey errors (AA24, wapk) and log for monitoring
-                // NOTE: Don't auto-clear here - user is mid-transaction, let them handle it
+                // Detect stale webAuthnKey errors (AA24, wapk) and provide user feedback
+                // NOTE: Don't auto-clear here - user is mid-transaction, avoid data loss
                 if (isStaleKeyError(error)) {
                     console.error('Detected stale webAuthnKey error - session is invalid')
                     captureException(error, {
@@ -166,6 +170,14 @@ export const useZeroDev = () => {
                             userId: user?.user.userId,
                         },
                     })
+                    // Enhance error message for user feedback
+                    const enhancedError = new Error(
+                        'Your session has expired. Please refresh the page and log in again.'
+                    )
+                    ;(enhancedError as any).cause = error
+                    ;(enhancedError as any).isStaleKeyError = true
+                    dispatch(zerodevActions.setIsSendingUserOp(false))
+                    throw enhancedError
                 }
 
                 dispatch(zerodevActions.setIsSendingUserOp(false))
