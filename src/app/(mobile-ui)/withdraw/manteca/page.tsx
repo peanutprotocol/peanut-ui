@@ -1,7 +1,7 @@
 'use client'
 
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { useState, useMemo, useContext, useEffect, useCallback } from 'react'
+import { useState, useMemo, useContext, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
@@ -37,10 +37,14 @@ import {
 } from '@/constants'
 import Select from '@/components/Global/Select'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQueryClient, useQuery } from '@tanstack/react-query'
 import { captureException } from '@sentry/nextjs'
 import useKycStatus from '@/hooks/useKycStatus'
 import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
+import { pointsApi } from '@/services/points'
+import { PointsAction } from '@/services/services.types'
+import { usePointsConfetti } from '@/hooks/usePointsConfetti'
+import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 
 type MantecaWithdrawStep = 'amountInput' | 'bankDetails' | 'review' | 'success' | 'failure'
 
@@ -70,6 +74,7 @@ export default function MantecaWithdrawFlow() {
     const queryClient = useQueryClient()
     const { isUserBridgeKycApproved } = useKycStatus()
     const { hasPendingTransactions } = usePendingTransactions()
+    const pointsDivRef = useRef<HTMLDivElement>(null)
 
     // Get method and country from URL parameters
     const selectedMethodType = searchParams.get('method') // mercadopago, pix, bank-transfer, etc.
@@ -290,11 +295,27 @@ export default function MantecaWithdrawFlow() {
         }
     }, [usdAmount, balance, hasPendingTransactions])
 
+    // Fetch points early to avoid latency penalty - fetch as soon as we have usdAmount
+    const { data: pointsData } = useQuery({
+        queryKey: ['calculate-points', 'manteca-withdraw', usdAmount],
+        queryFn: () =>
+            pointsApi.calculatePoints({
+                actionType: PointsAction.MANTECA_TRANSFER,
+                usdAmount: Number(usdAmount),
+            }),
+        enabled: !!(user?.user.userId && usdAmount && Number(usdAmount) > 0),
+        refetchOnWindowFocus: false,
+        staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    })
+
+    // Use points confetti hook for animation - must be called unconditionally
+    usePointsConfetti(step === 'success' ? pointsData?.estimatedPoints : undefined, pointsDivRef)
+
     useEffect(() => {
         if (step === 'success') {
             queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
         }
-    }, [step])
+    }, [step, queryClient])
 
     if (isCurrencyLoading || !currencyPrice || !selectedCountry) {
         return <PeanutLoading />
@@ -323,6 +344,18 @@ export default function MantecaWithdrawFlow() {
                             <h1 className="text-sm font-normal text-grey-1">to {destinationAddress}</h1>
                         </div>
                     </Card>
+
+                    {/* Points Display */}
+                    {pointsData?.estimatedPoints && (
+                        <div ref={pointsDivRef} className="flex justify-center gap-2">
+                            <Image src={STAR_STRAIGHT_ICON} alt="star" width={20} height={20} />
+                            <p className="text-sm font-medium text-black">
+                                You&apos;ve earned {pointsData.estimatedPoints}{' '}
+                                {pointsData.estimatedPoints === 1 ? 'point' : 'points'}!
+                            </p>
+                        </div>
+                    )}
+
                     <div className="w-full space-y-5">
                         <Button
                             onClick={() => {

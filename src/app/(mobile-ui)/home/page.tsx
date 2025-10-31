@@ -33,7 +33,7 @@ import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
 import SetupNotificationsModal from '@/components/Notifications/SetupNotificationsModal'
 import { useNotifications } from '@/hooks/useNotifications'
 import useKycStatus from '@/hooks/useKycStatus'
-import HomeBanners from '@/components/Home/HomeBanners'
+import HomeCarouselCTA from '@/components/Home/HomeCarouselCTA'
 import NoMoreJailModal from '@/components/Global/NoMoreJailModal'
 import EarlyUserModal from '@/components/Global/EarlyUserModal'
 import { STAR_STRAIGHT_ICON } from '@/assets'
@@ -199,9 +199,9 @@ export default function Home() {
             showNoMoreJailModal !== 'true' &&
             !user?.showEarlyUserModal // Give Early User and No more jail modal precedence, showing two modals together isn't ideal and it messes up their functionality
 
-        if (shouldShow) {
+        if (shouldShow && !showAddMoneyPromptModal) {
+            // Only set state, don't set sessionStorage here to avoid race conditions
             setShowAddMoneyPromptModal(true)
-            sessionStorage.setItem('hasSeenAddMoneyPromptThisSession', 'true')
         } else if (showAddMoneyPromptModal && showPermissionModal) {
             // priority enforcement: hide add money modal if notification modal appears
             // this handles race conditions where both modals try to show simultaneously
@@ -218,6 +218,13 @@ export default function Home() {
         user,
         address,
     ])
+
+    // Set sessionStorage flag when modal becomes visible to prevent showing again
+    useEffect(() => {
+        if (showAddMoneyPromptModal) {
+            sessionStorage.setItem('hasSeenAddMoneyPromptThisSession', 'true')
+        }
+    }, [showAddMoneyPromptModal])
 
     if (isLoading) {
         return <PeanutLoading coverFullScreen />
@@ -260,7 +267,7 @@ export default function Home() {
                     </ActionButtonGroup>
                 </div>
 
-                <HomeBanners />
+                <HomeCarouselCTA />
 
                 {showPermissionModal && <SetupNotificationsModal />}
 
