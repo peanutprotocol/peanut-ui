@@ -14,11 +14,11 @@ import { getCurrencyConfig, getCurrencySymbol } from '@/utils/bridge.utils'
 import { RequestFulfillmentBankFlowStep, useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import { usePaymentStore } from '@/redux/hooks'
 import { formatAmount } from '@/utils'
-import useGetExchangeRate from '@/hooks/useGetExchangeRate'
 import { AccountType } from '@/interfaces'
 import InfoCard from '@/components/Global/InfoCard'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import { Button } from '@/components/0_Bruddle'
+import { useExchangeRate } from '@/hooks/useExchangeRate'
 
 interface IAddMoneyBankDetails {
     flow?: 'add-money' | 'request-fulfillment'
@@ -43,34 +43,12 @@ export default function AddMoneyBankDetails({ flow = 'add-money' }: IAddMoneyBan
     } = useRequestFulfillmentFlow()
     const { chargeDetails } = usePaymentStore()
 
-    // hooks
-    const { exchangeRate, isFetchingRate } = useGetExchangeRate({
-        accountType: getAccountTypeFromCountry(requestFulfilmentSelectedCountry),
-    })
-
-    // data from contexts based on flow
-    const amount = isAddMoneyFlow ? onrampContext.amountToOnramp : chargeDetails?.tokenAmount
-    const onrampData = isAddMoneyFlow ? onrampContext.onrampData : requestFulfilmentOnrampData
-
-    const currencySymbolBasedOnCountry = useMemo(() => {
-        return getCurrencySymbol(getCurrencyConfig(requestFulfilmentSelectedCountry?.id ?? 'US', 'onramp').currency)
-    }, [requestFulfilmentSelectedCountry])
-
-    const amountBasedOnCurrencyExchangeRate = useCallback(
-        (amount: string) => {
-            if (!exchangeRate) return currencySymbolBasedOnCountry + ' ' + amount
-            return (
-                currencySymbolBasedOnCountry + ' ' + formatAmount(parseFloat(amount ?? '0') * parseFloat(exchangeRate))
-            )
-        },
-        [exchangeRate, currencySymbolBasedOnCountry]
-    )
-
+    // routing and country context
     const router = useRouter()
     const params = useParams()
     const currentCountryName = params.country as string
 
-    // get country information from URL params
+    // get country information from url params or request fulfillment context
     const currentCountryDetails = useMemo(() => {
         if (!isAddMoneyFlow) {
             return requestFulfilmentSelectedCountry
@@ -82,16 +60,69 @@ export default function AddMoneyBankDetails({ flow = 'add-money' }: IAddMoneyBan
             )
         }
 
-        // check if we're on the static US route by examining the current pathname
+        // check if we're on the static us route by examining the current pathname
         if (typeof window !== 'undefined' && window.location.pathname.includes('/add-money/us/bank')) {
             return countryData.find((c) => c.id === 'US')
         }
 
-        // default to US if no country is detected
+        // default to us if no country is detected
         return countryData.find((c) => c.id === 'US')
     }, [isAddMoneyFlow, requestFulfilmentSelectedCountry, currentCountryName])
 
+    // derive onramp currency once and reuse consistently
     const onrampCurrency = getCurrencyConfig(currentCountryDetails?.id || 'US', 'onramp').currency
+
+    // hooks
+    const { exchangeRate, isLoading: isLoadingExchangeRate } = useExchangeRate({
+        // always use the detected onramp currency as source
+        sourceCurrency: onrampCurrency,
+        // always convert to usd so that we can show an approximate usd amount for non-usd deposits
+        destinationCurrency: 'USD',
+        initialSourceAmount: 1,
+        enabled: true,
+    })
+
+    // data from contexts based on flow
+    const amount = isAddMoneyFlow ? onrampContext.amountToOnramp : chargeDetails?.tokenAmount
+    const onrampData = isAddMoneyFlow ? onrampContext.onrampData : requestFulfilmentOnrampData
+
+    const currencySymbolBasedOnCountry = useMemo(() => {
+        // symbol of the detected onramp currency (e.g., €, $)
+        return getCurrencySymbol(onrampCurrency)
+    }, [onrampCurrency])
+
+    // usd symbol for displaying approximate amount in usd
+    const usdCurrencySymbol = useMemo(() => {
+        return getCurrencySymbol('USD')
+    }, [])
+
+    const isNonUsdCurrency = useMemo(() => {
+        // true when deposit currency is not usd
+        return onrampCurrency.toLowerCase() !== 'usd'
+    }, [onrampCurrency])
+
+    // safely parse user-entered amounts that may contain grouping separators like commas
+    const parseAmountToNumber = useCallback((rawAmount: string): number | null => {
+        // remove common grouping separators and spaces
+        const normalized = (rawAmount ?? '').replace(/[\s,]/g, '')
+        const parsed = Number.parseFloat(normalized)
+        if (Number.isNaN(parsed)) return null
+        return parsed
+    }, [])
+
+    const amountBasedOnCurrencyExchangeRate = useCallback(
+        (amount: string) => {
+            if (!exchangeRate) return amount
+            const baseAmount = parseAmountToNumber(amount)
+            if (baseAmount === null) return amount
+            if (isNonUsdCurrency) {
+                // for non-usd deposits, show the approximate amount in usd
+                return '≈ ' + usdCurrencySymbol + ' ' + formatAmount(baseAmount * exchangeRate)
+            }
+            return '≈ ' + currencySymbolBasedOnCountry + ' ' + formatAmount(baseAmount * exchangeRate)
+        },
+        [exchangeRate, isNonUsdCurrency, usdCurrencySymbol, currencySymbolBasedOnCountry, parseAmountToNumber]
+    )
 
     useEffect(() => {
         // if no amount is set, redirect back to add money page
@@ -257,6 +288,15 @@ Please use these details to complete your bank transfer.`
                                 )
                             }
                             hideBottomBorder
+                        />
+                    )}
+                    {isNonUsdCurrency && (
+                        <PaymentInfoRow
+                            loading={isLoadingExchangeRate}
+                            label="You'll Receive"
+                            value={`${amountBasedOnCurrencyExchangeRate(amount)}`}
+                            allowCopy={false}
+                            hideBottomBorder={true}
                         />
                     )}
                 </Card>
