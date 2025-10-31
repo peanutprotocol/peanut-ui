@@ -9,14 +9,15 @@ import { twMerge } from 'tailwind-merge'
 
 interface BannerCardProps {
     icon: IconName
-    title: string
-    description: string
+    title: string | React.ReactNode
+    description: string | React.ReactNode
     logo?: StaticImageData
     onClose: () => void
     onClick?: () => void
+    iconContainerClassName?: string
 }
 
-const BannerCard = ({ title, description, icon, onClose, onClick, logo }: BannerCardProps) => {
+const BannerCard = ({ title, description, icon, onClose, onClick, logo, iconContainerClassName }: BannerCardProps) => {
     const handleClose = (e: React.MouseEvent) => {
         e.stopPropagation()
         onClose()
@@ -31,12 +32,13 @@ const BannerCard = ({ title, description, icon, onClose, onClick, logo }: Banner
             <div
                 className={twMerge(
                     'flex size-8  items-center justify-center rounded-full',
-                    logo ? 'bg-transparent' : 'bg-primary-1'
+                    logo ? 'bg-transparent' : 'bg-primary-1',
+                    iconContainerClassName
                 )}
             >
                 {/* Show icon only if logo isnt provided. Logo takes precedence over icon. */}
                 {!logo && <Icon name={icon} size={20} />}
-                {logo && <Image src={logo} alt={title} width={32} height={32} />}
+                {logo && <Image src={logo} alt={typeof title === 'string' ? title : 'logo'} width={32} height={32} />}
             </div>
             <div className="flex w-[80%] flex-col">
                 <p className="font-medium">{title}</p>
