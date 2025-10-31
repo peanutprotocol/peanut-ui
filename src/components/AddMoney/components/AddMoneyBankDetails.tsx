@@ -101,16 +101,27 @@ export default function AddMoneyBankDetails({ flow = 'add-money' }: IAddMoneyBan
         return onrampCurrency.toLowerCase() !== 'usd'
     }, [onrampCurrency])
 
+    // safely parse user-entered amounts that may contain grouping separators like commas
+    const parseAmountToNumber = useCallback((rawAmount: string): number | null => {
+        // remove common grouping separators and spaces
+        const normalized = (rawAmount ?? '').replace(/[\s,]/g, '')
+        const parsed = Number.parseFloat(normalized)
+        if (Number.isNaN(parsed)) return null
+        return parsed
+    }, [])
+
     const amountBasedOnCurrencyExchangeRate = useCallback(
         (amount: string) => {
             if (!exchangeRate) return amount
+            const baseAmount = parseAmountToNumber(amount)
+            if (baseAmount === null) return amount
             if (isNonUsdCurrency) {
                 // for non-usd deposits, show the approximate amount in usd
-                return '≈ ' + usdCurrencySymbol + ' ' + formatAmount(parseFloat(amount ?? '0') * exchangeRate)
+                return '≈ ' + usdCurrencySymbol + ' ' + formatAmount(baseAmount * exchangeRate)
             }
-            return '≈ ' + currencySymbolBasedOnCountry + ' ' + formatAmount(parseFloat(amount ?? '0') * exchangeRate)
+            return '≈ ' + currencySymbolBasedOnCountry + ' ' + formatAmount(baseAmount * exchangeRate)
         },
-        [exchangeRate, isNonUsdCurrency, usdCurrencySymbol, currencySymbolBasedOnCountry]
+        [exchangeRate, isNonUsdCurrency, usdCurrencySymbol, currencySymbolBasedOnCountry, parseAmountToNumber]
     )
 
     useEffect(() => {
