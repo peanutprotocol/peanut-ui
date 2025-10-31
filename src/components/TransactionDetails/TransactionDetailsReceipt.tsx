@@ -357,6 +357,14 @@ export const TransactionDetailsReceipt = ({
         getTokenDetails()
     }, [])
 
+    const convertedAmount = useMemo(() => {
+        if (!transaction) return null
+        if (!transaction?.extraDataForDrawer?.receipt?.exchange_rate) {
+            return null
+        }
+        return `${transaction.currency!.code} ${formatCurrency(transaction.currency!.amount)}`
+    }, [transaction])
+
     if (!transaction) return null
 
     let usdAmount: number | bigint = 0
@@ -526,14 +534,6 @@ export const TransactionDetailsReceipt = ({
             </div>
         )
     }
-
-    const convertedAmount = useMemo(() => {
-        if (!transaction) return null
-        if (!transaction?.extraDataForDrawer?.receipt?.exchange_rate) {
-            return null
-        }
-        return `${transaction.currency!.code} ${formatCurrency(transaction.currency!.amount)}`
-    }, [transaction])
 
     return (
         <div ref={contentRef} className={twMerge('space-y-4', className)}>
