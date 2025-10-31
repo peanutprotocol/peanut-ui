@@ -2540,7 +2540,19 @@ export const ALL_COUNTRIES_ALPHA3_TO_ALPHA2: { [key: string]: string } = {
     ...MANTECA_ALPHA3_TO_ALPHA2,
 }
 
-const enabledBankWithdrawCountries = new Set([...Object.values(BRIDGE_ALPHA3_TO_ALPHA2), 'US', 'MX', 'AR'])
+// identify sepa corridors where local currency is not eur and disable them temporarily for bank withdrawals
+// this impacts withdraw and claim-to-bank flows (but not add-money from bank)
+export const NON_EUR_SEPA_ALPHA2 = new Set(
+    countryData
+        .filter((c) => c.type === 'country' && c.id.length === 3 && BRIDGE_ALPHA3_TO_ALPHA2[c.id])
+        .map((c) => ({ alpha2: BRIDGE_ALPHA3_TO_ALPHA2[c.id], currency: c.currency }))
+        .filter((x) => x.alpha2 && x.currency !== 'EUR')
+        .map((x) => x.alpha2 as string)
+)
+
+const enabledBankWithdrawCountries = new Set(
+    [...Object.values(BRIDGE_ALPHA3_TO_ALPHA2), 'US', 'MX', 'AR'].filter((code) => !NON_EUR_SEPA_ALPHA2.has(code))
+)
 
 const enabledBankDepositCountries = new Set([...Object.values(BRIDGE_ALPHA3_TO_ALPHA2), 'US', 'MX', 'AR'])
 
