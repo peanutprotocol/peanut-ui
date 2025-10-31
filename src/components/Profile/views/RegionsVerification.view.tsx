@@ -1,0 +1,66 @@
+'use client'
+
+import { ActionListCard } from '@/components/ActionListCard'
+import { getCardPosition } from '@/components/Global/Card'
+import { Icon } from '@/components/Global/Icons/Icon'
+import NavHeader from '@/components/Global/NavHeader'
+import { useIdentityVerification, type Region } from '@/hooks/useIdentityVerification'
+import Image from 'next/image'
+import { useRouter } from 'next/navigation'
+import React from 'react'
+
+const RegionsVerification = () => {
+    const router = useRouter()
+    const { unlockedRegions, lockedRegions } = useIdentityVerification()
+
+    return (
+        <div className="flex min-h-[inherit] flex-col space-y-8">
+            <NavHeader title="Regions & Verification" onPrev={() => router.replace('/profile')} />
+            <div className="my-auto space-y-2">
+                <h1 className="font-bold">Unlocked regions</h1>
+                <p className="mt-2 text-sm">
+                    Transfer to and receive from any bank account and use supported payments methods.
+                </p>
+
+                <RegionsList regions={unlockedRegions} isLocked={false} />
+
+                <h1 className="font-bold">Locked regions</h1>
+                <p className="mt-2 text-sm">Where do you want to send and receive money?</p>
+
+                <RegionsList regions={lockedRegions} isLocked={true} />
+            </div>
+        </div>
+    )
+}
+
+export default RegionsVerification
+
+interface RegionsListProps {
+    regions: Region[]
+    isLocked: boolean
+}
+const RegionsList = ({ regions, isLocked }: RegionsListProps) => {
+    return (
+        <div>
+            {regions.map((region, index) => (
+                <ActionListCard
+                    leftIcon={
+                        <Image
+                            src={region.icon}
+                            alt={region.name}
+                            width={36}
+                            height={36}
+                            className="size-8 rounded-full object-cover"
+                        />
+                    }
+                    position={getCardPosition(index, regions.length)}
+                    title={region.name}
+                    onClick={() => {}}
+                    description={region.description}
+                    descriptionClassName="text-xs"
+                    rightContent={!isLocked ? <Icon name="check" className="size-4 text-success-1" /> : null}
+                />
+            ))}
+        </div>
+    )
+}

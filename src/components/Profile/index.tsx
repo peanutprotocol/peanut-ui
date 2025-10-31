@@ -75,7 +75,7 @@ export const Profile = () => {
                         <ProfileMenuItem icon="user" label="Personal details" href="/profile/edit" position="first" />
                         <ProfileMenuItem
                             icon="shield"
-                            label="Identity Verification"
+                            label="Regions & Verification"
                             href="/profile/identity-verification"
                             onClick={() => {
                                 setShowInitiateKycModal(true)
