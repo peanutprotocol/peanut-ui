@@ -243,6 +243,7 @@ export const TransactionDetailsReceipt = ({
         [rowVisibilityConfig]
     )
 
+    // @dev TODO: Enable grouped borders when tackling receipt changes
     // reusable helper to check if border should be hidden for a row in a specific group
     const shouldHideGroupBorder = (rowKey: TransactionDetailsRowKey, groupName: keyof typeof rowGroups) => {
         const isLastInGroup = rowKey === lastVisibleInGroups[groupName]
@@ -597,7 +598,7 @@ export const TransactionDetailsReceipt = ({
                         <PaymentInfoRow
                             label={'Created'}
                             value={formatDate(new Date(transaction.createdAt!.toString()))}
-                            hideBottomBorder={shouldHideGroupBorder('createdAt', 'dateRows')}
+                            hideBottomBorder={shouldHideBorder('createdAt')}
                         />
                     )}
 
@@ -605,7 +606,7 @@ export const TransactionDetailsReceipt = ({
                         <PaymentInfoRow
                             label="Cancelled"
                             value={formatDate(new Date(transaction.cancelledDate!))}
-                            hideBottomBorder={shouldHideGroupBorder('cancelled', 'dateRows')}
+                            hideBottomBorder={shouldHideBorder('cancelled')}
                         />
                     )}
 
@@ -613,7 +614,7 @@ export const TransactionDetailsReceipt = ({
                         <PaymentInfoRow
                             label="Claimed"
                             value={formatDate(new Date(transaction.claimedAt!))}
-                            hideBottomBorder={shouldHideGroupBorder('claimed', 'dateRows')}
+                            hideBottomBorder={shouldHideBorder('claimed')}
                         />
                     )}
 
@@ -621,7 +622,7 @@ export const TransactionDetailsReceipt = ({
                         <PaymentInfoRow
                             label={getLabelText(transaction)}
                             value={formatDate(new Date(transaction.completedAt!))}
-                            hideBottomBorder={shouldHideGroupBorder('completed', 'dateRows')}
+                            hideBottomBorder={shouldHideBorder('completed')}
                         />
                     )}
 
@@ -705,7 +706,7 @@ export const TransactionDetailsReceipt = ({
                                                 </div>
                                             )
                                         }
-                                        hideBottomBorder={shouldHideGroupBorder('tokenAndNetwork', 'txnDetails')}
+                                        hideBottomBorder={shouldHideBorder('tokenAndNetwork')}
                                     />
                                 )}
                             </>
@@ -732,7 +733,7 @@ export const TransactionDetailsReceipt = ({
                                     </div>
                                 )
                             }
-                            hideBottomBorder={shouldHideGroupBorder('txId', 'txnDetails')}
+                            hideBottomBorder={shouldHideBorder('txId')}
                         />
                     )}
 
@@ -1087,7 +1088,7 @@ export const TransactionDetailsReceipt = ({
                             label="Network fee"
                             value={transaction.networkFeeDetails!.amountDisplay}
                             moreInfoText={transaction.networkFeeDetails!.moreInfoText}
-                            hideBottomBorder={shouldHideGroupBorder('networkFee', 'fees')}
+                            hideBottomBorder={shouldHideBorder('networkFee')}
                         />
                     )}
 
@@ -1095,7 +1096,7 @@ export const TransactionDetailsReceipt = ({
                         <PaymentInfoRow
                             label="Peanut fee"
                             value={'Sponsored by Peanut!'}
-                            hideBottomBorder={shouldHideGroupBorder('peanutFee', 'fees')}
+                            hideBottomBorder={shouldHideBorder('peanutFee')}
                         />
                     )}
 
