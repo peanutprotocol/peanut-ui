@@ -40,6 +40,7 @@ const HomeBanners = () => {
                         }}
                         onClick={banner.onClick}
                         logo={banner.logo}
+                        iconContainerClassName={banner.iconContainerClassName}
                     />
                 )
             })}

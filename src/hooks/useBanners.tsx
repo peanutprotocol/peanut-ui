@@ -11,14 +11,15 @@ import type { StaticImageData } from 'next/image'
 
 export type Banner = {
     id: string
-    title: string
-    description: string
+    title: string | React.ReactNode
+    description: string | React.ReactNode
     icon: IconName
     logo?: StaticImageData
     // optional handlers for notification banner
     onClick?: () => void | Promise<void>
     onClose?: () => void
     isPermissionDenied?: boolean
+    iconContainerClassName?: string
 }
 
 export const useBanners = () => {
@@ -54,13 +55,21 @@ export const useBanners = () => {
             // TODO: Add manteca KYC check after manteca is implemented
             _banners.push({
                 id: 'kyc-banner',
-                title: 'Unlock payments in Argentina',
-                description: 'Complete verification to pay with Mercado Pago QR codes',
+                title: (
+                    <span>
+                        Unlock <b>QR code payments</b>
+                    </span>
+                ),
+                description: (
+                    <span>
+                        Verify your account to use <b>Mercado Pago</b> and <b>PIX</b> QR codes
+                    </span>
+                ),
+                iconContainerClassName: 'bg-secondary-1',
                 icon: 'shield',
                 onClick: () => {
                     router.push('/profile/identity-verification')
                 },
-                logo: MERCADO_PAGO,
             })
         }
 
