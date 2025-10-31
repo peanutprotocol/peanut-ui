@@ -199,20 +199,21 @@ export const UPDATED_DEFAULT_ADD_MONEY_METHODS: SpecificPaymentMethod[] = [
         description: 'Instant transfers',
         isSoon: false,
     },
-    {
-        id: 'apple-pay-add',
-        icon: APPLE_PAY,
-        title: 'Apple Pay',
-        description: 'Usually arrives instantly',
-        isSoon: true,
-    },
-    {
-        id: 'google-pay-add',
-        icon: GOOGLE_PAY,
-        title: 'Google Pay',
-        description: 'Usually arrives instantly',
-        isSoon: true,
-    },
+    // @dev TODO: Re-enable this once we have a way to support it
+    // {
+    //     id: 'apple-pay-add',
+    //     icon: APPLE_PAY,
+    //     title: 'Apple Pay',
+    //     description: 'Usually arrives instantly',
+    //     isSoon: true,
+    // },
+    // {
+    //     id: 'google-pay-add',
+    //     icon: GOOGLE_PAY,
+    //     title: 'Google Pay',
+    //     description: 'Usually arrives instantly',
+    //     isSoon: true,
+    // },
 ]
 
 export const DEFAULT_BANK_WITHDRAW_METHOD: SpecificPaymentMethod = {
