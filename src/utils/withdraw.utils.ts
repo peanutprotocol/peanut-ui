@@ -194,3 +194,109 @@ export function validateCbuCvuAlias(value: string): { valid: boolean; message?: 
 
     return { valid: true }
 }
+
+/**
+ * Detects if a PIX key is a phone number format
+ * @param pixKey - The PIX key to check
+ * @returns true if it's a phone number format (with or without +)
+ */
+export const isPixPhoneNumber = (pixKey: string): boolean => {
+    const cleaned = pixKey.replace(/[\s-]/g, '')
+    // Matches +5511999999999 or 5511999999999 (country code 55 + 10-11 digits)
+    return /^(\+)?55\d{10,11}$/.test(cleaned)
+}
+
+/**
+ * Normalizes a PIX phone number by adding the "+" prefix if missing
+ * @param pixKey - The PIX key to normalize
+ * @returns The normalized PIX key with "+" prefix if it's a phone number
+ */
+export const normalizePixPhoneNumber = (pixKey: string): string => {
+    const cleaned = pixKey.replace(/[\s-]/g, '')
+    if (isPixPhoneNumber(cleaned) && !cleaned.startsWith('+')) {
+        return '+' + cleaned
+    }
+    return pixKey
+}
+
+/**
+ * Validates if a string is a valid EMVCo PIX QR code
+ * @param pixKey - The PIX key to validate
+ * @returns true if it's a valid EMVCo QR code format
+ */
+export const isPixEmvcoQr = (pixKey: string): boolean => {
+    // EMVCo QR codes start with "000201" and contain "br.gov.bcb.pix"
+    return pixKey.startsWith('000201') && pixKey.includes('br.gov.bcb.pix')
+}
+
+/**
+ * Validates a PIX key based on Brazilian Central Bank standards
+ * Supports: Phone, CPF, CNPJ, Email, Random Key (UUID), and EMVCo QR Code
+ * @param pixKey - The PIX key to validate
+ * @returns Object with valid boolean and error message if invalid
+ */
+export const validatePixKey = (pixKey: string): { valid: boolean; message?: string } => {
+    const trimmed = pixKey.trim()
+
+    if (!trimmed) {
+        return { valid: false, message: 'PIX key cannot be empty' }
+    }
+
+    const cleanedDigits = trimmed.replace(/[\s.-]/g, '')
+
+    // 1. Phone Number: +5511999999999 or 5511999999999 (country code 55 + 10-11 digits)
+    // Check if it looks like a phone number (starts with + or starts with 55)
+    if (trimmed.startsWith('+') || /^55\d/.test(cleanedDigits)) {
+        if (isPixPhoneNumber(trimmed)) {
+            return { valid: true }
+        }
+        // It looks like a phone but isn't valid
+        return { valid: false, message: 'Invalid phone number format' }
+    }
+
+    // 2. CPF: 11 digits (but not starting with 55 to avoid confusion with phone)
+    if (/^\d{11}$/.test(cleanedDigits) && !trimmed.includes('@')) {
+        // Basic CPF validation (not checking verifier digits)
+        if (/^(\d)\1{10}$/.test(cleanedDigits)) {
+            return { valid: false, message: 'Invalid CPF (all digits are the same)' }
+        }
+        return { valid: true }
+    }
+
+    // 3. CNPJ: 14 digits
+    if (/^\d{14}$/.test(cleanedDigits)) {
+        // Basic CNPJ validation (not checking verifier digits)
+        if (/^(\d)\1{13}$/.test(cleanedDigits)) {
+            return { valid: false, message: 'Invalid CNPJ (all digits are the same)' }
+        }
+        return { valid: true }
+    }
+
+    // 4. Email: Standard email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (emailRegex.test(trimmed)) {
+        if (trimmed.length > 77) {
+            return { valid: false, message: 'Email is too long (max 77 characters)' }
+        }
+        return { valid: true }
+    }
+
+    // 5. Random Key (UUID): Standard UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    if (uuidRegex.test(trimmed)) {
+        return { valid: true }
+    }
+
+    // 6. EMVCo QR Code: Full QR code string
+    if (isPixEmvcoQr(trimmed)) {
+        if (trimmed.length < 50 || trimmed.length > 500) {
+            return { valid: false, message: 'Invalid QR code length' }
+        }
+        return { valid: true }
+    }
+
+    return {
+        valid: false,
+        message: 'Invalid PIX key format. Must be phone, CPF, CNPJ, email, random key, or QR code',
+    }
+}

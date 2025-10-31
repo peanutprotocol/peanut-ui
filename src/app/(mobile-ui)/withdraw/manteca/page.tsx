@@ -16,7 +16,7 @@ import { loadingStateContext } from '@/context'
 import { countryData } from '@/components/AddMoney/consts'
 import Image from 'next/image'
 import { formatAmount, formatNumberForDisplay } from '@/utils'
-import { validateCbuCvuAlias } from '@/utils/withdraw.utils'
+import { validateCbuCvuAlias, validatePixKey, normalizePixPhoneNumber, isPixPhoneNumber } from '@/utils/withdraw.utils'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
@@ -136,10 +136,17 @@ export default function MantecaWithdrawFlow() {
         let isValid = false
         switch (countryPath) {
             case 'argentina':
-                const { valid, message } = validateCbuCvuAlias(value)
-                isValid = valid
-                if (!valid) {
-                    setErrorMessage(message!)
+                const argResult = validateCbuCvuAlias(value)
+                isValid = argResult.valid
+                if (!argResult.valid) {
+                    setErrorMessage(argResult.message!)
+                }
+                break
+            case 'brazil':
+                const pixResult = validatePixKey(value)
+                isValid = pixResult.valid
+                if (!pixResult.valid) {
+                    setErrorMessage(pixResult.message!)
                 }
                 break
             default:
@@ -451,19 +458,17 @@ export default function MantecaWithdrawFlow() {
                     {/* Bank Details Form */}
                     <div className="space-y-4">
                         <h2 className="text-lg font-bold">Enter {methodDisplayInfo.name} details</h2>
-                        {selectedCountry?.id === 'BR' && (
-                            <div className="flex items-center gap-2 text-sm text-red">
-                                <Icon name="info" size={16} />
-                                <span>If withdrawing to a phone pix key please include +55</span>
-                            </div>
-                        )}
-
                         <div className="space-y-2">
                             <ValidatedInput
                                 value={destinationAddress}
                                 placeholder={countryConfig!.accountNumberLabel}
                                 onUpdate={(update) => {
-                                    setDestinationAddress(update.value)
+                                    // Auto-normalize PIX phone numbers for Brazil
+                                    let normalizedValue = update.value
+                                    if (countryPath === 'brazil' && isPixPhoneNumber(update.value)) {
+                                        normalizedValue = normalizePixPhoneNumber(update.value)
+                                    }
+                                    setDestinationAddress(normalizedValue)
                                     setIsDestinationAddressValid(update.isValid)
                                     setIsDestinationAddressChanging(update.isChanging)
                                     if (update.isValid || update.value === '') {
