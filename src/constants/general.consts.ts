@@ -16,8 +16,16 @@ const alchemyUrl = (subdomain: string) =>
     ALCHEMY_API_KEY ? `https://${subdomain}.g.alchemy.com/v2/${ALCHEMY_API_KEY}` : null
 
 export const rpcUrls: Record<number, string[]> = {
-    [mainnet.id]: [infuraUrl('mainnet'), alchemyUrl('eth-mainnet')].filter(Boolean) as string[],
-    [arbitrum.id]: [infuraUrl('arbitrum-mainnet'), alchemyUrl('arb-mainnet')].filter(Boolean) as string[],
+    [mainnet.id]: [
+        'https://ethereum-mainnet.core.chainstack.com/006d2d45e7727fb2d5ff46ffc19a2958', // Chainstack (primary)
+        infuraUrl('mainnet'),
+        alchemyUrl('eth-mainnet'),
+    ].filter(Boolean) as string[],
+    [arbitrum.id]: [
+        'https://arbitrum-mainnet.core.chainstack.com/78d8b6bbaa8ae6d8ce2546c13b619288', // Chainstack (primary)
+        infuraUrl('arbitrum-mainnet'),
+        alchemyUrl('arb-mainnet'),
+    ].filter(Boolean) as string[],
     [arbitrumSepolia.id]: [infuraUrl('arbitrum-sepolia'), alchemyUrl('arb-sepolia')].filter(Boolean) as string[],
     [polygon.id]: [infuraUrl('polygon-mainnet'), alchemyUrl('polygon-mainnet')].filter(Boolean) as string[],
     [optimism.id]: [infuraUrl('optimism-mainnet'), alchemyUrl('opt-mainnet')].filter(Boolean) as string[],
