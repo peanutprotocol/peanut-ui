@@ -242,18 +242,19 @@ export const validatePixKey = (pixKey: string): { valid: boolean; message?: stri
         return { valid: false, message: 'PIX key cannot be empty' }
     }
 
+    const cleanedDigits = trimmed.replace(/[\s.-]/g, '')
+
     // 1. Phone Number: +5511999999999 or 5511999999999 (country code 55 + 10-11 digits)
-    if (isPixPhoneNumber(trimmed)) {
-        const cleaned = trimmed.replace(/[\s-]/g, '')
-        const digits = cleaned.replace('+', '')
-        if (digits.length < 12 || digits.length > 13) {
-            return { valid: false, message: 'Invalid phone number format' }
+    // Check if it looks like a phone number (starts with + or starts with 55)
+    if (trimmed.startsWith('+') || /^55\d/.test(cleanedDigits)) {
+        if (isPixPhoneNumber(trimmed)) {
+            return { valid: true }
         }
-        return { valid: true }
+        // It looks like a phone but isn't valid
+        return { valid: false, message: 'Invalid phone number format' }
     }
 
-    // 2. CPF: 11 digits
-    const cleanedDigits = trimmed.replace(/[\s.-]/g, '')
+    // 2. CPF: 11 digits (but not starting with 55 to avoid confusion with phone)
     if (/^\d{11}$/.test(cleanedDigits) && !trimmed.includes('@')) {
         // Basic CPF validation (not checking verifier digits)
         if (/^(\d)\1{10}$/.test(cleanedDigits)) {
