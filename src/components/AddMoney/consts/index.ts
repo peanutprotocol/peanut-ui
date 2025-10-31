@@ -17,7 +17,7 @@ export const MantecaSupportedExchanges = {
     //GT: 'GUATEMALA',
     // MX: 'MEXICO',
     //PH: 'PHILIPPINES',
-    BO: 'BOLIVIA',
+    //BO: 'BOLIVIA',
 }
 
 export interface CryptoSource {
