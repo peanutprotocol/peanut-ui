@@ -27,7 +27,7 @@ export const useBanners = () => {
     const { showReminderBanner, requestPermission, snoozeReminderBanner, afterPermissionAttempt, isPermissionDenied } =
         useNotifications()
     const router = useRouter()
-    const { isUserKycApproved } = useKycStatus()
+    const { isUserKycApproved, isUserBridgeKycUnderReview } = useKycStatus()
 
     const generateBanners = () => {
         const _banners: Banner[] = []
@@ -50,8 +50,7 @@ export const useBanners = () => {
             })
         }
 
-        if (!isUserKycApproved) {
-            // TODO: Add manteca KYC check after manteca is implemented
+        if (!isUserKycApproved && !isUserBridgeKycUnderReview) {
             _banners.push({
                 id: 'kyc-banner',
                 title: 'Unlock payments in Argentina',

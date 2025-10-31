@@ -45,6 +45,7 @@ interface TransactionDetailsHeaderCardProps {
     goal?: number
     isRequestPotTransaction?: boolean
     isTransactionClosed: boolean
+    convertedAmount?: string
 }
 
 const getTitle = (
@@ -181,6 +182,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     goal,
     isRequestPotTransaction,
     isTransactionClosed,
+    convertedAmount,
 }) => {
     const router = useRouter()
     const typeForAvatar =
@@ -251,6 +253,8 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                     >
                         {amountDisplay}
                     </h1>
+
+                    {convertedAmount && <h2 className="font-bold">≈ {convertedAmount}</h2>}
 
                     {isNoGoalSet && <h4 className="text-sm font-medium text-black">No goal set</h4>}
                 </div>
