@@ -34,9 +34,11 @@ import SetupNotificationsModal from '@/components/Notifications/SetupNotificatio
 import { useNotifications } from '@/hooks/useNotifications'
 import useKycStatus from '@/hooks/useKycStatus'
 import HomeBanners from '@/components/Home/HomeBanners'
-import InvitesIcon from '@/components/Home/InvitesIcon'
 import NoMoreJailModal from '@/components/Global/NoMoreJailModal'
 import EarlyUserModal from '@/components/Global/EarlyUserModal'
+import { STAR_STRAIGHT_ICON } from '@/assets'
+import Image from 'next/image'
+import NavigationArrow from '@/components/Global/NavigationArrow'
 
 const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
 const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_EXPIRY ?? '1814400') // 21 days in seconds
@@ -226,14 +228,12 @@ export default function Home() {
             <div className="h-full w-full space-y-6 p-5">
                 <div className="flex items-center justify-between gap-2">
                     <UserHeader username={username!} fullName={userFullName} isVerified={isUserKycApproved} />
-                    <div className="flex items-center">
-                        <div className="flex items-center gap-2">
-                            <Link href="/points">
-                                <InvitesIcon />
-                            </Link>
-                            {/* <NotificationNavigation /> */}
-                        </div>
-                    </div>
+                    <Link href="/points" className="flex items-center gap-2">
+                        <Image src={STAR_STRAIGHT_ICON} alt="star" width={20} height={20} />
+                        <span className="whitespace-nowrap text-sm font-semibold md:text-base">Points</span>
+                        <NavigationArrow size={16} className="fill-black" />
+                    </Link>
+                    {/* <NotificationNavigation /> */}
                 </div>
                 <div className="space-y-4">
                     <ActionButtonGroup>

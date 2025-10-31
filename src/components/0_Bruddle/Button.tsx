@@ -16,7 +16,7 @@ export type ButtonVariant =
     | 'primary-soft'
 export type ButtonSize = 'small' | 'medium' | 'large' | 'xl' | 'xl-fixed'
 type ButtonShape = 'default' | 'square'
-type ShadowSize = '4' | '6' | '8'
+type ShadowSize = '3' | '4' | '6' | '8'
 type ShadowType = 'primary' | 'secondary'
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -62,11 +62,13 @@ const buttonSizes: Record<ButtonSize, string> = {
 
 const buttonShadows: Record<ShadowType, Record<ShadowSize, string>> = {
     primary: {
+        '3': 'btn-shadow-primary-3',
         '4': 'btn-shadow-primary-4',
         '6': 'btn-shadow-primary-6',
         '8': 'btn-shadow-primary-8',
     },
     secondary: {
+        '3': 'btn-shadow-secondary-3',
         '4': 'btn-shadow-secondary-4',
         '6': 'btn-shadow-secondary-6',
         '8': 'btn-shadow-secondary-8',

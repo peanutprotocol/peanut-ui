@@ -544,6 +544,10 @@ module.exports = {
                 '.custom-input-xs': {
                     '@apply h-8': {},
                 },
+                '.btn-shadow-primary-3': {
+                    '@apply shadow-[0.1875rem_0.1875rem_0_#000000] dark:shadow-[0.1875rem_0.1875rem_0_rgba(255,255,255,.25)]':
+                        {},
+                },
                 '.btn-shadow-primary-4': {
                     '@apply shadow-[0.25rem_0.25rem_0_#000000] dark:shadow-[0.25rem_0.25rem_0_rgba(255,255,255,.25)]':
                         {},
@@ -554,6 +558,10 @@ module.exports = {
                 },
                 '.btn-shadow-primary-8': {
                     '@apply shadow-[0.5rem_0.5rem_0_#000000] dark:shadow-[0.5rem_0.5rem_0_rgba(255,255,255,.25)]': {},
+                },
+                '.btn-shadow-secondary-3': {
+                    '@apply shadow-[0.1875rem_-0.1875rem_0_#000000] dark:shadow-[0.1875rem_-0.1875rem_0_rgba(255,255,255,.25)]':
+                        {},
                 },
                 '.btn-shadow-secondary-4': {
                     '@apply shadow-[0.25rem_-0.25rem_0_#000000] dark:shadow-[0.25rem_-0.25rem_0_rgba(255,255,255,.25)]':
