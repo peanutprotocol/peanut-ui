@@ -527,6 +527,14 @@ export const TransactionDetailsReceipt = ({
         )
     }
 
+    const convertedAmount = useMemo(() => {
+        if (!transaction) return null
+        if (!transaction?.extraDataForDrawer?.receipt?.exchange_rate) {
+            return null
+        }
+        return `${transaction.currency!.code} ${formatCurrency(transaction.currency!.amount)}`
+    }, [transaction])
+
     return (
         <div ref={contentRef} className={twMerge('space-y-4', className)}>
             {/* show qr code at the top if applicable */}
@@ -552,6 +560,7 @@ export const TransactionDetailsReceipt = ({
                 progress={Number(formattedTotalAmountCollected)}
                 isRequestPotTransaction={transaction.isRequestPotLink}
                 isTransactionClosed={transaction.status === 'closed'}
+                convertedAmount={convertedAmount ?? undefined}
             />
 
             {/* Perk eligibility banner */}
@@ -765,13 +774,6 @@ export const TransactionDetailsReceipt = ({
                     {/* Exchange rate and original currency for completed bank_deposit transactions */}
                     {rowVisibilityConfig.exchangeRate && (
                         <>
-                            {transaction.extraDataForDrawer?.receipt?.exchange_rate && (
-                                <PaymentInfoRow
-                                    label={`Value in ${transaction.currency!.code}`}
-                                    value={`${transaction.currency!.code} ${formatCurrency(transaction.currency!.amount)}`}
-                                    hideBottomBorder
-                                />
-                            )}
                             {/* TODO: stop using snake_case!!!!! */}
                             {transaction.extraDataForDrawer?.receipt?.exchange_rate && (
                                 <PaymentInfoRow
