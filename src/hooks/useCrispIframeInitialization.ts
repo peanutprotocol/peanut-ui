@@ -55,4 +55,3 @@ export function useCrispIframeInitialization(
         return () => iframe.removeEventListener('load', handleLoad)
     }, [iframeRef, userData, prefilledMessage, enabled])
 }
-
