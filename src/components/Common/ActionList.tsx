@@ -33,6 +33,7 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { ActionListCard } from '../ActionListCard'
 import { useGeoFilteredPaymentOptions } from '@/hooks/useGeoFilteredPaymentOptions'
 import { tokenSelectorContext } from '@/context'
+import SupportCTA from '../Global/SupportCTA'
 
 interface IActionListProps {
     flow: 'claim' | 'request'
@@ -314,6 +315,7 @@ export default function ActionList({
                     )
                 })}
             </div>
+            <SupportCTA />
             <ActionModal
                 visible={showMinAmountError}
                 onClose={() => setShowMinAmountError(false)}
