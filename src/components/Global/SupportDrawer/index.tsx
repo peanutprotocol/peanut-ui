@@ -2,56 +2,17 @@
 
 import { useSupportModalContext } from '@/context/SupportModalContext'
 import { useCrispUserData } from '@/hooks/useCrispUserData'
-import { setCrispUserData } from '@/utils/crisp'
+import { useCrispIframeInitialization } from '@/hooks/useCrispIframeInitialization'
 import { Drawer, DrawerContent, DrawerTitle } from '../Drawer'
-import { useEffect, useRef } from 'react'
+import { useRef } from 'react'
 
 const SupportDrawer = () => {
     const { isSupportModalOpen, setIsSupportModalOpen, prefilledMessage } = useSupportModalContext()
     const userData = useCrispUserData()
     const iframeRef = useRef<HTMLIFrameElement>(null)
 
-    useEffect(() => {
-        if (!isSupportModalOpen || !iframeRef.current || !userData.username) return
-
-        const iframe = iframeRef.current
-
-        // Try to set Crisp data in iframe (same logic as CrispChat.tsx)
-        const setData = () => {
-            try {
-                const iframeWindow = iframe.contentWindow as any
-                if (!iframeWindow?.$crisp) return
-
-                setCrispUserData(iframeWindow.$crisp, userData, prefilledMessage)
-            } catch (e) {
-                // Silently fail if CORS blocks access - no harm done
-                console.debug('Could not set Crisp data in iframe (expected if CORS-blocked):', e)
-            }
-        }
-
-        const handleLoad = () => {
-            // Try immediately
-            setData()
-
-            // Listen for Crisp loaded event in iframe
-            try {
-                const iframeWindow = iframe.contentWindow as any
-                if (iframeWindow?.$crisp) {
-                    iframeWindow.$crisp.push(['on', 'session:loaded', setData])
-                }
-            } catch (e) {
-                // Ignore CORS errors
-            }
-
-            // Fallback: try again after delays
-            setTimeout(setData, 500)
-            setTimeout(setData, 1000)
-            setTimeout(setData, 2000)
-        }
-
-        iframe.addEventListener('load', handleLoad)
-        return () => iframe.removeEventListener('load', handleLoad)
-    }, [isSupportModalOpen, userData, prefilledMessage])
+    // Initialize Crisp user data in iframe
+    useCrispIframeInitialization(iframeRef, userData, prefilledMessage, isSupportModalOpen && !!userData.userId)
 
     return (
         <Drawer open={isSupportModalOpen} onOpenChange={setIsSupportModalOpen}>

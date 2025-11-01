@@ -24,29 +24,30 @@ export default function CrispChat() {
     const userData = useCrispUserData()
 
     useEffect(() => {
-        // Only set user data if we have a username
-        if (!userData.username || typeof window === 'undefined') return
+        if (!userData.userId || typeof window === 'undefined') return
 
-        // Wait for Crisp to be fully loaded
         const setData = () => {
             if (window.$crisp) {
                 setCrispUserData(window.$crisp, userData)
             }
         }
 
-        // Try to set immediately
-        setData()
+        // Set data immediately if Crisp is already loaded
+        if (window.$crisp) {
+            setData()
+        }
 
-        // Also listen for Crisp session loaded event
+        // Listen for session loaded event - primary event Crisp fires when ready
+        // This ensures data persists across sessions and is set when Crisp initializes
         if (window.$crisp) {
             window.$crisp.push(['on', 'session:loaded', setData])
         }
 
-        // Fallback: try again after a delay
-        const timer = setTimeout(setData, 2000)
+        // Fallback: try once after a delay to catch cases where Crisp loads quickly
+        const fallbackTimer = setTimeout(setData, 1000)
 
         return () => {
-            clearTimeout(timer)
+            clearTimeout(fallbackTimer)
             if (window.$crisp) {
                 window.$crisp.push(['off', 'session:loaded', setData])
             }

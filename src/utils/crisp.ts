@@ -9,13 +9,26 @@ import { type CrispUserData } from '@/hooks/useCrispUserData'
 export function setCrispUserData(crispInstance: any, userData: CrispUserData, prefilledMessage?: string): void {
     if (!crispInstance) return
 
-    const { username, userId, email, grafanaLink } = userData
+    const { username, userId, email, fullName, avatar, grafanaLink } = userData
 
-    // Set user nickname and email
-    crispInstance.push(['set', 'user:nickname', [username || '']])
-    crispInstance.push(['set', 'user:email', [email || '']])
+    // Set user email - this is critical for session persistence across devices/browsers
+    if (email) {
+        crispInstance.push(['set', 'user:email', [email]])
+    }
+
+    // Set user nickname - prefer fullName, fallback to username
+    const nickname = fullName || username || ''
+    if (nickname) {
+        crispInstance.push(['set', 'user:nickname', [nickname]])
+    }
+
+    // Set user avatar if available
+    if (avatar) {
+        crispInstance.push(['set', 'user:avatar', [avatar]])
+    }
 
     // Set session data - EXACT STRUCTURE (3 nested arrays!)
+    // This metadata appears in Crisp dashboard for support agents
     crispInstance.push([
         'set',
         'session:data',
@@ -23,6 +36,7 @@ export function setCrispUserData(crispInstance: any, userData: CrispUserData, pr
             [
                 ['username', username || ''],
                 ['user_id', userId || ''],
+                ['full_name', fullName || ''],
                 ['grafana_dashboard', grafanaLink || ''],
             ],
         ],
