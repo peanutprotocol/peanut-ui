@@ -38,4 +38,3 @@ const HomeCarouselCTA = () => {
 }
 
 export default HomeCarouselCTA
-

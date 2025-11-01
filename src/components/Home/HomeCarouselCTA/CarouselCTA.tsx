@@ -73,7 +73,10 @@ const CarouselCTA = ({
                     type="button"
                     aria-label={getAriaLabel()}
                     onClick={handleClose}
-                    className={twMerge(CAROUSEL_CLOSE_BUTTON_POSITION, 'z-10 cursor-pointer p-0 text-black outline-none')}
+                    className={twMerge(
+                        CAROUSEL_CLOSE_BUTTON_POSITION,
+                        'z-10 cursor-pointer p-0 text-black outline-none'
+                    )}
                 >
                     <Icon name="cancel" size={CAROUSEL_CLOSE_ICON_SIZE} />
                 </button>
@@ -88,7 +91,9 @@ const CarouselCTA = ({
                 >
                     {/* Show icon only if logo isn't provided. Logo takes precedence over icon. */}
                     {!logo && <Icon name={icon} size={20} />}
-                    {logo && <Image src={logo} alt={typeof title === 'string' ? title : 'logo'} width={32} height={32} />}
+                    {logo && (
+                        <Image src={logo} alt={typeof title === 'string' ? title : 'logo'} width={32} height={32} />
+                    )}
                 </div>
 
                 {/* Content */}
@@ -140,4 +145,3 @@ const CarouselCTA = ({
 }
 
 export default CarouselCTA
-
