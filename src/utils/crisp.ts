@@ -11,13 +11,8 @@ export function setCrispUserData(crispInstance: any, userData: CrispUserData, pr
 
     const { username, userId, email, fullName, avatar, grafanaLink } = userData
 
-    // Set session identifier (tokenId) for cross-device/cross-session persistence
-    // This ensures sessions persist across devices and cookie clears
-    if (userId) {
-        crispInstance.push(['set', 'session:identifier', [userId]])
-    }
-
     // Set user email - this is critical for session persistence across devices/browsers
+    // According to Crisp docs, user:email is the primary identifier for session persistence
     if (email) {
         crispInstance.push(['set', 'user:email', [email]])
     }

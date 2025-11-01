@@ -2,7 +2,8 @@
 
 import { useSupportModalContext } from '@/context/SupportModalContext'
 import { useCrispUserData } from '@/hooks/useCrispUserData'
-import { useCrispIframeInitialization } from '@/hooks/useCrispIframeInitialization'
+import { useCrispEmbedUrl } from '@/hooks/useCrispEmbedUrl'
+import { useCrispIframeSessionData } from '@/hooks/useCrispIframeSessionData'
 import { Drawer, DrawerContent, DrawerTitle } from '../Drawer'
 import { useRef } from 'react'
 
@@ -11,19 +12,17 @@ const SupportDrawer = () => {
     const userData = useCrispUserData()
     const iframeRef = useRef<HTMLIFrameElement>(null)
 
-    // Initialize Crisp user data in iframe
-    // Don't wait for drawer to open - iframe loads immediately and we need listener attached before load event
-    useCrispIframeInitialization(iframeRef, userData, prefilledMessage, !!userData.userId)
+    // Build Crisp embed URL with user data as URL parameters (bypasses CORS)
+    const crispEmbedUrl = useCrispEmbedUrl(userData)
+
+    // Try to set session:data via JavaScript if CORS allows (for metadata like grafana link)
+    useCrispIframeSessionData(iframeRef, userData, prefilledMessage)
 
     return (
         <Drawer open={isSupportModalOpen} onOpenChange={setIsSupportModalOpen}>
             <DrawerContent className="z-[999999] max-h-[85vh] w-screen pt-4">
                 <DrawerTitle className="sr-only">Support</DrawerTitle>
-                <iframe
-                    ref={iframeRef}
-                    src="https://go.crisp.chat/chat/embed/?website_id=916078be-a6af-4696-82cb-bc08d43d9125"
-                    className="h-[80vh] w-full"
-                />
+                <iframe ref={iframeRef} src={crispEmbedUrl} className="h-[80vh] w-full" />
             </DrawerContent>
         </Drawer>
     )

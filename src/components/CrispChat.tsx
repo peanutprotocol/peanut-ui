@@ -1,10 +1,9 @@
 'use client'
 
 import Script from 'next/script'
-import { useEffect } from 'react'
 import { useSupportModalContext } from '@/context/SupportModalContext'
 import { useCrispUserData } from '@/hooks/useCrispUserData'
-import { setCrispUserData } from '@/utils/crisp'
+import { useCrispInitialization } from '@/hooks/useCrispInitialization'
 
 export const CrispButton = ({ children, ...rest }: React.HTMLAttributes<HTMLButtonElement>) => {
     const { setIsSupportModalOpen } = useSupportModalContext()
@@ -23,36 +22,14 @@ export const CrispButton = ({ children, ...rest }: React.HTMLAttributes<HTMLButt
 export default function CrispChat() {
     const userData = useCrispUserData()
 
-    useEffect(() => {
-        if (!userData.userId || typeof window === 'undefined') return
-
-        const setData = () => {
-            if (window.$crisp) {
-                setCrispUserData(window.$crisp, userData)
-            }
-        }
-
-        // Set data immediately if Crisp is already loaded
-        if (window.$crisp) {
-            setData()
-        }
-
-        // Listen for session loaded event - primary event Crisp fires when ready
-        // This ensures data persists across sessions and is set when Crisp initializes
-        if (window.$crisp) {
-            window.$crisp.push(['on', 'session:loaded', setData])
-        }
-
-        // Fallback: try once after a delay to catch cases where Crisp loads quickly
-        const fallbackTimer = setTimeout(setData, 1000)
-
-        return () => {
-            clearTimeout(fallbackTimer)
-            if (window.$crisp) {
-                window.$crisp.push(['off', 'session:loaded', setData])
-            }
-        }
-    }, [userData])
+    // Initialize Crisp user data using the centralized hook
+    // typeof window check ensures SSR safety
+    useCrispInitialization(
+        typeof window !== 'undefined' ? window.$crisp : null,
+        userData,
+        undefined,
+        !!userData.userId && typeof window !== 'undefined'
+    )
 
     // thought: we need to version pin this script
     return (
