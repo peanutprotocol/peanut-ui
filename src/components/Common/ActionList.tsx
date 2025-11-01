@@ -315,7 +315,7 @@ export default function ActionList({
                     )
                 })}
             </div>
-            <SupportCTA />
+            {flow === 'claim' && !isLoggedIn && <SupportCTA />}
             <ActionModal
                 visible={showMinAmountError}
                 onClose={() => setShowMinAmountError(false)}
