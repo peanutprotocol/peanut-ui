@@ -320,14 +320,15 @@ export default function QRPayPage() {
 
     // Fetch points early to avoid latency penalty - fetch as soon as we have usdAmount
     // This way points are cached by the time success view shows
+    // Only Manteca QR payments give points (SimpleFi does not)
     const { data: pointsData } = useQuery({
         queryKey: ['calculate-points', 'qr-payment', paymentProcessor, usdAmount],
         queryFn: () =>
             pointsApi.calculatePoints({
-                actionType: PointsAction.MANTECA_QR_PAYMENT, // Both Manteca and SimpleFi QR payments use this type
+                actionType: PointsAction.MANTECA_QR_PAYMENT,
                 usdAmount: Number(usdAmount),
             }),
-        enabled: !!(user?.user.userId && usdAmount && Number(usdAmount) > 0 && paymentProcessor),
+        enabled: !!(user?.user.userId && usdAmount && Number(usdAmount) > 0 && paymentProcessor === 'MANTECA'),
         refetchOnWindowFocus: false,
         staleTime: 5 * 60 * 1000, // Cache for 5 minutes
     })
@@ -1203,17 +1204,6 @@ export default function QRPayPage() {
                             </div>
                         </div>
                     </Card>
-
-                    {/* Points Display */}
-                    {pointsData?.estimatedPoints && (
-                        <div ref={pointsDivRef} className="flex justify-center gap-2">
-                            <Image src={STAR_STRAIGHT_ICON} alt="star" width={20} height={20} />
-                            <p className="text-sm font-medium text-black">
-                                You&apos;ve earned {pointsData.estimatedPoints}{' '}
-                                {pointsData.estimatedPoints === 1 ? 'point' : 'points'}!
-                            </p>
-                        </div>
-                    )}
 
                     <div className="w-full space-y-5">
                         <Button
