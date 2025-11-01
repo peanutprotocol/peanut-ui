@@ -735,6 +735,12 @@ export default function QRPayPage() {
 
     // Check user balance
     useEffect(() => {
+        // Skip balance check on success screen (balance may not have updated yet)
+        if (isSuccess) {
+            setBalanceErrorMessage(null)
+            return
+        }
+
         // Skip balance check if transaction is being processed
         if (hasPendingTransactions || isWaitingForWebSocket) {
             return
@@ -752,7 +758,7 @@ export default function QRPayPage() {
         } else {
             setBalanceErrorMessage(null)
         }
-    }, [usdAmount, balance, hasPendingTransactions, isWaitingForWebSocket])
+    }, [usdAmount, balance, hasPendingTransactions, isWaitingForWebSocket, isSuccess])
 
     // Use points confetti hook for animation - must be called unconditionally
     usePointsConfetti(isSuccess && pointsData?.estimatedPoints ? pointsData.estimatedPoints : undefined, pointsDivRef)
@@ -1007,22 +1013,6 @@ export default function QRPayPage() {
                         </Card>
                     )}
 
-                    {/* Savings Message - Show after payment card (Argentina Manteca only) */}
-                    {showSavingsMessage && savingsMessage && (
-                        <p className="text-center text-sm italic text-grey-1">{savingsMessage}</p>
-                    )}
-
-                    {/* Points Display - Show after payment card */}
-                    {pointsData?.estimatedPoints && (
-                        <div ref={pointsDivRef} className="flex justify-center gap-2">
-                            <Image src={STAR_STRAIGHT_ICON} alt="star" width={20} height={20} />
-                            <p className="text-sm font-medium text-black">
-                                You&apos;ve earned {pointsData.estimatedPoints}{' '}
-                                {pointsData.estimatedPoints === 1 ? 'point' : 'points'}!
-                            </p>
-                        </div>
-                    )}
-
                     {/* Perk Eligibility Card - Show before claiming */}
                     {qrPayment?.perk?.eligible && !perkClaimed && !qrPayment.perk.claimed && (
                         <Card className="flex items-start gap-3 bg-white p-4">
@@ -1071,25 +1061,21 @@ export default function QRPayPage() {
                         </Card>
                     )}
 
-                    {/* Savings Message and Points - Show after perk banner if perk claimed */}
-                    {(perkClaimed || qrPayment?.perk?.claimed) && (
-                        <>
-                            {/* Savings Message (Argentina Manteca only) */}
-                            {showSavingsMessage && savingsMessage && (
-                                <p className="text-center text-sm italic text-grey-1">{savingsMessage}</p>
-                            )}
+                    {/* Savings Message and Points - Show after payment card OR after perk banner */}
+                    {/* Savings Message (Argentina Manteca only) */}
+                    {showSavingsMessage && savingsMessage && (
+                        <p className="text-center text-sm italic text-grey-1">{savingsMessage}</p>
+                    )}
 
-                            {/* Points Display */}
-                            {pointsData?.estimatedPoints && (
-                                <div ref={pointsDivRef} className="flex justify-center gap-2">
-                                    <Image src={STAR_STRAIGHT_ICON} alt="star" width={20} height={20} />
-                                    <p className="text-sm font-medium text-black">
-                                        You&apos;ve earned {pointsData.estimatedPoints}{' '}
-                                        {pointsData.estimatedPoints === 1 ? 'point' : 'points'}!
-                                    </p>
-                                </div>
-                            )}
-                        </>
+                    {/* Points Display */}
+                    {pointsData?.estimatedPoints && (
+                        <div ref={pointsDivRef} className="flex justify-center gap-2">
+                            <Image src={STAR_STRAIGHT_ICON} alt="star" width={20} height={20} />
+                            <p className="text-sm font-medium text-black">
+                                You&apos;ve earned {pointsData.estimatedPoints}{' '}
+                                {pointsData.estimatedPoints === 1 ? 'point' : 'points'}!
+                            </p>
+                        </div>
                     )}
 
                     <div className="w-full space-y-5">
