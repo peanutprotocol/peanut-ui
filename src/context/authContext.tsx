@@ -11,6 +11,7 @@ import {
     clearRedirectUrl,
     updateUserPreferences,
 } from '@/utils'
+import { resetCrispSession } from '@/utils/crisp'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { createContext, type ReactNode, useContext, useState, useEffect, useMemo, useCallback } from 'react'
@@ -146,6 +147,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 // clear the iOS PWA prompt session flag
                 if (typeof window !== 'undefined') {
                     sessionStorage.removeItem('hasSeenIOSPWAPromptThisSession')
+                }
+
+                // Reset Crisp session to prevent session merging with next user
+                if (typeof window !== 'undefined' && window.$crisp) {
+                    resetCrispSession(window.$crisp)
                 }
 
                 await fetchUser()

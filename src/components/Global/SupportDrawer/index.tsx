@@ -12,7 +12,8 @@ const SupportDrawer = () => {
     const iframeRef = useRef<HTMLIFrameElement>(null)
 
     // Initialize Crisp user data in iframe
-    useCrispIframeInitialization(iframeRef, userData, prefilledMessage, isSupportModalOpen && !!userData.userId)
+    // Don't wait for drawer to open - iframe loads immediately and we need listener attached before load event
+    useCrispIframeInitialization(iframeRef, userData, prefilledMessage, !!userData.userId)
 
     return (
         <Drawer open={isSupportModalOpen} onOpenChange={setIsSupportModalOpen}>

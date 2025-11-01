@@ -11,6 +11,12 @@ export function setCrispUserData(crispInstance: any, userData: CrispUserData, pr
 
     const { username, userId, email, fullName, avatar, grafanaLink } = userData
 
+    // Set session identifier (tokenId) for cross-device/cross-session persistence
+    // This ensures sessions persist across devices and cookie clears
+    if (userId) {
+        crispInstance.push(['set', 'session:identifier', [userId]])
+    }
+
     // Set user email - this is critical for session persistence across devices/browsers
     if (email) {
         crispInstance.push(['set', 'user:email', [email]])
@@ -45,5 +51,20 @@ export function setCrispUserData(crispInstance: any, userData: CrispUserData, pr
     // Set prefilled message if exists
     if (prefilledMessage) {
         crispInstance.push(['set', 'message:text', [prefilledMessage]])
+    }
+}
+
+/**
+ * Resets Crisp session - call this on logout to prevent session merging
+ * @param crispInstance - The $crisp object (window.$crisp or iframe.contentWindow.$crisp)
+ */
+export function resetCrispSession(crispInstance: any): void {
+    if (!crispInstance || typeof window === 'undefined') return
+
+    try {
+        // Reset the session to prevent merging with next user's session
+        crispInstance.push(['do', 'session:reset'])
+    } catch (e) {
+        console.debug('Could not reset Crisp session:', e)
     }
 }
