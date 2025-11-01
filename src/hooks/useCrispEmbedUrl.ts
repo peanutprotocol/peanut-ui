@@ -30,4 +30,3 @@ export function useCrispEmbedUrl(userData: CrispUserData): string {
         return queryString ? `${CRISP_EMBED_BASE_URL}&${queryString}` : CRISP_EMBED_BASE_URL
     }, [userData.email, userData.fullName, userData.username, userData.avatar])
 }
-
