@@ -1,21 +1,39 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { useCrispUserData } from '@/hooks/useCrispUserData'
-import { useCrispEmbedUrl } from '@/hooks/useCrispEmbedUrl'
-import { useCrispIframeSessionData } from '@/hooks/useCrispIframeSessionData'
-import { useRef } from 'react'
+import { useCrispProxyUrl } from '@/hooks/useCrispProxyUrl'
+import PeanutLoading from '@/components/Global/PeanutLoading'
 
 const SupportPage = () => {
     const userData = useCrispUserData()
-    const iframeRef = useRef<HTMLIFrameElement>(null)
+    const crispProxyUrl = useCrispProxyUrl(userData)
+    const [isLoading, setIsLoading] = useState(true)
 
-    // Build Crisp embed URL with user data as URL parameters (bypasses CORS)
-    const crispEmbedUrl = useCrispEmbedUrl(userData)
+    useEffect(() => {
+        // Listen for ready message from proxy iframe
+        const handleMessage = (event: MessageEvent) => {
+            if (event.origin !== window.location.origin) return
 
-    // Try to set session:data via JavaScript if CORS allows (for metadata like grafana link)
-    useCrispIframeSessionData(iframeRef, userData)
+            if (event.data.type === 'CRISP_READY') {
+                setIsLoading(false)
+            }
+        }
 
-    return <iframe ref={iframeRef} src={crispEmbedUrl} className="h-full w-full md:max-w-[90%] md:pl-24" />
+        window.addEventListener('message', handleMessage)
+        return () => window.removeEventListener('message', handleMessage)
+    }, [])
+
+    return (
+        <div className="relative h-full w-full md:max-w-[90%] md:pl-24">
+            {isLoading && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center bg-background">
+                    <PeanutLoading />
+                </div>
+            )}
+            <iframe src={crispProxyUrl} className="h-full w-full" title="Support Chat" />
+        </div>
+    )
 }
 
 export default SupportPage

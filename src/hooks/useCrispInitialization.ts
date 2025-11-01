@@ -3,12 +3,15 @@ import { setCrispUserData } from '@/utils/crisp'
 import { type CrispUserData } from './useCrispUserData'
 
 /**
- * Hook to initialize Crisp user data on a given $crisp instance
- * Handles timing, event listeners, and cleanup according to Crisp SDK best practices
- * @param crispInstance - The $crisp object (window.$crisp or iframe.contentWindow.$crisp)
+ * Initializes Crisp user data on the main window $crisp instance
+ *
+ * Used for the main Crisp widget (not iframe). Sets user identification and metadata
+ * using event listeners for proper timing.
+ *
+ * @param crispInstance - The $crisp object (window.$crisp)
  * @param userData - User data to set
  * @param prefilledMessage - Optional prefilled message
- * @param enabled - Whether initialization is enabled (default: true)
+ * @param enabled - Whether initialization is enabled
  */
 export function useCrispInitialization(
     crispInstance: any,
@@ -25,14 +28,9 @@ export function useCrispInitialization(
             }
         }
 
-        // Set data immediately if Crisp is already loaded
         setData()
-
-        // Listen for session loaded event - primary event Crisp fires when ready
-        // This ensures data persists across sessions and is set when Crisp initializes
         crispInstance.push(['on', 'session:loaded', setData])
 
-        // Fallback: try once after a delay to catch cases where Crisp loads quickly
         const fallbackTimer = setTimeout(setData, 1000)
 
         return () => {

@@ -11,7 +11,7 @@ import {
     clearRedirectUrl,
     updateUserPreferences,
 } from '@/utils'
-import { resetCrispSession } from '@/utils/crisp'
+import { resetCrispSession, resetCrispProxySessions } from '@/utils/crisp'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { createContext, type ReactNode, useContext, useState, useEffect, useMemo, useCallback } from 'react'
@@ -150,8 +150,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 }
 
                 // Reset Crisp session to prevent session merging with next user
-                if (typeof window !== 'undefined' && window.$crisp) {
-                    resetCrispSession(window.$crisp)
+                // This resets both main window Crisp instance and any proxy page instances
+                if (typeof window !== 'undefined') {
+                    resetCrispProxySessions()
                 }
 
                 await fetchUser()

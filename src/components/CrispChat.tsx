@@ -5,6 +5,11 @@ import { useSupportModalContext } from '@/context/SupportModalContext'
 import { useCrispUserData } from '@/hooks/useCrispUserData'
 import { useCrispInitialization } from '@/hooks/useCrispInitialization'
 
+const CRISP_WEBSITE_ID = '916078be-a6af-4696-82cb-bc08d43d9125'
+
+/**
+ * Button component that opens the support drawer
+ */
 export const CrispButton = ({ children, ...rest }: React.HTMLAttributes<HTMLButtonElement>) => {
     const { setIsSupportModalOpen } = useSupportModalContext()
 
@@ -19,11 +24,15 @@ export const CrispButton = ({ children, ...rest }: React.HTMLAttributes<HTMLButt
     )
 }
 
+/**
+ * Loads the main Crisp chat widget script and initializes user data
+ *
+ * This creates the main window $crisp instance. The actual chat UI is rendered
+ * via SupportDrawer as an iframe to avoid page layout interference.
+ */
 export default function CrispChat() {
     const userData = useCrispUserData()
 
-    // Initialize Crisp user data using the centralized hook
-    // typeof window check ensures SSR safety
     useCrispInitialization(
         typeof window !== 'undefined' ? window.$crisp : null,
         userData,
@@ -31,21 +40,20 @@ export default function CrispChat() {
         !!userData.userId && typeof window !== 'undefined'
     )
 
-    // thought: we need to version pin this script
     return (
-        <Script strategy="afterInteractive">
+        <Script strategy="afterInteractive" id="crisp-main-widget">
             {`
-        window.$crisp=[];
-        window.CRISP_WEBSITE_ID="916078be-a6af-4696-82cb-bc08d43d9125";
-        (function(){
-          d=document;
-          s=d.createElement("script");
-          s.src="https://client.crisp.chat/l.js";
-          s.async=1;
-          d.getElementsByTagName("head")[0].appendChild(s);
-        })();
-        window.$crisp.push(["safe", true]);
-      `}
+                window.$crisp=[];
+                window.CRISP_WEBSITE_ID="${CRISP_WEBSITE_ID}";
+                (function(){
+                    d=document;
+                    s=d.createElement("script");
+                    s.src="https://client.crisp.chat/l.js";
+                    s.async=1;
+                    d.getElementsByTagName("head")[0].appendChild(s);
+                })();
+                window.$crisp.push(["safe", true]);
+            `}
         </Script>
     )
 }
