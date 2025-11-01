@@ -67,7 +67,10 @@ const CarouselCTA = ({
 
     return (
         <>
-            <Card onClick={handleClick} className="embla__slide relative flex flex-row items-center justify-around p-2">
+            <Card
+                onClick={handleClick}
+                className="embla__slide relative flex flex-row items-center justify-around px-2 py-2 md:py-3"
+            >
                 {/* Close button - consistent positioning and size */}
                 <button
                     type="button"
