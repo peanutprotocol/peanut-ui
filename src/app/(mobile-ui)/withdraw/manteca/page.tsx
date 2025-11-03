@@ -1,7 +1,7 @@
 'use client'
 
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { useState, useMemo, useContext, useEffect, useCallback, useRef } from 'react'
+import { useState, useMemo, useContext, useEffect, useCallback, useRef, useId } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
@@ -37,13 +37,13 @@ import {
 } from '@/constants'
 import Select from '@/components/Global/Select'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
-import { useQueryClient, useQuery } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { captureException } from '@sentry/nextjs'
 import useKycStatus from '@/hooks/useKycStatus'
 import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
-import { pointsApi } from '@/services/points'
 import { PointsAction } from '@/services/services.types'
 import { usePointsConfetti } from '@/hooks/usePointsConfetti'
+import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 
 type MantecaWithdrawStep = 'amountInput' | 'bankDetails' | 'review' | 'success' | 'failure'
@@ -52,6 +52,7 @@ const MAX_WITHDRAW_AMOUNT = '2000'
 const MIN_WITHDRAW_AMOUNT = '1'
 
 export default function MantecaWithdrawFlow() {
+    const flowId = useId() // Unique ID per flow instance to prevent cache collisions
     const [amount, setAmount] = useState<string | undefined>(undefined)
     const [currencyAmount, setCurrencyAmount] = useState<string | undefined>(undefined)
     const [usdAmount, setUsdAmount] = useState<string | undefined>(undefined)
@@ -74,7 +75,6 @@ export default function MantecaWithdrawFlow() {
     const queryClient = useQueryClient()
     const { isUserBridgeKycApproved } = useKycStatus()
     const { hasPendingTransactions } = usePendingTransactions()
-    const pointsDivRef = useRef<HTMLDivElement>(null)
 
     // Get method and country from URL parameters
     const selectedMethodType = searchParams.get('method') // mercadopago, pix, bank-transfer, etc.
@@ -296,17 +296,8 @@ export default function MantecaWithdrawFlow() {
     }, [usdAmount, balance, hasPendingTransactions])
 
     // Fetch points early to avoid latency penalty - fetch as soon as we have usdAmount
-    const { data: pointsData } = useQuery({
-        queryKey: ['calculate-points', 'manteca-withdraw', usdAmount],
-        queryFn: () =>
-            pointsApi.calculatePoints({
-                actionType: PointsAction.MANTECA_TRANSFER,
-                usdAmount: Number(usdAmount),
-            }),
-        enabled: !!(user?.user.userId && usdAmount && Number(usdAmount) > 0),
-        refetchOnWindowFocus: false,
-        staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-    })
+    // Use flowId as uniqueId to prevent cache collisions between different withdrawal flows
+    const { pointsData, pointsDivRef } = usePointsCalculation(PointsAction.MANTECA_TRANSFER, usdAmount, true, flowId)
 
     // Use points confetti hook for animation - must be called unconditionally
     usePointsConfetti(step === 'success' ? pointsData?.estimatedPoints : undefined, pointsDivRef)
@@ -345,7 +336,7 @@ export default function MantecaWithdrawFlow() {
                         </div>
                     </Card>
 
-                    {/* Points Display */}
+                    {/* Points Display - ref used for confetti origin point */}
                     {pointsData?.estimatedPoints && (
                         <div ref={pointsDivRef} className="flex justify-center gap-2">
                             <Image src={STAR_STRAIGHT_ICON} alt="star" width={20} height={20} />

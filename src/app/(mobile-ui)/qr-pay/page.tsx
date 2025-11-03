@@ -38,13 +38,13 @@ import { QrKycState, useQrKycGate } from '@/hooks/useQrKycGate'
 import ActionModal from '@/components/Global/ActionModal'
 import { MantecaGeoSpecificKycModal } from '@/components/Kyc/InitiateMantecaKYCModal'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { shootDoubleStarConfetti } from '@/utils/confetti'
 import { STAR_STRAIGHT_ICON } from '@/assets'
 import { useAuth } from '@/context/authContext'
-import { pointsApi } from '@/services/points'
 import { PointsAction } from '@/services/services.types'
 import { usePointsConfetti } from '@/hooks/usePointsConfetti'
+import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import type { HistoryEntry } from '@/hooks/useTransactionHistory'
 import { completeHistoryEntry } from '@/utils/history.utils'
@@ -96,7 +96,6 @@ export default function QRPayPage() {
     const { setIsSupportModalOpen } = useSupportModalContext()
     const [waitingForMerchantAmount, setWaitingForMerchantAmount] = useState(false)
     const retryCount = useRef(0)
-    const pointsDivRef = useRef<HTMLDivElement>(null)
 
     const paymentProcessor: PaymentProcessor | null = useMemo(() => {
         switch (qrType) {
@@ -321,17 +320,13 @@ export default function QRPayPage() {
     // Fetch points early to avoid latency penalty - fetch as soon as we have usdAmount
     // This way points are cached by the time success view shows
     // Only Manteca QR payments give points (SimpleFi does not)
-    const { data: pointsData } = useQuery({
-        queryKey: ['calculate-points', 'qr-payment', paymentProcessor, usdAmount],
-        queryFn: () =>
-            pointsApi.calculatePoints({
-                actionType: PointsAction.MANTECA_QR_PAYMENT,
-                usdAmount: Number(usdAmount),
-            }),
-        enabled: !!(user?.user.userId && usdAmount && Number(usdAmount) > 0 && paymentProcessor === 'MANTECA'),
-        refetchOnWindowFocus: false,
-        staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-    })
+    // Use timestamp as uniqueId to prevent cache collisions between different QR scans
+    const { pointsData, pointsDivRef } = usePointsCalculation(
+        PointsAction.MANTECA_QR_PAYMENT,
+        usdAmount,
+        paymentProcessor === 'MANTECA',
+        timestamp || undefined
+    )
 
     const methodIcon = useMemo(() => {
         switch (qrType) {
@@ -1010,6 +1005,10 @@ export default function QRPayPage() {
                                 <div className="text-lg font-bold">
                                     ≈ {formatNumberForDisplay(usdAmount ?? undefined, { maxDecimals: 2 })} USD
                                 </div>
+                                {/* Savings Message (Argentina Manteca only) */}
+                                {showSavingsMessage && savingsMessage && (
+                                    <p className="text-sm italic text-grey-1">{savingsMessage}</p>
+                                )}
                             </div>
                         </Card>
                     )}
@@ -1062,13 +1061,7 @@ export default function QRPayPage() {
                         </Card>
                     )}
 
-                    {/* Savings Message and Points - Show after payment card OR after perk banner */}
-                    {/* Savings Message (Argentina Manteca only) */}
-                    {showSavingsMessage && savingsMessage && (
-                        <p className="text-center text-sm italic text-grey-1">{savingsMessage}</p>
-                    )}
-
-                    {/* Points Display */}
+                    {/* Points Display - ref used for confetti origin point */}
                     {pointsData?.estimatedPoints && (
                         <div ref={pointsDivRef} className="flex justify-center gap-2">
                             <Image src={STAR_STRAIGHT_ICON} alt="star" width={20} height={20} />

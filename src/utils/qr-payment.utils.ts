@@ -40,10 +40,10 @@ export function getSavingsMessage(savingsInCents: number): string {
     // If savings is less than $1, show in cents
     if (savingsInDollars < 1) {
         const centsText = savingsInCents === 1 ? 'cent' : 'cents'
-        return `If you had paid with card, it'd have cost you ~${savingsInCents} ${centsText} more!`
+        return `saved ~${savingsInCents} ${centsText} compared to card!`
     }
 
     // If savings is $1 or more, show in dollars
     const formattedDollars = formatNumberForDisplay(savingsInDollars.toString(), { maxDecimals: 2 })
-    return `If you had paid with card, it'd have cost you ~$${formattedDollars} more!`
+    return `saved ~$${formattedDollars} compared to card!`
 }
