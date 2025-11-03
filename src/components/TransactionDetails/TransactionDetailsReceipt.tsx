@@ -426,7 +426,11 @@ export const TransactionDetailsReceipt = ({
 
                 {/* Support link section */}
                 <button
-                    onClick={() => setIsSupportModalOpen(true)}
+                    //onClick={() => setIsSupportModalOpen(true)}
+                    //Crisp is down
+                    onClick={() => {
+                        window.location.href = 'https://t.me/beetrootww'
+                    }}
                     className="flex w-full items-center justify-center gap-2 text-sm font-medium text-grey-1 underline transition-colors hover:text-black"
                 >
                     <Icon name="peanut-support" size={16} className="text-grey-1" />
@@ -1275,7 +1279,11 @@ export const TransactionDetailsReceipt = ({
 
             {/* support link section */}
             <button
-                onClick={() => setIsSupportModalOpen(true)}
+                //onClick={() => setIsSupportModalOpen(true)}
+                //Crisp is down
+                onClick={() => {
+                    window.location.href = 'https://t.me/beetrootww'
+                }}
                 className="flex w-full items-center justify-center gap-2 text-sm font-medium text-grey-1 underline transition-colors hover:text-black"
             >
                 <Icon name="peanut-support" size={16} className="text-grey-1" />

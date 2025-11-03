@@ -56,7 +56,11 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                     {
                         text: 'Chat with support',
                         icon: 'peanut-support' as IconName,
-                        onClick: () => setIsSupportModalOpen(true),
+                        //onClick: () => setIsSupportModalOpen(true),
+                        //Crisp is down
+                        onClick: () => {
+                            window.location.href = 'https://t.me/beetrootww'
+                        },
                         variant: 'transparent' as ButtonVariant,
                         className: 'underline text-sm font-medium w-full fill-none h-fit mt-3',
                     },
@@ -158,9 +162,14 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                             </Button>
 
                             <button
+                                /*
                                 onClick={() => {
                                     setModalVariant('trouble')
                                     setIsHelpModalOpen(true)
+                                }}
+                                    */
+                                onClick={() => {
+                                    window.location.href = 'https://t.me/beetrootww'
                                 }}
                                 className="flex items-center gap-1"
                             >

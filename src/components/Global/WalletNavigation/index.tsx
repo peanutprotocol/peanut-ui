@@ -24,7 +24,8 @@ const desktopPaths: NavPathProps[] = [
     { name: 'Withdraw', href: '/withdraw', icon: 'arrow-up', size: 14 },
     { name: 'History', href: '/history', icon: 'history', size: 16 },
     { name: 'Docs', href: 'https://docs.peanut.to/', icon: 'docs', size: 16 },
-    { name: 'Support', href: '/support', icon: 'peanut-support', size: 16 },
+    //{ name: 'Support', href: '/support', icon: 'peanut-support', size: 16 },
+    { name: 'Support', href: 'https://t.me/beetrootww', icon: 'peanut-support', size: 16 },
 ]
 
 type NavSectionProps = {
@@ -89,7 +90,11 @@ const MobileNav: React.FC<MobileNavProps> = ({ pathName }) => {
 
             {/* Support Link */}
             <button
-                onClick={() => setIsSupportModalOpen(true)}
+                //onClick={() => setIsSupportModalOpen(true)}
+                //Crisp is down
+                onClick={() => {
+                    window.location.href = 'https://t.me/beetrootww'
+                }}
                 translate="no"
                 className={classNames(
                     'notranslate mb-4 flex flex-col items-center justify-center object-contain  hover:cursor-pointer',
