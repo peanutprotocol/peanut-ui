@@ -876,7 +876,7 @@ export const generateInvitesShareText = (inviteLink: string) => {
 /**
  * Generate a deterministic 3-digit suffix from username
  * This is purely cosmetic and derived from a hash of the username
- * 
+ *
  * ⚠️ IMPORTANT: This logic is duplicated in the backend (peanut-api-ts/src/utils.ts)
  * If you change this, you MUST update the backend version to match!
  */
