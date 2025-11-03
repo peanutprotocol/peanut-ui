@@ -11,6 +11,7 @@ import { Drawer, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
 import { VerifiedUserLabel } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
 import useKycStatus from '@/hooks/useKycStatus'
+import CopyToClipboard from '@/components/Global/CopyToClipboard'
 
 interface ProfileHeaderProps {
     name: string
@@ -44,15 +45,18 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 <AvatarWithBadge name={name || username} />
 
                 {/* Name */}
-                <VerifiedUserLabel
-                    name={name}
-                    username={username}
-                    isVerified={isVerified}
-                    className="text-2xl font-bold"
-                    iconSize={20}
-                    haveSentMoneyToUser={haveSentMoneyToUser}
-                    isAuthenticatedUserVerified={isAuthenticatedUserVerified && isSelfProfile} // can be true only for self profile
-                />
+                <div className="flex items-center gap-1.5">
+                    <VerifiedUserLabel
+                        name={name}
+                        username={username}
+                        isVerified={isVerified}
+                        className="text-2xl font-bold"
+                        iconSize={20}
+                        haveSentMoneyToUser={haveSentMoneyToUser}
+                        isAuthenticatedUserVerified={isAuthenticatedUserVerified && isSelfProfile} // can be true only for self profile
+                    />
+                    <CopyToClipboard textToCopy={username} fill="black" iconSize="4" />
+                </div>
                 {/* Username with share drawer */}
                 {showShareButton && (
                     <Button

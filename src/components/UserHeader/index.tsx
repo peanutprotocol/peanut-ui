@@ -25,7 +25,7 @@ export const UserHeader = ({ username, fullName, isVerified }: UserHeaderProps) 
             <Button
                 variant="primary-soft"
                 className={twMerge(
-                    'flex h-8 w-auto cursor-pointer items-center justify-center gap-1.5 rounded-full px-2 md:h-9 md:px-3'
+                    'flex h-8 w-auto cursor-pointer items-center justify-center gap-1.5 rounded-full px-2.5 md:h-9 md:px-3.5'
                 )}
                 shadowSize="3"
                 size="small"

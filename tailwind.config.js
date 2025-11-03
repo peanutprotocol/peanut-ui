@@ -197,6 +197,27 @@ module.exports = {
                     '0%, 50%': { opacity: '1' },
                     '50.01%, 100%': { opacity: '0' },
                 },
+                starPulsateWiggle: {
+                    // Gentle pulsate 3 times
+                    '0%': { transform: 'scale(1) rotate(0deg)' },
+                    '6%': { transform: 'scale(1.12) rotate(0deg)' },
+                    '12%': { transform: 'scale(1) rotate(0deg)' },
+                    '18%': { transform: 'scale(1.12) rotate(0deg)' },
+                    '24%': { transform: 'scale(1) rotate(0deg)' },
+                    '30%': { transform: 'scale(1.12) rotate(0deg)' },
+                    '36%': { transform: 'scale(1) rotate(0deg)' },
+                    // Pause for ~1 second
+                    '50%': { transform: 'scale(1) rotate(0deg)' },
+                    // Fast aggressive wiggle
+                    '52%': { transform: 'scale(1) rotate(-15deg)' },
+                    '54%': { transform: 'scale(1) rotate(15deg)' },
+                    '56%': { transform: 'scale(1) rotate(-15deg)' },
+                    '58%': { transform: 'scale(1) rotate(15deg)' },
+                    '60%': { transform: 'scale(1) rotate(0deg)' },
+                    // Short pause before loop
+                    '75%': { transform: 'scale(1) rotate(0deg)' },
+                    '100%': { transform: 'scale(1) rotate(0deg)' },
+                },
             },
             animation: {
                 colorPulse: 'colorPulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
@@ -205,6 +226,7 @@ module.exports = {
                 'pulsate-slow': 'pulsateDeep 4s ease-in-out infinite',
                 'pulse-strong': 'pulse-strong 1s ease-in-out infinite',
                 blink: 'blink 1.5s step-end infinite',
+                'star-pulsate-wiggle': 'starPulsateWiggle 10s ease-in-out infinite',
             },
             opacity: {
                 85: '.85',
