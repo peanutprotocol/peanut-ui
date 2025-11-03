@@ -39,15 +39,6 @@ function InvitePageContent() {
     // Redirect logged-in users who already have app access to the inviter's profile
     // Users without app access should stay on this page to claim the invite and get access
     useEffect(() => {
-        console.log('[InvitesPage] Effect check:', {
-            hasUser: !!user?.user,
-            hasAppAccess: user?.user?.hasAppAccess,
-            inviteSuccess: inviteCodeData?.success,
-            inviterUsername: inviteCodeData?.username,
-            loggedInUsername: user?.user?.username,
-            isLoading,
-        })
-
         // Wait for both user and invite data to be loaded
         if (!user?.user || !inviteCodeData || isLoading) {
             return
@@ -55,7 +46,6 @@ function InvitePageContent() {
 
         // If user has app access and invite is valid, redirect to inviter's profile
         if (user.user.hasAppAccess && inviteCodeData.success && inviteCodeData.username) {
-            console.log('[InvitesPage] Redirecting to inviter profile:', `/${inviteCodeData.username}`)
             router.push(`/${inviteCodeData.username}`)
         }
     }, [user, inviteCodeData, isLoading, router])

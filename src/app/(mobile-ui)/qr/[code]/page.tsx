@@ -31,15 +31,11 @@ export default function RedirectQrClaimPage() {
     useEffect(() => {
         if (redirectQrData?.claimed && redirectQrData?.redirectUrl) {
             // Extract the path from the URL to keep it on the same domain (localhost vs production)
-            console.log('[QR Claim] QR is claimed, redirecting to:', redirectQrData.redirectUrl)
             try {
                 const url = new URL(redirectQrData.redirectUrl)
                 const invitePath = `${url.pathname}${url.search}` // e.g., /invite?code=XYZINVITESYOU
-                console.log('[QR Claim] Extracted invite path:', invitePath)
-                console.log('[QR Claim] User state:', user ? `logged in as ${user.user?.username}` : 'not logged in')
                 router.push(invitePath)
             } catch (error) {
-                console.error('[QR Claim] Failed to parse redirectUrl, using full URL', error)
                 // Fallback to full URL if parsing fails
                 window.location.href = redirectQrData.redirectUrl
             }
@@ -48,15 +44,7 @@ export default function RedirectQrClaimPage() {
 
     // Check authentication and redirect if needed (only if QR is not claimed)
     useEffect(() => {
-        console.log('[QR Claim] Auth check:', {
-            isCheckingStatus,
-            hasUser: !!user,
-            hasClaimed: redirectQrData?.claimed,
-            hasRedirectUrl: !!redirectQrData?.redirectUrl,
-        })
-
         if (!isCheckingStatus && !user && redirectQrData && !redirectQrData.claimed) {
-            console.log('[QR Claim] QR is unclaimed and user not logged in, redirecting to setup')
             // Save current URL to redirect back after login
             saveRedirectUrl()
             router.push('/setup')
