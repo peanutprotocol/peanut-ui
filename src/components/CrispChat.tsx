@@ -53,7 +53,10 @@ export default function CrispChat() {
         }
     }, [userData])
 
-    // thought: we need to version pin this script
+    // Note: Crisp Chat does not offer version-pinned CDN URLs. The l.js loader
+    // is designed to auto-update for security patches and feature updates.
+    // This is a deliberate design choice by Crisp to ensure all clients receive
+    // critical updates.
     return (
         <Script strategy="afterInteractive">
             {`

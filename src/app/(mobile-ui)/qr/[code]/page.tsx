@@ -27,21 +27,41 @@ export default function RedirectQrClaimPage() {
     // Fetch redirect QR status using shared hook
     const { data: redirectQrData, isLoading: isCheckingStatus, error: redirectQrError } = useRedirectQrStatus(code)
 
-    // If already claimed, redirect to target URL
+    // If already claimed, redirect to target URL (for both logged in and logged out users)
     useEffect(() => {
         if (redirectQrData?.claimed && redirectQrData?.redirectUrl) {
-            window.location.href = redirectQrData.redirectUrl
+            // Extract the path from the URL to keep it on the same domain (localhost vs production)
+            console.log('[QR Claim] QR is claimed, redirecting to:', redirectQrData.redirectUrl)
+            try {
+                const url = new URL(redirectQrData.redirectUrl)
+                const invitePath = `${url.pathname}${url.search}` // e.g., /invite?code=XYZINVITESYOU
+                console.log('[QR Claim] Extracted invite path:', invitePath)
+                console.log('[QR Claim] User state:', user ? `logged in as ${user.user?.username}` : 'not logged in')
+                router.push(invitePath)
+            } catch (error) {
+                console.error('[QR Claim] Failed to parse redirectUrl, using full URL', error)
+                // Fallback to full URL if parsing fails
+                window.location.href = redirectQrData.redirectUrl
+            }
         }
-    }, [redirectQrData])
+    }, [redirectQrData, router, user])
 
-    // Check authentication and redirect if needed
+    // Check authentication and redirect if needed (only if QR is not claimed)
     useEffect(() => {
-        if (!isCheckingStatus && !user) {
+        console.log('[QR Claim] Auth check:', {
+            isCheckingStatus,
+            hasUser: !!user,
+            hasClaimed: redirectQrData?.claimed,
+            hasRedirectUrl: !!redirectQrData?.redirectUrl,
+        })
+
+        if (!isCheckingStatus && !user && redirectQrData && !redirectQrData.claimed) {
+            console.log('[QR Claim] QR is unclaimed and user not logged in, redirecting to setup')
             // Save current URL to redirect back after login
             saveRedirectUrl()
             router.push('/setup')
         }
-    }, [user, isCheckingStatus, router])
+    }, [user, isCheckingStatus, router, redirectQrData])
 
     const handleClaim = useCallback(async () => {
         // Auth check is already handled by useEffect above
@@ -65,7 +85,7 @@ export default function RedirectQrClaimPage() {
                 throw new Error(data.message || 'Failed to claim QR code')
             }
 
-            // Success! Redirect to success page
+            // Success! Show success page, then redirect to invite (which goes to profile for logged-in users)
             router.push(`/qr/${code}/success`)
         } catch (err: any) {
             console.error('Error claiming QR:', err)
@@ -81,7 +101,8 @@ export default function RedirectQrClaimPage() {
         disabled: isLoading,
     })
 
-    if (isCheckingStatus || !user) {
+    // Show loading while checking status, not logged in, or if QR is claimed (redirecting)
+    if (isCheckingStatus || !user || (redirectQrData?.claimed && redirectQrData?.redirectUrl)) {
         return (
             <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(isShaking, shakeIntensity)}`}>
                 <NavHeader title="Claim QR Code" />
@@ -92,7 +113,8 @@ export default function RedirectQrClaimPage() {
         )
     }
 
-    if (redirectQrError || !redirectQrData || !redirectQrData.available) {
+    // Show error only if there's an actual error or QR is not available (and not claimed)
+    if (redirectQrError || !redirectQrData || (!redirectQrData.available && !redirectQrData.claimed)) {
         return (
             <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(isShaking, shakeIntensity)}`}>
                 <NavHeader title="Claim QR Code" />
@@ -174,8 +196,7 @@ export default function RedirectQrClaimPage() {
                     <div className="flex gap-3">
                         <Icon name="info" size={20} className="flex-shrink-0 text-secondary-1" />
                         <p className="text-sm font-medium">
-                            <strong>Important:</strong> Each user can only claim one QR code, and once claimed, it
-                            cannot be transferred or changed.
+                            <strong>Important:</strong> Once claimed, this QR code cannot be transferred or changed.
                         </p>
                     </div>
                 </Card>
