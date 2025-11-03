@@ -18,6 +18,7 @@ import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { clearRedirectUrl, getRedirectUrl, isTxReverted, saveRedirectUrl, formatNumberForDisplay } from '@/utils'
 import { getShakeClass, type ShakeIntensity } from '@/utils/perk.utils'
+import { calculateSavingsInCents, isArgentinaMantecaQrPayment, getSavingsMessage } from '@/utils/qr-payment.utils'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { PEANUT_WALLET_TOKEN_DECIMALS, TRANSACTIONS, PERK_HOLD_DURATION_MS } from '@/constants'
 import { MANTECA_DEPOSIT_ADDRESS } from '@/constants/manteca.consts'
@@ -41,6 +42,9 @@ import { useQueryClient } from '@tanstack/react-query'
 import { shootDoubleStarConfetti } from '@/utils/confetti'
 import { STAR_STRAIGHT_ICON } from '@/assets'
 import { useAuth } from '@/context/authContext'
+import { PointsAction } from '@/services/services.types'
+import { usePointsConfetti } from '@/hooks/usePointsConfetti'
+import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import type { HistoryEntry } from '@/hooks/useTransactionHistory'
 import { completeHistoryEntry } from '@/utils/history.utils'
@@ -312,6 +316,17 @@ export default function QRPayPage() {
             return paymentLock.paymentAgainstAmount
         }
     }, [paymentProcessor, simpleFiPayment, paymentLock?.code, paymentLock?.paymentAgainstAmount, amount])
+
+    // Fetch points early to avoid latency penalty - fetch as soon as we have usdAmount
+    // This way points are cached by the time success view shows
+    // Only Manteca QR payments give points (SimpleFi does not)
+    // Use timestamp as uniqueId to prevent cache collisions between different QR scans
+    const { pointsData, pointsDivRef } = usePointsCalculation(
+        PointsAction.MANTECA_QR_PAYMENT,
+        usdAmount,
+        paymentProcessor === 'MANTECA',
+        timestamp || undefined
+    )
 
     const methodIcon = useMemo(() => {
         switch (qrType) {
@@ -716,6 +731,12 @@ export default function QRPayPage() {
 
     // Check user balance
     useEffect(() => {
+        // Skip balance check on success screen (balance may not have updated yet)
+        if (isSuccess) {
+            setBalanceErrorMessage(null)
+            return
+        }
+
         // Skip balance check if transaction is being processed
         if (hasPendingTransactions || isWaitingForWebSocket) {
             return
@@ -733,13 +754,16 @@ export default function QRPayPage() {
         } else {
             setBalanceErrorMessage(null)
         }
-    }, [usdAmount, balance, hasPendingTransactions, isWaitingForWebSocket])
+    }, [usdAmount, balance, hasPendingTransactions, isWaitingForWebSocket, isSuccess])
+
+    // Use points confetti hook for animation - must be called unconditionally
+    usePointsConfetti(isSuccess && pointsData?.estimatedPoints ? pointsData.estimatedPoints : undefined, pointsDivRef)
 
     useEffect(() => {
         if (isSuccess) {
             queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
         }
-    }, [isSuccess])
+    }, [isSuccess, queryClient])
 
     const handleSimplefiRetry = useCallback(async () => {
         setShowOrderNotReadyModal(false)
@@ -947,6 +971,11 @@ export default function QRPayPage() {
     if (isSuccess && paymentProcessor === 'MANTECA' && !qrPayment) {
         return null
     } else if (isSuccess && paymentProcessor === 'MANTECA' && qrPayment) {
+        // Calculate savings for Argentina Manteca QR payments only
+        const savingsInCents = calculateSavingsInCents(usdAmount)
+        const showSavingsMessage = savingsInCents > 0 && isArgentinaMantecaQrPayment(qrType, paymentProcessor)
+        const savingsMessage = showSavingsMessage ? getSavingsMessage(savingsInCents) : ''
+
         return (
             <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(isShaking, shakeIntensity)}`}>
                 <SoundPlayer sound="success" />
@@ -976,6 +1005,10 @@ export default function QRPayPage() {
                                 <div className="text-lg font-bold">
                                     ≈ {formatNumberForDisplay(usdAmount ?? undefined, { maxDecimals: 2 })} USD
                                 </div>
+                                {/* Savings Message (Argentina Manteca only) */}
+                                {showSavingsMessage && savingsMessage && (
+                                    <p className="text-sm italic text-grey-1">{savingsMessage}</p>
+                                )}
                             </div>
                         </Card>
                     )}
@@ -1026,6 +1059,17 @@ export default function QRPayPage() {
                                 </p>
                             </div>
                         </Card>
+                    )}
+
+                    {/* Points Display - ref used for confetti origin point */}
+                    {pointsData?.estimatedPoints && (
+                        <div ref={pointsDivRef} className="flex justify-center gap-2">
+                            <Image src={STAR_STRAIGHT_ICON} alt="star" width={20} height={20} />
+                            <p className="text-sm font-medium text-black">
+                                You&apos;ve earned {pointsData.estimatedPoints}{' '}
+                                {pointsData.estimatedPoints === 1 ? 'point' : 'points'}!
+                            </p>
+                        </div>
                     )}
 
                     <div className="w-full space-y-5">
@@ -1153,6 +1197,7 @@ export default function QRPayPage() {
                             </div>
                         </div>
                     </Card>
+
                     <div className="w-full space-y-5">
                         <Button
                             onClick={() => {

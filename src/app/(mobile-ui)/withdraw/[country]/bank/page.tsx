@@ -22,9 +22,8 @@ import { createOfframp, confirmOfframp } from '@/app/actions/offramp'
 import { useAuth } from '@/context/authContext'
 import ExchangeRate from '@/components/ExchangeRate'
 import countryCurrencyMappings from '@/constants/countryCurrencyMapping'
-import { useQuery } from '@tanstack/react-query'
-import { pointsApi } from '@/services/points'
 import { PointsAction } from '@/services/services.types'
+import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import { useSearchParams } from 'next/navigation'
 import { parseUnits } from 'viem'
 
@@ -61,16 +60,12 @@ export default function WithdrawBankPage() {
     )?.currencyCode
 
     // Calculate points API call
-    const { data: pointsData } = useQuery({
-        queryKey: ['calculate-points', 'withdraw', bankAccount?.id, amountToWithdraw],
-        queryFn: () =>
-            pointsApi.calculatePoints({
-                actionType: PointsAction.BRIDGE_TRANSFER,
-                usdAmount: Number(amountToWithdraw),
-            }),
-        enabled: !!(user?.user.userId && amountToWithdraw && bankAccount),
-        refetchOnWindowFocus: false,
-    })
+    const { pointsData } = usePointsCalculation(
+        PointsAction.BRIDGE_TRANSFER,
+        amountToWithdraw,
+        !!(amountToWithdraw && bankAccount),
+        bankAccount?.id
+    )
 
     // non-eur sepa countries that are currently experiencing issues
     const isNonEuroSepaCountry = !!(

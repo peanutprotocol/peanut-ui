@@ -5,6 +5,7 @@ import {
     countryData,
     MantecaSupportedExchanges,
     ALL_COUNTRIES_ALPHA3_TO_ALPHA2,
+    NON_EUR_SEPA_ALPHA2,
 } from '@/components/AddMoney/consts'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { SearchInput } from '@/components/SearchInput'
@@ -158,8 +159,11 @@ export const CountryList = ({
                                 // withdraw
                                 isSupported = true
                             } else if (viewMode === 'claim-request') {
-                                // support all bridge and manteca supported countries
-                                isSupported = isBridgeSupportedCountry || isMantecaSupportedCountry
+                                // support bridge or manteca supported countries, but temporarily disable sepa corridors
+                                // where local currency is not eur (show as soon)
+                                const isDisabledNonEurSepa = NON_EUR_SEPA_ALPHA2.has(twoLetterCountryCode.toUpperCase())
+                                const isBridgeAndNotDisabled = isBridgeSupportedCountry && !isDisabledNonEurSepa
+                                isSupported = isBridgeAndNotDisabled || isMantecaSupportedCountry
                             } else {
                                 // support all countries
                                 isSupported = true

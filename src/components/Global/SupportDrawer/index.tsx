@@ -1,67 +1,52 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { useSupportModalContext } from '@/context/SupportModalContext'
 import { useCrispUserData } from '@/hooks/useCrispUserData'
-import { setCrispUserData } from '@/utils/crisp'
+import { useCrispProxyUrl } from '@/hooks/useCrispProxyUrl'
 import { Drawer, DrawerContent, DrawerTitle } from '../Drawer'
-import { useEffect, useRef } from 'react'
+import PeanutLoading from '../PeanutLoading'
 
 const SupportDrawer = () => {
     const { isSupportModalOpen, setIsSupportModalOpen, prefilledMessage } = useSupportModalContext()
     const userData = useCrispUserData()
-    const iframeRef = useRef<HTMLIFrameElement>(null)
+    const [isLoading, setIsLoading] = useState(true)
+
+    const crispProxyUrl = useCrispProxyUrl(userData, prefilledMessage)
 
     useEffect(() => {
-        if (!isSupportModalOpen || !iframeRef.current || !userData.username) return
+        // Listen for ready message from proxy iframe
+        const handleMessage = (event: MessageEvent) => {
+            if (event.origin !== window.location.origin) return
 
-        const iframe = iframeRef.current
-
-        // Try to set Crisp data in iframe (same logic as CrispChat.tsx)
-        const setData = () => {
-            try {
-                const iframeWindow = iframe.contentWindow as any
-                if (!iframeWindow?.$crisp) return
-
-                setCrispUserData(iframeWindow.$crisp, userData, prefilledMessage)
-            } catch (e) {
-                // Silently fail if CORS blocks access - no harm done
-                console.debug('Could not set Crisp data in iframe (expected if CORS-blocked):', e)
+            if (event.data.type === 'CRISP_READY') {
+                setIsLoading(false)
             }
         }
 
-        const handleLoad = () => {
-            // Try immediately
-            setData()
+        window.addEventListener('message', handleMessage)
+        return () => window.removeEventListener('message', handleMessage)
+    }, [])
 
-            // Listen for Crisp loaded event in iframe
-            try {
-                const iframeWindow = iframe.contentWindow as any
-                if (iframeWindow?.$crisp) {
-                    iframeWindow.$crisp.push(['on', 'session:loaded', setData])
-                }
-            } catch (e) {
-                // Ignore CORS errors
-            }
-
-            // Fallback: try again after delays
-            setTimeout(setData, 500)
-            setTimeout(setData, 1000)
-            setTimeout(setData, 2000)
+    // Reset loading state when drawer closes
+    useEffect(() => {
+        if (!isSupportModalOpen) {
+            setIsLoading(true)
         }
-
-        iframe.addEventListener('load', handleLoad)
-        return () => iframe.removeEventListener('load', handleLoad)
-    }, [isSupportModalOpen, userData, prefilledMessage])
+    }, [isSupportModalOpen])
 
     return (
         <Drawer open={isSupportModalOpen} onOpenChange={setIsSupportModalOpen}>
             <DrawerContent className="z-[999999] max-h-[85vh] w-screen pt-4">
                 <DrawerTitle className="sr-only">Support</DrawerTitle>
-                <iframe
-                    ref={iframeRef}
-                    src="https://go.crisp.chat/chat/embed/?website_id=916078be-a6af-4696-82cb-bc08d43d9125"
-                    className="h-[80vh] w-full"
-                />
+                <div className="relative h-[80vh] w-full">
+                    {isLoading && (
+                        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background">
+                            <PeanutLoading />
+                        </div>
+                    )}
+                    <iframe src={crispProxyUrl} className="h-full w-full" title="Support Chat" />
+                </div>
             </DrawerContent>
         </Drawer>
     )

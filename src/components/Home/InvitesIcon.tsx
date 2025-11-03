@@ -11,7 +11,7 @@ const InvitesIcon = ({
 }) => {
     return (
         <Image
-            className={twMerge(animate && 'animate-pulsate-slow', className)}
+            className={twMerge(animate && 'animate-star-pulsate-wiggle', className)}
             src={STAR_STRAIGHT_ICON}
             alt="star"
             width={20}

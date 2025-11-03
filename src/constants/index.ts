@@ -1,5 +1,6 @@
 export * from './cashout.consts'
 export * from './chains.consts'
+export * from './carousel.consts'
 export * from './general.consts'
 export * from './loadingStates.consts'
 export * from './query.consts'

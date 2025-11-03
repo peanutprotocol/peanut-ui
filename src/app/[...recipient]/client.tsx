@@ -33,9 +33,8 @@ import NavHeader from '@/components/Global/NavHeader'
 import { ReqFulfillBankFlowManager } from '@/components/Request/views/ReqFulfillBankFlowManager'
 import SupportCTA from '@/components/Global/SupportCTA'
 import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermineBankRequestType'
-import { useQuery } from '@tanstack/react-query'
-import { pointsApi } from '@/services/points'
 import { PointsAction } from '@/services/services.types'
+import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 
 export type PaymentFlow = 'request_pay' | 'external_wallet' | 'direct_pay' | 'withdraw'
 interface Props {
@@ -81,22 +80,17 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     // For direct_pay: calculate on STATUS (after payment completes)
 
     const shouldFetchPoints =
-        user?.user.userId &&
         usdAmount &&
         chargeDetails?.uuid &&
         ((flow === 'request_pay' && currentView === 'CONFIRM') || (flow === 'direct_pay' && currentView === 'STATUS'))
 
-    const { data: pointsData } = useQuery({
-        queryKey: ['calculate-points', chargeDetails?.uuid, flow],
-        queryFn: () =>
-            pointsApi.calculatePoints({
-                actionType: PointsAction.P2P_REQUEST_PAYMENT,
-                usdAmount: Number(usdAmount),
-                otherUserId: chargeDetails?.requestLink.recipientAccount.userId,
-            }),
-        enabled: !!shouldFetchPoints,
-        refetchOnWindowFocus: false,
-    })
+    const { pointsData } = usePointsCalculation(
+        PointsAction.P2P_REQUEST_PAYMENT,
+        usdAmount,
+        !!shouldFetchPoints,
+        chargeDetails?.uuid,
+        chargeDetails?.requestLink.recipientAccount.userId
+    )
 
     // determine if the current user is the recipient of the transaction
     const isCurrentUserRecipient = chargeDetails?.requestLink.recipientAccount?.userId === user?.user.userId
