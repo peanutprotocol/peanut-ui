@@ -77,7 +77,7 @@ const Modal = ({
                 >
                     <Dialog.Panel
                         className={twMerge(
-                            `relative bottom-0 z-10 mx-0 max-h-[] w-full max-w-[26rem] self-end rounded-md bg-white outline-none dark:bg-n-1 sm:m-auto sm:self-auto ${
+                            `relative bottom-0 z-10 mx-0 max-h-[] w-full max-w-[26rem] self-end rounded-md border-0 bg-white outline-none dark:bg-n-1 sm:m-auto sm:self-auto ${
                                 video
                                     ? 'static aspect-video max-w-[64rem] overflow-hidden bg-n-1 shadow-[0_2.5rem_8rem_rgba(0,0,0,0.5)] dark:border-transparent'
                                     : ''

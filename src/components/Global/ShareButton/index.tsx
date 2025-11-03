@@ -69,28 +69,24 @@ const ShareButton = ({
     const handleShare = useCallback(async () => {
         const shareUrl = url ?? (generateUrl ? await generateUrl() : undefined)
         const shareText = generateText ? await generateText() : text
+        let copied = false
 
         try {
-            // Check if Web Share API is available
-            if (!navigator.share) {
-                // Fallback to clipboard
-                const contentToCopy = shareUrl || shareText || ''
-                const copied = await copyTextToClipboardWithFallback(contentToCopy)
-                if (copied) {
-                    toast.info(shareUrl ? 'Link copied' : 'Text copied')
-                    onSuccess?.()
-                } else {
-                    throw new Error('Failed to copy to clipboard')
-                }
-                return
+            // ALWAYS copy to clipboard first (works on both desktop and mobile)
+            const contentToCopy = shareUrl || shareText || ''
+            copied = await copyTextToClipboardWithFallback(contentToCopy)
+            if (copied) {
+                toast.info(shareUrl ? 'Link copied' : 'Text copied')
             }
 
-            // Use Web Share API
-            const shareData: ShareData = { title }
-            if (shareText) shareData.text = shareText
-            if (shareUrl) shareData.url = shareUrl
+            // THEN try to open share dialog if available (bonus for mobile users)
+            if (navigator.share) {
+                const shareData: ShareData = { title }
+                if (shareText) shareData.text = shareText
+                if (shareUrl) shareData.url = shareUrl
 
-            await navigator.share(shareData)
+                await navigator.share(shareData)
+            }
 
             onSuccess?.()
         } catch (error: any) {
@@ -99,13 +95,15 @@ const ShareButton = ({
                 console.error('Sharing error:', error)
                 Sentry.captureException(error)
 
-                // Try clipboard fallback if sharing fails
-                const contentToCopy = shareUrl || shareText || ''
-                const copied = await copyTextToClipboardWithFallback(contentToCopy)
-                if (copied) {
-                    toast.info(shareUrl ? 'Link copied' : 'Text copied')
-                } else {
-                    toast.error('Sharing failed')
+                // If we didn't copy earlier, try now
+                if (!copied) {
+                    const contentToCopy = shareUrl || shareText || ''
+                    const fallbackCopied = await copyTextToClipboardWithFallback(contentToCopy)
+                    if (fallbackCopied) {
+                        toast.info(shareUrl ? 'Link copied' : 'Text copied')
+                    } else {
+                        toast.error('Sharing failed')
+                    }
                 }
 
                 onError?.(error)

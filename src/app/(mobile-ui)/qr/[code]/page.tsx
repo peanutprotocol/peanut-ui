@@ -27,29 +27,43 @@ export default function RedirectQrClaimPage() {
     // Fetch redirect QR status using shared hook
     const { data: redirectQrData, isLoading: isCheckingStatus, error: redirectQrError } = useRedirectQrStatus(code)
 
-    // If already claimed, redirect to target URL (for both logged in and logged out users)
+    // Handle redirects based on QR status and authentication
     useEffect(() => {
-        if (redirectQrData?.claimed && redirectQrData?.redirectUrl) {
-            // Extract the path from the URL to keep it on the same domain (localhost vs production)
+        // Wait for QR status to load
+        if (isCheckingStatus || !redirectQrData) {
+            return
+        }
+
+        // If QR is already claimed, redirect to the target URL
+        if (redirectQrData.claimed && redirectQrData.redirectUrl) {
             try {
                 const url = new URL(redirectQrData.redirectUrl)
-                const invitePath = `${url.pathname}${url.search}` // e.g., /invite?code=XYZINVITESYOU
-                router.push(invitePath)
+
+                // Check if external redirect (different domain)
+                const isExternal = url.origin !== window.location.origin
+
+                if (isExternal) {
+                    // External redirect - use full URL navigation
+                    window.location.href = redirectQrData.redirectUrl
+                } else {
+                    // Internal redirect - extract path for Next.js router (better UX, no page reload)
+                    const invitePath = `${url.pathname}${url.search}` // e.g., /invite?code=XYZINVITESYOU
+                    router.push(invitePath)
+                }
             } catch (error) {
-                // Fallback to full URL if parsing fails
+                // Fallback for invalid URLs
                 window.location.href = redirectQrData.redirectUrl
             }
+            return
         }
-    }, [redirectQrData, router, user])
 
-    // Check authentication and redirect if needed (only if QR is not claimed)
-    useEffect(() => {
-        if (!isCheckingStatus && !user && redirectQrData && !redirectQrData.claimed) {
-            // Save current URL to redirect back after login
+        // QR is not claimed - check authentication
+        if (!user) {
+            // User not logged in - redirect to setup to create account/login
             saveRedirectUrl()
             router.push('/setup')
         }
-    }, [user, isCheckingStatus, router, redirectQrData])
+    }, [isCheckingStatus, redirectQrData, user, router])
 
     const handleClaim = useCallback(async () => {
         // Auth check is already handled by useEffect above
@@ -89,8 +103,21 @@ export default function RedirectQrClaimPage() {
         disabled: isLoading,
     })
 
-    // Show loading while checking status, not logged in, or if QR is claimed (redirecting)
-    if (isCheckingStatus || !user || (redirectQrData?.claimed && redirectQrData?.redirectUrl)) {
+    // Show loading while checking status or if we're in the process of redirecting
+    if (isCheckingStatus || (redirectQrData?.claimed && redirectQrData?.redirectUrl)) {
+        return (
+            <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(isShaking, shakeIntensity)}`}>
+                <NavHeader title="Claim QR Code" />
+                <div className="flex h-full items-center justify-center">
+                    <PeanutLoading />
+                </div>
+            </div>
+        )
+    }
+
+    // If not logged in and QR is unclaimed, the useEffect above will redirect to setup
+    // This loading screen will show briefly during that redirect
+    if (!user) {
         return (
             <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(isShaking, shakeIntensity)}`}>
                 <NavHeader title="Claim QR Code" />
@@ -173,7 +200,7 @@ export default function RedirectQrClaimPage() {
                                 3
                             </div>
                             <p className="text-sm text-grey-1">
-                                Anyone scanning it can send you money or connect with you
+                                They can join Peanut with your invite and contribute towards your points, forever.
                             </p>
                         </div>
                     </div>

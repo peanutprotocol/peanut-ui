@@ -11,11 +11,13 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import { confettiPresets } from '@/utils/confetti'
 import { useRedirectQrStatus } from '@/hooks/useRedirectQrStatus'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
+import { useToast } from '@/components/0_Bruddle/Toast'
 
 export default function RedirectQrSuccessPage() {
     const router = useRouter()
     const params = useParams()
     const code = params?.code as string
+    const toast = useToast()
 
     // Fetch redirect QR details using shared hook
     const { data: redirectQrData, isLoading } = useRedirectQrStatus(code)
@@ -86,17 +88,25 @@ export default function RedirectQrSuccessPage() {
                     <Button
                         variant="primary-soft"
                         shadowSize="4"
-                        onClick={() => {
-                            if (navigator.share) {
-                                navigator.share({
-                                    title: 'My Peanut QR Code',
-                                    text: 'Scan my QR code to connect with me on Peanut!',
-                                    url: qrUrl,
-                                })
-                            } else {
-                                // Fallback: copy to clipboard
-                                navigator.clipboard.writeText(qrUrl)
-                                alert('Link copied to clipboard!')
+                        onClick={async () => {
+                            try {
+                                // ALWAYS copy to clipboard first (works on both desktop and mobile)
+                                await navigator.clipboard.writeText(qrUrl)
+                                toast.info('Link copied')
+
+                                // THEN try to open share dialog if available (bonus for mobile users)
+                                if (navigator.share) {
+                                    await navigator.share({
+                                        title: 'My Peanut QR Code',
+                                        text: 'Scan my QR code to connect with me on Peanut!',
+                                        url: qrUrl,
+                                    })
+                                }
+                            } catch (error: any) {
+                                // Ignore user cancellation
+                                if (error.name !== 'AbortError') {
+                                    console.error('Share error:', error)
+                                }
                             }
                         }}
                         className="w-full"

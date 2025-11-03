@@ -20,9 +20,7 @@ import { Banner } from '@/components/Global/Banner'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useSetupStore } from '@/redux/hooks'
 import ForceIOSPWAInstall from '@/components/ForceIOSPWAInstall'
-
-// Allow access to some public paths without authentication
-const publicPathRegex = /^\/(request\/pay|claim|pay\/.+$|support|invite|dev)/
+import { PUBLIC_ROUTES_REGEX } from '@/constants/routes'
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     const pathName = usePathname()
@@ -78,7 +76,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     }, [])
 
     // Allow access to public paths without authentication
-    const isPublicPath = publicPathRegex.test(pathName)
+    const isPublicPath = PUBLIC_ROUTES_REGEX.test(pathName)
 
     useEffect(() => {
         if (!isPublicPath && !isFetchingUser && !user) {

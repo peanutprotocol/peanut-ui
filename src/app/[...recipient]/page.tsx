@@ -8,36 +8,7 @@ import { printableAddress, resolveAddressToUsername } from '@/utils'
 import { chargesApi } from '@/services/charges'
 import { parseAmountAndToken } from '@/lib/url-parser/parser'
 import { notFound } from 'next/navigation'
-
-// Reserved routes that should not be handled by the catch-all recipient route
-// These include routes with dedicated Next.js route files AND paths from redirects.json/middleware
-const RESERVED_ROUTES = [
-    // Routes with dedicated Next.js route files
-    'qr',
-    'api',
-    'setup',
-    'home',
-    'history',
-    'settings',
-    'points',
-    // Routes from redirects.json (static redirects)
-    'docs',
-    'packet',
-    'create-packet',
-    'batch',
-    'raffle',
-    'pioneers',
-    'pints',
-    'events',
-    'foodie',
-    // Other common routes
-    'claim',
-    'pay',
-    'request',
-    'invite',
-    'support',
-    'dev',
-]
+import { RESERVED_ROUTES } from '@/constants/routes'
 
 type PageProps = {
     params: Promise<{ recipient?: string[] }>
