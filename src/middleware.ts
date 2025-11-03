@@ -90,5 +90,6 @@ export const config = {
         '/p/:path*',
         '/link/:path*',
         '/dev/:path*',
+        '/qr/:path*',
     ],
 }

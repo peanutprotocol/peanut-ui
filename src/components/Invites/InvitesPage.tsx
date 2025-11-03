@@ -1,5 +1,5 @@
 'use client'
-import React, { Suspense } from 'react'
+import React, { Suspense, useEffect } from 'react'
 import PeanutLoading from '../Global/PeanutLoading'
 import ValidationErrorView from '../Payment/Views/Error.validation.view'
 import InvitesPageLayout from './InvitesPageLayout'
@@ -35,6 +35,14 @@ function InvitePageContent() {
         queryFn: () => invitesApi.validateInviteCode(inviteCode!),
         enabled: !!inviteCode,
     })
+
+    // Redirect logged-in users who already have app access to the inviter's profile
+    // Users without app access should stay on this page to claim the invite and get access
+    useEffect(() => {
+        if (user?.user && user?.user.hasAppAccess && inviteCodeData?.success && inviteCodeData?.username) {
+            router.push(`/${inviteCodeData.username}`)
+        }
+    }, [user, inviteCodeData, router])
 
     const handleClaimInvite = async () => {
         if (inviteCode) {

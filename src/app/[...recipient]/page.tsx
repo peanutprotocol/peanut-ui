@@ -7,16 +7,54 @@ import { isAddress } from 'viem'
 import { printableAddress, resolveAddressToUsername } from '@/utils'
 import { chargesApi } from '@/services/charges'
 import { parseAmountAndToken } from '@/lib/url-parser/parser'
+import { notFound } from 'next/navigation'
+
+// Reserved routes that should not be handled by the catch-all recipient route
+// These include routes with dedicated Next.js route files AND paths from redirects.json/middleware
+const RESERVED_ROUTES = [
+    // Routes with dedicated Next.js route files
+    'qr',
+    'api',
+    'setup',
+    'home',
+    'history',
+    'settings',
+    'points',
+    // Routes from redirects.json (static redirects)
+    'docs',
+    'packet',
+    'create-packet',
+    'batch',
+    'raffle',
+    'pioneers',
+    'pints',
+    'events',
+    'foodie',
+    // Other common routes
+    'claim',
+    'pay',
+    'request',
+    'invite',
+    'support',
+    'dev',
+]
 
 type PageProps = {
     params: Promise<{ recipient?: string[] }>
 }
 
 export async function generateMetadata({ params, searchParams }: any) {
-    let title = 'Request Payment | Peanut'
-    const siteUrl: string = (await getOrigin()) || BASE_URL // getOrigin for getting the origin of the site regardless of its a vercel preview or not
     const resolvedSearchParams = await searchParams
     const resolvedParams = await params
+
+    // Guard: Don't generate metadata for reserved routes (handled by their specific routes)
+    const firstSegment = resolvedParams.recipient[0]?.toLowerCase()
+    if (firstSegment && RESERVED_ROUTES.includes(firstSegment)) {
+        return {}
+    }
+
+    let title = 'Request Payment | Peanut'
+    const siteUrl: string = (await getOrigin()) || BASE_URL // getOrigin for getting the origin of the site regardless of its a vercel preview or not
 
     let recipient = resolvedParams.recipient[0].toLowerCase()
 
@@ -164,6 +202,13 @@ export async function generateMetadata({ params, searchParams }: any) {
 export default function Page(props: PageProps) {
     const params = use(props.params)
     const recipient = params.recipient ?? []
+
+    // Guard: Reserved routes should be handled by their specific route files
+    // If we reach here, it means Next.js routing didn't catch it properly
+    const firstSegment = recipient[0]?.toLowerCase()
+    if (firstSegment && RESERVED_ROUTES.includes(firstSegment)) {
+        notFound()
+    }
 
     return (
         <PageContainer>
