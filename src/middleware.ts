@@ -69,7 +69,9 @@ const isPromoLink = (url: URL) => {
     return !!(linkChainId && linkVersion)
 }
 
-// Updated matcher to include root path
+// Middleware matcher configuration
+// NOTE: This must be a static array for Next.js to parse at build time
+// Routes are documented in src/constants/routes.ts (MIDDLEWARE_ROUTES)
 export const config = {
     matcher: [
         '/',
@@ -90,5 +92,6 @@ export const config = {
         '/p/:path*',
         '/link/:path*',
         '/dev/:path*',
+        '/qr/:path*',
     ],
 }
