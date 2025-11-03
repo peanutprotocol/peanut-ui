@@ -1,10 +1,7 @@
 import { useAuth } from '@/context/authContext'
 import { AccountType } from '@/interfaces'
 import { useMemo } from 'react'
-
-const GRAFANA_DASHBOARD_BASE_URL =
-    'https://teampeanut.grafana.net/d/ad31f645-81ca-4779-bfb2-bff8e03d9057/explore-peanut-wallet-user'
-const ARBISCAN_ADDRESS_BASE_URL = 'https://arbiscan.io/address'
+import { GRAFANA_DASHBOARD_BASE_URL, ARBISCAN_ADDRESS_BASE_URL } from '@/constants/support'
 
 export interface CrispUserData {
     username: string | undefined
@@ -31,6 +28,10 @@ export function useCrispUserData(): CrispUserData {
             ? `${GRAFANA_DASHBOARD_BASE_URL}?orgId=1&var-GRAFANA_VAR_Username=${encodeURIComponent(username)}&from=now-30d&to=now&timezone=browser`
             : undefined
 
+        // Use address from user.accounts (database) rather than useWallet hook
+        // This ensures we always show the user's wallet address in support metadata,
+        // even if ZeroDev client isn't initialized yet. useWallet().address could be
+        // undefined during initialization, but we want persistent data for support agents.
         const walletAddress =
             user?.accounts?.find((account) => account.type === AccountType.PEANUT_WALLET)?.identifier || undefined
         const walletAddressLink = walletAddress ? `${ARBISCAN_ADDRESS_BASE_URL}/${walletAddress}` : undefined

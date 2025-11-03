@@ -1,14 +1,13 @@
 'use client'
 
-import Script from 'next/script'
 import { useSupportModalContext } from '@/context/SupportModalContext'
-import { useCrispUserData } from '@/hooks/useCrispUserData'
-import { useCrispInitialization } from '@/hooks/useCrispInitialization'
-
-const CRISP_WEBSITE_ID = '916078be-a6af-4696-82cb-bc08d43d9125'
 
 /**
  * Button component that opens the support drawer
+ *
+ * The support UI is rendered via SupportDrawer component (iframe proxy approach)
+ * rather than the native Crisp widget to maintain better UX control and avoid
+ * page layout interference.
  */
 export const CrispButton = ({ children, ...rest }: React.HTMLAttributes<HTMLButtonElement>) => {
     const { setIsSupportModalOpen } = useSupportModalContext()
@@ -21,39 +20,5 @@ export const CrispButton = ({ children, ...rest }: React.HTMLAttributes<HTMLButt
         <button {...rest} onClick={handleClick}>
             {children}
         </button>
-    )
-}
-
-/**
- * Loads the main Crisp chat widget script and initializes user data
- *
- * This creates the main window $crisp instance. The actual chat UI is rendered
- * via SupportDrawer as an iframe to avoid page layout interference.
- */
-export default function CrispChat() {
-    const userData = useCrispUserData()
-
-    useCrispInitialization(
-        typeof window !== 'undefined' ? window.$crisp : null,
-        userData,
-        undefined,
-        !!userData.userId && typeof window !== 'undefined'
-    )
-
-    return (
-        <Script strategy="afterInteractive" id="crisp-main-widget">
-            {`
-                window.$crisp=[];
-                window.CRISP_WEBSITE_ID="${CRISP_WEBSITE_ID}";
-                (function(){
-                    d=document;
-                    s=d.createElement("script");
-                    s.src="https://client.crisp.chat/l.js";
-                    s.async=1;
-                    d.getElementsByTagName("head")[0].appendChild(s);
-                })();
-                window.$crisp.push(["safe", true]);
-            `}
-        </Script>
     )
 }

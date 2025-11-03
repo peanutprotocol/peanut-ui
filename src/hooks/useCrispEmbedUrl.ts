@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { type CrispUserData } from '@/hooks/useCrispUserData'
+import { CRISP_WEBSITE_ID } from '@/constants/crisp'
 
-const CRISP_WEBSITE_ID = '916078be-a6af-4696-82cb-bc08d43d9125'
 const CRISP_EMBED_BASE_URL = `https://go.crisp.chat/chat/embed/?website_id=${CRISP_WEBSITE_ID}`
 
 /**

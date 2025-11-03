@@ -11,7 +11,7 @@ import {
     clearRedirectUrl,
     updateUserPreferences,
 } from '@/utils'
-import { resetCrispSession, resetCrispProxySessions } from '@/utils/crisp'
+import { resetCrispProxySessions } from '@/utils/crisp'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { createContext, type ReactNode, useContext, useState, useEffect, useMemo, useCallback } from 'react'
