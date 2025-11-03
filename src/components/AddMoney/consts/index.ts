@@ -2544,9 +2544,16 @@ export const ALL_COUNTRIES_ALPHA3_TO_ALPHA2: { [key: string]: string } = {
 // this impacts withdraw and claim-to-bank flows (but not add-money from bank)
 export const NON_EUR_SEPA_ALPHA2 = new Set(
     countryData
-        .filter((c) => c.type === 'country' && c.id.length === 3 && BRIDGE_ALPHA3_TO_ALPHA2[c.id])
-        .map((c) => ({ alpha2: BRIDGE_ALPHA3_TO_ALPHA2[c.id], currency: c.currency }))
-        .filter((x) => x.alpha2 && x.currency !== 'EUR')
+        .filter(
+            (c) =>
+                c.type === 'country' &&
+                !!c.iso3 &&
+                BRIDGE_ALPHA3_TO_ALPHA2[c.iso3] &&
+                // exclude usa explicitly; bridge map includes it but it's not sepa
+                c.iso3 !== 'USA'
+        )
+        .map((c) => ({ alpha2: BRIDGE_ALPHA3_TO_ALPHA2[c.iso3!], currency: c.currency }))
+        .filter((x) => x.alpha2 && x.currency && x.currency !== 'EUR')
         .map((x) => x.alpha2 as string)
 )
 
