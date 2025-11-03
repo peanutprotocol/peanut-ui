@@ -19,8 +19,13 @@ export async function generateMetadata({ params, searchParams }: any) {
     const resolvedParams = await params
 
     // Guard: Don't generate metadata for reserved routes (handled by their specific routes)
-    const firstSegment = resolvedParams.recipient[0]?.toLowerCase()
+    const firstSegment = resolvedParams.recipient?.[0]?.toLowerCase()
     if (firstSegment && RESERVED_ROUTES.includes(firstSegment)) {
+        return {}
+    }
+
+    // Guard: Ensure recipient exists
+    if (!resolvedParams.recipient?.[0]) {
         return {}
     }
 

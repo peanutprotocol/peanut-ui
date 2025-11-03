@@ -10,7 +10,7 @@ import { useCallback, useEffect, useState } from 'react'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { Icon } from '@/components/Global/Icons/Icon'
-import { saveRedirectUrl } from '@/utils'
+import { saveRedirectUrl, generateInviteCodeLink } from '@/utils'
 import { getShakeClass } from '@/utils/perk.utils'
 import Cookies from 'js-cookie'
 import { useRedirectQrStatus } from '@/hooks/useRedirectQrStatus'
@@ -72,13 +72,23 @@ export default function RedirectQrClaimPage() {
         setError(null)
 
         try {
+            // Generate invite link with correct 3-digit suffix
+            const username = user?.user?.username
+            if (!username) {
+                throw new Error('Username not found')
+            }
+
+            const { inviteLink } = generateInviteCodeLink(username)
+
             const response = await fetch(`${PEANUT_API_URL}/qr/${code}/claim`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${Cookies.get('jwt-token')}`,
                 },
-                body: JSON.stringify({}), // Empty body to prevent "Unexpected end of JSON input" error
+                body: JSON.stringify({
+                    targetUrl: inviteLink, // Pass the correctly formatted invite link
+                }),
             })
 
             const data = await response.json()
@@ -95,7 +105,7 @@ export default function RedirectQrClaimPage() {
         } finally {
             setIsLoading(false)
         }
-    }, [code, router])
+    }, [code, router, user])
 
     // Hold-to-claim mechanics with shake animation
     const { holdProgress, isShaking, shakeIntensity, buttonProps } = useHoldToClaim({
