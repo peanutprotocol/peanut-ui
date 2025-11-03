@@ -10,7 +10,7 @@ import { useCallback, useEffect, useState } from 'react'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { Icon } from '@/components/Global/Icons/Icon'
-import { saveRedirectUrl, generateInviteCodeLink } from '@/utils'
+import { saveRedirectUrl, generateInviteCodeLink, sanitizeRedirectURL } from '@/utils'
 import { getShakeClass } from '@/utils/perk.utils'
 import Cookies from 'js-cookie'
 import { useRedirectQrStatus } from '@/hooks/useRedirectQrStatus'
@@ -36,23 +36,30 @@ export default function RedirectQrClaimPage() {
 
         // If QR is already claimed, redirect to the target URL
         if (redirectQrData.claimed && redirectQrData.redirectUrl) {
-            try {
-                const url = new URL(redirectQrData.redirectUrl)
+            // Sanitize redirect URL to prevent open redirect attacks
+            // For same-origin URLs, sanitizeRedirectURL returns safe path
+            // For external URLs, it returns null (we handle separately)
+            const sanitizedPath = sanitizeRedirectURL(redirectQrData.redirectUrl)
 
-                // Check if external redirect (different domain)
-                const isExternal = url.origin !== window.location.origin
-
-                if (isExternal) {
-                    // External redirect - use full URL navigation
-                    window.location.href = redirectQrData.redirectUrl
-                } else {
-                    // Internal redirect - extract path for Next.js router (better UX, no page reload)
-                    const invitePath = `${url.pathname}${url.search}` // e.g., /invite?code=XYZINVITESYOU
-                    router.push(invitePath)
+            if (sanitizedPath) {
+                // Internal redirect - use sanitized path with Next.js router
+                router.push(sanitizedPath)
+            } else {
+                // External redirect - validate it's expected domain before redirecting
+                try {
+                    const url = new URL(redirectQrData.redirectUrl)
+                    // Allow external redirects ONLY for trusted domains (peanut.me)
+                    // This relies on backend validation during QR claiming
+                    if (url.hostname.includes('peanut.me') || url.hostname.includes('localhost')) {
+                        window.location.href = redirectQrData.redirectUrl
+                    } else {
+                        console.error('Untrusted external redirect blocked:', redirectQrData.redirectUrl)
+                        setError('Invalid QR code destination.')
+                    }
+                } catch (error) {
+                    console.error('Invalid redirect URL:', redirectQrData.redirectUrl)
+                    setError('Invalid QR code destination.')
                 }
-            } catch (error) {
-                // Fallback for invalid URLs
-                window.location.href = redirectQrData.redirectUrl
             }
             return
         }
@@ -94,14 +101,17 @@ export default function RedirectQrClaimPage() {
             const data = await response.json()
 
             if (!response.ok) {
-                throw new Error(data.message || 'Failed to claim QR code')
+                // Log backend error for debugging but show generic message to user
+                console.error('Backend claim error:', data.message || data.error)
+                throw new Error('Failed to claim QR code. Please try again.')
             }
 
             // Success! Show success page, then redirect to invite (which goes to profile for logged-in users)
             router.push(`/qr/${code}/success`)
         } catch (err: any) {
             console.error('Error claiming QR:', err)
-            setError(err.message || 'Failed to claim QR code. Please try again.')
+            // Always show generic error message (don't expose backend details)
+            setError('Failed to claim QR code. Please try again.')
         } finally {
             setIsLoading(false)
         }
@@ -140,6 +150,10 @@ export default function RedirectQrClaimPage() {
 
     // Show error only if there's an actual error or QR is not available (and not claimed)
     if (redirectQrError || !redirectQrData || (!redirectQrData.available && !redirectQrData.claimed)) {
+        // Log error for debugging but don't expose details to user
+        if (redirectQrError) {
+            console.error('QR status check error:', redirectQrError)
+        }
         return (
             <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(isShaking, shakeIntensity)}`}>
                 <NavHeader title="Claim QR Code" />
@@ -155,9 +169,7 @@ export default function RedirectQrClaimPage() {
                             <p className="text-base text-grey-1">
                                 {redirectQrData?.claimed
                                     ? 'This QR code has already been claimed by another user.'
-                                    : redirectQrError
-                                      ? 'Failed to check QR code status. Please try again.'
-                                      : 'This QR code is not available for claiming.'}
+                                    : 'This QR code is not available for claiming.'}
                             </p>
                         </div>
                     </Card>
