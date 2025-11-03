@@ -21,6 +21,7 @@ import { ActionListCard } from '../ActionListCard'
 
 interface CountryListViewProps {
     inputTitle: string
+    inputDescription?: string
     viewMode: 'claim-request' | 'add-withdraw' | 'general-verification'
     onCountryClick: (country: CountryData) => void
     onCryptoClick?: (flow: 'add' | 'withdraw') => void
@@ -36,6 +37,7 @@ interface CountryListViewProps {
  *
  * @param {object} props
  * @param {string} props.inputTitle The title for the input
+ * @param {string} props.inputDescription The description for the input
  * @param {string} props.viewMode The view mode of the list, either 'claim-request' or 'add-withdraw' or 'general-verification'
  * @param {function} props.onCountryClick The function to call when a country is clicked
  * @param {function} props.onCryptoClick The function to call when the crypto button is clicked
@@ -44,6 +46,7 @@ interface CountryListViewProps {
  */
 export const CountryList = ({
     inputTitle,
+    inputDescription,
     viewMode,
     onCountryClick,
     onCryptoClick,
@@ -97,6 +100,7 @@ export const CountryList = ({
         <div className="flex h-full w-full flex-1 flex-col justify-start gap-4">
             <div className="space-y-2">
                 <div className="text-base font-bold">{inputTitle}</div>
+                {inputDescription && <p className="text-xs font-normal">{inputDescription}</p>}
                 <SearchInput
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}

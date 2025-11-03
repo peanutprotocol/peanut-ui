@@ -40,6 +40,7 @@ interface RegionsListProps {
     isLocked: boolean
 }
 const RegionsList = ({ regions, isLocked }: RegionsListProps) => {
+    const router = useRouter()
     return (
         <div>
             {regions.map((region, index) => (
@@ -55,7 +56,11 @@ const RegionsList = ({ regions, isLocked }: RegionsListProps) => {
                     }
                     position={getCardPosition(index, regions.length)}
                     title={region.name}
-                    onClick={() => {}}
+                    onClick={() => {
+                        if (isLocked) {
+                            router.push(`/profile/identity-verification/${region.path}`)
+                        }
+                    }}
                     description={region.description}
                     descriptionClassName="text-xs"
                     rightContent={!isLocked ? <Icon name="check" className="size-4 text-success-1" /> : null}

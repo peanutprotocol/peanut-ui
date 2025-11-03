@@ -1,7 +1,7 @@
 'use client'
 import { updateUserById } from '@/app/actions/users'
 import { Button } from '@/components/0_Bruddle'
-import { BRIDGE_ALPHA3_TO_ALPHA2, MantecaSupportedExchanges } from '@/components/AddMoney/consts'
+import { BRIDGE_ALPHA3_TO_ALPHA2, countryData, MantecaSupportedExchanges } from '@/components/AddMoney/consts'
 import { UserDetailsForm, type UserDetailsFormData } from '@/components/AddMoney/UserDetailsForm'
 import { CountryList } from '@/components/Common/CountryList'
 import ErrorAlert from '@/components/Global/ErrorAlert'
@@ -13,14 +13,14 @@ import {
     PeanutDoesntStoreAnyPersonalInformation,
 } from '@/components/Kyc/KycVerificationInProgressModal'
 import { MantecaGeoSpecificKycModal } from '@/components/Kyc/InitiateMantecaKYCModal'
-import { Icon } from '@/components/Global/Icons/Icon'
 import { useAuth } from '@/context/authContext'
 import { useBridgeKycFlow } from '@/hooks/useBridgeKycFlow'
 import { MantecaKycStatus } from '@/interfaces'
-import { useRouter } from 'next/navigation'
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import useKycStatus from '@/hooks/useKycStatus'
 import { getRedirectUrl, clearRedirectUrl } from '@/utils/general.utils'
+import StartVerificationModal from '@/components/IdentityVerification/StartVerificationModal'
 
 const IdentityVerificationView = () => {
     const router = useRouter()
@@ -35,6 +35,9 @@ const IdentityVerificationView = () => {
     const [userClickedCountry, setUserClickedCountry] = useState<{ id: string; title: string } | null>(null)
     const { isUserBridgeKycApproved } = useKycStatus()
     const { user, fetchUser } = useAuth()
+    const [isStartVerificationModalOpen, setIsStartVerificationModalOpen] = useState(false)
+    const params = useParams()
+    const countryParam = params.country as string
 
     const handleRedirect = () => {
         const redirectUrl = getRedirectUrl()
@@ -137,6 +140,36 @@ const IdentityVerificationView = () => {
         [user]
     )
 
+    // Skip country selection if coming from a supported bridge country
+    useEffect(() => {
+        if (countryParam) {
+            if (isBridgeSupportedCountry(countryParam) || countryParam === 'bridge') {
+                const country = countryData.find((country) => country.id.toUpperCase() === countryParam.toUpperCase())
+
+                if (country) {
+                    setUserClickedCountry({ title: country.title, id: country.id })
+                    setIsStartVerificationModalOpen(true)
+                } else {
+                    // set as bridge
+                    setUserClickedCountry({ title: 'Bridge', id: 'bridge' })
+                    setIsStartVerificationModalOpen(true)
+                }
+            }
+        }
+    }, [countryParam])
+
+    const selectedCountryParams = useMemo(() => {
+        if (countryParam) {
+            const country = countryData.find((country) => country.id.toUpperCase() === countryParam.toUpperCase())
+            if (country) {
+                return country
+            } else {
+                return { title: 'Bridge', id: 'bridge' }
+            }
+        }
+        return null
+    }, [countryParam])
+
     return (
         <div className="flex min-h-[inherit] flex-col space-y-8">
             <NavHeader title="Identity Verification" onPrev={handleBack} />
@@ -182,28 +215,13 @@ const IdentityVerificationView = () => {
             ) : (
                 <div className="my-auto">
                     <CountryList
-                        inputTitle="Select your country of citizenship."
+                        inputTitle="Which country issued your ID?"
+                        inputDescription="Select a country where you have a valid ID to verify."
                         viewMode="general-verification"
-                        getRightContent={(country) =>
-                            isVerifiedForCountry(country.id) ? (
-                                <Icon name="check" className="size-4 text-success-3" />
-                            ) : undefined
-                        }
                         onCountryClick={(country) => {
                             const { id, title } = country
                             setUserClickedCountry({ id, title })
-
-                            if (isVerifiedForCountry(id)) {
-                                setIsAlreadyVerifiedModalOpen(true)
-                                return
-                            }
-
-                            if (isMantecaSupportedCountry(id)) {
-                                setSelectedCountry({ id, title })
-                                setIsMantecaModalOpen(true)
-                            } else {
-                                setShowUserDetailsForm(true)
-                            }
+                            setIsStartVerificationModalOpen(true)
                         }}
                     />
                 </div>
@@ -240,6 +258,24 @@ const IdentityVerificationView = () => {
                     setIsMantecaModalOpen={setIsMantecaModalOpen}
                     isMantecaModalOpen={isMantecaModalOpen}
                     onKycSuccess={handleRedirect}
+                />
+            )}
+
+            {userClickedCountry && selectedCountryParams && (
+                <StartVerificationModal
+                    visible={isStartVerificationModalOpen}
+                    onClose={() => setIsStartVerificationModalOpen(false)}
+                    onStartVerification={() => {
+                        setIsStartVerificationModalOpen(false)
+                        if (isMantecaSupportedCountry(userClickedCountry.id)) {
+                            setSelectedCountry(userClickedCountry)
+                            setIsMantecaModalOpen(true)
+                        } else {
+                            setShowUserDetailsForm(true)
+                        }
+                    }}
+                    selectedIdentityCountry={userClickedCountry}
+                    selectedCountry={selectedCountryParams}
                 />
             )}
         </div>

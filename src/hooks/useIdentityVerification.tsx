@@ -4,6 +4,7 @@ import useKycStatus from './useKycStatus'
 import { useMemo } from 'react'
 
 export type Region = {
+    path: string
     name: string
     icon: StaticImageData | string
     description?: string
@@ -14,18 +15,22 @@ const BRIDGE_SUPPORTED_REGIONS = ['North America', 'Europe']
 
 const SUPPORTED_REGIONS: Region[] = [
     {
+        path: 'europe',
         name: 'Europe',
         icon: EUROPE_GLOBE_ICON,
     },
     {
+        path: 'north-america',
         name: 'North America',
         icon: NORTH_AMERICA_GLOBE_ICON,
     },
     {
+        path: 'latam',
         name: 'LATAM',
         icon: LATAM_GLOBE_ICON,
     },
     {
+        path: 'rest-of-the-world',
         name: 'Rest of the world',
         icon: REST_OF_WORLD_GLOBE_ICON,
     },
@@ -33,11 +38,13 @@ const SUPPORTED_REGIONS: Region[] = [
 
 const MANTECA_QR_ONLY_REGIONS: Region[] = [
     {
+        path: 'argentina',
         name: 'Argentina',
         icon: 'https://flagcdn.com/w160/ar.png',
         description: 'Only Mercado Pago QR payments',
     },
     {
+        path: 'brazil',
         name: 'Brazil',
         icon: 'https://flagcdn.com/w160/br.png',
         description: 'Only PIX QR payments',
