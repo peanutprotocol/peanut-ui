@@ -27,7 +27,7 @@ function InvitePageContent() {
     const dispatch = useAppDispatch()
     const router = useRouter()
     const { handleLoginClick, isLoggingIn } = useLogin()
-    const { isSupported: isPasskeySupported } = usePasskeySupport()
+    const { isSupported: isPasskeySupported, isLoading: isCheckingPasskeySupport } = usePasskeySupport()
 
     const {
         data: inviteCodeData,
@@ -111,7 +111,7 @@ function InvitePageContent() {
                     </div>
                 </div>
             </div>
-            <UnsupportedBrowserModal allowClose={false} visible={!isPasskeySupported} />
+            <UnsupportedBrowserModal allowClose={false} visible={!isCheckingPasskeySupport && !isPasskeySupported} />
         </InvitesPageLayout>
     )
 }
