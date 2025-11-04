@@ -31,6 +31,7 @@ interface TokenAmountInputProps {
     infoText?: string
     showSlider?: boolean
     maxAmount?: number
+    amountCollected?: number
     isInitialInputUsd?: boolean
     defaultSliderValue?: number
     defaultSliderSuggestedAmount?: number
@@ -53,6 +54,7 @@ const TokenAmountInput = ({
     showInfoText,
     showSlider = false,
     maxAmount,
+    amountCollected = 0,
     isInitialInputUsd = false,
     defaultSliderValue,
     defaultSliderSuggestedAmount,
@@ -153,15 +155,28 @@ const TokenAmountInput = ({
         (value: number[]) => {
             if (maxAmount) {
                 const selectedPercentage = value[0]
-                const selectedAmount = parseFloat(((selectedPercentage / 100) * maxAmount).toFixed(4)).toString()
+                let selectedAmount = (selectedPercentage / 100) * maxAmount
+
+                // Only snap to exact remaining amount when user selects the 33.33% magnetic snap point
+                // This ensures equal splits fill the pot exactly to 100%
+                const isAt33SnapPoint = Math.abs(selectedPercentage - 100 / 3) < 0.5
+                if (isAt33SnapPoint && amountCollected > 0) {
+                    const remainingAmount = maxAmount - amountCollected
+                    // If the 33.33% would nearly complete the pot (within 2%), use exact remaining
+                    if (selectedAmount >= remainingAmount * 0.98) {
+                        selectedAmount = remainingAmount
+                    }
+                }
+
+                const selectedAmountStr = parseFloat(selectedAmount.toFixed(4)).toString()
                 const maxDecimals = displayMode === 'FIAT' || displayMode === 'STABLE' || isInputUsd ? 2 : decimals
-                const formattedAmount = formatTokenAmount(selectedAmount, maxDecimals, true)
+                const formattedAmount = formatTokenAmount(selectedAmountStr, maxDecimals, true)
                 if (formattedAmount) {
                     onChange(formattedAmount, isInputUsd)
                 }
             }
         },
-        [maxAmount, onChange]
+        [maxAmount, amountCollected, onChange, displayMode, isInputUsd, decimals]
     )
 
     const showConversion = useMemo(() => {
@@ -304,7 +319,7 @@ const TokenAmountInput = ({
                         />
                         {/* Fake blinking caret shown when not focused and input is empty */}
                         {!isFocused && !displayValue && (
-                            <div className="pointer-events-none absolute left-0 top-1/2 h-12 w-[1px] -translate-y-1/2 animate-blink bg-primary-1" />
+                            <div className="animate-blink pointer-events-none absolute left-0 top-1/2 h-12 w-[1px] -translate-y-1/2 bg-primary-1" />
                         )}
                     </div>
                 </div>

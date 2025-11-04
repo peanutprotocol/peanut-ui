@@ -785,6 +785,7 @@ export const PaymentForm = ({
                     hideBalance={isExternalWalletFlow}
                     showSlider={showRequestPotInitialView && amount ? Number(amount) > 0 : false}
                     maxAmount={showRequestPotInitialView && amount ? Number(amount) : undefined}
+                    amountCollected={showRequestPotInitialView ? totalAmountCollected : 0}
                     defaultSliderValue={defaultSliderValue.percentage}
                     defaultSliderSuggestedAmount={defaultSliderValue.suggestedAmount}
                 />
