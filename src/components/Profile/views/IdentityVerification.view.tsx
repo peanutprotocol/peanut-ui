@@ -1,13 +1,12 @@
 'use client'
 import { updateUserById } from '@/app/actions/users'
 import { Button } from '@/components/0_Bruddle'
-import { BRIDGE_ALPHA3_TO_ALPHA2, countryData, MantecaSupportedExchanges } from '@/components/AddMoney/consts'
+import { BRIDGE_ALPHA3_TO_ALPHA2, countryData } from '@/components/AddMoney/consts'
 import { UserDetailsForm, type UserDetailsFormData } from '@/components/AddMoney/UserDetailsForm'
 import { CountryList } from '@/components/Common/CountryList'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import IframeWrapper from '@/components/Global/IframeWrapper'
 import NavHeader from '@/components/Global/NavHeader'
-import ActionModal from '@/components/Global/ActionModal'
 import {
     KycVerificationInProgressModal,
     PeanutDoesntStoreAnyPersonalInformation,
@@ -15,12 +14,12 @@ import {
 import { MantecaGeoSpecificKycModal } from '@/components/Kyc/InitiateMantecaKYCModal'
 import { useAuth } from '@/context/authContext'
 import { useBridgeKycFlow } from '@/hooks/useBridgeKycFlow'
-import { MantecaKycStatus } from '@/interfaces'
 import { useParams, useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import useKycStatus from '@/hooks/useKycStatus'
 import { getRedirectUrl, clearRedirectUrl } from '@/utils/general.utils'
 import StartVerificationModal from '@/components/IdentityVerification/StartVerificationModal'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 
 const IdentityVerificationView = () => {
     const router = useRouter()
@@ -29,7 +28,6 @@ const IdentityVerificationView = () => {
     const [isUpdatingUser, setIsUpdatingUser] = useState(false)
     const [userUpdateError, setUserUpdateError] = useState<string | null>(null)
     const [showUserDetailsForm, setShowUserDetailsForm] = useState(false)
-    const [isAlreadyVerifiedModalOpen, setIsAlreadyVerifiedModalOpen] = useState(false)
     const [isMantecaModalOpen, setIsMantecaModalOpen] = useState(false)
     const [selectedCountry, setSelectedCountry] = useState<{ id: string; title: string } | null>(null)
     const [userClickedCountry, setUserClickedCountry] = useState<{ id: string; title: string } | null>(null)
@@ -38,20 +36,23 @@ const IdentityVerificationView = () => {
     const [isStartVerificationModalOpen, setIsStartVerificationModalOpen] = useState(false)
     const params = useParams()
     const countryParam = params.country as string
+    const { isMantecaSupportedCountry } = useIdentityVerification()
 
-    const handleRedirect = () => {
+    const handleRedirect = (isSuccess: boolean = false) => {
         const redirectUrl = getRedirectUrl()
         if (redirectUrl) {
             clearRedirectUrl()
             router.push(redirectUrl)
+        } else if (isSuccess) {
+            router.push('/profile')
         } else {
-            router.replace('/profile')
+            router.back()
         }
     }
 
     const handleBridgeKycSuccess = useCallback(async () => {
         await fetchUser()
-        handleRedirect()
+        handleRedirect(true)
     }, [])
 
     const {
@@ -119,26 +120,6 @@ const IdentityVerificationView = () => {
             Object.values(BRIDGE_ALPHA3_TO_ALPHA2).includes(upper)
         )
     }
-
-    const isMantecaSupportedCountry = (code: string) => {
-        const upper = code.toUpperCase()
-        return Object.prototype.hasOwnProperty.call(MantecaSupportedExchanges, upper)
-    }
-
-    const isVerifiedForCountry = useCallback(
-        (code: string) => {
-            const upper = code.toUpperCase()
-            const mantecaActive =
-                user?.user.kycVerifications?.some(
-                    (v) =>
-                        v.provider === 'MANTECA' &&
-                        (v.mantecaGeo || '').toUpperCase() === upper &&
-                        v.status === MantecaKycStatus.ACTIVE
-                ) ?? false
-            return isMantecaSupportedCountry(upper) ? mantecaActive : isUserBridgeKycApproved
-        },
-        [user]
-    )
 
     // Skip country selection if coming from a supported bridge country
     useEffect(() => {
@@ -227,44 +208,27 @@ const IdentityVerificationView = () => {
                 </div>
             )}
 
-            <ActionModal
-                visible={isAlreadyVerifiedModalOpen}
-                onClose={() => setIsAlreadyVerifiedModalOpen(false)}
-                title="You're already verified"
-                description={
-                    <p>
-                        Your identity has already been successfully verified for {userClickedCountry?.title}. You can
-                        continue to use features available in this region. No further action is needed.
-                    </p>
-                }
-                icon="shield"
-                ctas={[
-                    {
-                        text: 'Close',
-                        shadowSize: '4',
-                        className: 'md:py-2',
-                        onClick: () => {
-                            setIsAlreadyVerifiedModalOpen(false)
-                            handleRedirect()
-                        },
-                    },
-                ]}
-            />
-
             {selectedCountry && (
                 <MantecaGeoSpecificKycModal
                     isUserBridgeKycApproved={isUserBridgeKycApproved}
                     selectedCountry={selectedCountry}
                     setIsMantecaModalOpen={setIsMantecaModalOpen}
                     isMantecaModalOpen={isMantecaModalOpen}
-                    onKycSuccess={handleRedirect}
+                    onKycSuccess={() => handleRedirect(true)}
                 />
             )}
 
             {userClickedCountry && selectedCountryParams && (
                 <StartVerificationModal
                     visible={isStartVerificationModalOpen}
-                    onClose={() => setIsStartVerificationModalOpen(false)}
+                    onClose={() => {
+                        // we dont show ID issuer country list for bridge countries
+                        if (isBridgeSupportedCountry(userClickedCountry.id) || userClickedCountry.id === 'bridge') {
+                            handleRedirect()
+                        } else {
+                            setIsStartVerificationModalOpen(false)
+                        }
+                    }}
                     onStartVerification={() => {
                         setIsStartVerificationModalOpen(false)
                         if (isMantecaSupportedCountry(userClickedCountry.id)) {

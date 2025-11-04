@@ -1,7 +1,10 @@
 import { EUROPE_GLOBE_ICON, LATAM_GLOBE_ICON, NORTH_AMERICA_GLOBE_ICON, REST_OF_WORLD_GLOBE_ICON } from '@/assets'
 import type { StaticImageData } from 'next/image'
 import useKycStatus from './useKycStatus'
-import { useMemo } from 'react'
+import { useMemo, useCallback } from 'react'
+import { useAuth } from '@/context/authContext'
+import { MantecaKycStatus } from '@/interfaces'
+import { MantecaSupportedExchanges, countryData } from '@/components/AddMoney/consts'
 
 export type Region = {
     path: string
@@ -52,7 +55,28 @@ const MANTECA_QR_ONLY_REGIONS: Region[] = [
 ]
 
 export const useIdentityVerification = () => {
+    const { user } = useAuth()
     const { isUserBridgeKycApproved, isUserMantecaKycApproved } = useKycStatus()
+
+    const isMantecaSupportedCountry = useCallback((code: string) => {
+        const upper = code.toUpperCase()
+        return Object.prototype.hasOwnProperty.call(MantecaSupportedExchanges, upper)
+    }, [])
+
+    const isVerifiedForCountry = useCallback(
+        (code: string) => {
+            const upper = code.toUpperCase()
+            const mantecaActive =
+                user?.user.kycVerifications?.some(
+                    (v) =>
+                        v.provider === 'MANTECA' &&
+                        (v.mantecaGeo || '').toUpperCase() === upper &&
+                        v.status === MantecaKycStatus.ACTIVE
+                ) ?? false
+            return isMantecaSupportedCountry(upper) ? mantecaActive : isUserBridgeKycApproved
+        },
+        [user, isUserBridgeKycApproved, isMantecaSupportedCountry]
+    )
 
     const { lockedRegions, unlockedRegions } = useMemo(() => {
         const isBridgeApproved = isUserBridgeKycApproved
@@ -79,8 +103,23 @@ export const useIdentityVerification = () => {
         }
     }, [isUserBridgeKycApproved, isUserMantecaKycApproved])
 
+    const isRegionAlreadyUnlocked = useCallback(
+        (regionPath: string) => {
+            return unlockedRegions.some((region) => region.path.toLowerCase() === regionPath.toLowerCase())
+        },
+        [unlockedRegions]
+    )
+
+    const getCountryTitle = useCallback((countryCode: string) => {
+        return countryData.find((country) => country.id.toUpperCase() === countryCode.toUpperCase())?.title ?? null
+    }, [])
+
     return {
         lockedRegions,
         unlockedRegions,
+        isMantecaSupportedCountry,
+        isVerifiedForCountry,
+        isRegionAlreadyUnlocked,
+        getCountryTitle,
     }
 }

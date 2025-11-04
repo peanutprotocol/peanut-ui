@@ -14,7 +14,7 @@ const RegionsPage = ({ path }: { path: string }) => {
     const region = lockedRegions.find((region) => region.path === path)
 
     if (!region) {
-        return <div>Region not found</div>
+        return null
     }
 
     return (
