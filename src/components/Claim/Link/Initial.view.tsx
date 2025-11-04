@@ -837,11 +837,17 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         }
     }, [user, searchParams, isPeanutWallet, selectedTokenData, address])
 
+    useEffect(() => {
+        if (claimToMercadoPago && !user) {
+            setShowVerificationModal(true)
+        }
+    }, [claimToMercadoPago, user])
+
     if (claimBankFlowStep) {
         return <BankFlowManager {...props} />
     }
 
-    if (claimToMercadoPago) {
+    if (claimToMercadoPago && !!user) {
         return (
             <MantecaFlowManager
                 claimLinkData={claimLinkData}
@@ -1026,6 +1032,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     setShowVerificationModal(false)
                 }}
                 description="The sender isn't verified for this method. You'll have to create an account, verify your identity,  and then your funds will be deposited to your bank."
+                inviterUsername={claimLinkData?.sender?.username}
             />
         </div>
     )

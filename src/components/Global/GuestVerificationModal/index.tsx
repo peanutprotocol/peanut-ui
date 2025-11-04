@@ -3,6 +3,7 @@
 import { saveRedirectUrl } from '@/utils/general.utils'
 import ActionModal from '../ActionModal'
 import { useRouter } from 'next/navigation'
+import { generateInviteCodeLink } from '@/utils'
 
 interface GuestVerificationModalProps {
     description: string
@@ -10,6 +11,7 @@ interface GuestVerificationModalProps {
     onClose: () => void
     secondaryCtaLabel: string
     redirectToVerification?: boolean
+    inviterUsername?: string
 }
 
 export const GuestVerificationModal = ({
@@ -18,6 +20,7 @@ export const GuestVerificationModal = ({
     description,
     secondaryCtaLabel,
     redirectToVerification,
+    inviterUsername,
 }: GuestVerificationModalProps) => {
     const router = useRouter()
     return (
@@ -36,11 +39,15 @@ export const GuestVerificationModal = ({
                     className: 'md:py-2.5',
                     onClick: () => {
                         saveRedirectUrl()
-                        if (redirectToVerification) {
+                        if (inviterUsername) {
+                            const { inviteLink } = generateInviteCodeLink(inviterUsername)
+                            router.push(inviteLink)
+                        } else if (redirectToVerification) {
                             router.push('/setup?redirect_uri=/profile/identity-verification')
                             return
+                        } else {
+                            router.push('/setup')
                         }
-                        router.push('/setup')
                     },
                 },
                 {
