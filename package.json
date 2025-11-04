@@ -69,6 +69,7 @@
         "react-csv": "^2.2.2",
         "react-dom": "^19.1.0",
         "react-fast-marquee": "^1.6.5",
+        "react-force-graph-2d": "^1.25.10",
         "react-ga4": "^2.1.0",
         "react-hook-form": "^7.53.2",
         "react-onesignal": "^3.2.3",

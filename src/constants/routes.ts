@@ -57,7 +57,7 @@ export const PUBLIC_ROUTES = ['request/pay', 'claim', 'pay', 'support', 'invite'
  * Regex pattern for public routes (used in layout.tsx)
  * Matches paths that don't require authentication
  */
-export const PUBLIC_ROUTES_REGEX = /^\/(request\/pay|claim|pay\/.+|support|invite|dev|qr)/
+export const PUBLIC_ROUTES_REGEX = /^\/(request\/pay|claim|pay\/.+|support|invite|dev(\/.*)?|qr)/
 
 /**
  * Routes where middleware should run

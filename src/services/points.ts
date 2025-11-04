@@ -128,4 +128,54 @@ export const pointsApi = {
             return { success: false, data: null }
         }
     },
+
+    getInvitesGraph: async (
+        apiKey: string
+    ): Promise<{
+        success: boolean
+        data: {
+            nodes: Array<{
+                id: string
+                username: string
+                hasAppAccess: boolean
+                directPoints: number
+                transitivePoints: number
+                totalPoints: number
+            }>
+            edges: Array<{
+                id: string
+                source: string
+                target: string
+                type: 'DIRECT' | 'PAYMENT_LINK'
+                createdAt: string
+            }>
+            stats: {
+                totalNodes: number
+                totalEdges: number
+                usersWithAccess: number
+                orphans: number
+            }
+        } | null
+    }> => {
+        try {
+            const response = await fetchWithSentry(`${PEANUT_API_URL}/invites/graph`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'api-key': apiKey,
+                },
+            })
+
+            if (!response.ok) {
+                console.error('getInvitesGraph: API request failed', response.status, response.statusText)
+                return { success: false, data: null }
+            }
+
+            const data = await response.json()
+            return { success: true, data }
+        } catch (error) {
+            console.error('getInvitesGraph: Unexpected error', error)
+            return { success: false, data: null }
+        }
+    },
 }
