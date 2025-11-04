@@ -58,7 +58,7 @@ const KycCompletedModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                 setApprovedCountryData(_approvedCountryData || null)
             }
         }
-    }, [isUserMantecaKycApproved])
+    }, [isUserMantecaKycApproved, user])
 
     return (
         <ActionModal
