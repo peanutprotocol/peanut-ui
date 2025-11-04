@@ -2,6 +2,7 @@
 
 import { ActionListCard } from '@/components/ActionListCard'
 import { getCardPosition } from '@/components/Global/Card'
+import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import { useIdentityVerification, type Region } from '@/hooks/useIdentityVerification'
@@ -21,6 +22,14 @@ const RegionsVerification = () => {
                 <p className="mt-2 text-sm">
                     Transfer to and receive from any bank account and use supported payments methods.
                 </p>
+
+                {unlockedRegions.length === 0 && (
+                    <EmptyState
+                        title="You haven't unlocked any countries yet."
+                        description="No countries unlocked yet. Complete verification to unlock countries and use supported payment methods."
+                        icon="globe-lock"
+                    />
+                )}
 
                 <RegionsList regions={unlockedRegions} isLocked={false} />
 
