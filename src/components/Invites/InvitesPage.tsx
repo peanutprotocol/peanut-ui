@@ -15,6 +15,8 @@ import { useAuth } from '@/context/authContext'
 import { EInviteType } from '@/services/services.types'
 import { saveToCookie } from '@/utils'
 import { useLogin } from '@/hooks/useLogin'
+import UnsupportedBrowserModal from '../Global/UnsupportedBrowserModal'
+import { usePasskeySupport } from '@/hooks/usePasskeySupport'
 
 function InvitePageContent() {
     const searchParams = useSearchParams()
@@ -25,6 +27,7 @@ function InvitePageContent() {
     const dispatch = useAppDispatch()
     const router = useRouter()
     const { handleLoginClick, isLoggingIn } = useLogin()
+    const { isSupported: isPasskeySupported } = usePasskeySupport()
 
     const {
         data: inviteCodeData,
@@ -108,6 +111,7 @@ function InvitePageContent() {
                     </div>
                 </div>
             </div>
+            <UnsupportedBrowserModal allowClose={false} visible={!isPasskeySupported} />
         </InvitesPageLayout>
     )
 }
