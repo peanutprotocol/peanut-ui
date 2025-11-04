@@ -323,7 +323,7 @@ const TokenAmountInput = ({
                         />
                         {/* Fake blinking caret shown when not focused and input is empty */}
                         {!isFocused && !displayValue && (
-                            <div className="animate-blink pointer-events-none absolute left-0 top-1/2 h-12 w-[1px] -translate-y-1/2 bg-primary-1" />
+                            <div className="pointer-events-none absolute left-0 top-1/2 h-12 w-[1px] -translate-y-1/2 animate-blink bg-primary-1" />
                         )}
                     </div>
                 </div>
