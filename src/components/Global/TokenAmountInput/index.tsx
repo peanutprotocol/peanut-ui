@@ -31,6 +31,7 @@ interface TokenAmountInputProps {
     infoText?: string
     showSlider?: boolean
     maxAmount?: number
+    amountCollected?: number
     isInitialInputUsd?: boolean
     defaultSliderValue?: number
     defaultSliderSuggestedAmount?: number
@@ -53,6 +54,7 @@ const TokenAmountInput = ({
     showInfoText,
     showSlider = false,
     maxAmount,
+    amountCollected = 0,
     isInitialInputUsd = false,
     defaultSliderValue,
     defaultSliderSuggestedAmount,
@@ -153,15 +155,32 @@ const TokenAmountInput = ({
         (value: number[]) => {
             if (maxAmount) {
                 const selectedPercentage = value[0]
-                const selectedAmount = parseFloat(((selectedPercentage / 100) * maxAmount).toFixed(4)).toString()
+                let selectedAmount = (selectedPercentage / 100) * maxAmount
+
+                // Only snap to exact remaining amount when user selects the 33.33% magnetic snap point
+                // This ensures equal splits fill the pot exactly to 100%
+                const SNAP_POINT_TOLERANCE = 0.5 // percentage points - allows magnetic snapping
+                const COMPLETION_THRESHOLD = 0.98 // 98% - if 33.33% would nearly complete pot
+                const EQUAL_SPLIT_PERCENTAGE = 100 / 3 // 33.333...%
+
+                const isAt33SnapPoint = Math.abs(selectedPercentage - EQUAL_SPLIT_PERCENTAGE) < SNAP_POINT_TOLERANCE
+                if (isAt33SnapPoint && amountCollected > 0) {
+                    const remainingAmount = maxAmount - amountCollected
+                    // Only snap if there's remaining amount and 33.33% would nearly complete the pot
+                    if (remainingAmount > 0 && selectedAmount >= remainingAmount * COMPLETION_THRESHOLD) {
+                        selectedAmount = remainingAmount
+                    }
+                }
+
+                const selectedAmountStr = parseFloat(selectedAmount.toFixed(4)).toString()
                 const maxDecimals = displayMode === 'FIAT' || displayMode === 'STABLE' || isInputUsd ? 2 : decimals
-                const formattedAmount = formatTokenAmount(selectedAmount, maxDecimals, true)
+                const formattedAmount = formatTokenAmount(selectedAmountStr, maxDecimals, true)
                 if (formattedAmount) {
                     onChange(formattedAmount, isInputUsd)
                 }
             }
         },
-        [maxAmount, onChange]
+        [maxAmount, amountCollected, onChange, displayMode, isInputUsd, decimals]
     )
 
     const showConversion = useMemo(() => {

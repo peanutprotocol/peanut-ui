@@ -94,11 +94,17 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ goal, progress, isClosed }) =
 
         if (isGoalAchieved) return null
 
+        // Check if progress percentage is too close to 100% to prevent overlap
+        const isTooCloseToGoal = progressPercentage > 90
+
         return (
             <div className="relative flex w-full items-center pb-2">
                 <p
-                    className={twMerge('absolute text-sm', progressPercentage < 10 ? 'left-0' : '-translate-x-1/2')}
-                    style={progressPercentage < 10 ? {} : { left: `${progressPercentage}%` }}
+                    className={twMerge(
+                        'absolute text-sm',
+                        progressPercentage < 10 ? 'left-0' : isTooCloseToGoal ? 'left-0' : '-translate-x-1/2'
+                    )}
+                    style={progressPercentage < 10 || isTooCloseToGoal ? {} : { left: `${progressPercentage}%` }}
                 >
                     {formatCurrency(progress)}
                 </p>
