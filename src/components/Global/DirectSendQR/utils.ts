@@ -108,9 +108,17 @@ const REGEXES_BY_TYPE: { [key in QrType]?: RegExp } = {
 export const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL!
 
 export function recognizeQr(data: string): QrType | null {
-    if (data.startsWith(BASE_URL)) {
+    // Normalize the data for comparison (remove protocol and www)
+    const normalizedData = data.toLowerCase().replace(/^https?:\/\/(www\.)?/, '')
+    const normalizedBaseUrl = BASE_URL.toLowerCase().replace(/^https?:\/\/(www\.)?/, '')
+
+    // Check if it's a Peanut URL:
+    // 1. Matches BASE_URL (works for tests and production)
+    // 2. OR explicitly matches peanut.me (works on localhost with real QR codes)
+    if (normalizedData.startsWith(normalizedBaseUrl) || normalizedData.startsWith('peanut.me/')) {
         return EQrType.PEANUT_URL
     }
+
     if (isAddress(data)) {
         return EQrType.EVM_ADDRESS
     }

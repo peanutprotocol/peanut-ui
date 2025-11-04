@@ -25,6 +25,7 @@ import { waitForTransactionReceipt } from 'wagmi/actions'
 import { getRoute, type PeanutCrossChainRoute } from '@/services/swap'
 import { estimateTransactionCostUsd } from '@/app/actions/tokens'
 import { captureException } from '@sentry/nextjs'
+import { useRouter } from 'next/navigation'
 
 enum ELoadingStep {
     IDLE = 'Idle',
@@ -57,6 +58,7 @@ export interface InitiatePaymentPayload {
     isExternalWalletFlow?: boolean
     transactionType?: TChargeTransactionType
     attachmentOptions?: IAttachmentOptions
+    returnAfterChargeCreation?: boolean
 }
 
 interface InitiationResult {
@@ -77,6 +79,7 @@ export const usePaymentInitiator = () => {
     const { switchChainAsync } = useSwitchChain()
     const { address: wagmiAddress } = useAppKitAccount()
     const { sendTransactionAsync } = useSendTransaction()
+    const router = useRouter()
     const config = useConfig()
     const { chain: connectedWalletChain } = useWagmiAccount()
 
@@ -158,7 +161,9 @@ export const usePaymentInitiator = () => {
                 if (currentUrl.searchParams.get('chargeId') === activeChargeDetails.uuid) {
                     const newUrl = new URL(window.location.href)
                     newUrl.searchParams.delete('chargeId')
-                    window.history.replaceState(null, '', newUrl.toString())
+                    // Use router.push (not window.history.replaceState) so that
+                    // the components using the search params will be updated
+                    router.push(newUrl.pathname + newUrl.search)
                 }
             }
             return {
@@ -168,7 +173,7 @@ export const usePaymentInitiator = () => {
                 success: false,
             }
         },
-        [activeChargeDetails]
+        [activeChargeDetails, router]
     )
 
     // prepare transaction details (called from Confirm view)
@@ -391,11 +396,9 @@ export const usePaymentInitiator = () => {
                     const newUrl = new URL(window.location.href)
                     if (payload.requestId) newUrl.searchParams.delete('id')
                     newUrl.searchParams.set('chargeId', chargeDetailsToUse.uuid)
-                    window.history.replaceState(
-                        { ...window.history.state, as: newUrl.href, url: newUrl.href },
-                        '',
-                        newUrl.href
-                    )
+                    // Use router.push (not window.history.replaceState) so that
+                    // the components using the search params will be updated
+                    router.push(newUrl.pathname + newUrl.search)
                     console.log('Updated URL with chargeId:', newUrl.href)
                 }
             }
@@ -599,6 +602,13 @@ export const usePaymentInitiator = () => {
         ]
     )
 
+    // @dev TODO: Refactor to TanStack Query mutation for architectural consistency
+    // Current: This async function works correctly (protected by isProcessing state)
+    // but is NOT tracked by usePendingTransactions mutation system.
+    // Future improvement: Wrap in useMutation for consistency with other balance-decreasing ops.
+    //   mutationKey: [BALANCE_DECREASE, INITIATE_PAYMENT]
+    // Complexity: HIGH - complex state/Redux integration. Low priority.
+    //
     // initiate and process payments
     const initiatePayment = useCallback(
         async (payload: InitiatePaymentPayload): Promise<InitiationResult> => {
@@ -619,12 +629,13 @@ export const usePaymentInitiator = () => {
 
                 // 2. handle charge state
                 if (
-                    chargeCreated &&
-                    (payload.isExternalWalletFlow ||
-                        !isPeanutWallet ||
-                        (isPeanutWallet &&
-                            (!areEvmAddressesEqual(determinedChargeDetails.tokenAddress, PEANUT_WALLET_TOKEN) ||
-                                determinedChargeDetails.chainId !== PEANUT_WALLET_CHAIN.id.toString())))
+                    payload.returnAfterChargeCreation || // For request pot payment, return after charge creation
+                    (chargeCreated &&
+                        (payload.isExternalWalletFlow ||
+                            !isPeanutWallet ||
+                            (isPeanutWallet &&
+                                (!areEvmAddressesEqual(determinedChargeDetails.tokenAddress, PEANUT_WALLET_TOKEN) ||
+                                    determinedChargeDetails.chainId !== PEANUT_WALLET_CHAIN.id.toString()))))
                 ) {
                     console.log(
                         `Charge created. Transitioning to Confirm view for: ${
@@ -673,7 +684,9 @@ export const usePaymentInitiator = () => {
                     if (currentUrl.searchParams.get('chargeId') === determinedChargeDetails.uuid) {
                         const newUrl = new URL(window.location.href)
                         newUrl.searchParams.delete('chargeId')
-                        window.history.replaceState(null, '', newUrl.toString())
+                        // Use router.push (not window.history.replaceState) so that
+                        // the components using the search params will be updated
+                        router.push(newUrl.pathname + newUrl.search)
                         console.log('URL updated, chargeId removed.')
                     }
                 }
@@ -691,6 +704,7 @@ export const usePaymentInitiator = () => {
             handleError,
             setLoadingStep,
             setError,
+            router,
             setTransactionHash,
             setPaymentDetails,
             loadingStep,

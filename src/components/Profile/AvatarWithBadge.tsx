@@ -6,7 +6,7 @@ import { Icon, type IconName } from '../Global/Icons/Icon'
 import StatusPill, { type StatusPillType } from '../Global/StatusPill'
 import Image, { type StaticImageData } from 'next/image'
 
-export type AvatarSize = 'extra-small' | 'small' | 'medium' | 'large'
+export type AvatarSize = 'tiny' | 'extra-small' | 'small' | 'medium' | 'large'
 
 /**
  * props for the avatarwithbadge component.
@@ -19,8 +19,6 @@ interface AvatarWithBadgeProps {
     inlineStyle?: React.CSSProperties // for dynamic background colors based on username (hex codes)
     textColor?: string
     iconFillColor?: string
-    showStatusPill?: boolean
-    statusPillStatus?: StatusPillType
     logo?: StaticImageData
 }
 
@@ -36,11 +34,10 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
     inlineStyle,
     textColor,
     iconFillColor,
-    showStatusPill,
-    statusPillStatus,
     logo,
 }) => {
     const sizeClasses: Record<AvatarSize, string> = {
+        tiny: 'h-6 w-6 text-[10px]',
         'extra-small': 'h-8 w-8 text-xs',
         small: 'h-12 w-12 text-sm',
         medium: 'h-16 w-16 text-2xl',
@@ -48,6 +45,7 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
     }
 
     const iconSizeMap: Record<AvatarSize, number> = {
+        tiny: 12,
         'extra-small': 16,
         small: 18,
         medium: 32,
@@ -117,8 +115,6 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
                     initials
                 )}
             </div>
-
-            {showStatusPill && statusPillStatus && <StatusPill status={statusPillStatus} />}
         </div>
     )
 }

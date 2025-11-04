@@ -7,7 +7,7 @@ interface Props {
     textToCopy: string
     fill?: string
     className?: string
-    iconSize?: '2' | '4' | '6' | '8'
+    iconSize?: '2' | '3' | '4' | '6' | '8'
     type?: 'button' | 'icon'
     buttonSize?: ButtonSize
 }

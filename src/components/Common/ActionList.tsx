@@ -1,12 +1,11 @@
 'use client'
 
-import { SearchResultCard } from '../SearchUsers/SearchResultCard'
 import StatusBadge from '../Global/Badges/StatusBadge'
 import IconStack from '../Global/IconStack'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { type ClaimLinkData } from '@/services/sendLinks'
 import { formatUnits } from 'viem'
-import { useMemo, useState } from 'react'
+import { useContext, useCallback, useMemo, useState } from 'react'
 import ActionModal from '@/components/Global/ActionModal'
 import Divider from '../0_Bruddle/Divider'
 import { Button } from '../0_Bruddle'
@@ -22,15 +21,19 @@ import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermineBankRequestType'
 import { GuestVerificationModal } from '../Global/GuestVerificationModal'
 import ActionListDaimoPayButton from './ActionListDaimoPayButton'
-import { ACTION_METHODS, type PaymentMethod } from '@/constants/actionlist.consts'
+import { DEVCONNECT_CLAIM_METHODS, type PaymentMethod } from '@/constants/actionlist.consts'
 import useClaimLink from '../Claim/useClaimLink'
 import { setupActions } from '@/redux/slices/setup-slice'
 import starStraightImage from '@/assets/icons/starStraight.svg'
 import { useAuth } from '@/context/authContext'
 import { EInviteType } from '@/services/services.types'
 import ConfirmInviteModal from '../Global/ConfirmInviteModal'
-import { useGeoLocation } from '@/hooks/useGeoLocation'
 import Loading from '../Global/Loading'
+import { useWallet } from '@/hooks/wallet/useWallet'
+import { ActionListCard } from '../ActionListCard'
+import { useGeoFilteredPaymentOptions } from '@/hooks/useGeoFilteredPaymentOptions'
+import { tokenSelectorContext } from '@/context'
+import SupportCTA from '../Global/SupportCTA'
 
 interface IActionListProps {
     flow: 'claim' | 'request'
@@ -38,6 +41,8 @@ interface IActionListProps {
     requestLinkData?: ParsedURL
     isLoggedIn: boolean
     isInviteLink?: boolean
+    showDevconnectMethod?: boolean
+    setExternalWalletRecipient?: (recipient: { name: string | undefined; address: string }) => void
 }
 
 /**
@@ -54,6 +59,8 @@ export default function ActionList({
     flow,
     requestLinkData,
     isInviteLink = false,
+    showDevconnectMethod,
+    setExternalWalletRecipient,
 }: IActionListProps) {
     const router = useRouter()
     const {
@@ -62,7 +69,9 @@ export default function ActionList({
         setShowVerificationModal,
         setClaimToMercadoPago,
         setRegionalMethodType,
+        setHideTokenSelector,
     } = useClaimBankFlow()
+    const { balance } = useWallet()
     const [showMinAmountError, setShowMinAmountError] = useState(false)
     const { claimType } = useDetermineBankClaimType(claimLinkData?.sender?.userId ?? '')
     const { chargeDetails } = usePaymentStore()
@@ -77,17 +86,62 @@ export default function ActionList({
         setFlowStep: setRequestFulfilmentBankFlowStep,
         setFulfillUsingManteca,
         setRegionalMethodType: setRequestFulfillmentRegionalMethodType,
+        setTriggerPayWithPeanut,
     } = useRequestFulfillmentFlow()
     const [isGuestVerificationModalOpen, setIsGuestVerificationModalOpen] = useState(false)
     const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null)
     const [showInviteModal, setShowInviteModal] = useState(false)
     const { user } = useAuth()
+    const {
+        setSelectedTokenAddress,
+        setSelectedChainID,
+        devconnectChainId,
+        devconnectRecipientAddress,
+        devconnectTokenAddress,
+    } = useContext(tokenSelectorContext)
+    const [isUsePeanutBalanceModalShown, setIsUsePeanutBalanceModalShown] = useState(false)
+    const [showUsePeanutBalanceModal, setShowUsePeanutBalanceModal] = useState(false)
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null)
 
     const dispatch = useAppDispatch()
 
-    const { countryCode: userGeoLocationCountryCode, isLoading: isGeoLoading } = useGeoLocation()
+    const requiresVerification = useMemo(() => {
+        if (flow === 'claim') {
+            return claimType === BankClaimType.GuestKycNeeded || claimType === BankClaimType.ReceiverKycNeeded
+        }
+        if (flow === 'request') {
+            return requestType === BankRequestType.GuestKycNeeded || requestType === BankRequestType.PayerKycNeeded
+        }
+        return false
+    }, [claimType, requestType, flow])
 
-    const handleMethodClick = async (method: PaymentMethod) => {
+    // Memoize the callback to prevent unnecessary re-sorts
+    const isMethodUnavailable = useCallback(
+        (method: PaymentMethod) => method.soon || (method.id === 'bank' && requiresVerification),
+        [requiresVerification]
+    )
+
+    // use the hook to filter and sort payment methods based on geolocation
+    const { filteredMethods: sortedActionMethods, isLoading: isGeoLoading } = useGeoFilteredPaymentOptions({
+        sortUnavailable: true,
+        isMethodUnavailable: (method) => method.soon || (method.id === 'bank' && requiresVerification),
+        methods: showDevconnectMethod ? DEVCONNECT_CLAIM_METHODS : undefined,
+    })
+
+    // Check if user has enough Peanut balance to pay for the request
+    const amountInUsd = usdAmount ? parseFloat(usdAmount) : 0
+    const hasSufficientPeanutBalance = user && balance && Number(balance) >= amountInUsd
+
+    const handleMethodClick = async (method: PaymentMethod, bypassBalanceModal = false) => {
+        // For request flow: Check if user has sufficient Peanut balance and hasn't dismissed the modal
+        if (flow === 'request' && requestLinkData && !bypassBalanceModal) {
+            if (!isUsePeanutBalanceModalShown && hasSufficientPeanutBalance) {
+                setSelectedPaymentMethod(method) // Store the method they want to use
+                setShowUsePeanutBalanceModal(true)
+                return // Show modal, don't proceed with method yet
+            }
+        }
+
         if (flow === 'claim' && claimLinkData) {
             const amountInUsd = parseFloat(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals))
             if (method.id === 'bank' && amountInUsd < 5) {
@@ -119,16 +173,33 @@ export default function ActionList({
                     setRegionalMethodType(method.id)
                     setClaimToMercadoPago(true)
                     break
+                case 'devconnect':
+                    setExternalWalletRecipient?.({
+                        address: devconnectRecipientAddress, // Address sent from devconnect app
+                        name: undefined,
+                    })
+                    // For devconnect claims we need to set address and chain from the url params
+                    setSelectedTokenAddress(devconnectTokenAddress)
+                    setSelectedChainID(devconnectChainId)
+                    setHideTokenSelector(true)
+                    setClaimToExternalWallet(true)
+                    break
                 case 'exchange-or-wallet':
                     setClaimToExternalWallet(true)
                     break
             }
         } else if (flow === 'request' && requestLinkData) {
-            const amountInUsd = usdAmount ? parseFloat(usdAmount) : 0
-            if (method.id === 'bank' && amountInUsd < 1) {
-                setShowMinAmountError(true)
+            // @dev TODO: Fix req fulfillment with bank properly post devconnect
+            if (method.id === 'bank') {
+                if (user?.user) {
+                    router.push('/add-money')
+                } else {
+                    const redirectUri = encodeURIComponent('/add-money')
+                    router.push(`/setup?redirect_uri=${redirectUri}`)
+                }
                 return
             }
+
             switch (method.id) {
                 case 'bank':
                     if (requestType === BankRequestType.GuestKycNeeded) {
@@ -155,41 +226,6 @@ export default function ActionList({
             }
         }
     }
-
-    const geolocatedMethods = useMemo(() => {
-        // show pix in brazil and mercado pago in other countries
-        return ACTION_METHODS.filter((method) => {
-            if (userGeoLocationCountryCode === 'BR' && method.id === 'mercadopago') {
-                return false
-            }
-            if (userGeoLocationCountryCode !== 'BR' && method.id === 'pix') {
-                return false
-            }
-            return true
-        })
-    }, [userGeoLocationCountryCode])
-
-    const requiresVerification = useMemo(() => {
-        if (flow === 'claim') {
-            return claimType === BankClaimType.GuestKycNeeded || claimType === BankClaimType.ReceiverKycNeeded
-        }
-        if (flow === 'request') {
-            return requestType === BankRequestType.GuestKycNeeded || requestType === BankRequestType.PayerKycNeeded
-        }
-        return false
-    }, [claimType, requestType, flow])
-
-    const sortedActionMethods = useMemo(() => {
-        return [...geolocatedMethods].sort((a, b) => {
-            const aIsUnavailable = a.soon || (a.id === 'bank' && requiresVerification)
-            const bIsUnavailable = b.soon || (b.id === 'bank' && requiresVerification)
-
-            if (aIsUnavailable === bIsUnavailable) {
-                return 0
-            }
-            return aIsUnavailable ? 1 : -1
-        })
-    }, [requiresVerification])
 
     const handleContinueWithPeanut = () => {
         if (flow === 'claim') {
@@ -244,18 +280,28 @@ export default function ActionList({
                 {sortedActionMethods.map((method) => {
                     if (flow === 'request' && method.id === 'exchange-or-wallet') {
                         return (
-                            <ActionListDaimoPayButton
-                                handleContinueWithPeanut={handleContinueWithPeanut}
-                                key={method.id}
-                                showConfirmModal={isInviteLink && !userHasAppAccess}
-                            />
+                            <div key={method.id}>
+                                <ActionListDaimoPayButton
+                                    handleContinueWithPeanut={handleContinueWithPeanut}
+                                    showConfirmModal={isInviteLink && !userHasAppAccess}
+                                    onBeforeShow={() => {
+                                        // Check balance before showing Daimo widget
+                                        if (!isUsePeanutBalanceModalShown && hasSufficientPeanutBalance) {
+                                            setSelectedPaymentMethod(method)
+                                            setShowUsePeanutBalanceModal(true)
+                                            return false // Don't show Daimo yet
+                                        }
+                                        return true // Proceed with Daimo
+                                    }}
+                                />
+                            </div>
                         )
                     }
 
                     return (
                         <MethodCard
                             onClick={() => {
-                                if (isInviteLink && !userHasAppAccess) {
+                                if (isInviteLink && !userHasAppAccess && method.id !== 'devconnect') {
                                     setSelectedMethod(method)
                                     setShowInviteModal(true)
                                 } else {
@@ -269,6 +315,7 @@ export default function ActionList({
                     )
                 })}
             </div>
+            {flow === 'claim' && !isLoggedIn && <SupportCTA />}
             <ActionModal
                 visible={showMinAmountError}
                 onClose={() => setShowMinAmountError(false)}
@@ -306,6 +353,49 @@ export default function ActionList({
                     setSelectedMethod(null)
                 }}
             />
+
+            <ActionModal
+                visible={showUsePeanutBalanceModal}
+                onClose={() => {
+                    setShowUsePeanutBalanceModal(false)
+                    setIsUsePeanutBalanceModalShown(true)
+                    setSelectedPaymentMethod(null)
+                }}
+                title="Use your Peanut balance instead"
+                description={
+                    'You already have enough funds in your Peanut account. Using this method is instant and avoids delays.'
+                }
+                icon="user-plus"
+                ctas={[
+                    {
+                        text: 'Pay with Peanut',
+                        shadowSize: '4',
+                        onClick: () => {
+                            setShowUsePeanutBalanceModal(false)
+                            setIsUsePeanutBalanceModalShown(true)
+                            setSelectedPaymentMethod(null)
+                            setTriggerPayWithPeanut(true)
+                        },
+                    },
+                    {
+                        text: 'Continue',
+                        shadowSize: '4',
+                        variant: 'stroke',
+                        onClick: () => {
+                            setShowUsePeanutBalanceModal(false)
+                            setIsUsePeanutBalanceModalShown(true)
+                            // Proceed with the method the user originally selected
+                            if (selectedPaymentMethod) {
+                                handleMethodClick(selectedPaymentMethod, true) // true = bypass modal check
+                            }
+                            setSelectedPaymentMethod(null)
+                        },
+                    },
+                ]}
+                iconContainerClassName="bg-primary-1"
+                preventClose={false}
+                modalPanelClassName="max-w-md mx-8"
+            />
         </div>
     )
 }
@@ -320,7 +410,7 @@ export const MethodCard = ({
     requiresVerification?: boolean
 }) => {
     return (
-        <SearchResultCard
+        <ActionListCard
             position="single"
             description={method.description}
             descriptionClassName="text-[12px]"

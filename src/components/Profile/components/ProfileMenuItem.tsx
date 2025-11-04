@@ -8,7 +8,7 @@ import React from 'react'
 import { twMerge } from 'tailwind-merge'
 
 interface ProfileMenuItemProps {
-    icon: IconName
+    icon: IconName | React.ReactNode
     label: string
     href?: string
     onClick?: () => void
@@ -37,7 +37,13 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
     const content = (
         <div className="flex items-center justify-between py-1">
             <div className="flex items-center gap-2">
-                <Icon name={icon} size={20} fill="black" />
+                {typeof icon === 'string' ? (
+                    <Icon name={icon as IconName} size={20} fill="black" />
+                ) : (
+                    <div className="flex items-center justify-center" style={{ width: 20, height: 20 }}>
+                        {icon}
+                    </div>
+                )}
                 <span className="text-base font-medium">{label}</span>
                 {showTooltip && (
                     <Tooltip content={toolTipText}>

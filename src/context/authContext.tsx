@@ -4,11 +4,17 @@ import { useUserQuery } from '@/hooks/query/user'
 import * as interfaces from '@/interfaces'
 import { useAppDispatch, useUserStore } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
-import { fetchWithSentry, removeFromCookie, syncLocalStorageToCookie, clearRedirectUrl } from '@/utils'
-import { useAppKit } from '@reown/appkit/react'
+import {
+    fetchWithSentry,
+    removeFromCookie,
+    syncLocalStorageToCookie,
+    clearRedirectUrl,
+    updateUserPreferences,
+} from '@/utils'
+import { resetCrispProxySessions } from '@/utils/crisp'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { createContext, type ReactNode, useContext, useState, useEffect, useMemo } from 'react'
+import { createContext, type ReactNode, useContext, useState, useEffect, useMemo, useCallback } from 'react'
 import { captureException } from '@sentry/nextjs'
 
 interface AuthContextType {
@@ -16,7 +22,6 @@ interface AuthContextType {
     userId: string | undefined
     username: string | undefined
     fetchUser: () => Promise<interfaces.IUserProfile | null>
-    addBYOW: () => Promise<void>
     addAccount: ({
         accountIdentifier,
         accountType,
@@ -47,12 +52,11 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
  */
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const router = useRouter()
-    const { open: web3modalOpen } = useAppKit()
     const dispatch = useAppDispatch()
     const { user: authUser } = useUserStore()
     const toast = useToast()
     const queryClient = useQueryClient()
-    const LOCAL_STORAGE_WEB_AUTHN_KEY = 'web-authn-key'
+    const WEB_AUTHN_COOKIE_KEY = 'web-authn-key'
 
     const { data: user, isLoading: isFetchingUser, refetch: fetchUser } = useUserQuery(!authUser?.user.userId)
 
@@ -64,7 +68,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     useEffect(() => {
         if (user) {
-            syncLocalStorageToCookie(LOCAL_STORAGE_WEB_AUTHN_KEY)
+            syncLocalStorageToCookie(WEB_AUTHN_COOKIE_KEY)
         }
     }, [user])
 
@@ -74,12 +78,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const [isLoggingOut, setIsLoggingOut] = useState(false)
-
-    const addBYOW = async () => {
-        // we open the web3modal, so the user can disconnect the previous wallet,
-        // connect a new wallet and allow the useEffect(..., [wagmiAddress]) in walletContext take over
-        web3modalOpen()
-    }
 
     const addAccount = async ({
         accountIdentifier,
@@ -125,7 +123,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         fetchUser()
     }
 
-    const logoutUser = async () => {
+    const logoutUser = useCallback(async () => {
         if (isLoggingOut) return
 
         setIsLoggingOut(true)
@@ -138,8 +136,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             })
 
             if (response.ok) {
-                localStorage.removeItem(LOCAL_STORAGE_WEB_AUTHN_KEY)
-                removeFromCookie(LOCAL_STORAGE_WEB_AUTHN_KEY)
+                updateUserPreferences(user?.user.userId, { webAuthnKey: undefined })
+                removeFromCookie(WEB_AUTHN_COOKIE_KEY)
                 clearRedirectUrl()
                 queryClient.invalidateQueries()
 
@@ -149,6 +147,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 // clear the iOS PWA prompt session flag
                 if (typeof window !== 'undefined') {
                     sessionStorage.removeItem('hasSeenIOSPWAPromptThisSession')
+                }
+
+                // Reset Crisp session to prevent session merging with next user
+                // This resets both main window Crisp instance and any proxy page instances
+                if (typeof window !== 'undefined') {
+                    resetCrispProxySessions()
                 }
 
                 await fetchUser()
@@ -164,9 +168,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } finally {
             setIsLoggingOut(false)
         }
-    }
-
-    console.log({ user })
+    }, [fetchUser, isLoggingOut, user])
 
     return (
         <AuthContext.Provider
@@ -175,7 +177,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 userId: user?.user?.userId,
                 username: user?.user?.username ?? undefined,
                 fetchUser: legacy_fetchUser,
-                addBYOW,
                 addAccount,
                 isFetchingUser,
                 logoutUser,

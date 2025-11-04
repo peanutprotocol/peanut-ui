@@ -1,7 +1,7 @@
 'use client'
 
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { useState, useMemo, useContext, useEffect, useCallback } from 'react'
+import { useState, useMemo, useContext, useEffect, useCallback, useRef, useId } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
@@ -40,6 +40,11 @@ import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { useQueryClient } from '@tanstack/react-query'
 import { captureException } from '@sentry/nextjs'
 import useKycStatus from '@/hooks/useKycStatus'
+import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
+import { PointsAction } from '@/services/services.types'
+import { usePointsConfetti } from '@/hooks/usePointsConfetti'
+import { usePointsCalculation } from '@/hooks/usePointsCalculation'
+import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 
 type MantecaWithdrawStep = 'amountInput' | 'bankDetails' | 'review' | 'success' | 'failure'
 
@@ -47,6 +52,7 @@ const MAX_WITHDRAW_AMOUNT = '2000'
 const MIN_WITHDRAW_AMOUNT = '1'
 
 export default function MantecaWithdrawFlow() {
+    const flowId = useId() // Unique ID per flow instance to prevent cache collisions
     const [amount, setAmount] = useState<string | undefined>(undefined)
     const [currencyAmount, setCurrencyAmount] = useState<string | undefined>(undefined)
     const [usdAmount, setUsdAmount] = useState<string | undefined>(undefined)
@@ -68,6 +74,7 @@ export default function MantecaWithdrawFlow() {
     const { setIsSupportModalOpen } = useSupportModalContext()
     const queryClient = useQueryClient()
     const { isUserBridgeKycApproved } = useKycStatus()
+    const { hasPendingTransactions } = usePendingTransactions()
 
     // Get method and country from URL parameters
     const selectedMethodType = searchParams.get('method') // mercadopago, pix, bank-transfer, etc.
@@ -274,8 +281,8 @@ export default function MantecaWithdrawFlow() {
 
     useEffect(() => {
         // Skip balance check if transaction is being processed
-        // (balance has been optimistically updated in these states)
-        if (isLoading) {
+        // Use hasPendingTransactions to prevent race condition with optimistic updates
+        if (hasPendingTransactions) {
             return
         }
 
@@ -293,13 +300,20 @@ export default function MantecaWithdrawFlow() {
         } else {
             setBalanceErrorMessage(null)
         }
-    }, [usdAmount, balance, isLoading])
+    }, [usdAmount, balance, hasPendingTransactions])
+
+    // Fetch points early to avoid latency penalty - fetch as soon as we have usdAmount
+    // Use flowId as uniqueId to prevent cache collisions between different withdrawal flows
+    const { pointsData, pointsDivRef } = usePointsCalculation(PointsAction.MANTECA_TRANSFER, usdAmount, true, flowId)
+
+    // Use points confetti hook for animation - must be called unconditionally
+    usePointsConfetti(step === 'success' ? pointsData?.estimatedPoints : undefined, pointsDivRef)
 
     useEffect(() => {
         if (step === 'success') {
             queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
         }
-    }, [step])
+    }, [step, queryClient])
 
     if (isCurrencyLoading || !currencyPrice || !selectedCountry) {
         return <PeanutLoading />
@@ -328,6 +342,18 @@ export default function MantecaWithdrawFlow() {
                             <h1 className="text-sm font-normal text-grey-1">to {destinationAddress}</h1>
                         </div>
                     </Card>
+
+                    {/* Points Display - ref used for confetti origin point */}
+                    {pointsData?.estimatedPoints && (
+                        <div ref={pointsDivRef} className="flex justify-center gap-2">
+                            <Image src={STAR_STRAIGHT_ICON} alt="star" width={20} height={20} />
+                            <p className="text-sm font-medium text-black">
+                                You&apos;ve earned {pointsData.estimatedPoints}{' '}
+                                {pointsData.estimatedPoints === 1 ? 'point' : 'points'}!
+                            </p>
+                        </div>
+                    )}
+
                     <div className="w-full space-y-5">
                         <Button
                             onClick={() => {

@@ -19,9 +19,6 @@ export interface CreateRequestRequest {
     tokenAddress: string
     tokenDecimals: string
     tokenSymbol: string
-    attachment?: File
-    mimeType?: string
-    filename?: string
 }
 
 export interface TRequestResponse {
@@ -48,6 +45,7 @@ export interface TRequestResponse {
             username: string
         }
     }
+    totalCollectedAmount: number
 }
 
 export interface ChargeEntry {

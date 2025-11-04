@@ -15,6 +15,8 @@ import { getAddress, isAddress, erc20Abi } from 'viem'
 import * as wagmiChains from 'wagmi/chains'
 import { getPublicClient, type ChainId } from '@/app/actions/clients'
 import { NATIVE_TOKEN_ADDRESS, SQUID_ETH_ADDRESS } from './token.utils'
+import { type ChargeEntry } from '@/services/services.types'
+import { toWebAuthnKey } from '@zerodev/passkey-validator'
 
 export function urlBase64ToUint8Array(base64String: string) {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -150,7 +152,9 @@ export const saveToCookie = (key: string, data: any, expiryDays?: number) => {
         }
 
         // Add default cookie attributes for security
-        cookieString += '; path=/; SameSite=Lax'
+        // Only add Secure flag in HTTPS contexts to avoid breaking local development
+        const isSecure = typeof window !== 'undefined' && window.location.protocol === 'https:'
+        cookieString += `; path=/; SameSite=Lax${isSecure ? '; Secure' : ''}`
 
         document.cookie = cookieString
         console.log(`Saved ${key} to cookie:`, data)
@@ -210,130 +214,21 @@ export const syncLocalStorageToCookie = (key: string) => {
         console.log('Data synced successfully')
     }
 }
-
-export const getAllLinksFromLocalStorage = ({ address }: { address: string }) => {
-    try {
-        if (typeof localStorage === 'undefined') return
-
-        const localStorageData: interfaces.ILocalStorageItem[] = []
-
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i)
-
-            if (key === `${address} - created links` || key === `${address} - claimed links`) {
-            } else if (key !== null && key?.includes(address)) {
-                const value = localStorage.getItem(key)
-                if (
-                    value !== null &&
-                    !key.includes('- raffle -') &&
-                    !key.includes('saving giga-link for address:') &&
-                    !key.includes('saving temp') &&
-                    value.includes('/claim')
-                ) {
-                    const x = {
-                        address: key.split('-')[0].trim(),
-                        hash: key.split('-')[1]?.trim() ?? '',
-                        idx: key.split('-')[2]?.trim() ?? '',
-                        link: value.replaceAll('"', ''),
-                    }
-                    localStorageData.push(x)
-                }
-            }
-        }
-        return localStorageData
-    } catch (error) {
-        Sentry.captureException(error)
-        console.error('Error getting data from localStorage:', error)
-    }
-}
-
-export const getAllRaffleLinksFromLocalstorage = ({ address }: { address: string }) => {
-    try {
-        if (typeof localStorage === 'undefined') return
-
-        const localStorageData: interfaces.ILocalStorageItem[] = []
-
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i)
-
-            if (key === `${address} - created links` || key === `${address} - claimed links`) return
-            if (key !== null && key?.includes(address)) {
-                const value = localStorage.getItem(key)
-
-                if (
-                    value !== null &&
-                    (key.includes('- raffle -') ||
-                        value.includes('/packet') ||
-                        key.includes('giga-link') ||
-                        key.includes('gigalink')) &&
-                    !key.includes('saving giga-link for address:') &&
-                    !key.includes('saving temp')
-                ) {
-                    if (key.includes('- raffle - ')) {
-                        localStorageData.push({
-                            address: key.split('-')[0].trim(),
-                            hash: key.split('-')[2]?.trim() ?? '',
-                            idx: '0',
-                            link: value.replaceAll('"', ''),
-                        })
-                    } else if (key.includes('giga-link')) {
-                        const startIndex = key.indexOf('0x')
-                        if (startIndex === -1) {
-                            return
-                        }
-
-                        let endIndex = key.indexOf(' ', startIndex)
-                        if (endIndex === -1) {
-                            endIndex = key.length
-                        }
-                        const address = key.substring(startIndex, endIndex)
-
-                        localStorageData.push({
-                            address: address,
-                            hash: '',
-                            idx: '0',
-                            link: value.replaceAll('"', ''),
-                        })
-                    } else if (key.includes('gigalink')) {
-                        const v = JSON.parse(value)
-
-                        if (v.completed) {
-                            localStorageData.push({
-                                address: key.split('-')[0].trim(),
-                                hash: key.split('-')[2]?.trim() ?? '',
-                                idx: '0',
-                                link: v.finalLink,
-                            })
-                        }
-                    } else if (value.includes('/packet')) {
-                        const x = {
-                            address: key.split('-')[0].trim(),
-                            hash: key.split('-')[1]?.trim() ?? '',
-                            idx: '',
-                            link: value.replaceAll('"', ''),
-                        }
-                        localStorageData.push(x)
-                    }
-                }
-            }
-        }
-        return localStorageData
-    } catch (error) {
-        Sentry.captureException(error)
-        console.error('Error getting data from localStorage:', error)
-    }
-}
-
-export function formatAmountWithDecimals({ amount, decimals }: { amount: number; decimals: number }) {
-    const divider = 10 ** decimals
-    const formattedAmount = amount / divider
-    return formattedAmount
-}
-
-// Helper function to format numbers with locale-specific (en-US) thousands separators for display.
-// The caller is responsible for prepending the correct currency symbol.
-// @dev todo: For true internationalization of read-only amounts, consider a dedicated service or util
-// that uses specific locales (e.g., 'es-AR' for '1.234,56'). This function standardizes on en-US for parsable input display.
+/**
+ * Helper function to format numbers with locale-specific (en-US) thousands separators for display.
+ * The caller is responsible for prepending the correct currency symbol.
+ *
+ * @remarks
+ * For true internationalization of read-only amounts, consider a dedicated service or util
+ * that uses specific locales (e.g., 'es-AR' for '1.234,56').
+ * This function standardizes on en-US for parsable input display.
+ *
+ * @param {string | undefined} valueStr - The numeric string value to format.
+ * @param {object} [options] - Optional formatting options.
+ * @param {number} [options.maxDecimals] - The maximum number of decimals to display.
+ * @param {number} [options.minDecimals] - The minimum number of decimals to display.
+ * @returns {string} The formatted string for display with thousands separators (en-US).
+ */
 export const formatNumberForDisplay = (
     valueStr: string | undefined,
     options?: { maxDecimals?: number; minDecimals?: number }
@@ -382,8 +277,8 @@ export const formatNumberForDisplay = (
     })
 }
 
-export function formatCurrency(valueStr: string | undefined): string {
-    return formatNumberForDisplay(valueStr, { maxDecimals: 2, minDecimals: 2 })
+export function formatCurrency(valueStr: string | undefined, maxDecimals: number = 2, minDecimals: number = 2): string {
+    return formatNumberForDisplay(valueStr, { maxDecimals, minDecimals })
 }
 
 /**
@@ -447,15 +342,40 @@ export function formatAmountWithSignificantDigits(amount: number, significantDig
     return floorFixed(amount, fractionDigits)
 }
 
-export function formatTokenAmount(amount?: number, maxFractionDigits?: number) {
+export function formatTokenAmount(amount?: number | string, maxFractionDigits?: number, forInput: boolean = false) {
     if (amount === undefined) return undefined
     maxFractionDigits = maxFractionDigits ?? 6
 
+    // For input mode, preserve progressive typing (e.g., "1.", "0.")
+    if (forInput && typeof amount === 'string') {
+        let s = amount.trim()
+        if (s === '') return ''
+
+        // Handle comma: could be decimal separator (Argentina) or thousands separator (US paste)
+        // Heuristic: comma followed by exactly 3 digits = thousands separator
+        // Otherwise: decimal separator
+        s = s.replace(/,(\d{3})/g, '$1') // Remove commas before exactly 3 digits (thousands)
+        s = s.replace(/,/g, '.') // Convert remaining commas to dots (decimal separators)
+
+        const m = s.match(/^(\d*)(?:\.(\d*))?$/)
+        if (!m) return '' // invalid → empty
+        const whole = m[1] ?? ''
+        const fracRaw = m[2] // undefined ⇒ no dot; '' ⇒ dot present with no digits
+        if (fracRaw === undefined) return whole
+        if (maxFractionDigits === 0) return whole
+        const frac = (fracRaw ?? '').slice(0, maxFractionDigits)
+        return `${whole}.${frac}`
+    }
+
+    const amountNumber = typeof amount === 'string' ? parseFloat(amount) : amount
+
+    // check for NaN after conversion
+    if (isNaN(amountNumber)) return undefined
+
     // floor the amount
-    const flooredAmount = Math.floor(amount * Math.pow(10, maxFractionDigits)) / Math.pow(10, maxFractionDigits)
+    const flooredAmount = Math.floor(amountNumber * Math.pow(10, maxFractionDigits)) / Math.pow(10, maxFractionDigits)
 
     // Convert number to string to count significant digits
-
     const amountString = flooredAmount.toFixed(maxFractionDigits)
     const significantDigits = amountString.replace(/^0+\./, '').replace(/\.$/, '').replace(/0+$/, '').length
 
@@ -468,14 +388,6 @@ export function formatTokenAmount(amount?: number, maxFractionDigits?: number) {
         maximumFractionDigits: maxFractionDigits,
     })
     return formattedAmount
-}
-
-export const formatAmountWithoutComma = (input: string) => {
-    const numericValue = input.replace(/,/g, '.')
-    const regex = new RegExp(`^[0-9]*\\.?[0-9]*$`)
-    if (numericValue === '' || regex.test(numericValue)) {
-        return numericValue
-    } else return ''
 }
 
 export async function copyTextToClipboardWithFallback(text: string) {
@@ -533,249 +445,6 @@ export const isNativeCurrency = (address: string) => {
     } else return false
 }
 
-export const saveClaimedLinkToLocalStorage = ({
-    address,
-    data,
-}: {
-    address: string
-    data: interfaces.IExtendedLinkDetails
-}) => {
-    try {
-        if (typeof localStorage === 'undefined') return
-
-        const key = `${address} - claimed links`
-
-        const storedData = localStorage.getItem(key)
-
-        let dataArr: interfaces.IExtendedLinkDetails[] = []
-        if (storedData) {
-            dataArr = JSON.parse(storedData) as interfaces.IExtendedLinkDetails[]
-        }
-
-        dataArr.push(data)
-
-        localStorage.setItem(key, jsonStringify(dataArr))
-
-        console.log('Saved claimed link to localStorage:', data)
-    } catch (error) {
-        Sentry.captureException(error)
-        console.error('Error adding data to localStorage:', error)
-    }
-}
-
-export const saveOfframpLinkToLocalstorage = ({ data }: { data: interfaces.IExtendedLinkDetailsOfframp }) => {
-    try {
-        if (typeof localStorage === 'undefined') return
-
-        const key = `offramped links`
-
-        const storedData = localStorage.getItem(key)
-
-        let dataArr: interfaces.IExtendedLinkDetailsOfframp[] = []
-        if (storedData) {
-            dataArr = JSON.parse(storedData) as interfaces.IExtendedLinkDetailsOfframp[]
-        }
-
-        dataArr.push(data)
-
-        localStorage.setItem(key, JSON.stringify(dataArr))
-
-        console.log('Saved claimed link to localStorage:', data)
-    } catch (error) {
-        Sentry.captureException(error)
-        console.error('Error adding data to localStorage:', error)
-    }
-}
-
-export const getClaimedLinksFromLocalStorage = ({ address = undefined }: { address?: string }) => {
-    try {
-        if (typeof localStorage === 'undefined') return
-
-        let storedData
-        if (address) {
-            const key = `${address} - claimed links`
-            storedData = localStorage.getItem(key)
-        } else {
-            const partialKey = 'claimed links'
-            const matchingItems = []
-
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i)
-                if (key && key.includes(partialKey)) {
-                    const item = localStorage.getItem(key)
-                    if (!item) break
-                    const value = JSON.parse(item)
-                    matchingItems.push(...value)
-                }
-            }
-            storedData = JSON.stringify(matchingItems)
-        }
-
-        let data: interfaces.IExtendedLinkDetails[] = []
-        if (storedData) {
-            data = JSON.parse(storedData) as interfaces.IExtendedLinkDetails[]
-        }
-
-        return data
-    } catch (error) {
-        Sentry.captureException(error)
-        console.error('Error getting data from localStorage:', error)
-    }
-}
-
-export const saveCreatedLinkToLocalStorage = ({
-    address,
-    data,
-}: {
-    address: string
-    data: interfaces.IExtendedPeanutLinkDetails
-}) => {
-    try {
-        if (typeof localStorage === 'undefined') return
-
-        const key = `${address} - created links`
-
-        const storedData = localStorage.getItem(key)
-
-        let dataArr: interfaces.IExtendedPeanutLinkDetails[] = []
-        if (storedData) {
-            dataArr = JSON.parse(storedData) as interfaces.IExtendedPeanutLinkDetails[]
-        }
-
-        dataArr.push(data)
-
-        localStorage.setItem(key, JSON.stringify(dataArr))
-
-        console.log('Saved created link to localStorage:', data)
-    } catch (error) {
-        Sentry.captureException(error)
-        console.error('Error adding data to localStorage:', error)
-    }
-}
-
-export const getCreatedLinksFromLocalStorage = ({ address = undefined }: { address?: string }) => {
-    try {
-        if (typeof localStorage === 'undefined') return
-
-        let storedData
-        if (address) {
-            const key = `${address} - created links`
-            storedData = localStorage.getItem(key)
-        } else {
-            const partialKey = 'created links'
-            const matchingItems = []
-
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i)
-                if (key && key.includes(partialKey)) {
-                    const item = localStorage.getItem(key)
-                    if (!item) break
-                    const value = JSON.parse(item)
-                    matchingItems.push(...value)
-                }
-            }
-            storedData = JSON.stringify(matchingItems)
-        }
-
-        let data: interfaces.IExtendedPeanutLinkDetails[] = []
-        if (storedData) {
-            data = JSON.parse(storedData) as interfaces.IExtendedPeanutLinkDetails[]
-        }
-
-        return data
-    } catch (error) {
-        Sentry.captureException(error)
-        console.error('Error getting data from localStorage:', error)
-    }
-}
-
-export const saveDirectSendToLocalStorage = ({
-    address,
-    data,
-}: {
-    address: string
-    data: interfaces.IDirectSendDetails
-}) => {
-    try {
-        if (typeof localStorage === 'undefined') return
-
-        const key = `${address} - direct sends`
-
-        const storedData = localStorage.getItem(key)
-
-        let dataArr: interfaces.IDirectSendDetails[] = []
-        if (storedData) {
-            dataArr = JSON.parse(storedData) as interfaces.IDirectSendDetails[]
-        }
-
-        dataArr.push(data)
-
-        localStorage.setItem(key, JSON.stringify(dataArr))
-
-        console.log('Saved direct send to localStorage:', data)
-    } catch (error) {
-        Sentry.captureException(error)
-        console.error('Error adding data to localStorage:', error)
-    }
-}
-
-export const getDirectSendFromLocalStorage = ({ address = undefined }: { address?: string }) => {
-    try {
-        if (typeof localStorage === 'undefined') return
-
-        let storedData
-        if (address) {
-            const key = `${address} - direct sends`
-            storedData = localStorage.getItem(key)
-        } else {
-            const partialKey = 'direct sends'
-            const matchingItems = []
-
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i)
-                if (key && key.includes(partialKey)) {
-                    const item = localStorage.getItem(key)
-                    if (!item) break
-                    const value = JSON.parse(item)
-                    matchingItems.push(...value)
-                }
-            }
-            storedData = JSON.stringify(matchingItems)
-        }
-
-        let data: interfaces.IDirectSendDetails[] = []
-        if (storedData) {
-            data = JSON.parse(storedData) as interfaces.IDirectSendDetails[]
-        }
-
-        return data
-    } catch (error) {
-        Sentry.captureException(error)
-        console.error('Error getting data from localStorage:', error)
-    }
-}
-
-export const getOfframpClaimsFromLocalStorage = () => {
-    try {
-        if (typeof localStorage === 'undefined') return
-
-        let storedData
-
-        const key = `offramped links`
-        storedData = localStorage.getItem(key)
-
-        let data: interfaces.IExtendedLinkDetailsOfframp[] = []
-        if (storedData) {
-            data = JSON.parse(storedData) as interfaces.IExtendedLinkDetailsOfframp[]
-        }
-
-        return data
-    } catch (error) {
-        Sentry.captureException(error)
-        console.error('Error getting data from localStorage:', error)
-    }
-}
-
 export interface RecentMethod {
     type: 'crypto' | 'country'
     id: string
@@ -787,37 +456,28 @@ export interface RecentMethod {
 }
 
 export type UserPreferences = {
-    lastUsedToken?: {
-        chainId: string
-        address: string
-        decimals: number
-    }
-    lastSelectedWallet?: {
-        id: string
-    }
-    lastFocusedWallet?: {
-        id: string
-    }
     balanceHidden?: boolean
     recentAddMethods?: RecentMethod[]
-    recentWithdrawMethods?: RecentMethod[]
-    isPwaInstalled?: boolean
+    webAuthnKey?: Awaited<ReturnType<typeof toWebAuthnKey>>
+    notifBannerShowAt?: number
+    notifModalClosed?: boolean
+    hasSeenBalanceWarning?: { value: boolean; expiry: number }
 }
 
 export const updateUserPreferences = (
-    userId: string,
+    userId: string | undefined,
     partialPrefs: Partial<UserPreferences>
 ): UserPreferences | undefined => {
+    if (!userId) return
     try {
         if (typeof localStorage === 'undefined') return
 
-        const currentPrefs = getUserPreferences(userId) || {}
+        const currentPrefs = getUserPreferences(userId) ?? {}
         const newPrefs: UserPreferences = {
             ...currentPrefs,
             ...partialPrefs,
         }
-
-        localStorage.setItem(`${userId}:user-preferences`, JSON.stringify(newPrefs))
+        saveToLocalStorage(`${userId}:user-preferences`, newPrefs)
         return newPrefs
     } catch (error) {
         Sentry.captureException(error)
@@ -825,24 +485,16 @@ export const updateUserPreferences = (
     }
 }
 
-export const getUserPreferences = (userId: string): UserPreferences | undefined => {
+export const getUserPreferences = (userId: string | undefined): UserPreferences | undefined => {
+    if (!userId) return
     try {
-        if (typeof localStorage === 'undefined') return
-
-        const storedData = localStorage.getItem(`${userId}:user-preferences`)
+        const storedData = getFromLocalStorage(`${userId}:user-preferences`)
         if (!storedData) return undefined
-
-        return JSON.parse(storedData) as UserPreferences
+        return storedData as UserPreferences
     } catch (error) {
         Sentry.captureException(error)
         console.error('Error getting user preferences:', error)
     }
-}
-
-export const checkifImageType = (type: string) => {
-    const imageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/svg+xml', 'image/webp']
-    if (imageTypes.includes(type)) return true
-    else return false
 }
 
 export const estimateIfIsStableCoinFromPrice = (tokenPrice: number) => {
@@ -864,38 +516,6 @@ export const getExplorerUrl = (chainId: string) => {
     }
 }
 
-export const shareToEmail = (email: string, link: string, usdAmount?: string) => {
-    if (usdAmount) usdAmount = formatTokenAmount(parseFloat(usdAmount), 2)
-    const encodedSubject = encodeURIComponent('Money inside!')
-    const encodedBody = encodeURIComponent(
-        usdAmount
-            ? `You have received $${usdAmount}! Click the link to claim: ${link}`
-            : `You received money! Click the link to claim: ${link}`
-    )
-    const mailtoUrl = `mailto:${email}?subject=${encodedSubject}&body=${encodedBody}`
-    if (typeof window !== 'undefined') {
-        window.location.href = mailtoUrl
-    }
-}
-
-export const shareToSms = (phone: string, link: string, usdAmount?: string) => {
-    if (usdAmount) usdAmount = formatTokenAmount(parseFloat(usdAmount), 2)
-    const message = encodeURIComponent(
-        usdAmount
-            ? `You have received $${usdAmount}! Click the link to claim: ${link}`
-            : `You received money! Click the link to claim: ${link}`
-    )
-    const sms = `sms:${phone}?body=${message}`
-    if (typeof window !== 'undefined') {
-        window.location.href = sms
-    }
-}
-
-export function isNumeric(input: string): boolean {
-    const numericRegex = /^[0-9]+$/
-    return numericRegex.test(input)
-}
-
 interface TransferDetails {
     id: string
     timestamp: string
@@ -907,31 +527,6 @@ interface Portfolio {
     id: string
     ownerAddress: string
     assetActivities: TransferDetails[]
-}
-
-export async function rankAddressesByInteractions(portfolios: Portfolio[]) {
-    const addressInteractions: any = {}
-
-    portfolios.forEach((portfolio) => {
-        portfolio.assetActivities.forEach((activity) => {
-            const { to, from, type } = activity.details
-            const { timestamp } = activity
-
-            if (!addressInteractions[to]) {
-                addressInteractions[to] = { count: 0, mostRecentInteraction: timestamp }
-            }
-            addressInteractions[to].count += 1
-            if (timestamp > addressInteractions[to].mostRecentInteraction) {
-                addressInteractions[to].mostRecentInteraction = timestamp
-            }
-        })
-    })
-
-    const rankedAddresses = Object.entries(addressInteractions) //@ts-ignore
-        .map(([address, { count, mostRecentInteraction }]) => ({ address, count, mostRecentInteraction }))
-        .sort((a, b) => b.mostRecentInteraction - a.mostRecentInteraction)
-
-    return rankedAddresses
 }
 
 export function formatDate(date: Date): string {
@@ -946,19 +541,6 @@ export function formatDate(date: Date): string {
         hour12: false,
     })
     return `${dateFormatter.format(date)} - ${timeFormatter.format(date)}`
-}
-
-export const createSiweMessage = ({ address, statement }: { address: string; statement: string }) => {
-    const message = new SiweMessage({
-        domain: window.location.host,
-        address,
-        statement,
-        uri: window.location.origin,
-        version: '1',
-        chainId: 1,
-    })
-
-    return message.prepareMessage()
 }
 
 // uppercase and add a space inbetween every four characters
@@ -1090,7 +672,7 @@ export const getHeaderTitle = (pathname: string) => {
  * @param amount - The number or string to format.
  * @returns A formatted string with appropriate suffix.
  */
-export const formatExtendedNumber = (amount: string | number): string => {
+export const formatExtendedNumber = (amount: string | number, minDigitsForFomatting: number = 6): string => {
     // Handle null/undefined/invalid inputs
     if (!amount && amount !== 0) return '0'
 
@@ -1104,7 +686,7 @@ export const formatExtendedNumber = (amount: string | number): string => {
     const totalDigits = amount.toString().replace(/[.-]/g, '').length
 
     // If 6 or fewer digits, just use formatAmount
-    if (totalDigits <= 6) {
+    if (totalDigits <= minDigitsForFomatting) {
         return formatAmount(num)
     }
 
@@ -1240,23 +822,6 @@ export const sanitizeRedirectURL = (redirectUrl: string): string | null => {
     }
 }
 
-export const formatPaymentStatus = (status: string): string => {
-    switch (status.toUpperCase()) {
-        case 'NEW':
-            return 'Request Created'
-        case 'PENDING':
-            return 'Payment Initialized'
-        case 'COMPLETED':
-            return 'Payment Completed'
-        case 'SUCCESSFUL':
-            return 'Payment Completed'
-        case 'FAILED':
-            return 'Payment Failed'
-        default:
-            return status
-    }
-}
-
 export function getLinkFromReceipt({
     txReceipt,
     linkDetails,
@@ -1279,23 +844,6 @@ export const getInitialsFromName = (name: string): string => {
     } else {
         return nameParts[0].charAt(0).toUpperCase() + nameParts[1].charAt(0).toUpperCase()
     }
-}
-
-export function isPeanutWalletToken(tokenAddress: string, chainId: string): boolean {
-    const supportedTokens: string[] | undefined = PEANUT_WALLET_SUPPORTED_TOKENS[chainId]
-    if (!supportedTokens) return false
-    return supportedTokens.some((t) => areEvmAddressesEqual(t, tokenAddress))
-}
-
-/**
- * Detects if the user is on an Android device
- * @returns true if the user is on Android, false otherwise
- */
-export function isAndroid(): boolean {
-    if (typeof window === 'undefined') return false
-
-    const userAgent = window.navigator.userAgent.toLowerCase()
-    return /android/.test(userAgent)
 }
 
 export function isTxReverted(receipt: TransactionReceipt): boolean {
@@ -1328,6 +876,9 @@ export const generateInvitesShareText = (inviteLink: string) => {
 /**
  * Generate a deterministic 3-digit suffix from username
  * This is purely cosmetic and derived from a hash of the username
+ *
+ * ⚠️ IMPORTANT: This logic is duplicated in the backend (peanut-api-ts/src/utils.ts)
+ * If you change this, you MUST update the backend version to match!
  */
 export const generateInviteCodeSuffix = (username: string): string => {
     const lowerUsername = username.toLowerCase()
@@ -1361,4 +912,26 @@ export const getValidRedirectUrl = (redirectUrl: string, fallbackRoute: string) 
         // Reject external redirects, go to home instead
         return fallbackRoute
     }
+}
+
+export const getContributorsFromCharge = (charges: ChargeEntry[]) => {
+    return charges.map((charge) => {
+        const successfulPayment = charge.payments.at(-1)
+        let username = successfulPayment?.payerAccount?.user?.username
+        if (successfulPayment?.payerAccount?.type === 'evm-address') {
+            username = successfulPayment.payerAccount.identifier
+        }
+
+        const isPeanutUser = successfulPayment?.payerAccount?.type === AccountType.PEANUT_WALLET
+
+        return {
+            uuid: charge.uuid,
+            payments: charge.payments,
+            amount: charge.tokenAmount,
+            username,
+            fulfillmentPayment: charge.fulfillmentPayment,
+            isUserVerified: successfulPayment?.payerAccount?.user?.bridgeKycStatus === 'approved',
+            isPeanutUser,
+        }
+    })
 }

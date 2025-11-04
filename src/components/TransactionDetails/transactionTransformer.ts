@@ -13,7 +13,7 @@ import {
 import { type StatusPillType } from '../Global/StatusPill'
 import type { Address } from 'viem'
 import { PEANUT_WALLET_CHAIN } from '@/constants'
-import { type HistoryEntryPerkReward } from '@/services/services.types'
+import { type HistoryEntryPerkReward, type ChargeEntry } from '@/services/services.types'
 
 /**
  * @fileoverview maps raw transaction history data from the api/hook to the format needed by ui components.
@@ -130,6 +130,9 @@ export interface TransactionDetails {
     createdAt?: string | Date
     completedAt?: string | Date
     points?: number
+    isRequestPotLink?: boolean
+    requestPotPayments?: ChargeEntry[]
+    totalAmountCollected: number
 }
 
 /**
@@ -411,6 +414,10 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             case 'EXPIRED':
                 uiStatus = 'cancelled'
                 break
+            case 'CLOSED':
+                // If the total amount collected is 0, the link is treated as cancelled
+                uiStatus = entry.totalAmountCollected === 0 ? 'cancelled' : 'closed'
+                break
             default:
                 {
                     const knownStatuses: StatusType[] = [
@@ -539,6 +546,9 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         createdAt: entry.createdAt,
         completedAt: entry.completedAt,
         haveSentMoneyToUser: entry.extraData?.haveSentMoneyToUser as boolean,
+        isRequestPotLink: entry.isRequestLink,
+        requestPotPayments: entry.charges,
+        totalAmountCollected: entry.totalAmountCollected ?? 0,
     }
 
     return {

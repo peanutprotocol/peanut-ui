@@ -1,9 +1,14 @@
+'use client'
+
 import { PEANUT_WALLET_TOKEN_DECIMALS, STABLE_COINS } from '@/constants'
 import { tokenSelectorContext } from '@/context'
-import { formatAmountWithoutComma, formatTokenAmount, formatCurrency } from '@/utils'
+import { formatTokenAmount, formatCurrency } from '@/utils'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import Icon from '../Icon'
 import { twMerge } from 'tailwind-merge'
+import { Icon as IconComponent } from '@/components/Global/Icons/Icon'
+import { Slider } from '../Slider'
+import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 
 interface TokenAmountInputProps {
     className?: string
@@ -22,7 +27,14 @@ interface TokenAmountInputProps {
     }
     hideCurrencyToggle?: boolean
     hideBalance?: boolean
+    showInfoText?: boolean
+    infoText?: string
+    showSlider?: boolean
+    maxAmount?: number
+    amountCollected?: number
     isInitialInputUsd?: boolean
+    defaultSliderValue?: number
+    defaultSliderSuggestedAmount?: number
 }
 
 const TokenAmountInput = ({
@@ -38,11 +50,22 @@ const TokenAmountInput = ({
     setUsdValue,
     hideCurrencyToggle = false,
     hideBalance = false,
+    infoText,
+    showInfoText,
+    showSlider = false,
+    maxAmount,
+    amountCollected = 0,
     isInitialInputUsd = false,
+    defaultSliderValue,
+    defaultSliderSuggestedAmount,
 }: TokenAmountInputProps) => {
     const { selectedTokenData } = useContext(tokenSelectorContext)
     const inputRef = useRef<HTMLInputElement>(null)
     const inputType = useMemo(() => (window.innerWidth < 640 ? 'text' : 'number'), [])
+    const [isFocused, setIsFocused] = useState(false)
+    const { deviceType } = useDeviceType()
+    // Only autofocus on desktop (WEB), not on mobile devices (IOS/ANDROID)
+    const shouldAutoFocus = deviceType === DeviceType.WEB
 
     // Store display value for input field (what user sees when typing)
     const [displayValue, setDisplayValue] = useState<string>(tokenValue || '')
@@ -128,6 +151,38 @@ const TokenAmountInput = ({
         [displayMode, currency?.price, selectedTokenData?.price, calculateAlternativeValue]
     )
 
+    const onSliderValueChange = useCallback(
+        (value: number[]) => {
+            if (maxAmount) {
+                const selectedPercentage = value[0]
+                let selectedAmount = (selectedPercentage / 100) * maxAmount
+
+                // Only snap to exact remaining amount when user selects the 33.33% magnetic snap point
+                // This ensures equal splits fill the pot exactly to 100%
+                const SNAP_POINT_TOLERANCE = 0.5 // percentage points - allows magnetic snapping
+                const COMPLETION_THRESHOLD = 0.98 // 98% - if 33.33% would nearly complete pot
+                const EQUAL_SPLIT_PERCENTAGE = 100 / 3 // 33.333...%
+
+                const isAt33SnapPoint = Math.abs(selectedPercentage - EQUAL_SPLIT_PERCENTAGE) < SNAP_POINT_TOLERANCE
+                if (isAt33SnapPoint && amountCollected > 0) {
+                    const remainingAmount = maxAmount - amountCollected
+                    // Only snap if there's remaining amount and 33.33% would nearly complete the pot
+                    if (remainingAmount > 0 && selectedAmount >= remainingAmount * COMPLETION_THRESHOLD) {
+                        selectedAmount = remainingAmount
+                    }
+                }
+
+                const selectedAmountStr = parseFloat(selectedAmount.toFixed(4)).toString()
+                const maxDecimals = displayMode === 'FIAT' || displayMode === 'STABLE' || isInputUsd ? 2 : decimals
+                const formattedAmount = formatTokenAmount(selectedAmountStr, maxDecimals, true)
+                if (formattedAmount) {
+                    onChange(formattedAmount, isInputUsd)
+                }
+            }
+        },
+        [maxAmount, amountCollected, onChange, displayMode, isInputUsd, decimals]
+    )
+
     const showConversion = useMemo(() => {
         return !hideCurrencyToggle && (displayMode === 'TOKEN' || displayMode === 'FIAT')
     }, [hideCurrencyToggle, displayMode])
@@ -194,16 +249,34 @@ const TokenAmountInput = ({
 
     const formRef = useRef<HTMLFormElement>(null)
 
+    const sliderValue = useMemo(() => {
+        if (!maxAmount || !tokenValue) return [0]
+        const tokenNum = parseFloat(tokenValue.replace(/,/g, ''))
+        const usdValue = tokenNum * (selectedTokenData?.price ?? 1)
+        return [(usdValue / maxAmount) * 100]
+    }, [maxAmount, tokenValue, selectedTokenData?.price])
+
     const handleContainerClick = () => {
         if (inputRef.current) {
             inputRef.current.focus()
         }
     }
 
+    // Sync default slider suggested amount to the input
+    useEffect(() => {
+        if (defaultSliderSuggestedAmount) {
+            const formattedAmount = formatTokenAmount(defaultSliderSuggestedAmount.toString(), 2)
+            if (formattedAmount) {
+                setTokenValue(formattedAmount)
+                setDisplayValue(formattedAmount)
+            }
+        }
+    }, [defaultSliderSuggestedAmount])
+
     return (
         <form
             ref={formRef}
-            className={`relative cursor-text rounded-sm border border-n-1 bg-white p-2 dark:border-white ${className}`}
+            className={`relative cursor-text rounded-sm border border-n-1 bg-white p-4 dark:border-white ${className}`}
             action=""
             onClick={handleContainerClick}
         >
@@ -211,33 +284,48 @@ const TokenAmountInput = ({
                 <div className="flex items-center gap-1 font-bold">
                     <label className={`text-xl ${displayValue ? 'text-black' : 'text-gray-1'}`}>{displaySymbol}</label>
 
-                    {/* Input */}
-                    <input
-                        autoFocus
-                        className={`h-12 w-[4ch] max-w-80 bg-transparent text-6xl font-black caret-primary-1 outline-none transition-colors placeholder:text-h1 placeholder:text-gray-1 focus:border-primary-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1`}
-                        placeholder={'0.00'}
-                        onChange={(e) => {
-                            const value = formatAmountWithoutComma(e.target.value)
-                            onChange(value, isInputUsd)
-                        }}
-                        ref={inputRef}
-                        inputMode="decimal"
-                        type={inputType}
-                        value={displayValue}
-                        step="any"
-                        min="0"
-                        autoComplete="off"
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                                e.preventDefault()
-                                if (onSubmit) onSubmit()
-                            }
-                        }}
-                        onBlur={() => {
-                            if (onBlur) onBlur()
-                        }}
-                        disabled={disabled}
-                    />
+                    {/* Input with fake caret */}
+                    <div className="relative">
+                        <input
+                            autoFocus={shouldAutoFocus}
+                            className={`h-12 w-[4ch] max-w-80 bg-transparent text-6xl font-black caret-primary-1 outline-none transition-colors placeholder:text-h1 placeholder:text-gray-1 focus:border-primary-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1`}
+                            placeholder={'0.00'}
+                            onChange={(e) => {
+                                let value = e.target.value
+                                // USD/currency → 2 decimals; token input → allow `decimals` (<= 6)
+                                const maxDecimals =
+                                    displayMode === 'FIAT' || displayMode === 'STABLE' || isInputUsd ? 2 : decimals
+                                const formattedAmount = formatTokenAmount(value, maxDecimals, true)
+                                if (formattedAmount !== undefined) {
+                                    value = formattedAmount
+                                }
+                                onChange(value, isInputUsd)
+                            }}
+                            ref={inputRef}
+                            inputMode="decimal"
+                            type={inputType}
+                            value={displayValue}
+                            step="any"
+                            min="0"
+                            autoComplete="off"
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    e.preventDefault()
+                                    if (onSubmit) onSubmit()
+                                }
+                            }}
+                            onFocus={() => setIsFocused(true)}
+                            onBlur={() => {
+                                setIsFocused(false)
+                                if (onBlur) onBlur()
+                            }}
+                            disabled={disabled}
+                        />
+                        {/* Fake blinking caret shown when not focused and input is empty */}
+                        {!isFocused && !displayValue && (
+                            <div className="pointer-events-none absolute left-0 top-1/2 h-12 w-[1px] -translate-y-1/2 animate-blink bg-primary-1" />
+                        )}
+                    </div>
                 </div>
 
                 {/* Conversion */}
@@ -259,7 +347,6 @@ const TokenAmountInput = ({
                     </div>
                 )}
             </div>
-
             {/* Conversion toggle */}
             {showConversion && (
                 <div
@@ -281,6 +368,21 @@ const TokenAmountInput = ({
                     }}
                 >
                     <Icon name={'switch'} className="ml-5 rotate-90 cursor-pointer" width={32} height={32} />
+                </div>
+            )}
+            {showInfoText && infoText && (
+                <div className="mx-auto flex w-fit items-center gap-2 rounded-full bg-grey-2 p-1.5">
+                    <IconComponent name="info" size={12} className="text-grey-1" />
+                    <p className="text-[10px] font-bold text-grey-1">{infoText}</p>
+                </div>
+            )}
+            {showSlider && maxAmount && (
+                <div className="mt-2 h-14">
+                    <Slider
+                        onValueChange={onSliderValueChange}
+                        value={sliderValue}
+                        defaultValue={[defaultSliderValue ? defaultSliderValue : 100]}
+                    />
                 </div>
             )}
         </form>

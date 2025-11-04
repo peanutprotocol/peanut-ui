@@ -27,6 +27,7 @@ module.exports = {
                     6: '#E9EEFB',
                     7: '#5883FF',
                     8: '#D4B6FF',
+                    9: '#D6E1FF',
                 },
                 grey: {
                     1: '#5F646D',
@@ -57,6 +58,9 @@ module.exports = {
                     6: '#885B00',
                     7: '#FFE6B3',
                     8: '#FAE184',
+                    9: '#FDE047',
+                    10: '#FEFCE8',
+                    11: '#CA8A04',
                 },
                 green: {
                     1: '#98E9AB',
@@ -112,6 +116,9 @@ module.exports = {
                     1: '#FFD8D8',
                     2: '#EA8282',
                     3: '#FF4A4A',
+                    4: '#FC5555',
+                    5: '#FF3B30',
+                    6: '#FFE9E9',
                 },
             },
             zIndex: {
@@ -186,6 +193,31 @@ module.exports = {
                     '50%': { opacity: '0.3' },
                     '100%': { opacity: '1' },
                 },
+                blink: {
+                    '0%, 50%': { opacity: '1' },
+                    '50.01%, 100%': { opacity: '0' },
+                },
+                starPulsateWiggle: {
+                    // Gentle pulsate 3 times
+                    '0%': { transform: 'scale(1) rotate(0deg)' },
+                    '6%': { transform: 'scale(1.12) rotate(0deg)' },
+                    '12%': { transform: 'scale(1) rotate(0deg)' },
+                    '18%': { transform: 'scale(1.12) rotate(0deg)' },
+                    '24%': { transform: 'scale(1) rotate(0deg)' },
+                    '30%': { transform: 'scale(1.12) rotate(0deg)' },
+                    '36%': { transform: 'scale(1) rotate(0deg)' },
+                    // Pause for ~1 second
+                    '50%': { transform: 'scale(1) rotate(0deg)' },
+                    // Fast aggressive wiggle
+                    '52%': { transform: 'scale(1) rotate(-15deg)' },
+                    '54%': { transform: 'scale(1) rotate(15deg)' },
+                    '56%': { transform: 'scale(1) rotate(-15deg)' },
+                    '58%': { transform: 'scale(1) rotate(15deg)' },
+                    '60%': { transform: 'scale(1) rotate(0deg)' },
+                    // Short pause before loop
+                    '75%': { transform: 'scale(1) rotate(0deg)' },
+                    '100%': { transform: 'scale(1) rotate(0deg)' },
+                },
             },
             animation: {
                 colorPulse: 'colorPulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
@@ -193,6 +225,8 @@ module.exports = {
                 pulsate: 'pulsate 1.5s ease-in-out infinite',
                 'pulsate-slow': 'pulsateDeep 4s ease-in-out infinite',
                 'pulse-strong': 'pulse-strong 1s ease-in-out infinite',
+                blink: 'blink 1.5s step-end infinite',
+                'star-pulsate-wiggle': 'starPulsateWiggle 10s ease-in-out infinite',
             },
             opacity: {
                 85: '.85',
@@ -532,6 +566,10 @@ module.exports = {
                 '.custom-input-xs': {
                     '@apply h-8': {},
                 },
+                '.btn-shadow-primary-3': {
+                    '@apply shadow-[0.1875rem_0.1875rem_0_#000000] dark:shadow-[0.1875rem_0.1875rem_0_rgba(255,255,255,.25)]':
+                        {},
+                },
                 '.btn-shadow-primary-4': {
                     '@apply shadow-[0.25rem_0.25rem_0_#000000] dark:shadow-[0.25rem_0.25rem_0_rgba(255,255,255,.25)]':
                         {},
@@ -542,6 +580,10 @@ module.exports = {
                 },
                 '.btn-shadow-primary-8': {
                     '@apply shadow-[0.5rem_0.5rem_0_#000000] dark:shadow-[0.5rem_0.5rem_0_rgba(255,255,255,.25)]': {},
+                },
+                '.btn-shadow-secondary-3': {
+                    '@apply shadow-[0.1875rem_-0.1875rem_0_#000000] dark:shadow-[0.1875rem_-0.1875rem_0_rgba(255,255,255,.25)]':
+                        {},
                 },
                 '.btn-shadow-secondary-4': {
                     '@apply shadow-[0.25rem_-0.25rem_0_#000000] dark:shadow-[0.25rem_-0.25rem_0_rgba(255,255,255,.25)]':

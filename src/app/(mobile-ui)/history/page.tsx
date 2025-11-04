@@ -13,6 +13,7 @@ import { useUserStore } from '@/redux/hooks'
 import { formatGroupHeaderDate, getDateGroup, getDateGroupKey } from '@/utils/dateGrouping.utils'
 import * as Sentry from '@sentry/nextjs'
 import { isKycStatusItem } from '@/hooks/useBridgeKycFlow'
+import { BadgeStatusItem, isBadgeHistoryItem } from '@/components/Badges/BadgeStatusItem'
 import React, { useEffect, useMemo, useRef } from 'react'
 import { useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { useWebSocket } from '@/hooks/useWebSocket'
@@ -157,11 +158,26 @@ const HistoryPage = () => {
         }
         const entries: Array<any> = [...allEntries]
 
+        // inject badge items from user profile, placed by earnedAt
+        const badges = user?.user?.badges ?? []
+        badges.forEach((b) => {
+            if (!b.earnedAt) return
+            entries.push({
+                isBadge: true,
+                uuid: b.id,
+                timestamp: new Date(b.earnedAt).toISOString(),
+                code: b.code,
+                name: b.name,
+                description: b.description ?? undefined,
+                iconUrl: b.iconUrl ?? undefined,
+            })
+        })
+
         if (user) {
             if (user.user?.bridgeKycStatus && user.user.bridgeKycStatus !== 'not_started') {
                 entries.push({
                     isKyc: true,
-                    timestamp: user.user.bridgeKycStartedAt ?? new Date(0).toISOString(),
+                    timestamp: user.user.bridgeKycStartedAt ?? user.user.createdAt ?? new Date().toISOString(),
                     uuid: 'bridge-kyc-status-item',
                     bridgeKycStatus: user.user.bridgeKycStatus,
                 })
@@ -169,7 +185,7 @@ const HistoryPage = () => {
             user.user.kycVerifications?.forEach((verification) => {
                 entries.push({
                     isKyc: true,
-                    timestamp: verification.approvedAt ?? new Date(0).toISOString(),
+                    timestamp: verification.approvedAt ?? verification.updatedAt ?? verification.createdAt,
                     uuid: verification.providerUserId ?? `${verification.provider}-${verification.mantecaGeo}`,
                     verification,
                 })
@@ -258,6 +274,8 @@ const HistoryPage = () => {
                                         item.bridgeKycStatus ? user?.user.bridgeKycStartedAt : undefined
                                     }
                                 />
+                            ) : isBadgeHistoryItem(item) ? (
+                                <BadgeStatusItem position={position} entry={item} />
                             ) : (
                                 (() => {
                                     const { transactionDetails, transactionCardType } =

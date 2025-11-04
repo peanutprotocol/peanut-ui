@@ -6,9 +6,11 @@ import { fetchWithSentry } from '@/utils'
 import { hitUserMetric } from '@/utils/metrics.utils'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { usePWAStatus } from '../usePWAStatus'
+import { useDeviceType } from '../useGetDeviceType'
 
 export const useUserQuery = (dependsOn?: boolean) => {
     const isPwa = usePWAStatus()
+    const { deviceType } = useDeviceType()
     const dispatch = useAppDispatch()
     const { user: authUser } = useUserStore()
 
@@ -17,14 +19,24 @@ export const useUserQuery = (dependsOn?: boolean) => {
         if (userResponse.ok) {
             const userData: IUserProfile | null = await userResponse.json()
             if (userData) {
-                hitUserMetric(userData.user.userId, 'login', { isPwa: isPwa })
+                hitUserMetric(userData.user.userId, 'login', {
+                    isPwa: isPwa,
+                    deviceType: deviceType,
+                })
 
                 dispatch(userActions.setUser(userData))
             }
 
             return userData
         } else {
-            console.warn('Failed to fetch user. Probably not logged in.')
+            // RECOVERY FIX: Log error status for debugging
+            if (userResponse.status === 400 || userResponse.status === 500) {
+                console.error('Failed to fetch user with error status:', userResponse.status)
+                // This indicates a backend issue - user might be in broken state
+                // The KernelClientProvider recovery logic will handle cleanup
+            } else {
+                console.warn('Failed to fetch user. Probably not logged in.')
+            }
             return null
         }
     }

@@ -61,12 +61,15 @@ export const viewport: Viewport = {
     initialScale: 1,
     maximumScale: 1,
     userScalable: false,
+    colorScheme: 'light',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
-        <html lang="en">
+        <html lang="en" style={{ colorScheme: 'light' }} data-theme="light">
             <head>
+                <meta name="color-scheme" content="light" />
+                {/* Note: Google Tag Manager (gtag.js) does not support version pinning.*/}
                 {process.env.NODE_ENV !== 'development' && process.env.NEXT_PUBLIC_GA_KEY && (
                     <>
                         <Script

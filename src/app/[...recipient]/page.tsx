@@ -7,16 +7,30 @@ import { isAddress } from 'viem'
 import { printableAddress, resolveAddressToUsername } from '@/utils'
 import { chargesApi } from '@/services/charges'
 import { parseAmountAndToken } from '@/lib/url-parser/parser'
+import { notFound } from 'next/navigation'
+import { RESERVED_ROUTES } from '@/constants/routes'
 
 type PageProps = {
     params: Promise<{ recipient?: string[] }>
 }
 
 export async function generateMetadata({ params, searchParams }: any) {
-    let title = 'Request Payment | Peanut'
-    const siteUrl: string = (await getOrigin()) || BASE_URL // getOrigin for getting the origin of the site regardless of its a vercel preview or not
     const resolvedSearchParams = await searchParams
     const resolvedParams = await params
+
+    // Guard: Don't generate metadata for reserved routes (handled by their specific routes)
+    const firstSegment = resolvedParams.recipient?.[0]?.toLowerCase()
+    if (firstSegment && RESERVED_ROUTES.includes(firstSegment)) {
+        return {}
+    }
+
+    // Guard: Ensure recipient exists
+    if (!resolvedParams.recipient?.[0]) {
+        return {}
+    }
+
+    let title = 'Request Payment | Peanut'
+    const siteUrl: string = (await getOrigin()) || BASE_URL // getOrigin for getting the origin of the site regardless of its a vercel preview or not
 
     let recipient = resolvedParams.recipient[0].toLowerCase()
 
@@ -164,6 +178,13 @@ export async function generateMetadata({ params, searchParams }: any) {
 export default function Page(props: PageProps) {
     const params = use(props.params)
     const recipient = params.recipient ?? []
+
+    // Guard: Reserved routes should be handled by their specific route files
+    // If we reach here, it means Next.js routing didn't catch it properly
+    const firstSegment = recipient[0]?.toLowerCase()
+    if (firstSegment && RESERVED_ROUTES.includes(firstSegment)) {
+        notFound()
+    }
 
     return (
         <PageContainer>

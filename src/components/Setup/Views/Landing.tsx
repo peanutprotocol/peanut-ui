@@ -5,7 +5,7 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import { useAuth } from '@/context/authContext'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useLogin } from '@/hooks/useLogin'
-import { getFromLocalStorage, sanitizeRedirectURL } from '@/utils'
+import { getRedirectUrl, sanitizeRedirectURL, clearRedirectUrl } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect } from 'react'
@@ -21,7 +21,7 @@ const LandingStep = () => {
 
     useEffect(() => {
         if (!!user) {
-            const localStorageRedirect = getFromLocalStorage('redirect')
+            const localStorageRedirect = getRedirectUrl()
             const redirect_uri = searchParams.get('redirect_uri')
             if (redirect_uri) {
                 const sanitizedRedirectUrl = sanitizeRedirectURL(redirect_uri)
@@ -33,7 +33,7 @@ const LandingStep = () => {
                     push('/home')
                 }
             } else if (localStorageRedirect) {
-                localStorage.removeItem('redirect')
+                clearRedirectUrl()
                 const sanitizedLocalRedirect = sanitizeRedirectURL(localStorageRedirect)
                 // Only redirect if the URL is safe (same-origin)
                 if (sanitizedLocalRedirect) {

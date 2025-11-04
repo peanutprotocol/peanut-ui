@@ -1,6 +1,5 @@
 'use client'
 
-import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import { BASE_URL } from '@/components/Global/DirectSendQR/utils'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import Link from 'next/link'
@@ -12,6 +11,7 @@ import { isAddress } from 'viem'
 import useKycStatus from '@/hooks/useKycStatus'
 import { useAuth } from '@/context/authContext'
 import AddressLink from '../Global/AddressLink'
+import { Button } from '@/components/0_Bruddle'
 
 interface UserHeaderProps {
     username: string
@@ -20,25 +20,24 @@ interface UserHeaderProps {
 }
 
 export const UserHeader = ({ username, fullName, isVerified }: UserHeaderProps) => {
-    const { isUserKycApproved: isViewerVerified } = useKycStatus()
-
     return (
-        <div className="flex items-center gap-1.5">
-            <Link href={`/profile`} className="flex items-center gap-2">
+        <Link href={`/profile`} className="block">
+            <Button
+                variant="primary-soft"
+                className={twMerge(
+                    'flex h-8 w-auto cursor-pointer items-center justify-center gap-1.5 rounded-full px-2.5 md:h-9 md:px-3.5'
+                )}
+                shadowSize="3"
+                size="small"
+            >
                 <AvatarWithBadge
                     size="extra-small"
-                    className="h-7 w-7 text-[11px] md:h-8 md:w-8 md:text-[13px]"
+                    className="h-5 w-5 text-[10px] md:h-6 md:w-6 md:text-[11px]"
                     name={fullName || username}
                 />
-                <VerifiedUserLabel
-                    name={username}
-                    isVerified={isVerified}
-                    isAuthenticatedUserVerified={isViewerVerified}
-                    username={username}
-                />
-            </Link>
-            <CopyToClipboard textToCopy={`${BASE_URL}/${username}`} fill="black" iconSize={'4'} />
-        </div>
+                <span className="whitespace-nowrap text-xs font-semibold md:text-sm">{username}</span>
+            </Button>
+        </Link>
     )
 }
 

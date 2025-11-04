@@ -3,7 +3,6 @@
 import Icon from '@/components/Global/Icon'
 import TransactionCard from '@/components/TransactionDetails/TransactionCard'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
-import { BASE_URL } from '@/constants'
 import { EHistoryEntryType, type HistoryEntry, useTransactionHistory } from '@/hooks/useTransactionHistory'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useUserStore } from '@/redux/hooks'
@@ -16,6 +15,7 @@ import EmptyState from '../Global/EmptyStates/EmptyState'
 import { KycStatusItem } from '../Kyc/KycStatusItem'
 import { isKycStatusItem, type KycHistoryEntry } from '@/hooks/useBridgeKycFlow'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { BadgeStatusItem, isBadgeHistoryItem } from '@/components/Badges/BadgeStatusItem'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { completeHistoryEntry } from '@/utils/history.utils'
 import { formatUnits } from 'viem'
@@ -39,8 +39,12 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
         error,
     } = useTransactionHistory({ mode, limit, username, filterMutualTxs, enabled: isLoggedIn })
     // check if the username is the same as the current user
-    const isSameUser = username === user?.user.username
     const { fetchBalance } = useWallet()
+
+    const isViewingOwnHistory = useMemo(
+        () => (isLoggedIn && !username) || (isLoggedIn && username === user?.user.username),
+        [isLoggedIn, username, user?.user.username]
+    )
 
     // WebSocket for real-time updates
     const { historyEntries: wsHistoryEntries } = useWebSocket({
@@ -90,6 +94,23 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
             const processEntries = async () => {
                 // Start with the fetched entries
                 const entries: Array<HistoryEntry | KycHistoryEntry> = [...historyData.entries]
+
+                // inject badge entries using user's badges (newest first) and earnedAt chronology
+                if (isViewingOwnHistory) {
+                    const badges = user?.user?.badges ?? []
+                    badges.forEach((b) => {
+                        if (!b.earnedAt) return
+                        entries.push({
+                            isBadge: true,
+                            uuid: b.id,
+                            timestamp: new Date(b.earnedAt).toISOString(),
+                            code: b.code,
+                            name: b.name,
+                            description: b.description ?? undefined,
+                            iconUrl: b.iconUrl ?? undefined,
+                        } as any)
+                    })
+                }
 
                 // process websocket entries: update existing or add new ones
                 // Sort by timestamp ascending to process oldest entries first
@@ -147,11 +168,11 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
 
                 // Add KYC status item if applicable and not on a public page
                 // and the user is viewing their own history
-                if (isSameUser && !isPublic) {
+                if (isViewingOwnHistory && !isPublic) {
                     if (user?.user?.bridgeKycStatus && user.user.bridgeKycStatus !== 'not_started') {
                         entries.push({
                             isKyc: true,
-                            timestamp: user.user.bridgeKycStartedAt ?? new Date(0).toISOString(),
+                            timestamp: user.user.bridgeKycStartedAt ?? user.user.createdAt ?? new Date().toISOString(),
                             uuid: 'bridge-kyc-status-item',
                             bridgeKycStatus: user.user.bridgeKycStatus,
                         })
@@ -159,7 +180,7 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
                     user?.user.kycVerifications?.forEach((verification) => {
                         entries.push({
                             isKyc: true,
-                            timestamp: verification.approvedAt ?? new Date(0).toISOString(),
+                            timestamp: verification.approvedAt ?? verification.updatedAt ?? verification.createdAt,
                             uuid: verification.providerUserId ?? `${verification.provider}-${verification.mantecaGeo}`,
                             verification,
                         })
@@ -187,7 +208,7 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
                 cancelled = true
             }
         }
-    }, [historyData, wsHistoryEntries, isPublic, user, isLoading, isSameUser])
+    }, [historyData, wsHistoryEntries, isPublic, user, isLoading, isViewingOwnHistory])
 
     const pendingRequests = useMemo(() => {
         if (!combinedEntries.length) return []
@@ -231,7 +252,7 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
         return (
             <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
                 <h2 className="text-base font-bold">Activity</h2>
-                {isSameUser &&
+                {isViewingOwnHistory &&
                     ((user?.user.bridgeKycStatus && user?.user.bridgeKycStatus !== 'not_started') ||
                         (user?.user.kycVerifications && user?.user.kycVerifications.length > 0)) && (
                         <div className="space-y-3">
@@ -255,7 +276,7 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
                         </div>
                     )}
 
-                {isSameUser &&
+                {isViewingOwnHistory &&
                     !user?.user.bridgeKycStatus &&
                     (!user?.user.kycVerifications || user?.user.kycVerifications.length === 0) && (
                         <EmptyState
@@ -265,7 +286,7 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
                         />
                     )}
 
-                {!isSameUser && (
+                {!isViewingOwnHistory && (
                     <EmptyState
                         icon="txn-off"
                         title="No transactions yet!"
@@ -309,7 +330,7 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
                     </div>
                 </>
             )}
-            {!isSameUser ? (
+            {!isViewingOwnHistory ? (
                 <h2 className="text-base font-bold">Latest Transactions</h2>
             ) : (
                 <Link href="/history" className="flex items-center justify-between">
@@ -342,6 +363,11 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
                                     }
                                 />
                             )
+                        }
+
+                        // render badge milestone entries
+                        if (isBadgeHistoryItem(item)) {
+                            return <BadgeStatusItem key={item.uuid} position={position} entry={item} />
                         }
 
                         // map the raw history entry to the format needed by the ui components

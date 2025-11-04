@@ -5,10 +5,10 @@ import {
     countryData,
     MantecaSupportedExchanges,
     ALL_COUNTRIES_ALPHA3_TO_ALPHA2,
+    NON_EUR_SEPA_ALPHA2,
 } from '@/components/AddMoney/consts'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
-import { SearchInput } from '@/components/SearchUsers/SearchInput'
-import { SearchResultCard } from '@/components/SearchUsers/SearchResultCard'
+import { SearchInput } from '@/components/SearchInput'
 import Image from 'next/image'
 import { useMemo, useState, useDeferredValue, type ReactNode } from 'react'
 import { getCardPosition } from '../Global/Card'
@@ -18,6 +18,7 @@ import AvatarWithBadge from '../Profile/AvatarWithBadge'
 import StatusBadge from '../Global/Badges/StatusBadge'
 import Loading from '../Global/Loading'
 import { useSearchParams } from 'next/navigation'
+import { ActionListCard } from '../ActionListCard'
 
 interface CountryListViewProps {
     inputTitle: string
@@ -26,6 +27,9 @@ interface CountryListViewProps {
     onCryptoClick?: (flow: 'add' | 'withdraw') => void
     flow?: 'add' | 'withdraw'
     getRightContent?: (country: CountryData, isSupported: boolean) => ReactNode
+    // when true and viewMode is 'add-withdraw', disable countries that are not supported
+    // this is used for the send -> bank flow to prevent selecting unsupported countries
+    enforceSupportedCountries?: boolean
 }
 
 /**
@@ -46,6 +50,7 @@ export const CountryList = ({
     onCryptoClick,
     flow,
     getRightContent,
+    enforceSupportedCountries,
 }: CountryListViewProps) => {
     const searchParams = useSearchParams()
     // get currencyCode from search params
@@ -106,7 +111,7 @@ export const CountryList = ({
                 <div className="flex-1 overflow-y-auto">
                     {!searchTerm && viewMode === 'add-withdraw' && onCryptoClick && (
                         <div className="mb-2">
-                            <SearchResultCard
+                            <ActionListCard
                                 key="crypto"
                                 title={flow === 'withdraw' ? 'Crypto' : 'Crypto Deposit'}
                                 description={
@@ -142,15 +147,23 @@ export const CountryList = ({
                             let isSupported = false
 
                             if (viewMode === 'add-withdraw') {
-                                // all countries supported for claim-request
-                                isSupported = true
+                                // for send->bank flow, enforce only bridge or manteca supported countries
+                                if (enforceSupportedCountries) {
+                                    isSupported = isBridgeSupportedCountry
+                                } else {
+                                    // otherwise allow all countries
+                                    isSupported = true
+                                }
                             } else if (viewMode === 'general-verification') {
                                 // all countries can verify even if they cant
                                 // withdraw
                                 isSupported = true
                             } else if (viewMode === 'claim-request') {
-                                // support all bridge and manteca supported countries
-                                isSupported = isBridgeSupportedCountry || isMantecaSupportedCountry
+                                // support bridge or manteca supported countries, but temporarily disable sepa corridors
+                                // where local currency is not eur (show as soon)
+                                const isDisabledNonEurSepa = NON_EUR_SEPA_ALPHA2.has(twoLetterCountryCode.toUpperCase())
+                                const isBridgeAndNotDisabled = isBridgeSupportedCountry && !isDisabledNonEurSepa
+                                isSupported = isBridgeAndNotDisabled || isMantecaSupportedCountry
                             } else {
                                 // support all countries
                                 isSupported = true
@@ -159,7 +172,7 @@ export const CountryList = ({
                             const customRight = getRightContent ? getRightContent(country, isSupported) : undefined
 
                             return (
-                                <SearchResultCard
+                                <ActionListCard
                                     key={country.id}
                                     title={country.title}
                                     rightContent={

@@ -2,23 +2,23 @@
 
 import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
-import PeanutActionDetailsCard, { type PeanutActionDetailsCardProps } from '@/components/Global/PeanutActionDetailsCard'
 import ShareButton from '@/components/Global/ShareButton'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
-import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
 import { useOnrampFlow } from '@/context/OnrampFlowContext'
 import { useRouter, useParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo } from 'react'
-import { ALL_COUNTRIES_ALPHA3_TO_ALPHA2, type CountryData, countryData } from '@/components/AddMoney/consts'
+import { type CountryData, countryData } from '@/components/AddMoney/consts'
 import { formatCurrencyAmount } from '@/utils/currency'
 import { formatBankAccountDisplay } from '@/utils/format.utils'
-import Icon from '@/components/Global/Icon'
 import { getCurrencyConfig, getCurrencySymbol } from '@/utils/bridge.utils'
 import { RequestFulfillmentBankFlowStep, useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import { usePaymentStore } from '@/redux/hooks'
-import { formatAmount, printableAddress } from '@/utils'
-import useGetExchangeRate from '@/hooks/useGetExchangeRate'
+import { formatAmount } from '@/utils'
 import { AccountType } from '@/interfaces'
+import InfoCard from '@/components/Global/InfoCard'
+import CopyToClipboard from '@/components/Global/CopyToClipboard'
+import { Button } from '@/components/0_Bruddle'
+import { useExchangeRate } from '@/hooks/useExchangeRate'
 
 interface IAddMoneyBankDetails {
     flow?: 'add-money' | 'request-fulfillment'
@@ -43,34 +43,12 @@ export default function AddMoneyBankDetails({ flow = 'add-money' }: IAddMoneyBan
     } = useRequestFulfillmentFlow()
     const { chargeDetails } = usePaymentStore()
 
-    // hooks
-    const { exchangeRate, isFetchingRate } = useGetExchangeRate({
-        accountType: getAccountTypeFromCountry(requestFulfilmentSelectedCountry),
-    })
-
-    // data from contexts based on flow
-    const amount = isAddMoneyFlow ? onrampContext.amountToOnramp : chargeDetails?.tokenAmount
-    const onrampData = isAddMoneyFlow ? onrampContext.onrampData : requestFulfilmentOnrampData
-
-    const currencySymbolBasedOnCountry = useMemo(() => {
-        return getCurrencySymbol(getCurrencyConfig(requestFulfilmentSelectedCountry?.id ?? 'US', 'onramp').currency)
-    }, [requestFulfilmentSelectedCountry])
-
-    const amountBasedOnCurrencyExchangeRate = useCallback(
-        (amount: string) => {
-            if (!exchangeRate) return currencySymbolBasedOnCountry + ' ' + amount
-            return (
-                currencySymbolBasedOnCountry + ' ' + formatAmount(parseFloat(amount ?? '0') * parseFloat(exchangeRate))
-            )
-        },
-        [exchangeRate, currencySymbolBasedOnCountry]
-    )
-
+    // routing and country context
     const router = useRouter()
     const params = useParams()
     const currentCountryName = params.country as string
 
-    // get country information from URL params
+    // get country information from url params or request fulfillment context
     const currentCountryDetails = useMemo(() => {
         if (!isAddMoneyFlow) {
             return requestFulfilmentSelectedCountry
@@ -82,22 +60,69 @@ export default function AddMoneyBankDetails({ flow = 'add-money' }: IAddMoneyBan
             )
         }
 
-        // check if we're on the static US route by examining the current pathname
+        // check if we're on the static us route by examining the current pathname
         if (typeof window !== 'undefined' && window.location.pathname.includes('/add-money/us/bank')) {
             return countryData.find((c) => c.id === 'US')
         }
 
-        // default to US if no country is detected
+        // default to us if no country is detected
         return countryData.find((c) => c.id === 'US')
     }, [isAddMoneyFlow, requestFulfilmentSelectedCountry, currentCountryName])
 
-    const countryCodeForFlag = useMemo(() => {
-        const countryId = currentCountryDetails?.id || 'USA'
-        const countryCode = ALL_COUNTRIES_ALPHA3_TO_ALPHA2[countryId] || countryId // if countryId is not in countryCodeMap, use countryId because for some countries countryId is of 2 digit and countryCodeMap is a mapping of 3 digit to 2 digit country codes
-        return countryCode?.toLowerCase() || 'us'
-    }, [currentCountryDetails])
-
+    // derive onramp currency once and reuse consistently
     const onrampCurrency = getCurrencyConfig(currentCountryDetails?.id || 'US', 'onramp').currency
+
+    // hooks
+    const { exchangeRate, isLoading: isLoadingExchangeRate } = useExchangeRate({
+        // always use the detected onramp currency as source
+        sourceCurrency: onrampCurrency,
+        // always convert to usd so that we can show an approximate usd amount for non-usd deposits
+        destinationCurrency: 'USD',
+        initialSourceAmount: 1,
+        enabled: true,
+    })
+
+    // data from contexts based on flow
+    const amount = isAddMoneyFlow ? onrampContext.amountToOnramp : chargeDetails?.tokenAmount
+    const onrampData = isAddMoneyFlow ? onrampContext.onrampData : requestFulfilmentOnrampData
+
+    const currencySymbolBasedOnCountry = useMemo(() => {
+        // symbol of the detected onramp currency (e.g., €, $)
+        return getCurrencySymbol(onrampCurrency)
+    }, [onrampCurrency])
+
+    // usd symbol for displaying approximate amount in usd
+    const usdCurrencySymbol = useMemo(() => {
+        return getCurrencySymbol('USD')
+    }, [])
+
+    const isNonUsdCurrency = useMemo(() => {
+        // true when deposit currency is not usd
+        return onrampCurrency.toLowerCase() !== 'usd'
+    }, [onrampCurrency])
+
+    // safely parse user-entered amounts that may contain grouping separators like commas
+    const parseAmountToNumber = useCallback((rawAmount: string): number | null => {
+        // remove common grouping separators and spaces
+        const normalized = (rawAmount ?? '').replace(/[\s,]/g, '')
+        const parsed = Number.parseFloat(normalized)
+        if (Number.isNaN(parsed)) return null
+        return parsed
+    }, [])
+
+    const amountBasedOnCurrencyExchangeRate = useCallback(
+        (amount: string) => {
+            if (!exchangeRate) return amount
+            const baseAmount = parseAmountToNumber(amount)
+            if (baseAmount === null) return amount
+            if (isNonUsdCurrency) {
+                // for non-usd deposits, show the approximate amount in usd
+                return '≈ ' + usdCurrencySymbol + ' ' + formatAmount(baseAmount * exchangeRate)
+            }
+            return '≈ ' + currencySymbolBasedOnCountry + ' ' + formatAmount(baseAmount * exchangeRate)
+        },
+        [exchangeRate, isNonUsdCurrency, usdCurrencySymbol, currencySymbolBasedOnCountry, parseAmountToNumber]
+    )
 
     useEffect(() => {
         // if no amount is set, redirect back to add money page
@@ -109,8 +134,18 @@ export default function AddMoneyBankDetails({ flow = 'add-money' }: IAddMoneyBan
         }
     }, [amount, router, isAddMoneyFlow])
 
+    const formattedCurrencyAmount = useMemo(() => {
+        if (!amount) return ''
+
+        if (flow === 'request-fulfillment') {
+            return formatCurrencyAmount(amount, 'USD') // Request fulfillment flow is in USD
+        }
+
+        return formatCurrencyAmount(amount, onrampCurrency)
+    }, [amount, onrampCurrency, flow])
+
     const generateBankDetails = async () => {
-        const formattedAmount = formatCurrencyAmount(amount ?? '0', onrampCurrency)
+        const formattedAmount = formattedCurrencyAmount
         const isMexico = currentCountryDetails?.id === 'MX'
 
         let bankDetails = `Bank Transfer Details:
@@ -141,7 +176,7 @@ ${routingLabel}: ${routingValue}`
         }
 
         bankDetails += `
-Deposit Message: ${onrampData?.depositInstructions?.depositMessage || 'Loading...'}
+Deposit Reference: ${onrampData?.depositInstructions?.depositMessage || 'Loading...'}
 
 Please use these details to complete your bank transfer.`
 
@@ -156,67 +191,63 @@ Please use these details to complete your bank transfer.`
         }
     }
 
-    const peanutActionDetailsCardProps = useMemo<PeanutActionDetailsCardProps>(() => {
-        if (isAddMoneyFlow) {
-            return {
-                avatarSize: 'small',
-                transactionType: 'ADD_MONEY_BANK_ACCOUNT',
-                recipientType: 'BANK_ACCOUNT',
-                recipientName: 'Your Bank Account',
-                amount: amount ?? '0',
-                tokenSymbol: PEANUT_WALLET_TOKEN_SYMBOL,
-                countryCodeForFlag: countryCodeForFlag,
-                currencySymbol: getCurrencySymbol(onrampCurrency),
-            }
-        } else {
-            return {
-                avatarSize: 'small',
-                transactionType: 'REQUEST_PAYMENT',
-                recipientType: 'USERNAME',
-                recipientName:
-                    chargeDetails?.requestLink.recipientAccount.user.username ??
-                    printableAddress(chargeDetails?.requestLink.recipientAddress as string),
-                amount: isFetchingRate ? '-' : amountBasedOnCurrencyExchangeRate(amount ?? '0'),
-                tokenSymbol: '',
-                countryCodeForFlag: countryCodeForFlag,
-                currencySymbol: getCurrencySymbol(onrampCurrency),
-            }
-        }
-    }, [
-        isAddMoneyFlow,
-        amount,
-        countryCodeForFlag,
-        onrampCurrency,
-        chargeDetails,
-        isFetchingRate,
-        amountBasedOnCurrencyExchangeRate,
-    ])
-
     if (!amount) {
         return null
     }
 
     return (
         <div className="flex h-full w-full flex-col justify-start gap-8 self-start">
-            <NavHeader title={isAddMoneyFlow ? 'Add Money' : 'Send'} onPrev={handleBack} />
+            <NavHeader title={'Transfer details'} onPrev={handleBack} />
 
             <div className="my-auto flex h-full w-full flex-col justify-center space-y-4 pb-5">
-                <PeanutActionDetailsCard {...peanutActionDetailsCardProps} />
+                <Card className="p-4">
+                    <p className="text-xs font-normal text-gray-1">Amount to send</p>
+                    <div className="flex items-baseline gap-2">
+                        <p className="text-2xl font-extrabold text-black md:text-4xl">{formattedCurrencyAmount}</p>
+                        <CopyToClipboard textToCopy={formattedCurrencyAmount} fill="black" iconSize="3" />
+                    </div>
 
-                <Card className="rounded-sm">
-                    {flow === 'add-money' && (
-                        <PaymentInfoRow label={'Amount'} value={formatCurrencyAmount(amount, onrampCurrency)} />
-                    )}
+                    <InfoCard variant="error" className="mt-4" icon="alert" description="Send exactly this amount!" />
+                </Card>
+
+                <Card className="p-4">
+                    <p className="text-xs font-normal text-gray-1">Deposit reference</p>
+                    <div className="flex items-baseline gap-2">
+                        <p className="text-xl font-extrabold text-black md:text-4xl">
+                            {onrampData?.depositInstructions?.depositMessage || 'Loading...'}
+                        </p>
+                        {onrampData?.depositInstructions?.depositMessage && (
+                            <CopyToClipboard
+                                textToCopy={onrampData.depositInstructions.depositMessage}
+                                fill="black"
+                                iconSize="3"
+                            />
+                        )}
+                    </div>
+
+                    <InfoCard
+                        variant="error"
+                        className="mt-4"
+                        icon="alert"
+                        description="Paste in your bank's reference field"
+                    />
+                </Card>
+
+                <Card className="gap-2 rounded-sm">
+                    <h1 className="text-xs">Bank Details</h1>
+
                     <PaymentInfoRow
                         label={'Bank Name'}
                         value={onrampData?.depositInstructions?.bankName || 'Loading...'}
                         allowCopy={!!onrampData?.depositInstructions?.bankName}
+                        hideBottomBorder
                     />
                     {currentCountryDetails?.id !== 'MX' && (
                         <PaymentInfoRow
                             label={'Bank Address'}
                             value={onrampData?.depositInstructions?.bankAddress || 'Loading...'}
                             allowCopy={!!onrampData?.depositInstructions?.bankAddress}
+                            hideBottomBorder
                         />
                     )}
                     {currentCountryDetails?.id !== 'MX' && (
@@ -239,6 +270,7 @@ Please use these details to complete your bank transfer.`
                                 onrampData?.depositInstructions?.bankAccountNumber ||
                                 onrampData?.depositInstructions?.iban
                             }
+                            hideBottomBorder
                         />
                     )}
                     {currentCountryDetails?.id !== 'MX' && (
@@ -255,26 +287,38 @@ Please use these details to complete your bank transfer.`
                                     onrampData?.depositInstructions?.bic
                                 )
                             }
+                            hideBottomBorder
                         />
                     )}
-                    <PaymentInfoRow
-                        hideBottomBorder
-                        label={'Deposit Message'}
-                        value={onrampData?.depositInstructions?.depositMessage || 'Loading...'}
-                        moreInfoText="Make sure you enter this exact message as the transfer concept or description. If it's not included, the deposit can't be processed."
-                        allowCopy={!!onrampData?.depositInstructions?.depositMessage}
-                    />
+                    {isNonUsdCurrency && (
+                        <PaymentInfoRow
+                            loading={isLoadingExchangeRate}
+                            label="You'll Receive"
+                            value={`${amountBasedOnCurrencyExchangeRate(amount)}`}
+                            allowCopy={false}
+                            hideBottomBorder={true}
+                        />
+                    )}
                 </Card>
 
-                <div className="flex items-center gap-2 text-xs text-grey-1">
-                    <Icon name="info" width={16} height={16} />
-                    <span>Include the Deposit Message exactly as shown. It's required to process your deposit.</span>
-                </div>
+                <InfoCard
+                    variant="warning"
+                    icon="alert"
+                    title="Double check in your bank before sending:"
+                    items={[
+                        `Amount: ${formattedCurrencyAmount} (exact)`,
+                        `Reference: ${onrampData?.depositInstructions?.depositMessage || 'Loading...'} (included)`,
+                    ]}
+                />
+
+                <Button onClick={() => router.push('/home')} variant="purple" className="w-full" shadowSize="4">
+                    I've sent the transfer
+                </Button>
 
                 <ShareButton
                     generateText={generateBankDetails}
                     title="Bank Transfer Details"
-                    variant="purple"
+                    variant="primary-soft"
                     className="w-full"
                 >
                     Share Details

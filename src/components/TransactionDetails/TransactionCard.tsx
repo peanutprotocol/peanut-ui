@@ -89,8 +89,16 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
         usdAmount = Number(transaction.currency?.amount ?? amount)
     }
 
-    const formattedAmount = formatCurrency(Math.abs(usdAmount).toString())
-    const displayAmount = `${sign}$${formattedAmount}`
+    const formattedAmount = formatCurrency(Math.abs(usdAmount).toString(), 2, 0)
+    const formattedTotalAmountCollected = formatCurrency(transaction.totalAmountCollected.toString(), 2, 0)
+
+    let displayAmount = `${sign}$${formattedAmount}`
+
+    if (transaction.isRequestPotLink && Number(transaction.amount) > 0) {
+        displayAmount = `$${formattedTotalAmountCollected} / $${formattedAmount}`
+    } else if (transaction.isRequestPotLink && Number(transaction.amount) === 0) {
+        displayAmount = `$${formattedTotalAmountCollected}`
+    }
 
     let currencyDisplayAmount: string | undefined
     if (transaction.currency && transaction.currency.code.toUpperCase() !== 'USD') {
@@ -105,36 +113,30 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         {/* txn avatar component handles icon/initials/colors */}
-                        <div className="relative">
-                            {isPerkReward ? (
-                                <>
-                                    <PerkIcon size="medium" />
-                                    {status && <StatusPill status={status} />}
-                                </>
-                            ) : avatarUrl ? (
-                                <div className={'relative flex h-12 w-12 items-center justify-center rounded-full'}>
-                                    <Image
-                                        src={avatarUrl}
-                                        alt="Icon"
-                                        className="size-12 object-contain"
-                                        width={30}
-                                        height={30}
-                                    />
-
-                                    {status && <StatusPill status={status} />}
-                                </div>
-                            ) : (
-                                <TransactionAvatarBadge
-                                    initials={initials}
-                                    userName={userNameForAvatar}
-                                    isLinkTransaction={isLinkTx}
-                                    transactionType={type}
-                                    context="card"
-                                    size="small"
-                                    status={status}
+                        {isPerkReward ? (
+                            <>
+                                <PerkIcon size="extra-small" />
+                            </>
+                        ) : avatarUrl ? (
+                            <div className={'relative flex size-8 items-center justify-center rounded-full'}>
+                                <Image
+                                    src={avatarUrl}
+                                    alt="Icon"
+                                    className="size-8 object-contain"
+                                    width={30}
+                                    height={30}
                                 />
-                            )}
-                        </div>
+                            </div>
+                        ) : (
+                            <TransactionAvatarBadge
+                                initials={initials}
+                                userName={userNameForAvatar}
+                                isLinkTransaction={isLinkTx}
+                                transactionType={type}
+                                context="card"
+                                size="extra-small"
+                            />
+                        )}
                         <div className="flex flex-col">
                             {/* display formatted name (address or username) */}
                             <div className="flex flex-row items-center gap-2">
@@ -149,9 +151,10 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                 </div>
                             </div>
                             {/* display the action icon and type text */}
-                            <div className="flex items-center gap-1 text-sm font-medium text-gray-1">
+                            <div className="flex items-center gap-2 text-xs font-medium text-gray-1">
                                 {getActionIcon(type, transaction.direction)}
                                 <span className="capitalize">{isPerkReward ? 'Refund' : getActionText(type)}</span>
+                                {status && <StatusPill status={status} />}
                             </div>
                         </div>
                     </div>
@@ -183,7 +186,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
 // helper functions
 function getActionIcon(type: TransactionType, direction: TransactionDirection): React.ReactNode {
     let iconName: IconName | null = null
-    let iconSize = 8
+    let iconSize = 7
 
     switch (type) {
         case 'send':

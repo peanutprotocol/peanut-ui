@@ -141,7 +141,7 @@ let nextConfig = {
                 headers: [
                     {
                         key: 'Permissions-Policy',
-                        value: 'clipboard-read=(self), clipboard-write=(self)',
+                        value: 'camera=(self), clipboard-read=(self), clipboard-write=(self)',
                     },
                 ],
             },

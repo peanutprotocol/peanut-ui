@@ -46,6 +46,8 @@ interface ClaimBankFlowContextType {
     setClaimToMercadoPago: (claimToMercadoPago: boolean) => void
     regionalMethodType: 'mercadopago' | 'pix'
     setRegionalMethodType: (regionalMethodType: 'mercadopago' | 'pix') => void
+    hideTokenSelector: boolean
+    setHideTokenSelector: (hideTokenSelector: boolean) => void
 }
 
 const ClaimBankFlowContext = createContext<ClaimBankFlowContextType | undefined>(undefined)
@@ -66,6 +68,7 @@ export const ClaimBankFlowContextProvider: React.FC<{ children: ReactNode }> = (
     const [justCompletedKyc, setJustCompletedKyc] = useState(false)
     const [claimToMercadoPago, setClaimToMercadoPago] = useState(false)
     const [regionalMethodType, setRegionalMethodType] = useState<'mercadopago' | 'pix'>('mercadopago')
+    const [hideTokenSelector, setHideTokenSelector] = useState(false)
 
     const resetFlow = useCallback(() => {
         setClaimToExternalWallet(false)
@@ -83,6 +86,7 @@ export const ClaimBankFlowContextProvider: React.FC<{ children: ReactNode }> = (
         setJustCompletedKyc(false)
         setClaimToMercadoPago(false)
         setRegionalMethodType('mercadopago')
+        setHideTokenSelector(false)
     }, [])
 
     const value = useMemo(
@@ -118,6 +122,8 @@ export const ClaimBankFlowContextProvider: React.FC<{ children: ReactNode }> = (
             setClaimToMercadoPago,
             regionalMethodType,
             setRegionalMethodType,
+            hideTokenSelector,
+            setHideTokenSelector,
         }),
         [
             claimToExternalWallet,
@@ -137,6 +143,7 @@ export const ClaimBankFlowContextProvider: React.FC<{ children: ReactNode }> = (
             claimToMercadoPago,
             setClaimToMercadoPago,
             regionalMethodType,
+            hideTokenSelector,
         ]
     )
 

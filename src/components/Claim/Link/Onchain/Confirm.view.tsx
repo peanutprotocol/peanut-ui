@@ -9,8 +9,7 @@ import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { type IExtendedLinkDetails } from '@/interfaces'
-import { ErrorHandler, formatTokenAmount, saveClaimedLinkToLocalStorage, printableAddress, isStableCoin } from '@/utils'
+import { ErrorHandler, formatTokenAmount, printableAddress, isStableCoin } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import { useContext, useState, useMemo } from 'react'
 import { formatUnits } from 'viem'
@@ -18,6 +17,7 @@ import * as _consts from '../../Claim.consts'
 import useClaimLink from '../../useClaimLink'
 import { useAuth } from '@/context/authContext'
 import { sendLinksApi } from '@/services/sendLinks'
+import { useSearchParams } from 'next/navigation'
 
 export const ConfirmClaimLinkView = ({
     onNext,
@@ -40,6 +40,10 @@ export const ConfirmClaimLinkView = ({
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
+
+    // get campaign tag from claim link url for badge assignment
+    const params = useSearchParams()
+    const campaignTag = params.get('campaignTag')
 
     // We may need this when we re add rewards via specific tokens
     // If not, feel free to remove
@@ -92,6 +96,7 @@ export const ConfirmClaimLinkView = ({
                 claimTxHash = await claimLink({
                     address: recipient ? recipient.address : (address ?? ''),
                     link: claimLinkData.link,
+                    campaignTag: campaignTag ?? undefined, // badge assignment: pass campaign tag
                     // Note: Confirm view is used for external wallet claims (no optimistic return)
                     // Optimistic return is only for Peanut Wallet claims in Initial.view.tsx
                 })
@@ -111,20 +116,7 @@ export const ConfirmClaimLinkView = ({
                         console.error('Failed to associate claim', e)
                     }
                 }
-                saveClaimedLinkToLocalStorage({
-                    address: recipient ? recipient.address : (address ?? ''),
-                    data: {
-                        ...claimLinkData,
-                        depositDate: new Date(),
-                        USDTokenPrice: tokenPrice,
-                        points: estimatedPoints,
-                        txHash: claimTxHash,
-                        message: attachment.message ? attachment.message : undefined,
-                        attachmentUrl: attachment.attachmentUrl ? attachment.attachmentUrl : undefined,
-                    } as unknown as IExtendedLinkDetails,
-                })
             }
-
             setTransactionHash(claimTxHash)
             onNext()
             // Note: Balance/transaction refresh handled by mutation or SUCCESS view

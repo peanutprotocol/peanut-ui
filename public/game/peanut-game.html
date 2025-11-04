@@ -2625,6 +2625,9 @@
 
     <body id="t">
         <script>
+            // Note: Facebook SDK version is pinned to v2.2 to match the API version used in FB.init.
+            // Using versioned SDK URL ensures consistent behavior. Consider upgrading to a newer
+            // version (e.g., v19.0) as v2.2 is deprecated, but test thoroughly before updating.
             window.fbAsyncInit = function () {
                 FB.init({
                     appId: '576553495813787',
@@ -2640,7 +2643,7 @@
                 }
                 js = d.createElement(s)
                 js.id = id
-                js.src = '//connect.facebook.net/en_US/sdk.js'
+                js.src = '//connect.facebook.net/en_US/sdk/v2.2/sdk.js'
                 fjs.parentNode.insertBefore(js, fjs)
             })(document, 'script', 'facebook-jssdk')
         </script>

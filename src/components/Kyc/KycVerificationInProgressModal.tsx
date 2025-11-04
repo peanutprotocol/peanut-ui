@@ -53,7 +53,7 @@ export const PeanutDoesntStoreAnyPersonalInformation = ({ className }: { classNa
     return (
         <div className={twMerge('flex items-center gap-2 text-[11px] text-grey-1', className)}>
             <Icon name="info" className="h-3 w-3" />
-            <span>Peanut doesn't store any personal information</span>
+            <span>Peanut doesn't store any of your documents</span>
         </div>
     )
 }

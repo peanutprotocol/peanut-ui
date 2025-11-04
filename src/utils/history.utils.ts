@@ -6,6 +6,7 @@ import { formatUnits } from 'viem'
 import { type Hash } from 'viem'
 import { getTokenDetails } from '@/utils'
 import { getCurrencyPrice } from '@/app/actions/currency'
+import { type ChargeEntry } from '@/services/services.types'
 
 export enum EHistoryEntryType {
     REQUEST = 'REQUEST',
@@ -71,6 +72,7 @@ export enum EHistoryStatus {
     refunded = 'refunded',
     canceled = 'canceled', // from simplefi, canceled with only one l
     expired = 'expired',
+    CLOSED = 'CLOSED',
 }
 
 export const FINAL_STATES: HistoryStatus[] = [
@@ -81,6 +83,7 @@ export const FINAL_STATES: HistoryStatus[] = [
     EHistoryStatus.REFUNDED,
     EHistoryStatus.CANCELED,
     EHistoryStatus.ERROR,
+    EHistoryStatus.CLOSED,
 ]
 
 export type HistoryEntryType = `${EHistoryEntryType}`
@@ -129,6 +132,9 @@ export type HistoryEntry = {
     completedAt?: string | Date
     isVerified?: boolean
     points?: number
+    isRequestLink?: boolean // true if the transaction is a request pot link
+    charges?: ChargeEntry[]
+    totalAmountCollected?: number
 }
 
 export function isFinalState(transaction: Pick<HistoryEntry, 'status'>): boolean {
@@ -219,7 +225,14 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
             break
         }
         case EHistoryEntryType.REQUEST: {
-            link = `${BASE_URL}/${entry.recipientAccount.username || entry.recipientAccount.identifier}?chargeId=${entry.uuid}`
+            // if link is a request link, we need to add the token amount and symbol to the link, also use id param instead of chargeId
+            if (entry.isRequestLink) {
+                const tokenCurrency = entry.tokenSymbol
+                const tokenAmount = entry.amount
+                link = `${BASE_URL}/${entry.recipientAccount.username || entry.recipientAccount.identifier}/${tokenAmount}${tokenCurrency}?id=${entry.uuid}`
+            } else {
+                link = `${BASE_URL}/${entry.recipientAccount.username || entry.recipientAccount.identifier}?chargeId=${entry.uuid}`
+            }
             tokenSymbol = entry.tokenSymbol
             usdAmount = entry.amount.toString()
             break
@@ -273,16 +286,27 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
             if (entry.currency?.code) {
                 entry.currency.code = entry.currency.code.toUpperCase()
             }
-            if (usdAmount === entry.currency?.amount && entry.currency?.code && entry.currency?.code !== 'USD') {
-                try {
-                    const price = await getCurrencyPrice(entry.currency.code)
-                    entry.currency.amount = (Number(entry.amount) / price.sell).toString()
-                } catch (error) {
-                    console.error(
-                        `[completeHistoryEntry] Failed to fetch currency price for ${entry.currency.code}:`,
-                        error
-                    )
-                    // Fallback: use original amount (already set above)
+            // when bridge returns non-usd currency on pending states, it may mirror the usd amount.
+            // convert it using current fx rate if it looks unconverted (missing or ~equal to usd amount).
+            if (entry.currency?.code && entry.currency.code !== 'USD') {
+                const usdNum = Number(usdAmount)
+                const hasCurrencyAmount = !!entry.currency.amount
+                const currNum = hasCurrencyAmount ? Number(entry.currency.amount) : NaN
+                const approximatelyEqual = hasCurrencyAmount && isFinite(currNum) && Math.abs(currNum - usdNum) < 0.01
+
+                if (!hasCurrencyAmount || !isFinite(currNum) || approximatelyEqual) {
+                    try {
+                        const price = await getCurrencyPrice(entry.currency.code)
+                        // off-ramp: convert usd -> local using sell price (local per usd)
+                        const converted = Number.isFinite(usdNum) && price?.sell ? usdNum * price.sell : usdNum
+                        entry.currency.amount = converted.toString()
+                    } catch (error) {
+                        console.error(
+                            `[completeHistoryEntry] Failed to fetch currency price for ${entry.currency.code}:`,
+                            error
+                        )
+                        // fallback: keep existing amount
+                    }
                 }
             }
             break

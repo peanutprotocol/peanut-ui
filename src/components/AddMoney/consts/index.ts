@@ -199,20 +199,21 @@ export const UPDATED_DEFAULT_ADD_MONEY_METHODS: SpecificPaymentMethod[] = [
         description: 'Instant transfers',
         isSoon: false,
     },
-    {
-        id: 'apple-pay-add',
-        icon: APPLE_PAY,
-        title: 'Apple Pay',
-        description: 'Usually arrives instantly',
-        isSoon: true,
-    },
-    {
-        id: 'google-pay-add',
-        icon: GOOGLE_PAY,
-        title: 'Google Pay',
-        description: 'Usually arrives instantly',
-        isSoon: true,
-    },
+    // @dev TODO: Re-enable this once we have a way to support it
+    // {
+    //     id: 'apple-pay-add',
+    //     icon: APPLE_PAY,
+    //     title: 'Apple Pay',
+    //     description: 'Usually arrives instantly',
+    //     isSoon: true,
+    // },
+    // {
+    //     id: 'google-pay-add',
+    //     icon: GOOGLE_PAY,
+    //     title: 'Google Pay',
+    //     description: 'Usually arrives instantly',
+    //     isSoon: true,
+    // },
 ]
 
 export const DEFAULT_BANK_WITHDRAW_METHOD: SpecificPaymentMethod = {
@@ -2540,7 +2541,26 @@ export const ALL_COUNTRIES_ALPHA3_TO_ALPHA2: { [key: string]: string } = {
     ...MANTECA_ALPHA3_TO_ALPHA2,
 }
 
-const enabledBankWithdrawCountries = new Set([...Object.values(BRIDGE_ALPHA3_TO_ALPHA2), 'US', 'MX', 'AR'])
+// identify sepa corridors where local currency is not eur and disable them temporarily for bank withdrawals
+// this impacts withdraw and claim-to-bank flows (but not add-money from bank)
+export const NON_EUR_SEPA_ALPHA2 = new Set(
+    countryData
+        .filter(
+            (c) =>
+                c.type === 'country' &&
+                !!c.iso3 &&
+                BRIDGE_ALPHA3_TO_ALPHA2[c.iso3] &&
+                // exclude usa explicitly; bridge map includes it but it's not sepa
+                c.iso3 !== 'USA'
+        )
+        .map((c) => ({ alpha2: BRIDGE_ALPHA3_TO_ALPHA2[c.iso3!], currency: c.currency }))
+        .filter((x) => x.alpha2 && x.currency && x.currency !== 'EUR')
+        .map((x) => x.alpha2 as string)
+)
+
+const enabledBankWithdrawCountries = new Set(
+    [...Object.values(BRIDGE_ALPHA3_TO_ALPHA2), 'US', 'MX', 'AR'].filter((code) => !NON_EUR_SEPA_ALPHA2.has(code))
+)
 
 const enabledBankDepositCountries = new Set([...Object.values(BRIDGE_ALPHA3_TO_ALPHA2), 'US', 'MX', 'AR'])
 

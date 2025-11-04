@@ -5,10 +5,9 @@ import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
-import { SearchResultCard } from '@/components/SearchUsers/SearchResultCard'
 import { getColorForUsername } from '@/utils/color.utils'
 import Image, { type StaticImageData } from 'next/image'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import EmptyState from '../Global/EmptyStates/EmptyState'
 import { useAuth } from '@/context/authContext'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -27,6 +26,7 @@ import { bankFormActions } from '@/redux/slices/bank-form-slice'
 import { InitiateBridgeKYCModal } from '../Kyc/InitiateBridgeKYCModal'
 import useKycStatus from '@/hooks/useKycStatus'
 import KycVerifiedOrReviewModal from '../Global/KycVerifiedOrReviewModal'
+import { ActionListCard } from '@/components/ActionListCard'
 
 interface AddWithdrawCountriesListProps {
     flow: 'add' | 'withdraw'
@@ -35,11 +35,17 @@ interface AddWithdrawCountriesListProps {
 const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const router = useRouter()
     const params = useParams()
+    const searchParams = useSearchParams()
+
+    // check if coming from send flow and what type
+    const methodParam = searchParams.get('method')
+    const isFromSendFlow = !!(methodParam && ['bank', 'crypto'].includes(methodParam))
+    const isBankFromSend = methodParam === 'bank' && isFromSendFlow
 
     // hooks
     const { deviceType } = useDeviceType()
     const { user, fetchUser } = useAuth()
-    const { setSelectedBankAccount, amountToWithdraw, setSelectedMethod } = useWithdrawFlow()
+    const { setSelectedBankAccount, amountToWithdraw, setSelectedMethod, setAmountToWithdraw } = useWithdrawFlow()
     const dispatch = useAppDispatch()
 
     // component level states
@@ -123,7 +129,8 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             }
 
             if (currentCountry) {
-                router.push(`/withdraw/${currentCountry.path}/bank`)
+                const queryParams = isBankFromSend ? `?method=${methodParam}` : ''
+                router.push(`/withdraw/${currentCountry.path}/bank${queryParams}`)
             }
             return {}
         }
@@ -161,9 +168,14 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     }
 
     const handleWithdrawMethodClick = (method: SpecificPaymentMethod) => {
+        // preserve method param only if coming from bank send flow (not crypto)
+        const methodQueryParam = isBankFromSend ? `?method=${methodParam}` : ''
+
         if (method.path && method.path.includes('/manteca')) {
             // Manteca methods route directly (has own amount input)
-            router.push(method.path)
+            const separator = method.path.includes('?') ? '&' : '?'
+            const additionalParams = isBankFromSend ? `${separator}method=${methodParam}` : ''
+            router.push(`${method.path}${additionalParams}`)
         } else if (method.id.includes('default-bank-withdraw') || method.id.includes('sepa-instant-withdraw')) {
             if (isUserBridgeKycUnderReview) {
                 setShowKycStatusModal(true)
@@ -177,7 +189,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 currency: currentCountry?.currency,
                 title: method.title,
             })
-            router.push('/withdraw')
+            router.push(`/withdraw${methodQueryParam}`)
             return
         } else if (method.id.includes('crypto-withdraw')) {
             setSelectedMethod({
@@ -185,10 +197,12 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 countryPath: 'crypto',
                 title: 'Crypto',
             })
-            router.push('/withdraw')
+            router.push(`/withdraw${methodQueryParam}`)
         } else if (method.path) {
             // Other methods with paths
-            router.push(method.path)
+            const separator = method.path.includes('?') ? '&' : '?'
+            const additionalParams = isBankFromSend ? `${separator}method=${methodParam}` : ''
+            router.push(`${method.path}${additionalParams}`)
         }
     }
 
@@ -249,12 +263,30 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         return (
             <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
                 <NavHeader
-                    title={flow === 'withdraw' ? 'Withdraw' : 'Add money'}
+                    title={flow === 'withdraw' ? (isBankFromSend ? 'Send' : 'Withdraw') : 'Add money'}
                     onPrev={() => {
-                        // clear DynamicBankAccountForm data
+                        // clear dynamicbankaccountform data
                         dispatch(bankFormActions.clearFormData())
+                        setAmountToWithdraw('')
                         // ensure kyc modal isn't open so late success events don't flip view
                         setIsKycModalOpen(false)
+
+                        // if coming from send flow, go back to amount input on /withdraw?method=bank
+                        if (flow === 'withdraw' && isBankFromSend) {
+                            if (currentCountry) {
+                                setSelectedMethod({
+                                    type: 'bridge',
+                                    countryPath: currentCountry.path,
+                                    currency: currentCountry.currency,
+                                    title: 'To Bank',
+                                })
+                            }
+                            router.push(`/withdraw?method=${methodParam}`)
+                            return
+                        }
+
+                        // otherwise go back to list
+                        setSelectedMethod(null)
                         setView('list')
                     }}
                 />
@@ -284,7 +316,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 <h2 className="text-base font-bold">{title}</h2>
                 <div className="flex flex-col">
                     {paymentMethods.map((method, index) => (
-                        <SearchResultCard
+                        <ActionListCard
                             key={method.id}
                             isDisabled={method.isSoon}
                             title={method.title}
@@ -345,9 +377,20 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             <NavHeader
                 title={currentCountry.title}
                 onPrev={() => {
+                    setAmountToWithdraw('')
                     if (flow === 'add') {
                         router.push('/add-money')
+                    } else if (isBankFromSend) {
+                        // if coming from bank send flow: set method and go to amount input view
+                        setSelectedMethod({
+                            type: 'bridge',
+                            countryPath: currentCountry.path,
+                            currency: currentCountry.currency,
+                            title: 'To Bank',
+                        })
+                        router.push(`/withdraw?method=${methodParam}`)
                     } else {
+                        setSelectedMethod(null)
                         router.back()
                     }
                 }}

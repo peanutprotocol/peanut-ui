@@ -31,6 +31,7 @@ import { useAppDispatch } from '@/redux/hooks'
 import { bankFormActions } from '@/redux/slices/bank-form-slice'
 import { sendLinksApi } from '@/services/sendLinks'
 import { InitiateBridgeKYCModal } from '@/components/Kyc/InitiateBridgeKYCModal'
+import { useSearchParams } from 'next/navigation'
 
 type BankAccountWithId = IBankAccountDetails &
     (
@@ -49,6 +50,10 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
     // props and basic setup
     const { onCustom, claimLinkData, setTransactionHash } = props
     const { user, fetchUser } = useAuth()
+
+    // get campaign tag from claim link url for badge assignment
+    const params = useSearchParams()
+    const campaignTag = params.get('campaignTag')
 
     // state from the centralized context
     const {
@@ -107,6 +112,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                 const claimTx = await claimLink({
                     address: details.depositInstructions.toAddress,
                     link: claimLinkData.link,
+                    campaignTag: campaignTag ?? undefined, // badge assignment: pass campaign tag
                 })
 
                 if (!claimTx) {
@@ -134,7 +140,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                 throw e
             }
         },
-        [claimLink, claimLinkData.link, setTransactionHash, setClaimType, onCustom, user]
+        [claimLink, claimLinkData.link, setTransactionHash, setClaimType, onCustom, user, campaignTag]
     )
 
     /**

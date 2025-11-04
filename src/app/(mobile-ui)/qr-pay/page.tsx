@@ -18,6 +18,7 @@ import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { clearRedirectUrl, getRedirectUrl, isTxReverted, saveRedirectUrl, formatNumberForDisplay } from '@/utils'
 import { getShakeClass, type ShakeIntensity } from '@/utils/perk.utils'
+import { calculateSavingsInCents, isArgentinaMantecaQrPayment, getSavingsMessage } from '@/utils/qr-payment.utils'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { PEANUT_WALLET_TOKEN_DECIMALS, TRANSACTIONS, PERK_HOLD_DURATION_MS } from '@/constants'
 import { MANTECA_DEPOSIT_ADDRESS } from '@/constants/manteca.consts'
@@ -29,6 +30,7 @@ import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHisto
 import { loadingStateContext } from '@/context'
 import { getCurrencyPrice } from '@/app/actions/currency'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
+import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 import { captureException } from '@sentry/nextjs'
 import { isPaymentProcessorQR, parseSimpleFiQr, EQrType } from '@/components/Global/DirectSendQR/utils'
 import type { SimpleFiQrData } from '@/components/Global/DirectSendQR/utils'
@@ -40,9 +42,14 @@ import { useQueryClient } from '@tanstack/react-query'
 import { shootDoubleStarConfetti } from '@/utils/confetti'
 import { STAR_STRAIGHT_ICON } from '@/assets'
 import { useAuth } from '@/context/authContext'
+import { PointsAction } from '@/services/services.types'
+import { usePointsConfetti } from '@/hooks/usePointsConfetti'
+import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import type { HistoryEntry } from '@/hooks/useTransactionHistory'
 import { completeHistoryEntry } from '@/utils/history.utils'
+import { useSupportModalContext } from '@/context/SupportModalContext'
+import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
 
 const MAX_QR_PAYMENT_AMOUNT = '2000'
 
@@ -73,6 +80,7 @@ export default function QRPayPage() {
     const { isLoading, loadingState, setLoadingState } = useContext(loadingStateContext)
     const { shouldBlockPay, kycGateState } = useQrKycGate()
     const queryClient = useQueryClient()
+    const { hasPendingTransactions } = usePendingTransactions()
     const [isShaking, setIsShaking] = useState(false)
     const [shakeIntensity, setShakeIntensity] = useState<ShakeIntensity>('none')
     const [isClaimingPerk, setIsClaimingPerk] = useState(false)
@@ -84,6 +92,10 @@ export default function QRPayPage() {
     const { user } = useAuth()
     const [pendingSimpleFiPaymentId, setPendingSimpleFiPaymentId] = useState<string | null>(null)
     const [isWaitingForWebSocket, setIsWaitingForWebSocket] = useState(false)
+    const [shouldRetry, setShouldRetry] = useState(true)
+    const { setIsSupportModalOpen } = useSupportModalContext()
+    const [waitingForMerchantAmount, setWaitingForMerchantAmount] = useState(false)
+    const retryCount = useRef(0)
 
     const paymentProcessor: PaymentProcessor | null = useMemo(() => {
         switch (qrType) {
@@ -131,12 +143,6 @@ export default function QRPayPage() {
             holdStartTimeRef.current = null
         }
     }, [])
-
-    // Reset SimpleFi payment state
-    const resetSimpleFiState = () => {
-        setPendingSimpleFiPaymentId(null)
-        setIsWaitingForWebSocket(false)
-    }
 
     const handleSimpleFiStatusUpdate = useCallback(
         async (entry: HistoryEntry) => {
@@ -311,6 +317,17 @@ export default function QRPayPage() {
         }
     }, [paymentProcessor, simpleFiPayment, paymentLock?.code, paymentLock?.paymentAgainstAmount, amount])
 
+    // Fetch points early to avoid latency penalty - fetch as soon as we have usdAmount
+    // This way points are cached by the time success view shows
+    // Only Manteca QR payments give points (SimpleFi does not)
+    // Use timestamp as uniqueId to prevent cache collisions between different QR scans
+    const { pointsData, pointsDivRef } = usePointsCalculation(
+        PointsAction.MANTECA_QR_PAYMENT,
+        usdAmount,
+        paymentProcessor === 'MANTECA',
+        timestamp || undefined
+    )
+
     const methodIcon = useMemo(() => {
         switch (qrType) {
             case EQrType.MERCADO_PAGO:
@@ -387,15 +404,26 @@ export default function QRPayPage() {
     useEffect(() => {
         if (paymentProcessor !== 'MANTECA') return
         if (!qrCode || !isPaymentProcessorQR(qrCode)) return
-        if (!!paymentLock) return
+        if (!!paymentLock || !shouldRetry) return
 
+        setShouldRetry(false)
         setLoadingState('Fetching details')
         mantecaApi
             .initiateQrPayment({ qrCode })
-            .then((pl) => setPaymentLock(pl))
-            .catch((error) => setErrorInitiatingPayment(error.message))
+            .then((pl) => {
+                setWaitingForMerchantAmount(false)
+                setPaymentLock(pl)
+            })
+            .catch((error) => {
+                if (error.message.includes("provider can't decode it")) {
+                    setWaitingForMerchantAmount(true)
+                } else {
+                    setErrorInitiatingPayment(error.message)
+                    setWaitingForMerchantAmount(false)
+                }
+            })
             .finally(() => setLoadingState('Idle'))
-    }, [paymentLock, qrCode, setLoadingState, paymentProcessor])
+    }, [paymentLock, qrCode, setLoadingState, paymentProcessor, shouldRetry])
 
     const merchantName = useMemo(() => {
         if (paymentProcessor === 'SIMPLEFI') {
@@ -703,9 +731,14 @@ export default function QRPayPage() {
 
     // Check user balance
     useEffect(() => {
+        // Skip balance check on success screen (balance may not have updated yet)
+        if (isSuccess) {
+            setBalanceErrorMessage(null)
+            return
+        }
+
         // Skip balance check if transaction is being processed
-        // (balance has been optimistically updated in these states)
-        if (isLoading || isWaitingForWebSocket) {
+        if (hasPendingTransactions || isWaitingForWebSocket) {
             return
         }
 
@@ -721,15 +754,18 @@ export default function QRPayPage() {
         } else {
             setBalanceErrorMessage(null)
         }
-    }, [usdAmount, balance, isLoading, isWaitingForWebSocket])
+    }, [usdAmount, balance, hasPendingTransactions, isWaitingForWebSocket, isSuccess])
+
+    // Use points confetti hook for animation - must be called unconditionally
+    usePointsConfetti(isSuccess && pointsData?.estimatedPoints ? pointsData.estimatedPoints : undefined, pointsDivRef)
 
     useEffect(() => {
         if (isSuccess) {
             queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
         }
-    }, [isSuccess])
+    }, [isSuccess, queryClient])
 
-    const handleOrderNotReadyRetry = useCallback(async () => {
+    const handleSimplefiRetry = useCallback(async () => {
         setShowOrderNotReadyModal(false)
         if (!simpleFiQrData || simpleFiQrData.type !== 'SIMPLEFI_STATIC') return
 
@@ -758,6 +794,27 @@ export default function QRPayPage() {
             setLoadingState('Idle')
         }
     }, [simpleFiQrData, setLoadingState])
+
+    useEffect(() => {
+        if (paymentProcessor !== 'SIMPLEFI') return
+        if (!shouldRetry) return
+        setShouldRetry(false)
+        handleSimplefiRetry()
+    }, [shouldRetry, handleSimplefiRetry])
+
+    useEffect(() => {
+        if (waitingForMerchantAmount && !shouldRetry) {
+            if (retryCount.current < 3) {
+                retryCount.current++
+                setTimeout(() => {
+                    setShouldRetry(true)
+                }, 3000)
+            } else {
+                setWaitingForMerchantAmount(false)
+                setShowOrderNotReadyModal(true)
+            }
+        }
+    }, [waitingForMerchantAmount, shouldRetry])
 
     if (!!errorInitiatingPayment) {
         return (
@@ -846,25 +903,57 @@ export default function QRPayPage() {
         )
     }
 
+    if (waitingForMerchantAmount) {
+        return (
+            <div className="my-auto flex h-full w-full flex-col items-center justify-center space-y-4">
+                <div className="relative">
+                    <Image
+                        src={chillPeanutAnim.src}
+                        alt="Peanut Mascot"
+                        width={20}
+                        height={20}
+                        className="absolute z-0 h-32 w-32 -translate-y-20 translate-x-26"
+                    />
+                    <Card className="relative z-10 flex w-full flex-col items-center gap-4 p-4">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-1 p-3">
+                            <Icon name="clock" className="h-full" />
+                        </div>
+                        <p className="font-medium">Waiting for the merchant to set the amount</p>
+                    </Card>
+                </div>
+            </div>
+        )
+    }
+
     if (showOrderNotReadyModal) {
         return (
-            <div className="my-auto flex h-full flex-col justify-center space-y-4">
-                <Card className="shadow-4 space-y-2">
-                    <div className="space-y-2">
-                        <h1 className="text-3xl font-extrabold">Order Not Ready</h1>
-                        <p className="text-lg">Please notify the cashier that you're ready to pay, then tap Retry.</p>
+            <div className="my-auto flex h-full w-full flex-col justify-center space-y-4">
+                <Card className="flex w-full flex-col items-center gap-2 p-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-1 p-3">
+                        <Icon name="qr-code" className="h-full" />
                     </div>
-                    <div className="h-[1px] bg-black"></div>
-
-                    <div className="flex flex-col space-y-3">
-                        <Button onClick={handleOrderNotReadyRetry} variant="purple" shadowSize="4">
-                            Retry Payment
-                        </Button>
-                        <Button onClick={() => router.back()} variant="primary-soft" shadowSize="4">
-                            Cancel
-                        </Button>
-                    </div>
+                    <span className="text-lg font-bold">We couldn't get the amount</span>
+                    <p className="max-w-52 text-center font-normal text-grey-1">
+                        Ask the merchant to enter it and scan the QR again.
+                    </p>
                 </Card>
+                <Button
+                    onClick={() => {
+                        setShowOrderNotReadyModal(false)
+                        setShouldRetry(true)
+                    }}
+                    variant="purple"
+                    shadowSize="4"
+                >
+                    Scan the code again
+                </Button>
+                <button
+                    onClick={() => setIsSupportModalOpen(true)}
+                    className="flex w-full items-center justify-center gap-2 text-sm font-medium text-grey-1 transition-colors hover:text-black"
+                >
+                    <Icon name="peanut-support" size={16} className="text-grey-1" />
+                    Having trouble?
+                </button>
             </div>
         )
     }
@@ -882,6 +971,11 @@ export default function QRPayPage() {
     if (isSuccess && paymentProcessor === 'MANTECA' && !qrPayment) {
         return null
     } else if (isSuccess && paymentProcessor === 'MANTECA' && qrPayment) {
+        // Calculate savings for Argentina Manteca QR payments only
+        const savingsInCents = calculateSavingsInCents(usdAmount)
+        const showSavingsMessage = savingsInCents > 0 && isArgentinaMantecaQrPayment(qrType, paymentProcessor)
+        const savingsMessage = showSavingsMessage ? getSavingsMessage(savingsInCents) : ''
+
         return (
             <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(isShaking, shakeIntensity)}`}>
                 <SoundPlayer sound="success" />
@@ -911,6 +1005,10 @@ export default function QRPayPage() {
                                 <div className="text-lg font-bold">
                                     ≈ {formatNumberForDisplay(usdAmount ?? undefined, { maxDecimals: 2 })} USD
                                 </div>
+                                {/* Savings Message (Argentina Manteca only) */}
+                                {showSavingsMessage && savingsMessage && (
+                                    <p className="text-sm italic text-grey-1">{savingsMessage}</p>
+                                )}
                             </div>
                         </Card>
                     )}
@@ -961,6 +1059,17 @@ export default function QRPayPage() {
                                 </p>
                             </div>
                         </Card>
+                    )}
+
+                    {/* Points Display - ref used for confetti origin point */}
+                    {pointsData?.estimatedPoints && (
+                        <div ref={pointsDivRef} className="flex justify-center gap-2">
+                            <Image src={STAR_STRAIGHT_ICON} alt="star" width={20} height={20} />
+                            <p className="text-sm font-medium text-black">
+                                You&apos;ve earned {pointsData.estimatedPoints}{' '}
+                                {pointsData.estimatedPoints === 1 ? 'point' : 'points'}!
+                            </p>
+                        </div>
                     )}
 
                     <div className="w-full space-y-5">
@@ -1045,6 +1154,7 @@ export default function QRPayPage() {
                                                     exchange_rate: currency.price.toString(),
                                                 },
                                             },
+                                            totalAmountCollected: Number(usdAmount),
                                         })
                                     }}
                                 >
@@ -1087,6 +1197,7 @@ export default function QRPayPage() {
                             </div>
                         </div>
                     </Card>
+
                     <div className="w-full space-y-5">
                         <Button
                             onClick={() => {
@@ -1126,6 +1237,7 @@ export default function QRPayPage() {
                                             exchange_rate: currency.price.toString(),
                                         },
                                     },
+                                    totalAmountCollected: Number(usdAmount),
                                 })
                             }}
                         >

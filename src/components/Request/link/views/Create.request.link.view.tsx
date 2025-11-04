@@ -9,7 +9,7 @@ import PeanutActionCard from '@/components/Global/PeanutActionCard'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import ShareButton from '@/components/Global/ShareButton'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
-import { BASE_URL, PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import * as context from '@/context'
 import { useAuth } from '@/context/authContext'
@@ -17,13 +17,12 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { type IToken } from '@/interfaces'
 import { type IAttachmentOptions } from '@/redux/types/send-flow.types'
-import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
-import { fetchTokenSymbol, getRequestLink, isNativeCurrency, printableUsdc } from '@/utils'
+import { fetchTokenSymbol, formatTokenAmount, getRequestLink, isNativeCurrency, printableUsdc } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useQueryClient } from '@tanstack/react-query'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 
 export const CreateRequestLinkView = () => {
@@ -31,21 +30,24 @@ export const CreateRequestLinkView = () => {
     const router = useRouter()
     const { address, isConnected, balance } = useWallet()
     const { user } = useAuth()
-    const {
-        selectedTokenPrice,
-        selectedChainID,
-        setSelectedChainID,
-        selectedTokenAddress,
-        setSelectedTokenAddress,
-        selectedTokenData,
-    } = useContext(context.tokenSelectorContext)
+    const { selectedChainID, setSelectedChainID, selectedTokenAddress, setSelectedTokenAddress, selectedTokenData } =
+        useContext(context.tokenSelectorContext)
     const { setLoadingState } = useContext(context.loadingStateContext)
     const queryClient = useQueryClient()
+    const searchParams = useSearchParams()
+    const paramsAmount = searchParams.get('amount')
+    // Sanitize amount and limit to 2 decimal places
+    const sanitizedAmount = useMemo(() => {
+        if (!paramsAmount || isNaN(parseFloat(paramsAmount))) return ''
+        return formatTokenAmount(paramsAmount, 2) ?? ''
+    }, [paramsAmount])
+    const merchant = searchParams.get('merchant')
+    const merchantComment = merchant ? `Bill split for ${merchant}` : null
 
     // Core state
-    const [tokenValue, setTokenValue] = useState<string>('')
+    const [tokenValue, setTokenValue] = useState<string>(sanitizedAmount)
     const [attachmentOptions, setAttachmentOptions] = useState<IAttachmentOptions>({
-        message: '',
+        message: merchantComment || '',
         fileUrl: '',
         rawFile: undefined,
     })
@@ -75,9 +77,9 @@ export const CreateRequestLinkView = () => {
     const peanutWalletBalance = useMemo(() => (balance !== undefined ? printableUsdc(balance) : ''), [balance])
 
     const usdValue = useMemo(() => {
-        if (!selectedTokenPrice || !tokenValue) return ''
-        return (parseFloat(tokenValue) * selectedTokenPrice).toString()
-    }, [tokenValue, selectedTokenPrice])
+        if (!selectedTokenData?.price || !tokenValue) return ''
+        return (parseFloat(tokenValue) * selectedTokenData.price).toString()
+    }, [tokenValue, selectedTokenData?.price])
 
     const recipientAddress = useMemo(() => {
         if (!isConnected || !address) return ''
@@ -109,15 +111,6 @@ export const CreateRequestLinkView = () => {
                 })
                 return null
             }
-
-            if (!tokenValue || parseFloat(tokenValue) <= 0) {
-                setErrorState({
-                    showError: true,
-                    errorMessage: 'Please enter a token amount',
-                })
-                return null
-            }
-
             // Cleanup previous request
             if (createLinkAbortRef.current) {
                 createLinkAbortRef.current.abort()
@@ -169,21 +162,8 @@ export const CreateRequestLinkView = () => {
                 const requestDetails = await requestsApi.create(requestData)
                 setRequestId(requestDetails.uuid)
 
-                const charge = await chargesApi.create({
-                    pricing_type: 'fixed_price',
-                    local_price: {
-                        amount: requestDetails.tokenAmount,
-                        currency: 'USD',
-                    },
-                    baseUrl: BASE_URL,
-                    requestId: requestDetails.uuid,
-                    transactionType: 'REQUEST',
-                })
-
                 const link = getRequestLink({
                     ...requestDetails,
-                    uuid: undefined,
-                    chargeId: charge.data.id,
                 })
 
                 // Update the last saved state
@@ -277,17 +257,7 @@ export const CreateRequestLinkView = () => {
     const handleDebouncedChange = useCallback(async () => {
         if (isCreatingLink || isUpdatingRequest) return
 
-        // If no request exists but we have content, create request
-        if (!requestId && (debouncedAttachmentOptions.rawFile || debouncedAttachmentOptions.message)) {
-            if (!tokenValue || parseFloat(tokenValue) <= 0) return
-
-            const link = await createRequestLink(debouncedAttachmentOptions)
-            if (link) {
-                setGeneratedLink(link)
-            }
-        }
-        // If request exists and content changed (including clearing), update it
-        else if (requestId) {
+        if (requestId) {
             // Check for unsaved changes inline to avoid dependency issues
             const lastSaved = lastSavedAttachmentRef.current
             const hasChanges =
@@ -298,15 +268,7 @@ export const CreateRequestLinkView = () => {
                 await updateRequestLink(debouncedAttachmentOptions)
             }
         }
-    }, [
-        debouncedAttachmentOptions,
-        requestId,
-        tokenValue,
-        isCreatingLink,
-        isUpdatingRequest,
-        createRequestLink,
-        updateRequestLink,
-    ])
+    }, [debouncedAttachmentOptions, requestId, isCreatingLink, isUpdatingRequest, updateRequestLink])
 
     useEffect(() => {
         handleDebouncedChange()
@@ -355,7 +317,6 @@ export const CreateRequestLinkView = () => {
 
     const generateLink = useCallback(async () => {
         if (generatedLink) return generatedLink
-        if (Number(tokenValue) === 0) return qrCodeLink
         if (isCreatingLink || isUpdatingRequest) return '' // Prevent duplicate operations
 
         // Create new request when share button is clicked
@@ -376,7 +337,7 @@ export const CreateRequestLinkView = () => {
 
     return (
         <div className="flex min-h-[inherit] w-full flex-col justify-start space-y-8">
-            <NavHeader onPrev={() => router.push('/request')} title="Request" />
+            <NavHeader onPrev={() => router.push('/home')} title="Request" />
             <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
                 <PeanutActionCard type="request" />
 
@@ -389,6 +350,8 @@ export const CreateRequestLinkView = () => {
                     onSubmit={handleTokenAmountSubmit}
                     walletBalance={peanutWalletBalance}
                     disabled={!!requestId}
+                    showInfoText
+                    infoText="Leave empty to let payers choose amounts."
                 />
 
                 <FileUploadInput
@@ -405,7 +368,11 @@ export const CreateRequestLinkView = () => {
                         </div>
                     </Button>
                 ) : (
-                    <ShareButton generateUrl={generateLink}>Share Link</ShareButton>
+                    <ShareButton generateUrl={generateLink}>
+                        {!tokenValue || !parseFloat(tokenValue) || parseFloat(tokenValue) === 0
+                            ? 'Share open request'
+                            : `Share $${tokenValue} request`}
+                    </ShareButton>
                 )}
 
                 {errorState.showError && (

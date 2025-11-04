@@ -16,6 +16,8 @@ import ShowNameToggle from './components/ShowNameToggle'
 import ShareButton from '../Global/ShareButton'
 import CopyToClipboard from '../Global/CopyToClipboard'
 import KycVerifiedOrReviewModal from '../Global/KycVerifiedOrReviewModal'
+import { STAR_STRAIGHT_ICON } from '@/assets'
+import Image from 'next/image'
 
 export const Profile = () => {
     const { logoutUser, isLoggingOut, user } = useAuth()
@@ -71,6 +73,15 @@ export const Profile = () => {
                     />
                     {/* Menu Items - First Group */}
                     <div>
+                        <ProfileMenuItem icon="achievements" label="Your Badges" href="/badges" position="first" />
+                        <ProfileMenuItem
+                            icon={<Image src={STAR_STRAIGHT_ICON} alt="star" width={20} height={20} />}
+                            label="Points"
+                            href="/points"
+                            position="last"
+                        />
+                    </div>
+                    <div>
                         <ProfileMenuItem icon="user" label="Personal details" href="/profile/edit" position="first" />
                         <ProfileMenuItem
                             icon="shield"
@@ -104,18 +115,14 @@ export const Profile = () => {
                             position="middle"
                             comingSoon
                         /> */}
-                        <ProfileMenuItem icon="achievements" label="Achievements" position="last" comingSoon />
                     </div>
                     {/* Menu Items - Second Group */}
-                    <div>
-                        <ProfileMenuItem icon="currency" label="Currency" position="first" comingSoon />
-                        <ProfileMenuItem
-                            icon="exchange"
-                            label="Exchange rates and fees"
-                            href="/profile/exchange-rate"
-                            position="last"
-                        />
-                    </div>
+                    <ProfileMenuItem
+                        icon="exchange"
+                        label="Exchange rates and fees"
+                        href="/profile/exchange-rate"
+                        position="single"
+                    />
                     {/* Logout Button */}
                     <div className="w-full pb-10">
                         <Button

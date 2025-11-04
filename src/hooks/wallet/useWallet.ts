@@ -18,13 +18,15 @@ export const useWallet = () => {
     const { balance: reduxBalance } = useWalletStore()
     const { user } = useAuth()
 
-    // Check if address matches user's wallet address
+    // check if address matches user's wallet address
     const userAddress = user?.accounts.find((account) => account.type === AccountType.PEANUT_WALLET)?.identifier
-    const isValidAddress = !address || !userAddress || userAddress.toLowerCase() === address.toLowerCase()
+
+    // only fetch balance if both address and userAddress are defined AND they match
+    const isAddressReady = !!address && !!userAddress && userAddress.toLowerCase() === address.toLowerCase()
 
     // Use TanStack Query for auto-refreshing balance
-    // only fetch balance if address is valid AND defined
-    const shouldFetchBalance = isValidAddress && !!address
+    // only fetch balance when the validated address is ready
+    const shouldFetchBalance = isAddressReady
     const {
         data: balanceFromQuery,
         isLoading: isFetchingBalance,
@@ -65,20 +67,16 @@ export const useWallet = () => {
     )
 
     // Legacy fetchBalance function for backward compatibility
-    // Now it just triggers a refetch of the TanStack Query
+    // now it just triggers a refetch of the tanstack query
     const fetchBalance = useCallback(async () => {
-        if (!address) {
-            console.warn('Cannot fetch balance, address is undefined.')
-            return
-        }
-
-        if (!isValidAddress) {
-            console.warn('Skipping fetch balance, address is not the same as the user address.')
+        // guard: need a validated, matching address before fetching
+        if (!isAddressReady) {
+            console.warn('Skipping fetch balance, wallet address not ready or does not match user address.')
             return
         }
 
         await refetchBalance()
-    }, [address, isValidAddress, refetchBalance])
+    }, [isAddressReady, refetchBalance])
 
     // Use balance from query if available, otherwise fall back to Redux
     const balance =
@@ -88,11 +86,11 @@ export const useWallet = () => {
               ? BigInt(reduxBalance)
               : undefined
 
-    // consider balance as fetching if: query is loading OR address isn't loaded yet OR user isn't loaded yet
-    const isBalanceLoading = isFetchingBalance || !address || !user
+    // consider balance as fetching until: address is validated and query has resolved
+    const isBalanceLoading = !isAddressReady || isFetchingBalance
 
     return {
-        address,
+        address: isAddressReady ? address : undefined, // populate address only if it is validated and matches the user's wallet address
         balance,
         isConnected: isKernelClientReady,
         sendTransactions,

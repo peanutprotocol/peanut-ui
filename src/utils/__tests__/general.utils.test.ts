@@ -1,8 +1,37 @@
-import { formatAmount, formatExtendedNumber, getRequestLink } from '../general.utils'
+import { formatAmount, formatExtendedNumber, getRequestLink, formatTokenAmount } from '../general.utils'
 import { AccountType } from '@/interfaces'
 
 describe('General Utilities', () => {
     describe('Amount Formatting Utilities', () => {
+        describe('formatTokenAmount', () => {
+            describe('input mode (forInput: true) - locale-aware handling', () => {
+                // Note: These tests run with the test environment's locale
+                // The actual behavior adapts to user's browser locale at runtime
+
+                it('should handle US format (comma as thousands, dot as decimal)', () => {
+                    // Assuming test env is en-US or similar
+                    expect(formatTokenAmount('1,000', 2, true)).toBe('1000')
+                    expect(formatTokenAmount('10,000.50', 2, true)).toBe('10000.50')
+                    expect(formatTokenAmount('1,234,567', 2, true)).toBe('1234567')
+                })
+
+                it('should preserve progressive typing with decimal', () => {
+                    expect(formatTokenAmount('123.', 2, true)).toBe('123.')
+                    expect(formatTokenAmount('0.', 2, true)).toBe('0.')
+                })
+
+                it('should limit decimal places to maxFractionDigits', () => {
+                    expect(formatTokenAmount('123.456789', 2, true)).toBe('123.45')
+                    expect(formatTokenAmount('123.4', 2, true)).toBe('123.4')
+                })
+
+                it('should handle whole numbers', () => {
+                    expect(formatTokenAmount('123', 2, true)).toBe('123')
+                    expect(formatTokenAmount('1000', 2, true)).toBe('1000')
+                })
+            })
+        })
+
         describe('formatAmount', () => {
             describe('edge cases', () => {
                 it('should handle empty string', () => {

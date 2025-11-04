@@ -13,14 +13,7 @@ import { UserHeader } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useUserStore } from '@/redux/hooks'
-import {
-    formatExtendedNumber,
-    getUserPreferences,
-    printableUsdc,
-    updateUserPreferences,
-    getFromLocalStorage,
-    saveToLocalStorage,
-} from '@/utils'
+import { formatExtendedNumber, getUserPreferences, printableUsdc, updateUserPreferences, getRedirectUrl } from '@/utils'
 import { useDisconnect } from '@reown/appkit/react'
 import Link from 'next/link'
 import { useEffect, useMemo, useState, useCallback } from 'react'
@@ -40,10 +33,11 @@ import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
 import SetupNotificationsModal from '@/components/Notifications/SetupNotificationsModal'
 import { useNotifications } from '@/hooks/useNotifications'
 import useKycStatus from '@/hooks/useKycStatus'
-import HomeBanners from '@/components/Home/HomeBanners'
-import InvitesIcon from '@/components/Home/InvitesIcon'
+import HomeCarouselCTA from '@/components/Home/HomeCarouselCTA'
 import NoMoreJailModal from '@/components/Global/NoMoreJailModal'
 import EarlyUserModal from '@/components/Global/EarlyUserModal'
+import InvitesIcon from '@/components/Home/InvitesIcon'
+import NavigationArrow from '@/components/Global/NavigationArrow'
 
 const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
 const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_EXPIRY ?? '1814400') // 21 days in seconds
@@ -124,7 +118,7 @@ export default function Home() {
             const isIOS = deviceType === DeviceType.IOS
             const isStandalone = window.matchMedia('(display-mode: standalone)').matches
             const hasSeenModalThisSession = sessionStorage.getItem('hasSeenIOSPWAPromptThisSession')
-            const redirectUrl = getFromLocalStorage('redirect')
+            const redirectUrl = getRedirectUrl()
 
             if (
                 isIOS &&
@@ -147,7 +141,10 @@ export default function Home() {
         if (isFetchingBalance || balance === undefined || !user) return
 
         if (typeof window !== 'undefined') {
-            const hasSeenBalanceWarning = getFromLocalStorage(`${user!.user.userId}-hasSeenBalanceWarning`)
+            const userPreferences = getUserPreferences(user.user.userId)
+            const hasSeenBalanceWarning =
+                (userPreferences?.hasSeenBalanceWarning?.expiry ?? 0) > Date.now() &&
+                userPreferences?.hasSeenBalanceWarning?.value
             const balanceInUsd = Number(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS))
 
             // show if:
@@ -201,9 +198,9 @@ export default function Home() {
             showNoMoreJailModal !== 'true' &&
             !user?.showEarlyUserModal // Give Early User and No more jail modal precedence, showing two modals together isn't ideal and it messes up their functionality
 
-        if (shouldShow) {
+        if (shouldShow && !showAddMoneyPromptModal) {
+            // Only set state, don't set sessionStorage here to avoid race conditions
             setShowAddMoneyPromptModal(true)
-            sessionStorage.setItem('hasSeenAddMoneyPromptThisSession', 'true')
         } else if (showAddMoneyPromptModal && showPermissionModal) {
             // priority enforcement: hide add money modal if notification modal appears
             // this handles race conditions where both modals try to show simultaneously
@@ -221,6 +218,13 @@ export default function Home() {
         address,
     ])
 
+    // Set sessionStorage flag when modal becomes visible to prevent showing again
+    useEffect(() => {
+        if (showAddMoneyPromptModal) {
+            sessionStorage.setItem('hasSeenAddMoneyPromptThisSession', 'true')
+        }
+    }, [showAddMoneyPromptModal])
+
     if (isLoading) {
         return <PeanutLoading coverFullScreen />
     }
@@ -230,14 +234,12 @@ export default function Home() {
             <div className="h-full w-full space-y-6 p-5">
                 <div className="flex items-center justify-between gap-2">
                     <UserHeader username={username!} fullName={userFullName} isVerified={isUserKycApproved} />
-                    <div className="flex items-center">
-                        <div className="flex items-center gap-2">
-                            <Link href="/points">
-                                <InvitesIcon />
-                            </Link>
-                            {/* <NotificationNavigation /> */}
-                        </div>
-                    </div>
+                    <Link href="/points" className="flex items-center gap-0">
+                        <InvitesIcon />
+                        <span className="whitespace-nowrap pl-1 text-sm font-semibold md:text-base">Points</span>
+                        <NavigationArrow size={16} className="fill-black" />
+                    </Link>
+                    {/* <NotificationNavigation /> */}
                 </div>
                 <div className="space-y-4">
                     <ActionButtonGroup>
@@ -264,7 +266,7 @@ export default function Home() {
                     </ActionButtonGroup>
                 </div>
 
-                <HomeBanners />
+                <HomeCarouselCTA />
 
                 {showPermissionModal && <SetupNotificationsModal />}
 
@@ -292,7 +294,9 @@ export default function Home() {
                 visible={showBalanceWarningModal}
                 onCloseAction={() => {
                     setShowBalanceWarningModal(false)
-                    saveToLocalStorage(`${user!.user.userId}-hasSeenBalanceWarning`, 'true', BALANCE_WARNING_EXPIRY)
+                    updateUserPreferences(user!.user.userId, {
+                        hasSeenBalanceWarning: { value: true, expiry: Date.now() + BALANCE_WARNING_EXPIRY * 1000 },
+                    })
                 }}
             />
 

@@ -29,6 +29,14 @@ export type ApiUser = {
     totalUsdReceivedFromCurrentUser: string
     bridgeKycStatus: string
     kycVerifications?: IUserKycVerification[]
+    badges?: Array<{
+        code: string
+        name: string
+        description: string | null
+        iconUrl: string | null
+        color?: string | null
+        earnedAt?: string
+    }>
 }
 
 export type RecentUser = Pick<ApiUser, 'userId' | 'username' | 'fullName' | 'bridgeKycStatus'>

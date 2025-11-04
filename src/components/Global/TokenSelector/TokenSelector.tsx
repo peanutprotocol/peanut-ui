@@ -11,6 +11,7 @@ import { tokenSelectorContext } from '@/context'
 import { type IToken, type IUserBalance } from '@/interfaces'
 import { areEvmAddressesEqual, formatTokenAmount, isNativeCurrency, getChainName } from '@/utils'
 import { SQUID_ETH_ADDRESS } from '@/utils/token.utils'
+import { initializeAppKit } from '@/config/wagmi.config'
 import { useAppKit, useAppKitAccount, useDisconnect } from '@reown/appkit/react'
 import EmptyState from '../EmptyStates/EmptyState'
 import { Icon, type IconName } from '../Icons/Icon'
@@ -24,7 +25,7 @@ import {
     TOKEN_SELECTOR_POPULAR_NETWORK_IDS,
     TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS,
 } from './TokenSelector.consts'
-import { fetchWalletBalances } from '@/app/actions/tokens'
+import { useWalletBalances } from '@/hooks/useWalletBalances'
 import { Drawer, DrawerContent, DrawerTitle } from '../Drawer'
 
 interface SectionProps {
@@ -62,12 +63,12 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
     const { open: openAppkitModal } = useAppKit()
     const { disconnect: disconnectWallet } = useDisconnect()
     const { isConnected: isExternalWalletConnected, address: externalWalletAddress } = useAppKitAccount()
-    // external wallet balance states
-    const [externalBalances, setExternalBalances] = useState<IUserBalance[] | null>(null)
-    const [isLoadingExternalBalances, setIsLoadingExternalBalances] = useState(false)
-    // refs to track previous state for useEffect logic
-    const prevIsExternalConnected = useRef(isExternalWalletConnected)
-    const prevExternalAddress = useRef<string | null>(externalWalletAddress ?? null)
+
+    // Fetch external wallet balances using TanStack Query (replaces manual useEffect + refs + state)
+    const { data: externalBalances = [], isLoading: isLoadingExternalBalances } = useWalletBalances(
+        isExternalWalletConnected ? externalWalletAddress : undefined
+    )
+
     // state for image loading errors
     const [buttonImageError, setButtonImageError] = useState(false)
     const {
@@ -86,50 +87,19 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
         setTimeout(() => setSearchValue(''), 200)
     }, [])
 
-    // external wallet balance fetching
-    useEffect(() => {
-        // this effect fetches balances when an external wallet connects,
-        // refetches when the address changes while connected,
-        // and clears them when it disconnects.
-        if (isExternalWalletConnected && externalWalletAddress) {
-            // wallet is connected with an address.
-            const justConnected = !prevIsExternalConnected.current
-            const addressChanged = externalWalletAddress !== prevExternalAddress.current
-            if (justConnected || addressChanged || externalBalances === null) {
-                // Fetch only if balances are null, not just empty array to prevent loops on 0 balance
-                setIsLoadingExternalBalances(true)
-                fetchWalletBalances(externalWalletAddress)
-                    .then((balances) => {
-                        setExternalBalances(balances.balances || [])
-                    })
-                    .catch((error) => {
-                        console.error('Manual balance fetch failed:', error)
-                        setExternalBalances([])
-                    })
-                    .finally(() => {
-                        setIsLoadingExternalBalances(false)
-                    })
-            }
-        } else {
-            // wallet is not connected
-            if (prevIsExternalConnected.current) {
-                // wallet was previously connected, now it's not: clear balances.
-                setExternalBalances(null)
-                setIsLoadingExternalBalances(false)
-            }
-            // else: wallet was already disconnected - do nothing.
-        }
-
-        // update refs for the next render
-        prevIsExternalConnected.current = isExternalWalletConnected
-        prevExternalAddress.current = externalWalletAddress ?? null
-    }, [isExternalWalletConnected, externalWalletAddress])
+    // Note: external wallet balance fetching is now handled by useWalletBalances hook
+    // It automatically:
+    // - Fetches when wallet connects (enabled guard)
+    // - Refetches when address changes (queryKey includes address)
+    // - Clears when wallet disconnects (enabled becomes false)
+    // - Auto-refreshes every 60 seconds
+    // No manual refs or state management needed!
 
     const sourceBalances = useMemo(() => {
-        if (isExternalWalletConnected && externalBalances !== null) {
-            return externalBalances
+        if (isExternalWalletConnected) {
+            return externalBalances // Direct from query (auto-handles all cases)
         } else {
-            return [] // return empty array if no source is available
+            return [] // return empty array if wallet not connected
         }
     }, [isExternalWalletConnected, externalBalances])
 
@@ -413,7 +383,14 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                             className="h-6 text-xs font-normal text-grey-1 underline"
                             onClick={async () => {
                                 await disconnectWallet()
-                                setTimeout(() => openAppkitModal(), 300)
+                                setTimeout(async () => {
+                                    try {
+                                        await initializeAppKit()
+                                        openAppkitModal()
+                                    } catch (error) {
+                                        console.error('Failed to initialize AppKit:', error)
+                                    }
+                                }, 300)
                             }}
                         >
                             Try connecting to a different wallet.

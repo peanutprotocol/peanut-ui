@@ -6,7 +6,7 @@ import { useAuth } from '@/context/authContext'
 import { useKernelClient } from '@/context/kernelClient.context'
 import { useAppDispatch, useSetupStore, useZerodevStore } from '@/redux/hooks'
 import { zerodevActions } from '@/redux/slices/zerodev-slice'
-import { getFromCookie, removeFromCookie, saveToCookie, saveToLocalStorage } from '@/utils'
+import { getFromCookie, removeFromCookie, saveToCookie, clearAuthState } from '@/utils'
 import { toWebAuthnKey, WebAuthnMode } from '@zerodev/passkey-validator'
 import { useCallback, useContext } from 'react'
 import type { TransactionReceipt, Hex, Hash } from 'viem'
@@ -31,7 +31,21 @@ class PasskeyError extends Error {
     }
 }
 
-const LOCAL_STORAGE_WEB_AUTHN_KEY = 'web-authn-key'
+const WEB_AUTHN_COOKIE_KEY = 'web-authn-key'
+
+/**
+ * Detects if an error is due to stale/invalid webAuthnKey
+ * AA24 = EntryPoint signature verification failed
+ * wapk = WebAuthn Public Key unauthorized (ZeroDev-specific)
+ *
+ * Note: Intentionally strict to avoid false positives on generic auth errors
+ */
+const isStaleKeyError = (error: unknown): boolean => {
+    const errorStr = String(error).toLowerCase()
+    // AA24 = ERC-4337 EntryPoint signature verification failed
+    // wapk + unauthorized = ZeroDev's specific WebAuthn key error (not generic 401)
+    return errorStr.includes('aa24') || (errorStr.includes('wapk') && errorStr.includes('unauthorized'))
+}
 
 export const useZeroDev = () => {
     const dispatch = useAppDispatch()
@@ -76,8 +90,7 @@ export const useZeroDev = () => {
             }
 
             setWebAuthnKey(webAuthnKey)
-            saveToLocalStorage(LOCAL_STORAGE_WEB_AUTHN_KEY, webAuthnKey)
-            saveToCookie(LOCAL_STORAGE_WEB_AUTHN_KEY, webAuthnKey, 90)
+            saveToCookie(WEB_AUTHN_COOKIE_KEY, webAuthnKey, 90)
         } catch (e) {
             if ((e as Error).message.includes('pending')) {
                 return
@@ -107,18 +120,22 @@ export const useZeroDev = () => {
             })
 
             setWebAuthnKey(webAuthnKey)
-            saveToLocalStorage(LOCAL_STORAGE_WEB_AUTHN_KEY, webAuthnKey)
-            saveToCookie(LOCAL_STORAGE_WEB_AUTHN_KEY, webAuthnKey, 90)
+            saveToCookie(WEB_AUTHN_COOKIE_KEY, webAuthnKey, 90)
         } catch (e) {
             const error = e as Error
             if (error.name === 'NotAllowedError') {
+                // User cancelled - no state was saved, just let them retry
                 dispatch(zerodevActions.setIsLoggingIn(false))
                 throw new PasskeyError(
                     'Login was canceled or no passkey found. Please try again or register.',
                     'LOGIN_CANCELED'
                 )
             }
+
+            // Other login errors - clear any stale state
             console.error('Error logging in', e)
+            clearAuthState(user?.user.userId)
+            captureException(e, { tags: { error_type: 'login_error' } })
             dispatch(zerodevActions.setIsLoggingIn(false))
             throw new PasskeyError('An unexpected error occurred during login.', 'LOGIN_ERROR')
         }
@@ -140,6 +157,29 @@ export const useZeroDev = () => {
                 })
             } catch (error) {
                 console.error('Error sending UserOp:', error)
+
+                // Detect stale webAuthnKey errors (AA24, wapk) and provide user feedback
+                // NOTE: Don't auto-clear here - user is mid-transaction, avoid data loss
+                if (isStaleKeyError(error)) {
+                    console.error('Detected stale webAuthnKey error - session is invalid')
+                    captureException(error, {
+                        tags: { error_type: 'stale_webauthn_key' },
+                        extra: {
+                            errorMessage: String(error),
+                            context: 'transaction_signing',
+                            userId: user?.user.userId,
+                        },
+                    })
+                    // Enhance error message for user feedback
+                    const enhancedError = new Error(
+                        'Your session has expired. Please refresh the page and log in again.'
+                    )
+                    ;(enhancedError as any).cause = error
+                    ;(enhancedError as any).isStaleKeyError = true
+                    dispatch(zerodevActions.setIsSendingUserOp(false))
+                    throw enhancedError
+                }
+
                 dispatch(zerodevActions.setIsSendingUserOp(false))
                 throw error
             }

@@ -1,6 +1,5 @@
 'use client'
 import ValidatedInput, { type InputUpdate } from '@/components/Global/ValidatedInput'
-import { useRecentRecipients } from '@/hooks/useRecentRecipients'
 import * as interfaces from '@/interfaces'
 import { validateBankAccount } from '@/utils'
 import { formatBankAccountDisplay, sanitizeBankAccount } from '@/utils/format.utils'
@@ -40,7 +39,6 @@ const GeneralRecipientInput = ({
     const recipientType = useRef<interfaces.RecipientType>('address')
     const errorMessage = useRef('')
     const resolvedAddress = useRef('')
-    const { addRecipient } = useRecentRecipients()
 
     const checkAddress = useCallback(async (recipient: string): Promise<boolean> => {
         try {
@@ -104,7 +102,6 @@ const GeneralRecipientInput = ({
             if (update.isValid) {
                 errorMessage.current = ''
                 _update = {
-                    //the logic is here to avoid adding ens and username to the recent recipients IF THIS IS A WITHDRAWAL
                     recipient:
                         'ens' === recipientType.current || (!isWithdrawal && 'username' === recipientType.current)
                             ? { address: resolvedAddress.current, name: sanitizedValue }
@@ -114,7 +111,6 @@ const GeneralRecipientInput = ({
                     isChanging: update.isChanging,
                     errorMessage: '',
                 }
-                addRecipient(sanitizedValue, recipientType.current)
             } else {
                 resolvedAddress.current = ''
                 _update = {
@@ -127,7 +123,7 @@ const GeneralRecipientInput = ({
             }
             onUpdate(_update)
         },
-        [addRecipient]
+        [isWithdrawal, onUpdate]
     )
 
     const formatDisplayValue = (value: string) => {
