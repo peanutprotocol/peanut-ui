@@ -39,7 +39,7 @@ const CountryListSection = ({
                 </Accordion.Trigger>
             </Accordion.Header>
             {description && <p className="text-xs font-normal">{description}</p>}
-            <Accordion.Content className="data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up mt-2 overflow-hidden">
+            <Accordion.Content className="mt-2 overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
                 {countries.map((country, index) => {
                     const position = getCardPosition(index, countries.length)
                     return (
