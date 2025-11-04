@@ -5,12 +5,18 @@ import { useMemo, useCallback } from 'react'
 import { useAuth } from '@/context/authContext'
 import { MantecaKycStatus } from '@/interfaces'
 import { MantecaSupportedExchanges, countryData } from '@/components/AddMoney/consts'
+import React from 'react'
 
 export type Region = {
     path: string
     name: string
     icon: StaticImageData | string
     description?: string
+}
+
+export type VerificationUnlockItem = {
+    title: React.ReactNode | string
+    type: 'bridge' | 'manteca'
 }
 
 const MANTECA_SUPPORTED_REGIONS = ['LATAM']
@@ -114,6 +120,54 @@ export const useIdentityVerification = () => {
         return countryData.find((country) => country.id.toUpperCase() === countryCode.toUpperCase())?.title ?? null
     }, [])
 
+    const getVerificationUnlockItems = useCallback((countryTitle?: string): VerificationUnlockItem[] => {
+        return [
+            {
+                title: (
+                    <p>
+                        QR Payments in <b>Argentina and Brazil</b>
+                    </p>
+                ),
+                type: 'bridge',
+            },
+            {
+                title: (
+                    <p>
+                        <b>United States</b> ACH and Wire transfers
+                    </p>
+                ),
+                type: 'bridge',
+            },
+            {
+                title: (
+                    <p>
+                        <b>Europe</b> SEPA transfers (+30 countries)
+                    </p>
+                ),
+                type: 'bridge',
+            },
+            {
+                title: (
+                    <p>
+                        <b>Mexico</b> SPEI transfers
+                    </p>
+                ),
+                type: 'bridge',
+            },
+            {
+                // Using identity country here for the title
+                // eg scenario - user selected Argentina but has a Brazil ID, they will be
+                // able to only use QR in Argentina but can do both Bank transfers and QR in Brazil.
+                title: `Bank transfers to your own accounts in ${countryTitle || 'your country'}`,
+                type: 'manteca',
+            },
+            {
+                title: 'QR Payments in Brazil and Argentina',
+                type: 'manteca',
+            },
+        ]
+    }, [])
+
     return {
         lockedRegions,
         unlockedRegions,
@@ -121,5 +175,6 @@ export const useIdentityVerification = () => {
         isVerifiedForCountry,
         isRegionAlreadyUnlocked,
         getCountryTitle,
+        getVerificationUnlockItems,
     }
 }

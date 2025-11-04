@@ -5,6 +5,7 @@ import InfoCard from '../Global/InfoCard'
 import { Icon } from '../Global/Icons/Icon'
 import { MantecaSupportedExchanges } from '../AddMoney/consts'
 import { useMemo } from 'react'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 
 interface StartVerificationModalProps {
     visible: boolean
@@ -21,51 +22,11 @@ const StartVerificationModal = ({
     selectedIdentityCountry,
     selectedCountry,
 }: StartVerificationModalProps) => {
-    const items = [
-        {
-            title: (
-                <p>
-                    QR Payments in <b>Argentina and Brazil</b>
-                </p>
-            ),
-            type: 'bridge',
-        },
-        {
-            title: (
-                <p>
-                    <b>United States</b> ACH and Wire transfers
-                </p>
-            ),
-            type: 'bridge',
-        },
-        {
-            title: (
-                <p>
-                    <b>Europe</b> SEPA transfers (+30 countries)
-                </p>
-            ),
-            type: 'bridge',
-        },
-        {
-            title: (
-                <p>
-                    <b>Mexico</b> SPEI transfers
-                </p>
-            ),
-            type: 'bridge',
-        },
-        {
-            // Using identity country here for the title
-            // eg scenario - user selected Argentina but has a Brazil ID, they will be
-            // able to only use QR in Argentina but can do both Bank transfers and QR in Brazil.
-            title: `Bank transfers to your own accounts in ${selectedIdentityCountry.title}`,
-            type: 'manteca',
-        },
-        {
-            title: 'QR Payments in Brazil and Argentina',
-            type: 'manteca',
-        },
-    ]
+    const { getVerificationUnlockItems } = useIdentityVerification()
+
+    const items = useMemo(() => {
+        return getVerificationUnlockItems(selectedIdentityCountry.title)
+    }, [getVerificationUnlockItems, selectedIdentityCountry.title])
 
     const isIdentityMantecaCountry = useMemo(
         () => Object.prototype.hasOwnProperty.call(MantecaSupportedExchanges, selectedIdentityCountry.id.toUpperCase()),
