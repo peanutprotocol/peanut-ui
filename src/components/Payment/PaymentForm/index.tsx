@@ -709,8 +709,24 @@ export const PaymentForm = ({
 
         if (contributionAmounts.length === 0) return { percentage: 0, suggestedAmount: 0 }
 
-        // suggest the average contribution (most common pattern)
-        const suggestedAmount = contributionAmounts.reduce((sum, amt) => sum + amt, 0) / contributionAmounts.length
+        // Check if this is an equal-split pattern (1 payment at ~33% or 2 payments at ~66%)
+        const collectedPercentage = (totalCollected / totalAmount) * 100
+        const isOneThirdCollected = Math.abs(collectedPercentage - 100 / 3) < 2 // ~33.33%
+        const isTwoThirdsCollected = Math.abs(collectedPercentage - 200 / 3) < 2 // ~66.67%
+
+        if (isOneThirdCollected || isTwoThirdsCollected) {
+            // Suggest exact 33.33% to maintain equal split pattern
+            const exactThird = 100 / 3
+            return { percentage: exactThird, suggestedAmount: totalAmount * (exactThird / 100) }
+        }
+
+        // Otherwise suggest the median contribution (more robust against outliers than average)
+        const sortedAmounts = [...contributionAmounts].sort((a, b) => a - b)
+        const midIndex = Math.floor(sortedAmounts.length / 2)
+        const suggestedAmount =
+            sortedAmounts.length % 2 === 0
+                ? (sortedAmounts[midIndex - 1] + sortedAmounts[midIndex]) / 2 // even: average of middle two
+                : sortedAmounts[midIndex] // odd: middle value
 
         // Convert amount to percentage of total pot
         const percentage = (suggestedAmount / totalAmount) * 100
