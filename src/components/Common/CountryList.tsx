@@ -31,6 +31,7 @@ interface CountryListViewProps {
     // when true and viewMode is 'add-withdraw', disable countries that are not supported
     // this is used for the send -> bank flow to prevent selecting unsupported countries
     enforceSupportedCountries?: boolean
+    showLoadingState?: boolean
 }
 
 /**
@@ -43,6 +44,7 @@ interface CountryListViewProps {
  * @param {function} props.onCountryClick The function to call when a country is clicked
  * @param {function} props.onCryptoClick The function to call when the crypto button is clicked
  * @param {string} props.flow The flow of the list, either 'add' or 'withdraw', only required for 'add-withdraw' view mode
+ * @param {boolean} props.showLoadingState Whether to show loading state when clicking a country, true by default
  * @returns {JSX.Element}
  */
 export const CountryList = ({
@@ -54,6 +56,7 @@ export const CountryList = ({
     flow,
     getRightContent,
     enforceSupportedCountries,
+    showLoadingState = true, // true by default to show loading state when clicking a country
 }: CountryListViewProps) => {
     const searchParams = useSearchParams()
     // get currencyCode from search params
@@ -181,7 +184,7 @@ export const CountryList = ({
                                     title={country.title}
                                     rightContent={
                                         customRight ??
-                                        (clickedCountryId === country.id ? (
+                                        (showLoadingState && clickedCountryId === country.id ? (
                                             <Loading />
                                         ) : !isSupported ? (
                                             <StatusBadge status="soon" />

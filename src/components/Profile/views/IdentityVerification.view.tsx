@@ -204,6 +204,7 @@ const IdentityVerificationView = () => {
                             setUserClickedCountry({ id, title })
                             setIsStartVerificationModalOpen(true)
                         }}
+                        showLoadingState={false} // we don't want to show loading state when clicking a country, here because there is no async operation when clicking a country
                     />
                 </div>
             )}
@@ -223,7 +224,10 @@ const IdentityVerificationView = () => {
                     visible={isStartVerificationModalOpen}
                     onClose={() => {
                         // we dont show ID issuer country list for bridge countries
-                        if (isBridgeSupportedCountry(userClickedCountry.id) || userClickedCountry.id === 'bridge') {
+                        if (
+                            isBridgeSupportedCountry(selectedCountryParams.id) ||
+                            selectedCountryParams.id === 'bridge'
+                        ) {
                             handleRedirect()
                         } else {
                             setIsStartVerificationModalOpen(false)
