@@ -3,6 +3,7 @@ import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { SearchInput } from '@/components/SearchInput'
 import { getCountriesForRegion } from '@/utils/identityVerification'
+import * as Accordion from '@radix-ui/react-accordion'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import CountryListSection from './CountryListSection'
@@ -35,27 +36,33 @@ const IdentityVerificationCountryList = ({ region }: { region: string }) => {
                 />
             </div>
 
-            <CountryListSection
-                title="Available countries in this region"
-                description="Choose the one you want to move money on."
-                countries={filteredSupportedCountries}
-                onCountryClick={(country) => {
-                    if (isLatam) {
-                        router.push(`/profile/identity-verification/${region}/${encodeURIComponent(country.id)}`)
-                    } else {
-                        router.push(`/profile/identity-verification/${region}/${encodeURIComponent('bridge')}`)
-                    }
-                }}
-                rightContent={() => (isLatam ? undefined : <Icon name="check" className="size-4 text-success-1" />)}
-            />
+            <Accordion.Root type="multiple" defaultValue={['available-countries', 'coming-soon']} className="space-y-4">
+                <CountryListSection
+                    value="available-countries"
+                    title="Available countries in this region"
+                    description="Choose the one you want to move money on."
+                    countries={filteredSupportedCountries}
+                    onCountryClick={(country) => {
+                        if (isLatam) {
+                            router.push(`/profile/identity-verification/${region}/${encodeURIComponent(country.id)}`)
+                        } else {
+                            router.push(`/profile/identity-verification/${region}/${encodeURIComponent('bridge')}`)
+                        }
+                    }}
+                    rightContent={() => (isLatam ? undefined : <Icon name="check" className="size-4 text-success-1" />)}
+                    defaultOpen
+                />
 
-            <CountryListSection
-                title="Coming soon"
-                countries={filteredUnsupportedCountries}
-                onCountryClick={() => {}}
-                rightContent={() => <StatusBadge status="soon" />}
-                isDisabled
-            />
+                <CountryListSection
+                    value="coming-soon"
+                    title="Coming soon"
+                    countries={filteredUnsupportedCountries}
+                    onCountryClick={() => {}}
+                    rightContent={() => <StatusBadge status="soon" />}
+                    defaultOpen
+                    isDisabled
+                />
+            </Accordion.Root>
         </div>
     )
 }
