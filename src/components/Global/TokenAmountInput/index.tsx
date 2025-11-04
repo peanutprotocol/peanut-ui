@@ -159,11 +159,15 @@ const TokenAmountInput = ({
 
                 // Only snap to exact remaining amount when user selects the 33.33% magnetic snap point
                 // This ensures equal splits fill the pot exactly to 100%
-                const isAt33SnapPoint = Math.abs(selectedPercentage - 100 / 3) < 0.5
+                const SNAP_POINT_TOLERANCE = 0.5 // percentage points - allows magnetic snapping
+                const COMPLETION_THRESHOLD = 0.98 // 98% - if 33.33% would nearly complete pot
+                const EQUAL_SPLIT_PERCENTAGE = 100 / 3 // 33.333...%
+
+                const isAt33SnapPoint = Math.abs(selectedPercentage - EQUAL_SPLIT_PERCENTAGE) < SNAP_POINT_TOLERANCE
                 if (isAt33SnapPoint && amountCollected > 0) {
                     const remainingAmount = maxAmount - amountCollected
-                    // If the 33.33% would nearly complete the pot (within 2%), use exact remaining
-                    if (selectedAmount >= remainingAmount * 0.98) {
+                    // Only snap if there's remaining amount and 33.33% would nearly complete the pot
+                    if (remainingAmount > 0 && selectedAmount >= remainingAmount * COMPLETION_THRESHOLD) {
                         selectedAmount = remainingAmount
                     }
                 }
@@ -319,7 +323,7 @@ const TokenAmountInput = ({
                         />
                         {/* Fake blinking caret shown when not focused and input is empty */}
                         {!isFocused && !displayValue && (
-                            <div className="pointer-events-none absolute left-0 top-1/2 h-12 w-[1px] -translate-y-1/2 animate-blink bg-primary-1" />
+                            <div className="animate-blink pointer-events-none absolute left-0 top-1/2 h-12 w-[1px] -translate-y-1/2 bg-primary-1" />
                         )}
                     </div>
                 </div>
