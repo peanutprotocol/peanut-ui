@@ -54,6 +54,7 @@ const RegionsList = ({ regions, isLocked }: RegionsListProps) => {
         <div>
             {regions.map((region, index) => (
                 <ActionListCard
+                    key={region.path}
                     leftIcon={
                         <Image
                             src={region.icon}

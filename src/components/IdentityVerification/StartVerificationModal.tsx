@@ -88,7 +88,7 @@ const StartVerificationModal = ({
         }
 
         if (isSelectedCountryMantecaCountry && !isIdentityMantecaCountry) {
-            return "Without an Argentina Issued ID, you can still pay in stores using QR codes but you won't be able to transfer money directly to bank accounts."
+            return `Without an ${selectedCountry.title} Issued ID, you can still pay in stores using QR codes but you won't be able to transfer money directly to bank accounts.`
         }
 
         return (
