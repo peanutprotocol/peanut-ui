@@ -214,11 +214,21 @@ export const syncLocalStorageToCookie = (key: string) => {
         console.log('Data synced successfully')
     }
 }
-
-// Helper function to format numbers with locale-specific (en-US) thousands separators for display.
-// The caller is responsible for prepending the correct currency symbol.
-// @dev todo: For true internationalization of read-only amounts, consider a dedicated service or util
-// that uses specific locales (e.g., 'es-AR' for '1.234,56'). This function standardizes on en-US for parsable input display.
+/**
+ * Helper function to format numbers with locale-specific (en-US) thousands separators for display.
+ * The caller is responsible for prepending the correct currency symbol.
+ *
+ * @remarks
+ * For true internationalization of read-only amounts, consider a dedicated service or util
+ * that uses specific locales (e.g., 'es-AR' for '1.234,56').
+ * This function standardizes on en-US for parsable input display.
+ *
+ * @param {string | undefined} valueStr - The numeric string value to format.
+ * @param {object} [options] - Optional formatting options.
+ * @param {number} [options.maxDecimals] - The maximum number of decimals to display.
+ * @param {number} [options.minDecimals] - The minimum number of decimals to display.
+ * @returns {string} The formatted string for display with thousands separators (en-US).
+ */
 export const formatNumberForDisplay = (
     valueStr: string | undefined,
     options?: { maxDecimals?: number; minDecimals?: number }
@@ -866,6 +876,9 @@ export const generateInvitesShareText = (inviteLink: string) => {
 /**
  * Generate a deterministic 3-digit suffix from username
  * This is purely cosmetic and derived from a hash of the username
+ *
+ * ⚠️ IMPORTANT: This logic is duplicated in the backend (peanut-api-ts/src/utils.ts)
+ * If you change this, you MUST update the backend version to match!
  */
 export const generateInviteCodeSuffix = (username: string): string => {
     const lowerUsername = username.toLowerCase()

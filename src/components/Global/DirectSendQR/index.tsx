@@ -246,12 +246,41 @@ export default function DirectSendQr({
         switch (qrType) {
             case EQrType.PEANUT_URL:
                 {
+                    // Extract path by removing domain (handle with/without protocol and www)
                     let path = originalData
-                    path = path.substring(BASE_URL.length)
+                        .replace(/^https?:\/\/(www\.)?/, '') // Remove protocol and www
+                        .replace(/^[^/]+/, '') // Remove domain
+
                     if (!path.startsWith('/')) {
                         path = '/' + path
                     }
-                    redirectUrl = path
+
+                    // Special handling for /qr/ paths (redirect QR codes - user-tied QRs)
+                    if (path.startsWith('/qr/')) {
+                        const redirectQrCode = path.substring(4) // Remove '/qr/' prefix
+
+                        // Check redirect QR status (single endpoint for speed)
+                        try {
+                            const response = await fetch(
+                                `${process.env.NEXT_PUBLIC_PEANUT_API_URL}/qr/${redirectQrCode}`
+                            )
+                            const data = await response.json()
+
+                            if (data.claimed && data.redirectUrl) {
+                                // Redirect QR is claimed, redirect to target URL
+                                redirectUrl = data.redirectUrl
+                            } else {
+                                // Redirect QR is available, go to claim/redirect page
+                                redirectUrl = `/qr/${redirectQrCode}`
+                            }
+                        } catch (error) {
+                            console.error('Error checking redirect QR:', error)
+                            // Fallback: redirect to claim page
+                            redirectUrl = `/qr/${redirectQrCode}`
+                        }
+                    } else {
+                        redirectUrl = path
+                    }
                 }
                 break
             case EQrType.EVM_ADDRESS:

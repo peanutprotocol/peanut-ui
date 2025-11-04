@@ -217,7 +217,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                     <div>
                         <HomeHistory isPublic={false} username={username} />
                         {isSelfProfile && (
-                            <div className="flex w-full items-center justify-center gap-2">
+                            <div className="mb-1 mt-3 flex w-full items-center justify-center gap-2 rounded-md bg-grey-4/25 px-3 py-2">
                                 <Icon name="info" size={16} className="text-grey-1" />
                                 <p className="text-center text-sm text-grey-1">
                                     Activity is only visible for you, it is not public.

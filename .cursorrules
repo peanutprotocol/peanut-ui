@@ -33,7 +33,7 @@
 - **Keep it concise** - docs should be kept quite concise. AI tends to make verbose logs. No one reads that, keep it short and informational.
 - **Check existing docs** before creating new ones - merge instead of duplicate
 - **Log significant changes** in `docs/CHANGELOG.md` following semantic versioning
-- **Maintain PR.md for PRs** - When working on a PR, maintain `docs/PR.md` with:
+- **Maintain PR.md for PRs** - When working on a PR, maintain a very concise `docs/PR.md` with:
     1. Summary of changes
     2. Risks (what might break)
     3. QA guidelines (what to test)

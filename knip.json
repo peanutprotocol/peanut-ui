@@ -1,5 +1,5 @@
 {
-    "$schema": "https://unpkg.com/knip@latest/schema.json",
+    "$schema": "https://unpkg.com/knip@5.37.1/schema.json",
     "ignore": ["src/assets/**"],
     "entry": ["src/**/*.{js,jsx,ts,tsx}", "postcss.config.js", "tailwind.config.js"],
     "project": ["src/**/*.{js,jsx,ts,tsx}", "*.config.{js,ts}"]
