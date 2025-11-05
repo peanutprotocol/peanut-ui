@@ -23,7 +23,7 @@ export interface QrKycGateResult {
  * It checks the user's KYC status and the country of the QR code to determine the appropriate action.
  * @param paymentProcessor - The payment processor type ('MANTECA' | 'SIMPLEFI' | null)
  * @returns {QrKycGateResult} An object with the KYC gate state and a boolean indicating if the user should be blocked from paying.
- * 
+ *
  * Note: KYC is only required for MANTECA payments. SimpleFi payments do not require KYC.
  */
 export function useQrKycGate(paymentProcessor?: 'MANTECA' | 'SIMPLEFI' | null): QrKycGateResult {
