@@ -27,7 +27,7 @@ const SupportPage = () => {
                         <p className="text-sm text-grey-1">
                             Check your internet connection and try again. If the problem persists, you can email us at{' '}
                             <a href="mailto:hello@peanut.to" className="text-purple-1 underline">
-                                hello@peanut.to
+                                support@peanut.me
                             </a>
                         </p>
                     </div>
