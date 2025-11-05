@@ -68,12 +68,15 @@ const PIX_REGEX = /^.*000201.*0014br\.gov\.bcb\.pix.*5303986.*5802BR.*$/i
  * infer the flow type and merchant slug.
  *
  * The flow type is static, dynamic or user_specified.
+ * Supports both pagar.simplefi.tech (legacy) and pay.simplefi.tech (new) URLs.
+ * Dynamic URLs support both old format (/merchant/payment/123) and new format (/merchant/123).
  */
 export const SIMPLEFI_STATIC_REGEX =
-    /^(?:https?:\/\/)?(?:www\.)?pagar\.simplefi\.tech\/(?<merchantSlug>[^\/]*)(\/static|\/?\?.*static\=true.*)/
-export const SIMPLEFI_USER_SPECIFIED_REGEX = /^(?:https?:\/\/)?(?:www\.)?pagar\.simplefi\.tech\/(?<merchantSlug>[^\/]*)/
+    /^(?:https?:\/\/)?(?:www\.)?(?:pagar|pay)\.simplefi\.tech\/(?<merchantSlug>[^\/]*)(\/static|\/?\?.*static\=true.*)/
+export const SIMPLEFI_USER_SPECIFIED_REGEX =
+    /^(?:https?:\/\/)?(?:www\.)?(?:pagar|pay)\.simplefi\.tech\/(?<merchantSlug>[^\/\?]*)(?:\/)?(?:\?.*)?$/
 export const SIMPLEFI_DYNAMIC_REGEX =
-    /^(?:https?:\/\/)?(?:www\.)?pagar\.simplefi\.tech\/(?<merchantId>[^\/]*)\/payment\/(?<paymentId>[^\/]*)/
+    /^(?:https?:\/\/)?(?:www\.)?(?:pagar|pay)\.simplefi\.tech\/(?<merchantId>[^\/]*)\/(?:payment\/)?(?<paymentId>[^\/\?]+)(?:\/)?(?:\?.*)?$/
 
 export const PAYMENT_PROCESSOR_REGEXES: { [key in QrType]?: RegExp } = {
     [EQrType.MERCADO_PAGO]: MP_AR_REGEX,
