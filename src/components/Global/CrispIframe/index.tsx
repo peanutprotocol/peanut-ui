@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { useCrispIframeReady } from '@/hooks/useCrispIframeReady'
 import PeanutLoading from '../PeanutLoading'
 import { Button } from '@/components/0_Bruddle'
@@ -14,7 +15,58 @@ interface CrispIframeProps {
  * DRY component used by both SupportDrawer and SupportPage
  */
 export const CrispIframe = ({ crispProxyUrl, enabled = true }: CrispIframeProps) => {
-    const { isReady, hasError, retry } = useCrispIframeReady(enabled)
+    const [componentError, setComponentError] = useState<string | null>(null)
+
+    // Defensive: Catch any hook errors
+    let hookState
+    try {
+        hookState = useCrispIframeReady(enabled)
+    } catch (error) {
+        console.error('[CrispIframe] Hook error:', error)
+        hookState = { isReady: true, hasError: true, retry: () => window.location.reload() }
+    }
+
+    const { isReady, hasError, retry } = hookState
+
+    // Debug logging for iOS
+    useEffect(() => {
+        console.log('[CrispIframe] Component mounted', {
+            enabled,
+            crispProxyUrl,
+            userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'SSR',
+        })
+    }, [enabled, crispProxyUrl])
+
+    useEffect(() => {
+        console.log('[CrispIframe] State:', { isReady, hasError })
+    }, [isReady, hasError])
+
+    // Catch render errors
+    if (componentError) {
+        return (
+            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-background p-6 text-center">
+                <div className="space-y-2">
+                    <p className="text-base font-semibold">Something went wrong</p>
+                    <p className="text-sm text-grey-1">
+                        Please email us at{' '}
+                        <a href="mailto:support@peanut.me" className="text-purple-1 underline">
+                            support@peanut.me
+                        </a>
+                    </p>
+                    {componentError && <p className="text-xs text-error">{componentError}</p>}
+                </div>
+                <Button
+                    onClick={() => window.location.reload()}
+                    shadowSize="4"
+                    variant="purple"
+                    icon="retry"
+                    iconSize={16}
+                >
+                    Reload page
+                </Button>
+            </div>
+        )
+    }
 
     return (
         <>
