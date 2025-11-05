@@ -158,13 +158,20 @@ export const pointsApi = {
         } | null
     }> => {
         try {
+            // Add 30s timeout for large graph data
+            const controller = new AbortController()
+            const timeoutId = setTimeout(() => controller.abort(), 30000)
+
             const response = await fetchWithSentry(`${PEANUT_API_URL}/invites/graph`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
                     'api-key': apiKey,
                 },
+                signal: controller.signal,
             })
+
+            clearTimeout(timeoutId)
 
             if (!response.ok) {
                 console.error('getInvitesGraph: API request failed', response.status, response.statusText)
@@ -174,7 +181,11 @@ export const pointsApi = {
             const data = await response.json()
             return { success: true, data }
         } catch (error) {
-            console.error('getInvitesGraph: Unexpected error', error)
+            if (error instanceof Error && error.name === 'AbortError') {
+                console.error('getInvitesGraph: Request timeout after 30s')
+            } else {
+                console.error('getInvitesGraph: Unexpected error', error)
+            }
             return { success: false, data: null }
         }
     },

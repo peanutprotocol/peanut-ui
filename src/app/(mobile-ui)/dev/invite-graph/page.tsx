@@ -53,8 +53,11 @@ export default function InviteGraphPage() {
     const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
     const [apiKey, setApiKey] = useState('')
     const [apiKeySubmitted, setApiKeySubmitted] = useState(false)
+    const [searchQuery, setSearchQuery] = useState('')
+    const [searchResults, setSearchResults] = useState<GraphNode[]>([])
 
     const graphRef = useRef<any>(null)
+    const forcesConfiguredRef = useRef(false)
 
     // Fetch graph data
     const fetchGraphData = useCallback(async (key: string) => {
@@ -139,9 +142,79 @@ export default function InviteGraphPage() {
         [childrenMap]
     )
 
-    // Filter graph data based on selected user
+    // Set hierarchical positions: place invitees near their inviters
+    const setHierarchicalPositions = useCallback((nodes: GraphNode[], edges: GraphEdge[]) => {
+        // Build parent map for positioning
+        const parentMap = new Map<string, string>()
+        edges.forEach((edge) => {
+            parentMap.set(edge.target, edge.source)
+        })
+
+        // Find roots (nodes with no parent)
+        const roots = nodes.filter((node) => !parentMap.has(node.id))
+
+        // Position roots in a circle (closer together)
+        const positioned = new Map<string, { x: number; y: number }>()
+        const rootRadius = 180 // Reduced from 300 for tighter clusters
+        roots.forEach((root, i) => {
+            const angle = (i / roots.length) * 2 * Math.PI
+            positioned.set(root.id, {
+                x: Math.cos(angle) * rootRadius,
+                y: Math.sin(angle) * rootRadius,
+            })
+        })
+
+        // BFS: position children near their parents
+        const queue = [...roots.map((r) => r.id)]
+        const visited = new Set(roots.map((r) => r.id))
+        const childrenMap = new Map<string, string[]>()
+
+        // Build children map
+        edges.forEach((edge) => {
+            if (!childrenMap.has(edge.source)) {
+                childrenMap.set(edge.source, [])
+            }
+            childrenMap.get(edge.source)!.push(edge.target)
+        })
+
+        while (queue.length > 0) {
+            const parentId = queue.shift()!
+            const children = childrenMap.get(parentId) || []
+            const parentPos = positioned.get(parentId)!
+
+            // Position children in a circle around parent
+            const childRadius = 80 + Math.random() * 20 // Add jitter to prevent overlap
+            children.forEach((childId, i) => {
+                if (!visited.has(childId)) {
+                    const angle = (i / children.length) * 2 * Math.PI
+                    positioned.set(childId, {
+                        x: parentPos.x + Math.cos(angle) * childRadius,
+                        y: parentPos.y + Math.sin(angle) * childRadius,
+                    })
+                    visited.add(childId)
+                    queue.push(childId)
+                }
+            })
+        }
+
+        // Apply positions to nodes
+        return nodes.map((node) => ({
+            ...node,
+            x: positioned.get(node.id)?.x,
+            y: positioned.get(node.id)?.y,
+        }))
+    }, [])
+
+    // Filter graph data based on selected user AND set hierarchical positions
     const filteredGraphData = useMemo(() => {
-        if (!graphData || !selectedUserId) return graphData
+        if (!graphData || !selectedUserId) {
+            // Set initial positions for full graph based on tree hierarchy
+            if (graphData) {
+                const nodesWithPositions = setHierarchicalPositions(graphData.nodes, graphData.edges)
+                return { ...graphData, nodes: nodesWithPositions }
+            }
+            return graphData
+        }
 
         const ancestors = getAncestors(selectedUserId)
         const descendants = getDescendants(selectedUserId)
@@ -152,8 +225,11 @@ export default function InviteGraphPage() {
             (edge) => treeUserIds.has(edge.source) && treeUserIds.has(edge.target)
         )
 
+        // Set hierarchical positions for filtered subgraph
+        const nodesWithPositions = setHierarchicalPositions(filteredNodes, filteredEdges)
+
         return {
-            nodes: filteredNodes,
+            nodes: nodesWithPositions,
             edges: filteredEdges,
             stats: {
                 totalNodes: filteredNodes.length,
@@ -162,59 +238,63 @@ export default function InviteGraphPage() {
                 orphans: filteredNodes.filter((n) => !n.hasAppAccess).length,
             },
         }
-    }, [graphData, selectedUserId, getAncestors, getDescendants])
+    }, [graphData, selectedUserId, getAncestors, getDescendants, setHierarchicalPositions])
 
-    // Node styling
-    const nodeCanvasObject = useCallback(
-        (node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
-            const isSelected = node.id === selectedUserId
-            const hasAccess = node.hasAppAccess
+    // Track display settings with ref to avoid re-renders
+    const displaySettingsRef = useRef({ showUsernames, showPoints, selectedUserId })
+    useEffect(() => {
+        displaySettingsRef.current = { showUsernames, showPoints, selectedUserId }
+    }, [showUsernames, showPoints, selectedUserId])
 
-            // Calculate node size based on points
-            const baseSize = hasAccess ? 4 : 2.5
-            const pointsMultiplier = Math.sqrt(node.totalPoints) / 30
-            const size = baseSize + Math.min(pointsMultiplier, 8)
+    // Node styling - memoized without dependencies to prevent zoom resets
+    const nodeCanvasObject = useCallback((node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
+        const { selectedUserId, showUsernames, showPoints } = displaySettingsRef.current
+        const isSelected = node.id === selectedUserId
+        const hasAccess = node.hasAppAccess
 
-            // Node color
-            const color = hasAccess ? (isSelected ? '#fbbf24' : '#8b5cf6') : '#9ca3af'
+        // Calculate node size based on points (more aggressive scaling)
+        const baseSize = hasAccess ? 6 : 3
+        const pointsMultiplier = Math.sqrt(node.totalPoints) / 10 // More aggressive: was /30
+        const size = baseSize + Math.min(pointsMultiplier, 25) // Higher cap: was 10
 
-            // Draw node
-            ctx.beginPath()
-            ctx.arc(node.x, node.y, size, 0, 2 * Math.PI)
-            ctx.fillStyle = color
-            ctx.fill()
+        // Node color
+        const color = hasAccess ? (isSelected ? '#fbbf24' : '#8b5cf6') : '#9ca3af'
 
-            // Selected node outline
-            if (isSelected) {
-                ctx.strokeStyle = '#f59e0b'
-                ctx.lineWidth = 2
-                ctx.stroke()
-            }
+        // Draw node
+        ctx.beginPath()
+        ctx.arc(node.x, node.y, size, 0, 2 * Math.PI)
+        ctx.fillStyle = color
+        ctx.fill()
 
-            // Draw label if enabled and zoom is sufficient
-            if (showUsernames && globalScale > 1.5) {
-                const label = node.username
-                const fontSize = 12 / globalScale
-                ctx.font = `${fontSize}px Inter, system-ui, -apple-system, sans-serif`
-                ctx.textAlign = 'center'
-                ctx.textBaseline = 'middle'
-                ctx.fillStyle = '#111827'
-                ctx.fillText(label, node.x, node.y + size + fontSize + 2)
-            }
+        // Selected node outline
+        if (isSelected) {
+            ctx.strokeStyle = '#f59e0b'
+            ctx.lineWidth = 2
+            ctx.stroke()
+        }
 
-            // Draw points if enabled
-            if (showPoints && globalScale > 2) {
-                const pointsText = `${node.totalPoints}pts`
-                const fontSize = 10 / globalScale
-                ctx.font = `${fontSize}px Inter, system-ui, -apple-system, sans-serif`
-                ctx.textAlign = 'center'
-                ctx.fillStyle = '#6b7280'
-                const offset = showUsernames ? 24 : 14
-                ctx.fillText(pointsText, node.x, node.y + size + offset / globalScale)
-            }
-        },
-        [selectedUserId, showUsernames, showPoints]
-    )
+        // Draw label if enabled and zoom is sufficient
+        if (showUsernames && globalScale > 1.5) {
+            const label = node.username
+            const fontSize = 12 / globalScale
+            ctx.font = `600 ${fontSize}px Inter, system-ui, -apple-system, sans-serif`
+            ctx.textAlign = 'center'
+            ctx.textBaseline = 'middle'
+            ctx.fillStyle = '#111827'
+            ctx.fillText(label, node.x, node.y + size + fontSize + 2)
+        }
+
+        // Draw points if enabled
+        if (showPoints && globalScale > 2) {
+            const pointsText = `${node.totalPoints}pts`
+            const fontSize = 10 / globalScale
+            ctx.font = `${fontSize}px Inter, system-ui, -apple-system, sans-serif`
+            ctx.textAlign = 'center'
+            ctx.fillStyle = '#6b7280'
+            const offset = showUsernames ? 24 : 14
+            ctx.fillText(pointsText, node.x, node.y + size + offset / globalScale)
+        }
+    }, [])
 
     // Link styling
     const linkColor = useCallback((link: any) => {
@@ -243,6 +323,35 @@ export default function InviteGraphPage() {
         window.location.href = '/dev'
     }, [])
 
+    // Handle search
+    const handleSearch = useCallback(
+        (query: string) => {
+            setSearchQuery(query)
+
+            if (!graphData || !query.trim()) {
+                setSearchResults([])
+                return
+            }
+
+            // Search for matching usernames (case-insensitive)
+            const results = graphData.nodes.filter((node) => node.username.toLowerCase().includes(query.toLowerCase()))
+
+            setSearchResults(results)
+
+            // Auto-select if exactly one match
+            if (results.length === 1) {
+                setSelectedUserId(results[0].id)
+            }
+        },
+        [graphData]
+    )
+
+    // Clear search
+    const handleClearSearch = useCallback(() => {
+        setSearchQuery('')
+        setSearchResults([])
+    }, [])
+
     // Center on selected node
     useEffect(() => {
         if (selectedUserId && graphRef.current && filteredGraphData) {
@@ -253,6 +362,53 @@ export default function InviteGraphPage() {
             }
         }
     }, [selectedUserId, filteredGraphData])
+
+    // Configure D3 forces immediately on graph mount
+    const configureForces = useCallback(async () => {
+        if (!graphRef.current) return
+
+        const graph = graphRef.current
+
+        // Only configure once, but do it immediately when graph is ready
+        if (!forcesConfiguredRef.current) {
+            // Moderate repulsion for balanced distribution
+            graph.d3Force('charge')?.strength(-150)
+            graph.d3Force('charge')?.distanceMax(300)
+
+            // Tighter links since we start with good hierarchical positions
+            graph.d3Force('link')?.distance(60)
+            graph.d3Force('link')?.strength(0.7)
+
+            // Add collision force to prevent overlap
+            const d3 = await import('d3-force')
+            graph.d3Force(
+                'collide',
+                d3
+                    .forceCollide((node: any) => {
+                        const hasAccess = node.hasAppAccess
+                        const baseSize = hasAccess ? 6 : 3
+                        const pointsMultiplier = Math.sqrt(node.totalPoints) / 10
+                        return baseSize + Math.min(pointsMultiplier, 25) + 15
+                    })
+                    .strength(0.9)
+            )
+
+            // Add centering force to keep graph compact
+            graph.d3Force('center', d3.forceCenter())
+
+            forcesConfiguredRef.current = true
+        }
+    }, [])
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            // Clear graph ref to prevent memory leaks
+            if (graphRef.current) {
+                graphRef.current = null
+            }
+        }
+    }, [])
 
     // API key input screen
     if (!apiKeySubmitted) {
@@ -317,6 +473,7 @@ export default function InviteGraphPage() {
                 <>
                     {/* Top Control Bar */}
                     <div className="border-b border-gray-200 bg-white shadow-sm">
+                        {/* Top Row: Navigation, Title, Stats, Controls */}
                         <div className="flex items-center justify-between px-4 py-3">
                             {/* Left: Title & Stats */}
                             <div className="flex items-center gap-4">
@@ -365,6 +522,59 @@ export default function InviteGraphPage() {
                             </div>
                         </div>
 
+                        {/* Second Row: Search */}
+                        <div className="border-t border-gray-100 px-4 py-2">
+                            <div className="flex items-center gap-2">
+                                <div className="relative flex-1">
+                                    <input
+                                        type="text"
+                                        value={searchQuery}
+                                        onChange={(e) => handleSearch(e.target.value)}
+                                        placeholder="Search username..."
+                                        className="w-full rounded-lg border border-gray-300 py-1.5 pl-9 pr-9 text-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+                                    />
+                                    <Icon
+                                        name="search"
+                                        size={16}
+                                        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                                    />
+                                    {searchQuery && (
+                                        <button
+                                            onClick={handleClearSearch}
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                                        >
+                                            <Icon name="cancel" size={14} />
+                                        </button>
+                                    )}
+                                </div>
+                                {searchResults.length > 0 && (
+                                    <span className="text-xs text-gray-600">
+                                        {searchResults.length} {searchResults.length === 1 ? 'match' : 'matches'}
+                                    </span>
+                                )}
+                            </div>
+                            {/* Search Results Dropdown */}
+                            {searchQuery && searchResults.length > 1 && (
+                                <div className="mt-2 max-h-48 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
+                                    {searchResults.map((node) => (
+                                        <button
+                                            key={node.id}
+                                            onClick={() => {
+                                                setSelectedUserId(node.id)
+                                                handleClearSearch()
+                                            }}
+                                            className="flex w-full items-center justify-between px-3 py-2 text-sm transition-colors hover:bg-purple-50"
+                                        >
+                                            <span className="font-medium text-gray-900">{node.username}</span>
+                                            <span className="text-xs text-gray-500">
+                                                {node.totalPoints.toLocaleString()} pts
+                                            </span>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
                         {/* Selected User Banner */}
                         {selectedUserId && (
                             <div className="border-t border-purple-100 bg-purple-50 px-4 py-2 text-sm">
@@ -388,16 +598,27 @@ export default function InviteGraphPage() {
                             ref={graphRef}
                             graphData={{
                                 nodes: filteredGraphData.nodes,
-                                links: filteredGraphData.edges,
+                                // Reverse edges so particles flow invitee → inviter (leaves → roots)
+                                links: filteredGraphData.edges.map((edge) => ({
+                                    ...edge,
+                                    source: edge.target,
+                                    target: edge.source,
+                                })),
                             }}
                             nodeId="id"
                             nodeLabel={(node: any) =>
-                                `<div style="background: white; padding: 10px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-family: Inter, system-ui, sans-serif;">
-                                    <div style="font-weight: 600; margin-bottom: 6px; font-size: 14px;">${node.username}</div>
-                                    <div style="font-size: 12px; color: #6b7280; line-height: 1.5;">
-                                        ${node.hasAppAccess ? '<span style="color: #10b981;">✓ Has Access</span>' : '<span style="color: #ef4444;">⏳ No Access</span>'}<br/>
-                                        <span style="color: #8b5cf6;">●</span> Total: ${node.totalPoints} pts<br/>
-                                        <span style="opacity: 0.7;">Direct: ${node.directPoints} | Transitive: ${node.transitivePoints}</span>
+                                // Clean, minimal tooltip on hover
+                                `<div style="background: rgba(255, 255, 255, 0.98); border-radius: 8px; border: 1px solid rgba(139, 92, 246, 0.15); font-family: Inter, system-ui, sans-serif; max-width: 220px; padding: 10px 14px;">
+                                    <div style="font-weight: 700; margin-bottom: 6px; font-size: 14px; color: #1f2937;">${node.username}</div>
+                                    <div style="font-size: 12px; line-height: 1.5;">
+                                        ${node.hasAppAccess ? '<div style="color: #10b981; margin-bottom: 4px; font-weight: 600;">✓ Has Access</div>' : '<div style="color: #f59e0b; margin-bottom: 4px; font-weight: 600;">⏳ No Access</div>'}
+                                        <div style="color: #6b7280; margin-bottom: 3px;">
+                                            <span style="color: #8b5cf6; font-weight: 600;">Total:</span> ${node.totalPoints.toLocaleString()} pts
+                                        </div>
+                                        <div style="color: #9ca3af; font-size: 11px; display: flex; gap: 10px;">
+                                            <span>Direct: ${node.directPoints}</span>
+                                            <span>Trans: ${node.transitivePoints}</span>
+                                        </div>
                                     </div>
                                 </div>`
                             }
@@ -406,21 +627,27 @@ export default function InviteGraphPage() {
                             linkLabel={(link: any) => `${link.type} - ${new Date(link.createdAt).toLocaleDateString()}`}
                             linkColor={linkColor}
                             linkWidth={linkWidth}
-                            linkDirectionalArrowLength={4}
+                            linkDirectionalArrowLength={3}
                             linkDirectionalArrowRelPos={1}
                             linkDirectionalParticles={2}
                             linkDirectionalParticleWidth={1.5}
+                            linkDirectionalParticleSpeed={0.0012}
+                            linkDirectionalArrowColor={(link: any) =>
+                                link.type === 'DIRECT' ? 'rgba(139, 92, 246, 0.6)' : 'rgba(236, 72, 153, 0.6)'
+                            }
+                            linkDirectionalParticleColor={(link: any) =>
+                                link.type === 'DIRECT' ? 'rgba(139, 92, 246, 0.8)' : 'rgba(236, 72, 153, 0.8)'
+                            }
                             onNodeClick={handleNodeClick}
                             enableNodeDrag={true}
-                            cooldownTicks={200}
-                            d3VelocityDecay={0.4}
-                            d3AlphaDecay={0.015}
-                            d3AlphaMin={0.001}
-                            warmupTicks={100}
-                            linkDirectionalParticleSpeed={0.005}
+                            cooldownTicks={100}
+                            warmupTicks={20}
+                            d3VelocityDecay={0.5}
+                            d3AlphaDecay={0.03}
+                            onEngineStop={configureForces}
                             backgroundColor="#f9fafb"
                             width={typeof window !== 'undefined' ? window.innerWidth : 1200}
-                            height={typeof window !== 'undefined' ? window.innerHeight - 65 : 800}
+                            height={typeof window !== 'undefined' ? window.innerHeight - 120 : 800}
                         />
 
                         {/* Legend - Bottom Left */}
@@ -440,13 +667,16 @@ export default function InviteGraphPage() {
                                     <span className="text-gray-700">Selected user</span>
                                 </div>
                                 <div className="my-2 border-t border-gray-200"></div>
-                                <div className="flex items-center gap-2">
-                                    <div className="h-0.5 w-6 bg-purple-500/40"></div>
-                                    <span className="text-gray-700">Direct invite</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="h-0.5 w-6 bg-pink-500/40"></div>
-                                    <span className="text-gray-700">Payment link</span>
+                                <div className="space-y-1.5">
+                                    <div className="text-xs font-semibold text-gray-700">Invite Types:</div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="h-0.5 w-6 bg-purple-500/40"></div>
+                                        <span className="text-gray-700">Direct invite</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="h-0.5 w-6 bg-pink-500/40"></div>
+                                        <span className="text-gray-700">Payment link</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
