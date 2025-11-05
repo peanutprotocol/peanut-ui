@@ -1,8 +1,7 @@
 'use client'
 
 import Script from 'next/script'
-import { useEffect, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useEffect, useCallback, useState } from 'react'
 import { CRISP_WEBSITE_ID } from '@/constants/crisp'
 
 /**
@@ -14,39 +13,47 @@ import { CRISP_WEBSITE_ID } from '@/constants/crisp'
  *
  * User data flows via URL parameters and is set during Crisp initialization,
  * following Crisp's recommended pattern for iframe embedding with JS SDK control.
+ *
+ * iOS FIXES:
+ * - Removed Suspense boundary (causes Safari streaming deadlock)
+ * - Manual URLSearchParams instead of useSearchParams() hook (hydration issue)
  */
-function CrispProxyContent() {
-    const searchParams = useSearchParams()
+export default function CrispProxyPage() {
+    const [searchParams, setSearchParams] = useState<URLSearchParams | null>(null)
 
+    // Parse URL params manually (iOS Safari issue with useSearchParams + Suspense)
     useEffect(() => {
         if (typeof window !== 'undefined') {
-            ;(window as any).CRISP_RUNTIME_CONFIG = {
-                lock_maximized: true,
-                lock_full_view: true,
-                cross_origin_cookies: true, // Essential for session persistence in iframes
-            }
+            setSearchParams(new URLSearchParams(window.location.search))
         }
     }, [])
 
+    // Memoize notify function to prevent recreation
+    const notifyParentReady = useCallback(() => {
+        if (typeof window !== 'undefined' && window.parent !== window) {
+            window.parent.postMessage({ type: 'CRISP_READY' }, window.location.origin)
+        }
+    }, [])
+
+    // Set runtime config before Crisp loads
     useEffect(() => {
         if (typeof window === 'undefined') return
+        ;(window as any).CRISP_RUNTIME_CONFIG = {
+            lock_maximized: true,
+            lock_full_view: true,
+            cross_origin_cookies: true, // Essential for session persistence in iframes
+        }
+    }, [])
+
+    // Initialize Crisp with user data
+    useEffect(() => {
+        if (typeof window === 'undefined' || !searchParams) return
 
         const email = searchParams.get('user_email')
         const nickname = searchParams.get('user_nickname')
         const avatar = searchParams.get('user_avatar')
         const sessionDataJson = searchParams.get('session_data')
         const prefilledMessage = searchParams.get('prefilled_message')
-
-        const notifyParentReady = () => {
-            if (window.parent !== window) {
-                window.parent.postMessage(
-                    {
-                        type: 'CRISP_READY',
-                    },
-                    window.location.origin
-                )
-            }
-        }
 
         const setAllData = () => {
             if (!window.$crisp) return false
@@ -103,19 +110,19 @@ function CrispProxyContent() {
             return true
         }
 
-        // Initialize data once Crisp loads
-        if (window.$crisp) {
-            setAllData()
-        } else {
-            const checkCrisp = setInterval(() => {
-                if (window.$crisp) {
-                    setAllData()
-                    clearInterval(checkCrisp)
-                }
-            }, 100)
+        // Poll for Crisp SDK availability
+        const checkCrisp = setInterval(() => {
+            if (window.$crisp && setAllData()) {
+                clearInterval(checkCrisp)
+            }
+        }, 100)
 
-            setTimeout(() => clearInterval(checkCrisp), 5000)
-        }
+        // Safety: Clear polling after 10 seconds
+        const timeoutId = setTimeout(() => {
+            clearInterval(checkCrisp)
+            // Notify parent even if Crisp failed to load to prevent infinite spinner
+            notifyParentReady()
+        }, 10000)
 
         // Listen for reset messages from parent window
         const handleMessage = (event: MessageEvent) => {
@@ -127,8 +134,12 @@ function CrispProxyContent() {
         }
 
         window.addEventListener('message', handleMessage)
-        return () => window.removeEventListener('message', handleMessage)
-    }, [searchParams])
+        return () => {
+            window.removeEventListener('message', handleMessage)
+            clearInterval(checkCrisp)
+            clearTimeout(timeoutId)
+        }
+    }, [searchParams, notifyParentReady])
 
     return (
         <div className="h-full w-full">
@@ -147,13 +158,5 @@ function CrispProxyContent() {
                 `}
             </Script>
         </div>
-    )
-}
-
-export default function CrispProxyPage() {
-    return (
-        <Suspense fallback={<div className="h-full w-full" />}>
-            <CrispProxyContent />
-        </Suspense>
     )
 }

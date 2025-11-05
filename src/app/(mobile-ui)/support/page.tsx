@@ -1,37 +1,33 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useCrispUserData } from '@/hooks/useCrispUserData'
 import { useCrispProxyUrl } from '@/hooks/useCrispProxyUrl'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import { CrispIframe } from '@/components/Global/CrispIframe'
 
 const SupportPage = () => {
     const userData = useCrispUserData()
     const crispProxyUrl = useCrispProxyUrl(userData)
-    const [isLoading, setIsLoading] = useState(true)
 
+    // Debug logging for iOS
     useEffect(() => {
-        // Listen for ready message from proxy iframe
-        const handleMessage = (event: MessageEvent) => {
-            if (event.origin !== window.location.origin) return
-
-            if (event.data.type === 'CRISP_READY') {
-                setIsLoading(false)
-            }
-        }
-
-        window.addEventListener('message', handleMessage)
-        return () => window.removeEventListener('message', handleMessage)
-    }, [])
+        console.log('[SupportPage] Mounted', {
+            crispProxyUrl,
+            userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'SSR',
+            windowHeight: typeof window !== 'undefined' ? window.innerHeight : 'SSR',
+        })
+    }, [crispProxyUrl])
 
     return (
-        <div className="relative h-full w-full md:max-w-[90%] md:pl-24">
-            {isLoading && (
-                <div className="absolute inset-0 z-10 flex items-center justify-center bg-background">
-                    <PeanutLoading />
-                </div>
-            )}
-            <iframe src={crispProxyUrl} className="h-full w-full" title="Support Chat" />
+        <div
+            className="relative w-full md:max-w-[90%] md:pl-24"
+            style={{
+                height: '100%',
+                minHeight: '100vh',
+                background: 'var(--background)',
+            }}
+        >
+            <CrispIframe crispProxyUrl={crispProxyUrl} />
         </div>
     )
 }
