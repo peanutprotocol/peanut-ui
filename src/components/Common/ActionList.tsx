@@ -34,6 +34,7 @@ import { ActionListCard } from '../ActionListCard'
 import { useGeoFilteredPaymentOptions } from '@/hooks/useGeoFilteredPaymentOptions'
 import { tokenSelectorContext } from '@/context'
 import SupportCTA from '../Global/SupportCTA'
+import { usePaymentInitiator, type InitiatePaymentPayload } from '@/hooks/usePaymentInitiator'
 
 interface IActionListProps {
     flow: 'claim' | 'request'
@@ -74,11 +75,10 @@ export default function ActionList({
     const { balance } = useWallet()
     const [showMinAmountError, setShowMinAmountError] = useState(false)
     const { claimType } = useDetermineBankClaimType(claimLinkData?.sender?.userId ?? '')
-    const { chargeDetails } = usePaymentStore()
+    const { chargeDetails, usdAmount, parsedPaymentData } = usePaymentStore()
     const requesterUserId = chargeDetails?.requestLink?.recipientAccount?.userId ?? ''
     const { requestType } = useDetermineBankRequestType(requesterUserId)
     const savedAccounts = useSavedAccounts()
-    const { usdAmount } = usePaymentStore()
     const { addParamStep } = useClaimLink()
     const {
         setShowRequestFulfilmentBankFlowManager,
@@ -102,6 +102,7 @@ export default function ActionList({
     const [isUsePeanutBalanceModalShown, setIsUsePeanutBalanceModalShown] = useState(false)
     const [showUsePeanutBalanceModal, setShowUsePeanutBalanceModal] = useState(false)
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null)
+    const { initiatePayment } = usePaymentInitiator()
 
     const dispatch = useAppDispatch()
 
@@ -190,15 +191,15 @@ export default function ActionList({
             }
         } else if (flow === 'request' && requestLinkData) {
             // @dev TODO: Fix req fulfillment with bank properly post devconnect
-            if (method.id === 'bank') {
-                if (user?.user) {
-                    router.push('/add-money')
-                } else {
-                    const redirectUri = encodeURIComponent('/add-money')
-                    router.push(`/setup?redirect_uri=${redirectUri}`)
-                }
-                return
-            }
+            // if (method.id === 'bank') {
+            //     if (user?.user) {
+            //         router.push('/add-money')
+            //     } else {
+            //         const redirectUri = encodeURIComponent('/add-money')
+            //         router.push(`/setup?redirect_uri=${redirectUri}`)
+            //     }
+            //     return
+            // }
 
             switch (method.id) {
                 case 'bank':
@@ -206,6 +207,18 @@ export default function ActionList({
                         addParamStep('bank')
                         setIsGuestVerificationModalOpen(true)
                     } else {
+                        if (!chargeDetails && parsedPaymentData) {
+                            const payload: InitiatePaymentPayload = {
+                                recipient: parsedPaymentData?.recipient,
+                                tokenAmount: usdAmount ?? '0',
+                                isExternalWalletFlow: false,
+                                transactionType: 'REQUEST',
+                                returnAfterChargeCreation: true,
+                            }
+
+                            await initiatePayment(payload)
+                        }
+
                         setShowRequestFulfilmentBankFlowManager(true)
                         setRequestFulfilmentBankFlowStep(RequestFulfillmentBankFlowStep.BankCountryList)
                     }

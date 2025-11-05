@@ -83,7 +83,9 @@ export default function AddMoneyBankDetails({ flow = 'add-money' }: IAddMoneyBan
     })
 
     // data from contexts based on flow
-    const amount = isAddMoneyFlow ? onrampContext.amountToOnramp : chargeDetails?.tokenAmount
+    const amount = isAddMoneyFlow
+        ? onrampContext.amountToOnramp
+        : requestFulfilmentOnrampData?.depositInstructions?.amount
     const onrampData = isAddMoneyFlow ? onrampContext.onrampData : requestFulfilmentOnrampData
 
     const currencySymbolBasedOnCountry = useMemo(() => {
@@ -136,10 +138,6 @@ export default function AddMoneyBankDetails({ flow = 'add-money' }: IAddMoneyBan
 
     const formattedCurrencyAmount = useMemo(() => {
         if (!amount) return ''
-
-        if (flow === 'request-fulfillment') {
-            return formatCurrencyAmount(amount, 'USD') // Request fulfillment flow is in USD
-        }
 
         return formatCurrencyAmount(amount, onrampCurrency)
     }, [amount, onrampCurrency, flow])
