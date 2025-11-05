@@ -34,6 +34,7 @@ import { ActionListCard } from '../ActionListCard'
 import { useGeoFilteredPaymentOptions } from '@/hooks/useGeoFilteredPaymentOptions'
 import { tokenSelectorContext } from '@/context'
 import SupportCTA from '../Global/SupportCTA'
+import { DEVCONNECT_LOGO } from '@/assets'
 
 interface IActionListProps {
     flow: 'claim' | 'request'
@@ -125,7 +126,9 @@ export default function ActionList({
     const { filteredMethods: sortedActionMethods, isLoading: isGeoLoading } = useGeoFilteredPaymentOptions({
         sortUnavailable: true,
         isMethodUnavailable: (method) => method.soon || (method.id === 'bank' && requiresVerification),
-        methods: showDevconnectMethod ? DEVCONNECT_CLAIM_METHODS : undefined,
+        methods: showDevconnectMethod
+            ? DEVCONNECT_CLAIM_METHODS.filter((method) => method.id !== 'devconnect') //TODO @dev remove this after devconnect app testing phase
+            : undefined,
     })
 
     // Check if user has enough Peanut balance to pay for the request
@@ -249,6 +252,14 @@ export default function ActionList({
     const username = claimLinkData?.sender?.username ?? requestLinkData?.recipient?.identifier
     const userHasAppAccess = user?.user?.hasAppAccess ?? false
 
+    const devconnectMethod: PaymentMethod = {
+        id: 'devconnect',
+        title: 'Devconnect',
+        description: 'Claim to your Devconnect wallet',
+        icons: [DEVCONNECT_LOGO],
+        soon: false,
+    }
+
     if (isGeoLoading) {
         return (
             <div className="flex w-full items-center justify-center py-8">
@@ -259,6 +270,17 @@ export default function ActionList({
 
     return (
         <div className="space-y-2">
+            {/* TODO @dev remove this after devconnect app testing phase */}
+            {showDevconnectMethod && (
+                <MethodCard
+                    onClick={() => {
+                        handleMethodClick(devconnectMethod)
+                    }}
+                    method={devconnectMethod}
+                    requiresVerification={false}
+                />
+            )}
+
             {!isLoggedIn && (
                 <Button shadowSize="4" onClick={handleContinueWithPeanut} className="flex w-full items-center gap-1">
                     <div>Continue with </div>
