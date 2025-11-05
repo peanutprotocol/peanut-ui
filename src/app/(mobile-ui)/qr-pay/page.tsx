@@ -78,7 +78,23 @@ export default function QRPayPage() {
     const { openTransactionDetails, selectedTransaction, isDrawerOpen, closeTransactionDetails } =
         useTransactionDetailsDrawer()
     const { isLoading, loadingState, setLoadingState } = useContext(loadingStateContext)
-    const { shouldBlockPay, kycGateState } = useQrKycGate()
+
+    const paymentProcessor: PaymentProcessor | null = useMemo(() => {
+        switch (qrType) {
+            case EQrType.SIMPLEFI_STATIC:
+            case EQrType.SIMPLEFI_DYNAMIC:
+            case EQrType.SIMPLEFI_USER_SPECIFIED:
+                return 'SIMPLEFI'
+            case EQrType.MERCADO_PAGO:
+            case EQrType.ARGENTINA_QR3:
+            case EQrType.PIX:
+                return 'MANTECA'
+            default:
+                return null
+        }
+    }, [qrType])
+
+    const { shouldBlockPay, kycGateState } = useQrKycGate(paymentProcessor)
     const queryClient = useQueryClient()
     const { hasPendingTransactions } = usePendingTransactions()
     const [isShaking, setIsShaking] = useState(false)
@@ -96,21 +112,6 @@ export default function QRPayPage() {
     const { setIsSupportModalOpen } = useSupportModalContext()
     const [waitingForMerchantAmount, setWaitingForMerchantAmount] = useState(false)
     const retryCount = useRef(0)
-
-    const paymentProcessor: PaymentProcessor | null = useMemo(() => {
-        switch (qrType) {
-            case EQrType.SIMPLEFI_STATIC:
-            case EQrType.SIMPLEFI_DYNAMIC:
-            case EQrType.SIMPLEFI_USER_SPECIFIED:
-                return 'SIMPLEFI'
-            case EQrType.MERCADO_PAGO:
-            case EQrType.ARGENTINA_QR3:
-            case EQrType.PIX:
-                return 'MANTECA'
-            default:
-                return null
-        }
-    }, [qrType])
 
     const resetState = () => {
         setIsSuccess(false)
