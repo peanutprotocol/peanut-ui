@@ -1,5 +1,4 @@
 'use client'
-import { PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
 import { Button } from '@/components/0_Bruddle'
 import AddressLink from '@/components/Global/AddressLink'
 import Card from '@/components/Global/Card'
@@ -26,6 +25,7 @@ import { type ReactNode, useEffect, useMemo, useRef } from 'react'
 import { useDispatch } from 'react-redux'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import { usePointsConfetti } from '@/hooks/usePointsConfetti'
+import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
 
 type DirectSuccessViewProps = {
     user?: ApiUser
@@ -203,7 +203,14 @@ const DirectSuccessView = ({
                     />
                 </div>
             )}
-            <div className="my-auto flex h-full flex-col justify-center space-y-4">
+            <div className="relative z-10 my-auto flex h-full flex-col justify-center space-y-4">
+                <Image
+                    src={chillPeanutAnim.src}
+                    alt="Peanut Mascot"
+                    width={20}
+                    height={20}
+                    className="absolute -top-32 left-1/2 -z-10 h-60 w-60 -translate-x-1/2"
+                />
                 <Card className="flex items-center gap-3 p-4">
                     <div className="flex items-center gap-3">
                         <div

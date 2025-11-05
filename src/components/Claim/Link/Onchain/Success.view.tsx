@@ -9,15 +9,15 @@ import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useUserStore } from '@/redux/hooks'
 import { ESendLinkStatus, sendLinksApi } from '@/services/sendLinks'
 import { formatTokenAmount, getTokenDetails, printableAddress, shortenStringLong } from '@/utils'
-import { useQueryClient, useQuery } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo } from 'react'
 import type { Hash } from 'viem'
 import { formatUnits } from 'viem'
 import * as _consts from '../../Claim.consts'
-import Image from 'next/image'
-import { PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
 import CreateAccountButton from '@/components/Global/CreateAccountButton'
+import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
+import Image from 'next/image'
 
 export const SuccessClaimLinkView = ({
     transactionHash,
@@ -175,7 +175,14 @@ export const SuccessClaimLinkView = ({
                     }}
                 />
             </div>
-            <div className="my-auto flex h-full flex-col justify-center space-y-4">
+            <div className="relative z-10 my-auto flex h-full flex-col justify-center space-y-4">
+                <Image
+                    src={chillPeanutAnim.src}
+                    alt="Peanut Mascot"
+                    width={20}
+                    height={20}
+                    className="absolute -top-32 left-1/2 -z-10 h-60 w-60 -translate-x-1/2"
+                />
                 <PeanutActionDetailsCard {...cardProps} />
                 {renderButtons()}
             </div>
