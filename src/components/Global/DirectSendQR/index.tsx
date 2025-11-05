@@ -18,6 +18,7 @@ import { twMerge } from 'tailwind-merge'
 import ActionModal from '../ActionModal'
 import { Icon, type IconName } from '../Icons/Icon'
 import { EQrType, NAME_BY_QR_TYPE, parseEip681, recognizeQr } from './utils'
+import { useHaptic } from 'use-haptic'
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL!
 
@@ -196,6 +197,7 @@ export default function DirectSendQr({
         if (!user?.user.username) return ''
         return `${BASE_URL}/pay/${user.user.username}`
     }, [user?.user.username])
+    const { triggerHaptic } = useHaptic()
 
     const startScanner = () => {
         setIsQRScannerOpen(true)
@@ -233,6 +235,7 @@ export default function DirectSendQr({
     }
 
     const processQRCode = async (data: string): Promise<{ success: boolean; error?: string }> => {
+        triggerHaptic()
         // reset payment state before processing new QR
         dispatch(paymentActions.resetPaymentState())
 

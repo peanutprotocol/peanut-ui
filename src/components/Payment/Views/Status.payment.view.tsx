@@ -26,6 +26,7 @@ import { useDispatch } from 'react-redux'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import { usePointsConfetti } from '@/hooks/usePointsConfetti'
 import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
+import { useHaptic } from 'use-haptic'
 
 type DirectSuccessViewProps = {
     user?: ApiUser
@@ -63,6 +64,7 @@ const DirectSuccessView = ({
         useTransactionDetailsDrawer()
     const { user: authUser } = useUserStore()
     const queryClient = useQueryClient()
+    const { triggerHaptic } = useHaptic()
 
     const { tokenIconUrl, chainIconUrl, resolvedChainName, resolvedTokenSymbol } = useTokenChainIcons({
         chainId: chargeDetails?.chainId,
@@ -187,6 +189,11 @@ const DirectSuccessView = ({
         if (type === 'SEND') return 'You sent '
         if (type === 'REQUEST') return 'You requested '
     }
+
+    useEffect(() => {
+        // trigger haptic on mount
+        triggerHaptic()
+    }, [triggerHaptic])
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
