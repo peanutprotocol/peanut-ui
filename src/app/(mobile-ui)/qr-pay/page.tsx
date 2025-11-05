@@ -78,7 +78,23 @@ export default function QRPayPage() {
     const { openTransactionDetails, selectedTransaction, isDrawerOpen, closeTransactionDetails } =
         useTransactionDetailsDrawer()
     const { isLoading, loadingState, setLoadingState } = useContext(loadingStateContext)
-    const { shouldBlockPay, kycGateState } = useQrKycGate()
+
+    const paymentProcessor: PaymentProcessor | null = useMemo(() => {
+        switch (qrType) {
+            case EQrType.SIMPLEFI_STATIC:
+            case EQrType.SIMPLEFI_DYNAMIC:
+            case EQrType.SIMPLEFI_USER_SPECIFIED:
+                return 'SIMPLEFI'
+            case EQrType.MERCADO_PAGO:
+            case EQrType.ARGENTINA_QR3:
+            case EQrType.PIX:
+                return 'MANTECA'
+            default:
+                return null
+        }
+    }, [qrType])
+
+    const { shouldBlockPay, kycGateState } = useQrKycGate(paymentProcessor)
     const queryClient = useQueryClient()
     const { hasPendingTransactions } = usePendingTransactions()
     const [isShaking, setIsShaking] = useState(false)
@@ -96,21 +112,6 @@ export default function QRPayPage() {
     const { setIsSupportModalOpen } = useSupportModalContext()
     const [waitingForMerchantAmount, setWaitingForMerchantAmount] = useState(false)
     const retryCount = useRef(0)
-
-    const paymentProcessor: PaymentProcessor | null = useMemo(() => {
-        switch (qrType) {
-            case EQrType.SIMPLEFI_STATIC:
-            case EQrType.SIMPLEFI_DYNAMIC:
-            case EQrType.SIMPLEFI_USER_SPECIFIED:
-                return 'SIMPLEFI'
-            case EQrType.MERCADO_PAGO:
-            case EQrType.ARGENTINA_QR3:
-            case EQrType.PIX:
-                return 'MANTECA'
-            default:
-                return null
-        }
-    }, [qrType])
 
     const resetState = () => {
         setIsSuccess(false)
@@ -300,6 +301,22 @@ export default function QRPayPage() {
         }
         getCurrencyObject().then(setCurrency)
     }, [paymentLock?.code, paymentProcessor])
+
+    // Set default currency for SimpleFi USER_SPECIFIED (user will enter amount)
+    useEffect(() => {
+        if (paymentProcessor !== 'SIMPLEFI') return
+        if (simpleFiQrData?.type !== 'SIMPLEFI_USER_SPECIFIED') return
+        if (currency) return // Already set
+
+        // Default to ARS for SimpleFi payments
+        getCurrencyPrice('ARS').then((priceData) => {
+            setCurrency({
+                code: 'ARS',
+                symbol: 'ARS',
+                price: priceData.sell,
+            })
+        })
+    }, [paymentProcessor, simpleFiQrData?.type, currency])
 
     const isBlockingError = useMemo(() => {
         return !!errorMessage && errorMessage !== 'Please confirm the transaction.'
