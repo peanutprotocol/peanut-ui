@@ -19,6 +19,7 @@ import { useAppDispatch, useAppSelector } from '@/redux/hooks'
 import { bankFormActions } from '@/redux/slices/bank-form-slice'
 import { useDebounce } from '@/hooks/useDebounce'
 import { Icon } from '../Global/Icons/Icon'
+import { twMerge } from 'tailwind-merge'
 
 const isIBANCountry = (country: string) => {
     return BRIDGE_ALPHA3_TO_ALPHA2[country.toUpperCase()] !== undefined
@@ -231,7 +232,9 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             rules: any,
             type: string = 'text',
             rightAdornment?: React.ReactNode,
-            onBlur?: (field: any) => Promise<void> | void
+            onBlur?: (field: any) => Promise<void> | void,
+            showCharCount?: boolean,
+            maxLength?: number
         ) => (
             <div className="w-full">
                 <div className="relative">
@@ -244,7 +247,10 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                 {...field}
                                 type={type}
                                 placeholder={placeholder}
-                                className="h-12 w-full rounded-sm border border-n-1 bg-white px-4 text-sm"
+                                className={twMerge(
+                                    'h-12 w-full rounded-sm border border-n-1 bg-white px-4 text-sm',
+                                    errors[name] && touchedFields[name] && 'border-error'
+                                )}
                                 onBlur={async (e) => {
                                     // remove any whitespace from the input field
                                     // note: @dev not a great fix, this should also be fixed in the backend
@@ -256,6 +262,13 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                         await onBlur(field)
                                     }
                                 }}
+                                rightContent={
+                                    showCharCount && maxLength ? (
+                                        <span className="text-xs">
+                                            {field.value?.length || 0}/{maxLength}
+                                        </span>
+                                    ) : undefined
+                                }
                             />
                         )}
                     />
@@ -414,15 +427,42 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
 
                         {!isIban && (
                             <>
-                                {renderInput('street', 'Your Street Address', {
-                                    required: 'Street address is required',
-                                })}
+                                {renderInput(
+                                    'street',
+                                    'Your Street Address',
+                                    {
+                                        required: 'Street address is required',
+                                        maxLength: {
+                                            value: 35,
+                                            message: 'Street address must be 35 characters or less',
+                                        },
+                                        minLength: { value: 4, message: 'Street address must be 4 characters or more' },
+                                    },
+                                    'text',
+                                    undefined,
+                                    undefined,
+                                    true,
+                                    35
+                                )}
 
                                 {renderInput('city', 'Your City', { required: 'City is required' })}
 
-                                {renderInput('state', 'Your State', {
-                                    required: 'State is required',
-                                })}
+                                {renderInput(
+                                    'state',
+                                    'Your State (ISO 3166-2 subdivision code)',
+                                    {
+                                        required: 'State is required',
+                                        maxLength: {
+                                            value: 3,
+                                            message: 'State must be 3 characters or less',
+                                        },
+                                    },
+                                    'text',
+                                    undefined,
+                                    undefined,
+                                    true,
+                                    3
+                                )}
 
                                 {renderInput('postalCode', 'Your Postal Code', {
                                     required: 'Postal code is required',
