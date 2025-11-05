@@ -302,6 +302,22 @@ export default function QRPayPage() {
         getCurrencyObject().then(setCurrency)
     }, [paymentLock?.code, paymentProcessor])
 
+    // Set default currency for SimpleFi USER_SPECIFIED (user will enter amount)
+    useEffect(() => {
+        if (paymentProcessor !== 'SIMPLEFI') return
+        if (simpleFiQrData?.type !== 'SIMPLEFI_USER_SPECIFIED') return
+        if (currency) return // Already set
+
+        // Default to ARS for SimpleFi payments
+        getCurrencyPrice('ARS').then((priceData) => {
+            setCurrency({
+                code: 'ARS',
+                symbol: 'ARS',
+                price: priceData.sell,
+            })
+        })
+    }, [paymentProcessor, simpleFiQrData?.type, currency])
+
     const isBlockingError = useMemo(() => {
         return !!errorMessage && errorMessage !== 'Please confirm the transaction.'
     }, [errorMessage])
