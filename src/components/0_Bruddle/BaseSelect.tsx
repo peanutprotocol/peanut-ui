@@ -54,10 +54,7 @@ const BaseSelect = forwardRef<HTMLButtonElement, BaseSelectProps>(
                 <Select.Portal>
                     <Select.Content
                         className={twMerge(
-                            'relative z-50 max-h-80 overflow-hidden rounded-sm border border-n-1 bg-white shadow-lg',
-                            'data-[state=open]:animate-in data-[state=closed]:animate-out',
-                            'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
-                            'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95'
+                            'relative z-50 max-h-80 overflow-hidden rounded-sm border border-n-1 bg-white shadow-lg'
                         )}
                         position="popper"
                         sideOffset={4}
