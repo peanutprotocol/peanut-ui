@@ -341,7 +341,11 @@ export const CreateRequestLinkView = () => {
             <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
                 <PeanutActionCard type="request" />
 
-                <QRCodeWrapper url={qrCodeLink} isLoading={isCreatingLink || isUpdatingRequest} />
+                <QRCodeWrapper
+                    isBlurred={!requestId}
+                    url={qrCodeLink}
+                    isLoading={isCreatingLink || isUpdatingRequest}
+                />
 
                 <TokenAmountInput
                     className="w-full"
@@ -361,19 +365,31 @@ export const CreateRequestLinkView = () => {
                     setAttachmentOptions={handleAttachmentOptionsChange}
                 />
 
-                {isCreatingLink || isUpdatingRequest ? (
-                    <Button disabled={true} shadowSize="4">
-                        <div className="flex w-full flex-row items-center justify-center gap-2">
-                            <Loading /> Loading
-                        </div>
+                {!requestId && (
+                    <Button
+                        loading={isCreatingLink || isUpdatingRequest}
+                        disabled={isCreatingLink || isUpdatingRequest}
+                        onClick={generateLink}
+                        shadowSize="4"
+                    >
+                        Create request
                     </Button>
-                ) : (
-                    <ShareButton generateUrl={generateLink}>
-                        {!tokenValue || !parseFloat(tokenValue) || parseFloat(tokenValue) === 0
-                            ? 'Share open request'
-                            : `Share $${tokenValue} request`}
-                    </ShareButton>
                 )}
+
+                {requestId &&
+                    (isCreatingLink || isUpdatingRequest ? (
+                        <Button disabled={true} shadowSize="4">
+                            <div className="flex w-full flex-row items-center justify-center gap-2">
+                                <Loading /> Loading
+                            </div>
+                        </Button>
+                    ) : (
+                        <ShareButton generateUrl={generateLink}>
+                            {!tokenValue || !parseFloat(tokenValue) || parseFloat(tokenValue) === 0
+                                ? 'Share open request'
+                                : `Share $${tokenValue} request`}
+                        </ShareButton>
+                    ))}
 
                 {errorState.showError && (
                     <div className="text-start">
