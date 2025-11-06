@@ -101,7 +101,7 @@ const CarouselCTA = ({
                     )}
                     {secondaryIcon && (
                         <Image
-                            src={typeof secondaryIcon === 'string' ? secondaryIcon : secondaryIcon.src}
+                            src={secondaryIcon}
                             alt="secondary icon"
                             height={64}
                             width={64}
