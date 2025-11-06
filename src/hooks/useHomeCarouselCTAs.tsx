@@ -43,7 +43,8 @@ export const useHomeCarouselCTAs = () => {
             onClick: () => {
                 window.open(
                     'https://peanutprotocol.notion.site/Peanut-Foodie-Guide-29a83811757980e79896f2a610d6591a',
-                    '_blank'
+                    '_blank',
+                    'noopener,noreferrer'
                 )
             },
             logo: PIX,
