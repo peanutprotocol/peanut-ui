@@ -40,7 +40,9 @@ export const useHomeCarouselCTAs = () => {
             description: 'Click to explore participating merchants. Pay with PIX QR, save instantly, earn points.',
             iconContainerClassName: 'bg-secondary-1',
             icon: 'shield',
-            onClick: () => {},
+            onClick: () => {
+                router.push('https://www.notion.so/peanutprotocol/Peanut-Foodie-Guide-29a83811757980e79896f2a610d6591a')
+            },
             logo: PIX,
             secondaryIcon: 'https://flagcdn.com/w320/br.png',
         })
