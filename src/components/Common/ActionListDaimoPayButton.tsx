@@ -11,8 +11,6 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import ConfirmInviteModal from '../Global/ConfirmInviteModal'
 import { ActionListCard } from '../ActionListCard'
 import { DaimoPayWrapper } from '../Global/DaimoPayWrapper'
-import { playSoundByName } from '../Global/SoundPlayer'
-import { useHaptic } from 'use-haptic'
 
 interface ActionListDaimoPayButtonProps {
     handleContinueWithPeanut: () => void
@@ -41,7 +39,6 @@ const ActionListDaimoPayButton = ({
     const daimoPayButtonClickRef = useRef<(() => void) | null>(null)
 
     const { isProcessing, initiateDaimoPayment, completeDaimoPayment } = usePaymentInitiator()
-    const { triggerHaptic } = useHaptic()
 
     const handleInitiateDaimoPayment = useCallback(async () => {
         if (!usdAmount || parseFloat(usdAmount) <= 0) {
@@ -124,8 +121,6 @@ const ActionListDaimoPayButton = ({
                     })
 
                     if (result.status === 'Success') {
-                        playSoundByName('success', true) // only play on iOS devices
-                        triggerHaptic()
                         dispatch(paymentActions.setView('STATUS'))
                     } else if (result.status === 'Charge Created') {
                         dispatch(paymentActions.setView('CONFIRM'))

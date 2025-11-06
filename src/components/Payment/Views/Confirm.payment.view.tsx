@@ -34,7 +34,6 @@ import {
 import { captureMessage } from '@sentry/nextjs'
 import AddressLink from '@/components/Global/AddressLink'
 import { useHaptic } from 'use-haptic'
-import { playSoundByName } from '@/components/Global/SoundPlayer'
 
 type ConfirmPaymentViewProps = {
     currency?: {
@@ -286,7 +285,6 @@ export default function ConfirmPaymentView({
                 queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
             }, 3000)
             triggerHaptic()
-            playSoundByName('success', true) // only play on iOS devices
             dispatch(paymentActions.setView('STATUS'))
         }
     }, [
