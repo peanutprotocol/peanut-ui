@@ -8,6 +8,7 @@ import React, { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import ActionModal from '@/components/Global/ActionModal'
 import { CAROUSEL_CLOSE_BUTTON_POSITION, CAROUSEL_CLOSE_ICON_SIZE } from '@/constants/carousel.consts'
+import { useHaptic } from 'use-haptic'
 
 interface CarouselCTAProps {
     icon: IconName
@@ -32,6 +33,7 @@ const CarouselCTA = ({
     isPermissionDenied,
 }: CarouselCTAProps) => {
     const [showPermissionDeniedModal, setShowPermissionDeniedModal] = useState(false)
+    const { triggerHaptic } = useHaptic()
 
     const handleClose = (e: React.MouseEvent) => {
         e.stopPropagation()
@@ -40,6 +42,7 @@ const CarouselCTA = ({
 
     const handleClick = async () => {
         try {
+            triggerHaptic()
             if (isPermissionDenied) {
                 setShowPermissionDeniedModal(true)
             } else if (onClick) {

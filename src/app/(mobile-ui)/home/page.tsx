@@ -38,6 +38,7 @@ import NoMoreJailModal from '@/components/Global/NoMoreJailModal'
 import EarlyUserModal from '@/components/Global/EarlyUserModal'
 import InvitesIcon from '@/components/Home/InvitesIcon'
 import NavigationArrow from '@/components/Global/NavigationArrow'
+import { useHaptic } from 'use-haptic'
 
 const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
 const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_EXPIRY ?? '1814400') // 21 days in seconds
@@ -55,6 +56,7 @@ export default function Home() {
     })
     const { isConnected: isWagmiConnected } = useAccount()
     const { disconnect: disconnectWagmi } = useDisconnect()
+    const { triggerHaptic } = useHaptic()
 
     const { isFetchingUser, addAccount } = useAuth()
     const { isUserKycApproved } = useKycStatus()
@@ -234,7 +236,7 @@ export default function Home() {
             <div className="h-full w-full space-y-6 p-5">
                 <div className="flex items-center justify-between gap-2">
                     <UserHeader username={username!} fullName={userFullName} isVerified={isUserKycApproved} />
-                    <Link href="/points" className="flex items-center gap-0">
+                    <Link onClick={() => triggerHaptic()} href="/points" className="flex items-center gap-0">
                         <InvitesIcon />
                         <span className="whitespace-nowrap pl-1 text-sm font-semibold md:text-base">Points</span>
                         <NavigationArrow size={16} className="fill-black" />

@@ -1,8 +1,11 @@
+'use client'
+
 import Card, { type CardPosition } from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
 import React from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '../0_Bruddle'
+import { useHaptic } from 'use-haptic'
 
 interface ActionListCardProps {
     title: string | React.ReactNode
@@ -27,7 +30,10 @@ export const ActionListCard = ({
     isDisabled = false,
     descriptionClassName,
 }: ActionListCardProps) => {
+    const { triggerHaptic } = useHaptic()
+
     const handleCardClick = () => {
+        triggerHaptic()
         onClick()
     }
 
