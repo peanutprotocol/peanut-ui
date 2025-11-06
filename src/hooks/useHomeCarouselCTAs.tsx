@@ -36,12 +36,16 @@ export const useHomeCarouselCTAs = () => {
 
         _carouselCTAs.push({
             id: 'merchant-map-pix',
-            title: '20% Off with PIX Payments',
+            title: 'Up to 10% cashback for Tier 2 users with PIX Payments',
             description: 'Click to explore participating merchants. Pay with PIX QR, save instantly, earn points.',
             iconContainerClassName: 'bg-secondary-1',
             icon: 'shield',
             onClick: () => {
-                router.push('https://peanutprotocol.notion.site/Peanut-Foodie-Guide-29a83811757980e79896f2a610d6591a')
+                window.open(
+                    'https://peanutprotocol.notion.site/Peanut-Foodie-Guide-29a83811757980e79896f2a610d6591a',
+                    '_blank',
+                    'noopener,noreferrer'
+                )
             },
             logo: PIX,
             secondaryIcon: 'https://flagcdn.com/w320/br.png',
