@@ -186,8 +186,8 @@ export const SuccessClaimLinkView = ({
                 <Image
                     src={chillPeanutAnim.src}
                     alt="Peanut Mascot"
-                    width={20}
-                    height={20}
+                    width={240}
+                    height={240}
                     className="absolute -top-32 left-1/2 -z-10 h-60 w-60 -translate-x-1/2"
                 />
                 <PeanutActionDetailsCard {...cardProps} />
