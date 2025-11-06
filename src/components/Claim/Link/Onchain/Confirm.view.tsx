@@ -18,7 +18,6 @@ import useClaimLink from '../../useClaimLink'
 import { useAuth } from '@/context/authContext'
 import { sendLinksApi } from '@/services/sendLinks'
 import { useSearchParams } from 'next/navigation'
-import { useHaptic } from 'use-haptic'
 
 export const ConfirmClaimLinkView = ({
     onNext,
@@ -41,7 +40,6 @@ export const ConfirmClaimLinkView = ({
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
-    const { triggerHaptic } = useHaptic()
 
     // get campaign tag from claim link url for badge assignment
     const params = useSearchParams()
@@ -133,11 +131,6 @@ export const ConfirmClaimLinkView = ({
             setLoadingState('Idle')
         }
     }
-
-    useEffect(() => {
-        // trigger haptic on mount
-        triggerHaptic()
-    }, [triggerHaptic])
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">

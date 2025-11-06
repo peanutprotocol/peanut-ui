@@ -18,6 +18,7 @@ import * as _consts from '../../Claim.consts'
 import CreateAccountButton from '@/components/Global/CreateAccountButton'
 import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
 import Image from 'next/image'
+import { useHaptic } from 'use-haptic'
 
 export const SuccessClaimLinkView = ({
     transactionHash,
@@ -31,6 +32,7 @@ export const SuccessClaimLinkView = ({
     const router = useRouter()
     const queryClient = useQueryClient()
     const { offrampDetails, claimType, bankDetails } = useClaimBankFlow()
+    const { triggerHaptic } = useHaptic()
 
     // @dev: Claimers don't earn points (only senders do), so we don't call calculatePoints
     // Points will show in activity history once the sender's transaction is processed
@@ -162,6 +164,11 @@ export const SuccessClaimLinkView = ({
         }
         return <CreateAccountButton onClick={() => router.push('/setup')} />
     }
+
+    useEffect(() => {
+        // trigger haptic on mount
+        triggerHaptic()
+    }, [triggerHaptic])
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
