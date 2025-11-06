@@ -47,13 +47,13 @@ const UnsupportedBrowserModalContent = ({
     const [showInAppBrowserModalViaDetection, setShowInAppBrowserModalViaDetection] = useState(false)
     const [copyButtonText, setCopyButtonText] = useState('Copy Link')
     const toast = useToast()
-    const { isSupported: isPasskeySupported } = usePasskeySupport()
+    const { isSupported: isPasskeySupported, isLoading: isLoadingPasskeySupport } = usePasskeySupport()
 
     useEffect(() => {
-        if (!isPasskeySupported) {
+        if (!isPasskeySupported && !isLoadingPasskeySupport) {
             setShowInAppBrowserModalViaDetection(true)
         }
-    }, [isPasskeySupported])
+    }, [isPasskeySupported, isLoadingPasskeySupport])
 
     if (!showInAppBrowserModalViaDetection && !visible) {
         return null
