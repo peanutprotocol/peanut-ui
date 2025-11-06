@@ -1135,12 +1135,14 @@ export default function QRPayPage() {
                             <>
                                 <Button
                                     onClick={() => {
-                                        router.push('/home')
-                                        resetState()
+                                        router.push(
+                                            `/request?amount=${formatNumberForDisplay(usdAmount ?? undefined, { maxDecimals: 2 })}&merchant=${qrPayment!.details.merchant.name}`
+                                        )
                                     }}
+                                    icon="split"
                                     shadowSize="4"
                                 >
-                                    Back to home
+                                    Split this bill
                                 </Button>
                                 <Button
                                     variant="primary-soft"
@@ -1218,13 +1220,16 @@ export default function QRPayPage() {
                     <div className="w-full space-y-5">
                         <Button
                             onClick={() => {
-                                router.push('/home')
-                                resetState()
+                                router.push(
+                                    `/request?amount=${formatNumberForDisplay(usdAmount ?? undefined, { maxDecimals: 2 })}&merchant=${qrPayment!.details.merchant.name}`
+                                )
                             }}
+                            icon="split"
                             shadowSize="4"
                         >
-                            Back to home
+                            Split this bill
                         </Button>
+
                         <Button
                             variant="primary-soft"
                             shadowSize="4"
