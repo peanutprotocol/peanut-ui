@@ -10,6 +10,7 @@ import { type HTMLAttributes } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { type IUserKycVerification } from '@/interfaces'
 import { Icon } from '@/components/Global/Icons/Icon'
+import StatusPill from '../Global/StatusPill'
 
 // this component shows the current kyc status and opens a drawer with more details on click
 export const KycStatusItem = ({
@@ -45,23 +46,21 @@ export const KycStatusItem = ({
     const finalBridgeKycStatus = wsBridgeKycStatus || bridgeKycStatus || user?.user?.bridgeKycStatus
     const kycStatus = verification ? verification.status : finalBridgeKycStatus
 
-    const subtitle = useMemo(() => {
-        const date = verification
-            ? (verification.approvedAt ?? verification.updatedAt ?? verification.createdAt)
-            : bridgeKycStartedAt
-        if (!date) {
-            return 'Verification in progress'
-        }
-        try {
-            return `Submitted on ${formatDate(new Date(date)).split(' - ')[0]}`
-        } catch (error) {
-            console.error('Failed to parse date:', error)
-            return 'Verification in progress'
-        }
-    }, [bridgeKycStartedAt, verification])
-
     // Check if KYC is approved to show points earned
     const isApproved = kycStatus === 'approved' || kycStatus === 'ACTIVE'
+
+    const isPending = kycStatus === 'under_review' || kycStatus === 'ONBOARDING'
+    const isRejected = kycStatus === 'rejected' || kycStatus === 'INACTIVE'
+
+    const subtitle = useMemo(() => {
+        if (isPending) {
+            return 'Under review'
+        }
+        if (isApproved) {
+            return 'Approved'
+        }
+        return 'Rejected'
+    }, [isPending, isApproved, isRejected])
 
     if (!kycStatus || kycStatus === 'not_started') {
         return null
@@ -81,10 +80,12 @@ export const KycStatusItem = ({
                         <KYCStatusIcon />
                         <div className="flex-1">
                             <p className="font-semibold">Identity verification</p>
-                            <p className="text-sm text-grey-1">{subtitle}</p>
+                            <div className="flex items-center gap-2">
+                                <p className="text-sm text-grey-1">{subtitle}</p>
+                                <StatusPill status={isPending ? 'pending' : isRejected ? 'cancelled' : 'completed'} />
+                            </div>
                         </div>
                     </div>
-                    {isApproved && <Icon name="check" size={16} className="text-success-1" />}
                 </div>
             </Card>
 
