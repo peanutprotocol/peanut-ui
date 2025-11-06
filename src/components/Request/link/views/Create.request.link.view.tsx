@@ -335,6 +335,13 @@ export const CreateRequestLinkView = () => {
         }
     }, [isConnected, address, setSelectedChainID, setSelectedTokenAddress])
 
+    // Auto-create request for bill payments
+    useEffect(() => {
+        if (recipientAddress && !generatedLink && merchantComment && tokenValue) {
+            generateLink()
+        }
+    }, [merchantComment, tokenValue, generateLink, recipientAddress])
+
     return (
         <div className="flex min-h-[inherit] w-full flex-col justify-start space-y-8">
             <NavHeader onPrev={() => router.push('/home')} title="Request" />
