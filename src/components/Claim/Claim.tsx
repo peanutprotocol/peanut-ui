@@ -31,6 +31,7 @@ import { twMerge } from 'tailwind-merge'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useSearchParams } from 'next/navigation'
 import { useHaptic } from 'use-haptic'
+import { playSoundByName } from '../Global/SoundPlayer'
 
 export const Claim = ({}) => {
     const [linkUrl, setLinkUrl] = useState<string>('')
@@ -171,6 +172,7 @@ export const Claim = ({}) => {
         }))
 
         if (step.screen === 'SUCCESS') {
+            playSoundByName('success', true) // only play on iOS devices
             triggerHaptic()
         }
     }

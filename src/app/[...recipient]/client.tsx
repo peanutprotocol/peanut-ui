@@ -36,6 +36,7 @@ import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermi
 import { PointsAction } from '@/services/services.types'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import { useHaptic } from 'use-haptic'
+import { playSoundByName } from '@/components/Global/SoundPlayer'
 
 export type PaymentFlow = 'request_pay' | 'external_wallet' | 'direct_pay' | 'withdraw'
 interface Props {
@@ -136,6 +137,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
 
                     // show STATUS view for any payment attempt (including failed ones)
                     if (latestPayment.status !== 'NEW') {
+                        playSoundByName('success', true) // only play on iOS devices
                         triggerHaptic()
                         dispatch(paymentActions.setView('STATUS'))
                     }
@@ -407,6 +409,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
 
         // show status view only if fulfillment payment is successful
         if (chargeDetails?.fulfillmentPayment?.status === 'SUCCESSFUL') {
+            playSoundByName('success', true) // only play on iOS devices
             triggerHaptic()
             dispatch(paymentActions.setView('STATUS'))
         }

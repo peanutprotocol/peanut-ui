@@ -42,6 +42,7 @@ import ContributorCard from '@/components/Global/Contributors/ContributorCard'
 import { getCardPosition } from '@/components/Global/Card'
 import * as Sentry from '@sentry/nextjs'
 import { useHaptic } from 'use-haptic'
+import { playSoundByName } from '@/components/Global/SoundPlayer'
 
 export type PaymentFlowProps = {
     isExternalWalletFlow?: boolean
@@ -496,6 +497,7 @@ export const PaymentForm = ({
         const result = await initiatePayment(payload)
 
         if (result.status === 'Success') {
+            playSoundByName('success', true) // only play on iOS devices
             triggerHaptic()
             dispatch(paymentActions.setView('STATUS'))
         } else if (result.status === 'Charge Created') {
