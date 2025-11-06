@@ -41,9 +41,7 @@ export const useHomeCarouselCTAs = () => {
             iconContainerClassName: 'bg-secondary-1',
             icon: 'shield',
             onClick: () => {
-                router.push(
-                    'https://peanutprotocol.notion.site/297838117579804da61dc45760a2599f?v=29783811757980a1b23a000cce31c330'
-                )
+                router.push('https://peanutprotocol.notion.site/Peanut-Foodie-Guide-29a83811757980e79896f2a610d6591a')
             },
             logo: PIX,
             secondaryIcon: 'https://flagcdn.com/w320/br.png',
