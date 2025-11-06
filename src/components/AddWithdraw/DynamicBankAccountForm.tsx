@@ -5,6 +5,7 @@ import { useAuth } from '@/context/authContext'
 import { Button } from '@/components/0_Bruddle/Button'
 import { type AddBankAccountPayload, BridgeAccountOwnerType, BridgeAccountType } from '@/app/actions/types/users.types'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
+import BaseSelect from '@/components/0_Bruddle/BaseSelect'
 import { BRIDGE_ALPHA3_TO_ALPHA2, ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
 import { useParams, useRouter } from 'next/navigation'
 import { validateIban, validateBic, isValidRoutingNumber } from '@/utils/bridge-accounts.utils'
@@ -20,6 +21,7 @@ import { bankFormActions } from '@/redux/slices/bank-form-slice'
 import { useDebounce } from '@/hooks/useDebounce'
 import { Icon } from '../Global/Icons/Icon'
 import { twMerge } from 'tailwind-merge'
+import { MX_STATES, US_STATES } from '@/constants/stateCodes.consts'
 
 const isIBANCountry = (country: string) => {
     return BRIDGE_ALPHA3_TO_ALPHA2[country.toUpperCase()] !== undefined
@@ -279,6 +281,33 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             </div>
         )
 
+        const renderSelect = (name: keyof IBankAccountDetails, placeholder: string, options: any[], rules: any) => (
+            <div className="w-full">
+                <Controller
+                    name={name}
+                    control={control}
+                    rules={rules}
+                    render={({ field }) => (
+                        <BaseSelect
+                            options={options}
+                            placeholder={placeholder}
+                            value={field.value}
+                            onValueChange={field.onChange}
+                            onBlur={field.onBlur}
+                            error={!!(errors[name] && touchedFields[name])}
+                            className={twMerge(
+                                'h-12 w-full rounded-sm border border-n-1 bg-white px-4 text-sm',
+                                errors[name] && touchedFields[name] && 'border-error'
+                            )}
+                        />
+                    )}
+                />
+                <div className="mt-2 w-fit text-start">
+                    {errors[name] && touchedFields[name] && <ErrorAlert description={errors[name]?.message ?? ''} />}
+                </div>
+            </div>
+        )
+
         const countryCodeForFlag = useMemo(() => {
             return ALL_COUNTRIES_ALPHA3_TO_ALPHA2[country.toUpperCase()] ?? country.toUpperCase()
         }, [country])
@@ -447,21 +476,21 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
 
                                 {renderInput('city', 'Your City', { required: 'City is required' })}
 
-                                {renderInput(
+                                {renderSelect(
                                     'state',
-                                    'Your State (ISO 3166-2 subdivision code)',
+                                    'Select your state',
+                                    isMx
+                                        ? MX_STATES.map((state) => ({
+                                              label: state.name,
+                                              value: state.code,
+                                          }))
+                                        : US_STATES.map((state) => ({
+                                              label: state.name,
+                                              value: state.code,
+                                          })),
                                     {
                                         required: 'State is required',
-                                        maxLength: {
-                                            value: 3,
-                                            message: 'State must be 3 characters or less',
-                                        },
-                                    },
-                                    'text',
-                                    undefined,
-                                    undefined,
-                                    true,
-                                    3
+                                    }
                                 )}
 
                                 {renderInput('postalCode', 'Your Postal Code', {
