@@ -1144,16 +1144,6 @@ export default function QRPayPage() {
                                 >
                                     Split this bill
                                 </Button>
-
-                                <Button
-                                    onClick={() => {
-                                        router.push('/home')
-                                        resetState()
-                                    }}
-                                    shadowSize="4"
-                                >
-                                    Back to home
-                                </Button>
                                 <Button
                                     variant="primary-soft"
                                     shadowSize="4"
@@ -1239,15 +1229,7 @@ export default function QRPayPage() {
                         >
                             Split this bill
                         </Button>
-                        <Button
-                            onClick={() => {
-                                router.push('/home')
-                                resetState()
-                            }}
-                            shadowSize="4"
-                        >
-                            Back to home
-                        </Button>
+
                         <Button
                             variant="primary-soft"
                             shadowSize="4"
