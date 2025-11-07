@@ -67,6 +67,14 @@ const MANTECA_QR_ONLY_REGIONS: Region[] = [
     },
 ]
 
+const BRIDGE_SUPPORTED_LATAM_COUNTRIES: Region[] = [
+    {
+        path: 'mexico',
+        name: 'Mexico',
+        icon: 'https://flagcdn.com/w160/mx.png',
+    },
+]
+
 /**
  * Hook for managing identity verification (KYC) status and region access.
  *
@@ -156,7 +164,7 @@ export const useIdentityVerification = () => {
         // Bridge users get QR payment access in Argentina & Brazil
         // even without full Manteca KYC (which unlocks bank transfers too)
         if (isBridgeApproved && !isMantecaApproved) {
-            unlocked.push(...MANTECA_QR_ONLY_REGIONS)
+            unlocked.push(...MANTECA_QR_ONLY_REGIONS, ...BRIDGE_SUPPORTED_LATAM_COUNTRIES)
         }
 
         return {
