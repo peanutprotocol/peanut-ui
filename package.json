@@ -35,6 +35,7 @@
         "@justaname.id/react": "0.3.180",
         "@justaname.id/sdk": "0.2.177",
         "@radix-ui/react-accordion": "^1.2.12",
+        "@radix-ui/react-select": "^2.2.6",
         "@radix-ui/react-slider": "^1.3.5",
         "@reduxjs/toolkit": "^2.5.0",
         "@reown/appkit": "1.6.9",
@@ -80,6 +81,7 @@
         "siwe": "^2.3.2",
         "tailwind-merge": "^1.14.0",
         "tailwind-scrollbar": "^3.1.0",
+        "use-haptic": "^1.1.11",
         "uuid": "^10.0.0",
         "validator": "^13.12.0",
         "vaul": "^1.1.2",
@@ -150,6 +152,7 @@
             "^web-push$": "<rootDir>/src/utils/__mocks__/web-push.ts",
             "^next/cache$": "<rootDir>/src/utils/__mocks__/next-cache.ts",
             "^@zerodev/sdk(.*)$": "<rootDir>/src/utils/__mocks__/zerodev-sdk.ts",
+            "^@simplewebauthn/browser$": "<rootDir>/src/utils/__mocks__/simplewebauthn-browser.ts",
             "^@/(.*)$": "<rootDir>/src/$1"
         },
         "setupFilesAfterEnv": [

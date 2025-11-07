@@ -30,6 +30,7 @@ import { ClaimedView, ClaimErrorView } from './Generic'
 import { twMerge } from 'tailwind-merge'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useSearchParams } from 'next/navigation'
+import { useHaptic } from 'use-haptic'
 
 export const Claim = ({}) => {
     const [linkUrl, setLinkUrl] = useState<string>('')
@@ -74,7 +75,7 @@ export const Claim = ({}) => {
 
     const { setFlowStep: setClaimBankFlowStep } = useClaimBankFlow()
     const searchParams = useSearchParams()
-
+    const { triggerHaptic } = useHaptic()
     // TanStack Query for fetching send link with automatic retry
     const {
         data: sendLink,
@@ -168,6 +169,10 @@ export const Claim = ({}) => {
             screen: _consts.CLAIM_SCREEN_FLOW[newIdx],
             idx: newIdx,
         }))
+
+        if (step.screen === 'SUCCESS') {
+            triggerHaptic()
+        }
     }
     const handleOnPrev = () => {
         if (step.idx === 0) return
