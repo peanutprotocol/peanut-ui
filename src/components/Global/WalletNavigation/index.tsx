@@ -1,3 +1,4 @@
+'use client'
 import { PEANUT_LOGO } from '@/assets'
 import DirectSendQr from '@/components/Global/DirectSendQR'
 import { Icon, type IconName, Icon as NavIcon } from '@/components/Global/Icons/Icon'
@@ -7,7 +8,7 @@ import { useUserStore } from '@/redux/hooks'
 import classNames from 'classnames'
 import Image from 'next/image'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 
 type NavPathProps = {
     name: string
@@ -32,32 +33,35 @@ type NavSectionProps = {
     pathName: string
 }
 
-const NavSection: React.FC<NavSectionProps> = ({ paths, pathName }) => (
-    <>
-        {paths.map(({ name, href, icon, size }, index) => (
-            <div key={`${name}-${index}`}>
-                <Link
-                    href={href}
-                    className={classNames(
-                        'flex items-center gap-3 text-white hover:cursor-pointer hover:text-white/80',
-                        {
-                            'text-primary-1': pathName === href,
-                        }
-                    )}
-                    onClick={() => {
-                        if (pathName === href) {
-                            window.location.reload()
-                        }
-                    }}
-                >
-                    <Icon name={icon} className="block text-white" size={size} />
-                    <span className="block w-fit pt-0.5 text-center text-base font-semibold">{name}</span>
-                </Link>
-                {index === 4 && <div className="w-full border-b border-grey-1 pt-5" />}
-            </div>
-        ))}
-    </>
-)
+const NavSection: React.FC<NavSectionProps> = ({ paths, pathName }) => {
+    const router = useRouter()
+    return (
+        <>
+            {paths.map(({ name, href, icon, size }, index) => (
+                <div key={`${name}-${index}`}>
+                    <Link
+                        href={href}
+                        className={classNames(
+                            'flex items-center gap-3 text-white hover:cursor-pointer hover:text-white/80',
+                            {
+                                'text-primary-1': pathName === href,
+                            }
+                        )}
+                        onClick={() => {
+                            if (pathName === href) {
+                                router.refresh()
+                            }
+                        }}
+                    >
+                        <Icon name={icon} className="block text-white" size={size} />
+                        <span className="block w-fit pt-0.5 text-center text-base font-semibold">{name}</span>
+                    </Link>
+                    {index === 4 && <div className="w-full border-b border-grey-1 pt-5" />}
+                </div>
+            ))}
+        </>
+    )
+}
 
 type MobileNavProps = {
     pathName: string
