@@ -8,12 +8,6 @@
         color-scheme: light only;
     }
 
-    html,
-    body {
-        /* disable native pull-to-refresh on android - we use custom implementation */
-        overscroll-behavior-y: none;
-    }
-
     body {
         /* disable text selection */
         @apply select-none;
@@ -485,47 +479,4 @@ input::placeholder {
 .embla__slide {
     flex: 0 0 100%;
     min-width: 0;
-}
-
-/* pull-to-refresh custom styling - hide the indicator */
-.ptr {
-    pointer-events: none;
-    font-size: 0.85em;
-    font-weight: bold;
-    top: 0;
-    height: 0;
-    transition:
-        height 0.3s,
-        min-height 0.3s;
-    text-align: center;
-    width: 100%;
-    overflow: hidden;
-    display: flex;
-    align-items: flex-end;
-    align-content: stretch;
-}
-
-.ptr--pull {
-    transition: none;
-}
-
-.ptr--release .ptr__pull {
-    display: none;
-}
-
-.ptr--text,
-.ptr--icon,
-.ptr__children {
-    /* hide all text and icons */
-    opacity: 0 !important;
-    display: none !important;
-}
-
-.ptr__pull,
-.ptr__release,
-.ptr__refresh {
-    /* hide refresh indicators */
-    opacity: 0 !important;
-    height: 0 !important;
-    visibility: hidden !important;
 }
