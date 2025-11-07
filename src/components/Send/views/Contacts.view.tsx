@@ -20,7 +20,7 @@ export default function ContactsView() {
     const searchParams = useSearchParams()
     const isSendingByLink = searchParams.get('view') === 'link' || searchParams.get('createLink') === 'true'
     const isSendingToContacts = searchParams.get('view') === 'contacts'
-    const { contacts, isLoading: isFetchingContacts } = useContacts()
+    const { contacts, isLoading: isFetchingContacts, error: isError, refetch } = useContacts()
     const [searchQuery, setSearchQuery] = useState('')
 
     // client-side search filtering
@@ -64,6 +64,33 @@ export default function ContactsView() {
 
     if (isFetchingContacts) {
         return <PeanutLoading />
+    }
+
+    // handle error state before checking for empty contacts
+    if (!!isError) {
+        return (
+            <div className="flex min-h-[inherit] flex-col space-y-8">
+                <NavHeader title="Send" onPrev={handlePrev} />
+                <div className="flex flex-1 items-center justify-center">
+                    <EmptyState
+                        title="Failed to load contacts"
+                        icon="alert"
+                        description="We couldn't load your contacts. Please try again."
+                        cta={
+                            <Button
+                                shadowSize="4"
+                                onClick={() => refetch()}
+                                className="mt-4"
+                                icon="retry"
+                                iconSize={12}
+                            >
+                                Retry
+                            </Button>
+                        }
+                    />
+                </div>
+            </div>
+        )
     }
 
     return (
