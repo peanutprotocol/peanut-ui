@@ -83,7 +83,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         const router = useRouter()
         const savedAccounts = useSavedAccounts()
         const [isCheckingBICValid, setisCheckingBICValid] = useState(false)
-        const STREET_ADDRESS_MAX_LENGTH = 35 // From bidge docs: street address can be max 35 characters
+        const STREET_ADDRESS_MAX_LENGTH = 35 // From bridge docs: street address can be max 35 characters
 
         let selectedCountry = (countryNameFromProps ?? (countryNameParams as string)).toLowerCase()
 
@@ -472,7 +472,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                     undefined,
                                     undefined,
                                     true,
-                                    35
+                                    STREET_ADDRESS_MAX_LENGTH
                                 )}
 
                                 {renderInput('city', 'Your City', { required: 'City is required' })}
