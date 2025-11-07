@@ -9,6 +9,7 @@ import { WithdrawFlowContextProvider } from './WithdrawFlowContext'
 import { ClaimBankFlowContextProvider } from './ClaimBankFlowContext'
 import { RequestFulfilmentFlowContextProvider } from './RequestFulfillmentFlowContext'
 import { SupportModalProvider } from './SupportModalContext'
+import { PasskeySupportProvider } from './passkeySupportContext'
 
 export const ContextProvider = ({ children }: { children: React.ReactNode }) => {
     return (
@@ -22,7 +23,9 @@ export const ContextProvider = ({ children }: { children: React.ReactNode }) => 
                                     <RequestFulfilmentFlowContextProvider>
                                         <WithdrawFlowContextProvider>
                                             <OnrampFlowContextProvider>
-                                                <SupportModalProvider>{children}</SupportModalProvider>
+                                                <SupportModalProvider>
+                                                    <PasskeySupportProvider>{children}</PasskeySupportProvider>
+                                                </SupportModalProvider>
                                             </OnrampFlowContextProvider>
                                         </WithdrawFlowContextProvider>
                                     </RequestFulfilmentFlowContextProvider>

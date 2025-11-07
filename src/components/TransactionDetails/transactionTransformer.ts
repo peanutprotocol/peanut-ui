@@ -76,6 +76,9 @@ export interface TransactionDetails {
             merchantInfo?: {
                 promoDescription?: string
             }
+            isCapped?: boolean
+            campaignCapUsd?: number
+            remainingCapUsd?: number
         }
         depositInstructions?: {
             amount: string
@@ -524,6 +527,9 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                       amountSponsored?: number
                       txHash?: string
                       merchantInfo?: { promoDescription?: string }
+                      isCapped?: boolean
+                      campaignCapUsd?: number
+                      remainingCapUsd?: number
                   }
                 | undefined,
             depositInstructions:

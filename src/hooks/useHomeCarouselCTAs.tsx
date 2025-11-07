@@ -7,6 +7,7 @@ import { useNotifications } from './useNotifications'
 import { useRouter } from 'next/navigation'
 import useKycStatus from './useKycStatus'
 import type { StaticImageData } from 'next/image'
+import { PIX } from '@/assets'
 
 export type CarouselCTA = {
     id: string
@@ -19,6 +20,7 @@ export type CarouselCTA = {
     onClose?: () => void
     isPermissionDenied?: boolean
     iconContainerClassName?: string
+    secondaryIcon?: StaticImageData | string
 }
 
 export const useHomeCarouselCTAs = () => {
@@ -31,6 +33,23 @@ export const useHomeCarouselCTAs = () => {
 
     const generateCarouselCTAs = useCallback(() => {
         const _carouselCTAs: CarouselCTA[] = []
+
+        _carouselCTAs.push({
+            id: 'merchant-map-pix',
+            title: 'Up to 10% cashback for Tier 2 users with PIX Payments',
+            description: 'Click to explore participating merchants. Pay with PIX QR, save instantly, earn points.',
+            iconContainerClassName: 'bg-secondary-1',
+            icon: 'shield',
+            onClick: () => {
+                window.open(
+                    'https://peanutprotocol.notion.site/Peanut-Foodie-Guide-29a83811757980e79896f2a610d6591a',
+                    '_blank',
+                    'noopener,noreferrer'
+                )
+            },
+            logo: PIX,
+            secondaryIcon: 'https://flagcdn.com/w320/br.png',
+        })
 
         // add notification prompt as first item if it should be shown
         if (showReminderBanner) {

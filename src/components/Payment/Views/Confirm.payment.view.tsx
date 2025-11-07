@@ -33,6 +33,7 @@ import {
 } from '@/constants'
 import { captureMessage } from '@sentry/nextjs'
 import AddressLink from '@/components/Global/AddressLink'
+import { useHaptic } from 'use-haptic'
 
 type ConfirmPaymentViewProps = {
     currency?: {
@@ -88,6 +89,7 @@ export default function ConfirmPaymentView({
     const { isConnected: isWagmiConnected, address: wagmiAddress } = useAccount()
     const queryClient = useQueryClient()
     const [isRouteExpired, setIsRouteExpired] = useState(false)
+    const { triggerHaptic } = useHaptic()
 
     const isUsingExternalWallet = isExternalWalletFlow || !isPeanutWallet
 
@@ -282,6 +284,7 @@ export default function ConfirmPaymentView({
                 fetchBalance()
                 queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
             }, 3000)
+            triggerHaptic()
             dispatch(paymentActions.setView('STATUS'))
         }
     }, [

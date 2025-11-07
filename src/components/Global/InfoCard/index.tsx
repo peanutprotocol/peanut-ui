@@ -11,7 +11,7 @@ interface InfoCardProps {
     iconClassName?: string
     title?: string
     titleClassName?: string
-    description?: string
+    description?: string | React.ReactNode
     descriptionClassName?: string
     items?: Array<string | React.ReactNode>
     itemsType?: 'disc' | 'decimal'
