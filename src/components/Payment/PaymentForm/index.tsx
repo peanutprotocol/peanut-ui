@@ -540,7 +540,7 @@ export const PaymentForm = ({
         }
 
         if (showRequestPotInitialView) {
-            return 'Pay'
+            return 'Choose payment method'
         }
 
         if (isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow) {
