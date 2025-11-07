@@ -195,6 +195,9 @@ const TokenAmountInput = ({
     // to change when we change the display mode or the value (we already call
     // onchange on the input change so dont add those dependencies here!)
     useEffect(() => {
+        // early return if tokenValue is empty.
+        if (!tokenValue) return
+
         if (!isInitialInputUsd) {
             const value = tokenValue ? Number(tokenValue) : 0
             const formattedValue = (value * (currency?.price ?? 1)).toFixed(2)
