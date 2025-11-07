@@ -54,7 +54,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         PullToRefresh.init({
             mainElement: 'body',
             onRefresh: () => {
-                window.location.reload()
+                // use router.refresh() instead of window.location.reload() to avoid showing browser's loading bar
+                router.refresh()
             },
             instructionsPullToRefresh: '',
             instructionsReleaseToRefresh: '',
@@ -73,7 +74,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         return () => {
             PullToRefresh.destroyAll()
         }
-    }, [detectedDeviceType])
+    }, [detectedDeviceType, router])
 
     // Allow access to public paths without authentication
     const isPublicPath = PUBLIC_ROUTES_REGEX.test(pathName)
