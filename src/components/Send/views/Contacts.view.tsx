@@ -1,0 +1,155 @@
+'use client'
+
+import { useAppDispatch } from '@/redux/hooks'
+import { sendFlowActions } from '@/redux/slices/send-flow-slice'
+import { useRouter, useSearchParams } from 'next/navigation'
+import NavHeader from '@/components/Global/NavHeader'
+import { ActionListCard } from '@/components/ActionListCard'
+import { useContacts } from '@/hooks/useContacts'
+import { useMemo, useState } from 'react'
+import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
+import { VerifiedUserLabel } from '@/components/UserHeader'
+import { SearchInput } from '@/components/SearchInput'
+import PeanutLoading from '@/components/Global/PeanutLoading'
+import EmptyState from '@/components/Global/EmptyStates/EmptyState'
+import { Button } from '@/components/0_Bruddle'
+
+export default function ContactsView() {
+    const router = useRouter()
+    const dispatch = useAppDispatch()
+    const searchParams = useSearchParams()
+    const isSendingByLink = searchParams.get('view') === 'link' || searchParams.get('createLink') === 'true'
+    const isSendingToContacts = searchParams.get('view') === 'contacts'
+    const { contacts, isLoading: isFetchingContacts } = useContacts()
+    const [searchQuery, setSearchQuery] = useState('')
+
+    // client-side search filtering
+    const filteredContacts = useMemo(() => {
+        if (!searchQuery.trim()) return contacts
+
+        const query = searchQuery.toLowerCase()
+        return contacts.filter(
+            (contact) =>
+                contact.username.toLowerCase().includes(query) || contact.fullName?.toLowerCase().includes(query)
+        )
+    }, [contacts, searchQuery])
+
+    const redirectToSendByLink = () => {
+        // reset send flow state when entering link creation flow
+        dispatch(sendFlowActions.resetSendFlow())
+        router.push(`${window.location.pathname}?view=link`)
+    }
+
+    const handlePrev = () => {
+        // reset send flow state and navigate deterministically
+        // when in sub-views (link or contacts), go back to base send page
+        // otherwise, go to home
+        dispatch(sendFlowActions.resetSendFlow())
+        if (isSendingByLink || isSendingToContacts) {
+            router.push('/send')
+        } else {
+            router.push('/home')
+        }
+    }
+
+    const handleLinkCtaClick = () => {
+        router.push(`${window.location.pathname}?view=link`)
+        redirectToSendByLink()
+    }
+
+    // handle user selection from contacts
+    const handleUserSelect = (username: string) => {
+        router.push(`/send/${username}`)
+    }
+
+    if (isFetchingContacts) {
+        return <PeanutLoading />
+    }
+
+    return (
+        <div className="flex min-h-[inherit] flex-col space-y-8">
+            <NavHeader title="Send" onPrev={handlePrev} />
+
+            {contacts.length > 0 ? (
+                <div className="space-y-4">
+                    {/* search input */}
+                    <SearchInput
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onClear={() => setSearchQuery('')}
+                        placeholder="Search contacts..."
+                    />
+
+                    {/* contacts list */}
+                    {filteredContacts.length > 0 ? (
+                        <div className="space-y-2">
+                            <h2 className="text-base font-bold">Your contacts</h2>
+                            <div className="flex-1 space-y-0 overflow-y-auto">
+                                {filteredContacts.map((contact, index) => {
+                                    const isVerified = contact.bridgeKycStatus === 'approved'
+                                    const displayName = contact.showFullName
+                                        ? contact.fullName || contact.username
+                                        : contact.username
+                                    return (
+                                        <ActionListCard
+                                            position={
+                                                filteredContacts.length === 1
+                                                    ? 'single'
+                                                    : index === 0
+                                                      ? 'first'
+                                                      : index === filteredContacts.length - 1
+                                                        ? 'last'
+                                                        : 'middle'
+                                            }
+                                            key={contact.userId}
+                                            title={
+                                                <VerifiedUserLabel
+                                                    name={displayName}
+                                                    username={contact.username}
+                                                    isVerified={isVerified}
+                                                    haveSentMoneyToUser={contact.relationshipTypes.includes(
+                                                        'sent_money'
+                                                    )}
+                                                />
+                                            }
+                                            description={`@${contact.username}`}
+                                            leftIcon={<AvatarWithBadge size="extra-small" name={displayName} />}
+                                            onClick={() => handleUserSelect(contact.username)}
+                                        />
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    ) : (
+                        // no search results
+                        <EmptyState
+                            title="No contacts found"
+                            icon="search"
+                            description={`Try searching for a different contact.`}
+                        />
+                    )}
+                </div>
+            ) : (
+                // empty state - no contacts at all
+                <div className="flex flex-1 items-center justify-center">
+                    <EmptyState
+                        title="No contacts yet"
+                        icon="trophy"
+                        description="Contacts appear when you send, request, or invite someone"
+                        cta={
+                            <Button
+                                shadowSize="4"
+                                icon="link"
+                                iconSize={10}
+                                onClick={handleLinkCtaClick}
+                                className="mt-4"
+                            >
+                                Send via link
+                            </Button>
+                        }
+                    />
+                </div>
+            )}
+        </div>
+    )
+}
