@@ -5,6 +5,10 @@ import * as consts from '@/constants'
 import { fetchWithSentry } from '@/utils'
 
 export async function POST(request: NextRequest) {
+    //TODO: enable if we have attachments again, using /send-link instead of
+    //get-link-details
+    return new NextResponse(null, { status: 405 })
+    /*
     try {
         const { link } = await request.json()
         const params = getRawParamsFromLink(link)
@@ -43,4 +47,5 @@ export async function POST(request: NextRequest) {
         console.error('Failed to get attachment:', error)
         return new NextResponse('Internal Server Error', { status: 500 })
     }
+  */
 }
