@@ -38,6 +38,8 @@ import NoMoreJailModal from '@/components/Global/NoMoreJailModal'
 import EarlyUserModal from '@/components/Global/EarlyUserModal'
 import InvitesIcon from '@/components/Home/InvitesIcon'
 import NavigationArrow from '@/components/Global/NavigationArrow'
+import KycCompletedModal from '@/components/Home/KycCompletedModal'
+import { updateUserById } from '@/app/actions/users'
 import { useHaptic } from 'use-haptic'
 
 const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
@@ -67,6 +69,7 @@ export default function Home() {
     const [showBalanceWarningModal, setShowBalanceWarningModal] = useState(false)
     // const [showReferralCampaignModal, setShowReferralCampaignModal] = useState(false)
     const [isPostSignupActionModalVisible, setIsPostSignupActionModalVisible] = useState(false)
+    const [showKycModal, setShowKycModal] = useState(user?.user.showKycCompletedModal ?? false)
 
     const userFullName = useMemo(() => {
         if (!user) return
@@ -290,6 +293,17 @@ export default function Home() {
             <NoMoreJailModal />
 
             <EarlyUserModal />
+
+            <KycCompletedModal
+                isOpen={showKycModal}
+                onClose={() => {
+                    updateUserById({
+                        userId: user?.user.userId,
+                        showKycCompletedModal: false,
+                    })
+                    setShowKycModal(false)
+                }}
+            />
 
             {/* Balance Warning Modal */}
             <BalanceWarningModal
