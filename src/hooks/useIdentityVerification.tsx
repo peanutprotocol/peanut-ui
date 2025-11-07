@@ -7,6 +7,7 @@ import { MantecaKycStatus } from '@/interfaces'
 import { MantecaSupportedExchanges, countryData } from '@/components/AddMoney/consts'
 import React from 'react'
 
+/** Represents a geographic region with its display information */
 export type Region = {
     path: string
     name: string
@@ -14,12 +15,16 @@ export type Region = {
     description?: string
 }
 
+/** Represents a feature that gets unlocked after identity verification */
 export type VerificationUnlockItem = {
     title: React.ReactNode | string
     type: 'bridge' | 'manteca'
 }
 
+// Manteca handles LATAM countries (Argentina, Brazil, Mexico, etc.)
 const MANTECA_SUPPORTED_REGIONS = ['LATAM']
+
+// Bridge handles North America and Europe
 const BRIDGE_SUPPORTED_REGIONS = ['North America', 'Europe']
 
 const SUPPORTED_REGIONS: Region[] = [
@@ -45,6 +50,8 @@ const SUPPORTED_REGIONS: Region[] = [
     },
 ]
 
+// Special case: Users with Bridge KYC can do QR payments in these countries
+// even without full Manteca KYC
 const MANTECA_QR_ONLY_REGIONS: Region[] = [
     {
         path: 'argentina',
@@ -60,18 +67,54 @@ const MANTECA_QR_ONLY_REGIONS: Region[] = [
     },
 ]
 
+/**
+ * Hook for managing identity verification (KYC) status and region access.
+ *
+ * This hook handles two KYC providers:
+ * - Bridge: Covers North America and Europe (ACH, Wire, SEPA transfers)
+ * - Manteca: Covers LATAM countries (Bank transfers + QR payments)
+ *
+ * Users can complete one or both KYC processes to unlock different regions.
+ * Special case: Bridge KYC also unlocks QR payments in Argentina and Brazil.
+ *
+ * @returns {Object} Identity verification utilities
+ * @returns {Region[]} lockedRegions - Regions the user hasn't unlocked yet
+ * @returns {Region[]} unlockedRegions - Regions the user has access to
+ * @returns {Function} isMantecaSupportedCountry - Check if a country uses Manteca
+ * @returns {Function} isVerifiedForCountry - Check if user is verified for a specific country
+ * @returns {Function} isRegionAlreadyUnlocked - Check if a region path is already unlocked
+ * @returns {Function} getCountryTitle - Get the display name for a country code
+ * @returns {Function} getVerificationUnlockItems - Get list of features unlocked by verification
+ */
 export const useIdentityVerification = () => {
     const { user } = useAuth()
     const { isUserBridgeKycApproved, isUserMantecaKycApproved } = useKycStatus()
 
+    /**
+     * Check if a country is supported by Manteca (LATAM countries).
+     * @param code - Country code (e.g., 'AR', 'BR', 'MX')
+     * @returns true if the country is supported by Manteca
+     */
     const isMantecaSupportedCountry = useCallback((code: string) => {
         const upper = code.toUpperCase()
         return Object.prototype.hasOwnProperty.call(MantecaSupportedExchanges, upper)
     }, [])
 
+    /**
+     * Check if the user is verified for a specific country.
+     *
+     * Logic:
+     * - For Manteca countries: User must have an ACTIVE Manteca verification for that specific country
+     * - For Bridge countries: User just needs Bridge KYC approval
+     *
+     * @param code - Country code (e.g., 'US', 'GB', 'AR')
+     * @returns true if user has the required verification
+     */
     const isVerifiedForCountry = useCallback(
         (code: string) => {
             const upper = code.toUpperCase()
+
+            // Check if user has active Manteca verification for this specific country
             const mantecaActive =
                 user?.user.kycVerifications?.some(
                     (v) =>
@@ -79,15 +122,27 @@ export const useIdentityVerification = () => {
                         (v.mantecaGeo || '').toUpperCase() === upper &&
                         v.status === MantecaKycStatus.ACTIVE
                 ) ?? false
+
+            // Manteca countries need country-specific verification, others just need Bridge KYC
             return isMantecaSupportedCountry(upper) ? mantecaActive : isUserBridgeKycApproved
         },
         [user, isUserBridgeKycApproved, isMantecaSupportedCountry]
     )
 
+    /**
+     * Calculate which regions are locked vs unlocked for the current user.
+     *
+     * Region unlock logic:
+     * - Bridge KYC → Unlocks North America, Mexico & Europe
+     * - Manteca KYC → Unlocks LATAM
+     * - Bridge KYC (without Manteca) → Also gets QR-only access to Argentina & Brazil
+     *
+     */
     const { lockedRegions, unlockedRegions } = useMemo(() => {
         const isBridgeApproved = isUserBridgeKycApproved
         const isMantecaApproved = isUserMantecaKycApproved
 
+        // Helper to check if a region should be unlocked
         const isRegionUnlocked = (regionName: string) => {
             return (
                 (isBridgeApproved && BRIDGE_SUPPORTED_REGIONS.includes(regionName)) ||
@@ -98,7 +153,8 @@ export const useIdentityVerification = () => {
         const unlocked = SUPPORTED_REGIONS.filter((region) => isRegionUnlocked(region.name))
         const locked = SUPPORTED_REGIONS.filter((region) => !isRegionUnlocked(region.name))
 
-        // If user has completed Bridge KYC but not Manteca, they can do QR payments in Argentina and Brazil
+        // Bridge users get QR payment access in Argentina & Brazil
+        // even without full Manteca KYC (which unlocks bank transfers too)
         if (isBridgeApproved && !isMantecaApproved) {
             unlocked.push(...MANTECA_QR_ONLY_REGIONS)
         }
@@ -109,6 +165,11 @@ export const useIdentityVerification = () => {
         }
     }, [isUserBridgeKycApproved, isUserMantecaKycApproved])
 
+    /**
+     * Check if a region is already unlocked by comparing region paths.
+     * @param regionPath - Region path to check (e.g., 'north-america', 'latam')
+     * @returns true if the region is in the user's unlocked regions
+     */
     const isRegionAlreadyUnlocked = useCallback(
         (regionPath: string) => {
             return unlockedRegions.some((region) => region.path.toLowerCase() === regionPath.toLowerCase())
@@ -116,10 +177,22 @@ export const useIdentityVerification = () => {
         [unlockedRegions]
     )
 
+    /**
+     * Get the human-readable country name from a country code.
+     * @param countryCode - ISO country code (e.g., 'US', 'BR', 'AR')
+     * @returns Country display name or null if not found
+     */
     const getCountryTitle = useCallback((countryCode: string) => {
         return countryData.find((country) => country.id.toUpperCase() === countryCode.toUpperCase())?.title ?? null
     }, [])
 
+    /**
+     * Get a list of features that will be unlocked after verification.
+     * Used to show users what they'll gain access to.
+     *
+     * @param countryTitle - Optional country name to personalize the messaging
+     * @returns Array of unlock items with title and which KYC provider unlocks it
+     */
     const getVerificationUnlockItems = useCallback((countryTitle?: string): VerificationUnlockItem[] => {
         return [
             {
@@ -155,9 +228,9 @@ export const useIdentityVerification = () => {
                 type: 'bridge',
             },
             {
-                // Using identity country here for the title
-                // eg scenario - user selected Argentina but has a Brazil ID, they will be
-                // able to only use QR in Argentina but can do both Bank transfers and QR in Brazil.
+                // Important: This uses the user's verified ID country, not their selected country
+                // Example: User picks Argentina but has Brazil ID → they get QR in Argentina
+                // but bank transfers only work in Brazil (their verified country)
                 title: `Bank transfers to your own accounts in ${countryTitle || 'your country'}`,
                 type: 'manteca',
             },
