@@ -3,9 +3,16 @@
 @tailwind utilities;
 
 @layer base {
+
     /* Force light mode - prevent browser dark mode */
     :root {
         color-scheme: light only;
+    }
+
+    html,
+    body {
+        /* disable pull-to-refresh on mobile browsers */
+        overscroll-behavior-y: contain;
     }
 
     body {
@@ -17,6 +24,7 @@
 }
 
 @layer utilities {
+
     /* remove ios-specific button styling */
     button,
     [type='button'] {
@@ -79,7 +87,7 @@ Firefox input[type='number'] {
     }
 }
 
-.scroller > span {
+.scroller>span {
     position: absolute;
     top: 0;
     animation: slide 10s infinite;
@@ -277,10 +285,12 @@ Firefox input[type='number'] {
 
 /* Perk animations - Progressive shake intensities */
 @keyframes perkShakeWeak {
+
     0%,
     100% {
         transform: translateX(0) rotate(0deg);
     }
+
     10%,
     30%,
     50%,
@@ -288,6 +298,7 @@ Firefox input[type='number'] {
     90% {
         transform: translateX(-4px) rotate(-0.5deg);
     }
+
     20%,
     40%,
     60%,
@@ -297,10 +308,12 @@ Firefox input[type='number'] {
 }
 
 @keyframes perkShakeMedium {
+
     0%,
     100% {
         transform: translateX(0) rotate(0deg);
     }
+
     10%,
     30%,
     50%,
@@ -308,6 +321,7 @@ Firefox input[type='number'] {
     90% {
         transform: translateX(-8px) rotate(-1deg);
     }
+
     20%,
     40%,
     60%,
@@ -317,10 +331,12 @@ Firefox input[type='number'] {
 }
 
 @keyframes perkShakeStrong {
+
     0%,
     100% {
         transform: translate(0, 0) rotate(0deg);
     }
+
     10%,
     30%,
     50%,
@@ -328,6 +344,7 @@ Firefox input[type='number'] {
     90% {
         transform: translate(-12px, -2px) rotate(-1.5deg);
     }
+
     20%,
     40%,
     60%,
@@ -337,10 +354,12 @@ Firefox input[type='number'] {
 }
 
 @keyframes perkShakeIntense {
+
     0%,
     100% {
         transform: translate(0, 0) rotate(0deg);
     }
+
     10%,
     30%,
     50%,
@@ -348,6 +367,7 @@ Firefox input[type='number'] {
     90% {
         transform: translate(-16px, -3px) rotate(-2deg);
     }
+
     20%,
     40%,
     60%,
