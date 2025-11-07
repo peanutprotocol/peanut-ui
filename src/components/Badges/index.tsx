@@ -25,11 +25,16 @@ export const Badges = () => {
     const badges: BadgeView[] = useMemo(() => {
         // get badges from user object and map to card fields
         const raw = authUser?.user?.badges || []
-        return raw.map((b) => ({
-            title: b.name,
-            description: b.description || '',
-            logo: getBadgeIcon(b.code),
-        }))
+        return (
+            raw
+                // dev-note: dev-connect badge to be shown in ui after post devconnect marketing campaign
+                .filter((b) => b.code.toLowerCase() !== 'devconnect_ba_2025')
+                .map((b) => ({
+                    title: b.name,
+                    description: b.description || '',
+                    logo: getBadgeIcon(b.code),
+                }))
+        )
     }, [authUser?.user?.badges])
 
     if (!badges.length) {
