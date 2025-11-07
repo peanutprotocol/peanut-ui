@@ -3,7 +3,6 @@
 @tailwind utilities;
 
 @layer base {
-
     /* Force light mode - prevent browser dark mode */
     :root {
         color-scheme: light only;
@@ -11,8 +10,8 @@
 
     html,
     body {
-        /* disable pull-to-refresh on mobile browsers */
-        overscroll-behavior-y: contain;
+        /* disable native pull-to-refresh on android - we use custom implementation */
+        overscroll-behavior-y: none;
     }
 
     body {
@@ -24,7 +23,6 @@
 }
 
 @layer utilities {
-
     /* remove ios-specific button styling */
     button,
     [type='button'] {
@@ -87,7 +85,7 @@ Firefox input[type='number'] {
     }
 }
 
-.scroller>span {
+.scroller > span {
     position: absolute;
     top: 0;
     animation: slide 10s infinite;
@@ -285,7 +283,6 @@ Firefox input[type='number'] {
 
 /* Perk animations - Progressive shake intensities */
 @keyframes perkShakeWeak {
-
     0%,
     100% {
         transform: translateX(0) rotate(0deg);
@@ -308,7 +305,6 @@ Firefox input[type='number'] {
 }
 
 @keyframes perkShakeMedium {
-
     0%,
     100% {
         transform: translateX(0) rotate(0deg);
@@ -331,7 +327,6 @@ Firefox input[type='number'] {
 }
 
 @keyframes perkShakeStrong {
-
     0%,
     100% {
         transform: translate(0, 0) rotate(0deg);
@@ -354,7 +349,6 @@ Firefox input[type='number'] {
 }
 
 @keyframes perkShakeIntense {
-
     0%,
     100% {
         transform: translate(0, 0) rotate(0deg);
@@ -491,4 +485,47 @@ input::placeholder {
 .embla__slide {
     flex: 0 0 100%;
     min-width: 0;
+}
+
+/* pull-to-refresh custom styling - hide the indicator */
+.ptr {
+    pointer-events: none;
+    font-size: 0.85em;
+    font-weight: bold;
+    top: 0;
+    height: 0;
+    transition:
+        height 0.3s,
+        min-height 0.3s;
+    text-align: center;
+    width: 100%;
+    overflow: hidden;
+    display: flex;
+    align-items: flex-end;
+    align-content: stretch;
+}
+
+.ptr--pull {
+    transition: none;
+}
+
+.ptr--release .ptr__pull {
+    display: none;
+}
+
+.ptr--text,
+.ptr--icon,
+.ptr__children {
+    /* hide all text and icons */
+    opacity: 0 !important;
+    display: none !important;
+}
+
+.ptr__pull,
+.ptr__release,
+.ptr__refresh {
+    /* hide refresh indicators */
+    opacity: 0 !important;
+    height: 0 !important;
+    visibility: hidden !important;
 }

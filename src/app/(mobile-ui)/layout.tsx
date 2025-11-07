@@ -43,22 +43,22 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         setIsReady(true)
     }, [])
 
-    // Pull-to-refresh is only enabled on iOS devices since Android has native pull-to-refresh
+    // pull-to-refresh enabled on both ios and android with hidden indicator
     // docs here: https://github.com/BoxFactura/pulltorefresh.js
     useEffect(() => {
         if (typeof window === 'undefined') return
 
-        // Only initialize pull-to-refresh on iOS devices
-        if (detectedDeviceType !== DeviceType.IOS) return
+        // initialize pull-to-refresh on mobile devices (ios and android)
+        if (detectedDeviceType === DeviceType.WEB) return
 
         PullToRefresh.init({
             mainElement: 'body',
             onRefresh: () => {
                 window.location.reload()
             },
-            instructionsPullToRefresh: 'Pull down to refresh',
-            instructionsReleaseToRefresh: 'Release to refresh',
-            instructionsRefreshing: 'Refreshing...',
+            instructionsPullToRefresh: '',
+            instructionsReleaseToRefresh: '',
+            instructionsRefreshing: '',
             shouldPullToRefresh: () => {
                 const el = document.querySelector('body')
                 if (!el) return false
@@ -73,7 +73,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         return () => {
             PullToRefresh.destroyAll()
         }
-    }, [])
+    }, [detectedDeviceType])
 
     // Allow access to public paths without authentication
     const isPublicPath = PUBLIC_ROUTES_REGEX.test(pathName)
