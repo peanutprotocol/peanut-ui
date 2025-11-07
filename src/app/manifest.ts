@@ -16,6 +16,7 @@ export default function manifest(): MetadataRoute.Manifest {
         description: 'Butter smooth global money',
         start_url: '/home',
         display: 'standalone',
+        display_override: ['standalone'],
         background_color: '#ffffff',
         theme_color: '#000000',
         icons: [

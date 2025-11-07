@@ -48,16 +48,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     useEffect(() => {
         if (typeof window === 'undefined') return
 
-        // enable pull-to-refresh on both iOS and android
-        if (detectedDeviceType !== DeviceType.IOS && detectedDeviceType !== DeviceType.ANDROID) {
-            return // only skip on desktop
-        }
-
-        // disable native overscroll on android to prevent conflicts
-        if (detectedDeviceType === DeviceType.ANDROID) {
-            document.documentElement.style.overscrollBehavior = 'none'
-            document.body.style.overscrollBehavior = 'none'
-        }
+        // Only initialize pull-to-refresh on iOS devices
+        if (detectedDeviceType !== DeviceType.IOS) return
 
         PullToRefresh.init({
             mainElement: 'body',
@@ -76,19 +68,12 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             distThreshold: 70,
             distMax: 120,
             distReload: 80,
-            // prevent conflicts with native behavior
-            resistanceFunction: (t) => Math.min(1, t / 2.5),
         })
 
         return () => {
             PullToRefresh.destroyAll()
-            // clean up overscroll behavior on unmount
-            if (detectedDeviceType === DeviceType.ANDROID) {
-                document.documentElement.style.overscrollBehavior = ''
-                document.body.style.overscrollBehavior = ''
-            }
         }
-    }, [detectedDeviceType])
+    }, [])
 
     // Allow access to public paths without authentication
     const isPublicPath = PUBLIC_ROUTES_REGEX.test(pathName)
