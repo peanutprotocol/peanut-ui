@@ -48,18 +48,17 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     useEffect(() => {
         if (typeof window === 'undefined') return
 
-        // initialize pull-to-refresh on mobile devices (ios and android)
-        if (detectedDeviceType === DeviceType.WEB) return
+        // Only initialize pull-to-refresh on iOS devices
+        if (detectedDeviceType !== DeviceType.IOS) return
 
         PullToRefresh.init({
             mainElement: 'body',
             onRefresh: () => {
-                // use router.refresh() instead of window.location.reload() to avoid showing browser's loading bar
                 router.refresh()
             },
-            instructionsPullToRefresh: '',
-            instructionsReleaseToRefresh: '',
-            instructionsRefreshing: '',
+            instructionsPullToRefresh: 'Pull down to refresh',
+            instructionsReleaseToRefresh: 'Release to refresh',
+            instructionsRefreshing: 'Refreshing...',
             shouldPullToRefresh: () => {
                 const el = document.querySelector('body')
                 if (!el) return false
@@ -74,7 +73,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         return () => {
             PullToRefresh.destroyAll()
         }
-    }, [detectedDeviceType, router])
+    }, [router])
 
     // Allow access to public paths without authentication
     const isPublicPath = PUBLIC_ROUTES_REGEX.test(pathName)
