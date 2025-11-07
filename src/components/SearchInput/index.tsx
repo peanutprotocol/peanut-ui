@@ -22,7 +22,7 @@ export const SearchInput = ({
     return (
         <div className={`relative ${className}`}>
             {/* icono lupa */}
-            <div className="absolute left-4 top-1/2 -translate-y-1/2">
+            <div className="absolute left-4 top-1/2 z-10 -translate-y-1/2">
                 <Icon name="search" size={15} />
             </div>
 
