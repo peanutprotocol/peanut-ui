@@ -131,7 +131,7 @@ function CrispProxyContent() {
     }, [searchParams])
 
     return (
-        <div className="h-full w-full">
+        <div className="h-full w-full" style={{ height: '100vh', width: '100vw', overflow: 'hidden' }}>
             <Script strategy="afterInteractive" id="crisp-proxy-widget">
                 {`
                     window.$crisp=[];

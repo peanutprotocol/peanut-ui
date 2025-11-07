@@ -8,9 +8,10 @@ interface QRCodeWrapperProps {
     url: string
     isLoading?: boolean
     disabled?: boolean
+    isBlurred?: boolean
 }
 
-const QRCodeWrapper = ({ url, isLoading = false, disabled = false }: QRCodeWrapperProps) => {
+const QRCodeWrapper = ({ url, isLoading = false, disabled = false, isBlurred = false }: QRCodeWrapperProps) => {
     return (
         <div className="relative mx-auto h-auto w-full max-w-[160px]">
             {/* Container with black border and rounded corners */}
@@ -21,7 +22,7 @@ const QRCodeWrapper = ({ url, isLoading = false, disabled = false }: QRCodeWrapp
                 )}
             >
                 {/* QR Code with white buffer */}
-                <div className="relative">
+                <div className={twMerge('relative', isBlurred && 'blur-[3px]')}>
                     <QRCode
                         value={url}
                         size={256}

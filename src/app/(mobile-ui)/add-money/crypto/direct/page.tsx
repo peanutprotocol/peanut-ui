@@ -11,6 +11,8 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { trackDaimoDepositTransactionHash } from '@/app/actions/users'
+import InfoCard from '@/components/Global/InfoCard'
+import Link from 'next/link'
 
 export default function AddMoneyCryptoDirectPage() {
     const router = useRouter()
@@ -85,6 +87,27 @@ export default function AddMoneyCryptoDirectPage() {
                         hideBalance
                     />
 
+                    <InfoCard
+                        variant="error"
+                        icon="info"
+                        iconSize={14}
+                        description="This must match what you send from your wallet or exchange!"
+                    />
+
+                    <InfoCard
+                        variant="info"
+                        icon="alert"
+                        title="Peanut cannot recover funds sent to an incorrect address."
+                        description={
+                            <p>
+                                This deposit is processed by Daimo, a third-party provider.{' '}
+                                <Link href="/add-money/crypto" className="font-semibold underline">
+                                    Click here to deposit with Arbitrum USDC
+                                </Link>{' '}
+                                for a simple and free deposit.
+                            </p>
+                        }
+                    />
                     {address && (
                         <DaimoPayButton
                             amount={inputTokenAmount}

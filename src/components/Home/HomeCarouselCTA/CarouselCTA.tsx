@@ -20,6 +20,7 @@ interface CarouselCTAProps {
     iconContainerClassName?: string
     // Notification-specific props
     isPermissionDenied?: boolean
+    secondaryIcon?: StaticImageData | string
 }
 
 const CarouselCTA = ({
@@ -31,6 +32,7 @@ const CarouselCTA = ({
     logo,
     iconContainerClassName,
     isPermissionDenied,
+    secondaryIcon,
 }: CarouselCTAProps) => {
     const [showPermissionDeniedModal, setShowPermissionDeniedModal] = useState(false)
     const { triggerHaptic } = useHaptic()
@@ -90,15 +92,25 @@ const CarouselCTA = ({
                 {/* Icon container */}
                 <div
                     className={twMerge(
-                        'flex size-8 items-center justify-center rounded-full',
+                        'relative flex size-8 items-center justify-center rounded-full',
                         logo ? 'bg-transparent' : 'bg-primary-1',
                         iconContainerClassName
                     )}
                 >
                     {/* Show icon only if logo isn't provided. Logo takes precedence over icon. */}
-                    {!logo && <Icon name={icon} size={20} />}
+                    {!logo && <Icon name={icon} size={22} />}
                     {logo && (
-                        <Image src={logo} alt={typeof title === 'string' ? title : 'logo'} width={32} height={32} />
+                        <Image src={logo} alt={typeof title === 'string' ? title : 'logo'} width={36} height={36} />
+                    )}
+                    {secondaryIcon && (
+                        <Image
+                            src={secondaryIcon}
+                            alt="secondary icon"
+                            height={64}
+                            width={64}
+                            quality={100}
+                            className="absolute -right-1 bottom-0 z-50 size-4 rounded-full object-cover"
+                        />
                     )}
                 </div>
 

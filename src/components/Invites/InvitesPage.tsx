@@ -90,7 +90,7 @@ function InvitePageContent() {
                 )}
             >
                 <div className="mx-auto w-full md:max-w-xs">
-                    <div className="flex h-full flex-col justify-between gap-4 md:gap-10 md:pt-5">
+                    <div className="flex h-full flex-col justify-between gap-4 md:gap-6 md:pt-5">
                         <h1 className="text-xl font-extrabold">{inviteCodeData?.username} invited you to Peanut</h1>
                         <p className="text-base font-medium">
                             Members-only access. Use this invite to open your wallet and start sending and receiving
@@ -101,9 +101,15 @@ function InvitePageContent() {
                         </Button>
 
                         {!user?.user && (
-                            <button disabled={isLoggingIn} onClick={handleLoginClick} className="text-sm underline">
-                                {isLoggingIn ? 'Please wait...' : 'Already have an account? Log in!'}
-                            </button>
+                            <Button
+                                disabled={isLoggingIn}
+                                loading={isLoggingIn}
+                                variant="primary-soft"
+                                onClick={handleLoginClick}
+                                shadowSize="4"
+                            >
+                                Already have an account? Log in!
+                            </Button>
                         )}
                     </div>
                 </div>
