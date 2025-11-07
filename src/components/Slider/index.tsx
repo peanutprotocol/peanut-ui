@@ -14,10 +14,11 @@ export interface SliderProps
     onValueChange?: (value: boolean) => void
     defaultValue?: boolean
     onAccepted?: () => void
+    title?: string
 }
 
 const Slider = React.forwardRef<React.ElementRef<typeof SliderPrimitive.Root>, SliderProps>(
-    ({ className, value, onValueChange, defaultValue, onAccepted, ...props }, ref) => {
+    ({ className, value, onValueChange, defaultValue, onAccepted, title, ...props }, ref) => {
         const isControlled = value !== undefined
         const [uncontrolledState, setUncontrolledState] = React.useState(defaultValue ?? false)
         const currentValue = isControlled ? value : uncontrolledState
@@ -66,7 +67,7 @@ const Slider = React.forwardRef<React.ElementRef<typeof SliderPrimitive.Root>, S
                 <SliderPrimitive.Track className="pointer-events-none relative h-full w-full grow overflow-hidden rounded-none bg-white">
                     <SliderPrimitive.Range className="absolute h-full bg-primary-1" />
                     <div className="absolute left-0 top-0 flex h-full w-full items-center justify-center text-sm font-bold text-black">
-                        Slide to Proceed
+                        {title ? title : 'Slide to Proceed'}
                     </div>
                 </SliderPrimitive.Track>
                 <SliderPrimitive.Thumb
