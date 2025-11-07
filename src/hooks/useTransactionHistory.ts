@@ -22,7 +22,7 @@ export type HistoryResponse = {
 
 // Hook options
 type UseTransactionHistoryOptions = {
-    mode?: 'infinite' | 'latest' | 'public'
+    mode?: 'infinite' | 'latest'
     limit?: number
     enabled?: boolean
     username?: string
@@ -30,7 +30,7 @@ type UseTransactionHistoryOptions = {
 }
 
 export function useTransactionHistory(options: {
-    mode: 'latest' | 'public'
+    mode: 'latest'
     limit?: number
     enabled?: boolean
     username?: string
@@ -55,34 +55,19 @@ export function useTransactionHistory({
     username,
     filterMutualTxs,
 }: UseTransactionHistoryOptions): LatestHistoryResult | InfiniteHistoryResult {
-    const fetchHistory = async ({
-        cursor,
-        limit,
-        isPublic = false,
-    }: {
-        cursor?: string
-        limit: number
-        isPublic?: boolean
-    }): Promise<HistoryResponse> => {
+    const fetchHistory = async ({ cursor, limit }: { cursor?: string; limit: number }): Promise<HistoryResponse> => {
         const queryParams = new URLSearchParams()
         if (cursor) queryParams.append('cursor', cursor)
         if (limit) queryParams.append('limit', limit.toString())
         // append targetUsername to the query params if filterMutualTxs is true and username is provided
         if (filterMutualTxs && username) queryParams.append('targetUsername', username)
 
-        let url: string
-        if (isPublic) {
-            url = `${PEANUT_API_URL}/users/${username}/history?${queryParams.toString()}`
-        } else {
-            url = `${PEANUT_API_URL}/users/history?${queryParams.toString()}`
-        }
+        const url = `${PEANUT_API_URL}/users/history?${queryParams.toString()}`
 
         const headers: Record<string, string> = {
             'Content-Type': 'application/json',
         }
-        if (!isPublic) {
-            headers['Authorization'] = `Bearer ${Cookies.get('jwt-token')}`
-        }
+        headers['Authorization'] = `Bearer ${Cookies.get('jwt-token')}`
         const response = await fetchWithSentry(url, { method: 'GET', headers })
 
         if (!response.ok) {
@@ -106,15 +91,6 @@ export function useTransactionHistory({
             queryFn: () => fetchHistory({ limit }),
             enabled,
             staleTime: 5 * 60 * 1000, // 5 minutes
-        })
-    }
-
-    if (mode === 'public') {
-        return useQuery({
-            queryKey: [TRANSACTIONS, 'public', username, { limit }],
-            queryFn: () => fetchHistory({ limit, isPublic: true }),
-            enabled,
-            staleTime: 15 * 1000, // 15 seconds
         })
     }
 
