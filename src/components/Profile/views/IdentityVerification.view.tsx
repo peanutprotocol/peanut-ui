@@ -36,23 +36,21 @@ const IdentityVerificationView = () => {
     const [isStartVerificationModalOpen, setIsStartVerificationModalOpen] = useState(false)
     const params = useParams()
     const countryParam = params.country as string
-    const { isMantecaSupportedCountry } = useIdentityVerification()
+    const { isMantecaSupportedCountry, isBridgeSupportedCountry } = useIdentityVerification()
 
-    const handleRedirect = (isSuccess: boolean = false) => {
+    const handleRedirect = () => {
         const redirectUrl = getRedirectUrl()
         if (redirectUrl) {
             clearRedirectUrl()
             router.push(redirectUrl)
-        } else if (isSuccess) {
-            router.push('/profile')
         } else {
-            router.back()
+            router.push('/profile')
         }
     }
 
     const handleBridgeKycSuccess = useCallback(async () => {
         await fetchUser()
-        handleRedirect(true)
+        handleRedirect()
     }, [])
 
     const {
@@ -110,17 +108,6 @@ const IdentityVerificationView = () => {
         }
     }, [showUserDetailsForm])
 
-    // country validation helpers
-    const isBridgeSupportedCountry = (code: string) => {
-        const upper = code.toUpperCase()
-        return (
-            upper === 'US' ||
-            upper === 'MX' ||
-            Object.keys(BRIDGE_ALPHA3_TO_ALPHA2).includes(upper) ||
-            Object.values(BRIDGE_ALPHA3_TO_ALPHA2).includes(upper)
-        )
-    }
-
     // Skip country selection if coming from a supported bridge country
     useEffect(() => {
         if (countryParam) {
@@ -137,7 +124,7 @@ const IdentityVerificationView = () => {
                 }
             }
         }
-    }, [countryParam])
+    }, [countryParam, isBridgeSupportedCountry])
 
     const selectedCountryParams = useMemo(() => {
         if (countryParam) {
@@ -145,11 +132,17 @@ const IdentityVerificationView = () => {
             if (country) {
                 return country
             } else {
-                return { title: 'Bridge', id: 'bridge' }
+                return { title: 'Bridge', id: 'bridge', type: 'bridge', description: '', path: 'bridge' }
             }
         }
         return null
     }, [countryParam])
+
+    useEffect(() => {
+        return () => {
+            setIsStartVerificationModalOpen(false)
+        }
+    }, [])
 
     return (
         <div className="flex min-h-[inherit] flex-col space-y-8">
@@ -215,7 +208,7 @@ const IdentityVerificationView = () => {
                     selectedCountry={selectedCountry}
                     setIsMantecaModalOpen={setIsMantecaModalOpen}
                     isMantecaModalOpen={isMantecaModalOpen}
-                    onKycSuccess={() => handleRedirect(true)}
+                    onKycSuccess={handleRedirect}
                 />
             )}
 

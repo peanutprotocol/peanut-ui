@@ -4,7 +4,7 @@ import useKycStatus from './useKycStatus'
 import { useMemo, useCallback } from 'react'
 import { useAuth } from '@/context/authContext'
 import { MantecaKycStatus } from '@/interfaces'
-import { MantecaSupportedExchanges, countryData } from '@/components/AddMoney/consts'
+import { BRIDGE_ALPHA3_TO_ALPHA2, MantecaSupportedExchanges, countryData } from '@/components/AddMoney/consts'
 import React from 'react'
 
 /** Represents a geographic region with its display information */
@@ -241,6 +241,16 @@ export const useIdentityVerification = () => {
         ]
     }, [])
 
+    const isBridgeSupportedCountry = (code: string) => {
+        const upper = code.toUpperCase()
+        return (
+            upper === 'US' ||
+            upper === 'MX' ||
+            Object.keys(BRIDGE_ALPHA3_TO_ALPHA2).includes(upper) ||
+            Object.values(BRIDGE_ALPHA3_TO_ALPHA2).includes(upper)
+        )
+    }
+
     return {
         lockedRegions,
         unlockedRegions,
@@ -249,5 +259,6 @@ export const useIdentityVerification = () => {
         isRegionAlreadyUnlocked,
         getCountryTitle,
         getVerificationUnlockItems,
+        isBridgeSupportedCountry,
     }
 }

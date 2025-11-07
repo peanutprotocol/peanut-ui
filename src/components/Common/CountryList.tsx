@@ -19,6 +19,7 @@ import StatusBadge from '../Global/Badges/StatusBadge'
 import Loading from '../Global/Loading'
 import { useSearchParams } from 'next/navigation'
 import { ActionListCard } from '../ActionListCard'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 
 interface CountryListViewProps {
     inputTitle: string
@@ -68,6 +69,7 @@ export const CountryList = ({
     const { countryCode: userGeoLocationCountryCode, isLoading: isGeoLoading } = useGeoLocation()
     // track which country is being clicked to show loading state
     const [clickedCountryId, setClickedCountryId] = useState<string | null>(null)
+    const { isBridgeSupportedCountry: isBridgeSupportedCountryHook } = useIdentityVerification()
 
     const supportedCountries = countryData.filter((country) => country.type === 'country')
 
@@ -140,12 +142,7 @@ export const CountryList = ({
                                 ALL_COUNTRIES_ALPHA3_TO_ALPHA2[country.id.toUpperCase()] ?? country.id.toLowerCase()
                             const position = getCardPosition(index, filteredCountries.length)
 
-                            const isBridgeSupportedCountry = [
-                                'US',
-                                'MX',
-                                ...Object.keys(BRIDGE_ALPHA3_TO_ALPHA2),
-                                ...Object.values(BRIDGE_ALPHA3_TO_ALPHA2),
-                            ].includes(country.id)
+                            const isBridgeSupportedCountry = isBridgeSupportedCountryHook(country.id)
                             const isMantecaSupportedCountry = Object.keys(MantecaSupportedExchanges).includes(
                                 country.id
                             )
