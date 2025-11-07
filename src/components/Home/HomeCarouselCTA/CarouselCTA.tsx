@@ -20,6 +20,7 @@ interface CarouselCTAProps {
     // Notification-specific props
     isPermissionDenied?: boolean
     secondaryIcon?: StaticImageData | string
+    iconSize?: number
 }
 
 const CarouselCTA = ({
@@ -32,6 +33,7 @@ const CarouselCTA = ({
     iconContainerClassName,
     isPermissionDenied,
     secondaryIcon,
+    iconSize = 22,
 }: CarouselCTAProps) => {
     const [showPermissionDeniedModal, setShowPermissionDeniedModal] = useState(false)
 
@@ -95,7 +97,7 @@ const CarouselCTA = ({
                     )}
                 >
                     {/* Show icon only if logo isn't provided. Logo takes precedence over icon. */}
-                    {!logo && <Icon name={icon} size={22} />}
+                    {!logo && <Icon name={icon} size={iconSize} />}
                     {logo && (
                         <Image src={logo} alt={typeof title === 'string' ? title : 'logo'} width={36} height={36} />
                     )}
