@@ -576,14 +576,21 @@ export const TransactionDetailsReceipt = ({
                                     const perk = transaction.extraDataForDrawer.perk
                                     const percentage = perk.discountPercentage
                                     const amount = perk.amountSponsored
-                                    const amountStr = amount ? `$${amount.toFixed(2)}` : ''
                                     const isCapped = perk.isCapped
                                     const campaignCap = perk.campaignCapUsd
 
                                     // If user hit their campaign cap, show special message
                                     if (isCapped && campaignCap) {
-                                        return `You received ${amountStr} cashback! You've reached your $${campaignCap.toFixed(0)} campaign limit for now 🎉`
+                                        const amountText =
+                                            amount !== undefined && amount !== null
+                                                ? `You received $${amount.toFixed(2)} cashback! `
+                                                : ''
+                                        return `${amountText}You've reached your $${campaignCap.toFixed(0)} campaign limit 🎉`
                                     }
+
+                                    // For non-capped messages, use amountStr
+                                    const amountStr =
+                                        amount !== undefined && amount !== null ? `$${amount.toFixed(2)}` : ''
 
                                     if (percentage === 100) {
                                         return `You received a full refund${amount ? ` (${amountStr})` : ''} as a Peanut Perk.`
