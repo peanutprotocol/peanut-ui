@@ -581,11 +581,10 @@ export const TransactionDetailsReceipt = ({
 
                                     // If user hit their campaign cap, show special message
                                     if (isCapped && campaignCap) {
-                                        const amountText =
-                                            amount !== undefined && amount !== null
-                                                ? `You received $${amount.toFixed(2)} cashback! `
-                                                : ''
-                                        return `${amountText}You've reached your $${campaignCap.toFixed(0)} campaign limit 🎉`
+                                        if (amount !== undefined && amount !== null) {
+                                            return `$${amount.toFixed(2)} cashback — campaign limit reached! 🎉`
+                                        }
+                                        return `Campaign limit reached! 🎉`
                                     }
 
                                     // For non-capped messages, use amountStr
