@@ -18,6 +18,7 @@ import { twMerge } from 'tailwind-merge'
 import ActionModal from '../ActionModal'
 import { Icon, type IconName } from '../Icons/Icon'
 import { EQrType, NAME_BY_QR_TYPE, parseEip681, recognizeQr } from './utils'
+import { useQrCodeContext } from '@/context/QrCodeContext'
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL!
 
@@ -180,7 +181,6 @@ export default function DirectSendQr({
     icon?: IconName
     disabled?: boolean
 }) {
-    const [isQRScannerOpen, setIsQRScannerOpen] = useState(false)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [showPermissionModal, setShowPermissionModal] = useState(false)
     const [qrType, setQrType] = useState<EQrType | undefined>(undefined)
@@ -196,6 +196,7 @@ export default function DirectSendQr({
         if (!user?.user.username) return ''
         return `${BASE_URL}/pay/${user.user.username}`
     }, [user?.user.username])
+    const { isQRScannerOpen, setIsQRScannerOpen } = useQrCodeContext()
 
     const startScanner = () => {
         setIsQRScannerOpen(true)

@@ -32,6 +32,7 @@ const HomeCarouselCTA = () => {
                     iconContainerClassName={cta.iconContainerClassName}
                     isPermissionDenied={cta.isPermissionDenied}
                     secondaryIcon={cta.secondaryIcon}
+                    iconSize={16}
                 />
             ))}
         </Carousel>
