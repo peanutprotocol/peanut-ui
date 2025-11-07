@@ -43,7 +43,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         setIsReady(true)
     }, [])
 
-    // pull-to-refresh enabled on both ios and android with hidden indicator
+    // Pull-to-refresh is only enabled on iOS devices since Android has native pull-to-refresh
     // docs here: https://github.com/BoxFactura/pulltorefresh.js
     useEffect(() => {
         if (typeof window === 'undefined') return
