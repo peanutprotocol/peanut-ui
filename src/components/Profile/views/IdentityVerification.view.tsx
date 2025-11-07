@@ -108,24 +108,7 @@ const IdentityVerificationView = () => {
         }
     }, [showUserDetailsForm])
 
-    // Skip country selection if coming from a supported bridge country
-    useEffect(() => {
-        if (countryParam) {
-            if (isBridgeSupportedCountry(countryParam) || countryParam === 'bridge') {
-                const country = countryData.find((country) => country.id.toUpperCase() === countryParam.toUpperCase())
-
-                if (country) {
-                    setUserClickedCountry({ title: country.title, id: country.id })
-                    setIsStartVerificationModalOpen(true)
-                } else {
-                    // set as bridge
-                    setUserClickedCountry({ title: 'Bridge', id: 'bridge' })
-                    setIsStartVerificationModalOpen(true)
-                }
-            }
-        }
-    }, [countryParam, isBridgeSupportedCountry])
-
+    // Memoized country lookup from URL param
     const selectedCountryParams = useMemo(() => {
         if (countryParam) {
             const country = countryData.find((country) => country.id.toUpperCase() === countryParam.toUpperCase())
@@ -137,6 +120,14 @@ const IdentityVerificationView = () => {
         }
         return null
     }, [countryParam])
+
+    // Skip country selection if coming from a supported bridge country
+    useEffect(() => {
+        if (selectedCountryParams && (isBridgeSupportedCountry(countryParam) || countryParam === 'bridge')) {
+            setUserClickedCountry({ title: selectedCountryParams.title, id: selectedCountryParams.id })
+            setIsStartVerificationModalOpen(true)
+        }
+    }, [countryParam, isBridgeSupportedCountry, selectedCountryParams])
 
     useEffect(() => {
         return () => {
