@@ -1,7 +1,18 @@
 'use client'
 
 import { forwardRef } from 'react'
-import * as Select from '@radix-ui/react-select'
+import {
+    Root,
+    Trigger,
+    Value,
+    Icon as SelectIcon,
+    Portal,
+    Content,
+    Viewport,
+    Item,
+    ItemText,
+    ItemIndicator,
+} from '@radix-ui/react-select'
 import { twMerge } from 'tailwind-merge'
 import { Icon } from '@/components/Global/Icons/Icon'
 
@@ -24,7 +35,7 @@ interface BaseSelectProps {
 const BaseSelect = forwardRef<HTMLButtonElement, BaseSelectProps>(
     ({ options, placeholder = 'Select...', value, onValueChange, onBlur, className, disabled, error }, ref) => {
         return (
-            <Select.Root
+            <Root
                 value={value}
                 onValueChange={onValueChange}
                 disabled={disabled}
@@ -35,7 +46,7 @@ const BaseSelect = forwardRef<HTMLButtonElement, BaseSelectProps>(
                     }
                 }}
             >
-                <Select.Trigger
+                <Trigger
                     ref={ref}
                     className={twMerge(
                         'flex h-12 w-full items-center justify-between rounded-sm border border-n-1 bg-white px-4 text-sm font-bold text-n-1 outline-none transition-colors placeholder:text-n-3',
@@ -45,14 +56,14 @@ const BaseSelect = forwardRef<HTMLButtonElement, BaseSelectProps>(
                         className
                     )}
                 >
-                    <Select.Value placeholder={placeholder} className="text-n-1 data-[placeholder]:text-n-3" />
-                    <Select.Icon>
+                    <Value placeholder={placeholder} className="text-n-1 data-[placeholder]:text-n-3" />
+                    <SelectIcon>
                         <Icon name="chevron-down" className="size-4 text-n-1" />
-                    </Select.Icon>
-                </Select.Trigger>
+                    </SelectIcon>
+                </Trigger>
 
-                <Select.Portal>
-                    <Select.Content
+                <Portal>
+                    <Content
                         className={twMerge(
                             'relative z-50 max-h-80 overflow-hidden rounded-sm border border-n-1 bg-white shadow-lg'
                         )}
@@ -61,9 +72,9 @@ const BaseSelect = forwardRef<HTMLButtonElement, BaseSelectProps>(
                         align="start"
                         style={{ width: 'var(--radix-select-trigger-width)' }}
                     >
-                        <Select.Viewport className="w-full p-1">
+                        <Viewport className="w-full p-1">
                             {options.map((option) => (
-                                <Select.Item
+                                <Item
                                     key={option.value}
                                     value={option.value}
                                     className={twMerge(
@@ -73,16 +84,16 @@ const BaseSelect = forwardRef<HTMLButtonElement, BaseSelectProps>(
                                         'data-[state=checked]:bg-primary-1 data-[state=checked]:font-bold data-[state=checked]:text-white'
                                     )}
                                 >
-                                    <Select.ItemText className="text-sm font-bold">{option.label}</Select.ItemText>
-                                    <Select.ItemIndicator className="ml-auto">
+                                    <ItemText className="text-sm font-bold">{option.label}</ItemText>
+                                    <ItemIndicator className="ml-auto">
                                         <Icon name="check" className="size-4" />
-                                    </Select.ItemIndicator>
-                                </Select.Item>
+                                    </ItemIndicator>
+                                </Item>
                             ))}
-                        </Select.Viewport>
-                    </Select.Content>
-                </Select.Portal>
-            </Select.Root>
+                        </Viewport>
+                    </Content>
+                </Portal>
+            </Root>
         )
     }
 )

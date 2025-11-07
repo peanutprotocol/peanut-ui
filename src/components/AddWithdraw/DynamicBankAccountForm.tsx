@@ -83,6 +83,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         const router = useRouter()
         const savedAccounts = useSavedAccounts()
         const [isCheckingBICValid, setisCheckingBICValid] = useState(false)
+        const STREET_ADDRESS_MAX_LENGTH = 35 // From bidge docs: street address can be max 35 characters
 
         let selectedCountry = (countryNameFromProps ?? (countryNameParams as string)).toLowerCase()
 
@@ -267,7 +268,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                 rightContent={
                                     showCharCount && maxLength ? (
                                         <span className="text-xs">
-                                            {field.value?.length || 0}/{maxLength}
+                                            {field.value?.length ?? 0}/{maxLength}
                                         </span>
                                     ) : undefined
                                 }
@@ -462,7 +463,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                     {
                                         required: 'Street address is required',
                                         maxLength: {
-                                            value: 35,
+                                            value: STREET_ADDRESS_MAX_LENGTH,
                                             message: 'Street address must be 35 characters or less',
                                         },
                                         minLength: { value: 4, message: 'Street address must be 4 characters or more' },
@@ -479,15 +480,10 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                 {renderSelect(
                                     'state',
                                     'Select your state',
-                                    isMx
-                                        ? MX_STATES.map((state) => ({
-                                              label: state.name,
-                                              value: state.code,
-                                          }))
-                                        : US_STATES.map((state) => ({
-                                              label: state.name,
-                                              value: state.code,
-                                          })),
+                                    (isMx ? MX_STATES : US_STATES).map((state) => ({
+                                        label: state.name,
+                                        value: state.code,
+                                    })),
                                     {
                                         required: 'State is required',
                                     }
