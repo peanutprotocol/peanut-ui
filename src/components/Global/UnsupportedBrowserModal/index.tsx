@@ -4,9 +4,9 @@ import ActionModal, { type ActionModalButtonProps } from '@/components/Global/Ac
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { copyTextToClipboardWithFallback } from '@/utils/general.utils'
-import { useEffect, useState, Suspense } from 'react'
+import { useEffect, useState, Suspense, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { usePasskeySupport } from '@/hooks/usePasskeySupport'
+import { usePasskeySupportContext } from '@/context/passkeySupportContext'
 
 export const inAppSignatures = [
     'WebView',
@@ -47,13 +47,23 @@ const UnsupportedBrowserModalContent = ({
     const [showInAppBrowserModalViaDetection, setShowInAppBrowserModalViaDetection] = useState(false)
     const [copyButtonText, setCopyButtonText] = useState('Copy Link')
     const toast = useToast()
-    const { isSupported: isPasskeySupported, isLoading: isLoadingPasskeySupport } = usePasskeySupport()
+    const { isSupported: isPasskeySupported, isLoading: isLoadingPasskeySupport } = usePasskeySupportContext()
+    const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
     useEffect(() => {
         if (!isPasskeySupported && !isLoadingPasskeySupport) {
             setShowInAppBrowserModalViaDetection(true)
         }
     }, [isPasskeySupported, isLoadingPasskeySupport])
+
+    // Cleanup timeout on unmount to prevent memory leak
+    useEffect(() => {
+        return () => {
+            if (copyTimeoutRef.current) {
+                clearTimeout(copyTimeoutRef.current)
+            }
+        }
+    }, [])
 
     if (!showInAppBrowserModalViaDetection && !visible) {
         return null
@@ -72,6 +82,11 @@ const UnsupportedBrowserModalContent = ({
             iconPosition: 'left',
             onClick: async () => {
                 try {
+                    // Clear any existing timeout to prevent multiple resets
+                    if (copyTimeoutRef.current) {
+                        clearTimeout(copyTimeoutRef.current)
+                    }
+
                     // copy the redirect uri if it exists, otherwise copy the current url
                     const redirectUri = searchParams.get('redirect_uri')
                     const urlToCopy = redirectUri
@@ -80,7 +95,7 @@ const UnsupportedBrowserModalContent = ({
                     await copyTextToClipboardWithFallback(urlToCopy)
                     setCopyButtonText('Copied!')
                     toast.success('Link copied to clipboard!')
-                    setTimeout(() => setCopyButtonText('Copy Link'), 2000)
+                    copyTimeoutRef.current = setTimeout(() => setCopyButtonText('Copy Link'), 2000)
                 } catch (err) {
                     console.error('Failed to copy: ', err)
                     toast.error('Failed to copy link.')
