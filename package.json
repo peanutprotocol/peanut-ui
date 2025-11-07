@@ -149,6 +149,7 @@
             "^web-push$": "<rootDir>/src/utils/__mocks__/web-push.ts",
             "^next/cache$": "<rootDir>/src/utils/__mocks__/next-cache.ts",
             "^@zerodev/sdk(.*)$": "<rootDir>/src/utils/__mocks__/zerodev-sdk.ts",
+            "^@simplewebauthn/browser$": "<rootDir>/src/utils/__mocks__/simplewebauthn-browser.ts",
             "^@/(.*)$": "<rootDir>/src/$1"
         },
         "setupFilesAfterEnv": [
