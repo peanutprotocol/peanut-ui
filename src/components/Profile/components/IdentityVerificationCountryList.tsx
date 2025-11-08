@@ -1,8 +1,10 @@
 'use client'
-import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { SearchInput } from '@/components/SearchInput'
 import { getCountriesForRegion } from '@/utils/identityVerification'
+import { MantecaSupportedExchanges } from '@/components/AddMoney/consts'
+import StatusBadge from '@/components/Global/Badges/StatusBadge'
+import { Button } from '@/components/0_Bruddle'
 import * as Accordion from '@radix-ui/react-accordion'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -36,7 +38,11 @@ const IdentityVerificationCountryList = ({ region }: { region: string }) => {
                 />
             </div>
 
-            <Accordion.Root type="multiple" defaultValue={['available-countries', 'coming-soon']} className="space-y-4">
+            <Accordion.Root
+                type="multiple"
+                defaultValue={['available-countries', 'limited-access']}
+                className="space-y-4"
+            >
                 <CountryListSection
                     value="available-countries"
                     title="Available countries in this region"
@@ -54,13 +60,39 @@ const IdentityVerificationCountryList = ({ region }: { region: string }) => {
                 />
 
                 <CountryListSection
-                    value="coming-soon"
-                    title="Coming soon"
+                    value="limited-access"
+                    title="Limited access"
+                    description="These countries support verification, but don't have full payment support yet."
                     countries={filteredUnsupportedCountries}
-                    onCountryClick={() => {}}
-                    rightContent={() => <StatusBadge status="soon" />}
+                    onCountryClick={(country) => {
+                        // Check if country is in MantecaSupportedExchanges
+                        const countryCode = country.iso2?.toUpperCase()
+                        const isMantecaSupported =
+                            countryCode && Object.prototype.hasOwnProperty.call(MantecaSupportedExchanges, countryCode)
+
+                        if (isMantecaSupported && isLatam) {
+                            // Route to Manteca-specific KYC
+                            router.push(`/profile/identity-verification/${region}/${encodeURIComponent(country.id)}`)
+                        } else {
+                            // Route to Bridge KYC for all other countries
+                            router.push(`/profile/identity-verification/${region}/${encodeURIComponent('bridge')}`)
+                        }
+                    }}
+                    rightContent={() => (
+                        <div className="flex items-center gap-2">
+                            <StatusBadge status="custom" customText="Limited access" />
+                            <Button
+                                shadowSize="4"
+                                size="small"
+                                className="h-6 w-6 rounded-full p-0 shadow-[0.12rem_0.12rem_0_#000000]"
+                            >
+                                <div className="flex size-7 items-center justify-center">
+                                    <Icon name="chevron-up" className="h-9 rotate-90" />
+                                </div>
+                            </Button>
+                        </div>
+                    )}
                     defaultOpen
-                    isDisabled
                 />
             </Accordion.Root>
         </div>

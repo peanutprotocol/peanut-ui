@@ -2578,6 +2578,16 @@ export const countryData: CountryData[] = [
         region: 'latam',
     },
     {
+        id: 'VE',
+        type: 'country',
+        title: 'Venezuela',
+        currency: 'VES',
+        path: 'venezuela',
+        iso2: 'VE',
+        iso3: 'VEN',
+        region: 'latam',
+    },
+    {
         id: 'VG',
         type: 'country',
         title: 'British Virgin Islands',
