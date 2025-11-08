@@ -258,7 +258,6 @@ export interface User {
     showFullName: boolean
     createdAt: string
     accounts: Account[]
-    showKycCompletedModal: boolean
     badges?: Array<{
         id?: string
         code: string

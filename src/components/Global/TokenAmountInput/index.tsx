@@ -4,7 +4,6 @@ import { PEANUT_WALLET_TOKEN_DECIMALS, STABLE_COINS } from '@/constants'
 import { tokenSelectorContext } from '@/context'
 import { formatTokenAmount, formatCurrency } from '@/utils'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
 import Icon from '../Icon'
 import { twMerge } from 'tailwind-merge'
 import { Icon as IconComponent } from '@/components/Global/Icons/Icon'
@@ -61,8 +60,6 @@ const TokenAmountInput = ({
     defaultSliderSuggestedAmount,
 }: TokenAmountInputProps) => {
     const { selectedTokenData } = useContext(tokenSelectorContext)
-    const router = useRouter()
-    const searchParams = useSearchParams()
     const inputRef = useRef<HTMLInputElement>(null)
     const inputType = useMemo(() => (window.innerWidth < 640 ? 'text' : 'number'), [])
     const [isFocused, setIsFocused] = useState(false)
@@ -195,16 +192,7 @@ const TokenAmountInput = ({
     // to change when we change the display mode or the value (we already call
     // onchange on the input change so dont add those dependencies here!)
     useEffect(() => {
-        // early return if tokenValue is empty.
-        if (!tokenValue) return
-
-        if (!isInitialInputUsd) {
-            const value = tokenValue ? Number(tokenValue) : 0
-            const formattedValue = (value * (currency?.price ?? 1)).toFixed(2)
-            onChange(formattedValue, isInputUsd)
-        } else {
-            onChange(displayValue, isInputUsd)
-        }
+        onChange(displayValue, isInputUsd)
     }, [selectedTokenData?.price]) // Seriously, this is ok
 
     useEffect(() => {
@@ -377,16 +365,6 @@ const TokenAmountInput = ({
                             setAlternativeDisplayValue(currentValue)
                         }
                         setIsInputUsd(!isInputUsd)
-
-                        // Toggle swap-currency parameter in URL
-                        const params = new URLSearchParams(searchParams.toString())
-                        const currentSwapValue = params.get('swap-currency')
-                        if (currentSwapValue === 'true') {
-                            params.set('swap-currency', 'false')
-                        } else {
-                            params.set('swap-currency', 'true')
-                        }
-                        router.replace(`?${params.toString()}`, { scroll: false })
                     }}
                 >
                     <Icon name={'switch'} className="ml-5 rotate-90 cursor-pointer" width={32} height={32} />

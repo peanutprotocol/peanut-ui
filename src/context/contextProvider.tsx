@@ -10,7 +10,6 @@ import { ClaimBankFlowContextProvider } from './ClaimBankFlowContext'
 import { RequestFulfilmentFlowContextProvider } from './RequestFulfillmentFlowContext'
 import { SupportModalProvider } from './SupportModalContext'
 import { QrCodeProvider } from './QrCodeContext'
-import { PasskeySupportProvider } from './passkeySupportContext'
 
 export const ContextProvider = ({ children }: { children: React.ReactNode }) => {
     return (
@@ -25,9 +24,7 @@ export const ContextProvider = ({ children }: { children: React.ReactNode }) => 
                                         <WithdrawFlowContextProvider>
                                             <OnrampFlowContextProvider>
                                                 <SupportModalProvider>
-                                                  <PasskeySupportProvider>
-                                                        <QrCodeProvider>{children}</QrCodeProvider>
-                                                    </PasskeySupportProvider>
+                                                    <QrCodeProvider>{children}</QrCodeProvider>
                                                 </SupportModalProvider>
                                             </OnrampFlowContextProvider>
                                         </WithdrawFlowContextProvider>

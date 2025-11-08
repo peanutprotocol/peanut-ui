@@ -197,14 +197,6 @@ module.exports = {
                     '0%, 50%': { opacity: '1' },
                     '50.01%, 100%': { opacity: '0' },
                 },
-                'accordion-down': {
-                    from: { height: '0' },
-                    to: { height: 'var(--radix-accordion-content-height)' },
-                },
-                'accordion-up': {
-                    from: { height: 'var(--radix-accordion-content-height)' },
-                    to: { height: '0' },
-                },
                 starPulsateWiggle: {
                     // Gentle pulsate 3 times
                     '0%': { transform: 'scale(1) rotate(0deg)' },
@@ -234,8 +226,6 @@ module.exports = {
                 'pulsate-slow': 'pulsateDeep 4s ease-in-out infinite',
                 'pulse-strong': 'pulse-strong 1s ease-in-out infinite',
                 blink: 'blink 1.5s step-end infinite',
-                'accordion-down': 'accordion-down 0.3s cubic-bezier(0.87, 0, 0.13, 1)',
-                'accordion-up': 'accordion-up 0.3s cubic-bezier(0.87, 0, 0.13, 1)',
                 'star-pulsate-wiggle': 'starPulsateWiggle 10s ease-in-out infinite',
             },
             opacity: {

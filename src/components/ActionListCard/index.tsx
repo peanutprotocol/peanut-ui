@@ -1,11 +1,8 @@
-'use client'
-
 import Card, { type CardPosition } from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
 import React from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '../0_Bruddle'
-import { useHaptic } from 'use-haptic'
 
 interface ActionListCardProps {
     title: string | React.ReactNode
@@ -17,7 +14,6 @@ interface ActionListCardProps {
     rightContent?: React.ReactNode
     isDisabled?: boolean
     descriptionClassName?: string
-    titleClassName?: string
 }
 
 export const ActionListCard = ({
@@ -30,12 +26,8 @@ export const ActionListCard = ({
     rightContent,
     isDisabled = false,
     descriptionClassName,
-    titleClassName,
 }: ActionListCardProps) => {
-    const { triggerHaptic } = useHaptic()
-
     const handleCardClick = () => {
-        triggerHaptic()
         onClick()
     }
 
@@ -53,7 +45,7 @@ export const ActionListCard = ({
                 <div className="flex min-w-0 flex-1 items-center gap-3">
                     {leftIcon}
                     <div className="flex min-w-0 flex-1 flex-col">
-                        <div className={twMerge('font-medium', titleClassName)}>{title}</div>
+                        <div className="font-medium">{title}</div>
                         {description && (
                             <div className={twMerge('text-sm text-grey-1', descriptionClassName)}>{description}</div>
                         )}

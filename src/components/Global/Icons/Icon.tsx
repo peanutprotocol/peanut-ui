@@ -64,7 +64,6 @@ import { TrophyIcon } from './trophy'
 import { InviteHeartIcon } from './invite-heart'
 import { LockIcon } from './lock'
 import { SplitIcon } from './split'
-import { GlobeLockIcon } from './globe-lock'
 
 // available icon names
 export type IconName =
@@ -133,7 +132,6 @@ export type IconName =
     | 'invite-heart'
     | 'lock'
     | 'split'
-    | 'globe-lock'
 export interface IconProps extends SVGProps<SVGSVGElement> {
     name: IconName
     size?: number | string
@@ -206,7 +204,6 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     'invite-heart': InviteHeartIcon,
     lock: LockIcon,
     split: SplitIcon,
-    'globe-lock': GlobeLockIcon,
 }
 
 export const Icon: FC<IconProps> = ({ name, size = 24, width, height, ...props }) => {

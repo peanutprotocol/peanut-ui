@@ -9,16 +9,15 @@ import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useUserStore } from '@/redux/hooks'
 import { ESendLinkStatus, sendLinksApi } from '@/services/sendLinks'
 import { formatTokenAmount, getTokenDetails, printableAddress, shortenStringLong } from '@/utils'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQueryClient, useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import type { Hash } from 'viem'
 import { formatUnits } from 'viem'
 import * as _consts from '../../Claim.consts'
-import CreateAccountButton from '@/components/Global/CreateAccountButton'
-import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
 import Image from 'next/image'
-import { useHaptic } from 'use-haptic'
+import { PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
+import CreateAccountButton from '@/components/Global/CreateAccountButton'
 
 export const SuccessClaimLinkView = ({
     transactionHash,
@@ -32,7 +31,6 @@ export const SuccessClaimLinkView = ({
     const router = useRouter()
     const queryClient = useQueryClient()
     const { offrampDetails, claimType, bankDetails } = useClaimBankFlow()
-    const { triggerHaptic } = useHaptic()
 
     // @dev: Claimers don't earn points (only senders do), so we don't call calculatePoints
     // Points will show in activity history once the sender's transaction is processed
@@ -165,11 +163,6 @@ export const SuccessClaimLinkView = ({
         return <CreateAccountButton onClick={() => router.push('/setup')} />
     }
 
-    useEffect(() => {
-        // trigger haptic on mount
-        triggerHaptic()
-    }, [triggerHaptic])
-
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
             <SoundPlayer sound="success" />
@@ -182,14 +175,7 @@ export const SuccessClaimLinkView = ({
                     }}
                 />
             </div>
-            <div className="relative z-10 my-auto flex h-full flex-col justify-center space-y-4">
-                <Image
-                    src={chillPeanutAnim.src}
-                    alt="Peanut Mascot"
-                    width={240}
-                    height={240}
-                    className="absolute -top-32 left-1/2 -z-10 h-60 w-60 -translate-x-1/2"
-                />
+            <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 <PeanutActionDetailsCard {...cardProps} />
                 {renderButtons()}
             </div>

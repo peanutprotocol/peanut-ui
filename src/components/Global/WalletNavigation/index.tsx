@@ -8,7 +8,6 @@ import classNames from 'classnames'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useHaptic } from 'use-haptic'
 
 type NavPathProps = {
     name: string
@@ -66,13 +65,11 @@ type MobileNavProps = {
 
 const MobileNav: React.FC<MobileNavProps> = ({ pathName }) => {
     const { setIsSupportModalOpen } = useSupportModalContext()
-    const { triggerHaptic } = useHaptic()
 
     return (
         <div className="z-1 grid h-20 grid-cols-3 border-t border-black bg-background md:hidden">
             {/* Home Link */}
             <Link
-                onClick={() => triggerHaptic()}
                 href="/home"
                 translate="no"
                 className={classNames(
@@ -92,10 +89,7 @@ const MobileNav: React.FC<MobileNavProps> = ({ pathName }) => {
 
             {/* Support Link */}
             <button
-                onClick={() => {
-                    triggerHaptic()
-                    setIsSupportModalOpen(true)
-                }}
+                onClick={() => setIsSupportModalOpen(true)}
                 translate="no"
                 className={classNames(
                     'notranslate mb-4 flex flex-col items-center justify-center object-contain  hover:cursor-pointer',
