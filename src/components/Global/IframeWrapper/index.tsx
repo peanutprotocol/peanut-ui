@@ -139,7 +139,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                         <iframe
                             key={src}
                             src={src}
-                            allow="camera *; fullscreen *"
+                            allow="camera *; microphone *; fullscreen *"
                             style={{ width: '100%', height: '85%', border: 'none' }}
                             className="rounded-md"
                             sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-top-navigation-by-user-activation allow-media-devices"
