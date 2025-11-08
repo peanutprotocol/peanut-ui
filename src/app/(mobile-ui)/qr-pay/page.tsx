@@ -433,14 +433,20 @@ export default function QRPayPage() {
             })
             .catch((error) => {
                 if (error.message.includes("provider can't decode it")) {
-                    setWaitingForMerchantAmount(true)
+                    if (EQrType.PIX === qrType) {
+                        setErrorInitiatingPayment(
+                            'We are currently experiencing issues with PIX payments due to an external provider. We are working to fix it as soon as possible'
+                        )
+                    } else {
+                        setWaitingForMerchantAmount(true)
+                    }
                 } else {
                     setErrorInitiatingPayment(error.message)
                     setWaitingForMerchantAmount(false)
                 }
             })
             .finally(() => setLoadingState('Idle'))
-    }, [paymentLock, qrCode, setLoadingState, paymentProcessor, shouldRetry])
+    }, [paymentLock, qrCode, setLoadingState, paymentProcessor, shouldRetry, qrType])
 
     const merchantName = useMemo(() => {
         if (paymentProcessor === 'SIMPLEFI') {
@@ -836,14 +842,14 @@ export default function QRPayPage() {
     if (!!errorInitiatingPayment) {
         return (
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
-                <Card className="shadow-4 space-y-2">
-                    <div className="space-y-2">
-                        <h1 className="text-3xl font-extrabold">Unable to get QR details</h1>
-                        <p className="text-lg">
-                            {errorInitiatingPayment || 'An error occurred while getting the QR details.'}
-                        </p>
+                <Card className="relative z-10 flex w-full flex-col items-center gap-4 p-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-1 p-3">
+                        <Icon name="alert" className="h-full" />
                     </div>
-                    <div className="h-[1px] bg-black"></div>
+                    <p className="font-medium">
+                        {' '}
+                        {errorInitiatingPayment || 'An error occurred while getting the QR details.'}
+                    </p>
 
                     <Button onClick={() => router.back()} variant="purple">
                         Go Back
