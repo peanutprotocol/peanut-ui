@@ -14,6 +14,17 @@
         /* disable tap highlight */
         -webkit-tap-highlight-color: transparent;
     }
+    
+    /* Aggressive light mode enforcement for Android/Brave dark mode override */
+    @media (prefers-color-scheme: dark) {
+        :root,
+        html,
+        body {
+            color-scheme: light !important;
+            background-color: white !important;
+            color: black !important;
+        }
+    }
 }
 
 @layer utilities {
@@ -390,7 +401,7 @@ Firefox input[type='number'] {
 
 /* Panel styling */
 .panel {
-    @apply rounded-md border-2 border-n-1 bg-white shadow-lg shadow-md ring-2 ring-white dark:border-white dark:bg-n-1 dark:ring-n-1;
+    @apply rounded-md border-2 border-n-1 bg-white shadow-lg shadow-md ring-2 ring-white;
 }
 
 .panel-sm {
@@ -416,7 +427,7 @@ Firefox input[type='number'] {
 
 /* Form styling */
 .input-text {
-    @apply h-12 w-full border border-n-1 bg-white px-3 font-medium outline-none ring-2 ring-white transition-colors focus:border-primary-1 dark:border-white dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1;
+    @apply h-12 w-full border border-n-1 bg-white px-3 font-medium outline-none ring-2 ring-white transition-colors focus:border-primary-1;
 }
 
 .input-text-inset {
@@ -425,11 +436,11 @@ Firefox input[type='number'] {
 
 /* Decoration */
 .border-rounded {
-    @apply rounded-md border-2 border-n-1 dark:border-white;
+    @apply rounded-md border-2 border-n-1;
 }
 
 .ring-sm {
-    @apply shadow-md ring-2 ring-white dark:ring-n-1;
+    @apply shadow-md ring-2 ring-white;
 }
 
 .font-roboto-400-50 {
