@@ -34,7 +34,13 @@ export const InitiateBridgeKYCModal = ({
     } = useBridgeKycFlow({ onKycSuccess, flow, onManualClose })
     const { addParamStep } = useClaimLink()
 
-    const { showCameraWarning, mediaCheckResult, handleVerifyClick: checkAndInitiate, handleContinueAnyway, handleOpenInBrowser } = useKycCameraCheck({
+    const {
+        showCameraWarning,
+        mediaCheckResult,
+        handleVerifyClick: checkAndInitiate,
+        handleContinueAnyway,
+        handleOpenInBrowser,
+    } = useKycCameraCheck({
         onInitiateKyc: handleInitiateKyc,
         onClose,
         saveRedirect: saveRedirectUrl,
@@ -90,7 +96,11 @@ export const InitiateBridgeKYCModal = ({
                 />
             )}
 
-            <IframeWrapper {...iframeOptions} visible={iframeOptions.visible && !showCameraWarning} onClose={handleIframeClose} />
+            <IframeWrapper
+                {...iframeOptions}
+                visible={iframeOptions.visible && !showCameraWarning}
+                onClose={handleIframeClose}
+            />
             <KycVerificationInProgressModal
                 isOpen={isVerificationProgressModalOpen}
                 onClose={closeVerificationProgressModal}
