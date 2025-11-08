@@ -249,7 +249,7 @@ export const useIdentityVerification = () => {
         ]
     }, [])
 
-    const isBridgeSupportedCountry = (code: string) => {
+    const isBridgeSupportedCountry = useCallback((code: string) => {
         const upper = code.toUpperCase()
         return (
             upper === 'US' ||
@@ -257,7 +257,7 @@ export const useIdentityVerification = () => {
             Object.keys(BRIDGE_ALPHA3_TO_ALPHA2).includes(upper) ||
             Object.values(BRIDGE_ALPHA3_TO_ALPHA2).includes(upper)
         )
-    }
+    }, [])
 
     return {
         lockedRegions,

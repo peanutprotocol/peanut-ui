@@ -108,6 +108,12 @@ const IdentityVerificationView = () => {
         }
     }, [showUserDetailsForm])
 
+    // Bridge country object for all bridge supported countries
+    const bridgeCountryObject = useMemo(
+        () => ({ title: 'Bridge', id: 'bridge', type: 'bridge', description: '', path: 'bridge' }),
+        []
+    )
+
     // Memoized country lookup from URL param
     const selectedCountryParams = useMemo(() => {
         if (countryParam) {
@@ -115,11 +121,11 @@ const IdentityVerificationView = () => {
             if (country) {
                 return country
             } else {
-                return { title: 'Bridge', id: 'bridge', type: 'bridge', description: '', path: 'bridge' }
+                return bridgeCountryObject
             }
         }
         return null
-    }, [countryParam])
+    }, [countryParam, bridgeCountryObject])
 
     // Skip country selection if coming from a supported bridge country
     useEffect(() => {
