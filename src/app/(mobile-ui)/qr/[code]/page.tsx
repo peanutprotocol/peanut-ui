@@ -188,8 +188,8 @@ export default function RedirectQrClaimPage() {
                 {/* QR Code Visual */}
                 <Card className="space-y-4 p-6">
                     <div className="flex items-center justify-center">
-                        <div className="flex h-20 w-20 items-center justify-center rounded-full">
-                            <Icon name="qr-code" size={40} className="text-purple-600" />
+                        <div className="flex h-24 w-24 items-center justify-center rounded-full">
+                            <Icon name="qr-code" size={64} className="text-purple-600" />
                         </div>
                     </div>
                     <div className="space-y-2 text-center">
@@ -197,7 +197,14 @@ export default function RedirectQrClaimPage() {
                         <p className="text-base text-grey-1">
                             Share anywhere. Points keep coming from the activity of friends & their friends.
                         </p>
-                        <p className="pt-2 text-sm text-grey-1">
+                    </div>
+                </Card>
+
+                {/* Important note */}
+                <Card className="border-2 border-secondary-1 bg-secondary-1/10 p-4">
+                    <div className="flex gap-3">
+                        <Icon name="info" size={20} className="flex-shrink-0 text-secondary-1" />
+                        <p className="text-sm font-medium">
                             <strong>Note:</strong> Permanent once claimed.
                         </p>
                     </div>
