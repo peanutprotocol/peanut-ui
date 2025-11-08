@@ -14,7 +14,7 @@
         /* disable tap highlight */
         -webkit-tap-highlight-color: transparent;
     }
-    
+
     /* Aggressive light mode enforcement for Android/Brave dark mode override */
     @media (prefers-color-scheme: dark) {
         :root,
