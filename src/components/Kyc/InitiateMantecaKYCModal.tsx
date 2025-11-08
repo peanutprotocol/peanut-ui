@@ -41,14 +41,24 @@ const InitiateMantecaKYCModal = ({
         country,
     })
 
-    const { showCameraWarning, mediaCheckResult, handleVerifyClick, handleContinueAnyway, handleOpenInBrowser } =
-        useKycCameraCheck({
-            onInitiateKyc: () => openMantecaKyc(country),
-            onClose,
-        })
+    const {
+        showCameraWarning,
+        setShowCameraWarning,
+        mediaCheckResult,
+        handleVerifyClick,
+        handleContinueAnyway,
+        handleOpenInBrowser,
+        isChecking,
+    } = useKycCameraCheck({
+        onInitiateKyc: () => openMantecaKyc(country),
+        onClose,
+    })
 
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
+            // Validate origin for security
+            if (!event.origin.includes('manteca')) return
+
             if (event.data.source === 'peanut-kyc-success') {
                 onKycSuccess?.()
             }
@@ -76,10 +86,10 @@ const InitiateMantecaKYCModal = ({
                 ctaClassName="grid grid-cols-1 gap-3"
                 ctas={[
                     {
-                        text: isLoading ? 'Loading...' : (ctaText ?? 'Verify now'),
+                        text: isLoading || isChecking ? 'Loading...' : (ctaText ?? 'Verify now'),
                         onClick: handleVerifyClick,
                         variant: 'purple',
-                        disabled: isLoading,
+                        disabled: isLoading || isChecking,
                         shadowSize: '4',
                         icon: 'check-circle',
                         className: 'h-11',

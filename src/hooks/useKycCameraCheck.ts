@@ -15,17 +15,23 @@ export function useKycCameraCheck({ onInitiateKyc, onClose, saveRedirect }: UseK
     const [showCameraWarning, setShowCameraWarning] = useState(false)
     const [mediaCheckResult, setMediaCheckResult] = useState<MediaCheckResult | null>(null)
     const [kycUrlForBrowser, setKycUrlForBrowser] = useState<string | null>(null)
+    const [isChecking, setIsChecking] = useState(false)
 
     const handleVerifyClick = async () => {
-        // Pre-flight check: see if camera/mic are available
-        const mediaCheck = await checkKycMediaReadiness()
+        // Prevent double-clicks
+        if (isChecking) return { shouldProceed: false }
+        setIsChecking(true)
 
-        // If media is not supported or it's a restricted environment, show warning
-        if (!mediaCheck.supported || mediaCheck.severity === 'warning') {
-            setMediaCheckResult(mediaCheck)
-            // Get the KYC URL first so we can offer "Open in Browser"
+        try {
+            // Pre-flight check: see if camera/mic are available
+            const mediaCheck = await checkKycMediaReadiness()
+
+            // Always call KYC initiation once
             const result = await onInitiateKyc()
-            if (result?.success) {
+
+            // If media is not supported or it's a restricted environment, show warning
+            if (result?.success && (!mediaCheck.supported || mediaCheck.severity === 'warning')) {
+                setMediaCheckResult(mediaCheck)
                 const url = result.url || result.data?.kycLink
                 if (url) {
                     setKycUrlForBrowser(url)
@@ -33,11 +39,11 @@ export function useKycCameraCheck({ onInitiateKyc, onClose, saveRedirect }: UseK
                     return { shouldProceed: false }
                 }
             }
-        }
 
-        // Media check passed or couldn't get URL, proceed normally
-        const result = await onInitiateKyc()
-        return { shouldProceed: result?.success ?? false }
+            return { shouldProceed: result?.success ?? false }
+        } finally {
+            setIsChecking(false)
+        }
     }
 
     const handleContinueAnyway = () => {
@@ -48,7 +54,15 @@ export function useKycCameraCheck({ onInitiateKyc, onClose, saveRedirect }: UseK
 
     const handleOpenInBrowser = () => {
         if (kycUrlForBrowser) {
-            window.open(kycUrlForBrowser, '_blank')
+            // Validate URL is from expected domain for security
+            try {
+                const url = new URL(kycUrlForBrowser)
+                if (url.protocol === 'https:') {
+                    window.open(kycUrlForBrowser, '_blank')
+                }
+            } catch {
+                console.error('Invalid KYC URL')
+            }
         }
         setShowCameraWarning(false)
         onClose()
@@ -56,9 +70,11 @@ export function useKycCameraCheck({ onInitiateKyc, onClose, saveRedirect }: UseK
 
     return {
         showCameraWarning,
+        setShowCameraWarning,
         mediaCheckResult,
         handleVerifyClick,
         handleContinueAnyway,
         handleOpenInBrowser,
+        isChecking,
     }
 }

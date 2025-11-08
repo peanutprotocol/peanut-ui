@@ -36,10 +36,12 @@ export const InitiateBridgeKYCModal = ({
 
     const {
         showCameraWarning,
+        setShowCameraWarning,
         mediaCheckResult,
         handleVerifyClick: checkAndInitiate,
         handleContinueAnyway,
         handleOpenInBrowser,
+        isChecking,
     } = useKycCameraCheck({
         onInitiateKyc: handleInitiateKyc,
         onClose,
@@ -67,10 +69,10 @@ export const InitiateBridgeKYCModal = ({
                 ctaClassName="grid grid-cols-1 gap-3"
                 ctas={[
                     {
-                        text: isLoading ? 'Loading...' : 'Verify now',
+                        text: isLoading || isChecking ? 'Loading...' : 'Verify now',
                         onClick: handleVerifyClick,
                         variant: 'purple',
-                        disabled: isLoading,
+                        disabled: isLoading || isChecking,
                         shadowSize: '4',
                         icon: 'check-circle',
                         className: 'h-11',
