@@ -5,11 +5,10 @@ import { useUserStore } from '@/redux/hooks'
 import AvatarWithBadge from '../Profile/AvatarWithBadge'
 import StatusBadge, { type StatusType } from '../Global/Badges/StatusBadge'
 import { useWebSocket } from '@/hooks/useWebSocket'
-import { type BridgeKycStatus, formatDate } from '@/utils'
+import { type BridgeKycStatus } from '@/utils'
 import { type HTMLAttributes } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { type IUserKycVerification } from '@/interfaces'
-import { Icon } from '@/components/Global/Icons/Icon'
 import StatusPill from '../Global/StatusPill'
 
 // this component shows the current kyc status and opens a drawer with more details on click
@@ -49,7 +48,7 @@ export const KycStatusItem = ({
     // Check if KYC is approved to show points earned
     const isApproved = kycStatus === 'approved' || kycStatus === 'ACTIVE'
 
-    const isPending = kycStatus === 'under_review' || kycStatus === 'ONBOARDING'
+    const isPending = kycStatus === 'under_review' || kycStatus === 'incomplete' || kycStatus === 'ONBOARDING'
     const isRejected = kycStatus === 'rejected' || kycStatus === 'INACTIVE'
 
     const subtitle = useMemo(() => {
