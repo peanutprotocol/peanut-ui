@@ -211,7 +211,7 @@ const ValidatedInput = ({
                                     e.preventDefault()
                                     onUpdate({ value: '', isValid: false, isChanging: false })
                                 }}
-                                className="flex h-full w-6 items-center justify-center pr-2 md:w-8 md:pr-0 dark:bg-n-1"
+                                className="flex h-full w-6 items-center justify-center pr-2 dark:bg-n-1 md:w-8 md:pr-0"
                             >
                                 <Icon className="h-6 w-6 dark:fill-white" name="cancel" />
                             </button>
