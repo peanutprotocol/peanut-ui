@@ -29,6 +29,7 @@ import { captureMessage } from '@sentry/nextjs'
 import type { Address } from 'viem'
 import { Slider } from '@/components/Slider'
 import { tokenSelectorContext } from '@/context'
+import { useHaptic } from 'use-haptic'
 
 export default function WithdrawCryptoPage() {
     const router = useRouter()
@@ -64,6 +65,7 @@ export default function WithdrawCryptoPage() {
         isPreparingTx,
         reset: resetPaymentInitiator,
     } = usePaymentInitiator()
+    const { triggerHaptic } = useHaptic()
 
     // Helper to manage errors consistently
     const setError = useCallback(
@@ -223,6 +225,7 @@ export default function WithdrawCryptoPage() {
         const result = await initiatePayment(paymentPayload)
 
         if (result.success && result.txHash) {
+            triggerHaptic()
             setCurrentView('STATUS')
         } else {
             console.error('Withdrawal execution failed:', result.error)

@@ -15,6 +15,7 @@ import { useAuth } from '@/context/authContext'
 import { EInviteType } from '@/services/services.types'
 import { saveToCookie } from '@/utils'
 import { useLogin } from '@/hooks/useLogin'
+import UnsupportedBrowserModal from '../Global/UnsupportedBrowserModal'
 
 function InvitePageContent() {
     const searchParams = useSearchParams()
@@ -114,6 +115,7 @@ function InvitePageContent() {
                     </div>
                 </div>
             </div>
+            <UnsupportedBrowserModal allowClose={false} />
         </InvitesPageLayout>
     )
 }

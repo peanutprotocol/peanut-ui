@@ -21,6 +21,7 @@ import { VerifiedUserLabel } from '../UserHeader'
 import { isAddress } from 'viem'
 import { EHistoryEntryType } from '@/utils/history.utils'
 import { PerkIcon } from './PerkIcon'
+import { useHaptic } from 'use-haptic'
 
 export type TransactionType =
     | 'send'
@@ -67,8 +68,10 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     // hook to manage the state of the details drawer (open/closed, selected transaction)
     const { isDrawerOpen, selectedTransaction, openTransactionDetails, closeTransactionDetails } =
         useTransactionDetailsDrawer()
+    const { triggerHaptic } = useHaptic()
 
     const handleClick = () => {
+        triggerHaptic()
         openTransactionDetails(transaction)
     }
 
