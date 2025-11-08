@@ -3,6 +3,11 @@
 @tailwind utilities;
 
 @layer base {
+    /* Nudge browser to prefer light mode for native controls (scrollbars, inputs, etc) */
+    :root {
+        color-scheme: light;
+    }
+
     body {
         /* disable text selection */
         @apply select-none;
