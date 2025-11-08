@@ -19,7 +19,6 @@ import Link from 'next/link'
 import { useEffect, useMemo, useState, useCallback } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { useAccount } from 'wagmi'
-import AddMoneyPromptModal from '@/components/Home/AddMoneyPromptModal'
 import BalanceWarningModal from '@/components/Global/BalanceWarningModal'
 // import ReferralCampaignModal from '@/components/Home/ReferralCampaignModal'
 // import FloatingReferralButton from '@/components/Home/FloatingReferralButton'
@@ -60,7 +59,7 @@ export default function Home() {
     const { disconnect: disconnectWagmi } = useDisconnect()
     const { triggerHaptic } = useHaptic()
 
-    const { isFetchingUser, addAccount } = useAuth()
+    const { isFetchingUser, addAccount, fetchUser } = useAuth()
     const { isUserKycApproved } = useKycStatus()
     const username = user?.user.username
 
@@ -69,6 +68,13 @@ export default function Home() {
     // const [showReferralCampaignModal, setShowReferralCampaignModal] = useState(false)
     const [isPostSignupActionModalVisible, setIsPostSignupActionModalVisible] = useState(false)
     const [showKycModal, setShowKycModal] = useState(user?.user.showKycCompletedModal ?? false)
+
+    // sync modal state with user data when it changes
+    useEffect(() => {
+        if (user?.user.showKycCompletedModal !== undefined) {
+            setShowKycModal(user.user.showKycCompletedModal)
+        }
+    }, [user?.user.showKycCompletedModal])
 
     const userFullName = useMemo(() => {
         if (!user) return
@@ -233,12 +239,18 @@ export default function Home() {
 
             <KycCompletedModal
                 isOpen={showKycModal}
-                onClose={() => {
-                    updateUserById({
-                        userId: user?.user.userId,
-                        showKycCompletedModal: false,
-                    })
+                onClose={async () => {
+                    // close the modal immediately for better ux
                     setShowKycModal(false)
+                    // update the database and refetch user to ensure sync
+                    if (user?.user.userId) {
+                        await updateUserById({
+                            userId: user.user.userId,
+                            showKycCompletedModal: false,
+                        })
+                        // refetch user to ensure the modal doesn't reappear
+                        await fetchUser()
+                    }
                 }}
             />
 

@@ -7,6 +7,7 @@ import { EHistoryEntryType, type HistoryEntry, useTransactionHistory } from '@/h
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useUserStore } from '@/redux/hooks'
 import * as Sentry from '@sentry/nextjs'
+import { useAuth } from '@/context/authContext'
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
@@ -39,6 +40,7 @@ const HomeHistory = ({ username }: { username?: string }) => {
     // check if the username is the same as the current user
     const { fetchBalance } = useWallet()
     const { triggerHaptic } = useHaptic()
+    const { fetchUser } = useAuth()
 
     const isViewingOwnHistory = useMemo(
         () => (isLoggedIn && !username) || (isLoggedIn && username === user?.user.username),
@@ -59,6 +61,14 @@ const HomeHistory = ({ username }: { username?: string }) => {
                 }
             },
             [fetchBalance]
+        ),
+        onKycStatusUpdate: useCallback(
+            async (newStatus: string) => {
+                // refetch user data when kyc status changes so the status item appears immediately
+                console.log('KYC status updated via WebSocket:', newStatus)
+                await fetchUser()
+            },
+            [fetchUser]
         ),
     })
 
