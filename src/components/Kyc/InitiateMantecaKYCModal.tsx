@@ -2,12 +2,14 @@
 
 import ActionModal from '@/components/Global/ActionModal'
 import IframeWrapper from '@/components/Global/IframeWrapper'
+import CameraPermissionWarningModal from './CameraPermissionWarningModal'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { useMantecaKycFlow } from '@/hooks/useMantecaKycFlow'
 import { type CountryData } from '@/components/AddMoney/consts'
 import { Button } from '../0_Bruddle'
 import { PeanutDoesntStoreAnyPersonalInformation } from './KycVerificationInProgressModal'
 import { useEffect } from 'react'
+import { useKycCameraCheck } from '@/hooks/useKycCameraCheck'
 
 interface Props {
     isOpen: boolean
@@ -39,6 +41,12 @@ const InitiateMantecaKYCModal = ({
         country,
     })
 
+    const { showCameraWarning, mediaCheckResult, handleVerifyClick, handleContinueAnyway, handleOpenInBrowser } =
+        useKycCameraCheck({
+            onInitiateKyc: () => openMantecaKyc(country),
+            onClose,
+        })
+
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
             if (event.data.source === 'peanut-kyc-success') {
@@ -51,12 +59,12 @@ const InitiateMantecaKYCModal = ({
         return () => {
             window.removeEventListener('message', handleMessage)
         }
-    }, [])
+    }, [onKycSuccess])
 
     return (
         <>
             <ActionModal
-                visible={isOpen && !iframeOptions.visible}
+                visible={isOpen && !iframeOptions.visible && !showCameraWarning}
                 onClose={onClose}
                 title={title ?? 'Verify your identity first'}
                 description={
@@ -69,7 +77,7 @@ const InitiateMantecaKYCModal = ({
                 ctas={[
                     {
                         text: isLoading ? 'Loading...' : (ctaText ?? 'Verify now'),
-                        onClick: () => openMantecaKyc(country),
+                        onClick: handleVerifyClick,
                         variant: 'purple',
                         disabled: isLoading,
                         shadowSize: '4',
@@ -79,7 +87,22 @@ const InitiateMantecaKYCModal = ({
                 ]}
                 footer={footer}
             />
-            <IframeWrapper {...iframeOptions} onClose={handleIframeClose} />
+
+            {mediaCheckResult && (
+                <CameraPermissionWarningModal
+                    visible={showCameraWarning}
+                    onClose={() => setShowCameraWarning(false)}
+                    onContinueAnyway={handleContinueAnyway}
+                    onOpenInBrowser={handleOpenInBrowser}
+                    mediaCheckResult={mediaCheckResult}
+                />
+            )}
+
+            <IframeWrapper
+                {...iframeOptions}
+                visible={iframeOptions.visible && !showCameraWarning}
+                onClose={handleIframeClose}
+            />
         </>
     )
 }

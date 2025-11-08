@@ -89,7 +89,7 @@ export const useMantecaKycFlow = ({ onClose, onSuccess, onManualClose, country }
                 src: url,
                 visible: true,
             })
-            return { success: true as const }
+            return { success: true as const, url }
         } catch (e: unknown) {
             const message = e instanceof Error ? e.message : 'Failed to initiate onboarding'
             setError(message)
