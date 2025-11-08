@@ -10,6 +10,14 @@ import { PEANUTMAN_LOGO } from '@/assets/peanut'
 import { ETHEREUM_ICON } from '@/assets/icons'
 import Image from 'next/image'
 
+// QR Scanner Configuration
+const QR_SCAN_INTERVAL_MS = 100 // Scan every 100ms (10 times per second)
+const CAMERA_RETRY_DELAY_MS = 1000 // Wait 1 second before retrying camera access
+const MAX_CAMERA_RETRIES = 3 // Maximum number of retry attempts for busy camera
+const IOS_CAMERA_DELAY_MS = 100 // iOS-specific delay for camera hardware release
+const IDEAL_CAMERA_WIDTH = 1280 // Ideal camera resolution width (720p)
+const IDEAL_CAMERA_HEIGHT = 720 // Ideal camera resolution height (720p)
+
 export interface QRScannerProps {
     onScan: (data: string) => Promise<{ success: boolean; error?: string }>
     onClose?: () => void
@@ -130,7 +138,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                     console.error('Error scanning QR code:', err)
                 }
             }
-        }, 100)
+        }, QR_SCAN_INTERVAL_MS)
     }, [handleQRScan, processingQR])
     const startCamera = useCallback(async () => {
         setError(null)
@@ -144,15 +152,15 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
 
                 // Give iOS time to release camera hardware (iOS-specific fix)
                 if (deviceType === DeviceType.IOS) {
-                    await new Promise((resolve) => setTimeout(resolve, 100))
+                    await new Promise((resolve) => setTimeout(resolve, IOS_CAMERA_DELAY_MS))
                 }
 
                 // Request camera with specified facing mode
                 const stream = await navigator.mediaDevices.getUserMedia({
                     video: {
                         facingMode,
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 },
+                        width: { ideal: IDEAL_CAMERA_WIDTH },
+                        height: { ideal: IDEAL_CAMERA_HEIGHT },
                     },
                 })
 
@@ -178,20 +186,18 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                     retryCountRef.current = 0 // Reset on permission error
                 } else if (error.name === 'NotReadableError') {
                     // Camera is busy - retry with limit
-                    const MAX_RETRIES = 3
-
-                    if (retryCountRef.current < MAX_RETRIES) {
+                    if (retryCountRef.current < MAX_CAMERA_RETRIES) {
                         retryCountRef.current++
                         setError(
-                            `Camera is in use by another app. Retrying... (${retryCountRef.current}/${MAX_RETRIES})`
+                            `Camera is in use by another app. Retrying... (${retryCountRef.current}/${MAX_CAMERA_RETRIES})`
                         )
 
-                        // Retry after 1 second (camera might be released)
+                        // Retry after delay (camera might be released)
                         setTimeout(() => {
                             if (isScanning) {
                                 startCamera()
                             }
-                        }, 1000)
+                        }, CAMERA_RETRY_DELAY_MS)
                     } else {
                         setError('Camera remains busy. Please close other apps and try again.')
                         retryCountRef.current = 0 // Reset for next attempt
