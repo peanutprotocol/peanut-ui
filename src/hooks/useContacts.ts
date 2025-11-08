@@ -9,7 +9,7 @@ export interface Contact {
     userId: string
     username: string
     fullName: string | null
-    bridgeKycStatus: string
+    bridgeKycStatus: string | null
     showFullName: boolean
     relationshipTypes: ('inviter' | 'invitee' | 'sent_money' | 'received_money')[]
     firstInteractionDate: string
@@ -19,17 +19,31 @@ export interface Contact {
 
 interface ContactsResponse {
     contacts: Contact[]
+    total: number
+    hasMore: boolean
+}
+
+interface UseContactsOptions {
+    limit?: number
+    offset?: number
 }
 
 /**
- * hook to fetch all contacts for the current user
- * includes inviter, invitees, and all transaction counterparties
+ * hook to fetch all contacts for the current user with pagination
+ * includes: inviter, invitees, and all transaction counterparties (sent/received money, request pots)
  */
-export function useContacts() {
+export function useContacts(options: UseContactsOptions = {}) {
+    const { limit = 100, offset = 0 } = options
+
     const { data, isLoading, error, refetch } = useQuery({
-        queryKey: [CONTACTS],
+        queryKey: [CONTACTS, limit, offset],
         queryFn: async (): Promise<ContactsResponse> => {
-            const response = await fetchWithSentry(`${PEANUT_API_URL}/users/contacts`, {
+            const queryParams = new URLSearchParams({
+                limit: limit.toString(),
+                offset: offset.toString(),
+            })
+
+            const response = await fetchWithSentry(`${PEANUT_API_URL}/users/contacts?${queryParams}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -48,6 +62,8 @@ export function useContacts() {
 
     return {
         contacts: data?.contacts || [],
+        total: data?.total || 0,
+        hasMore: data?.hasMore || false,
         isLoading,
         error,
         refetch,

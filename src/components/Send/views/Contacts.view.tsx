@@ -53,7 +53,6 @@ export default function ContactsView() {
     }
 
     const handleLinkCtaClick = () => {
-        router.push(`${window.location.pathname}?view=link`)
         redirectToSendByLink()
     }
 
