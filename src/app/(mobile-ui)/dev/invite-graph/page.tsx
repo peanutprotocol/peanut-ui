@@ -69,7 +69,7 @@ export default function InviteGraphPage() {
         if (result.success && result.data) {
             setGraphData(result.data)
         } else {
-            setError('Failed to load invite graph. Check your API key.')
+            setError(result.error || 'Failed to load invite graph. Check your API key.')
         }
         setLoading(false)
     }, [])
@@ -418,9 +418,19 @@ export default function InviteGraphPage() {
                     <div className="text-center">
                         <div className="mb-4 text-6xl">🕸️</div>
                         <h2 className="mb-2 text-2xl font-bold text-gray-900">Invite Graph</h2>
-                        <p className="text-sm text-gray-600">Enter your admin API key to visualize the network</p>
+                        <p className="text-sm text-gray-600">
+                            Admin tool - Enter your API key to visualize the network
+                        </p>
+                        <p className="mt-2 text-xs text-gray-500">
+                            ⚠️ Restricted access: Only authorized users (kkonrad, hugo, squirrel)
+                        </p>
                     </div>
-                    {error && <div className="bg-red-50 text-red-800 rounded-lg p-3 text-sm">{error}</div>}
+                    {error && (
+                        <div className="bg-red-50 text-red-800 rounded-lg p-3 text-sm">
+                            <div className="font-semibold">Error</div>
+                            <div>{error}</div>
+                        </div>
+                    )}
                     <input
                         type="password"
                         value={apiKey}
