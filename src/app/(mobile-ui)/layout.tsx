@@ -9,7 +9,7 @@ import { useAuth } from '@/context/authContext'
 import { hasValidJwtToken } from '@/utils/auth'
 import classNames from 'classnames'
 import { usePathname } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import '../../styles/globals.css'
 import SupportDrawer from '@/components/Global/SupportDrawer'
@@ -43,17 +43,19 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         setIsReady(true)
     }, [])
 
-    // enable pull-to-refresh for both ios and android
-    usePullToRefresh({
-        shouldPullToRefresh: () => {
-            // check if the scrollable content container is at the top
-            const scrollableContent = document.querySelector('#scrollable-content')
-            if (!scrollableContent) return false
+    // memoizing shouldPullToRefresh callback to prevent re-initialization on every render
+    // @dev: note this fixes the issue where scrolling scolling a long list would trigger pull-to-refresh
+    const shouldPullToRefresh = useCallback(() => {
+        // check if the scrollable content container is at the top
+        const scrollableContent = document.querySelector('#scrollable-content')
+        if (!scrollableContent) return false
 
-            // only allow pull-to-refresh when the scrollable container is at the very top
-            return scrollableContent.scrollTop === 0
-        },
-    })
+        // only allow pull-to-refresh when the scrollable container is at the very top
+        return scrollableContent.scrollTop === 0
+    }, [])
+
+    // enable pull-to-refresh for both ios and android
+    usePullToRefresh({ shouldPullToRefresh })
 
     // Allow access to public paths without authentication
     const isPublicPath = PUBLIC_ROUTES_REGEX.test(pathName)
