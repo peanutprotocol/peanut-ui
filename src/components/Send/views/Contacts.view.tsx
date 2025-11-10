@@ -44,11 +44,11 @@ export default function ContactsView() {
     const filteredContacts = useMemo(() => {
         if (!searchQuery.trim()) return contacts
 
-        const query = searchQuery.toLowerCase()
-        return contacts.filter(
-            (contact) =>
-                contact.username.toLowerCase().includes(query) || contact.fullName?.toLowerCase().includes(query)
-        )
+        const query = searchQuery.trim().toLowerCase()
+        return contacts.filter((contact) => {
+            const fullName = contact.fullName?.toLowerCase() ?? ''
+            return contact.username.toLowerCase().includes(query) || fullName.includes(query)
+        })
     }, [contacts, searchQuery])
 
     const redirectToSendByLink = () => {
