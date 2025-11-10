@@ -238,17 +238,10 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
         if (isScanning) {
             startCamera()
         } else {
-            // Clean up on scanner close
-            if (scanIntervalRef.current) {
-                clearInterval(scanIntervalRef.current)
-                scanIntervalRef.current = null
-            }
-            if (streamRef.current) {
-                streamRef.current.getTracks().forEach((track) => track.stop())
-                streamRef.current = null
-            }
+            // Clean up on scanner close - call stopCamera to ensure proper cleanup including video.pause()
+            stopCamera()
         }
-    }, [isScanning, startCamera])
+    }, [isScanning, startCamera, stopCamera])
 
     useEffect(() => {
         if (!isOpen) {
