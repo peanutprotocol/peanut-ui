@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import NavHeader from '@/components/Global/NavHeader'
 import { ActionListCard } from '@/components/ActionListCard'
 import { useContacts } from '@/hooks/useContacts'
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
 import { useMemo, useState } from 'react'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { VerifiedUserLabel } from '@/components/UserHeader'
@@ -20,8 +21,24 @@ export default function ContactsView() {
     const searchParams = useSearchParams()
     const isSendingByLink = searchParams.get('view') === 'link' || searchParams.get('createLink') === 'true'
     const isSendingToContacts = searchParams.get('view') === 'contacts'
-    const { contacts, isLoading: isFetchingContacts, error: isError, refetch } = useContacts()
+    const {
+        contacts,
+        isLoading: isFetchingContacts,
+        error: isError,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+        refetch,
+    } = useContacts({ limit: 50 })
     const [searchQuery, setSearchQuery] = useState('')
+
+    // infinite scroll hook - disabled when searching (search is client-side)
+    const { loaderRef } = useInfiniteScroll({
+        hasNextPage,
+        isFetchingNextPage,
+        fetchNextPage,
+        enabled: !searchQuery, // disable when user is searching
+    })
 
     // client-side search filtering
     const filteredContacts = useMemo(() => {
@@ -145,6 +162,15 @@ export default function ContactsView() {
                                     )
                                 })}
                             </div>
+
+                            {/* infinite scroll loader - only active when not searching */}
+                            {!searchQuery && (
+                                <div ref={loaderRef} className="w-full py-4">
+                                    {isFetchingNextPage && (
+                                        <div className="w-full text-center text-sm text-gray-500">Loading more...</div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     ) : (
                         // no search results

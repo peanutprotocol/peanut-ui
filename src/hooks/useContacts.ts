@@ -1,5 +1,5 @@
 'use client'
-import { useQuery } from '@tanstack/react-query'
+import { useInfiniteQuery } from '@tanstack/react-query'
 import Cookies from 'js-cookie'
 import { PEANUT_API_URL } from '@/constants'
 import { CONTACTS } from '@/constants/query.consts'
@@ -25,22 +25,21 @@ interface ContactsResponse {
 
 interface UseContactsOptions {
     limit?: number
-    offset?: number
 }
 
 /**
- * hook to fetch all contacts for the current user with pagination
+ * hook to fetch all contacts for the current user with infinite scroll
  * includes: inviter, invitees, and all transaction counterparties (sent/received money, request pots)
  */
 export function useContacts(options: UseContactsOptions = {}) {
-    const { limit = 100, offset = 0 } = options
+    const { limit = 50 } = options
 
-    const { data, isLoading, error, refetch } = useQuery({
-        queryKey: [CONTACTS, limit, offset],
-        queryFn: async (): Promise<ContactsResponse> => {
+    const { data, isLoading, error, fetchNextPage, hasNextPage, isFetchingNextPage, refetch } = useInfiniteQuery({
+        queryKey: [CONTACTS, limit],
+        queryFn: async ({ pageParam = 0 }): Promise<ContactsResponse> => {
             const queryParams = new URLSearchParams({
                 limit: limit.toString(),
-                offset: offset.toString(),
+                offset: (pageParam * limit).toString(),
             })
 
             const response = await fetchWithSentry(`${PEANUT_API_URL}/users/contacts?${queryParams}`, {
@@ -57,15 +56,24 @@ export function useContacts(options: UseContactsOptions = {}) {
 
             return response.json()
         },
+        getNextPageParam: (lastPage, allPages) => {
+            // if hasMore is true, return next page number
+            return lastPage.hasMore ? allPages.length : undefined
+        },
+        initialPageParam: 0,
         staleTime: 5 * 60 * 1000, // 5 minutes
     })
 
+    // flatten all pages into single contacts array
+    const allContacts = data?.pages.flatMap((page) => page.contacts) || []
+
     return {
-        contacts: data?.contacts || [],
-        total: data?.total || 0,
-        hasMore: data?.hasMore || false,
+        contacts: allContacts,
         isLoading,
         error,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
         refetch,
     }
 }
