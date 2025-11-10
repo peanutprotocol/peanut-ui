@@ -956,7 +956,7 @@ export const OfframpConfirmView = ({
                             }
                         }}
                         className="btn-purple btn-xl"
-                        disabled={isLoading || errorState.showError}
+                        disabled={true}
                     >
                         {isLoading ? (
                             <div className="flex w-full flex-row items-center justify-center gap-2">
@@ -976,7 +976,7 @@ export const OfframpConfirmView = ({
                         setErrorState({ showError: false, errorMessage: '' })
                         setOfframpForm({ email: '', name: '', recipient: '', password: '' })
                     }}
-                    disabled={isLoading}
+                    disabled={true}
                     type="button"
                 >
                     Go Back
