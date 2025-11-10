@@ -9,6 +9,7 @@ import '../../styles/globals.css'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { Banner } from '@/components/Global/Banner'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
+import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 
 function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
     const dispatch = useAppDispatch()
@@ -32,6 +33,8 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
             dispatch(setupActions.setShowIosPwaInstallScreen(false))
         }
     }, [isPWA, deviceType])
+
+    usePullToRefresh()
 
     return (
         <>
