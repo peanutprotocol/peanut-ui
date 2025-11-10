@@ -15,9 +15,10 @@ import * as Sentry from '@sentry/nextjs'
 import { isKycStatusItem } from '@/hooks/useBridgeKycFlow'
 import { useAuth } from '@/context/authContext'
 import { BadgeStatusItem, isBadgeHistoryItem } from '@/components/Badges/BadgeStatusItem'
-import React, { useEffect, useMemo, useRef } from 'react'
+import React, { useMemo } from 'react'
 import { useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { useWebSocket } from '@/hooks/useWebSocket'
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import type { HistoryResponse } from '@/hooks/useTransactionHistory'
@@ -29,7 +30,6 @@ import { formatUnits } from 'viem'
  * displays the user's transaction history with infinite scrolling and date grouping.
  */
 const HistoryPage = () => {
-    const loaderRef = useRef<HTMLDivElement>(null)
     const { user } = useUserStore()
     const queryClient = useQueryClient()
     const { fetchUser } = useAuth()
@@ -45,6 +45,13 @@ const HistoryPage = () => {
     } = useTransactionHistory({
         mode: 'infinite',
         limit: 20,
+    })
+
+    // infinite scroll hook
+    const { loaderRef } = useInfiniteScroll({
+        hasNextPage,
+        isFetchingNextPage,
+        fetchNextPage,
     })
 
     // Real-time updates via WebSocket
@@ -133,29 +140,6 @@ const HistoryPage = () => {
             await fetchUser()
         },
     })
-
-    useEffect(() => {
-        const observer = new IntersectionObserver(
-            (entries) => {
-                const target = entries[0]
-                if (target.isIntersecting && hasNextPage && !isFetchingNextPage) {
-                    fetchNextPage()
-                }
-            },
-            {
-                threshold: 0.1,
-            }
-        )
-        const currentLoaderRef = loaderRef.current
-        if (currentLoaderRef) {
-            observer.observe(currentLoaderRef)
-        }
-        return () => {
-            if (currentLoaderRef) {
-                observer.unobserve(currentLoaderRef)
-            }
-        }
-    }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
     const allEntries = useMemo(() => historyData?.pages.flatMap((page) => page.entries) ?? [], [historyData])
 

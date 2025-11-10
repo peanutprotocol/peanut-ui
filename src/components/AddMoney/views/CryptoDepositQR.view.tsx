@@ -57,8 +57,10 @@ export const CryptoDepositQR = ({
                     <label htmlFor="deposit-address" className="text-sm font-bold text-black">
                         Your deposit address
                     </label>
-                    <Card className="flex items-center justify-between px-4 py-3 text-xs text-grey-1">
-                        <p className="text-xs md:text-sm md:font-semibold">{depositAddress}</p>
+                    <Card className="flex items-center justify-between px-4 py-0 text-xs text-grey-1">
+                        <p className="max-w-[90%] overflow-hidden overflow-x-auto whitespace-nowrap py-3 text-xs md:text-sm md:font-semibold">
+                            {depositAddress}
+                        </p>
 
                         <CopyToClipboard textToCopy={depositAddress} className="text-black" iconSize={'4'} />
                     </Card>

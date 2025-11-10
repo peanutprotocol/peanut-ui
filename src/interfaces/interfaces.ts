@@ -256,9 +256,9 @@ export interface User {
     telegram: string | null
     hasAppAccess: boolean
     showFullName: boolean
+    showKycCompletedModal?: boolean
     createdAt: string
     accounts: Account[]
-    showKycCompletedModal: boolean
     badges?: Array<{
         id?: string
         code: string
@@ -330,25 +330,26 @@ export interface IUserProfile {
     invitedBy: string | null // Username of the person who invited this user
 }
 
-interface Contact {
-    user_id: string
-    contact_id: string
-    peanut_account_id: string | null
-    account_identifier: string
-    account_type: string
-    nickname: string | null
-    ens_name: string | null
-    created_at: string
-    updated_at: string
-    n_interactions: number
-    usd_volume_transacted: string
-    last_interacted_with: string | null
-    username: string | null
-    profile_picture: string | null
-}
-
 export type JSONValue = string | number | boolean | null | JSONValue[] | { [key: string]: JSONValue }
 
 export type JSONObject = {
     [key: string]: JSONValue
+}
+
+export interface Contact {
+    userId: string
+    username: string
+    fullName: string | null
+    bridgeKycStatus: string | null
+    showFullName: boolean
+    relationshipTypes: ('inviter' | 'invitee' | 'sent_money' | 'received_money')[]
+    firstInteractionDate: string
+    lastInteractionDate: string
+    transactionCount: number
+}
+
+export interface ContactsResponse {
+    contacts: Contact[]
+    total: number
+    hasMore: boolean
 }
