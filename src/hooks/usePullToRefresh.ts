@@ -37,8 +37,6 @@ export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
             distThreshold: 80,
             distMax: 140,
             distReload: 90,
-            // resistance makes pull-to-refresh feel more intentional
-            resistanceFunction: (t: number) => Math.min(1, t / 2.5),
         })
 
         return () => {
