@@ -172,6 +172,10 @@ export async function getContacts(params: {
     const cookieStore = cookies()
     const jwtToken = (await cookieStore).get('jwt-token')?.value
 
+    if (!jwtToken) {
+        throw new Error('Not authenticated')
+    }
+
     try {
         const queryParams = new URLSearchParams({
             limit: params.limit.toString(),
