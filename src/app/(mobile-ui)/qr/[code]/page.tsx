@@ -127,8 +127,8 @@ export default function RedirectQrClaimPage() {
     if (isCheckingStatus || (redirectQrData?.claimed && redirectQrData?.redirectUrl)) {
         return (
             <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(isShaking, shakeIntensity)}`}>
-                <NavHeader title="Claim QR Code" />
-                <div className="flex h-full items-center justify-center">
+                <NavHeader title="Loading" />
+                <div className="my-auto flex h-full items-center justify-center">
                     <PeanutLoading />
                 </div>
             </div>
@@ -140,8 +140,8 @@ export default function RedirectQrClaimPage() {
     if (!user) {
         return (
             <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(isShaking, shakeIntensity)}`}>
-                <NavHeader title="Claim QR Code" />
-                <div className="flex h-full items-center justify-center">
+                <NavHeader title="Loading" />
+                <div className="my-auto flex h-full items-center justify-center">
                     <PeanutLoading />
                 </div>
             </div>
@@ -183,48 +183,20 @@ export default function RedirectQrClaimPage() {
 
     return (
         <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(isShaking, shakeIntensity)}`}>
-            <NavHeader title="Claim Your QR Code" />
+            <NavHeader title="Your Invite QR" />
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 {/* QR Code Visual */}
                 <Card className="space-y-4 p-6">
                     <div className="flex items-center justify-center">
-                        <div className="flex h-20 w-20 items-center justify-center rounded-full">
-                            <Icon name="qr-code" size={40} className="text-purple-600" />
+                        <div className="flex h-24 w-24 items-center justify-center rounded-full">
+                            <Icon name="qr-code" size={64} className="text-purple-600" />
                         </div>
                     </div>
                     <div className="space-y-2 text-center">
-                        <h1 className="text-2xl font-extrabold">Claim Your Code</h1>
+                        <h1 className="text-2xl font-extrabold">Your Invite QR</h1>
                         <p className="text-base text-grey-1">
-                            This QR code will be permanently linked to your Peanut profile. Anyone who scans it will be
-                            able to use your invite.
+                            Share anywhere. Points keep coming from the activity of friends & their friends.
                         </p>
-                    </div>
-                </Card>
-
-                {/* How it works */}
-                <Card className="space-y-3 p-6">
-                    <h2 className="text-lg font-bold">How it works</h2>
-                    <div className="space-y-3">
-                        <div className="flex gap-3">
-                            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-secondary-1 text-sm font-bold">
-                                1
-                            </div>
-                            <p className="text-sm text-grey-1">You claim this QR code and it becomes yours forever</p>
-                        </div>
-                        <div className="flex gap-3">
-                            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-secondary-1 text-sm font-bold">
-                                2
-                            </div>
-                            <p className="text-sm text-grey-1">Put the sticker anywhere you want people to find you</p>
-                        </div>
-                        <div className="flex gap-3">
-                            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-secondary-1 text-sm font-bold">
-                                3
-                            </div>
-                            <p className="text-sm text-grey-1">
-                                They can join Peanut with your invite and contribute towards your points, forever.
-                            </p>
-                        </div>
                     </div>
                 </Card>
 
@@ -233,7 +205,7 @@ export default function RedirectQrClaimPage() {
                     <div className="flex gap-3">
                         <Icon name="info" size={20} className="flex-shrink-0 text-secondary-1" />
                         <p className="text-sm font-medium">
-                            <strong>Important:</strong> Once claimed, this QR code cannot be transferred or changed.
+                            <strong>Note:</strong> Permanent once claimed.
                         </p>
                     </div>
                 </Card>
@@ -255,7 +227,7 @@ export default function RedirectQrClaimPage() {
                             left: 0,
                         }}
                     />
-                    <span className="relative z-10">{isLoading ? 'Claiming...' : 'Hold to Claim QR Code'}</span>
+                    <span className="relative z-10">{isLoading ? 'Claiming...' : 'Hold to make it yours forever'}</span>
                 </Button>
 
                 {error && <ErrorAlert description={error} />}

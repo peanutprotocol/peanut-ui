@@ -19,9 +19,11 @@ import StatusBadge from '../Global/Badges/StatusBadge'
 import Loading from '../Global/Loading'
 import { useSearchParams } from 'next/navigation'
 import { ActionListCard } from '../ActionListCard'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 
 interface CountryListViewProps {
     inputTitle: string
+    inputDescription?: string
     viewMode: 'claim-request' | 'add-withdraw' | 'general-verification'
     onCountryClick: (country: CountryData) => void
     onCryptoClick?: (flow: 'add' | 'withdraw') => void
@@ -30,6 +32,7 @@ interface CountryListViewProps {
     // when true and viewMode is 'add-withdraw', disable countries that are not supported
     // this is used for the send -> bank flow to prevent selecting unsupported countries
     enforceSupportedCountries?: boolean
+    showLoadingState?: boolean
 }
 
 /**
@@ -37,20 +40,24 @@ interface CountryListViewProps {
  *
  * @param {object} props
  * @param {string} props.inputTitle The title for the input
+ * @param {string} props.inputDescription The description for the input
  * @param {string} props.viewMode The view mode of the list, either 'claim-request' or 'add-withdraw' or 'general-verification'
  * @param {function} props.onCountryClick The function to call when a country is clicked
  * @param {function} props.onCryptoClick The function to call when the crypto button is clicked
  * @param {string} props.flow The flow of the list, either 'add' or 'withdraw', only required for 'add-withdraw' view mode
+ * @param {boolean} props.showLoadingState Whether to show loading state when clicking a country, true by default
  * @returns {JSX.Element}
  */
 export const CountryList = ({
     inputTitle,
+    inputDescription,
     viewMode,
     onCountryClick,
     onCryptoClick,
     flow,
     getRightContent,
     enforceSupportedCountries,
+    showLoadingState = true, // true by default to show loading state when clicking a country
 }: CountryListViewProps) => {
     const searchParams = useSearchParams()
     // get currencyCode from search params
@@ -62,6 +69,7 @@ export const CountryList = ({
     const { countryCode: userGeoLocationCountryCode, isLoading: isGeoLoading } = useGeoLocation()
     // track which country is being clicked to show loading state
     const [clickedCountryId, setClickedCountryId] = useState<string | null>(null)
+    const { isBridgeSupportedCountry: isBridgeSupportedCountryHook } = useIdentityVerification()
 
     const supportedCountries = countryData.filter((country) => country.type === 'country')
 
@@ -98,6 +106,7 @@ export const CountryList = ({
         <div className="flex h-full w-full flex-1 flex-col justify-start gap-4">
             <div className="space-y-2">
                 <div className="text-base font-bold">{inputTitle}</div>
+                {inputDescription && <p className="text-xs font-normal">{inputDescription}</p>}
                 <SearchInput
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -133,12 +142,7 @@ export const CountryList = ({
                                 ALL_COUNTRIES_ALPHA3_TO_ALPHA2[country.id.toUpperCase()] ?? country.id.toLowerCase()
                             const position = getCardPosition(index, filteredCountries.length)
 
-                            const isBridgeSupportedCountry = [
-                                'US',
-                                'MX',
-                                ...Object.keys(BRIDGE_ALPHA3_TO_ALPHA2),
-                                ...Object.values(BRIDGE_ALPHA3_TO_ALPHA2),
-                            ].includes(country.id)
+                            const isBridgeSupportedCountry = isBridgeSupportedCountryHook(country.id)
                             const isMantecaSupportedCountry = Object.keys(MantecaSupportedExchanges).includes(
                                 country.id
                             )
@@ -177,7 +181,7 @@ export const CountryList = ({
                                     title={country.title}
                                     rightContent={
                                         customRight ??
-                                        (clickedCountryId === country.id ? (
+                                        (showLoadingState && clickedCountryId === country.id ? (
                                             <Loading />
                                         ) : !isSupported ? (
                                             <StatusBadge status="soon" />

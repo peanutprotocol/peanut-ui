@@ -7,6 +7,7 @@ import { EHistoryEntryType, type HistoryEntry, useTransactionHistory } from '@/h
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useUserStore } from '@/redux/hooks'
 import * as Sentry from '@sentry/nextjs'
+import { useAuth } from '@/context/authContext'
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
@@ -20,6 +21,7 @@ import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { completeHistoryEntry } from '@/utils/history.utils'
 import { formatUnits } from 'viem'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
+import { useHaptic } from 'use-haptic'
 
 /**
  * component to display a preview of the most recent transactions on the home page.
@@ -37,6 +39,8 @@ const HomeHistory = ({ username }: { username?: string }) => {
     } = useTransactionHistory({ mode: 'latest', limit: 5, username, filterMutualTxs, enabled: isLoggedIn })
     // check if the username is the same as the current user
     const { fetchBalance } = useWallet()
+    const { triggerHaptic } = useHaptic()
+    const { fetchUser } = useAuth()
 
     const isViewingOwnHistory = useMemo(
         () => (isLoggedIn && !username) || (isLoggedIn && username === user?.user.username),
@@ -57,6 +61,14 @@ const HomeHistory = ({ username }: { username?: string }) => {
                 }
             },
             [fetchBalance]
+        ),
+        onKycStatusUpdate: useCallback(
+            async (newStatus: string) => {
+                // refetch user data when kyc status changes so the status item appears immediately
+                console.log('KYC status updated via WebSocket:', newStatus)
+                await fetchUser()
+            },
+            [fetchUser]
         ),
     })
 
@@ -332,7 +344,7 @@ const HomeHistory = ({ username }: { username?: string }) => {
             {!isViewingOwnHistory ? (
                 <h2 className="text-base font-bold">Latest Transactions</h2>
             ) : (
-                <Link href="/history" className="flex items-center justify-between">
+                <Link href="/history" className="flex items-center justify-between" onClick={() => triggerHaptic()}>
                     <h2 className="text-base font-bold">Activity</h2>
                     <Icon width={30} height={30} name="arrow-next" />
                 </Link>

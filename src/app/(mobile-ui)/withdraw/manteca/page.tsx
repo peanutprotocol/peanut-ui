@@ -75,7 +75,7 @@ export default function MantecaWithdrawFlow() {
     const queryClient = useQueryClient()
     const { isUserBridgeKycApproved } = useKycStatus()
     const { hasPendingTransactions } = usePendingTransactions()
-
+    const swapCurrency = searchParams.get('swap-currency') ?? 'false'
     // Get method and country from URL parameters
     const selectedMethodType = searchParams.get('method') // mercadopago, pix, bank-transfer, etc.
     const countryFromUrl = searchParams.get('country') // argentina, brazil, etc.
@@ -431,7 +431,7 @@ export default function MantecaWithdrawFlow() {
                         walletBalance={
                             balance ? formatAmount(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS)) : undefined
                         }
-                        isInitialInputUsd
+                        isInitialInputUsd={swapCurrency !== 'true'}
                     />
                     <Button
                         variant="purple"
