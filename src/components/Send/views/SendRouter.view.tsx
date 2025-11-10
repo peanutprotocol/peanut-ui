@@ -15,11 +15,11 @@ import { ACTION_METHODS, type PaymentMethod } from '@/constants/actionlist.const
 import Image from 'next/image'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import { useGeoFilteredPaymentOptions } from '@/hooks/useGeoFilteredPaymentOptions'
-import { useRecentUsers } from '@/hooks/useRecentUsers'
+import { useContacts } from '@/hooks/useContacts'
 import { getInitialsFromName } from '@/utils/general.utils'
 import { useCallback, useMemo } from 'react'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
-import { VerifiedUserLabel } from '@/components/UserHeader'
+import ContactsView from './Contacts.view'
 
 export const SendRouterView = () => {
     const router = useRouter()
@@ -27,25 +27,28 @@ export const SendRouterView = () => {
     const searchParams = useSearchParams()
     const isSendingByLink = searchParams.get('view') === 'link' || searchParams.get('createLink') === 'true'
     const isSendingToContacts = searchParams.get('view') === 'contacts'
-    const { recentTransactions, isFetchingRecentUsers } = useRecentUsers()
+    // only fetch 3 contacts for avatar display
+    const { contacts, isLoading: isFetchingContacts } = useContacts({ limit: 3 })
 
-    // fallback initials when no recent transactions
+    // fallback initials when no contacts
     const fallbackInitials = ['PE', 'AN', 'UT']
 
-    const recentUsersAvatarInitials = useCallback(() => {
-        // if we have recent transactions, use them (max 3)
-        if (recentTransactions.length > 0) {
-            return recentTransactions.slice(0, 3).map((transaction) => {
-                return getInitialsFromName(transaction.username)
+    const recentContactsAvatarInitials = useCallback(() => {
+        // if we have contacts, use them (already limited to 3 by API)
+        if (contacts.length > 0) {
+            return contacts.map((contact) => {
+                return getInitialsFromName(
+                    contact.showFullName ? contact.fullName || contact.username : contact.username
+                )
             })
         }
         // fallback to default initials if no data
         return fallbackInitials
-    }, [recentTransactions])
+    }, [contacts])
 
-    const recentUsersAvatars = useMemo(() => {
+    const contactsAvatars = useMemo(() => {
         // show loading skeleton while fetching
-        if (isFetchingRecentUsers) {
+        if (isFetchingContacts) {
             return (
                 <div className="flex flex-row items-center -space-x-1.5">
                     {[0, 1, 2].map((index) => (
@@ -62,7 +65,7 @@ export const SendRouterView = () => {
         // show avatars (either real data or fallback)
         return (
             <div className="flex flex-row items-center -space-x-2">
-                {recentUsersAvatarInitials().map((initial, index) => {
+                {recentContactsAvatarInitials().map((initial, index) => {
                     return (
                         <div key={initial} style={{ zIndex: index }}>
                             <AvatarWithBadge name={initial} size="tiny" />
@@ -71,7 +74,7 @@ export const SendRouterView = () => {
                 })}
             </div>
         )
-    }, [isFetchingRecentUsers, recentUsersAvatarInitials])
+    }, [isFetchingContacts, recentContactsAvatarInitials])
 
     const redirectToSendByLink = () => {
         // reset send flow state when entering link creation flow
@@ -122,11 +125,6 @@ export const SendRouterView = () => {
             default:
                 console.warn(`Unknown method id: ${methodId}`)
         }
-    }
-
-    // handle user selection from contacts
-    const handleUserSelect = (username: string) => {
-        router.push(`/send/${username}`)
     }
 
     // extend ACTION_METHODS with component-specific identifier icons
@@ -197,81 +195,7 @@ export const SendRouterView = () => {
 
     // contacts view
     if (isSendingToContacts) {
-        return (
-            <div className="flex min-h-[inherit] flex-col space-y-8">
-                <NavHeader title="Send" onPrev={handlePrev} />
-
-                {isFetchingRecentUsers ? (
-                    // show loading state
-                    <div className="flex flex-1 items-center justify-center">
-                        <div className="text-sm text-grey-1">Loading contacts...</div>
-                    </div>
-                ) : recentTransactions.length > 0 ? (
-                    // show contacts list
-                    <div className="space-y-2">
-                        <h2 className="text-base font-bold">Recent activity</h2>
-                        <div className="flex-1 space-y-0 overflow-y-auto">
-                            {recentTransactions.map((user, index) => {
-                                const isVerified = user.bridgeKycStatus === 'approved'
-                                return (
-                                    <ActionListCard
-                                        position={
-                                            recentTransactions.length === 1
-                                                ? 'single'
-                                                : index === 0
-                                                  ? 'first'
-                                                  : index === recentTransactions.length - 1
-                                                    ? 'last'
-                                                    : 'middle'
-                                        }
-                                        key={user.userId}
-                                        title={
-                                            <VerifiedUserLabel
-                                                name={user.fullName || user.username}
-                                                username={user.username}
-                                                isVerified={isVerified}
-                                                haveSentMoneyToUser={true}
-                                            />
-                                        }
-                                        description={`@${user.username}`}
-                                        leftIcon={
-                                            <AvatarWithBadge size="extra-small" name={user.fullName || user.username} />
-                                        }
-                                        onClick={() => handleUserSelect(user.username)}
-                                    />
-                                )
-                            })}
-                        </div>
-                    </div>
-                ) : (
-                    // empty state
-                    <div className="my-auto flex min-h-[inherit] w-full items-center justify-center">
-                        <Card position="single" className="p-4 pb-5">
-                            <div
-                                className="flex flex-col items-center 
-                        justify-center gap-4"
-                            >
-                                <div className="space-y-2">
-                                    <div
-                                        className="mx-auto w-fit rounded-full 
-                                bg-primary-1 p-2"
-                                    >
-                                        <Icon name="link" size={16} />
-                                    </div>
-                                    <div className="space-y-1 text-center">
-                                        <div className="font-bold">Send money with a link</div>
-                                        <div className="text-sm font-medium">No account needed to receive.</div>
-                                    </div>
-                                </div>
-                                <Button shadowSize="4" icon="link" iconSize={10} onClick={handleLinkCtaClick}>
-                                    Send via link
-                                </Button>
-                            </div>
-                        </Card>
-                    </div>
-                )}
-            </div>
-        )
+        return <ContactsView />
     }
 
     return (
@@ -303,7 +227,7 @@ export const SendRouterView = () => {
                         let rightContent
                         switch (option.id) {
                             case 'peanut-contacts':
-                                rightContent = recentUsersAvatars
+                                rightContent = contactsAvatars
                                 break
                             case 'mercadopago':
                                 rightContent = <StatusBadge status="custom" customText="YOUR ACCOUNTS ONLY" />
