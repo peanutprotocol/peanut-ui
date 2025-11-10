@@ -9,14 +9,13 @@ import { useAuth } from '@/context/authContext'
 import { hasValidJwtToken } from '@/utils/auth'
 import classNames from 'classnames'
 import { usePathname } from 'next/navigation'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import '../../styles/globals.css'
 import SupportDrawer from '@/components/Global/SupportDrawer'
 import JoinWaitlistPage from '@/components/Invites/JoinWaitlistPage'
 import { useRouter } from 'next/navigation'
 import { Banner } from '@/components/Global/Banner'
-import { useDeviceType } from '@/hooks/useGetDeviceType'
 import { useSetupStore } from '@/redux/hooks'
 import ForceIOSPWAInstall from '@/components/ForceIOSPWAInstall'
 import { PUBLIC_ROUTES_REGEX } from '@/constants/routes'
@@ -37,25 +36,31 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const isSupport = pathName === '/support'
     const alignStart = isHome || isHistory || isSupport
     const router = useRouter()
-    const { deviceType: detectedDeviceType } = useDeviceType()
     const { showIosPwaInstallScreen } = useSetupStore()
+
+    // cache the scrollable content element to avoid DOM queries on every scroll event
+    const scrollableContentRef = useRef<Element | null>(null)
 
     useEffect(() => {
         // check for JWT token
         setHasToken(hasValidJwtToken())
 
         setIsReady(true)
+
+        // cache the scrollable content element reference
+        scrollableContentRef.current = document.querySelector('#scrollable-content')
     }, [])
 
     // memoizing shouldPullToRefresh callback to prevent re-initialization on every render
-    // @dev: note this fixes the issue where scrolling scolling a long list would trigger pull-to-refresh
+    // caching the element ref prevents expensive DOM queries during scroll events
     const shouldPullToRefresh = useCallback(() => {
-        // check if the scrollable content container is at the top
-        const scrollableContent = document.querySelector('#scrollable-content')
+        // use cached reference to avoid DOM query on every scroll event
+        const scrollableContent = scrollableContentRef.current
         if (!scrollableContent) return false
 
-        // only allow pull-to-refresh when the scrollable container is at the very top
-        return scrollableContent.scrollTop === 0
+        // only allow pull-to-refresh when at the very top (with small threshold for precision)
+        // threshold helps prevent interference with normal upward scrolling
+        return scrollableContent.scrollTop <= 1
     }, [])
 
     // enable pull-to-refresh for both ios and android

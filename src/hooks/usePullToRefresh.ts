@@ -34,9 +34,11 @@ export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
             instructionsReleaseToRefresh: 'Release to refresh',
             instructionsRefreshing: 'Refreshing...',
             shouldPullToRefresh: shouldPullToRefresh || defaultShouldPullToRefresh,
-            distThreshold: 70,
-            distMax: 120,
-            distReload: 80,
+            distThreshold: 80,
+            distMax: 140,
+            distReload: 90,
+            // resistance makes pull-to-refresh feel more intentional
+            resistanceFunction: (t: number) => Math.min(1, t / 2.5),
         })
 
         return () => {
