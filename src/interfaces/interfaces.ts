@@ -256,9 +256,9 @@ export interface User {
     telegram: string | null
     hasAppAccess: boolean
     showFullName: boolean
+    showKycCompletedModal?: boolean
     createdAt: string
     accounts: Account[]
-    showKycCompletedModal: boolean
     badges?: Array<{
         id?: string
         code: string
