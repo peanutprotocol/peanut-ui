@@ -85,6 +85,9 @@ export const useZeroDev = () => {
                     if (inviteCodeFromCookie) {
                         removeFromCookie('inviteCode')
                     }
+                    if (campaignTag) {
+                        removeFromCookie('campaignTag')
+                    }
                 } catch (e) {
                     console.error('Error accepting invite', e)
                 }
