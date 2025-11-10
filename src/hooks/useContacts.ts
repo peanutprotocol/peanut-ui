@@ -1,27 +1,10 @@
 'use client'
 import { useInfiniteQuery } from '@tanstack/react-query'
-import Cookies from 'js-cookie'
-import { PEANUT_API_URL } from '@/constants'
 import { CONTACTS } from '@/constants/query.consts'
-import { fetchWithSentry } from '@/utils'
+import { getContacts } from '@/app/actions/users'
+import { type Contact, type ContactsResponse } from '@/interfaces'
 
-export interface Contact {
-    userId: string
-    username: string
-    fullName: string | null
-    bridgeKycStatus: string | null
-    showFullName: boolean
-    relationshipTypes: ('inviter' | 'invitee' | 'sent_money' | 'received_money')[]
-    firstInteractionDate: string
-    lastInteractionDate: string
-    transactionCount: number
-}
-
-interface ContactsResponse {
-    contacts: Contact[]
-    total: number
-    hasMore: boolean
-}
+export type { Contact }
 
 interface UseContactsOptions {
     limit?: number
@@ -37,24 +20,20 @@ export function useContacts(options: UseContactsOptions = {}) {
     const { data, isLoading, error, fetchNextPage, hasNextPage, isFetchingNextPage, refetch } = useInfiniteQuery({
         queryKey: [CONTACTS, limit],
         queryFn: async ({ pageParam = 0 }): Promise<ContactsResponse> => {
-            const queryParams = new URLSearchParams({
-                limit: limit.toString(),
-                offset: (pageParam * limit).toString(),
+            const result = await getContacts({
+                limit,
+                offset: pageParam * limit,
             })
 
-            const response = await fetchWithSentry(`${PEANUT_API_URL}/users/contacts?${queryParams}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${Cookies.get('jwt-token')}`,
-                },
-            })
-
-            if (!response.ok) {
-                throw new Error(`Failed to fetch contacts: ${response.statusText}`)
+            if (result.error) {
+                throw new Error(result.error)
             }
 
-            return response.json()
+            if (!result.data) {
+                throw new Error('No data returned from server')
+            }
+
+            return result.data
         },
         getNextPageParam: (lastPage, allPages) => {
             // if hasMore is true, return next page number
