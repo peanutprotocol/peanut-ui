@@ -27,15 +27,16 @@ export const SendRouterView = () => {
     const searchParams = useSearchParams()
     const isSendingByLink = searchParams.get('view') === 'link' || searchParams.get('createLink') === 'true'
     const isSendingToContacts = searchParams.get('view') === 'contacts'
-    const { contacts, isLoading: isFetchingContacts } = useContacts()
+    // only fetch 3 contacts for avatar display
+    const { contacts, isLoading: isFetchingContacts } = useContacts({ limit: 3 })
 
     // fallback initials when no contacts
     const fallbackInitials = ['PE', 'AN', 'UT']
 
     const recentContactsAvatarInitials = useCallback(() => {
-        // if we have contacts, use them (max 3)
+        // if we have contacts, use them (already limited to 3 by API)
         if (contacts.length > 0) {
-            return contacts.slice(0, 3).map((contact) => {
+            return contacts.map((contact) => {
                 return getInitialsFromName(
                     contact.showFullName ? contact.fullName || contact.username : contact.username
                 )
