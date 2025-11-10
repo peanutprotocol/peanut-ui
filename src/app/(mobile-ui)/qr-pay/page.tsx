@@ -276,7 +276,13 @@ export default function QRPayPage() {
         if (paymentProcessor !== 'MANTECA') return
         if (!paymentLock) return
         if (paymentLock.code !== '') {
-            setAmount(paymentLock.paymentAssetAmount)
+            // For dynamic QR codes with preset amounts:
+            // paymentAssetAmount is in local currency (e.g., "92" BRL)
+            // paymentAgainstAmount is the USD equivalent (e.g., "18.4" USD)
+            // TokenAmountInput expects tokenValue in USD, so we pass paymentAgainstAmount
+            // It will convert to local currency for display using isInitialInputUsd=false
+            setAmount(paymentLock.paymentAgainstAmount)
+            setCurrencyAmount(paymentLock.paymentAssetAmount)
         }
     }, [paymentLock?.code, paymentProcessor])
 
@@ -328,8 +334,11 @@ export default function QRPayPage() {
         }
         if (!paymentLock) return null
         if (paymentLock.code === '') {
+            // For static QR codes (user inputs amount), convert from local currency to USD
+            // currencyAmount is in local currency (ARS, BRL), amount is the USD equivalent
             return amount
         } else {
+            // For dynamic QR codes, backend provides the USD amount
             return paymentLock.paymentAgainstAmount
         }
     }, [paymentProcessor, simpleFiPayment, paymentLock?.code, paymentLock?.paymentAgainstAmount, amount])
@@ -1327,6 +1336,7 @@ export default function QRPayPage() {
                             walletBalance={balance ? formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS) : undefined}
                             setCurrencyAmount={setCurrencyAmount}
                             hideBalance
+                            isInitialInputUsd={false}
                         />
                     )}
                     {balanceErrorMessage && <ErrorAlert description={balanceErrorMessage} />}
