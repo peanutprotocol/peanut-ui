@@ -1,6 +1,11 @@
 import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import PullToRefresh from 'pulltorefreshjs'
+
+// pull-to-refresh configuration constants
+const DIST_THRESHOLD = 70 // minimum pull distance to trigger refresh
+const DIST_MAX = 120 // maximum pull distance (visual limit)
+const DIST_RELOAD = 80 // distance at which refresh is triggered when released
 
 interface UsePullToRefreshOptions {
     // custom function to determine if pull-to-refresh should be enabled
@@ -19,6 +24,14 @@ export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
     const router = useRouter()
     const { shouldPullToRefresh, enabled = true } = options
 
+    // store callback in ref to avoid re-initialization when function reference changes
+    const shouldPullToRefreshRef = useRef(shouldPullToRefresh)
+
+    // update ref when callback changes
+    useEffect(() => {
+        shouldPullToRefreshRef.current = shouldPullToRefresh
+    }, [shouldPullToRefresh])
+
     useEffect(() => {
         if (typeof window === 'undefined' || !enabled) return
 
@@ -28,19 +41,25 @@ export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
         PullToRefresh.init({
             mainElement: 'body',
             onRefresh: () => {
+                // router.refresh() returns void, wrap in promise for pulltorefreshjs
                 router.refresh()
+                return Promise.resolve()
             },
             instructionsPullToRefresh: 'Pull down to refresh',
             instructionsReleaseToRefresh: 'Release to refresh',
             instructionsRefreshing: 'Refreshing...',
-            shouldPullToRefresh: shouldPullToRefresh || defaultShouldPullToRefresh,
-            distThreshold: 80,
-            distMax: 140,
-            distReload: 90,
+            shouldPullToRefresh: () => {
+                // use latest callback from ref
+                const callback = shouldPullToRefreshRef.current
+                return callback ? callback() : defaultShouldPullToRefresh()
+            },
+            distThreshold: DIST_THRESHOLD,
+            distMax: DIST_MAX,
+            distReload: DIST_RELOAD,
         })
 
         return () => {
             PullToRefresh.destroyAll()
         }
-    }, [router, shouldPullToRefresh, enabled])
+    }, [router, enabled])
 }

@@ -46,21 +46,24 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         setHasToken(hasValidJwtToken())
 
         setIsReady(true)
-
-        // cache the scrollable content element reference
-        scrollableContentRef.current = document.querySelector('#scrollable-content')
     }, [])
 
     // memoizing shouldPullToRefresh callback to prevent re-initialization on every render
-    // caching the element ref prevents expensive DOM queries during scroll events
+    // lazy-load element ref to ensure DOM is ready
     const shouldPullToRefresh = useCallback(() => {
-        // use cached reference to avoid DOM query on every scroll event
-        const scrollableContent = scrollableContentRef.current
-        if (!scrollableContent) return false
+        // lazy-load the element reference if not cached yet
+        if (!scrollableContentRef.current) {
+            scrollableContentRef.current = document.querySelector('#scrollable-content')
+        }
 
-        // only allow pull-to-refresh when at the very top (with small threshold for precision)
-        // threshold helps prevent interference with normal upward scrolling
-        return scrollableContent.scrollTop <= 1
+        const scrollableContent = scrollableContentRef.current
+        if (!scrollableContent) {
+            // fallback to window scroll check if element not found
+            return window.scrollY === 0
+        }
+
+        // only allow pull-to-refresh when at the very top
+        return scrollableContent.scrollTop === 0
     }, [])
 
     // enable pull-to-refresh for both ios and android
