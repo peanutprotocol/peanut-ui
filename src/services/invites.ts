@@ -5,7 +5,11 @@ import Cookies from 'js-cookie'
 import { EInviteType, type PointsInvitesResponse } from './services.types'
 
 export const invitesApi = {
-    acceptInvite: async (inviteCode: string, type: EInviteType): Promise<{ success: boolean }> => {
+    acceptInvite: async (
+        inviteCode: string,
+        type: EInviteType,
+        campaignTag?: string
+    ): Promise<{ success: boolean }> => {
         try {
             const jwtToken = Cookies.get('jwt-token')
             const response = await fetchWithSentry(`${PEANUT_API_URL}/invites/accept`, {
@@ -14,7 +18,7 @@ export const invitesApi = {
                     Authorization: `Bearer ${jwtToken}`,
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ inviteCode, type }),
+                body: JSON.stringify({ inviteCode, type, campaignTag }),
             })
             if (!response.ok) {
                 return { success: false }

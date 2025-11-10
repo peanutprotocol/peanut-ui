@@ -74,10 +74,11 @@ export const useZeroDev = () => {
 
             // invite code can also be store in cookies, so we need to check both
             const userInviteCode = inviteCode || inviteCodeFromCookie
+            const campaignTag = getFromCookie('campaignTag')
 
             if (userInviteCode?.trim().length > 0) {
                 try {
-                    const result = await invitesApi.acceptInvite(userInviteCode, inviteType)
+                    const result = await invitesApi.acceptInvite(userInviteCode, inviteType, campaignTag)
                     if (!result.success) {
                         console.error('Error accepting invite', result)
                     }
