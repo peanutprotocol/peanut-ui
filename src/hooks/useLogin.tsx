@@ -33,11 +33,11 @@ export const useLogin = () => {
             const redirect_uri = searchParams.get('redirect_uri')
             if (redirect_uri) {
                 const validRedirectUrl = getValidRedirectUrl(redirect_uri, '/home')
-                window.location.href = validRedirectUrl
+                router.push(validRedirectUrl)
             } else if (localStorageRedirect) {
                 clearRedirectUrl()
                 const validRedirectUrl = getValidRedirectUrl(String(localStorageRedirect), '/home')
-                window.location.href = validRedirectUrl
+                router.push(validRedirectUrl)
             } else {
                 router.push('/home')
             }

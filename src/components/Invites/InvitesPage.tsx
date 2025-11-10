@@ -46,7 +46,7 @@ function InvitePageContent() {
         }
 
         // If user has app access and invite is valid, redirect to inviter's profile
-        if (user.user.hasAppAccess && inviteCodeData.success && inviteCodeData.username) {
+        if (!redirectUri && user.user.hasAppAccess && inviteCodeData.success && inviteCodeData.username) {
             router.push(`/${inviteCodeData.username}`)
         }
     }, [user, inviteCodeData, isLoading, router])
