@@ -9,7 +9,6 @@ import { useAuth } from '@/context/authContext'
 import { hasValidJwtToken } from '@/utils/auth'
 import classNames from 'classnames'
 import { usePathname } from 'next/navigation'
-import PullToRefresh from 'pulltorefreshjs'
 import { useEffect, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import '../../styles/globals.css'
@@ -17,10 +16,11 @@ import SupportDrawer from '@/components/Global/SupportDrawer'
 import JoinWaitlistPage from '@/components/Invites/JoinWaitlistPage'
 import { useRouter } from 'next/navigation'
 import { Banner } from '@/components/Global/Banner'
-import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
+import { useDeviceType } from '@/hooks/useGetDeviceType'
 import { useSetupStore } from '@/redux/hooks'
 import ForceIOSPWAInstall from '@/components/ForceIOSPWAInstall'
 import { PUBLIC_ROUTES_REGEX } from '@/constants/routes'
+import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     const pathName = usePathname()
@@ -43,37 +43,17 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         setIsReady(true)
     }, [])
 
-    // Pull-to-refresh is only enabled on iOS devices since Android has native pull-to-refresh
-    // docs here: https://github.com/BoxFactura/pulltorefresh.js
-    useEffect(() => {
-        if (typeof window === 'undefined') return
+    // enable pull-to-refresh for both ios and android
+    usePullToRefresh({
+        shouldPullToRefresh: () => {
+            // check if the scrollable content container is at the top
+            const scrollableContent = document.querySelector('#scrollable-content')
+            if (!scrollableContent) return false
 
-        // Only initialize pull-to-refresh on iOS devices
-        if (detectedDeviceType !== DeviceType.IOS) return
-
-        PullToRefresh.init({
-            mainElement: 'body',
-            onRefresh: () => {
-                router.refresh()
-            },
-            instructionsPullToRefresh: 'Pull down to refresh',
-            instructionsReleaseToRefresh: 'Release to refresh',
-            instructionsRefreshing: 'Refreshing...',
-            shouldPullToRefresh: () => {
-                const el = document.querySelector('body')
-                if (!el) return false
-
-                return el.scrollTop === 0 && window.scrollY === 0
-            },
-            distThreshold: 70,
-            distMax: 120,
-            distReload: 80,
-        })
-
-        return () => {
-            PullToRefresh.destroyAll()
-        }
-    }, [router])
+            // only allow pull-to-refresh when the scrollable container is at the very top
+            return scrollableContent.scrollTop === 0
+        },
+    })
 
     // Allow access to public paths without authentication
     const isPublicPath = PUBLIC_ROUTES_REGEX.test(pathName)
