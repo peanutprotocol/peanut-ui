@@ -1,4 +1,4 @@
-import { useCallback, useState, useRef, useEffect } from 'react'
+import { useCallback, useState, useRef } from 'react'
 import IconStack from '../Global/IconStack'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
@@ -16,12 +16,14 @@ interface ActionListDaimoPayButtonProps {
     handleContinueWithPeanut: () => void
     showConfirmModal: boolean
     onBeforeShow?: () => boolean | Promise<boolean>
+    isDisabled?: boolean
 }
 
 const ActionListDaimoPayButton = ({
     handleContinueWithPeanut,
     showConfirmModal,
     onBeforeShow,
+    isDisabled,
 }: ActionListDaimoPayButtonProps) => {
     const dispatch = useAppDispatch()
     const searchParams = useSearchParams()
@@ -179,7 +181,7 @@ const ActionListDaimoPayButton = ({
 
                     return (
                         <ActionListCard
-                            isDisabled={loading || isProcessing}
+                            isDisabled={loading || isProcessing || isDisabled}
                             position="single"
                             description={method.description}
                             descriptionClassName="text-[12px]"
