@@ -100,7 +100,8 @@ const LinkSendInitialView = () => {
     useEffect(() => {
         // Skip balance check if transaction is pending
         // (balance may be optimistically updated during transaction)
-        if (hasPendingTransactions) {
+        // isLoading covers the createLink operation which directly uses handleSendUserOpEncoded
+        if (hasPendingTransactions || isLoading) {
             return
         }
 
@@ -132,7 +133,7 @@ const LinkSendInitialView = () => {
                 })
             )
         }
-    }, [peanutWalletBalance, tokenValue, dispatch, hasPendingTransactions])
+    }, [peanutWalletBalance, tokenValue, dispatch, hasPendingTransactions, isLoading])
 
     return (
         <div className="w-full space-y-4">
