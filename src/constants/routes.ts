@@ -50,14 +50,18 @@ export const RESERVED_ROUTES: readonly string[] = [...DEDICATED_ROUTES, ...STATI
 /**
  * Routes accessible without authentication
  * These paths can be accessed by non-logged-in users
+ *
+ * Note: 'dev' routes require authentication and specific user authorization (not public)
  */
-export const PUBLIC_ROUTES = ['request/pay', 'claim', 'pay', 'support', 'invite', 'dev', 'qr'] as const
+export const PUBLIC_ROUTES = ['request/pay', 'claim', 'pay', 'support', 'invite', 'qr'] as const
 
 /**
  * Regex pattern for public routes (used in layout.tsx)
  * Matches paths that don't require authentication
+ *
+ * Note: Dev tools routes are NOT public - they require both authentication and specific user authorization
  */
-export const PUBLIC_ROUTES_REGEX = /^\/(request\/pay|claim|pay\/.+|support|invite|dev|qr)/
+export const PUBLIC_ROUTES_REGEX = /^\/(request\/pay|claim|pay\/.+|support|invite|qr)/
 
 /**
  * Routes where middleware should run

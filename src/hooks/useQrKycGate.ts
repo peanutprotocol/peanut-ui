@@ -21,13 +21,22 @@ export interface QrKycGateResult {
 /**
  * This hook determines the KYC gate state for the QR pay page.
  * It checks the user's KYC status and the country of the QR code to determine the appropriate action.
+ * @param paymentProcessor - The payment processor type ('MANTECA' | 'SIMPLEFI' | null)
  * @returns {QrKycGateResult} An object with the KYC gate state and a boolean indicating if the user should be blocked from paying.
+ *
+ * Note: KYC is only required for MANTECA payments. SimpleFi payments do not require KYC.
  */
-export function useQrKycGate(): QrKycGateResult {
+export function useQrKycGate(paymentProcessor?: 'MANTECA' | 'SIMPLEFI' | null): QrKycGateResult {
     const { user } = useAuth()
     const [kycGateState, setKycGateState] = useState<QrKycState>(QrKycState.LOADING)
 
     const determineKycGateState = useCallback(async () => {
+        // SimpleFi payments do not require KYC - allow payment immediately
+        if (paymentProcessor === 'SIMPLEFI') {
+            setKycGateState(QrKycState.PROCEED_TO_PAY)
+            return
+        }
+
         const currentUser = user?.user
         if (!currentUser) {
             setKycGateState(QrKycState.REQUIRES_IDENTITY_VERIFICATION)
@@ -68,7 +77,7 @@ export function useQrKycGate(): QrKycGateResult {
         }
 
         setKycGateState(QrKycState.REQUIRES_IDENTITY_VERIFICATION)
-    }, [user?.user])
+    }, [user?.user, paymentProcessor])
 
     useEffect(() => {
         determineKycGateState()

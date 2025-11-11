@@ -1,8 +1,8 @@
 'use client'
 import { getLinkFromTx, getNextDepositIndex } from '@/app/actions/claimLinks'
-import { PEANUT_API_URL, PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, next_proxy_url } from '@/constants'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, next_proxy_url } from '@/constants'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
-import { fetchWithSentry, isNativeCurrency, saveToLocalStorage } from '@/utils'
+import { isNativeCurrency, saveToLocalStorage } from '@/utils'
 import peanut, {
     generateKeysFromString,
     getLatestContractVersion,
@@ -17,7 +17,6 @@ import { useSignTypedData } from 'wagmi'
 
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { captureException } from '@sentry/nextjs'
 
 export const useCreateLink = () => {
     const { setLoadingState } = useContext(loadingStateContext)
@@ -92,104 +91,6 @@ export const useCreateLink = () => {
         },
         [address]
     )
-
-    const submitClaimLinkInit = async ({
-        attachmentOptions,
-        password,
-        senderAddress,
-    }: {
-        password: string
-        attachmentOptions: {
-            message?: string
-            attachmentFile?: File
-        }
-        senderAddress: string
-    }) => {
-        try {
-            const formData = new FormData()
-            formData.append('password', password)
-            formData.append('attachmentOptions', JSON.stringify(attachmentOptions))
-            formData.append('senderAddress', senderAddress)
-
-            if (attachmentOptions.attachmentFile) {
-                formData.append('attachment', attachmentOptions.attachmentFile)
-            }
-
-            const response = await fetchWithSentry('/api/peanut/submit-claim-link/init', {
-                method: 'POST',
-                body: formData,
-            })
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`)
-            }
-            const data = await response.json()
-
-            return data
-        } catch (error) {
-            console.error('Failed to publish file (init):', error)
-            return ''
-        }
-    }
-    const submitClaimLinkConfirm = async ({
-        link,
-        password,
-        txHash,
-        chainId,
-        senderAddress,
-        amountUsd,
-        transaction,
-    }: {
-        link: string
-        password: string
-        txHash: string
-        chainId: string
-        senderAddress: string
-        amountUsd: number
-        transaction?: peanutInterfaces.IPeanutUnsignedTransaction
-    }) => {
-        try {
-            const { address: pubKey } = generateKeysFromString(password)
-            if (!pubKey) {
-                throw new Error('Failed to generate pubKey from password')
-            }
-
-            const formattedTransaction = transaction
-                ? {
-                      from: transaction.from?.toString(),
-                      to: transaction.to?.toString(),
-                      data: transaction.data?.toString(),
-                      value: transaction.value?.toString(),
-                  }
-                : undefined
-
-            const response = await fetchWithSentry('/api/peanut/submit-claim-link/confirm', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    link,
-                    password,
-                    txHash,
-                    chainId,
-                    senderAddress,
-                    amountUsd,
-                    pubKey,
-                    signature: '',
-                    transaction: formattedTransaction,
-                }),
-            })
-
-            if (!response.ok) {
-                const errorData = await response.json()
-                throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
-            }
-        } catch (error) {
-            console.error('Failed to publish file (complete):', error)
-            throw error
-        }
-    }
 
     const prepareDirectSendTx = ({
         recipient,
@@ -389,8 +290,6 @@ export const useCreateLink = () => {
         makeDepositGasless,
         prepareDepositTxs,
         getLinkFromHash,
-        submitClaimLinkInit,
-        submitClaimLinkConfirm,
         prepareDirectSendTx,
         createLink,
     }

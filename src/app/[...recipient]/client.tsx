@@ -35,6 +35,7 @@ import MantecaFulfillment from '@/components/Payment/Views/MantecaFulfillment.vi
 import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermineBankRequestType'
 import { PointsAction } from '@/services/services.types'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
+import { useHaptic } from 'use-haptic'
 
 export type PaymentFlow = 'request_pay' | 'external_wallet' | 'direct_pay' | 'withdraw'
 interface Props {
@@ -72,6 +73,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         fulfillUsingManteca,
     } = useRequestFulfillmentFlow()
     const { requestType } = useDetermineBankRequestType(chargeDetails?.requestLink.recipientAccount.userId ?? '')
+    const { triggerHaptic } = useHaptic()
 
     // Calculate points API call
     // Points are ALWAYS calculated based on USD value (per PR.md: "1c in cost = 10 pts")
@@ -134,6 +136,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
 
                     // show STATUS view for any payment attempt (including failed ones)
                     if (latestPayment.status !== 'NEW') {
+                        triggerHaptic()
                         dispatch(paymentActions.setView('STATUS'))
                     }
                 }
@@ -424,6 +427,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
 
         // show status view only if fulfillment payment is successful
         if (chargeDetails?.fulfillmentPayment?.status === 'SUCCESSFUL') {
+            triggerHaptic()
             dispatch(paymentActions.setView('STATUS'))
         }
 

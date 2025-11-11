@@ -25,7 +25,7 @@ export const Profile = () => {
     const [isInviteFriendsModalOpen, setIsInviteFriendsModalOpen] = useState(false)
     const [showInitiateKycModal, setShowInitiateKycModal] = useState(false)
     const router = useRouter()
-    const { isUserKycApproved, isUserBridgeKycUnderReview } = useKycStatus()
+    const { isUserKycApproved } = useKycStatus()
 
     const logout = async () => {
         await logoutUser()
@@ -55,15 +55,6 @@ export const Profile = () => {
             <div className="space-y-8">
                 <ProfileHeader name={fullName || username} username={username} isVerified={isUserKycApproved} />
                 <div className="space-y-4">
-                    {/* Menu Item - Invite Entry */}
-                    {/* Enable with Invites project. */}
-                    {/* <ProfileMenuItem
-                        icon="smile"
-                        label="Invite friends to Peanut"
-                        href="https://docs.peanut.me/how-to-use-peanut-links/referrals"
-                        position="single"
-                        isExternalLink
-                    /> */}
                     <ProfileMenuItem
                         icon="smile"
                         label="Invite friends to Peanut"
@@ -84,15 +75,13 @@ export const Profile = () => {
                     <div>
                         <ProfileMenuItem icon="user" label="Personal details" href="/profile/edit" position="first" />
                         <ProfileMenuItem
-                            icon="shield"
-                            label="Identity Verification"
+                            icon="globe-lock"
+                            label="Regions & Verification"
                             href="/profile/identity-verification"
                             onClick={() => {
                                 setShowInitiateKycModal(true)
                             }}
                             position="middle"
-                            endIcon={isUserKycApproved ? 'check' : undefined}
-                            endIconClassName={isUserKycApproved ? 'text-success-3 size-4' : undefined}
                         />
 
                         <Card className="p-4" position="middle">

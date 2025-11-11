@@ -41,6 +41,7 @@ import { EInviteType } from '@/services/services.types'
 import ContributorCard from '@/components/Global/Contributors/ContributorCard'
 import { getCardPosition } from '@/components/Global/Card'
 import * as Sentry from '@sentry/nextjs'
+import { useHaptic } from 'use-haptic'
 
 export type PaymentFlowProps = {
     isExternalWalletFlow?: boolean
@@ -157,6 +158,7 @@ export const PaymentForm = ({
     const searchParams = useSearchParams()
     const requestId = searchParams.get('id')
     const isDepositRequest = searchParams.get('action') === 'deposit'
+    const { triggerHaptic } = useHaptic()
 
     const isUsingExternalWallet = useMemo(() => {
         return isExternalWalletFlow || !isPeanutWalletConnected
@@ -494,6 +496,7 @@ export const PaymentForm = ({
         const result = await initiatePayment(payload)
 
         if (result.status === 'Success') {
+            triggerHaptic()
             dispatch(paymentActions.setView('STATUS'))
         } else if (result.status === 'Charge Created') {
             if (!fulfillUsingManteca && !showRequestPotInitialView) {
@@ -540,7 +543,7 @@ export const PaymentForm = ({
         }
 
         if (showRequestPotInitialView) {
-            return 'Pay'
+            return 'Choose payment method'
         }
 
         if (isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow) {

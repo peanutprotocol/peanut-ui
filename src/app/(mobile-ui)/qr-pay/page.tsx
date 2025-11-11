@@ -78,7 +78,23 @@ export default function QRPayPage() {
     const { openTransactionDetails, selectedTransaction, isDrawerOpen, closeTransactionDetails } =
         useTransactionDetailsDrawer()
     const { isLoading, loadingState, setLoadingState } = useContext(loadingStateContext)
-    const { shouldBlockPay, kycGateState } = useQrKycGate()
+
+    const paymentProcessor: PaymentProcessor | null = useMemo(() => {
+        switch (qrType) {
+            case EQrType.SIMPLEFI_STATIC:
+            case EQrType.SIMPLEFI_DYNAMIC:
+            case EQrType.SIMPLEFI_USER_SPECIFIED:
+                return 'SIMPLEFI'
+            case EQrType.MERCADO_PAGO:
+            case EQrType.ARGENTINA_QR3:
+            case EQrType.PIX:
+                return 'MANTECA'
+            default:
+                return null
+        }
+    }, [qrType])
+
+    const { shouldBlockPay, kycGateState } = useQrKycGate(paymentProcessor)
     const queryClient = useQueryClient()
     const { hasPendingTransactions } = usePendingTransactions()
     const [isShaking, setIsShaking] = useState(false)
@@ -96,21 +112,6 @@ export default function QRPayPage() {
     const { setIsSupportModalOpen } = useSupportModalContext()
     const [waitingForMerchantAmount, setWaitingForMerchantAmount] = useState(false)
     const retryCount = useRef(0)
-
-    const paymentProcessor: PaymentProcessor | null = useMemo(() => {
-        switch (qrType) {
-            case EQrType.SIMPLEFI_STATIC:
-            case EQrType.SIMPLEFI_DYNAMIC:
-            case EQrType.SIMPLEFI_USER_SPECIFIED:
-                return 'SIMPLEFI'
-            case EQrType.MERCADO_PAGO:
-            case EQrType.ARGENTINA_QR3:
-            case EQrType.PIX:
-                return 'MANTECA'
-            default:
-                return null
-        }
-    }, [qrType])
 
     const resetState = () => {
         setIsSuccess(false)
@@ -301,6 +302,22 @@ export default function QRPayPage() {
         getCurrencyObject().then(setCurrency)
     }, [paymentLock?.code, paymentProcessor])
 
+    // Set default currency for SimpleFi USER_SPECIFIED (user will enter amount)
+    useEffect(() => {
+        if (paymentProcessor !== 'SIMPLEFI') return
+        if (simpleFiQrData?.type !== 'SIMPLEFI_USER_SPECIFIED') return
+        if (currency) return // Already set
+
+        // Default to ARS for SimpleFi payments
+        getCurrencyPrice('ARS').then((priceData) => {
+            setCurrency({
+                code: 'ARS',
+                symbol: 'ARS',
+                price: priceData.sell,
+            })
+        })
+    }, [paymentProcessor, simpleFiQrData?.type, currency])
+
     const isBlockingError = useMemo(() => {
         return !!errorMessage && errorMessage !== 'Please confirm the transaction.'
     }, [errorMessage])
@@ -416,14 +433,20 @@ export default function QRPayPage() {
             })
             .catch((error) => {
                 if (error.message.includes("provider can't decode it")) {
-                    setWaitingForMerchantAmount(true)
+                    if (EQrType.PIX === qrType) {
+                        setErrorInitiatingPayment(
+                            'We are currently experiencing issues with PIX payments due to an external provider. We are working to fix it as soon as possible'
+                        )
+                    } else {
+                        setWaitingForMerchantAmount(true)
+                    }
                 } else {
                     setErrorInitiatingPayment(error.message)
                     setWaitingForMerchantAmount(false)
                 }
             })
             .finally(() => setLoadingState('Idle'))
-    }, [paymentLock, qrCode, setLoadingState, paymentProcessor, shouldRetry])
+    }, [paymentLock, qrCode, setLoadingState, paymentProcessor, shouldRetry, qrType])
 
     const merchantName = useMemo(() => {
         if (paymentProcessor === 'SIMPLEFI') {
@@ -819,14 +842,14 @@ export default function QRPayPage() {
     if (!!errorInitiatingPayment) {
         return (
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
-                <Card className="shadow-4 space-y-2">
-                    <div className="space-y-2">
-                        <h1 className="text-3xl font-extrabold">Unable to get QR details</h1>
-                        <p className="text-lg">
-                            {errorInitiatingPayment || 'An error occurred while getting the QR details.'}
-                        </p>
+                <Card className="relative z-10 flex w-full flex-col items-center gap-4 p-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-1 p-3">
+                        <Icon name="alert" className="h-full" />
                     </div>
-                    <div className="h-[1px] bg-black"></div>
+                    <p className="font-medium">
+                        {' '}
+                        {errorInitiatingPayment || 'An error occurred while getting the QR details.'}
+                    </p>
 
                     <Button onClick={() => router.back()} variant="purple">
                         Go Back
@@ -1118,12 +1141,14 @@ export default function QRPayPage() {
                             <>
                                 <Button
                                     onClick={() => {
-                                        router.push('/home')
-                                        resetState()
+                                        router.push(
+                                            `/request?amount=${formatNumberForDisplay(usdAmount ?? undefined, { maxDecimals: 2 })}&merchant=${qrPayment!.details.merchant.name}`
+                                        )
                                     }}
+                                    icon="split"
                                     shadowSize="4"
                                 >
-                                    Back to home
+                                    Split this bill
                                 </Button>
                                 <Button
                                     variant="primary-soft"
@@ -1201,13 +1226,16 @@ export default function QRPayPage() {
                     <div className="w-full space-y-5">
                         <Button
                             onClick={() => {
-                                router.push('/home')
-                                resetState()
+                                router.push(
+                                    `/request?amount=${formatNumberForDisplay(usdAmount ?? undefined, { maxDecimals: 2 })}&merchant=${qrPayment!.details.merchant.name}`
+                                )
                             }}
+                            icon="split"
                             shadowSize="4"
                         >
-                            Back to home
+                            Split this bill
                         </Button>
+
                         <Button
                             variant="primary-soft"
                             shadowSize="4"

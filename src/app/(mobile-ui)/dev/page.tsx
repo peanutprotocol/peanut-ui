@@ -15,6 +15,13 @@ export default function DevToolsPage() {
             status: 'active',
         },
         {
+            name: 'Invite Graph',
+            description: 'Interactive force-directed graph visualization of all user invites (admin only)',
+            path: '/dev/invite-graph',
+            icon: '🕸️',
+            status: 'active',
+        },
+        {
             name: 'Shake Test',
             description: 'Test progressive shake animation and confetti for perk claiming',
             path: '/dev/shake-test',

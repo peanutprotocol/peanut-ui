@@ -161,6 +161,7 @@ export interface CountryData {
     path: string
     iso2?: string
     iso3?: string
+    region?: 'europe' | 'north-america' | 'latam' | 'rest-of-the-world'
 }
 
 export interface DepositMethods extends CountryData {
@@ -304,6 +305,7 @@ export const countryData: CountryData[] = [
         path: 'andorra',
         iso2: 'AD',
         iso3: 'AND',
+        region: 'europe',
     },
     {
         id: 'AE',
@@ -313,6 +315,7 @@ export const countryData: CountryData[] = [
         path: 'united-arab-emirates',
         iso2: 'AE',
         iso3: 'ARE',
+        region: 'rest-of-the-world',
     },
     {
         id: 'AG',
@@ -322,6 +325,7 @@ export const countryData: CountryData[] = [
         path: 'antigua-and-barbuda',
         iso2: 'AG',
         iso3: 'ATG',
+        region: 'north-america',
     },
     {
         id: 'AI',
@@ -331,6 +335,7 @@ export const countryData: CountryData[] = [
         path: 'anguilla',
         iso2: 'AI',
         iso3: 'AIA',
+        region: 'north-america',
     },
     {
         id: 'AL',
@@ -340,6 +345,7 @@ export const countryData: CountryData[] = [
         path: 'albania',
         iso2: 'AL',
         iso3: 'ALB',
+        region: 'europe',
     },
     {
         id: 'AM',
@@ -349,6 +355,7 @@ export const countryData: CountryData[] = [
         path: 'armenia',
         iso2: 'AM',
         iso3: 'ARM',
+        region: 'rest-of-the-world',
     },
     {
         id: 'AO',
@@ -358,6 +365,7 @@ export const countryData: CountryData[] = [
         path: 'angola',
         iso2: 'AO',
         iso3: 'AGO',
+        region: 'rest-of-the-world',
     },
     {
         id: 'AQ',
@@ -367,6 +375,7 @@ export const countryData: CountryData[] = [
         path: 'antarctica',
         iso2: 'AQ',
         iso3: 'ATA',
+        region: 'rest-of-the-world',
     },
     {
         id: 'AR',
@@ -376,6 +385,7 @@ export const countryData: CountryData[] = [
         path: 'argentina',
         iso2: 'AR',
         iso3: 'ARG',
+        region: 'latam',
     },
     {
         id: 'AS',
@@ -385,6 +395,7 @@ export const countryData: CountryData[] = [
         path: 'american-samoa',
         iso2: 'AS',
         iso3: 'ASM',
+        region: 'rest-of-the-world',
     },
     {
         id: 'AUT',
@@ -394,6 +405,7 @@ export const countryData: CountryData[] = [
         path: 'austria',
         iso2: 'AT',
         iso3: 'AUT',
+        region: 'europe',
     },
     {
         id: 'AU',
@@ -403,6 +415,7 @@ export const countryData: CountryData[] = [
         path: 'australia',
         iso2: 'AU',
         iso3: 'AUS',
+        region: 'rest-of-the-world',
     },
     {
         id: 'AW',
@@ -412,6 +425,7 @@ export const countryData: CountryData[] = [
         path: 'aruba',
         iso2: 'AW',
         iso3: 'ABW',
+        region: 'north-america',
     },
     {
         id: 'ALA',
@@ -421,6 +435,7 @@ export const countryData: CountryData[] = [
         path: 'aland',
         iso2: 'AX',
         iso3: 'ALA',
+        region: 'europe',
     },
     {
         id: 'AZ',
@@ -430,6 +445,7 @@ export const countryData: CountryData[] = [
         path: 'azerbaijan',
         iso2: 'AZ',
         iso3: 'AZE',
+        region: 'rest-of-the-world',
     },
     {
         id: 'BA',
@@ -439,6 +455,7 @@ export const countryData: CountryData[] = [
         path: 'bosnia-and-herzegovina',
         iso2: 'BA',
         iso3: 'BIH',
+        region: 'europe',
     },
     {
         id: 'BB',
@@ -448,6 +465,7 @@ export const countryData: CountryData[] = [
         path: 'barbados',
         iso2: 'BB',
         iso3: 'BRB',
+        region: 'north-america',
     },
     {
         id: 'BD',
@@ -457,6 +475,7 @@ export const countryData: CountryData[] = [
         path: 'bangladesh',
         iso2: 'BD',
         iso3: 'BGD',
+        region: 'rest-of-the-world',
     },
     {
         id: 'BEL',
@@ -466,6 +485,7 @@ export const countryData: CountryData[] = [
         path: 'belgium',
         iso2: 'BE',
         iso3: 'BEL',
+        region: 'europe',
     },
     {
         id: 'BF',
@@ -475,6 +495,7 @@ export const countryData: CountryData[] = [
         path: 'burkina-faso',
         iso2: 'BF',
         iso3: 'BFA',
+        region: 'rest-of-the-world',
     },
     {
         id: 'BGR',
@@ -484,6 +505,7 @@ export const countryData: CountryData[] = [
         path: 'bulgaria',
         iso2: 'BG',
         iso3: 'BGR',
+        region: 'europe',
     },
     {
         id: 'BH',
@@ -493,6 +515,7 @@ export const countryData: CountryData[] = [
         path: 'bahrain',
         iso2: 'BH',
         iso3: 'BHR',
+        region: 'rest-of-the-world',
     },
     {
         id: 'BI',
@@ -502,6 +525,7 @@ export const countryData: CountryData[] = [
         path: 'burundi',
         iso2: 'BI',
         iso3: 'BDI',
+        region: 'rest-of-the-world',
     },
     {
         id: 'BJ',
@@ -511,6 +535,7 @@ export const countryData: CountryData[] = [
         path: 'benin',
         iso2: 'BJ',
         iso3: 'BEN',
+        region: 'rest-of-the-world',
     },
     {
         id: 'BL',
@@ -520,6 +545,7 @@ export const countryData: CountryData[] = [
         path: 'saint-barthélemy',
         iso2: 'BL',
         iso3: 'BLM',
+        region: 'europe',
     },
     {
         id: 'BM',
@@ -529,6 +555,7 @@ export const countryData: CountryData[] = [
         path: 'bermuda',
         iso2: 'BM',
         iso3: 'BMU',
+        region: 'north-america',
     },
     {
         id: 'BN',
@@ -538,6 +565,7 @@ export const countryData: CountryData[] = [
         path: 'brunei',
         iso2: 'BN',
         iso3: 'BRN',
+        region: 'rest-of-the-world',
     },
     {
         id: 'BO',
@@ -547,6 +575,7 @@ export const countryData: CountryData[] = [
         path: 'bolivia',
         iso2: 'BO',
         iso3: 'BOL',
+        region: 'latam',
     },
     {
         id: 'BQ',
@@ -556,6 +585,7 @@ export const countryData: CountryData[] = [
         path: 'bonaire',
         iso2: 'BQ',
         iso3: 'BES',
+        region: 'north-america',
     },
     {
         id: 'BR',
@@ -565,6 +595,7 @@ export const countryData: CountryData[] = [
         path: 'brazil',
         iso2: 'BR',
         iso3: 'BRA',
+        region: 'latam',
     },
     {
         id: 'BS',
@@ -574,6 +605,7 @@ export const countryData: CountryData[] = [
         path: 'bahamas',
         iso2: 'BS',
         iso3: 'BHS',
+        region: 'north-america',
     },
     {
         id: 'BT',
@@ -583,6 +615,7 @@ export const countryData: CountryData[] = [
         path: 'bhutan',
         iso2: 'BT',
         iso3: 'BTN',
+        region: 'rest-of-the-world',
     },
     {
         id: 'BV',
@@ -592,6 +625,7 @@ export const countryData: CountryData[] = [
         path: 'bouvet-island',
         iso2: 'BV',
         iso3: 'BVT',
+        region: 'rest-of-the-world',
     },
     {
         id: 'BW',
@@ -601,6 +635,7 @@ export const countryData: CountryData[] = [
         path: 'botswana',
         iso2: 'BW',
         iso3: 'BWA',
+        region: 'rest-of-the-world',
     },
     {
         id: 'BZ',
@@ -610,6 +645,7 @@ export const countryData: CountryData[] = [
         path: 'belize',
         iso2: 'BZ',
         iso3: 'BLZ',
+        region: 'latam',
     },
     {
         id: 'CA',
@@ -619,6 +655,7 @@ export const countryData: CountryData[] = [
         path: 'canada',
         iso2: 'CA',
         iso3: 'CAN',
+        region: 'north-america',
     },
     {
         id: 'CC',
@@ -628,6 +665,7 @@ export const countryData: CountryData[] = [
         path: 'cocos-keeling-islands',
         iso2: 'CC',
         iso3: 'CCK',
+        region: 'rest-of-the-world',
     },
     {
         id: 'CD',
@@ -637,6 +675,7 @@ export const countryData: CountryData[] = [
         path: 'democratic-republic-of-the-congo',
         iso2: 'CD',
         iso3: 'COD',
+        region: 'rest-of-the-world',
     },
     {
         id: 'CF',
@@ -646,6 +685,7 @@ export const countryData: CountryData[] = [
         path: 'central-african-republic',
         iso2: 'CF',
         iso3: 'CAF',
+        region: 'rest-of-the-world',
     },
     {
         id: 'CG',
@@ -655,6 +695,7 @@ export const countryData: CountryData[] = [
         path: 'republic-of-the-congo',
         iso2: 'CG',
         iso3: 'COG',
+        region: 'rest-of-the-world',
     },
     {
         id: 'CHE',
@@ -664,6 +705,7 @@ export const countryData: CountryData[] = [
         path: 'switzerland',
         iso2: 'CH',
         iso3: 'CHE',
+        region: 'europe',
     },
     {
         id: 'CI',
@@ -673,6 +715,7 @@ export const countryData: CountryData[] = [
         path: 'ivory-coast',
         iso2: 'CI',
         iso3: 'CIV',
+        region: 'rest-of-the-world',
     },
     {
         id: 'CK',
@@ -682,6 +725,7 @@ export const countryData: CountryData[] = [
         path: 'cook-islands',
         iso2: 'CK',
         iso3: 'COK',
+        region: 'rest-of-the-world',
     },
     {
         id: 'CL',
@@ -691,6 +735,7 @@ export const countryData: CountryData[] = [
         path: 'chile',
         iso2: 'CL',
         iso3: 'CHL',
+        region: 'latam',
     },
     {
         id: 'CM',
@@ -700,6 +745,7 @@ export const countryData: CountryData[] = [
         path: 'cameroon',
         iso2: 'CM',
         iso3: 'CMR',
+        region: 'rest-of-the-world',
     },
     {
         id: 'CN',
@@ -709,6 +755,7 @@ export const countryData: CountryData[] = [
         path: 'china',
         iso2: 'CN',
         iso3: 'CHN',
+        region: 'rest-of-the-world',
     },
     {
         id: 'CO',
@@ -718,6 +765,7 @@ export const countryData: CountryData[] = [
         path: 'colombia',
         iso2: 'CO',
         iso3: 'COL',
+        region: 'latam',
     },
     {
         id: 'CR',
@@ -727,6 +775,7 @@ export const countryData: CountryData[] = [
         path: 'costa-rica',
         iso2: 'CR',
         iso3: 'CRI',
+        region: 'latam',
     },
     {
         id: 'CV',
@@ -736,6 +785,7 @@ export const countryData: CountryData[] = [
         path: 'cape-verde',
         iso2: 'CV',
         iso3: 'CPV',
+        region: 'rest-of-the-world',
     },
     {
         id: 'CW',
@@ -745,6 +795,7 @@ export const countryData: CountryData[] = [
         path: 'curacao',
         iso2: 'CW',
         iso3: 'CUW',
+        region: 'north-america',
     },
     {
         id: 'CX',
@@ -754,6 +805,7 @@ export const countryData: CountryData[] = [
         path: 'christmas-island',
         iso2: 'CX',
         iso3: 'CXR',
+        region: 'rest-of-the-world',
     },
     {
         id: 'CYP',
@@ -763,6 +815,7 @@ export const countryData: CountryData[] = [
         path: 'cyprus',
         iso2: 'CY',
         iso3: 'CYP',
+        region: 'europe',
     },
     {
         id: 'CZE',
@@ -772,6 +825,7 @@ export const countryData: CountryData[] = [
         path: 'czechia',
         iso2: 'CZ',
         iso3: 'CZE',
+        region: 'europe',
     },
     {
         id: 'DEU',
@@ -781,6 +835,7 @@ export const countryData: CountryData[] = [
         path: 'germany',
         iso2: 'DE',
         iso3: 'DEU',
+        region: 'europe',
     },
     {
         id: 'DJ',
@@ -790,6 +845,7 @@ export const countryData: CountryData[] = [
         path: 'djibouti',
         iso2: 'DJ',
         iso3: 'DJI',
+        region: 'rest-of-the-world',
     },
     {
         id: 'DNK',
@@ -799,6 +855,7 @@ export const countryData: CountryData[] = [
         path: 'denmark',
         iso2: 'DK',
         iso3: 'DNK',
+        region: 'europe',
     },
     {
         id: 'DM',
@@ -808,6 +865,7 @@ export const countryData: CountryData[] = [
         path: 'dominica',
         iso2: 'DM',
         iso3: 'DMA',
+        region: 'latam',
     },
     {
         id: 'DO',
@@ -817,6 +875,7 @@ export const countryData: CountryData[] = [
         path: 'dominican-republic',
         iso2: 'DO',
         iso3: 'DOM',
+        region: 'latam',
     },
     {
         id: 'DZ',
@@ -826,6 +885,7 @@ export const countryData: CountryData[] = [
         path: 'algeria',
         iso2: 'DZ',
         iso3: 'DZA',
+        region: 'rest-of-the-world',
     },
     {
         id: 'EC',
@@ -835,6 +895,7 @@ export const countryData: CountryData[] = [
         path: 'ecuador',
         iso2: 'EC',
         iso3: 'ECU',
+        region: 'latam',
     },
     {
         id: 'EST',
@@ -844,6 +905,7 @@ export const countryData: CountryData[] = [
         path: 'estonia',
         iso2: 'EE',
         iso3: 'EST',
+        region: 'europe',
     },
     {
         id: 'EG',
@@ -853,6 +915,7 @@ export const countryData: CountryData[] = [
         path: 'egypt',
         iso2: 'EG',
         iso3: 'EGY',
+        region: 'rest-of-the-world',
     },
     {
         id: 'EH',
@@ -862,6 +925,7 @@ export const countryData: CountryData[] = [
         path: 'western-sahara',
         iso2: 'EH',
         iso3: 'ESH',
+        region: 'rest-of-the-world',
     },
     {
         id: 'ER',
@@ -871,6 +935,7 @@ export const countryData: CountryData[] = [
         path: 'eritrea',
         iso2: 'ER',
         iso3: 'ERI',
+        region: 'rest-of-the-world',
     },
     {
         id: 'ESP',
@@ -880,6 +945,7 @@ export const countryData: CountryData[] = [
         path: 'spain',
         iso2: 'ES',
         iso3: 'ESP',
+        region: 'europe',
     },
     {
         id: 'ET',
@@ -889,6 +955,7 @@ export const countryData: CountryData[] = [
         path: 'ethiopia',
         iso2: 'ET',
         iso3: 'ETH',
+        region: 'rest-of-the-world',
     },
     {
         id: 'FIN',
@@ -898,6 +965,7 @@ export const countryData: CountryData[] = [
         path: 'finland',
         iso2: 'FI',
         iso3: 'FIN',
+        region: 'europe',
     },
     {
         id: 'FJ',
@@ -907,6 +975,7 @@ export const countryData: CountryData[] = [
         path: 'fiji',
         iso2: 'FJ',
         iso3: 'FJI',
+        region: 'rest-of-the-world',
     },
     {
         id: 'FK',
@@ -916,6 +985,7 @@ export const countryData: CountryData[] = [
         path: 'falkland-islands',
         iso2: 'FK',
         iso3: 'FLK',
+        region: 'latam',
     },
     {
         id: 'FM',
@@ -925,6 +995,7 @@ export const countryData: CountryData[] = [
         path: 'micronesia',
         iso2: 'FM',
         iso3: 'FSM',
+        region: 'rest-of-the-world',
     },
     {
         id: 'FO',
@@ -934,6 +1005,7 @@ export const countryData: CountryData[] = [
         path: 'faroe-islands',
         iso2: 'FO',
         iso3: 'FRO',
+        region: 'europe',
     },
     {
         id: 'FRA',
@@ -943,6 +1015,7 @@ export const countryData: CountryData[] = [
         path: 'france',
         iso2: 'FR',
         iso3: 'FRA',
+        region: 'europe',
     },
     {
         id: 'GA',
@@ -952,6 +1025,7 @@ export const countryData: CountryData[] = [
         path: 'gabon',
         iso2: 'GA',
         iso3: 'GAB',
+        region: 'rest-of-the-world',
     },
     {
         id: 'GBR',
@@ -961,6 +1035,7 @@ export const countryData: CountryData[] = [
         path: 'united-kingdom',
         iso2: 'GB',
         iso3: 'GBR',
+        region: 'europe',
     },
     {
         id: 'GD',
@@ -970,6 +1045,7 @@ export const countryData: CountryData[] = [
         path: 'grenada',
         iso2: 'GD',
         iso3: 'GRD',
+        region: 'latam',
     },
     {
         id: 'GE',
@@ -979,6 +1055,7 @@ export const countryData: CountryData[] = [
         path: 'georgia',
         iso2: 'GE',
         iso3: 'GEO',
+        region: 'europe',
     },
     {
         id: 'GUF',
@@ -988,6 +1065,7 @@ export const countryData: CountryData[] = [
         path: 'french-guiana',
         iso2: 'GF',
         iso3: 'GUF',
+        region: 'europe',
     },
     {
         id: 'GG',
@@ -997,6 +1075,7 @@ export const countryData: CountryData[] = [
         path: 'guernsey',
         iso2: 'GG',
         iso3: 'GGY',
+        region: 'europe',
     },
     {
         id: 'GH',
@@ -1006,6 +1085,7 @@ export const countryData: CountryData[] = [
         path: 'ghana',
         iso2: 'GH',
         iso3: 'GHA',
+        region: 'rest-of-the-world',
     },
     {
         id: 'GI',
@@ -1015,6 +1095,7 @@ export const countryData: CountryData[] = [
         path: 'gibraltar',
         iso2: 'GI',
         iso3: 'GIB',
+        region: 'europe',
     },
     {
         id: 'GL',
@@ -1024,6 +1105,7 @@ export const countryData: CountryData[] = [
         path: 'greenland',
         iso2: 'GL',
         iso3: 'GRL',
+        region: 'north-america',
     },
     {
         id: 'GM',
@@ -1033,6 +1115,7 @@ export const countryData: CountryData[] = [
         path: 'gambia',
         iso2: 'GM',
         iso3: 'GMB',
+        region: 'rest-of-the-world',
     },
     {
         id: 'GN',
@@ -1042,6 +1125,7 @@ export const countryData: CountryData[] = [
         path: 'guinea',
         iso2: 'GN',
         iso3: 'GIN',
+        region: 'rest-of-the-world',
     },
     {
         id: 'GP',
@@ -1051,6 +1135,7 @@ export const countryData: CountryData[] = [
         path: 'guadeloupe',
         iso2: 'GP',
         iso3: 'GLP',
+        region: 'europe',
     },
     {
         id: 'GQ',
@@ -1060,6 +1145,7 @@ export const countryData: CountryData[] = [
         path: 'equatorial-guinea',
         iso2: 'GQ',
         iso3: 'GNQ',
+        region: 'rest-of-the-world',
     },
     {
         id: 'GR',
@@ -1069,6 +1155,7 @@ export const countryData: CountryData[] = [
         path: 'greece',
         iso2: 'GR',
         iso3: 'GRC',
+        region: 'europe',
     },
     {
         id: 'GS',
@@ -1078,6 +1165,7 @@ export const countryData: CountryData[] = [
         path: 'south-georgia-and-the-south-sandwich-islands',
         iso2: 'GS',
         iso3: 'SGS',
+        region: 'rest-of-the-world',
     },
     {
         id: 'GT',
@@ -1087,6 +1175,7 @@ export const countryData: CountryData[] = [
         path: 'guatemala',
         iso2: 'GT',
         iso3: 'GTM',
+        region: 'latam',
     },
     {
         id: 'GU',
@@ -1096,6 +1185,7 @@ export const countryData: CountryData[] = [
         path: 'guam',
         iso2: 'GU',
         iso3: 'GUM',
+        region: 'rest-of-the-world',
     },
     {
         id: 'GW',
@@ -1105,6 +1195,7 @@ export const countryData: CountryData[] = [
         path: 'guinea-bissau',
         iso2: 'GW',
         iso3: 'GNB',
+        region: 'rest-of-the-world',
     },
     {
         id: 'GY',
@@ -1114,6 +1205,7 @@ export const countryData: CountryData[] = [
         path: 'guyana',
         iso2: 'GY',
         iso3: 'GUY',
+        region: 'latam',
     },
     {
         id: 'HK',
@@ -1123,6 +1215,7 @@ export const countryData: CountryData[] = [
         path: 'hong-kong',
         iso2: 'HK',
         iso3: 'HKG',
+        region: 'rest-of-the-world',
     },
     {
         id: 'HM',
@@ -1132,6 +1225,7 @@ export const countryData: CountryData[] = [
         path: 'heard-island-and-mcdonald-islands',
         iso2: 'HM',
         iso3: 'HMD',
+        region: 'rest-of-the-world',
     },
     {
         id: 'HN',
@@ -1141,6 +1235,7 @@ export const countryData: CountryData[] = [
         path: 'honduras',
         iso2: 'HN',
         iso3: 'HND',
+        region: 'latam',
     },
     {
         id: 'HRV',
@@ -1150,6 +1245,7 @@ export const countryData: CountryData[] = [
         path: 'croatia',
         iso2: 'HR',
         iso3: 'HRV',
+        region: 'europe',
     },
     {
         id: 'HT',
@@ -1159,6 +1255,7 @@ export const countryData: CountryData[] = [
         path: 'haiti',
         iso2: 'HT',
         iso3: 'HTI',
+        region: 'latam',
     },
     {
         id: 'HUN',
@@ -1168,6 +1265,7 @@ export const countryData: CountryData[] = [
         path: 'hungary',
         iso2: 'HU',
         iso3: 'HUN',
+        region: 'europe',
     },
     {
         id: 'ID',
@@ -1177,6 +1275,7 @@ export const countryData: CountryData[] = [
         path: 'indonesia',
         iso2: 'ID',
         iso3: 'IDN',
+        region: 'rest-of-the-world',
     },
     {
         id: 'IRL',
@@ -1186,6 +1285,7 @@ export const countryData: CountryData[] = [
         path: 'ireland',
         iso2: 'IE',
         iso3: 'IRL',
+        region: 'europe',
     },
     {
         id: 'IL',
@@ -1195,6 +1295,7 @@ export const countryData: CountryData[] = [
         path: 'israel',
         iso2: 'IL',
         iso3: 'ISR',
+        region: 'rest-of-the-world',
     },
     {
         id: 'IM',
@@ -1204,6 +1305,7 @@ export const countryData: CountryData[] = [
         path: 'isle-of-man',
         iso2: 'IM',
         iso3: 'IMN',
+        region: 'europe',
     },
     {
         id: 'IN',
@@ -1213,6 +1315,7 @@ export const countryData: CountryData[] = [
         path: 'india',
         iso2: 'IN',
         iso3: 'IND',
+        region: 'rest-of-the-world',
     },
     {
         id: 'IO',
@@ -1222,6 +1325,7 @@ export const countryData: CountryData[] = [
         path: 'british-indian-ocean-territory',
         iso2: 'IO',
         iso3: 'IOT',
+        region: 'rest-of-the-world',
     },
     {
         id: 'ISL',
@@ -1231,6 +1335,7 @@ export const countryData: CountryData[] = [
         path: 'iceland',
         iso2: 'IS',
         iso3: 'ISL',
+        region: 'europe',
     },
     {
         id: 'ITA',
@@ -1240,6 +1345,7 @@ export const countryData: CountryData[] = [
         path: 'italy',
         iso2: 'IT',
         iso3: 'ITA',
+        region: 'europe',
     },
     {
         id: 'JE',
@@ -1249,6 +1355,7 @@ export const countryData: CountryData[] = [
         path: 'jersey',
         iso2: 'JE',
         iso3: 'JEY',
+        region: 'europe',
     },
     {
         id: 'JM',
@@ -1258,6 +1365,7 @@ export const countryData: CountryData[] = [
         path: 'jamaica',
         iso2: 'JM',
         iso3: 'JAM',
+        region: 'latam',
     },
     {
         id: 'JO',
@@ -1267,6 +1375,7 @@ export const countryData: CountryData[] = [
         path: 'jordan',
         iso2: 'JO',
         iso3: 'JOR',
+        region: 'rest-of-the-world',
     },
     {
         id: 'JP',
@@ -1276,6 +1385,7 @@ export const countryData: CountryData[] = [
         path: 'japan',
         iso2: 'JP',
         iso3: 'JPN',
+        region: 'rest-of-the-world',
     },
     {
         id: 'KE',
@@ -1285,6 +1395,7 @@ export const countryData: CountryData[] = [
         path: 'kenya',
         iso2: 'KE',
         iso3: 'KEN',
+        region: 'rest-of-the-world',
     },
     {
         id: 'KG',
@@ -1294,6 +1405,7 @@ export const countryData: CountryData[] = [
         path: 'kyrgyzstan',
         iso2: 'KG',
         iso3: 'KGZ',
+        region: 'rest-of-the-world',
     },
     {
         id: 'KH',
@@ -1303,6 +1415,7 @@ export const countryData: CountryData[] = [
         path: 'cambodia',
         iso2: 'KH',
         iso3: 'KHM',
+        region: 'rest-of-the-world',
     },
     {
         id: 'KI',
@@ -1312,6 +1425,7 @@ export const countryData: CountryData[] = [
         path: 'kiribati',
         iso2: 'KI',
         iso3: 'KIR',
+        region: 'rest-of-the-world',
     },
     {
         id: 'KM',
@@ -1321,6 +1435,7 @@ export const countryData: CountryData[] = [
         path: 'comoros',
         iso2: 'KM',
         iso3: 'COM',
+        region: 'rest-of-the-world',
     },
     {
         id: 'KN',
@@ -1330,6 +1445,7 @@ export const countryData: CountryData[] = [
         path: 'saint-kitts-and-nevis',
         iso2: 'KN',
         iso3: 'KNA',
+        region: 'latam',
     },
     {
         id: 'KR',
@@ -1339,6 +1455,7 @@ export const countryData: CountryData[] = [
         path: 'south-korea',
         iso2: 'KR',
         iso3: 'KOR',
+        region: 'rest-of-the-world',
     },
     {
         id: 'KW',
@@ -1348,6 +1465,7 @@ export const countryData: CountryData[] = [
         path: 'kuwait',
         iso2: 'KW',
         iso3: 'KWT',
+        region: 'rest-of-the-world',
     },
     {
         id: 'KY',
@@ -1357,6 +1475,7 @@ export const countryData: CountryData[] = [
         path: 'cayman-islands',
         iso2: 'KY',
         iso3: 'CYM',
+        region: 'north-america',
     },
     {
         id: 'KZ',
@@ -1366,6 +1485,7 @@ export const countryData: CountryData[] = [
         path: 'kazakhstan',
         iso2: 'KZ',
         iso3: 'KAZ',
+        region: 'rest-of-the-world',
     },
     {
         id: 'LA',
@@ -1375,6 +1495,7 @@ export const countryData: CountryData[] = [
         path: 'laos',
         iso2: 'LA',
         iso3: 'LAO',
+        region: 'rest-of-the-world',
     },
     {
         id: 'LB',
@@ -1384,6 +1505,7 @@ export const countryData: CountryData[] = [
         path: 'lebanon',
         iso2: 'LB',
         iso3: 'LBN',
+        region: 'rest-of-the-world',
     },
     {
         id: 'LC',
@@ -1393,6 +1515,7 @@ export const countryData: CountryData[] = [
         path: 'saint-lucia',
         iso2: 'LC',
         iso3: 'LCA',
+        region: 'latam',
     },
     {
         id: 'LI',
@@ -1402,6 +1525,7 @@ export const countryData: CountryData[] = [
         path: 'liechtenstein',
         iso2: 'LI',
         iso3: 'LIE',
+        region: 'europe',
     },
     {
         id: 'LK',
@@ -1411,6 +1535,7 @@ export const countryData: CountryData[] = [
         path: 'sri-lanka',
         iso2: 'LK',
         iso3: 'LKA',
+        region: 'rest-of-the-world',
     },
     {
         id: 'LR',
@@ -1420,6 +1545,7 @@ export const countryData: CountryData[] = [
         path: 'liberia',
         iso2: 'LR',
         iso3: 'LBR',
+        region: 'rest-of-the-world',
     },
     {
         id: 'LS',
@@ -1429,6 +1555,7 @@ export const countryData: CountryData[] = [
         path: 'lesotho',
         iso2: 'LS',
         iso3: 'LSO',
+        region: 'rest-of-the-world',
     },
     {
         id: 'LTU',
@@ -1438,6 +1565,7 @@ export const countryData: CountryData[] = [
         path: 'lithuania',
         iso2: 'LT',
         iso3: 'LTU',
+        region: 'europe',
     },
     {
         id: 'LUX',
@@ -1447,6 +1575,7 @@ export const countryData: CountryData[] = [
         path: 'luxembourg',
         iso2: 'LU',
         iso3: 'LUX',
+        region: 'europe',
     },
     {
         id: 'LVA',
@@ -1456,6 +1585,7 @@ export const countryData: CountryData[] = [
         path: 'latvia',
         iso2: 'LV',
         iso3: 'LVA',
+        region: 'europe',
     },
     {
         id: 'LY',
@@ -1465,6 +1595,7 @@ export const countryData: CountryData[] = [
         path: 'libya',
         iso2: 'LY',
         iso3: 'LBY',
+        region: 'rest-of-the-world',
     },
     {
         id: 'MA',
@@ -1474,6 +1605,7 @@ export const countryData: CountryData[] = [
         path: 'morocco',
         iso2: 'MA',
         iso3: 'MAR',
+        region: 'rest-of-the-world',
     },
     {
         id: 'MC',
@@ -1483,6 +1615,7 @@ export const countryData: CountryData[] = [
         path: 'monaco',
         iso2: 'MC',
         iso3: 'MCO',
+        region: 'europe',
     },
     {
         id: 'MD',
@@ -1492,6 +1625,7 @@ export const countryData: CountryData[] = [
         path: 'moldova',
         iso2: 'MD',
         iso3: 'MDA',
+        region: 'europe',
     },
     {
         id: 'ME',
@@ -1501,6 +1635,7 @@ export const countryData: CountryData[] = [
         path: 'montenegro',
         iso2: 'ME',
         iso3: 'MNE',
+        region: 'europe',
     },
     {
         id: 'MAF',
@@ -1510,6 +1645,7 @@ export const countryData: CountryData[] = [
         path: 'saint-martin',
         iso2: 'MF',
         iso3: 'MAF',
+        region: 'europe',
     },
     {
         id: 'MG',
@@ -1519,6 +1655,7 @@ export const countryData: CountryData[] = [
         path: 'madagascar',
         iso2: 'MG',
         iso3: 'MDG',
+        region: 'rest-of-the-world',
     },
     {
         id: 'MH',
@@ -1528,6 +1665,7 @@ export const countryData: CountryData[] = [
         path: 'marshall-islands',
         iso2: 'MH',
         iso3: 'MHL',
+        region: 'rest-of-the-world',
     },
     {
         id: 'MK',
@@ -1537,6 +1675,7 @@ export const countryData: CountryData[] = [
         path: 'macedonia',
         iso2: 'MK',
         iso3: 'MKD',
+        region: 'europe',
     },
     {
         id: 'ML',
@@ -1546,6 +1685,7 @@ export const countryData: CountryData[] = [
         path: 'mali',
         iso2: 'ML',
         iso3: 'MLI',
+        region: 'rest-of-the-world',
     },
     {
         id: 'MN',
@@ -1555,6 +1695,7 @@ export const countryData: CountryData[] = [
         path: 'mongolia',
         iso2: 'MN',
         iso3: 'MNG',
+        region: 'rest-of-the-world',
     },
     {
         id: 'MO',
@@ -1564,6 +1705,7 @@ export const countryData: CountryData[] = [
         path: 'macao',
         iso2: 'MO',
         iso3: 'MAC',
+        region: 'rest-of-the-world',
     },
     {
         id: 'MP',
@@ -1573,6 +1715,7 @@ export const countryData: CountryData[] = [
         path: 'northern-mariana-islands',
         iso2: 'MP',
         iso3: 'MNP',
+        region: 'rest-of-the-world',
     },
     {
         id: 'MTQ',
@@ -1582,6 +1725,7 @@ export const countryData: CountryData[] = [
         path: 'martinique',
         iso2: 'MQ',
         iso3: 'MTQ',
+        region: 'europe',
     },
     {
         id: 'MR',
@@ -1591,6 +1735,7 @@ export const countryData: CountryData[] = [
         path: 'mauritania',
         iso2: 'MR',
         iso3: 'MRT',
+        region: 'rest-of-the-world',
     },
     {
         id: 'MS',
@@ -1600,6 +1745,7 @@ export const countryData: CountryData[] = [
         path: 'montserrat',
         iso2: 'MS',
         iso3: 'MSR',
+        region: 'rest-of-the-world',
     },
     {
         id: 'MLT',
@@ -1609,6 +1755,7 @@ export const countryData: CountryData[] = [
         path: 'malta',
         iso2: 'MT',
         iso3: 'MLT',
+        region: 'europe',
     },
     {
         id: 'MU',
@@ -1618,6 +1765,7 @@ export const countryData: CountryData[] = [
         path: 'mauritius',
         iso2: 'MU',
         iso3: 'MUS',
+        region: 'rest-of-the-world',
     },
     {
         id: 'MV',
@@ -1627,6 +1775,7 @@ export const countryData: CountryData[] = [
         path: 'maldives',
         iso2: 'MV',
         iso3: 'MDV',
+        region: 'rest-of-the-world',
     },
     {
         id: 'MW',
@@ -1636,6 +1785,7 @@ export const countryData: CountryData[] = [
         path: 'malawi',
         iso2: 'MW',
         iso3: 'MWI',
+        region: 'rest-of-the-world',
     },
     {
         id: 'MX',
@@ -1645,6 +1795,7 @@ export const countryData: CountryData[] = [
         path: 'mexico',
         iso2: 'MX',
         iso3: 'MEX',
+        region: 'latam',
     },
     {
         id: 'MY',
@@ -1654,6 +1805,7 @@ export const countryData: CountryData[] = [
         path: 'malaysia',
         iso2: 'MY',
         iso3: 'MYS',
+        region: 'rest-of-the-world',
     },
     {
         id: 'MZ',
@@ -1663,6 +1815,7 @@ export const countryData: CountryData[] = [
         path: 'mozambique',
         iso2: 'MZ',
         iso3: 'MOZ',
+        region: 'rest-of-the-world',
     },
     {
         id: 'NA',
@@ -1672,6 +1825,7 @@ export const countryData: CountryData[] = [
         path: 'namibia',
         iso2: 'NA',
         iso3: 'NAM',
+        region: 'rest-of-the-world',
     },
     {
         id: 'NC',
@@ -1681,6 +1835,7 @@ export const countryData: CountryData[] = [
         path: 'new-caledonia',
         iso2: 'NC',
         iso3: 'NCL',
+        region: 'rest-of-the-world',
     },
     {
         id: 'NE',
@@ -1690,6 +1845,7 @@ export const countryData: CountryData[] = [
         path: 'niger',
         iso2: 'NE',
         iso3: 'NER',
+        region: 'rest-of-the-world',
     },
     {
         id: 'NF',
@@ -1699,6 +1855,7 @@ export const countryData: CountryData[] = [
         path: 'norfolk-island',
         iso2: 'NF',
         iso3: 'NFK',
+        region: 'rest-of-the-world',
     },
     {
         id: 'NG',
@@ -1708,6 +1865,7 @@ export const countryData: CountryData[] = [
         path: 'nigeria',
         iso2: 'NG',
         iso3: 'NGA',
+        region: 'rest-of-the-world',
     },
     {
         id: 'NI',
@@ -1717,6 +1875,7 @@ export const countryData: CountryData[] = [
         path: 'nicaragua',
         iso2: 'NI',
         iso3: 'NIC',
+        region: 'latam',
     },
     {
         id: 'NLD',
@@ -1726,6 +1885,7 @@ export const countryData: CountryData[] = [
         path: 'netherlands',
         iso2: 'NL',
         iso3: 'NLD',
+        region: 'europe',
     },
     {
         id: 'NOR',
@@ -1735,6 +1895,7 @@ export const countryData: CountryData[] = [
         path: 'norway',
         iso2: 'NO',
         iso3: 'NOR',
+        region: 'europe',
     },
     {
         id: 'NP',
@@ -1744,6 +1905,7 @@ export const countryData: CountryData[] = [
         path: 'nepal',
         iso2: 'NP',
         iso3: 'NPL',
+        region: 'rest-of-the-world',
     },
     {
         id: 'NR',
@@ -1753,6 +1915,7 @@ export const countryData: CountryData[] = [
         path: 'nauru',
         iso2: 'NR',
         iso3: 'NRU',
+        region: 'rest-of-the-world',
     },
     {
         id: 'NU',
@@ -1762,6 +1925,7 @@ export const countryData: CountryData[] = [
         path: 'niue',
         iso2: 'NU',
         iso3: 'NIU',
+        region: 'rest-of-the-world',
     },
     {
         id: 'NZ',
@@ -1771,6 +1935,7 @@ export const countryData: CountryData[] = [
         path: 'new-zealand',
         iso2: 'NZ',
         iso3: 'NZL',
+        region: 'rest-of-the-world',
     },
     {
         id: 'OM',
@@ -1780,6 +1945,7 @@ export const countryData: CountryData[] = [
         path: 'oman',
         iso2: 'OM',
         iso3: 'OMN',
+        region: 'rest-of-the-world',
     },
     {
         id: 'PA',
@@ -1789,6 +1955,7 @@ export const countryData: CountryData[] = [
         path: 'panama',
         iso2: 'PA',
         iso3: 'PAN',
+        region: 'latam',
     },
     {
         id: 'PE',
@@ -1798,6 +1965,7 @@ export const countryData: CountryData[] = [
         path: 'peru',
         iso2: 'PE',
         iso3: 'PER',
+        region: 'latam',
     },
     {
         id: 'PF',
@@ -1807,6 +1975,7 @@ export const countryData: CountryData[] = [
         path: 'french-polynesia',
         iso2: 'PF',
         iso3: 'PYF',
+        region: 'rest-of-the-world',
     },
     {
         id: 'PG',
@@ -1816,6 +1985,7 @@ export const countryData: CountryData[] = [
         path: 'papua-new-guinea',
         iso2: 'PG',
         iso3: 'PNG',
+        region: 'rest-of-the-world',
     },
     {
         id: 'PH',
@@ -1825,6 +1995,7 @@ export const countryData: CountryData[] = [
         path: 'philippines',
         iso2: 'PH',
         iso3: 'PHL',
+        region: 'rest-of-the-world',
     },
     {
         id: 'PK',
@@ -1834,6 +2005,7 @@ export const countryData: CountryData[] = [
         path: 'pakistan',
         iso2: 'PK',
         iso3: 'PAK',
+        region: 'rest-of-the-world',
     },
     {
         id: 'PL',
@@ -1843,6 +2015,7 @@ export const countryData: CountryData[] = [
         path: 'poland',
         iso2: 'PL',
         iso3: 'POL',
+        region: 'europe',
     },
     {
         id: 'PM',
@@ -1852,6 +2025,7 @@ export const countryData: CountryData[] = [
         path: 'saint-pierre-and-miquelon',
         iso2: 'PM',
         iso3: 'SPM',
+        region: 'north-america',
     },
     {
         id: 'PN',
@@ -1861,6 +2035,7 @@ export const countryData: CountryData[] = [
         path: 'pitcairn-islands',
         iso2: 'PN',
         iso3: 'PCN',
+        region: 'rest-of-the-world',
     },
     {
         id: 'PR',
@@ -1870,6 +2045,7 @@ export const countryData: CountryData[] = [
         path: 'puerto-rico',
         iso2: 'PR',
         iso3: 'PRI',
+        region: 'latam',
     },
     {
         id: 'PS',
@@ -1879,6 +2055,7 @@ export const countryData: CountryData[] = [
         path: 'palestine',
         iso2: 'PS',
         iso3: 'PSE',
+        region: 'rest-of-the-world',
     },
     {
         id: 'PRT',
@@ -1888,6 +2065,7 @@ export const countryData: CountryData[] = [
         path: 'portugal',
         iso2: 'PT',
         iso3: 'PRT',
+        region: 'europe',
     },
     {
         id: 'PW',
@@ -1897,6 +2075,7 @@ export const countryData: CountryData[] = [
         path: 'palau',
         iso2: 'PW',
         iso3: 'PLW',
+        region: 'rest-of-the-world',
     },
     {
         id: 'PY',
@@ -1906,6 +2085,7 @@ export const countryData: CountryData[] = [
         path: 'paraguay',
         iso2: 'PY',
         iso3: 'PRY',
+        region: 'latam',
     },
     {
         id: 'QA',
@@ -1915,6 +2095,7 @@ export const countryData: CountryData[] = [
         path: 'qatar',
         iso2: 'QA',
         iso3: 'QAT',
+        region: 'rest-of-the-world',
     },
     {
         id: 'REU',
@@ -1924,6 +2105,7 @@ export const countryData: CountryData[] = [
         path: 'reunion',
         iso2: 'RE',
         iso3: 'REU',
+        region: 'europe',
     },
     {
         id: 'ROU',
@@ -1933,6 +2115,7 @@ export const countryData: CountryData[] = [
         path: 'romania',
         iso2: 'RO',
         iso3: 'ROU',
+        region: 'europe',
     },
     {
         id: 'RS',
@@ -1942,6 +2125,7 @@ export const countryData: CountryData[] = [
         path: 'serbia',
         iso2: 'RS',
         iso3: 'SRB',
+        region: 'europe',
     },
     {
         id: 'RW',
@@ -1951,6 +2135,7 @@ export const countryData: CountryData[] = [
         path: 'rwanda',
         iso2: 'RW',
         iso3: 'RWA',
+        region: 'rest-of-the-world',
     },
     {
         id: 'SA',
@@ -1960,6 +2145,7 @@ export const countryData: CountryData[] = [
         path: 'saudi-arabia',
         iso2: 'SA',
         iso3: 'SAU',
+        region: 'rest-of-the-world',
     },
     {
         id: 'SB',
@@ -1969,6 +2155,7 @@ export const countryData: CountryData[] = [
         path: 'solomon-islands',
         iso2: 'SB',
         iso3: 'SLB',
+        region: 'rest-of-the-world',
     },
     {
         id: 'SC',
@@ -1978,6 +2165,7 @@ export const countryData: CountryData[] = [
         path: 'seychelles',
         iso2: 'SC',
         iso3: 'SYC',
+        region: 'rest-of-the-world',
     },
     {
         id: 'SD',
@@ -1987,6 +2175,7 @@ export const countryData: CountryData[] = [
         path: 'sudan',
         iso2: 'SD',
         iso3: 'SDN',
+        region: 'rest-of-the-world',
     },
     {
         id: 'SE',
@@ -1996,6 +2185,7 @@ export const countryData: CountryData[] = [
         path: 'sweden',
         iso2: 'SE',
         iso3: 'SWE',
+        region: 'europe',
     },
     {
         id: 'SG',
@@ -2005,6 +2195,7 @@ export const countryData: CountryData[] = [
         path: 'singapore',
         iso2: 'SG',
         iso3: 'SGP',
+        region: 'rest-of-the-world',
     },
     {
         id: 'SH',
@@ -2014,6 +2205,7 @@ export const countryData: CountryData[] = [
         path: 'saint-helena',
         iso2: 'SH',
         iso3: 'SHN',
+        region: 'rest-of-the-world',
     },
     {
         id: 'SVN',
@@ -2023,6 +2215,7 @@ export const countryData: CountryData[] = [
         path: 'slovenia',
         iso2: 'SI',
         iso3: 'SVN',
+        region: 'europe',
     },
     {
         id: 'SJ',
@@ -2032,6 +2225,7 @@ export const countryData: CountryData[] = [
         path: 'svalbard-and-jan-mayen',
         iso2: 'SJ',
         iso3: 'SJM',
+        region: 'europe',
     },
     {
         id: 'SVK',
@@ -2041,6 +2235,7 @@ export const countryData: CountryData[] = [
         path: 'slovakia',
         iso2: 'SK',
         iso3: 'SVK',
+        region: 'europe',
     },
     {
         id: 'SL',
@@ -2050,6 +2245,7 @@ export const countryData: CountryData[] = [
         path: 'sierra-leone',
         iso2: 'SL',
         iso3: 'SLE',
+        region: 'rest-of-the-world',
     },
     {
         id: 'SM',
@@ -2059,6 +2255,7 @@ export const countryData: CountryData[] = [
         path: 'san-marino',
         iso2: 'SM',
         iso3: 'SMR',
+        region: 'europe',
     },
     {
         id: 'SN',
@@ -2068,6 +2265,7 @@ export const countryData: CountryData[] = [
         path: 'senegal',
         iso2: 'SN',
         iso3: 'SEN',
+        region: 'rest-of-the-world',
     },
     {
         id: 'SO',
@@ -2077,6 +2275,7 @@ export const countryData: CountryData[] = [
         path: 'somalia',
         iso2: 'SO',
         iso3: 'SOM',
+        region: 'rest-of-the-world',
     },
     {
         id: 'SR',
@@ -2086,6 +2285,7 @@ export const countryData: CountryData[] = [
         path: 'suriname',
         iso2: 'SR',
         iso3: 'SUR',
+        region: 'latam',
     },
     {
         id: 'SS',
@@ -2095,6 +2295,7 @@ export const countryData: CountryData[] = [
         path: 'south-sudan',
         iso2: 'SS',
         iso3: 'SSD',
+        region: 'rest-of-the-world',
     },
     {
         id: 'ST',
@@ -2104,6 +2305,7 @@ export const countryData: CountryData[] = [
         path: 'sao-tome-and-principe',
         iso2: 'ST',
         iso3: 'STP',
+        region: 'rest-of-the-world',
     },
     {
         id: 'SV',
@@ -2113,6 +2315,7 @@ export const countryData: CountryData[] = [
         path: 'el-salvador',
         iso2: 'SV',
         iso3: 'SLV',
+        region: 'latam',
     },
     {
         id: 'SX',
@@ -2122,6 +2325,7 @@ export const countryData: CountryData[] = [
         path: 'sint-maarten',
         iso2: 'SX',
         iso3: 'SXM',
+        region: 'north-america',
     },
     {
         id: 'SZ',
@@ -2131,6 +2335,7 @@ export const countryData: CountryData[] = [
         path: 'swaziland',
         iso2: 'SZ',
         iso3: 'SWZ',
+        region: 'rest-of-the-world',
     },
     {
         id: 'TC',
@@ -2140,6 +2345,7 @@ export const countryData: CountryData[] = [
         path: 'turks-and-caicos-islands',
         iso2: 'TC',
         iso3: 'TCA',
+        region: 'north-america',
     },
     {
         id: 'TD',
@@ -2149,6 +2355,7 @@ export const countryData: CountryData[] = [
         path: 'chad',
         iso2: 'TD',
         iso3: 'TCD',
+        region: 'rest-of-the-world',
     },
     {
         id: 'TF',
@@ -2158,6 +2365,7 @@ export const countryData: CountryData[] = [
         path: 'french-southern-territories',
         iso2: 'TF',
         iso3: 'ATF',
+        region: 'rest-of-the-world',
     },
     {
         id: 'TG',
@@ -2167,6 +2375,7 @@ export const countryData: CountryData[] = [
         path: 'togo',
         iso2: 'TG',
         iso3: 'TGO',
+        region: 'rest-of-the-world',
     },
     {
         id: 'TH',
@@ -2176,6 +2385,7 @@ export const countryData: CountryData[] = [
         path: 'thailand',
         iso2: 'TH',
         iso3: 'THA',
+        region: 'rest-of-the-world',
     },
     {
         id: 'TJ',
@@ -2185,6 +2395,7 @@ export const countryData: CountryData[] = [
         path: 'tajikistan',
         iso2: 'TJ',
         iso3: 'TJK',
+        region: 'rest-of-the-world',
     },
     {
         id: 'TK',
@@ -2194,6 +2405,7 @@ export const countryData: CountryData[] = [
         path: 'tokelau',
         iso2: 'TK',
         iso3: 'TKL',
+        region: 'rest-of-the-world',
     },
     {
         id: 'TL',
@@ -2203,6 +2415,7 @@ export const countryData: CountryData[] = [
         path: 'east-timor',
         iso2: 'TL',
         iso3: 'TLS',
+        region: 'rest-of-the-world',
     },
     {
         id: 'TM',
@@ -2212,6 +2425,7 @@ export const countryData: CountryData[] = [
         path: 'turkmenistan',
         iso2: 'TM',
         iso3: 'TKM',
+        region: 'rest-of-the-world',
     },
     {
         id: 'TN',
@@ -2221,6 +2435,7 @@ export const countryData: CountryData[] = [
         path: 'tunisia',
         iso2: 'TN',
         iso3: 'TUN',
+        region: 'rest-of-the-world',
     },
     {
         id: 'TO',
@@ -2230,6 +2445,7 @@ export const countryData: CountryData[] = [
         path: 'tonga',
         iso2: 'TO',
         iso3: 'TON',
+        region: 'rest-of-the-world',
     },
     {
         id: 'TR',
@@ -2239,6 +2455,7 @@ export const countryData: CountryData[] = [
         path: 'turkey',
         iso2: 'TR',
         iso3: 'TUR',
+        region: 'rest-of-the-world',
     },
     {
         id: 'TT',
@@ -2248,6 +2465,7 @@ export const countryData: CountryData[] = [
         path: 'trinidad-and-tobago',
         iso2: 'TT',
         iso3: 'TTO',
+        region: 'rest-of-the-world',
     },
     {
         id: 'TV',
@@ -2257,6 +2475,7 @@ export const countryData: CountryData[] = [
         path: 'tuvalu',
         iso2: 'TV',
         iso3: 'TUV',
+        region: 'rest-of-the-world',
     },
     {
         id: 'TW',
@@ -2266,6 +2485,7 @@ export const countryData: CountryData[] = [
         path: 'taiwan',
         iso2: 'TW',
         iso3: 'TWN',
+        region: 'rest-of-the-world',
     },
     {
         id: 'TZ',
@@ -2275,6 +2495,7 @@ export const countryData: CountryData[] = [
         path: 'tanzania',
         iso2: 'TZ',
         iso3: 'TZA',
+        region: 'rest-of-the-world',
     },
     {
         id: 'UA',
@@ -2284,6 +2505,7 @@ export const countryData: CountryData[] = [
         path: 'ukraine',
         iso2: 'UA',
         iso3: 'UKR',
+        region: 'europe',
     },
     {
         id: 'UG',
@@ -2293,6 +2515,7 @@ export const countryData: CountryData[] = [
         path: 'uganda',
         iso2: 'UG',
         iso3: 'UGA',
+        region: 'rest-of-the-world',
     },
     {
         id: 'UM',
@@ -2302,6 +2525,7 @@ export const countryData: CountryData[] = [
         path: 'u.s.-minor-outlying-islands',
         iso2: 'UM',
         iso3: 'UMI',
+        region: 'north-america',
     },
     {
         id: 'US',
@@ -2311,6 +2535,7 @@ export const countryData: CountryData[] = [
         path: 'usa',
         iso2: 'US',
         iso3: 'USA',
+        region: 'north-america',
     },
     {
         id: 'UY',
@@ -2320,6 +2545,7 @@ export const countryData: CountryData[] = [
         path: 'uruguay',
         iso2: 'UY',
         iso3: 'URY',
+        region: 'latam',
     },
     {
         id: 'UZ',
@@ -2329,6 +2555,7 @@ export const countryData: CountryData[] = [
         path: 'uzbekistan',
         iso2: 'UZ',
         iso3: 'UZB',
+        region: 'rest-of-the-world',
     },
     {
         id: 'VA',
@@ -2338,6 +2565,7 @@ export const countryData: CountryData[] = [
         path: 'vatican-city',
         iso2: 'VA',
         iso3: 'VAT',
+        region: 'europe',
     },
     {
         id: 'VC',
@@ -2347,6 +2575,17 @@ export const countryData: CountryData[] = [
         path: 'saint-vincent-and-the-grenadines',
         iso2: 'VC',
         iso3: 'VCT',
+        region: 'latam',
+    },
+    {
+        id: 'VE',
+        type: 'country',
+        title: 'Venezuela',
+        currency: 'VES',
+        path: 'venezuela',
+        iso2: 'VE',
+        iso3: 'VEN',
+        region: 'latam',
     },
     {
         id: 'VG',
@@ -2356,6 +2595,7 @@ export const countryData: CountryData[] = [
         path: 'british-virgin-islands',
         iso2: 'VG',
         iso3: 'VGB',
+        region: 'north-america',
     },
     {
         id: 'VI',
@@ -2365,6 +2605,7 @@ export const countryData: CountryData[] = [
         path: 'us-virgin-islands',
         iso2: 'VI',
         iso3: 'VIR',
+        region: 'north-america',
     },
     {
         id: 'VN',
@@ -2374,6 +2615,7 @@ export const countryData: CountryData[] = [
         path: 'vietnam',
         iso2: 'VN',
         iso3: 'VNM',
+        region: 'rest-of-the-world',
     },
     {
         id: 'VU',
@@ -2383,6 +2625,7 @@ export const countryData: CountryData[] = [
         path: 'vanuatu',
         iso2: 'VU',
         iso3: 'VUT',
+        region: 'rest-of-the-world',
     },
     {
         id: 'WF',
@@ -2392,6 +2635,7 @@ export const countryData: CountryData[] = [
         path: 'wallis-and-futuna',
         iso2: 'WF',
         iso3: 'WLF',
+        region: 'rest-of-the-world',
     },
     {
         id: 'WS',
@@ -2401,6 +2645,7 @@ export const countryData: CountryData[] = [
         path: 'samoa',
         iso2: 'WS',
         iso3: 'WSM',
+        region: 'rest-of-the-world',
     },
     {
         id: 'XK',
@@ -2410,6 +2655,7 @@ export const countryData: CountryData[] = [
         path: 'kosovo',
         iso2: 'XK',
         iso3: 'XKX',
+        region: 'europe',
     },
     {
         id: 'YE',
@@ -2419,6 +2665,7 @@ export const countryData: CountryData[] = [
         path: 'yemen',
         iso2: 'YE',
         iso3: 'YEM',
+        region: 'rest-of-the-world',
     },
     {
         id: 'YT',
@@ -2428,6 +2675,7 @@ export const countryData: CountryData[] = [
         path: 'mayotte',
         iso2: 'YT',
         iso3: 'MYT',
+        region: 'europe',
     },
     {
         id: 'ZA',
@@ -2437,6 +2685,7 @@ export const countryData: CountryData[] = [
         path: 'south-africa',
         iso2: 'ZA',
         iso3: 'ZAF',
+        region: 'rest-of-the-world',
     },
     {
         id: 'ZM',
@@ -2446,6 +2695,7 @@ export const countryData: CountryData[] = [
         path: 'zambia',
         iso2: 'ZM',
         iso3: 'ZMB',
+        region: 'rest-of-the-world',
     },
     {
         id: 'ZW',
@@ -2455,6 +2705,7 @@ export const countryData: CountryData[] = [
         path: 'zimbabwe',
         iso2: 'ZW',
         iso3: 'ZWE',
+        region: 'rest-of-the-world',
     },
 ]
 
@@ -2529,6 +2780,10 @@ export const BRIDGE_ALPHA3_TO_ALPHA2: { [key: string]: string } = {
     CHE: 'CH',
     GBR: 'GB',
     USA: 'US',
+}
+
+export const MEXICO_ALPHA3_TO_ALPHA2: { [key: string]: string } = {
+    MEX: 'MX',
 }
 
 export const MANTECA_ALPHA3_TO_ALPHA2: { [key: string]: string } = {

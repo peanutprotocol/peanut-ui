@@ -14,34 +14,50 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ goal, progress, isClosed }) =
     const isOverGoal = progress > goal && goal > 0
     const isGoalAchieved = progress >= goal && !isOverGoal && goal > 0
 
-    // Calculate actual ratio and enforce minimum visual distance when over goal
+    // Calculate actual ratio and enforce minimum visual distance
     const MIN_VISUAL_DISTANCE = 30 // 30% minimum distance between markers
     let totalValue = isOverGoal ? progress : goal
     let visualGoalPercentage = 0
     let visualProgressPercentage = 0
+    let useVisualDistance = false
 
-    if (isOverGoal && goal > 0) {
-        const actualRatio = (progress / goal) * 100
-        if (actualRatio < 100 + MIN_VISUAL_DISTANCE) {
-            // Progress is too close to goal, enforce minimum distance
-            // Map goal to ~90% and progress to 100%
-            visualGoalPercentage = 100 - MIN_VISUAL_DISTANCE
-            visualProgressPercentage = 100
+    if (goal > 0) {
+        const actualProgressPercentage = (progress / goal) * 100
+
+        if (isOverGoal) {
+            // When progress > goal and is not closed
+            if (isClosed && actualProgressPercentage < 100 + MIN_VISUAL_DISTANCE) {
+                // Progress is too close to goal, enforce minimum distance
+                // Map goal to ~70% and progress to 100%
+                visualGoalPercentage = 100 - MIN_VISUAL_DISTANCE
+                visualProgressPercentage = 100
+                useVisualDistance = true
+            } else {
+                // Progress is far enough, show actual ratio
+                totalValue = progress
+                visualGoalPercentage = (goal / totalValue) * 100
+                visualProgressPercentage = 100
+                useVisualDistance = true
+            }
         } else {
-            // Progress is far enough, show actual ratio
-            totalValue = progress
-            visualGoalPercentage = (goal / totalValue) * 100
-            visualProgressPercentage = 100
+            // When progress <= goal and is not closed
+            if (isClosed && actualProgressPercentage > 100 - MIN_VISUAL_DISTANCE && actualProgressPercentage < 100) {
+                // Progress is too close to goal, enforce minimum distance
+                // Map progress to ~70% and goal to 100%
+                visualProgressPercentage = 100 - MIN_VISUAL_DISTANCE
+                visualGoalPercentage = 100
+                useVisualDistance = true
+            }
         }
     }
 
     // Guard against division by zero and clamp percentages to valid ranges
-    const goalPercentage = isOverGoal
+    const goalPercentage = useVisualDistance
         ? visualGoalPercentage
         : totalValue > 0
           ? Math.min(Math.max((goal / totalValue) * 100, 0), 100)
           : 0
-    const progressPercentage = isOverGoal
+    const progressPercentage = useVisualDistance
         ? visualProgressPercentage
         : totalValue > 0
           ? Math.min(Math.max((progress / totalValue) * 100, 0), 100)

@@ -31,6 +31,8 @@ const HomeCarouselCTA = () => {
                     logo={cta.logo}
                     iconContainerClassName={cta.iconContainerClassName}
                     isPermissionDenied={cta.isPermissionDenied}
+                    secondaryIcon={cta.secondaryIcon}
+                    iconSize={16}
                 />
             ))}
         </Carousel>

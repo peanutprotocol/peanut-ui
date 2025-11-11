@@ -1,7 +1,7 @@
 'use client'
 
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { useState, useMemo, useContext, useEffect, useCallback, useRef, useId } from 'react'
+import { useState, useMemo, useContext, useEffect, useCallback, useId } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
@@ -16,10 +16,9 @@ import { loadingStateContext } from '@/context'
 import { countryData } from '@/components/AddMoney/consts'
 import Image from 'next/image'
 import { formatAmount, formatNumberForDisplay } from '@/utils'
-import { validateCbuCvuAlias } from '@/utils/withdraw.utils'
+import { validateCbuCvuAlias, validatePixKey, normalizePixPhoneNumber, isPixPhoneNumber } from '@/utils/withdraw.utils'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
-import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { formatUnits, parseUnits } from 'viem'
 import type { TransactionReceipt, Hash } from 'viem'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
@@ -34,6 +33,7 @@ import {
     type MantecaBankCode,
     MANTECA_DEPOSIT_ADDRESS,
     TRANSACTIONS,
+    PEANUT_WALLET_TOKEN_DECIMALS,
 } from '@/constants'
 import Select from '@/components/Global/Select'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
@@ -75,7 +75,7 @@ export default function MantecaWithdrawFlow() {
     const queryClient = useQueryClient()
     const { isUserBridgeKycApproved } = useKycStatus()
     const { hasPendingTransactions } = usePendingTransactions()
-    const swapCurrency = searchParams.get('swap-currency') ?? 'false'
+    const swapCurrency = searchParams.get('swap-currency')
     // Get method and country from URL parameters
     const selectedMethodType = searchParams.get('method') // mercadopago, pix, bank-transfer, etc.
     const countryFromUrl = searchParams.get('country') // argentina, brazil, etc.
@@ -88,6 +88,10 @@ export default function MantecaWithdrawFlow() {
         return countryData.find((country) => country.type === 'country' && country.path === countryPath)
     }, [countryPath])
 
+    const isMantecaCountry = useMemo(() => {
+        return selectedCountry?.id && selectedCountry.id in MANTECA_COUNTRIES_CONFIG
+    }, [selectedCountry])
+
     const countryConfig = useMemo(() => {
         if (!selectedCountry) return undefined
         return MANTECA_COUNTRIES_CONFIG[selectedCountry.id]
@@ -99,6 +103,25 @@ export default function MantecaWithdrawFlow() {
         price: currencyPrice,
         isLoading: isCurrencyLoading,
     } = useCurrency(selectedCountry?.currency!)
+
+    // determine if initial input should be in usd or local currency
+    // for manteca countries, default to local currency unless explicitly overridden
+    const isInitialInputUsd = useMemo(() => {
+        // if swap-currency param is explicitly set to 'true' (user toggled to local currency)
+        // then show local currency first
+        if (swapCurrency === 'true') {
+            return false
+        }
+
+        // if it's a manteca country, default to local currency (not usd)
+        // ignore swap-currency=false for manteca countries to ensure local currency default
+        if (isMantecaCountry) {
+            return false
+        }
+
+        // otherwise default to usd (for non-manteca countries)
+        return true
+    }, [swapCurrency, isMantecaCountry])
 
     // Initialize KYC flow hook
     const { isMantecaKycRequired } = useMantecaKycFlow({ country: selectedCountry })
@@ -143,10 +166,17 @@ export default function MantecaWithdrawFlow() {
         let isValid = false
         switch (countryPath) {
             case 'argentina':
-                const { valid, message } = validateCbuCvuAlias(value)
-                isValid = valid
-                if (!valid) {
-                    setErrorMessage(message!)
+                const argResult = validateCbuCvuAlias(value)
+                isValid = argResult.valid
+                if (!argResult.valid) {
+                    setErrorMessage(argResult.message!)
+                }
+                break
+            case 'brazil':
+                const pixResult = validatePixKey(value)
+                isValid = pixResult.valid
+                if (!pixResult.valid) {
+                    setErrorMessage(pixResult.message!)
                 }
                 break
             default:
@@ -424,7 +454,7 @@ export default function MantecaWithdrawFlow() {
                         walletBalance={
                             balance ? formatAmount(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS)) : undefined
                         }
-                        isInitialInputUsd={swapCurrency !== 'true'}
+                        isInitialInputUsd={isInitialInputUsd}
                     />
                     <Button
                         variant="purple"
@@ -477,19 +507,17 @@ export default function MantecaWithdrawFlow() {
                     {/* Bank Details Form */}
                     <div className="space-y-4">
                         <h2 className="text-lg font-bold">Enter {methodDisplayInfo.name} details</h2>
-                        {selectedCountry?.id === 'BR' && (
-                            <div className="flex items-center gap-2 text-sm text-red">
-                                <Icon name="info" size={16} />
-                                <span>If withdrawing to a phone pix key please include +55</span>
-                            </div>
-                        )}
-
                         <div className="space-y-2">
                             <ValidatedInput
                                 value={destinationAddress}
                                 placeholder={countryConfig!.accountNumberLabel}
                                 onUpdate={(update) => {
-                                    setDestinationAddress(update.value)
+                                    // Auto-normalize PIX phone numbers for Brazil
+                                    let normalizedValue = update.value
+                                    if (countryPath === 'brazil' && isPixPhoneNumber(update.value)) {
+                                        normalizedValue = normalizePixPhoneNumber(update.value)
+                                    }
+                                    setDestinationAddress(normalizedValue)
                                     setIsDestinationAddressValid(update.isValid)
                                     setIsDestinationAddressChanging(update.isChanging)
                                     if (update.isValid || update.value === '') {

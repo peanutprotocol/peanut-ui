@@ -13,10 +13,12 @@ import { useUserStore } from '@/redux/hooks'
 import { formatGroupHeaderDate, getDateGroup, getDateGroupKey } from '@/utils/dateGrouping.utils'
 import * as Sentry from '@sentry/nextjs'
 import { isKycStatusItem } from '@/hooks/useBridgeKycFlow'
+import { useAuth } from '@/context/authContext'
 import { BadgeStatusItem, isBadgeHistoryItem } from '@/components/Badges/BadgeStatusItem'
-import React, { useEffect, useMemo, useRef } from 'react'
+import React, { useMemo } from 'react'
 import { useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { useWebSocket } from '@/hooks/useWebSocket'
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import type { HistoryResponse } from '@/hooks/useTransactionHistory'
@@ -28,9 +30,9 @@ import { formatUnits } from 'viem'
  * displays the user's transaction history with infinite scrolling and date grouping.
  */
 const HistoryPage = () => {
-    const loaderRef = useRef<HTMLDivElement>(null)
     const { user } = useUserStore()
     const queryClient = useQueryClient()
+    const { fetchUser } = useAuth()
 
     const {
         data: historyData,
@@ -43,6 +45,13 @@ const HistoryPage = () => {
     } = useTransactionHistory({
         mode: 'infinite',
         limit: 20,
+    })
+
+    // infinite scroll hook
+    const { loaderRef } = useInfiniteScroll({
+        hasNextPage,
+        isFetchingNextPage,
+        fetchNextPage,
     })
 
     // Real-time updates via WebSocket
@@ -125,30 +134,12 @@ const HistoryPage = () => {
                 queryClient.invalidateQueries({ queryKey: ['balance', walletAddress] })
             }
         },
+        onKycStatusUpdate: async (newStatus: string) => {
+            // refetch user data when kyc status changes so the status item appears immediately
+            console.log('KYC status updated via WebSocket:', newStatus)
+            await fetchUser()
+        },
     })
-
-    useEffect(() => {
-        const observer = new IntersectionObserver(
-            (entries) => {
-                const target = entries[0]
-                if (target.isIntersecting && hasNextPage && !isFetchingNextPage) {
-                    fetchNextPage()
-                }
-            },
-            {
-                threshold: 0.1,
-            }
-        )
-        const currentLoaderRef = loaderRef.current
-        if (currentLoaderRef) {
-            observer.observe(currentLoaderRef)
-        }
-        return () => {
-            if (currentLoaderRef) {
-                observer.unobserve(currentLoaderRef)
-            }
-        }
-    }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
     const allEntries = useMemo(() => historyData?.pages.flatMap((page) => page.entries) ?? [], [historyData])
 
@@ -162,6 +153,8 @@ const HistoryPage = () => {
         const badges = user?.user?.badges ?? []
         badges.forEach((b) => {
             if (!b.earnedAt) return
+            // dev-note: dev-connect badge to be shown in ui after post devconnect marketing campaign
+            if (b.code.toLowerCase() === 'devconnect_ba_2025') return
             entries.push({
                 isBadge: true,
                 uuid: b.id,

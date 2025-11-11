@@ -4,10 +4,19 @@ import { Button } from '@/components/0_Bruddle'
 import Icon from '@/components/Global/Icon'
 import { createPortal } from 'react-dom'
 import jsQR from 'jsqr'
+import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
 import { MERCADO_PAGO, PIX, SIMPLEFI } from '@/assets/payment-apps'
 import { PEANUTMAN_LOGO } from '@/assets/peanut'
 import { ETHEREUM_ICON } from '@/assets/icons'
 import Image from 'next/image'
+
+// QR Scanner Configuration
+const QR_SCAN_INTERVAL_MS = 100 // Scan every 100ms (10 times per second)
+const CAMERA_RETRY_DELAY_MS = 1000 // Wait 1 second before retrying camera access
+const MAX_CAMERA_RETRIES = 3 // Maximum number of retry attempts for busy camera
+const IOS_CAMERA_DELAY_MS = 100 // iOS-specific delay for camera hardware release
+const IDEAL_CAMERA_WIDTH = 1280 // Ideal camera resolution width (720p)
+const IDEAL_CAMERA_HEIGHT = 720 // Ideal camera resolution height (720p)
 
 export interface QRScannerProps {
     onScan: (data: string) => Promise<{ success: boolean; error?: string }>
@@ -46,10 +55,12 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
     const [isScanning, setIsScanning] = useState(isOpen)
     const [processingQR, setProcessingQR] = useState(false)
     const toast = useToast()
+    const { deviceType } = useDeviceType()
     const videoRef = useRef<HTMLVideoElement>(null)
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const scanIntervalRef = useRef<number | null>(null)
     const streamRef = useRef<MediaStream | null>(null)
+    const retryCountRef = useRef<number>(0)
     const stopCamera = useCallback(() => {
         if (scanIntervalRef.current) {
             clearInterval(scanIntervalRef.current)
@@ -117,7 +128,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
 
                 try {
                     const code = jsQR(imageData.data, imageData.width, imageData.height, {
-                        inversionAttempts: 'dontInvert',
+                        inversionAttempts: 'attemptBoth',
                     })
 
                     if (code && !processingQR) {
@@ -127,7 +138,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                     console.error('Error scanning QR code:', err)
                 }
             }
-        }, 250)
+        }, QR_SCAN_INTERVAL_MS)
     }, [handleQRScan, processingQR])
     const startCamera = useCallback(async () => {
         setError(null)
@@ -136,14 +147,27 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                 // Stop any existing stream
                 if (streamRef.current) {
                     streamRef.current.getTracks().forEach((track) => track.stop())
+                    streamRef.current = null
+                }
+
+                // Give iOS time to release camera hardware (iOS-specific fix)
+                if (deviceType === DeviceType.IOS) {
+                    await new Promise((resolve) => setTimeout(resolve, IOS_CAMERA_DELAY_MS))
                 }
 
                 // Request camera with specified facing mode
                 const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode },
+                    video: {
+                        facingMode,
+                        width: { ideal: IDEAL_CAMERA_WIDTH },
+                        height: { ideal: IDEAL_CAMERA_HEIGHT },
+                    },
                 })
 
                 streamRef.current = stream
+
+                // Reset retry count on successful camera start
+                retryCountRef.current = 0
 
                 if (videoRef.current) {
                     videoRef.current.srcObject = stream
@@ -153,14 +177,43 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                         setupQRScanning()
                     }
                 }
-            } catch (error) {
+            } catch (error: any) {
                 console.error('Error accessing camera:', error)
-                setError('Could not access camera. Please ensure you have granted camera permissions.')
+
+                // Specific error handling based on error type
+                if (error.name === 'NotAllowedError') {
+                    setError('Camera permission denied. Please allow camera access in your browser settings.')
+                    retryCountRef.current = 0 // Reset on permission error
+                } else if (error.name === 'NotReadableError') {
+                    // Camera is busy - retry with limit
+                    if (retryCountRef.current < MAX_CAMERA_RETRIES) {
+                        retryCountRef.current++
+                        setError(
+                            `Camera is in use by another app. Retrying... (${retryCountRef.current}/${MAX_CAMERA_RETRIES})`
+                        )
+
+                        // Retry after delay (camera might be released)
+                        setTimeout(() => {
+                            if (isScanning) {
+                                startCamera()
+                            }
+                        }, CAMERA_RETRY_DELAY_MS)
+                    } else {
+                        setError('Camera remains busy. Please close other apps and try again.')
+                        retryCountRef.current = 0 // Reset for next attempt
+                    }
+                } else if (error.name === 'NotFoundError') {
+                    setError('No camera found on this device.')
+                    retryCountRef.current = 0
+                } else {
+                    setError('Could not access camera. Please ensure you have granted camera permissions.')
+                    retryCountRef.current = 0
+                }
             }
         } else {
             setError('Your browser does not support camera access')
         }
-    }, [facingMode, setupQRScanning])
+    }, [facingMode, setupQRScanning, isScanning, deviceType])
     // Handle visibility change - pause camera when app goes to background
     useEffect(() => {
         const handleVisibilityChange = () => {

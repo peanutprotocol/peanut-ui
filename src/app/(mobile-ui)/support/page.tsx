@@ -31,7 +31,13 @@ const SupportPage = () => {
                     <PeanutLoading />
                 </div>
             )}
-            <iframe src={crispProxyUrl} className="h-full w-full" title="Support Chat" />
+            <iframe
+                src={crispProxyUrl}
+                className="h-full w-full"
+                allow="storage-access *"
+                sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-storage-access-by-user-activation"
+                title="Support Chat"
+            />
         </div>
     )
 }

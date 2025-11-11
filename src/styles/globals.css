@@ -3,9 +3,15 @@
 @tailwind utilities;
 
 @layer base {
-    /* Force light mode - prevent browser dark mode */
+    /* Nudge browser to prefer light mode for native controls (scrollbars, inputs, etc) */
     :root {
-        color-scheme: light only;
+        color-scheme: light;
+    }
+
+    html,
+    body {
+        /* disable native pull-to-refresh on mobile devices - we use custom implementation */
+        overscroll-behavior-y: none;
     }
 
     body {
@@ -281,6 +287,7 @@ Firefox input[type='number'] {
     100% {
         transform: translateX(0) rotate(0deg);
     }
+
     10%,
     30%,
     50%,
@@ -288,6 +295,7 @@ Firefox input[type='number'] {
     90% {
         transform: translateX(-4px) rotate(-0.5deg);
     }
+
     20%,
     40%,
     60%,
@@ -301,6 +309,7 @@ Firefox input[type='number'] {
     100% {
         transform: translateX(0) rotate(0deg);
     }
+
     10%,
     30%,
     50%,
@@ -308,6 +317,7 @@ Firefox input[type='number'] {
     90% {
         transform: translateX(-8px) rotate(-1deg);
     }
+
     20%,
     40%,
     60%,
@@ -321,6 +331,7 @@ Firefox input[type='number'] {
     100% {
         transform: translate(0, 0) rotate(0deg);
     }
+
     10%,
     30%,
     50%,
@@ -328,6 +339,7 @@ Firefox input[type='number'] {
     90% {
         transform: translate(-12px, -2px) rotate(-1.5deg);
     }
+
     20%,
     40%,
     60%,
@@ -341,6 +353,7 @@ Firefox input[type='number'] {
     100% {
         transform: translate(0, 0) rotate(0deg);
     }
+
     10%,
     30%,
     50%,
@@ -348,6 +361,7 @@ Firefox input[type='number'] {
     90% {
         transform: translate(-16px, -3px) rotate(-2deg);
     }
+
     20%,
     40%,
     60%,
@@ -416,7 +430,7 @@ Firefox input[type='number'] {
 
 /* Form styling */
 .input-text {
-    @apply h-12 w-full border border-n-1 bg-white px-3 font-medium outline-none ring-2 ring-white transition-colors focus:border-primary-1 dark:border-white dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1;
+    @apply h-12 w-full border border-n-1 bg-white px-3 font-medium outline-none ring-2 ring-white transition-colors focus:border-primary-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1;
 }
 
 .input-text-inset {

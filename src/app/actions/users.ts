@@ -6,6 +6,7 @@ import { fetchWithSentry } from '@/utils'
 import { cookies } from 'next/headers'
 import { type AddBankAccountPayload, BridgeEndorsementType, type InitiateKycResponse } from './types/users.types'
 import { type User } from '@/interfaces'
+import { type ContactsResponse } from '@/interfaces'
 
 const API_KEY = process.env.PEANUT_API_KEY!
 
@@ -161,5 +162,43 @@ export async function trackDaimoDepositTransactionHash({
         return { data: responseJson }
     } catch (e: any) {
         throw new Error(e.message || e.toString() || 'An unexpected error occurred')
+    }
+}
+
+export async function getContacts(params: {
+    limit: number
+    offset: number
+}): Promise<{ data?: ContactsResponse; error?: string }> {
+    const cookieStore = cookies()
+    const jwtToken = (await cookieStore).get('jwt-token')?.value
+
+    if (!jwtToken) {
+        throw new Error('Not authenticated')
+    }
+
+    try {
+        const queryParams = new URLSearchParams({
+            limit: params.limit.toString(),
+            offset: params.offset.toString(),
+        })
+
+        const response = await fetchWithSentry(`${PEANUT_API_URL}/users/contacts?${queryParams}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'api-key': API_KEY,
+                Authorization: `Bearer ${jwtToken}`,
+            },
+        })
+
+        if (!response.ok) {
+            const errorJson = await response.json()
+            return { error: errorJson.message || errorJson.error || 'Failed to fetch contacts' }
+        }
+
+        const responseJson: ContactsResponse = await response.json()
+        return { data: responseJson }
+    } catch (e: unknown) {
+        return { error: e instanceof Error ? e.message : 'An unexpected error occurred' }
     }
 }
