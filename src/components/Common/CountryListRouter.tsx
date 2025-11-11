@@ -109,10 +109,14 @@ export const CountryListRouter = ({
             case 'claim':
                 return claimLinkData?.sender?.username ?? printableAddress(claimLinkData?.senderAddress ?? '')
             case 'request':
-                return (
-                    chargeDetails?.requestLink.recipientAccount.user.username ??
-                    printableAddress(chargeDetails?.requestLink.recipientAddress as string)
-                )
+                if (chargeDetails?.requestLink.recipientAccount.type === 'peanut-wallet') {
+                    return (
+                        chargeDetails?.requestLink.recipientAccount.user.username ??
+                        printableAddress(chargeDetails?.requestLink.recipientAddress as string)
+                    )
+                } else {
+                    return printableAddress(chargeDetails?.requestLink.recipientAccount.identifier as string)
+                }
         }
     }, [flow, claimLinkData, chargeDetails])
 

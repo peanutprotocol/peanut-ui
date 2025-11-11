@@ -6,7 +6,6 @@ import { validateAndResolveRecipient } from '../validation/recipient'
 import { getChainDetails, getTokenAndChainDetails } from '../validation/token'
 import { AmountValidationError } from './errors'
 import { type ParsedURL } from './types/payment'
-import { areEvmAddressesEqual } from '@/utils'
 
 export function parseAmountAndToken(amountString: string): { amount?: string; token?: string } {
     // remove all whitespace
@@ -160,13 +159,23 @@ export async function parsePaymentURL(
         tokenDetails = chainDetails.tokens.find((t) => t.symbol.toLowerCase() === 'USDC'.toLowerCase())
     }
 
-    // 6. Construct and return the final result
+    // 6. Determine if this is a DevConnect flow
+    // @dev: note, this needs to be deleted post devconnect
+    // devconnect flow: external address + base chain specified in URL
+    const isDevConnectFlow =
+        recipientDetails.recipientType === 'ADDRESS' &&
+        chainId !== undefined &&
+        chainId.toLowerCase() === 'base' &&
+        chainDetails !== undefined
+
+    // 7. Construct and return the final result
     return {
         parsedUrl: {
             recipient: recipientDetails,
             amount: parsedAmount?.amount,
             token: tokenDetails,
             chain: chainDetails,
+            isDevConnectFlow,
         },
         error: null,
     }

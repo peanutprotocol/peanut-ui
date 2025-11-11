@@ -8,6 +8,9 @@ import { useRouter } from 'next/navigation'
 import useKycStatus from './useKycStatus'
 import type { StaticImageData } from 'next/image'
 import { useQrCodeContext } from '@/context/QrCodeContext'
+import { getUserPreferences, updateUserPreferences } from '@/utils'
+import { DEVCONNECT_LOGO } from '@/assets'
+import { DEVCONNECT_INTENT_EXPIRY_MS } from '@/constants'
 
 export type CarouselCTA = {
     id: string
@@ -34,6 +37,51 @@ export const useHomeCarouselCTAs = () => {
 
     const { setIsQRScannerOpen } = useQrCodeContext()
 
+    // --------------------------------------------------------------------------------------------------
+    /**
+     * check if there's a pending devconnect intent and clean up old ones
+     *
+     * @dev: note, this code needs to be deleted post devconnect, this is just to temporarily support onramp to devconnect wallet using bank accounts
+     */
+    const [pendingDevConnectIntent, setPendingDevConnectIntent] = useState<
+        | {
+              id: string
+              recipientAddress: string
+              chain: string
+              amount: string
+              onrampId?: string
+              createdAt: number
+              status: 'pending' | 'completed'
+          }
+        | undefined
+    >(undefined)
+
+    useEffect(() => {
+        if (!user?.user?.userId) {
+            setPendingDevConnectIntent(undefined)
+            return
+        }
+
+        const prefs = getUserPreferences(user.user.userId)
+        const intents = prefs?.devConnectIntents ?? []
+
+        // clean up intents older than 7 days
+        const expiryTime = Date.now() - DEVCONNECT_INTENT_EXPIRY_MS
+        const recentIntents = intents.filter((intent) => intent.createdAt >= expiryTime && intent.status === 'pending')
+
+        // update user preferences if we cleaned up any old intents
+        if (recentIntents.length !== intents.length) {
+            updateUserPreferences(user.user.userId, {
+                devConnectIntents: recentIntents,
+            })
+        }
+
+        // get the most recent pending intent (sorted by createdAt descending)
+        const mostRecentIntent = recentIntents.sort((a, b) => b.createdAt - a.createdAt)[0]
+        setPendingDevConnectIntent(mostRecentIntent)
+    }, [user?.user?.userId])
+    // --------------------------------------------------------------------------------------------------
+
     const generateCarouselCTAs = useCallback(() => {
         const _carouselCTAs: CarouselCTA[] = []
 
@@ -59,6 +107,33 @@ export const useHomeCarouselCTAs = () => {
                 iconSize: 16,
             })
         }
+
+        // ------------------------------------------------------------------------------------------------
+        // add devconnect payment cta if there's a pending intent
+        // @dev: note, this code needs to be deleted post devconnect, this is just to temporarily support onramp to devconnect wallet using bank accounts
+        if (pendingDevConnectIntent) {
+            _carouselCTAs.push({
+                id: 'devconnect-payment',
+                title: 'Fund your DevConnect wallet',
+                description: `Deposit funds to your DevConnect wallet`,
+                logo: DEVCONNECT_LOGO,
+                icon: 'arrow-up-right',
+                onClick: () => {
+                    // navigate to the semantic request flow where user can pay with peanut wallet
+                    const paymentUrl = `/${pendingDevConnectIntent.recipientAddress}@${pendingDevConnectIntent.chain}`
+                    router.push(paymentUrl)
+                },
+                onClose: () => {
+                    // remove the intent when user dismisses the cta
+                    if (user?.user?.userId) {
+                        updateUserPreferences(user.user.userId, {
+                            devConnectIntents: [],
+                        })
+                    }
+                },
+            })
+        }
+        // --------------------------------------------------------------------------------------------------
 
         // add notification prompt as first item if it should be shown
         if (showReminderBanner) {
@@ -101,6 +176,8 @@ export const useHomeCarouselCTAs = () => {
 
         setCarouselCTAs(_carouselCTAs)
     }, [
+        pendingDevConnectIntent,
+        user?.user?.userId,
         showReminderBanner,
         isPermissionDenied,
         isUserKycApproved,

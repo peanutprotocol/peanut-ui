@@ -13,4 +13,6 @@ export interface ParsedURL {
     amount?: string
     token?: interfaces.ISquidToken
     chain?: interfaces.ISquidChain & { tokens: interfaces.ISquidToken[] }
+    /** @dev: flag indicating if this is a devconnect flow (external address + base chain), to be deleted post devconnect */
+    isDevConnectFlow?: boolean
 }
