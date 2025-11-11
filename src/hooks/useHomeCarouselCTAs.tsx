@@ -2,7 +2,7 @@
 
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { useAuth } from '@/context/authContext'
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useNotifications } from './useNotifications'
 import { useRouter } from 'next/navigation'
 import useKycStatus from './useKycStatus'
@@ -10,6 +10,7 @@ import type { StaticImageData } from 'next/image'
 import { useQrCodeContext } from '@/context/QrCodeContext'
 import { getUserPreferences, updateUserPreferences } from '@/utils'
 import { DEVCONNECT_LOGO } from '@/assets'
+import { DEVCONNECT_INTENT_EXPIRY_MS } from '@/constants'
 
 export type CarouselCTA = {
     id: string
@@ -42,17 +43,31 @@ export const useHomeCarouselCTAs = () => {
      *
      * @dev: note, this code needs to be deleted post devconnect, this is just to temporarily support onramp to devconnect wallet using bank accounts
      */
-    const pendingDevConnectIntent = useMemo(() => {
-        if (!user?.user?.userId) return undefined
+    const [pendingDevConnectIntent, setPendingDevConnectIntent] = useState<
+        | {
+              id: string
+              recipientAddress: string
+              chain: string
+              amount: string
+              onrampId?: string
+              createdAt: number
+              status: 'pending' | 'completed'
+          }
+        | undefined
+    >(undefined)
+
+    useEffect(() => {
+        if (!user?.user?.userId) {
+            setPendingDevConnectIntent(undefined)
+            return
+        }
 
         const prefs = getUserPreferences(user.user.userId)
         const intents = prefs?.devConnectIntents ?? []
 
         // clean up intents older than 7 days
-        const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
-        const recentIntents = intents.filter(
-            (intent) => intent.createdAt >= sevenDaysAgo && intent.status === 'pending'
-        )
+        const expiryTime = Date.now() - DEVCONNECT_INTENT_EXPIRY_MS
+        const recentIntents = intents.filter((intent) => intent.createdAt >= expiryTime && intent.status === 'pending')
 
         // update user preferences if we cleaned up any old intents
         if (recentIntents.length !== intents.length) {
@@ -62,7 +77,8 @@ export const useHomeCarouselCTAs = () => {
         }
 
         // get the most recent pending intent (sorted by createdAt descending)
-        return recentIntents.sort((a, b) => b.createdAt - a.createdAt)[0]
+        const mostRecentIntent = recentIntents.sort((a, b) => b.createdAt - a.createdAt)[0]
+        setPendingDevConnectIntent(mostRecentIntent)
     }, [user?.user?.userId])
     // --------------------------------------------------------------------------------------------------
 

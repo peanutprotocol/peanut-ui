@@ -17,15 +17,13 @@ import { useQueryClient } from '@tanstack/react-query'
 import useKycStatus from '@/hooks/useKycStatus'
 import { usePaymentStore } from '@/redux/hooks'
 import { saveDevConnectIntent } from '@/utils'
+import { MAX_MANTECA_DEPOSIT_AMOUNT, MIN_MANTECA_DEPOSIT_AMOUNT } from '@/constants/payment.consts'
 
 interface MantecaAddMoneyProps {
     source: 'bank' | 'regionalMethod'
 }
 
 type stepType = 'inputAmount' | 'depositDetails'
-
-const MAX_DEPOSIT_AMOUNT = '2000'
-const MIN_DEPOSIT_AMOUNT = '1'
 
 const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
     const params = useParams()
@@ -69,10 +67,10 @@ const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
             return
         }
         const paymentAmount = parseUnits(usdAmount.replace(/,/g, ''), PEANUT_WALLET_TOKEN_DECIMALS)
-        if (paymentAmount < parseUnits(MIN_DEPOSIT_AMOUNT, PEANUT_WALLET_TOKEN_DECIMALS)) {
-            setError(`Deposit amount must be at least $${MIN_DEPOSIT_AMOUNT}`)
-        } else if (paymentAmount > parseUnits(MAX_DEPOSIT_AMOUNT, PEANUT_WALLET_TOKEN_DECIMALS)) {
-            setError(`Deposit amount exceeds maximum limit of $${MAX_DEPOSIT_AMOUNT}`)
+        if (paymentAmount < parseUnits(MIN_MANTECA_DEPOSIT_AMOUNT.toString(), PEANUT_WALLET_TOKEN_DECIMALS)) {
+            setError(`Deposit amount must be at least $${MIN_MANTECA_DEPOSIT_AMOUNT}`)
+        } else if (paymentAmount > parseUnits(MAX_MANTECA_DEPOSIT_AMOUNT.toString(), PEANUT_WALLET_TOKEN_DECIMALS)) {
+            setError(`Deposit amount exceeds maximum limit of $${MAX_MANTECA_DEPOSIT_AMOUNT}`)
         } else {
             setError(null)
         }

@@ -944,6 +944,22 @@ export const getContributorsFromCharge = (charges: ChargeEntry[]) => {
  * helper function to save devconnect intent to user preferences
  * @dev: note, this needs to be deleted post devconnect
  */
+/**
+ * create deterministic id for devconnect intent based on recipient + chain only
+ * amount is not included as it can change during the flow
+ * @dev: to be deleted post devconnect
+ */
+const createDevConnectIntentId = (recipientAddress: string, chain: string): string => {
+    const str = `${recipientAddress.toLowerCase()}-${chain.toLowerCase()}`
+    let hash = 0
+    for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i)
+        hash = (hash << 5) - hash + char
+        hash = hash & hash // convert to 32bit integer
+    }
+    return Math.abs(hash).toString(36)
+}
+
 export const saveDevConnectIntent = (
     userId: string | undefined,
     parsedPaymentData: ParsedURL | null,
@@ -972,23 +988,57 @@ export const saveDevConnectIntent = (
               })()
 
     if (devconnectFlowData) {
+        // validate required fields
+        const recipientAddress = devconnectFlowData.recipientAddress
+        const chain = devconnectFlowData.chain
+        const cleanedAmount = amount.replace(/,/g, '')
+
+        if (!recipientAddress || !chain || !cleanedAmount) {
+            console.warn('Skipping DevConnect intent: missing required fields')
+            return
+        }
+
         try {
+            // create deterministic id based on address + chain only
+            const intentId = createDevConnectIntentId(recipientAddress, chain)
+
             const prefs = getUserPreferences(userId)
             const existingIntents = prefs?.devConnectIntents ?? []
-            updateUserPreferences(userId, {
-                devConnectIntents: [
-                    ...existingIntents,
-                    {
-                        id: Date.now().toString(),
-                        recipientAddress: devconnectFlowData.recipientAddress,
-                        chain: devconnectFlowData.chain,
-                        amount: amount.replace(/,/g, ''),
-                        onrampId,
-                        createdAt: Date.now(),
-                        status: 'pending',
-                    },
-                ],
-            })
+
+            // check if intent with same id already exists
+            const existingIntent = existingIntents.find((intent) => intent.id === intentId)
+
+            if (!existingIntent) {
+                // create new intent
+                const { MAX_DEVCONNECT_INTENTS } = require('@/constants/payment.consts')
+                const sortedIntents = existingIntents.sort((a, b) => b.createdAt - a.createdAt)
+                const prunedIntents = sortedIntents.slice(0, MAX_DEVCONNECT_INTENTS - 1)
+
+                updateUserPreferences(userId, {
+                    devConnectIntents: [
+                        {
+                            id: intentId,
+                            recipientAddress,
+                            chain,
+                            amount: cleanedAmount,
+                            onrampId,
+                            createdAt: Date.now(),
+                            status: 'pending',
+                        },
+                        ...prunedIntents,
+                    ],
+                })
+            } else {
+                // update existing intent with new amount and onrampId
+                const updatedIntents = existingIntents.map((intent) =>
+                    intent.id === intentId
+                        ? { ...intent, amount: cleanedAmount, onrampId, createdAt: Date.now() }
+                        : intent
+                )
+                updateUserPreferences(userId, {
+                    devConnectIntents: updatedIntents,
+                })
+            }
         } catch (intentError) {
             console.error('Failed to save DevConnect intent:', intentError)
             // don't block the flow if intent storage fails

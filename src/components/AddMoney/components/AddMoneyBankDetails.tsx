@@ -85,7 +85,7 @@ export default function AddMoneyBankDetails({ flow = 'add-money' }: IAddMoneyBan
     // data from contexts based on flow
     const amount = isAddMoneyFlow
         ? onrampContext.amountToOnramp
-        : requestFulfilmentOnrampData?.depositInstructions?.amount
+        : (requestFulfilmentOnrampData?.depositInstructions?.amount ?? chargeDetails?.tokenAmount)
     const onrampData = isAddMoneyFlow ? onrampContext.onrampData : requestFulfilmentOnrampData
 
     const currencySymbolBasedOnCountry = useMemo(() => {

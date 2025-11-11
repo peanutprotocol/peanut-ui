@@ -36,6 +36,7 @@ import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermi
 import { PointsAction } from '@/services/services.types'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import { useHaptic } from 'use-haptic'
+import { MAX_DEVCONNECT_INTENTS } from '@/constants'
 
 export type PaymentFlow = 'request_pay' | 'external_wallet' | 'direct_pay' | 'withdraw'
 interface Props {
@@ -177,24 +178,65 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                 dispatch(paymentActions.setParsedPaymentData(updatedParsedData))
                 setIsUrlParsed(true)
 
+                // ------------------------------------------------------------------------------------------------
                 // @dev: save devconnect flow info to user preferences so it persists across navigation
                 // this is needed because payment state gets reset on unmount
                 if (updatedParsedData.isDevConnectFlow && user?.user?.userId) {
-                    const prefs = getUserPreferences(user.user.userId)
-                    const existingIntents = prefs?.devConnectIntents ?? []
-                    updateUserPreferences(user.user.userId, {
-                        devConnectIntents: [
-                            ...existingIntents,
-                            {
-                                id: Date.now().toString(),
-                                recipientAddress: updatedParsedData.recipient?.resolvedAddress ?? '',
-                                chain: updatedParsedData.chain?.chainId ?? '',
-                                amount: updatedParsedData.amount ?? '',
-                                createdAt: Date.now(),
-                                status: 'pending',
-                            },
-                        ],
-                    })
+                    // validate required fields before storing (amount is optional at this stage)
+                    const recipientAddress = updatedParsedData.recipient?.resolvedAddress
+                    const chainId = updatedParsedData.chain?.chainId
+                    const amount = updatedParsedData.amount
+
+                    if (recipientAddress && chainId) {
+                        // create deterministic id based on recipient + chain only (not amount, as amount changes during flow)
+                        const createDeterministicId = (addr: string, chain: string): string => {
+                            const str = `${addr.toLowerCase()}-${chain.toLowerCase()}`
+                            let hash = 0
+                            for (let i = 0; i < str.length; i++) {
+                                const char = str.charCodeAt(i)
+                                hash = (hash << 5) - hash + char
+                                hash = hash & hash // convert to 32bit integer
+                            }
+                            return Math.abs(hash).toString(36)
+                        }
+
+                        const intentId = createDeterministicId(recipientAddress, chainId)
+                        const prefs = getUserPreferences(user.user.userId)
+                        const existingIntents = prefs?.devConnectIntents ?? []
+
+                        // check if intent with same id already exists
+                        const existingIntent = existingIntents.find((intent) => intent.id === intentId)
+
+                        if (!existingIntent) {
+                            // create new intent
+                            const sortedIntents = existingIntents.sort((a, b) => b.createdAt - a.createdAt)
+                            const prunedIntents = sortedIntents.slice(0, MAX_DEVCONNECT_INTENTS - 1)
+
+                            updateUserPreferences(user.user.userId, {
+                                devConnectIntents: [
+                                    {
+                                        id: intentId,
+                                        recipientAddress,
+                                        chain: chainId,
+                                        amount: amount || '',
+                                        createdAt: Date.now(),
+                                        status: 'pending',
+                                    },
+                                    ...prunedIntents,
+                                ],
+                            })
+                        } else if (amount && amount !== existingIntent.amount) {
+                            // update existing intent with new amount if provided
+                            const updatedIntents = existingIntents.map((intent) =>
+                                intent.id === intentId ? { ...intent, amount, createdAt: Date.now() } : intent
+                            )
+                            updateUserPreferences(user.user.userId, {
+                                devConnectIntents: updatedIntents,
+                            })
+                        }
+                    }
+
+                    // ------------------------------------------------------------------------------------------------
                 }
 
                 // render PUBLIC_PROFILE view if applicable

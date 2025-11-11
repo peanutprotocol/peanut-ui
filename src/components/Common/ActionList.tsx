@@ -36,6 +36,7 @@ import { tokenSelectorContext } from '@/context'
 import SupportCTA from '../Global/SupportCTA'
 import { usePaymentInitiator, type InitiatePaymentPayload } from '@/hooks/usePaymentInitiator'
 import useKycStatus from '@/hooks/useKycStatus'
+import { MIN_BANK_TRANSFER_AMOUNT, validateMinimumAmount } from '@/constants/payment.consts'
 
 interface IActionListProps {
     flow: 'claim' | 'request'
@@ -105,8 +106,9 @@ export default function ActionList({
     const [isUsePeanutBalanceModalShown, setIsUsePeanutBalanceModalShown] = useState(false)
     const [showUsePeanutBalanceModal, setShowUsePeanutBalanceModal] = useState(false)
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null)
-    const { initiatePayment } = usePaymentInitiator()
+    const { initiatePayment, loadingStep } = usePaymentInitiator()
     const { isUserMantecaKycApproved } = useKycStatus()
+    const isPaymentInProgress = loadingStep !== 'Idle' && loadingStep !== 'Error' && loadingStep !== 'Success'
 
     const dispatch = useAppDispatch()
 
@@ -143,7 +145,10 @@ export default function ActionList({
         // validate minimum amount for bank/mercado pago/pix in request flow
         if (flow === 'request' && requestLinkData) {
             // check minimum amount for bank/mercado pago/pix
-            if (['bank', 'mercadopago', 'pix'].includes(method.id) && requestAmountValue < 5) {
+            if (
+                ['bank', 'mercadopago', 'pix'].includes(method.id) &&
+                !validateMinimumAmount(requestAmountValue, method.id)
+            ) {
                 setShowMinAmountError(true)
                 return
             }
@@ -160,7 +165,7 @@ export default function ActionList({
 
         if (flow === 'claim' && claimLinkData) {
             const amountInUsd = parseFloat(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals))
-            if (method.id === 'bank' && amountInUsd < 5) {
+            if (method.id === 'bank' && !validateMinimumAmount(amountInUsd, method.id)) {
                 setShowMinAmountError(true)
                 return
             }
@@ -222,7 +227,8 @@ export default function ActionList({
                         addParamStep('bank')
                         setIsGuestVerificationModalOpen(true)
                     } else {
-                        if (!chargeDetails && parsedPaymentData) {
+                        // prevent duplicate charge creation if already in progress or charge exists
+                        if (!chargeDetails && parsedPaymentData && !isPaymentInProgress) {
                             const payload: InitiatePaymentPayload = {
                                 recipient: parsedPaymentData?.recipient,
                                 tokenAmount: usdAmount ?? '0',
@@ -353,8 +359,8 @@ export default function ActionList({
             <ActionModal
                 visible={showMinAmountError}
                 onClose={() => setShowMinAmountError(false)}
-                title="Minimum Amount "
-                description={'The minimum amount for a this payment method is $5. Please try a different method.'}
+                title="Minimum Amount"
+                description={`The minimum amount for this payment method is $${MIN_BANK_TRANSFER_AMOUNT}. Please enter a higher amount or try a different method.`}
                 icon="alert"
                 ctas={[{ text: 'Close', shadowSize: '4', onClick: () => setShowMinAmountError(false) }]}
                 iconContainerClassName="bg-yellow-400"
