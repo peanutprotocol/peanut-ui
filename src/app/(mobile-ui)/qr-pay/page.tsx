@@ -22,6 +22,7 @@ import { calculateSavingsInCents, isArgentinaMantecaQrPayment, getSavingsMessage
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { PEANUT_WALLET_TOKEN_DECIMALS, TRANSACTIONS, PERK_HOLD_DURATION_MS } from '@/constants'
 import { MANTECA_DEPOSIT_ADDRESS } from '@/constants/manteca.consts'
+import { MIN_MANTECA_QR_PAYMENT_AMOUNT } from '@/constants/payment.consts'
 import { formatUnits, parseUnits } from 'viem'
 import type { TransactionReceipt, Hash } from 'viem'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
@@ -752,7 +753,7 @@ export default function QRPayPage() {
         holdTimerRef.current = timer
     }, [claimPerk])
 
-    // Check user balance
+    // Check user balance and payment limits
     useEffect(() => {
         // Skip balance check on success screen (balance may not have updated yet)
         if (isSuccess) {
@@ -771,6 +772,16 @@ export default function QRPayPage() {
             return
         }
         const paymentAmount = parseUnits(usdAmount.replace(/,/g, ''), PEANUT_WALLET_TOKEN_DECIMALS)
+
+        // Manteca-specific validation (PIX, MercadoPago, QR3)
+        if (paymentProcessor === 'MANTECA') {
+            if (paymentAmount < parseUnits(MIN_MANTECA_QR_PAYMENT_AMOUNT.toString(), PEANUT_WALLET_TOKEN_DECIMALS)) {
+                setBalanceErrorMessage(`Payment amount must be at least $${MIN_MANTECA_QR_PAYMENT_AMOUNT}`)
+                return
+            }
+        }
+
+        // Common validations for all payment processors
         if (paymentAmount > parseUnits(MAX_QR_PAYMENT_AMOUNT, PEANUT_WALLET_TOKEN_DECIMALS)) {
             setBalanceErrorMessage(`QR payment amount exceeds maximum limit of $${MAX_QR_PAYMENT_AMOUNT}`)
         } else if (paymentAmount > balance) {
@@ -778,7 +789,7 @@ export default function QRPayPage() {
         } else {
             setBalanceErrorMessage(null)
         }
-    }, [usdAmount, balance, hasPendingTransactions, isWaitingForWebSocket, isSuccess, isLoading])
+    }, [usdAmount, balance, hasPendingTransactions, isWaitingForWebSocket, isSuccess, isLoading, paymentProcessor])
 
     // Use points confetti hook for animation - must be called unconditionally
     usePointsConfetti(isSuccess && pointsData?.estimatedPoints ? pointsData.estimatedPoints : undefined, pointsDivRef)

@@ -7,6 +7,9 @@ export const MIN_PIX_AMOUNT = 5
 export const MAX_MANTECA_DEPOSIT_AMOUNT = 2000
 export const MIN_MANTECA_DEPOSIT_AMOUNT = 1
 
+// QR payment limits for manteca (PIX, MercadoPago, QR3)
+export const MIN_MANTECA_QR_PAYMENT_AMOUNT = 0.1 // Manteca provider minimum
+
 // time constants for devconnect intent cleanup
 export const DEVCONNECT_INTENT_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
 
