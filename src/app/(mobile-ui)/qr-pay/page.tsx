@@ -761,7 +761,8 @@ export default function QRPayPage() {
         }
 
         // Skip balance check if transaction is being processed
-        if (hasPendingTransactions || isWaitingForWebSocket) {
+        // isLoading covers the gap between sendMoney completing and completeQrPayment finishing
+        if (hasPendingTransactions || isWaitingForWebSocket || isLoading) {
             return
         }
 
@@ -777,7 +778,7 @@ export default function QRPayPage() {
         } else {
             setBalanceErrorMessage(null)
         }
-    }, [usdAmount, balance, hasPendingTransactions, isWaitingForWebSocket, isSuccess])
+    }, [usdAmount, balance, hasPendingTransactions, isWaitingForWebSocket, isSuccess, isLoading])
 
     // Use points confetti hook for animation - must be called unconditionally
     usePointsConfetti(isSuccess && pointsData?.estimatedPoints ? pointsData.estimatedPoints : undefined, pointsDivRef)

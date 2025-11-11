@@ -305,7 +305,8 @@ export default function MantecaWithdrawFlow() {
     useEffect(() => {
         // Skip balance check if transaction is being processed
         // Use hasPendingTransactions to prevent race condition with optimistic updates
-        if (hasPendingTransactions) {
+        // isLoading covers the gap between sendMoney completing and API withdraw completing
+        if (hasPendingTransactions || isLoading) {
             return
         }
 
@@ -323,7 +324,7 @@ export default function MantecaWithdrawFlow() {
         } else {
             setBalanceErrorMessage(null)
         }
-    }, [usdAmount, balance, hasPendingTransactions])
+    }, [usdAmount, balance, hasPendingTransactions, isLoading])
 
     // Fetch points early to avoid latency penalty - fetch as soon as we have usdAmount
     // Use flowId as uniqueId to prevent cache collisions between different withdrawal flows

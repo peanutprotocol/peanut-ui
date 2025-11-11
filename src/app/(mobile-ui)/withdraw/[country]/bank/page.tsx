@@ -230,7 +230,8 @@ export default function WithdrawBankPage() {
     // Balance validation
     useEffect(() => {
         // Skip balance check if transaction is pending
-        if (hasPendingTransactions) {
+        // isLoading covers the gap between sendMoney completing and confirmOfframp completing
+        if (hasPendingTransactions || isLoading) {
             return
         }
 
@@ -245,7 +246,7 @@ export default function WithdrawBankPage() {
         } else {
             setBalanceErrorMessage(null)
         }
-    }, [amountToWithdraw, balance, hasPendingTransactions])
+    }, [amountToWithdraw, balance, hasPendingTransactions, isLoading])
 
     if (!bankAccount) {
         return null
