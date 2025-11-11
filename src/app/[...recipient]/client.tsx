@@ -20,7 +20,7 @@ import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
-import { formatAmount, getInitialsFromName } from '@/utils'
+import { formatAmount, getInitialsFromName, updateUserPreferences, getUserPreferences } from '@/utils'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
@@ -31,6 +31,7 @@ import ActionList from '@/components/Common/ActionList'
 import NavHeader from '@/components/Global/NavHeader'
 import { ReqFulfillBankFlowManager } from '@/components/Request/views/ReqFulfillBankFlowManager'
 import SupportCTA from '@/components/Global/SupportCTA'
+import MantecaFulfillment from '@/components/Payment/Views/MantecaFulfillment.view'
 import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermineBankRequestType'
 import { PointsAction } from '@/services/services.types'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
@@ -172,6 +173,26 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                 }
                 dispatch(paymentActions.setParsedPaymentData(updatedParsedData))
                 setIsUrlParsed(true)
+
+                // @dev: save devconnect flow info to user preferences so it persists across navigation
+                // this is needed because payment state gets reset on unmount
+                if (updatedParsedData.isDevConnectFlow && user?.user?.userId) {
+                    const prefs = getUserPreferences(user.user.userId)
+                    const existingIntents = prefs?.devConnectIntents ?? []
+                    updateUserPreferences(user.user.userId, {
+                        devConnectIntents: [
+                            ...existingIntents,
+                            {
+                                id: Date.now().toString(),
+                                recipientAddress: updatedParsedData.recipient?.resolvedAddress ?? '',
+                                chain: updatedParsedData.chain?.chainId ?? '',
+                                amount: updatedParsedData.amount ?? '',
+                                createdAt: Date.now(),
+                                status: 'pending',
+                            },
+                        ],
+                    })
+                }
 
                 // render PUBLIC_PROFILE view if applicable
                 if (
@@ -467,6 +488,11 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         return <ReqFulfillBankFlowManager parsedPaymentData={parsedPaymentData as ParsedURL} />
     }
 
+    // render manteca fulfillment (mercado pago / pix)
+    if (fulfillUsingManteca) {
+        return <MantecaFulfillment />
+    }
+
     // render PUBLIC_PROFILE view
     if (
         currentView === 'PUBLIC_PROFILE' &&
@@ -516,6 +542,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                                 isInviteLink={
                                     flow === 'request_pay' && parsedPaymentData?.recipient?.recipientType === 'USERNAME'
                                 } // invite link is only available for request pay flow
+                                usdAmount={usdAmount ?? undefined}
                             />
                         )}
                     </div>

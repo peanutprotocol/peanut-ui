@@ -1,15 +1,8 @@
 import * as consts from '@/constants'
-import {
-    PEANUT_WALLET_SUPPORTED_TOKENS,
-    STABLE_COINS,
-    USER_OPERATION_REVERT_REASON_TOPIC,
-    ENS_NAME_REGEX,
-} from '@/constants'
-import * as interfaces from '@/interfaces'
+import { STABLE_COINS, USER_OPERATION_REVERT_REASON_TOPIC, ENS_NAME_REGEX } from '@/constants'
 import { AccountType } from '@/interfaces'
 import * as Sentry from '@sentry/nextjs'
 import peanut, { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
-import { SiweMessage } from 'siwe'
 import type { Address, TransactionReceipt } from 'viem'
 import { getAddress, isAddress, erc20Abi } from 'viem'
 import * as wagmiChains from 'wagmi/chains'
@@ -17,6 +10,7 @@ import { getPublicClient, type ChainId } from '@/app/actions/clients'
 import { NATIVE_TOKEN_ADDRESS, SQUID_ETH_ADDRESS } from './token.utils'
 import { type ChargeEntry } from '@/services/services.types'
 import { toWebAuthnKey } from '@zerodev/passkey-validator'
+import type { ParsedURL } from '@/lib/url-parser/types/payment'
 
 export function urlBase64ToUint8Array(base64String: string) {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -462,6 +456,16 @@ export type UserPreferences = {
     notifBannerShowAt?: number
     notifModalClosed?: boolean
     hasSeenBalanceWarning?: { value: boolean; expiry: number }
+    // @dev: note, this needs to be deleted post devconnect
+    devConnectIntents?: Array<{
+        id: string
+        recipientAddress: string
+        chain: string
+        amount: string
+        onrampId?: string
+        createdAt: number
+        status: 'pending' | 'completed'
+    }>
 }
 
 export const updateUserPreferences = (
@@ -934,4 +938,60 @@ export const getContributorsFromCharge = (charges: ChargeEntry[]) => {
             isPeanutUser,
         }
     })
+}
+
+/**
+ * helper function to save devconnect intent to user preferences
+ * @dev: note, this needs to be deleted post devconnect
+ */
+export const saveDevConnectIntent = (
+    userId: string | undefined,
+    parsedPaymentData: ParsedURL | null,
+    amount: string,
+    onrampId?: string
+): void => {
+    if (!userId) return
+
+    // check both redux state and user preferences (fallback if state was reset)
+    const devconnectFlowData =
+        parsedPaymentData?.isDevConnectFlow && parsedPaymentData.recipient && parsedPaymentData.chain
+            ? {
+                  recipientAddress: parsedPaymentData.recipient.resolvedAddress,
+                  chain: parsedPaymentData.chain.chainId,
+              }
+            : (() => {
+                  try {
+                      const prefs = getUserPreferences(userId)
+                      const intents = prefs?.devConnectIntents ?? []
+                      // get the most recent pending intent
+                      return intents.find((i) => i.status === 'pending') ?? null
+                  } catch (e) {
+                      console.error('Failed to read devconnect intent from user preferences:', e)
+                  }
+                  return null
+              })()
+
+    if (devconnectFlowData) {
+        try {
+            const prefs = getUserPreferences(userId)
+            const existingIntents = prefs?.devConnectIntents ?? []
+            updateUserPreferences(userId, {
+                devConnectIntents: [
+                    ...existingIntents,
+                    {
+                        id: Date.now().toString(),
+                        recipientAddress: devconnectFlowData.recipientAddress,
+                        chain: devconnectFlowData.chain,
+                        amount: amount.replace(/,/g, ''),
+                        onrampId,
+                        createdAt: Date.now(),
+                        status: 'pending',
+                    },
+                ],
+            })
+        } catch (intentError) {
+            console.error('Failed to save DevConnect intent:', intentError)
+            // don't block the flow if intent storage fails
+        }
+    }
 }

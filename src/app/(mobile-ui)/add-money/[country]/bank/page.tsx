@@ -25,6 +25,8 @@ import { getCurrencyConfig, getCurrencySymbol, getMinimumAmount } from '@/utils/
 import { OnrampConfirmationModal } from '@/components/AddMoney/components/OnrampConfirmationModal'
 import { InitiateBridgeKYCModal } from '@/components/Kyc/InitiateBridgeKYCModal'
 import InfoCard from '@/components/Global/InfoCard'
+import { usePaymentStore } from '@/redux/hooks'
+import { saveDevConnectIntent } from '@/utils'
 
 type AddStep = 'inputAmount' | 'kyc' | 'loading' | 'collectUserDetails' | 'showDetails'
 
@@ -47,6 +49,7 @@ export default function OnrampBankPage() {
     const { balance } = useWallet()
     const { user, fetchUser } = useAuth()
     const { createOnramp, isLoading: isCreatingOnramp, error: onrampError } = useCreateOnramp()
+    const { parsedPaymentData } = usePaymentStore()
 
     const selectedCountryPath = params.country as string
     const selectedCountry = useMemo(() => {
@@ -173,6 +176,14 @@ export default function OnrampBankPage() {
             setOnrampData(onrampDataResponse)
 
             if (onrampDataResponse.transferId) {
+                // @dev: save devconnect intent if this is a devconnect flow - to be deleted post devconnect
+                saveDevConnectIntent(
+                    user?.user?.userId,
+                    parsedPaymentData,
+                    cleanedAmount,
+                    onrampDataResponse.transferId
+                )
+
                 setStep('showDetails')
             } else {
                 setError({

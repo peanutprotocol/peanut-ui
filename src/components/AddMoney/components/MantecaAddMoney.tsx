@@ -2,7 +2,7 @@
 import { type FC, useEffect, useMemo, useState } from 'react'
 import MantecaDepositShareDetails from '@/components/AddMoney/components/MantecaDepositShareDetails'
 import InputAmountStep from '@/components/AddMoney/components/InputAmountStep'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { type CountryData, countryData } from '@/components/AddMoney/consts'
 import { type MantecaDepositResponseData } from '@/types/manteca.types'
 import { MantecaGeoSpecificKycModal } from '@/components/Kyc/InitiateMantecaKYCModal'
@@ -15,6 +15,8 @@ import { PEANUT_WALLET_TOKEN_DECIMALS, TRANSACTIONS } from '@/constants'
 import { parseUnits } from 'viem'
 import { useQueryClient } from '@tanstack/react-query'
 import useKycStatus from '@/hooks/useKycStatus'
+import { usePaymentStore } from '@/redux/hooks'
+import { saveDevConnectIntent } from '@/utils'
 
 interface MantecaAddMoneyProps {
     source: 'bank' | 'regionalMethod'
@@ -28,6 +30,7 @@ const MIN_DEPOSIT_AMOUNT = '1'
 const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
     const params = useParams()
     const router = useRouter()
+    const searchParams = useSearchParams()
     const [step, setStep] = useState<stepType>('inputAmount')
     const [isCreatingDeposit, setIsCreatingDeposit] = useState(false)
     const [tokenAmount, setTokenAmount] = useState('')
@@ -37,6 +40,7 @@ const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
     const [depositDetails, setDepositDetails] = useState<MantecaDepositResponseData>()
     const [isKycModalOpen, setIsKycModalOpen] = useState(false)
     const queryClient = useQueryClient()
+    const { parsedPaymentData } = usePaymentStore()
 
     const selectedCountryPath = params.country as string
     const selectedCountry = useMemo(() => {
@@ -114,6 +118,10 @@ const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
                 return
             }
             setDepositDetails(depositData.data)
+
+            // @dev: save devconnect intent if this is a devconnect flow - to be deleted post devconnect
+            saveDevConnectIntent(user?.user?.userId, parsedPaymentData, usdAmount, depositData.data?.externalId)
+
             setStep('depositDetails')
         } catch (error) {
             console.log(error)
