@@ -17,6 +17,7 @@ interface ActionListDaimoPayButtonProps {
     showConfirmModal: boolean
     onBeforeShow?: () => boolean | Promise<boolean>
     isDisabled?: boolean
+    clickHandlerRef?: React.MutableRefObject<(() => void) | null>
 }
 
 const ActionListDaimoPayButton = ({
@@ -24,6 +25,7 @@ const ActionListDaimoPayButton = ({
     showConfirmModal,
     onBeforeShow,
     isDisabled,
+    clickHandlerRef,
 }: ActionListDaimoPayButtonProps) => {
     const dispatch = useAppDispatch()
     const searchParams = useSearchParams()
@@ -178,6 +180,10 @@ const ActionListDaimoPayButton = ({
                 {({ onClick, loading }) => {
                     // Store the onClick function so we can trigger it from elsewhere
                     daimoPayButtonClickRef.current = onClick
+                    // also store in parent ref if provided (for balance modal in ActionList)
+                    if (clickHandlerRef) {
+                        clickHandlerRef.current = onClick
+                    }
 
                     return (
                         <ActionListCard

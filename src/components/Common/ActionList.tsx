@@ -5,7 +5,7 @@ import IconStack from '../Global/IconStack'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { type ClaimLinkData } from '@/services/sendLinks'
 import { formatUnits } from 'viem'
-import { useContext, useMemo, useState } from 'react'
+import { useContext, useMemo, useState, useRef } from 'react'
 import ActionModal from '@/components/Global/ActionModal'
 import Divider from '../0_Bruddle/Divider'
 import { Button } from '../0_Bruddle'
@@ -86,7 +86,6 @@ export default function ActionList({
     const { addParamStep } = useClaimLink()
     const {
         setShowRequestFulfilmentBankFlowManager,
-        setShowExternalWalletFulfillMethods,
         setFlowStep: setRequestFulfilmentBankFlowStep,
         setFulfillUsingManteca,
         setRegionalMethodType: setRequestFulfillmentRegionalMethodType,
@@ -109,6 +108,8 @@ export default function ActionList({
     const { initiatePayment, loadingStep } = usePaymentInitiator()
     const { isUserMantecaKycApproved } = useKycStatus()
     const isPaymentInProgress = loadingStep !== 'Idle' && loadingStep !== 'Error' && loadingStep !== 'Success'
+    // ref to store daimo button click handler for triggering from balance modal
+    const daimoButtonClickRef = useRef<(() => void) | null>(null)
 
     const dispatch = useAppDispatch()
 
@@ -255,9 +256,7 @@ export default function ActionList({
                     setRequestFulfillmentRegionalMethodType(method.id)
                     setFulfillUsingManteca(true)
                     break
-                case 'exchange-or-wallet':
-                    setShowExternalWalletFulfillMethods(true)
-                    break
+                // 'exchange-or-wallet' case removed - handled by ActionListDaimoPayButton
             }
         }
     }
@@ -329,6 +328,7 @@ export default function ActionList({
                                         return true // Proceed with Daimo
                                     }}
                                     isDisabled={!isAmountEntered}
+                                    clickHandlerRef={daimoButtonClickRef}
                                 />
                             </div>
                         )
@@ -427,7 +427,16 @@ export default function ActionList({
                             setIsUsePeanutBalanceModalShown(true)
                             // Proceed with the method the user originally selected
                             if (selectedPaymentMethod) {
-                                handleMethodClick(selectedPaymentMethod, true) // true = bypass modal check
+                                // for exchange-or-wallet, trigger daimo button after state updates
+                                if (selectedPaymentMethod.id === 'exchange-or-wallet' && daimoButtonClickRef.current) {
+                                    // use setTimeout to ensure state updates are processed before triggering daimo
+                                    setTimeout(() => {
+                                        daimoButtonClickRef.current?.()
+                                    }, 0)
+                                } else {
+                                    // for other methods, use handleMethodClick
+                                    handleMethodClick(selectedPaymentMethod, true) // true = bypass modal check
+                                }
                             }
                             setSelectedPaymentMethod(null)
                         },

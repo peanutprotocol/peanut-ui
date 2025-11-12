@@ -87,14 +87,8 @@ export const PaymentForm = ({
         attachmentOptions,
         currentView,
     } = usePaymentStore()
-    const {
-        setShowExternalWalletFulfillMethods,
-        setExternalWalletFulfillMethod,
-        fulfillUsingManteca,
-        setFulfillUsingManteca,
-        triggerPayWithPeanut,
-        setTriggerPayWithPeanut,
-    } = useRequestFulfillmentFlow()
+    const { fulfillUsingManteca, setFulfillUsingManteca, triggerPayWithPeanut, setTriggerPayWithPeanut } =
+        useRequestFulfillmentFlow()
     const recipientUsername = !chargeDetails && recipient?.recipientType === 'USERNAME' ? recipient.identifier : null
     const { user: recipientUser } = useUserByUsername(recipientUsername)
 
@@ -715,11 +709,7 @@ export const PaymentForm = ({
     }, [recipient])
 
     const handleGoBack = () => {
-        if (isExternalWalletFlow) {
-            setShowExternalWalletFulfillMethods(true)
-            setExternalWalletFulfillMethod(null)
-            return
-        } else if (window.history.length > 1) {
+        if (window.history.length > 1) {
             router.back()
         } else {
             router.push('/')
