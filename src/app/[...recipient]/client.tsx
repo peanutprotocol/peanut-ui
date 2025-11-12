@@ -26,7 +26,6 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { fetchTokenPrice } from '@/app/actions/tokens'
 import { RequestFulfillmentBankFlowStep, useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
-import ExternalWalletFulfilManager from '@/components/Request/views/ExternalWalletFulfilManager'
 import ActionList from '@/components/Common/ActionList'
 import NavHeader from '@/components/Global/NavHeader'
 import { ReqFulfillBankFlowManager } from '@/components/Request/views/ReqFulfillBankFlowManager'
@@ -67,7 +66,6 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     const { isDrawerOpen, selectedTransaction, openTransactionDetails } = useTransactionDetailsDrawer()
     const [isLinkCancelling, setisLinkCancelling] = useState(false)
     const {
-        showExternalWalletFulfillMethods,
         showRequestFulfilmentBankFlowManager,
         setShowRequestFulfilmentBankFlowManager,
         setFlowStep: setRequestFulfilmentBankFlowStep,
@@ -522,11 +520,6 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                 <PeanutLoading />
             </div>
         )
-    }
-
-    // render external wallet fulfilment methods
-    if (showExternalWalletFulfillMethods) {
-        return <ExternalWalletFulfilManager parsedPaymentData={parsedPaymentData as ParsedURL} />
     }
 
     // render request fulfilment bank flow manager

@@ -13,6 +13,10 @@ export interface DaimoPayButtonProps {
     amount: string
     /** The recipient address */
     toAddress: string
+    /** Target chain ID (defaults to Arbitrum if not specified) */
+    toChainId?: number
+    /** Target token address (defaults to USDC on Arbitrum if not specified) */
+    toTokenAddress?: string
     /**
      * Render function that receives click handler and other props
      * OR React node for backwards compatibility
@@ -51,6 +55,8 @@ export interface DaimoPayButtonProps {
 export const DaimoPayButton = ({
     amount,
     toAddress,
+    toChainId,
+    toTokenAddress,
     children,
     variant = 'purple',
     icon,
@@ -139,10 +145,10 @@ export const DaimoPayButton = ({
             resetOnSuccess // resets the daimo payment state after payment is successfully completed
             appId={daimoAppId}
             intent="Deposit"
-            toChain={arbitrum.id}
+            toChain={toChainId ?? arbitrum.id} // use provided chain or default to arbitrum
             toUnits={amount.replace(/,/g, '')}
             toAddress={getAddress(toAddress)}
-            toToken={getAddress(PEANUT_WALLET_TOKEN)} // USDC on arbitrum
+            toToken={getAddress(toTokenAddress ?? PEANUT_WALLET_TOKEN)} // use provided token or default to usdc on arbitrum
             onPaymentCompleted={onPaymentCompleted}
             closeOnSuccess
             onClose={onClose}

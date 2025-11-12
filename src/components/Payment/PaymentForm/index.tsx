@@ -10,8 +10,9 @@ import FileUploadInput from '@/components/Global/FileUploadInput'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
+import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import UserCard from '@/components/User/UserCard'
-import { PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
+import { PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS, PEANUT_WALLET_CHAIN } from '@/constants'
 import { tokenSelectorContext } from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
@@ -86,14 +87,8 @@ export const PaymentForm = ({
         attachmentOptions,
         currentView,
     } = usePaymentStore()
-    const {
-        setShowExternalWalletFulfillMethods,
-        setExternalWalletFulfillMethod,
-        fulfillUsingManteca,
-        setFulfillUsingManteca,
-        triggerPayWithPeanut,
-        setTriggerPayWithPeanut,
-    } = useRequestFulfillmentFlow()
+    const { fulfillUsingManteca, setFulfillUsingManteca, triggerPayWithPeanut, setTriggerPayWithPeanut } =
+        useRequestFulfillmentFlow()
     const recipientUsername = !chargeDetails && recipient?.recipientType === 'USERNAME' ? recipient.identifier : null
     const { user: recipientUser } = useUserByUsername(recipientUsername)
 
@@ -182,6 +177,9 @@ export const PaymentForm = ({
             setInputTokenAmount(amount)
         }
 
+        // for ADDRESS/ENS recipients, initialize token/chain from URL or defaults
+        const isExternalRecipient = recipient?.recipientType === 'ADDRESS' || recipient?.recipientType === 'ENS'
+
         if (chain) {
             setSelectedChainID((chain.chainId || requestDetails?.chainId) ?? '')
             if (!token && !requestDetails?.tokenAddress) {
@@ -191,15 +189,37 @@ export const PaymentForm = ({
                     // Note: decimals automatically derived by useTokenPrice hook
                 }
             }
+        } else if (isExternalRecipient && !selectedChainID) {
+            // default to arbitrum for external recipients if no chain specified
+            setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
         }
 
         if (token) {
             setSelectedTokenAddress((token.address || requestDetails?.tokenAddress) ?? '')
             // Note: decimals automatically derived by useTokenPrice hook
+        } else if (isExternalRecipient && !selectedTokenAddress && selectedChainID) {
+            // default to USDC for external recipients if no token specified
+            const chainData = supportedSquidChainsAndTokens[selectedChainID]
+            const defaultToken = chainData?.tokens.find((t) => t.symbol.toLowerCase() === 'usdc')
+            if (defaultToken) {
+                setSelectedTokenAddress(defaultToken.address)
+            }
         }
 
         setInitialSetupDone(true)
-    }, [chain, token, amount, initialSetupDone, requestDetails, showRequestPotInitialView, isRequestPotLink])
+    }, [
+        chain,
+        token,
+        amount,
+        initialSetupDone,
+        requestDetails,
+        showRequestPotInitialView,
+        isRequestPotLink,
+        recipient?.recipientType,
+        selectedChainID,
+        selectedTokenAddress,
+        supportedSquidChainsAndTokens,
+    ])
 
     // reset error when component mounts or recipient changes
     useEffect(() => {
@@ -244,12 +264,14 @@ export const PaymentForm = ({
                 }
             } else {
                 // regular send/pay
+                const isExternalRecipient = recipient?.recipientType === 'ADDRESS' || recipient?.recipientType === 'ENS'
+
                 if (
                     !showRequestPotInitialView && // don't apply balance check on request pot payment initial view
                     isActivePeanutWallet &&
-                    areEvmAddressesEqual(selectedTokenAddress, PEANUT_WALLET_TOKEN)
+                    (areEvmAddressesEqual(selectedTokenAddress, PEANUT_WALLET_TOKEN) || !isExternalRecipient)
                 ) {
-                    // peanut wallet payment
+                    // peanut wallet payment (for USERNAME or default token)
                     const walletNumeric = parseFloat(String(peanutWalletBalance).replace(/,/g, ''))
                     if (walletNumeric < parsedInputAmount) {
                         dispatch(paymentActions.setError('Insufficient balance'))
@@ -274,6 +296,9 @@ export const PaymentForm = ({
                     } else {
                         dispatch(paymentActions.setError(null))
                     }
+                } else if (isExternalRecipient && isActivePeanutWallet) {
+                    // for external recipients with peanut wallet, balance will be checked via cross-chain route
+                    dispatch(paymentActions.setError(null))
                 } else {
                     dispatch(paymentActions.setError(null))
                 }
@@ -304,6 +329,7 @@ export const PaymentForm = ({
         currentView,
         isProcessing,
         hasPendingTransactions,
+        recipient?.recipientType,
     ])
 
     // Calculate USD value when requested token price is available
@@ -339,7 +365,12 @@ export const PaymentForm = ({
                 (!!inputTokenAmount && parseFloat(inputTokenAmount) > 0) || (!!usdValue && parseFloat(usdValue) > 0)
         }
 
-        const tokenSelected = !!selectedTokenAddress && !!selectedChainID
+        const isExternalRecipient = recipient?.recipientType === 'ADDRESS' || recipient?.recipientType === 'ENS'
+        // for external recipients, token selection is required
+        // for USERNAME recipients, token is always PEANUT_WALLET_TOKEN
+        const tokenSelected = isExternalRecipient
+            ? !!selectedTokenAddress && !!selectedChainID
+            : !!selectedTokenAddress && !!selectedChainID
         const recipientExists = !!recipient
         const walletConnected = isConnected
 
@@ -678,11 +709,7 @@ export const PaymentForm = ({
     }, [recipient])
 
     const handleGoBack = () => {
-        if (isExternalWalletFlow) {
-            setShowExternalWalletFulfillMethods(true)
-            setExternalWalletFulfillMethod(null)
-            return
-        } else if (window.history.length > 1) {
+        if (window.history.length > 1) {
             router.back()
         } else {
             router.push('/')
@@ -809,30 +836,25 @@ export const PaymentForm = ({
                     defaultSliderSuggestedAmount={defaultSliderValue.suggestedAmount}
                 />
 
-                {/*
-                    Url request flow (peanut.me/<address>)
-                    If we are paying from peanut wallet we only need to
-                    select a token if it's not included in the url
-                    From other wallets we always need to select a token
-                */}
-                {/* we dont need this as daimo will handle token selection */}
-                {/* {!(chain && isPeanutWalletConnected) && isConnected && !isAddMoneyFlow && (
-                    <div className="space-y-2">
-                        {!isPeanutWalletUSDC && !selectedTokenAddress && !selectedChainID && (
-                            <div className="text-sm font-bold">Select token and chain to receive</div>
-                        )}
-                        <TokenSelector viewType="req_pay" />
-                        {!isPeanutWalletUSDC && selectedTokenAddress && selectedChainID && (
-                            <div className="pt-1 text-center text-xs text-grey-1">
-                                <span>Use USDC on Arbitrum for free transactions!</span>
-                            </div>
-                        )}
-                    </div>
-                )} */}
-
-                {/* {isExternalWalletConnected && isAddMoneyFlow && (
-                    <TokenSelector viewType="add" disabled={!isExternalWalletConnected && isAddMoneyFlow} />
-                )} */}
+                {/* Token selector for external ADDRESS/ENS recipients */}
+                {!isExternalWalletFlow &&
+                    !showRequestPotInitialView &&
+                    (recipient?.recipientType === 'ADDRESS' || recipient?.recipientType === 'ENS') &&
+                    isConnected && (
+                        <div className="space-y-2">
+                            <TokenSelector viewType="req_pay" />
+                            {selectedTokenAddress &&
+                                selectedChainID &&
+                                !(
+                                    areEvmAddressesEqual(selectedTokenAddress, PEANUT_WALLET_TOKEN) &&
+                                    selectedChainID === PEANUT_WALLET_CHAIN.id.toString()
+                                ) && (
+                                    <div className="pt-1 text-center text-xs text-grey-1">
+                                        <span>Use USDC on Arbitrum for free transactions!</span>
+                                    </div>
+                                )}
+                        </div>
+                    )}
 
                 {isDirectUsdPayment && (
                     <FileUploadInput
