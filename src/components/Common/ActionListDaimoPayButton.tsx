@@ -114,13 +114,18 @@ const ActionListDaimoPayButton = ({
             if (chargeDetails) {
                 dispatch(paymentActions.setIsDaimoPaymentProcessing(true))
                 try {
+                    // validate and parse destination chain id with proper fallback
+                    // use chargeDetails chainId if it's a valid non-negative integer, otherwise use daimo response
+                    const parsedChainId = Number(chargeDetails.chainId)
+                    const destinationChainId =
+                        Number.isInteger(parsedChainId) && parsedChainId >= 0
+                            ? parsedChainId
+                            : Number(daimoPaymentResponse.payment.destination.chainId)
+
                     const result = await completeDaimoPayment({
                         chargeDetails: chargeDetails,
                         txHash: daimoPaymentResponse.txHash as string,
-                        // use destination chain from chargeDetails (not from daimo response)
-                        // chargeDetails has the correct chain from URL/explicit overrides
-                        destinationchainId:
-                            Number(chargeDetails.chainId) ?? Number(daimoPaymentResponse.payment.destination.chainId),
+                        destinationchainId: destinationChainId,
                         payerAddress: peanutWalletAddress ?? daimoPaymentResponse.payment.source.payerAddress,
                         sourceChainId: daimoPaymentResponse.payment.source.chainId,
                         sourceTokenAddress: daimoPaymentResponse.payment.source.tokenAddress,
