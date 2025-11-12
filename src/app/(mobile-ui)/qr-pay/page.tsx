@@ -50,6 +50,7 @@ import type { HistoryEntry } from '@/hooks/useTransactionHistory'
 import { completeHistoryEntry } from '@/utils/history.utils'
 import { useSupportModalContext } from '@/context/SupportModalContext'
 import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
+import maintenanceConfig from '@/config/underMaintenance.config'
 
 const MAX_QR_PAYMENT_AMOUNT = '2000'
 
@@ -93,6 +94,11 @@ export default function QRPayPage() {
                 return null
         }
     }, [qrType])
+
+    // Check if this payment provider is under maintenance
+    const isProviderDisabled = useMemo(() => {
+        return paymentProcessor ? maintenanceConfig.disabledPaymentProviders.includes(paymentProcessor) : false
+    }, [paymentProcessor])
 
     const { shouldBlockPay, kycGateState } = useQrKycGate(paymentProcessor)
     const queryClient = useQueryClient()
@@ -847,6 +853,51 @@ export default function QRPayPage() {
             }
         }
     }, [waitingForMerchantAmount, shouldRetry])
+
+    // Show maintenance error if provider is disabled
+    if (isProviderDisabled) {
+        // Get user-facing payment method name
+        const paymentMethodName = useMemo(() => {
+            if (paymentProcessor === 'MANTECA') {
+                switch (qrType) {
+                    case EQrType.PIX:
+                        return 'PIX'
+                    case EQrType.MERCADO_PAGO:
+                        return 'Mercado Pago'
+                    case EQrType.ARGENTINA_QR3:
+                        return 'QR'
+                    default:
+                        return 'QR'
+                }
+            }
+            return 'SimpleFi'
+        }, [])
+
+        return (
+            <div className="my-auto flex h-full w-full flex-col justify-center space-y-4">
+                <Card className="flex w-full flex-col items-center gap-2 p-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-1 p-3">
+                        <Icon name="alert" className="h-full" />
+                    </div>
+                    <span className="text-lg font-bold">Service Temporarily Unavailable</span>
+                    <p className="text-center font-normal text-grey-1">
+                        We're experiencing issues with {paymentMethodName} payments due to an external provider outage.
+                        We're working to restore service as soon as possible.
+                    </p>
+                </Card>
+                <Button onClick={() => router.back()} variant="purple" shadowSize="4">
+                    Go Back
+                </Button>
+                <button
+                    onClick={() => setIsSupportModalOpen(true)}
+                    className="flex w-full items-center justify-center gap-2 text-sm font-medium text-grey-1 transition-colors hover:text-black"
+                >
+                    <Icon name="peanut-support" size={16} className="text-grey-1" />
+                    Having trouble?
+                </button>
+            </div>
+        )
+    }
 
     if (!!errorInitiatingPayment) {
         return (
