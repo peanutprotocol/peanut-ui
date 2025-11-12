@@ -837,8 +837,10 @@ export const PaymentForm = ({
                 />
 
                 {/* Token selector for external ADDRESS/ENS recipients */}
+                {/* only show if chain is not specified in URL */}
                 {!isExternalWalletFlow &&
                     !showRequestPotInitialView &&
+                    !chain?.chainId &&
                     (recipient?.recipientType === 'ADDRESS' || recipient?.recipientType === 'ENS') &&
                     isConnected && (
                         <div className="space-y-2">
