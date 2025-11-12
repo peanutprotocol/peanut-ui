@@ -146,6 +146,9 @@ export default function QRPayPage() {
         setPendingSimpleFiPaymentId(null)
         setWaitingForMerchantAmount(false)
         retryCount.current = 0
+        // reset perk states 
+        setIsClaimingPerk(false)
+        setPerkClaimed(false)
     }
 
     // Cleanup timers on unmount
