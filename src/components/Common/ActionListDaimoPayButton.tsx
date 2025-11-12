@@ -117,7 +117,10 @@ const ActionListDaimoPayButton = ({
                     const result = await completeDaimoPayment({
                         chargeDetails: chargeDetails,
                         txHash: daimoPaymentResponse.txHash as string,
-                        destinationchainId: daimoPaymentResponse.payment.destination.chainId,
+                        // use destination chain from chargeDetails (not from daimo response)
+                        // chargeDetails has the correct chain from URL/explicit overrides
+                        destinationchainId:
+                            Number(chargeDetails.chainId) ?? Number(daimoPaymentResponse.payment.destination.chainId),
                         payerAddress: peanutWalletAddress ?? daimoPaymentResponse.payment.source.payerAddress,
                         sourceChainId: daimoPaymentResponse.payment.source.chainId,
                         sourceTokenAddress: daimoPaymentResponse.payment.source.tokenAddress,
@@ -150,6 +153,8 @@ const ActionListDaimoPayButton = ({
             <DaimoPayButton
                 amount={usdAmount ?? '0.10'}
                 toAddress={parsedPaymentData.recipient.resolvedAddress}
+                toChainId={parsedPaymentData.chain?.chainId ? Number(parsedPaymentData.chain.chainId) : undefined}
+                toTokenAddress={parsedPaymentData.token?.address}
                 onPaymentCompleted={handleCompleteDaimoPayment}
                 onBeforeShow={async () => {
                     // First check if parent wants to intercept (e.g. show balance modal)
