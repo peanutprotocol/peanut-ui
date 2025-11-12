@@ -51,6 +51,7 @@ import type { HistoryEntry } from '@/hooks/useTransactionHistory'
 import { completeHistoryEntry } from '@/utils/history.utils'
 import { useSupportModalContext } from '@/context/SupportModalContext'
 import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
+import maintenanceConfig from '@/config/underMaintenance.config'
 
 const MAX_QR_PAYMENT_AMOUNT = '2000'
 
@@ -95,6 +96,11 @@ export default function QRPayPage() {
         }
     }, [qrType])
 
+    // Check if this payment provider is under maintenance
+    const isProviderDisabled = useMemo(() => {
+        return paymentProcessor ? maintenanceConfig.disabledPaymentProviders.includes(paymentProcessor) : false
+    }, [paymentProcessor])
+
     const { shouldBlockPay, kycGateState } = useQrKycGate(paymentProcessor)
     const queryClient = useQueryClient()
     const { hasPendingTransactions } = usePendingTransactions()
@@ -135,6 +141,15 @@ export default function QRPayPage() {
         setHoldProgress(0)
         setIsShaking(false)
         setShakeIntensity('none')
+        // reset retry and websocket states to allow refetching
+        setShouldRetry(true)
+        setIsWaitingForWebSocket(false)
+        setPendingSimpleFiPaymentId(null)
+        setWaitingForMerchantAmount(false)
+        retryCount.current = 0
+        // reset perk states 
+        setIsClaimingPerk(false)
+        setPerkClaimed(false)
     }
 
     // Cleanup timers on unmount
@@ -277,7 +292,13 @@ export default function QRPayPage() {
         if (paymentProcessor !== 'MANTECA') return
         if (!paymentLock) return
         if (paymentLock.code !== '') {
-            setAmount(paymentLock.paymentAssetAmount)
+            // For dynamic QR codes with preset amounts:
+            // paymentAssetAmount is in local currency (e.g., "92" BRL)
+            // paymentAgainstAmount is the USD equivalent (e.g., "18.4" USD)
+            // TokenAmountInput expects tokenValue in USD, so we pass paymentAgainstAmount
+            // It will convert to local currency for display using isInitialInputUsd=false
+            setAmount(paymentLock.paymentAgainstAmount)
+            setCurrencyAmount(paymentLock.paymentAssetAmount)
         }
     }, [paymentLock?.code, paymentProcessor])
 
@@ -329,8 +350,11 @@ export default function QRPayPage() {
         }
         if (!paymentLock) return null
         if (paymentLock.code === '') {
+            // For static QR codes (user inputs amount), convert from local currency to USD
+            // currencyAmount is in local currency (ARS, BRL), amount is the USD equivalent
             return amount
         } else {
+            // For dynamic QR codes, backend provides the USD amount
             return paymentLock.paymentAgainstAmount
         }
     }, [paymentProcessor, simpleFiPayment, paymentLock?.code, paymentLock?.paymentAgainstAmount, amount])
@@ -851,6 +875,51 @@ export default function QRPayPage() {
         }
     }, [waitingForMerchantAmount, shouldRetry])
 
+    // Show maintenance error if provider is disabled
+    if (isProviderDisabled) {
+        // Get user-facing payment method name
+        const paymentMethodName = useMemo(() => {
+            if (paymentProcessor === 'MANTECA') {
+                switch (qrType) {
+                    case EQrType.PIX:
+                        return 'PIX'
+                    case EQrType.MERCADO_PAGO:
+                        return 'Mercado Pago'
+                    case EQrType.ARGENTINA_QR3:
+                        return 'QR'
+                    default:
+                        return 'QR'
+                }
+            }
+            return 'SimpleFi'
+        }, [])
+
+        return (
+            <div className="my-auto flex h-full w-full flex-col justify-center space-y-4">
+                <Card className="flex w-full flex-col items-center gap-2 p-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-1 p-3">
+                        <Icon name="alert" className="h-full" />
+                    </div>
+                    <span className="text-lg font-bold">Service Temporarily Unavailable</span>
+                    <p className="text-center font-normal text-grey-1">
+                        We're experiencing issues with {paymentMethodName} payments due to an external provider outage.
+                        We're working to restore service as soon as possible.
+                    </p>
+                </Card>
+                <Button onClick={() => router.back()} variant="purple" shadowSize="4">
+                    Go Back
+                </Button>
+                <button
+                    onClick={() => setIsSupportModalOpen(true)}
+                    className="flex w-full items-center justify-center gap-2 text-sm font-medium text-grey-1 transition-colors hover:text-black"
+                >
+                    <Icon name="peanut-support" size={16} className="text-grey-1" />
+                    Having trouble?
+                </button>
+            </div>
+        )
+    }
+
     if (!!errorInitiatingPayment) {
         return (
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
@@ -1339,6 +1408,7 @@ export default function QRPayPage() {
                             walletBalance={balance ? formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS) : undefined}
                             setCurrencyAmount={setCurrencyAmount}
                             hideBalance
+                            isInitialInputUsd={false}
                         />
                     )}
                     {balanceErrorMessage && <ErrorAlert description={balanceErrorMessage} />}

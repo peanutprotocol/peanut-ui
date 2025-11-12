@@ -21,6 +21,7 @@ function InvitePageContent() {
     const searchParams = useSearchParams()
     const inviteCode = searchParams.get('code')
     const redirectUri = searchParams.get('redirect_uri')
+    const campaign = searchParams.get('campaign')
     const { user } = useAuth()
 
     const dispatch = useAppDispatch()
@@ -46,7 +47,7 @@ function InvitePageContent() {
         }
 
         // If user has app access and invite is valid, redirect to inviter's profile
-        if (user.user.hasAppAccess && inviteCodeData.success && inviteCodeData.username) {
+        if (!redirectUri && user.user.hasAppAccess && inviteCodeData.success && inviteCodeData.username) {
             router.push(`/${inviteCodeData.username}`)
         }
     }, [user, inviteCodeData, isLoading, router])
@@ -56,6 +57,9 @@ function InvitePageContent() {
             dispatch(setupActions.setInviteCode(inviteCode))
             dispatch(setupActions.setInviteType(EInviteType.PAYMENT_LINK))
             saveToCookie('inviteCode', inviteCode) // Save to cookies as well, so that if user installs PWA, they can still use the invite code
+            if (campaign) {
+                saveToCookie('campaignTag', campaign)
+            }
             if (redirectUri) {
                 const encodedRedirectUri = encodeURIComponent(redirectUri)
                 router.push('/setup?step=signup&redirect_uri=' + encodedRedirectUri)

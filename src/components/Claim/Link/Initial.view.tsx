@@ -244,7 +244,11 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                         return
                     }
                     const inviteCode = `${inviterUsername}INVITESYOU`
-                    const result = await invitesApi.acceptInvite(inviteCode, EInviteType.PAYMENT_LINK)
+                    const result = await invitesApi.acceptInvite(
+                        inviteCode,
+                        EInviteType.PAYMENT_LINK,
+                        campaignTag ?? undefined
+                    )
                     if (!result.success) {
                         console.error('Failed to accept invite')
                         setErrorState({

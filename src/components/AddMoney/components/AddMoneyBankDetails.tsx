@@ -145,10 +145,25 @@ export default function AddMoneyBankDetails({ flow = 'add-money' }: IAddMoneyBan
     const generateBankDetails = async () => {
         const formattedAmount = formattedCurrencyAmount
         const isMexico = currentCountryDetails?.id === 'MX'
+        const isUs = currentCountryDetails?.id === 'US'
+        const isEuro = !isUs && !isMexico
 
         let bankDetails = `Bank Transfer Details:
 Amount: ${formattedAmount}
 Bank Name: ${onrampData?.depositInstructions?.bankName || 'Loading...'}`
+
+        if (isUs) {
+            bankDetails += `
+Beneficiary Name: ${onrampData?.depositInstructions?.bankBeneficiaryName}
+Beneficiary Address: ${onrampData?.depositInstructions?.bankBeneficiaryAddress}
+            `
+        }
+
+        if (isEuro || isMexico) {
+            bankDetails += `
+Account Holder Name: ${onrampData?.depositInstructions?.accountHolderName}
+            `
+        }
 
         // only include Bank Address for non-Mexico countries since Mexico doesn't return IBAN/BIC or equivalent
         if (!isMexico) {
@@ -248,6 +263,34 @@ Please use these details to complete your bank transfer.`
                             hideBottomBorder
                         />
                     )}
+
+                    {onrampData?.depositInstructions?.bankBeneficiaryName && (
+                        <PaymentInfoRow
+                            label={'Beneficiary Name'}
+                            value={onrampData?.depositInstructions?.bankBeneficiaryName || 'Loading...'}
+                            allowCopy={!!onrampData?.depositInstructions?.bankBeneficiaryName}
+                            hideBottomBorder
+                        />
+                    )}
+
+                    {onrampData?.depositInstructions?.accountHolderName && (
+                        <PaymentInfoRow
+                            label={'Account Holder Name'}
+                            value={onrampData?.depositInstructions?.accountHolderName || 'Loading...'}
+                            allowCopy={!!onrampData?.depositInstructions?.accountHolderName}
+                            hideBottomBorder
+                        />
+                    )}
+
+                    {onrampData?.depositInstructions?.bankBeneficiaryAddress && (
+                        <PaymentInfoRow
+                            label={'Beneficiary Address'}
+                            value={onrampData?.depositInstructions?.bankBeneficiaryAddress || 'Loading...'}
+                            allowCopy={!!onrampData?.depositInstructions?.bankBeneficiaryAddress}
+                            hideBottomBorder
+                        />
+                    )}
+
                     {currentCountryDetails?.id !== 'MX' && (
                         <PaymentInfoRow
                             label={onrampData?.depositInstructions?.bankAccountNumber ? 'Account Number' : 'IBAN'}

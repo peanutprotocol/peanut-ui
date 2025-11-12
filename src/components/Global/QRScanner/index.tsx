@@ -71,6 +71,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
             streamRef.current = null
         }
         if (videoRef.current) {
+            videoRef.current.pause() // Explicitly pause video element (critical for iOS)
             videoRef.current.srcObject = null
             videoRef.current.load()
         }
@@ -83,7 +84,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
         } catch (error) {
             console.error('Error closing QR scanner:', error)
         }
-    }, [onClose])
+    }, [onClose, stopCamera])
     const handleQRScan = useCallback(
         async (data: string) => {
             if (processingQR) return
@@ -237,17 +238,10 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
         if (isScanning) {
             startCamera()
         } else {
-            // Clean up on scanner close
-            if (scanIntervalRef.current) {
-                clearInterval(scanIntervalRef.current)
-                scanIntervalRef.current = null
-            }
-            if (streamRef.current) {
-                streamRef.current.getTracks().forEach((track) => track.stop())
-                streamRef.current = null
-            }
+            // Clean up on scanner close - call stopCamera to ensure proper cleanup including video.pause()
+            stopCamera()
         }
-    }, [isScanning, startCamera])
+    }, [isScanning, startCamera, stopCamera])
 
     useEffect(() => {
         if (!isOpen) {
@@ -257,10 +251,20 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
         }
     }, [isOpen, closeScanner])
 
-    // Cleanup function to close the scanner when the component unmounts
+    // Cleanup function to stop camera when the component unmounts
     useEffect(() => {
         return () => {
-            closeScanner()
+            // Directly call stopCamera to avoid stale closure issues
+            if (scanIntervalRef.current) {
+                clearInterval(scanIntervalRef.current)
+            }
+            if (streamRef.current) {
+                streamRef.current.getTracks().forEach((track) => track.stop())
+            }
+            if (videoRef.current) {
+                videoRef.current.pause() // Critical for iOS to stop camera recording
+                videoRef.current.srcObject = null
+            }
         }
     }, [])
 

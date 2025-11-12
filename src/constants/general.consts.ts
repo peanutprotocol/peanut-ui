@@ -20,20 +20,48 @@ export const rpcUrls: Record<number, string[]> = {
         'https://ethereum-mainnet.core.chainstack.com/006d2d45e7727fb2d5ff46ffc19a2958', // Chainstack (primary)
         infuraUrl('mainnet'),
         alchemyUrl('eth-mainnet'),
+        'https://eth.public-rpc.com', // Public fallback
+        'https://ethereum.publicnode.com', // Public fallback
+        'https://rpc.ankr.com/eth', // Public fallback
     ].filter(Boolean) as string[],
     [arbitrum.id]: [
         'https://arbitrum-mainnet.core.chainstack.com/78d8b6bbaa8ae6d8ce2546c13b619288', // Chainstack (primary)
         infuraUrl('arbitrum-mainnet'),
         alchemyUrl('arb-mainnet'),
+        'https://arb1.arbitrum.io/rpc', // Official public RPC
+        'https://arbitrum.publicnode.com', // Public fallback
+        'https://rpc.ankr.com/arbitrum', // Public fallback
     ].filter(Boolean) as string[],
-    [arbitrumSepolia.id]: [infuraUrl('arbitrum-sepolia'), alchemyUrl('arb-sepolia')].filter(Boolean) as string[],
-    [polygon.id]: [infuraUrl('polygon-mainnet'), alchemyUrl('polygon-mainnet')].filter(Boolean) as string[],
-    [optimism.id]: [infuraUrl('optimism-mainnet'), alchemyUrl('opt-mainnet')].filter(Boolean) as string[],
-    [base.id]: [infuraUrl('base-mainnet'), alchemyUrl('base-mainnet')].filter(Boolean) as string[],
-    [bsc.id]: ['https://bsc-dataseed.bnbchain.org', infuraUrl('bsc-mainnet'), alchemyUrl('bsc-mainnet')].filter(
-        Boolean
-    ) as string[],
-    [scroll.id]: [infuraUrl('scroll-mainnet')].filter(Boolean) as string[],
+    [arbitrumSepolia.id]: [
+        infuraUrl('arbitrum-sepolia'),
+        alchemyUrl('arb-sepolia'),
+        'https://sepolia-rollup.arbitrum.io/rpc', // Official Arbitrum Sepolia
+    ].filter(Boolean) as string[],
+    [polygon.id]: [
+        infuraUrl('polygon-mainnet'),
+        alchemyUrl('polygon-mainnet'),
+        'https://polygon-rpc.com', // Official public RPC
+    ].filter(Boolean) as string[],
+    [optimism.id]: [
+        infuraUrl('optimism-mainnet'),
+        alchemyUrl('opt-mainnet'),
+        'https://mainnet.optimism.io', // Official Optimism RPC
+    ].filter(Boolean) as string[],
+    [base.id]: [
+        infuraUrl('base-mainnet'),
+        alchemyUrl('base-mainnet'),
+        'https://mainnet.base.org', // Official Base RPC
+    ].filter(Boolean) as string[],
+    [bsc.id]: [
+        'https://bsc-dataseed.bnbchain.org', // Official BSC RPC
+        infuraUrl('bsc-mainnet'),
+        alchemyUrl('bsc-mainnet'),
+        'https://bsc.publicnode.com', // Public fallback
+    ].filter(Boolean) as string[],
+    [scroll.id]: [
+        infuraUrl('scroll-mainnet'),
+        'https://rpc.scroll.io', // Official Scroll RPC
+    ].filter(Boolean) as string[],
 }
 
 export const ipfsProviderArray = [
