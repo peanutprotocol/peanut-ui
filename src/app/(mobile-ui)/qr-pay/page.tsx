@@ -140,6 +140,15 @@ export default function QRPayPage() {
         setHoldProgress(0)
         setIsShaking(false)
         setShakeIntensity('none')
+        // reset retry and websocket states to allow refetching
+        setShouldRetry(true)
+        setIsWaitingForWebSocket(false)
+        setPendingSimpleFiPaymentId(null)
+        setWaitingForMerchantAmount(false)
+        retryCount.current = 0
+        // reset perk states 
+        setIsClaimingPerk(false)
+        setPerkClaimed(false)
     }
 
     // Cleanup timers on unmount
