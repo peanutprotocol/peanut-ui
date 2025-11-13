@@ -29,12 +29,10 @@ declare global {
         __SW_MANIFEST: (PrecacheEntry | string)[] | undefined
     }
     // Next.js replaces process.env.NEXT_PUBLIC_* at build time
-    // Vercel automatically injects NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA
     const process: {
         env: {
             NEXT_PUBLIC_PEANUT_API_URL?: string
-            NEXT_PUBLIC_GIT_COMMIT_HASH?: string
-            NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA?: string
+            NEXT_PUBLIC_API_VERSION?: string
         }
     }
 }
@@ -42,13 +40,14 @@ declare global {
 // @ts-ignore
 declare const self: ServiceWorkerGlobalScope
 
-// Cache version derived from build - automatically invalidates on deploy
-// Uses git commit hash from next.config.js (available in Vercel builds)
-// Falls back to timestamp in dev/local builds where git might not be available
-const CACHE_VERSION =
-    process.env.NEXT_PUBLIC_GIT_COMMIT_HASH && process.env.NEXT_PUBLIC_GIT_COMMIT_HASH !== 'unknown'
-        ? process.env.NEXT_PUBLIC_GIT_COMMIT_HASH
-        : `dev-${Date.now()}`
+// Cache version tied to API version - automatic invalidation on breaking changes
+// Uses NEXT_PUBLIC_API_VERSION (set in Vercel env vars or .env)
+// Increment NEXT_PUBLIC_API_VERSION only when:
+// - API response structure changes (breaking changes)
+// - Cache strategy changes (e.g., switching from NetworkFirst to CacheFirst)
+// Most deploys: API_VERSION stays the same → cache preserved (fast repeat visits)
+// Breaking changes: Bump API_VERSION (v1→v2) → cache auto-invalidates across all users
+const CACHE_VERSION = process.env.NEXT_PUBLIC_API_VERSION || 'v1'
 
 // Extract API hostname from build-time environment variable
 // Next.js replaces NEXT_PUBLIC_* variables at build time, so this works in all environments
