@@ -39,7 +39,7 @@ import { QrKycState, useQrKycGate } from '@/hooks/useQrKycGate'
 import ActionModal from '@/components/Global/ActionModal'
 import { MantecaGeoSpecificKycModal } from '@/components/Kyc/InitiateMantecaKYCModal'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQueryClient, useQuery } from '@tanstack/react-query'
 import { shootDoubleStarConfetti } from '@/utils/confetti'
 import { STAR_STRAIGHT_ICON } from '@/assets'
 import { useAuth } from '@/context/authContext'
@@ -121,7 +121,6 @@ export default function QRPayPage() {
     const { setIsSupportModalOpen } = useSupportModalContext()
     const [waitingForMerchantAmount, setWaitingForMerchantAmount] = useState(false)
     const retryCount = useRef(0)
-    const mantecaRetryCount = useRef(0) // NETWORK RESILIENCE: Track Manteca payment lock fetch retries
 
     const resetState = () => {
         setIsSuccess(false)
@@ -451,103 +450,87 @@ export default function QRPayPage() {
     // - Max 3 attempts: immediate, +1s delay, +2s delay
     // - Provider-specific errors (e.g., "can't decode") are NOT retried
     // - Prevents state updates on unmounted component
+    // Fetch Manteca payment lock with TanStack Query - handles retries, caching, and loading states
+    const {
+        data: fetchedPaymentLock,
+        isLoading: isLoadingPaymentLock,
+        error: paymentLockError,
+        failureCount,
+    } = useQuery({
+        queryKey: ['manteca-payment-lock', qrCode, timestamp],
+        queryFn: async ({ queryKey }) => {
+            if (paymentProcessor !== 'MANTECA' || !qrCode || !isPaymentProcessorQR(qrCode)) {
+                return null
+            }
+            return mantecaApi.initiateQrPayment({ qrCode })
+        },
+        enabled: paymentProcessor === 'MANTECA' && !!qrCode && isPaymentProcessorQR(qrCode) && !paymentLock,
+        retry: (failureCount, error: any) => {
+            // Don't retry provider-specific errors
+            if (error?.message?.includes("provider can't decode it")) {
+                return false
+            }
+            // Retry network/timeout errors up to 2 times (3 total attempts)
+            return failureCount < 2
+        },
+        retryDelay: (attemptIndex) => {
+            const delayMs = Math.min(1000 * 2 ** attemptIndex, 2000) // 1s, 2s exponential backoff
+            const MAX_RETRIES = 2
+            const attemptNumber = attemptIndex + 1 // attemptIndex is 0-based, display as 1-based
+            console.log(
+                `Payment lock fetch failed, retrying in ${delayMs}ms... (attempt ${attemptNumber}/${MAX_RETRIES})`
+            )
+            return delayMs
+        },
+        staleTime: 0, // Always fetch fresh data
+        gcTime: 0, // Don't cache for garbage collection
+    })
+
+    // Handle payment lock fetch results
     useEffect(() => {
         if (paymentProcessor !== 'MANTECA') return
-        if (!qrCode || !isPaymentProcessorQR(qrCode)) return
-        if (!!paymentLock || !shouldRetry) return
 
-        const MAX_RETRIES = 2 // Total 3 attempts (initial + 2 retries)
-        let isMounted = true
-        let retryTimeoutId: NodeJS.Timeout | null = null
+        if (isLoadingPaymentLock) {
+            setLoadingState('Fetching details')
+            return
+        }
 
-        const fetchPaymentLock = async () => {
-            try {
-                const attemptNumber = mantecaRetryCount.current
+        if (fetchedPaymentLock && !paymentLock) {
+            setPaymentLock(fetchedPaymentLock)
+            setWaitingForMerchantAmount(false)
+            setLoadingState('Idle')
+        }
 
-                if (isMounted) {
-                    setLoadingState('Fetching details')
-                }
+        if (paymentLockError) {
+            const error = paymentLockError as Error
+            setLoadingState('Idle')
 
-                if (attemptNumber > 0) {
-                    console.log(`Payment lock fetch - retry attempt ${attemptNumber}/${MAX_RETRIES}`)
-                }
-
-                const pl = await mantecaApi.initiateQrPayment({ qrCode })
-
-                // Reset retry count before checking mount status
-                // Prevents stale retry count if component unmounts during successful fetch
-                mantecaRetryCount.current = 0
-
-                // Only update state if component is still mounted
-                // Prevents state updates on unmounted components and duplicate payment locks
-                if (!isMounted) {
-                    console.log('Payment lock fetch completed but component unmounted - ignoring result')
-                    return
-                }
-
-                setWaitingForMerchantAmount(false)
-                setPaymentLock(pl)
-                setLoadingState('Idle')
-            } catch (error: any) {
-                if (!isMounted) {
-                    console.log('Payment lock fetch failed but component unmounted - ignoring error')
-                    return
-                }
-
-                // Provider-specific errors: don't retry
-                if (error.message.includes("provider can't decode it")) {
-                    mantecaRetryCount.current = 0
-                    setShouldRetry(false)
-                    setLoadingState('Idle')
-
-                    if (EQrType.PIX === qrType) {
-                        setErrorInitiatingPayment(
-                            'We are currently experiencing issues with PIX payments due to an external provider. We are working to fix it as soon as possible'
-                        )
-                    } else {
-                        setWaitingForMerchantAmount(true)
-                    }
-                    return
-                }
-
-                // Network/timeout errors: retry with exponential backoff
-                if (mantecaRetryCount.current < MAX_RETRIES) {
-                    mantecaRetryCount.current++
-                    const delayMs = Math.min(1000 * 2 ** (mantecaRetryCount.current - 1), 2000) // 1s, 2s
-
-                    console.log(
-                        `Payment lock fetch failed, retrying in ${delayMs}ms... (attempt ${mantecaRetryCount.current}/${MAX_RETRIES})`
-                    )
-
-                    retryTimeoutId = setTimeout(() => {
-                        if (isMounted) {
-                            fetchPaymentLock()
-                        }
-                    }, delayMs)
-                } else {
-                    // All retries exhausted
-                    mantecaRetryCount.current = 0
-                    setShouldRetry(false)
-                    setLoadingState('Idle')
+            // Provider-specific errors: show appropriate message
+            if (error.message.includes("provider can't decode it")) {
+                if (EQrType.PIX === qrType) {
                     setErrorInitiatingPayment(
-                        error.message || 'Failed to load payment details. Please check your connection and try again.'
+                        'We are currently experiencing issues with PIX payments due to an external provider. We are working to fix it as soon as possible'
                     )
-                    setWaitingForMerchantAmount(false)
+                } else {
+                    setWaitingForMerchantAmount(true)
                 }
+            } else {
+                // Network/timeout errors after all retries exhausted
+                setErrorInitiatingPayment(
+                    error.message || 'Failed to load payment details. Please check your connection and try again.'
+                )
+                setWaitingForMerchantAmount(false)
             }
         }
-
-        setShouldRetry(false)
-        fetchPaymentLock()
-
-        // Cleanup: prevent state updates after unmount and cancel pending retries
-        return () => {
-            isMounted = false
-            if (retryTimeoutId) {
-                clearTimeout(retryTimeoutId)
-            }
-        }
-    }, [paymentLock, qrCode, setLoadingState, paymentProcessor, shouldRetry, qrType])
+    }, [
+        fetchedPaymentLock,
+        isLoadingPaymentLock,
+        paymentLockError,
+        paymentLock,
+        qrType,
+        paymentProcessor,
+        setLoadingState,
+    ])
 
     const merchantName = useMemo(() => {
         if (paymentProcessor === 'SIMPLEFI') {
