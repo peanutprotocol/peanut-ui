@@ -30,12 +30,14 @@ const queryClient = new QueryClient({
             gcTime: 5 * 60 * 1000, // Keep inactive queries in memory for 5min
             refetchOnWindowFocus: true, // Refetch stale data when user returns
             refetchOnReconnect: true, // Refetch when connectivity restored
-            networkMode: 'online', // Pause queries while offline
+            // Allow queries when offline to read from TanStack Query in-memory cache
+            // Service Worker provides additional HTTP API response caching (user data, history, prices)
+            networkMode: 'always', // Run queries even when offline (reads from cache)
         },
         mutations: {
             retry: 1, // Total 2 attempts: immediate + 1 retry (conservative for write operations)
             retryDelay: 1000, // Fixed 1s delay
-            networkMode: 'online', // Pause mutations while offline
+            networkMode: 'online', // Pause mutations while offline (writes require network)
         },
     },
 })

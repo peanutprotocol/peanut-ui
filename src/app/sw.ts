@@ -16,9 +16,35 @@ const CACHE_NAMES = {
     KYC_MERCHANT: 'kyc-merchant-api',
     PRICES: 'prices-api',
     EXTERNAL_RESOURCES: 'external-resources',
+    RPC: 'rpc-api',
 } as const
 
 const getCacheNameWithVersion = (name: string, version: string): string => `${name}-${version}`
+
+// RPC provider hostnames for Service Worker caching
+// ⚠️ DUPLICATION NOTE: This list mirrors rpcUrls in src/constants/general.consts.ts
+// Service Workers run in a separate context and cannot use @ imports or module imports
+// They only have access to build-time environment variables (NEXT_PUBLIC_*)
+//
+// When adding a new RPC provider:
+// 1. Add full URL to rpcUrls in src/constants/general.consts.ts
+// 2. Extract hostname and add to this RPC_HOSTNAMES array
+//
+// Example: If adding 'https://new-provider.com/rpc' to rpcUrls:
+//   → Add 'new-provider.com' to RPC_HOSTNAMES below
+const RPC_HOSTNAMES = [
+    'alchemy.com',
+    'infura.io',
+    'chainstack.com',
+    'arbitrum.io',
+    'publicnode.com',
+    'ankr.com',
+    'polygon-rpc.com',
+    'optimism.io',
+    'base.org',
+    'bnbchain.org',
+    'public-rpc.com',
+] as const
 
 // This declares the value of `injectionPoint` to TypeScript.
 // `injectionPoint` is the string that will be replaced by the
@@ -72,24 +98,25 @@ const serwist = new Serwist({
     navigationPreload: true,
     disableDevLogs: false,
     runtimeCaching: [
-        // User data: Network-first with 3s timeout
-        // Prefers fresh data but falls back to cache if network is slow
-        // Prevents UI hanging on poor connections while keeping data reasonably fresh
+        // User data: Stale-while-revalidate for instant load with background refresh
+        // Serves cached data instantly (even if days old), updates in background
+        // Critical for fast app startup - user sees profile/username/balance immediately
+        // Fresh data always loads in background (1-2s) and updates UI when ready
+        // 1 week cache enables instant loads even after extended offline periods
         {
             matcher: ({ url }) =>
                 isApiRequest(url) &&
                 (url.pathname.includes('/api/user') ||
                     url.pathname.includes('/api/profile') ||
                     url.pathname.includes('/user/')),
-            handler: new NetworkFirst({
+            handler: new StaleWhileRevalidate({
                 cacheName: getCacheNameWithVersion(CACHE_NAMES.USER_API, CACHE_VERSION),
-                networkTimeoutSeconds: 3,
                 plugins: [
                     new CacheableResponsePlugin({
                         statuses: [200],
                     }),
                     new ExpirationPlugin({
-                        maxAgeSeconds: 60 * 10, // 10 min
+                        maxAgeSeconds: 60 * 60 * 24 * 7, // 1 week (instant load anytime)
                         maxEntries: 20,
                     }),
                 ],
@@ -119,24 +146,25 @@ const serwist = new Serwist({
             }),
         },
 
-        // Transaction history: Network-first with 5s timeout
-        // Prefers fresh history but accepts cached data if network is slow
-        // History changes infrequently, so cache staleness is acceptable
+        // Transaction history: Stale-while-revalidate for instant load
+        // Serves cached history instantly (even if days old), updates in background
+        // History is append-only, so showing cached data first is always safe
+        // Fresh transactions always load in background (1-2s) and appear when ready
+        // 1 week cache enables instant activity view even after extended offline periods
         {
             matcher: ({ url }) =>
                 isApiRequest(url) &&
                 (url.pathname.includes('/api/transactions') ||
                     url.pathname.includes('/manteca/transactions') ||
                     url.pathname.includes('/history')),
-            handler: new NetworkFirst({
+            handler: new StaleWhileRevalidate({
                 cacheName: getCacheNameWithVersion(CACHE_NAMES.TRANSACTIONS, CACHE_VERSION),
-                networkTimeoutSeconds: 5,
                 plugins: [
                     new CacheableResponsePlugin({
                         statuses: [200],
                     }),
                     new ExpirationPlugin({
-                        maxAgeSeconds: 60 * 5, // 5 min
+                        maxAgeSeconds: 60 * 60 * 24 * 7, // 1 week (instant load anytime)
                         maxEntries: 30,
                     }),
                 ],
@@ -182,6 +210,32 @@ const serwist = new Serwist({
                     new ExpirationPlugin({
                         maxEntries: 100,
                         maxAgeSeconds: 60 * 60 * 24 * 7, // 1 week
+                    }),
+                ],
+            }),
+        },
+
+        // Blockchain RPC calls: Stale-while-revalidate for instant balance/blockchain data
+        // Caches eth_call, balanceOf, and other read-only RPC responses
+        // Critical for instant balance display on home screen
+        //
+        // ⚠️ Cache TTL considerations:
+        // - Balance CAN change frequently (user makes payment, receives money)
+        // - 5min cache balances instant load vs. stale data risk
+        // - StaleWhileRevalidate ensures fresh data loads in background (1-2s)
+        // - User sees cached balance instantly, then it updates when fresh data arrives
+        {
+            matcher: ({ url, request }) =>
+                request.method === 'POST' && RPC_HOSTNAMES.some((hostname) => url.hostname.includes(hostname)),
+            handler: new StaleWhileRevalidate({
+                cacheName: getCacheNameWithVersion(CACHE_NAMES.RPC, CACHE_VERSION),
+                plugins: [
+                    new CacheableResponsePlugin({
+                        statuses: [200],
+                    }),
+                    new ExpirationPlugin({
+                        maxAgeSeconds: 60 * 5, // 5 min (balance can change from txs/payments)
+                        maxEntries: 50,
                     }),
                 ],
             }),
@@ -233,6 +287,7 @@ self.addEventListener('activate', (event) => {
                     getCacheNameWithVersion(CACHE_NAMES.TRANSACTIONS, CACHE_VERSION),
                     getCacheNameWithVersion(CACHE_NAMES.KYC_MERCHANT, CACHE_VERSION),
                     getCacheNameWithVersion(CACHE_NAMES.EXTERNAL_RESOURCES, CACHE_VERSION),
+                    getCacheNameWithVersion(CACHE_NAMES.RPC, CACHE_VERSION),
                 ]
 
                 // Delete old cache versions (not current caches, not precache)
@@ -260,6 +315,7 @@ self.addEventListener('activate', (event) => {
                         CACHE_NAMES.TRANSACTIONS,
                         CACHE_NAMES.KYC_MERCHANT,
                         CACHE_NAMES.EXTERNAL_RESOURCES,
+                        CACHE_NAMES.RPC,
                     ]
 
                     await Promise.all(

@@ -510,17 +510,30 @@ export default function DirectSendQr({
                             </div>
                         }
                     >
-                        <Suspense fallback={<PeanutLoading coverFullScreen />}>
+                        <Suspense
+                            fallback={
+                                <div className="fixed inset-0 z-40">
+                                    <PeanutLoading coverFullScreen />
+                                    <QRBottomDrawer
+                                        url={payUserUrl}
+                                        collapsedTitle="My QR"
+                                        expandedTitle="Show QR to Get Paid"
+                                        text="Let others scan this to pay you"
+                                        buttonText="Share your profile"
+                                    />
+                                </div>
+                            }
+                        >
                             <QRScanner onScan={processQRCode} onClose={() => setIsQRScannerOpen(false)} isOpen={true} />
+                            <QRBottomDrawer
+                                url={payUserUrl}
+                                collapsedTitle="My QR"
+                                expandedTitle="Show QR to Get Paid"
+                                text="Let others scan this to pay you"
+                                buttonText="Share your profile"
+                            />
                         </Suspense>
                     </LazyLoadErrorBoundary>
-                    <QRBottomDrawer
-                        url={payUserUrl}
-                        collapsedTitle="My QR"
-                        expandedTitle="Show QR to Get Paid"
-                        text="Let others scan this to pay you"
-                        buttonText="Share your profile"
-                    />
                 </>
             )}
         </>
