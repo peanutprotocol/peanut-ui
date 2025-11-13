@@ -222,7 +222,7 @@ Please use these details to complete your bank transfer.`
                         <CopyToClipboard textToCopy={formattedCurrencyAmount} fill="black" iconSize="3" />
                     </div>
 
-                    <InfoCard variant="error" className="mt-4" icon="alert" description="Send exactly this amount!" />
+                    <InfoCard variant="warning" className="mt-4" icon="alert" description="Send exactly this amount!" />
                 </Card>
 
                 <Card className="p-4">
@@ -241,7 +241,7 @@ Please use these details to complete your bank transfer.`
                     </div>
 
                     <InfoCard
-                        variant="error"
+                        variant="warning"
                         className="mt-4"
                         icon="alert"
                         description="Paste in your bank's reference field"
