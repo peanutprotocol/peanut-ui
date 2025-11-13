@@ -16,7 +16,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useRouter, usePathname } from 'next/navigation'
 import { createContext, type ReactNode, useContext, useState, useEffect, useMemo, useCallback } from 'react'
 import { captureException } from '@sentry/nextjs'
-import { PUBLIC_ROUTES_REGEX } from '@/constants/routes'
+// import { PUBLIC_ROUTES_REGEX } from '@/constants/routes'
 import { USER_DATA_CACHE_PATTERNS } from '@/constants/cache.consts'
 
 interface AuthContextType {
@@ -54,19 +54,12 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
  */
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const router = useRouter()
-    const pathname = usePathname()
     const dispatch = useAppDispatch()
-    const { user: authUser } = useUserStore()
     const toast = useToast()
     const queryClient = useQueryClient()
     const WEB_AUTHN_COOKIE_KEY = 'web-authn-key'
 
-    // Check if current path is public (dev tools, etc.)
-    const isPublicPath = PUBLIC_ROUTES_REGEX.test(pathname)
-
-    // Only fetch user if not on a public path
-    const shouldFetchUser = !isPublicPath && !authUser?.user.userId
-    const { data: user, isLoading: isFetchingUser, refetch: fetchUser } = useUserQuery(shouldFetchUser)
+    const { data: user, isLoading: isFetchingUser, refetch: fetchUser } = useUserQuery()
 
     // Pre-compute a Set of invited usernames for O(1) lookups
     const invitedUsernamesSet = useMemo(() => {

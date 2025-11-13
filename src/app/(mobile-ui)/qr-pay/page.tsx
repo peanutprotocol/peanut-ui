@@ -1016,7 +1016,29 @@ export default function QRPayPage() {
         )
     }
 
-    if (shouldBlockPay) {
+    // check if we're still loading payment data or KYC state before showing anything
+    // this prevents KYC modals from flashing on page refresh
+    const isLoadingPaymentData =
+        isFirstLoad ||
+        (paymentProcessor === 'MANTECA' && !paymentLock) ||
+        (paymentProcessor === 'SIMPLEFI' && simpleFiQrData?.type !== 'SIMPLEFI_USER_SPECIFIED' && !simpleFiPayment) ||
+        !currency
+
+    const isLoadingKycState = kycGateState === QrKycState.LOADING
+
+    // show loading spinner if we're still loading payment data OR KYC state
+    if (isLoadingPaymentData || isLoadingKycState) {
+        return <PeanutLoading />
+    }
+
+    // only show KYC modals after both payment data and KYC state have loaded
+    // explicitly check for KYC states that require blocking (not PROCEED_TO_PAY)
+    const needsKycVerification =
+        kycGateState === QrKycState.REQUIRES_IDENTITY_VERIFICATION ||
+        kycGateState === QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS ||
+        kycGateState === QrKycState.REQUIRES_MANTECA_KYC_FOR_ARG_BRIDGE_USER
+
+    if (needsKycVerification) {
         return (
             <div className="flex min-h-[inherit] flex-col gap-8">
                 <NavHeader title="Pay" />
@@ -1136,15 +1158,6 @@ export default function QRPayPage() {
                 </button>
             </div>
         )
-    }
-
-    if (
-        isFirstLoad ||
-        (paymentProcessor === 'MANTECA' && !paymentLock) ||
-        (paymentProcessor === 'SIMPLEFI' && simpleFiQrData?.type !== 'SIMPLEFI_USER_SPECIFIED' && !simpleFiPayment) ||
-        !currency
-    ) {
-        return <PeanutLoading />
     }
 
     //Success
