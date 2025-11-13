@@ -103,6 +103,15 @@ const CACHE_VERSION = getEnv().NEXT_PUBLIC_API_VERSION || 'v1'
 const API_URL = getEnv().NEXT_PUBLIC_PEANUT_API_URL || 'https://api.peanut.me'
 const API_HOSTNAME = new URL(API_URL).hostname
 
+// Debug logging on SW activation
+console.log('[SW] Initializing with config:', {
+    API_URL,
+    API_HOSTNAME,
+    CACHE_VERSION,
+    manifestEntries: self.__SW_MANIFEST?.length || 0,
+    hasManifest: !!self.__SW_MANIFEST,
+})
+
 /**
  * Matches API requests to the configured API hostname
  * Ensures caching works consistently across dev, staging, and production
@@ -111,10 +120,16 @@ const isApiRequest = (url: URL): boolean => {
     return url.hostname === API_HOSTNAME
 }
 
+// Ensure manifest exists (empty array if undefined to prevent Serwist errors)
+const precacheManifest = self.__SW_MANIFEST || []
+if (!self.__SW_MANIFEST) {
+    console.warn('[SW] ⚠️ No precache manifest found - SW will only use runtime caching')
+}
+
 // NATIVE PWA: Custom caching strategies for API endpoints
 // JWT token is in httpOnly cookies, so it's automatically sent with fetch requests
 const serwist = new Serwist({
-    precacheEntries: self.__SW_MANIFEST,
+    precacheEntries: precacheManifest,
     skipWaiting: true,
     clientsClaim: true,
     navigationPreload: true,
@@ -379,12 +394,31 @@ self.addEventListener('notificationclick', (event) => {
     )
 })
 
+// Add explicit install event listener for debugging
+self.addEventListener('install', (event) => {
+    console.log('[SW] 📦 Installing...')
+    // skipWaiting() is already handled by Serwist config, but log it
+    self.skipWaiting()
+})
+
+// Add explicit fetch event listener for debugging
+self.addEventListener('fetch', (event) => {
+    if (event.request.mode === 'navigate') {
+        console.log('[SW] 🔍 Navigation fetch:', event.request.url)
+    }
+})
+
 // Cache cleanup on service worker activation
 // Removes old cache versions when SW updates to prevent storage bloat
 self.addEventListener('activate', (event) => {
+    console.log('[SW] ⚡ Activating...')
     event.waitUntil(
         (async () => {
             try {
+                // CRITICAL: Claim all clients immediately so SW controls all open pages
+                await self.clients.claim()
+                console.log('[SW] ✅ Claimed all clients')
+
                 const cacheNames = await caches.keys()
                 const currentCaches = [
                     getCacheNameWithVersion(CACHE_NAMES.USER_API, CACHE_VERSION),
@@ -392,6 +426,9 @@ self.addEventListener('activate', (event) => {
                     getCacheNameWithVersion(CACHE_NAMES.TRANSACTIONS, CACHE_VERSION),
                     getCacheNameWithVersion(CACHE_NAMES.KYC_MERCHANT, CACHE_VERSION),
                     getCacheNameWithVersion(CACHE_NAMES.EXTERNAL_RESOURCES, CACHE_VERSION),
+                    'navigation-home',
+                    'navigation-important',
+                    'navigation-other',
                 ]
 
                 // Delete old cache versions (not current caches, not precache)
@@ -555,3 +592,5 @@ self.addEventListener('message', (event) => {
 })
 
 serwist.addEventListeners()
+
+console.log('[SW] ✅ Service Worker initialized successfully')
