@@ -133,55 +133,55 @@ const serwist = new Serwist({
         {
             matcher: ({ request, url }) => request.mode === 'navigate' && url.pathname === '/home',
             handler: new NetworkFirst({
-                cacheName: 'navigation-home', // Isolated cache for protection
+                cacheName: 'navigation-home',
                 plugins: [
                     new CacheableResponsePlugin({
-                        statuses: [200],
+                        statuses: [0, 200], // 0 = opaque responses, 200 = success
                     }),
                     new ExpirationPlugin({
-                        maxEntries: 1, // Only /home
-                        maxAgeSeconds: TIME.THIRTY_DAYS, // 30 days (long TTL)
+                        maxEntries: 1,
+                        maxAgeSeconds: TIME.THIRTY_DAYS,
                     }),
                 ],
+                networkTimeoutSeconds: 3, // Fallback to cache after 3s network timeout
             }),
         },
 
         // 🟡 TIER 2 (IMPORTANT): Key pages - Evict before /home
-        // Pages users visit regularly: history, profile, points
-        // Separate cache protects from being evicted with random pages
         {
             matcher: ({ request, url }) =>
                 request.mode === 'navigate' &&
                 ['/history', '/profile', '/points'].some((path) => url.pathname.startsWith(path)),
             handler: new NetworkFirst({
-                cacheName: 'navigation-important', // Medium priority cache
+                cacheName: 'navigation-important',
                 plugins: [
                     new CacheableResponsePlugin({
-                        statuses: [200],
+                        statuses: [0, 200],
                     }),
                     new ExpirationPlugin({
-                        maxEntries: 3, // 3 important pages
-                        maxAgeSeconds: TIME.ONE_WEEK, // 1 week
+                        maxEntries: 3,
+                        maxAgeSeconds: TIME.ONE_WEEK,
                     }),
                 ],
+                networkTimeoutSeconds: 3,
             }),
         },
 
         // 🟢 TIER 3 (LOW): All other pages - Evict first
-        // Random pages, settings, etc. Nice-to-have offline but not critical
         {
             matcher: ({ request }) => request.mode === 'navigate',
             handler: new NetworkFirst({
-                cacheName: 'navigation-other', // Low priority cache
+                cacheName: 'navigation-other',
                 plugins: [
                     new CacheableResponsePlugin({
-                        statuses: [200],
+                        statuses: [0, 200],
                     }),
                     new ExpirationPlugin({
-                        maxEntries: 6, // 6 miscellaneous pages
-                        maxAgeSeconds: TIME.ONE_DAY, // 1 day (short TTL)
+                        maxEntries: 6,
+                        maxAgeSeconds: TIME.ONE_DAY,
                     }),
                 ],
+                networkTimeoutSeconds: 3,
             }),
         },
 
@@ -553,3 +553,33 @@ self.addEventListener('message', (event) => {
 })
 
 serwist.addEventListeners()
+
+// Debug logging for navigation requests (non-interfering)
+self.addEventListener('fetch', (event) => {
+    if (event.request.mode === 'navigate') {
+        const url = new URL(event.request.url)
+        console.log('[SW] 🔍 Navigation request:', url.pathname)
+    }
+})
+
+// Monitor cache writes
+self.addEventListener('message', (event) => {
+    if (event.data?.type === 'CHECK_CACHES') {
+        ;(async () => {
+            const cacheNames = await caches.keys()
+            const cacheContents = {}
+
+            for (const name of cacheNames) {
+                const cache = await caches.open(name)
+                const keys = await cache.keys()
+                cacheContents[name] = keys.map((req) => req.url)
+            }
+
+            console.log('[SW] 📦 Cache contents:', cacheContents)
+
+            if (event.ports[0]) {
+                event.ports[0].postMessage({ caches: cacheContents })
+            }
+        })()
+    }
+})
