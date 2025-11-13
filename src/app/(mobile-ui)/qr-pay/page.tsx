@@ -16,6 +16,7 @@ import Image from 'next/image'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { useSignUserOp } from '@/hooks/wallet/useSignUserOp'
 import { clearRedirectUrl, getRedirectUrl, isTxReverted, saveRedirectUrl, formatNumberForDisplay } from '@/utils'
 import { getShakeClass, type ShakeIntensity } from '@/utils/perk.utils'
 import { calculateSavingsInCents, isArgentinaMantecaQrPayment, getSavingsMessage } from '@/utils/qr-payment.utils'
@@ -62,6 +63,7 @@ export default function QRPayPage() {
     const timestamp = searchParams.get('t')
     const qrType = searchParams.get('type')
     const { balance, sendMoney } = useWallet()
+    const { signTransferUserOp } = useSignUserOp()
     const [isSuccess, setIsSuccess] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [balanceErrorMessage, setBalanceErrorMessage] = useState<string | null>(null)
@@ -554,13 +556,11 @@ export default function QRPayPage() {
             setLoadingState('Idle')
             return
         }
+
         setLoadingState('Preparing transaction')
-        let userOpHash: Hash
-        let receipt: TransactionReceipt | null
+        let signedUserOpData
         try {
-            const result = await sendMoney(MANTECA_DEPOSIT_ADDRESS, finalPaymentLock.paymentAgainstAmount)
-            userOpHash = result.userOpHash
-            receipt = result.receipt
+            signedUserOpData = await signTransferUserOp(MANTECA_DEPOSIT_ADDRESS, finalPaymentLock.paymentAgainstAmount)
         } catch (error) {
             if ((error as Error).toString().includes('not allowed')) {
                 setErrorMessage('Please confirm the transaction.')
@@ -572,26 +572,54 @@ export default function QRPayPage() {
             setLoadingState('Idle')
             return
         }
-        if (receipt !== null && isTxReverted(receipt)) {
-            setErrorMessage('Transaction reverted by the network.')
-            setLoadingState('Idle')
-            setIsSuccess(false)
-            return
-        }
-        const txHash = receipt?.transactionHash ?? userOpHash
+
+        // Send signed UserOp to backend for coordinated execution
+        // Backend will: 1) Complete Manteca payment, 2) Broadcast UserOp only if Manteca succeeds
         setLoadingState('Paying')
         try {
-            const qrPayment = await mantecaApi.completeQrPayment({ paymentLockCode: finalPaymentLock.code, txHash })
+            const signedUserOp = {
+                sender: signedUserOpData.signedUserOp.sender,
+                nonce: signedUserOpData.signedUserOp.nonce,
+                callData: signedUserOpData.signedUserOp.callData,
+                signature: signedUserOpData.signedUserOp.signature,
+                callGasLimit: signedUserOpData.signedUserOp.callGasLimit,
+                verificationGasLimit: signedUserOpData.signedUserOp.verificationGasLimit,
+                preVerificationGas: signedUserOpData.signedUserOp.preVerificationGas,
+                maxFeePerGas: signedUserOpData.signedUserOp.maxFeePerGas,
+                maxPriorityFeePerGas: signedUserOpData.signedUserOp.maxPriorityFeePerGas,
+                paymaster: signedUserOpData.signedUserOp.paymaster,
+                paymasterData: signedUserOpData.signedUserOp.paymasterData,
+                paymasterVerificationGasLimit: signedUserOpData.signedUserOp.paymasterVerificationGasLimit,
+                paymasterPostOpGasLimit: signedUserOpData.signedUserOp.paymasterPostOpGasLimit,
+            }
+            const qrPayment = await mantecaApi.completeQrPaymentWithSignedTx({
+                paymentLockCode: finalPaymentLock.code,
+                signedUserOp,
+                chainId: signedUserOpData.chainId,
+                entryPointAddress: signedUserOpData.entryPointAddress,
+            })
             setQrPayment(qrPayment)
             setIsSuccess(true)
         } catch (error) {
             captureException(error)
-            setErrorMessage('Could not complete payment due to unexpected error. Please contact support')
+            const errorMsg = (error as Error).message || 'Could not complete payment'
+
+            // Handle specific error cases
+            if (errorMsg.toLowerCase().includes('nonce')) {
+                setErrorMessage(
+                    'Transaction failed due to account state change. Please try again. If the problem persists, contact support.u'
+                )
+            } else if (errorMsg.toLowerCase().includes('expired') || errorMsg.toLowerCase().includes('stale')) {
+                setErrorMessage('Payment session expired. Please scan the QR code again.')
+            } else {
+                setErrorMessage((error as Error).toString())
+                //setErrorMessage('Could not complete payment. Please contact support.')
+            }
             setIsSuccess(false)
         } finally {
             setLoadingState('Idle')
         }
-    }, [paymentLock?.code, sendMoney, qrCode, currencyAmount, setLoadingState])
+    }, [paymentLock?.code, signTransferUserOp, qrCode, currencyAmount, setLoadingState])
 
     const payQR = useCallback(async () => {
         if (paymentProcessor === 'SIMPLEFI') {

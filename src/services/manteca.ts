@@ -5,9 +5,10 @@ import {
     type MantecaWithdrawResponse,
     type CreateMantecaOnrampParams,
 } from '@/types/manteca.types'
-import { fetchWithSentry } from '@/utils'
+import { fetchWithSentry, jsonStringify } from '@/utils'
 import Cookies from 'js-cookie'
 import type { Address, Hash } from 'viem'
+import type { SignUserOperationReturnType } from '@zerodev/sdk/actions'
 
 export interface QrPaymentRequest {
     qrCode: string
@@ -107,7 +108,7 @@ export const mantecaApi = {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${Cookies.get('jwt-token')}`,
             },
-            body: JSON.stringify(data),
+            body: jsonStringify(data),
         })
 
         if (!response.ok) {
@@ -130,12 +131,75 @@ export const mantecaApi = {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${Cookies.get('jwt-token')}`,
             },
-            body: JSON.stringify({ paymentLockCode, txHash }),
+            body: jsonStringify({ paymentLockCode, txHash }),
         })
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}))
             throw new Error(errorData.message || `QR payment failed: ${response.statusText}`)
+        }
+
+        return response.json()
+    },
+    /**
+     * Complete QR payment with a pre-signed UserOperation.
+     * This allows the backend to complete the Manteca payment BEFORE broadcasting the transaction,
+     * preventing funds from being stuck in Manteca if their payment fails.
+     *
+     * Flow:
+     * 1. Frontend signs UserOp (funds still in user's wallet)
+     * 2. Backend receives signed UserOp
+     * 3. Backend completes Manteca payment first
+     * 4. If Manteca succeeds, backend broadcasts UserOp
+     * 5. If Manteca fails, UserOp is never broadcasted (funds safe)
+     */
+    completeQrPaymentWithSignedTx: async ({
+        paymentLockCode,
+        signedUserOp,
+        chainId,
+        entryPointAddress,
+    }: {
+        paymentLockCode: string
+        signedUserOp: Pick<
+            SignUserOperationReturnType,
+            | 'sender'
+            | 'nonce'
+            | 'callData'
+            | 'signature'
+            | 'callGasLimit'
+            | 'verificationGasLimit'
+            | 'preVerificationGas'
+            | 'maxFeePerGas'
+            | 'maxPriorityFeePerGas'
+            | 'paymaster'
+            | 'paymasterData'
+            | 'paymasterVerificationGasLimit'
+            | 'paymasterPostOpGasLimit'
+        >
+        chainId: string
+        entryPointAddress: Address
+    }): Promise<QrPayment> => {
+        const response = await fetchWithSentry(
+            `${PEANUT_API_URL}/manteca/qr-payment/complete-with-signed-tx`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+                },
+                body: jsonStringify({
+                    paymentLockCode,
+                    signedUserOp,
+                    chainId,
+                    entryPointAddress,
+                }),
+            },
+            120000
+        )
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}))
+            throw new Error(errorData?.message || errorData?.error || `QR payment failed: ${response.statusText}`)
         }
 
         return response.json()
@@ -152,7 +216,7 @@ export const mantecaApi = {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${Cookies.get('jwt-token')}`,
             },
-            body: JSON.stringify({ mantecaTransferId }),
+            body: jsonStringify({ mantecaTransferId }),
         })
 
         if (!response.ok) {
@@ -188,7 +252,7 @@ export const mantecaApi = {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${Cookies.get('jwt-token')}`,
             },
-            body: JSON.stringify(params),
+            body: jsonStringify(params),
         })
 
         if (!response.ok) {
@@ -209,7 +273,7 @@ export const mantecaApi = {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${Cookies.get('jwt-token')}`,
                 },
-                body: JSON.stringify({
+                body: jsonStringify({
                     usdAmount: params.usdAmount,
                     currency: params.currency,
                     chargeId: params.chargeId,
@@ -269,7 +333,7 @@ export const mantecaApi = {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${Cookies.get('jwt-token')}`,
                 },
-                body: JSON.stringify(data),
+                body: jsonStringify(data),
             })
 
             const result = await response.json()
