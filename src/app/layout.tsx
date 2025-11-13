@@ -88,25 +88,28 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                             if ('serviceWorker' in navigator) {
                                 window.addEventListener('load', async () => {
                                     try {
-                                        // CLEANUP: Unregister old/broken service workers before registering new one
-                                        // Fixes issue where multiple broken SWs accumulate and cause "no-response" errors
-                                        const registrations = await navigator.serviceWorker.getRegistrations();
-                                        if (registrations.length > 0) {
-                                            console.log('Found existing SW registrations:', registrations.length);
-                                            await Promise.all(registrations.map(reg => {
-                                                console.log('Unregistering old SW:', reg.scope);
-                                                return reg.unregister();
-                                            }));
-                                        }
-                                        
-                                        // Register fresh service worker
+                                        // Register service worker - skipWaiting & clientsClaim handle updates
                                         const registration = await navigator.serviceWorker.register('/sw.js', {
                                             scope: '/',
                                             updateViaCache: 'none'
                                         });
-                                        console.log('✅ SW registered successfully:', registration.scope);
+                                        console.log('SW registered:', registration.scope);
+                                        
+                                        // Handle updates: reload page when new SW is waiting
+                                        registration.addEventListener('updatefound', () => {
+                                            const newWorker = registration.installing;
+                                            if (newWorker) {
+                                                newWorker.addEventListener('statechange', () => {
+                                                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                                        // New SW installed, reload to activate
+                                                        console.log('New SW available, reloading...');
+                                                        window.location.reload();
+                                                    }
+                                                });
+                                            }
+                                        });
                                     } catch (error) {
-                                        console.error('❌ SW registration failed:', error);
+                                        console.error('SW registration failed:', error);
                                     }
                                 });
                             }
