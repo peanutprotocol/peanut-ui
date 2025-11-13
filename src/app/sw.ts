@@ -8,6 +8,18 @@ import {
     ExpirationPlugin,
 } from 'serwist'
 
+// Cache name constants (inline version for SW - can't use @ imports in service worker context)
+// These match src/constants/cache.consts.ts to ensure consistency
+const CACHE_NAMES = {
+    USER_API: 'user-api',
+    TRANSACTIONS: 'transactions-api',
+    KYC_MERCHANT: 'kyc-merchant-api',
+    PRICES: 'prices-api',
+    EXTERNAL_RESOURCES: 'external-resources',
+} as const
+
+const getCacheNameWithVersion = (name: string, version: string): string => `${name}-${version}`
+
 // This declares the value of `injectionPoint` to TypeScript.
 // `injectionPoint` is the string that will be replaced by the
 // actual precache manifest. By default, this string is set to
@@ -64,7 +76,7 @@ const serwist = new Serwist({
                     url.pathname.includes('/api/profile') ||
                     url.pathname.includes('/user/')),
             handler: new NetworkFirst({
-                cacheName: `user-api-${CACHE_VERSION}`,
+                cacheName: getCacheNameWithVersion(CACHE_NAMES.USER_API, CACHE_VERSION),
                 networkTimeoutSeconds: 3,
                 plugins: [
                     new CacheableResponsePlugin({
@@ -88,7 +100,7 @@ const serwist = new Serwist({
                     url.pathname.includes('/token-price') ||
                     url.pathname.includes('/fiat-prices')),
             handler: new StaleWhileRevalidate({
-                cacheName: `prices-api-${CACHE_VERSION}`,
+                cacheName: getCacheNameWithVersion(CACHE_NAMES.PRICES, CACHE_VERSION),
                 plugins: [
                     new CacheableResponsePlugin({
                         statuses: [200],
@@ -111,7 +123,7 @@ const serwist = new Serwist({
                     url.pathname.includes('/manteca/transactions') ||
                     url.pathname.includes('/history')),
             handler: new NetworkFirst({
-                cacheName: `transactions-api-${CACHE_VERSION}`,
+                cacheName: getCacheNameWithVersion(CACHE_NAMES.TRANSACTIONS, CACHE_VERSION),
                 networkTimeoutSeconds: 5,
                 plugins: [
                     new CacheableResponsePlugin({
@@ -132,7 +144,7 @@ const serwist = new Serwist({
             matcher: ({ url }) =>
                 isApiRequest(url) && (url.pathname.includes('/kyc') || url.pathname.includes('/merchant')),
             handler: new NetworkFirst({
-                cacheName: `kyc-merchant-api-${CACHE_VERSION}`,
+                cacheName: getCacheNameWithVersion(CACHE_NAMES.KYC_MERCHANT, CACHE_VERSION),
                 networkTimeoutSeconds: 5,
                 plugins: [
                     new CacheableResponsePlugin({
@@ -156,7 +168,7 @@ const serwist = new Serwist({
                 url.origin === 'https://cdn.peanut.me' ||
                 (url.pathname.match(/\.(png|jpg|jpeg|svg|webp|gif)$/) && url.origin !== self.location.origin),
             handler: new CacheFirst({
-                cacheName: `external-resources-${CACHE_VERSION}`,
+                cacheName: getCacheNameWithVersion(CACHE_NAMES.EXTERNAL_RESOURCES, CACHE_VERSION),
                 plugins: [
                     new CacheableResponsePlugin({
                         statuses: [0, 200],
@@ -210,11 +222,11 @@ self.addEventListener('activate', (event) => {
             try {
                 const cacheNames = await caches.keys()
                 const currentCaches = [
-                    `user-api-${CACHE_VERSION}`,
-                    `prices-api-${CACHE_VERSION}`,
-                    `transactions-api-${CACHE_VERSION}`,
-                    `kyc-merchant-api-${CACHE_VERSION}`,
-                    `external-resources-${CACHE_VERSION}`,
+                    getCacheNameWithVersion(CACHE_NAMES.USER_API, CACHE_VERSION),
+                    getCacheNameWithVersion(CACHE_NAMES.PRICES, CACHE_VERSION),
+                    getCacheNameWithVersion(CACHE_NAMES.TRANSACTIONS, CACHE_VERSION),
+                    getCacheNameWithVersion(CACHE_NAMES.KYC_MERCHANT, CACHE_VERSION),
+                    getCacheNameWithVersion(CACHE_NAMES.EXTERNAL_RESOURCES, CACHE_VERSION),
                 ]
 
                 // Delete old cache versions (not current caches, not precache)
@@ -237,11 +249,11 @@ self.addEventListener('activate', (event) => {
                     console.error('Quota exceeded - clearing API caches only, preserving app shell')
                     const allCaches = await caches.keys()
                     const apiCachePatterns = [
-                        'user-api',
-                        'prices-api',
-                        'transactions-api',
-                        'kyc-merchant-api',
-                        'external-resources',
+                        CACHE_NAMES.USER_API,
+                        CACHE_NAMES.PRICES,
+                        CACHE_NAMES.TRANSACTIONS,
+                        CACHE_NAMES.KYC_MERCHANT,
+                        CACHE_NAMES.EXTERNAL_RESOURCES,
                     ]
 
                     await Promise.all(

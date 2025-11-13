@@ -17,15 +17,21 @@ export function useNetworkStatus() {
     const [wasOffline, setWasOffline] = useState<boolean>(false)
 
     useEffect(() => {
+        let timeoutId: ReturnType<typeof setTimeout> | null = null
+
         const handleOnline = () => {
             setIsOnline(true)
             setWasOffline(true)
-            setTimeout(() => setWasOffline(false), 3000)
+            timeoutId = setTimeout(() => setWasOffline(false), 3000)
         }
 
         const handleOffline = () => {
             setIsOnline(false)
             setWasOffline(false)
+            if (timeoutId) {
+                clearTimeout(timeoutId)
+                timeoutId = null
+            }
         }
 
         window.addEventListener('online', handleOnline)
@@ -34,6 +40,9 @@ export function useNetworkStatus() {
         return () => {
             window.removeEventListener('online', handleOnline)
             window.removeEventListener('offline', handleOffline)
+            if (timeoutId) {
+                clearTimeout(timeoutId)
+            }
         }
     }, [])
 

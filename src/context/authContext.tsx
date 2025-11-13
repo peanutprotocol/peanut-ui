@@ -17,6 +17,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { createContext, type ReactNode, useContext, useState, useEffect, useMemo, useCallback } from 'react'
 import { captureException } from '@sentry/nextjs'
 import { PUBLIC_ROUTES_REGEX } from '@/constants/routes'
+import { USER_DATA_CACHE_PATTERNS } from '@/constants/cache.consts'
 
 interface AuthContextType {
     user: interfaces.IUserProfile | null
@@ -158,10 +159,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 if ('caches' in window) {
                     try {
                         const cacheNames = await caches.keys()
-                        const userDataCachePatterns = ['user-api', 'transactions-api', 'kyc-merchant-api']
                         await Promise.all(
                             cacheNames
-                                .filter((name) => userDataCachePatterns.some((pattern) => name.includes(pattern)))
+                                .filter((name) => USER_DATA_CACHE_PATTERNS.some((pattern) => name.includes(pattern)))
                                 .map((name) => {
                                     console.log('Logout: Clearing cache:', name)
                                     return caches.delete(name)
