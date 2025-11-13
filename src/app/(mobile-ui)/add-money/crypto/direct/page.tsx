@@ -88,7 +88,7 @@ export default function AddMoneyCryptoDirectPage() {
                     />
 
                     <InfoCard
-                        variant="error"
+                        variant="warning"
                         icon="info"
                         iconSize={14}
                         description="This must match what you send from your wallet or exchange!"
