@@ -10,6 +10,7 @@ import localFont from 'next/font/local'
 import Script from 'next/script'
 import '../styles/globals.css'
 import { generateMetadata } from './metadata'
+import { PEANUT_API_URL } from '@/constants/general.consts'
 
 const roboto = Roboto_Flex({
     subsets: ['latin'],
@@ -65,17 +66,40 @@ export const viewport: Viewport = {
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+    // Extract API hostname for DNS prefetch/preconnect (DRY principle)
+    const apiHostname = new URL(PEANUT_API_URL).origin
+
     return (
         <html lang="en" style={{ colorScheme: 'light' }} data-theme="light">
             <head>
                 <meta name="color-scheme" content="light" />
 
-                {/* Optimize critical path resource loading */}
-                {/* Prefetch: Hints to browser to download during idle time for faster subsequent navigation */}
+                {/* CRITICAL PATH: Optimize QR payment flow loading */}
+                {/* Prefetch /qr-pay route + DNS for Manteca API */}
                 <link rel="prefetch" href="/qr-pay" />
+                <link rel="dns-prefetch" href={apiHostname} />
+                <link rel="preconnect" href={apiHostname} crossOrigin="anonymous" />
 
-                {/* DNS prefetch: Resolves DNS for external domains early to reduce latency on first API call */}
-                <link rel="dns-prefetch" href="https://api.peanut.me" />
+                {/* Service Worker Registration: Register early for offline support and caching */}
+                {/* CRITICAL: Must run before React hydration to enable offline-first PWA */}
+                {process.env.NODE_ENV !== 'development' && (
+                    <Script id="sw-registration" strategy="beforeInteractive">
+                        {`
+                            if ('serviceWorker' in navigator) {
+                                window.addEventListener('load', () => {
+                                    navigator.serviceWorker.register('/sw.js', {
+                                        scope: '/',
+                                        updateViaCache: 'none'
+                                    }).then(registration => {
+                                        console.log('SW registered:', registration.scope);
+                                    }).catch(error => {
+                                        console.error('SW registration failed:', error);
+                                    });
+                                });
+                            }
+                        `}
+                    </Script>
+                )}
 
                 {/* Note: Google Tag Manager (gtag.js) does not support version pinning.*/}
                 {process.env.NODE_ENV !== 'development' && process.env.NEXT_PUBLIC_GA_KEY && (

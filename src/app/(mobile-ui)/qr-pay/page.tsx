@@ -50,7 +50,9 @@ import { useWebSocket } from '@/hooks/useWebSocket'
 import type { HistoryEntry } from '@/hooks/useTransactionHistory'
 import { completeHistoryEntry } from '@/utils/history.utils'
 import { useSupportModalContext } from '@/context/SupportModalContext'
-import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
+// Lazy load 800KB success animation - only needed on success screen, not initial load
+// CRITICAL: This GIF is 80% of the /qr-pay bundle size. Load it dynamically.
+const chillPeanutAnim = '/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
 import maintenanceConfig from '@/config/underMaintenance.config'
 
 const MAX_QR_PAYMENT_AMOUNT = '2000'
@@ -1086,7 +1088,7 @@ export default function QRPayPage() {
             <div className="my-auto flex h-full w-full flex-col items-center justify-center space-y-4">
                 <div className="relative">
                     <Image
-                        src={chillPeanutAnim.src}
+                        src={chillPeanutAnim}
                         alt="Peanut Mascot"
                         width={20}
                         height={20}

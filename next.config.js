@@ -200,14 +200,17 @@ if (process.env.NODE_ENV !== 'development' && !Boolean(process.env.LOCAL_BUILD))
     module.exports = nextConfig
 }
 
+// Apply bundle analyzer and Serwist (production only)
 if (process.env.NODE_ENV !== 'development') {
     module.exports = async () => {
         const withSerwist = (await import('@serwist/next')).default({
             swSrc: './src/app/sw.ts',
             swDest: 'public/sw.js',
         })
-        return withSerwist(nextConfig)
+        // Wrap both Serwist AND bundle analyzer
+        return withSerwist(withBundleAnalyzer(nextConfig))
     }
+} else {
+    // Development: only bundle analyzer (no Serwist)
+    module.exports = withBundleAnalyzer(nextConfig)
 }
-
-module.exports = withBundleAnalyzer(nextConfig)

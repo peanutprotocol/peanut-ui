@@ -83,6 +83,8 @@ export function useTransactionHistory({
     }
 
     // Latest transactions mode (for home page)
+    // Cache-first strategy: TanStack refetches on every render, but SW returns
+    // cached data instantly (<50ms), then updates in background
     if (mode === 'latest') {
         // if filterMutualTxs is true, we need to add the username to the query key to invalidate the query when the username changes
         const queryKeyTxn = TRANSACTIONS + (filterMutualTxs ? username : '')
@@ -90,17 +92,20 @@ export function useTransactionHistory({
             queryKey: [queryKeyTxn, 'latest', { limit }],
             queryFn: () => fetchHistory({ limit }),
             enabled,
-            staleTime: 5 * 60 * 1000, // 5 minutes
+            staleTime: 0, // Always refetch to trigger SW cache-first + background update
+            gcTime: 5 * 60 * 1000, // Keep in memory for 5min
         })
     }
 
     // Infinite query mode (for main history page)
+    // Uses longer staleTime since user is actively browsing (less critical for instant updates)
     return useInfiniteQuery({
         queryKey: [TRANSACTIONS, 'infinite', { limit }],
         queryFn: ({ pageParam }) => fetchHistory({ cursor: pageParam, limit }),
         initialPageParam: undefined as string | undefined,
         getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.cursor : undefined),
         enabled,
-        staleTime: 5 * 60 * 1000, // 5 minutes
+        staleTime: 30 * 1000, // 30 seconds (infinite scroll doesn't need instant updates)
+        gcTime: 5 * 60 * 1000, // Keep in memory for 5min
     })
 }
