@@ -8,7 +8,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { usePWAStatus } from '../usePWAStatus'
 import { useDeviceType } from '../useGetDeviceType'
 
-export const useUserQuery = (dependsOn: boolean = true) => {
+export const useUserQuery = (dependsOn?: boolean) => {
     const isPwa = usePWAStatus()
     const { deviceType } = useDeviceType()
     const dispatch = useAppDispatch()
@@ -45,16 +45,16 @@ export const useUserQuery = (dependsOn: boolean = true) => {
         queryKey: [USER],
         queryFn: fetchUser,
         retry: 0,
-        // OFFLINE: Only fetch if no user in Redux (from persistence or previous fetch)
-        // dependsOn defaults to true, allowing manual control when needed
-        // When Redux has user data (from redux-persist), query is disabled to avoid unnecessary API calls
+        // OFFLINE: Service Worker will cache the API response for instant loads
+        // staleTime: 0 ensures we always check SW cache first (10-50ms response)
+        // SW uses StaleWhileRevalidate: instant cache response + background update
         enabled: dependsOn && !authUser?.user.userId,
-        // cache the data for 10 minutes
-        staleTime: 1000 * 60 * 10,
+        // Always check SW cache on mount for offline support
+        staleTime: 0,
         // refetch only when window is focused if data is stale
         refetchOnWindowFocus: true,
-        // prevent unnecessary refetches
-        refetchOnMount: false,
+        // Always refetch on mount to trigger SW cache check
+        refetchOnMount: true,
         // add initial data from Redux if available
         initialData: authUser || undefined,
         // keep previous data

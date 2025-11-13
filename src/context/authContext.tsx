@@ -3,7 +3,6 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import { useUserQuery } from '@/hooks/query/user'
 import * as interfaces from '@/interfaces'
 import { useAppDispatch, useUserStore } from '@/redux/hooks'
-import { PERSIST_USER_KEY } from '@/redux/store'
 import { setupActions } from '@/redux/slices/setup-slice'
 import {
     fetchWithSentry,
@@ -164,18 +163,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     } catch (error) {
                         console.error('Failed to clear caches on logout:', error)
                         // Non-fatal: logout continues even if cache clearing fails
-                    }
-                }
-
-                // Clear persisted Redux state to prevent user data leakage
-                // redux-persist stores user data in localStorage - must clear on logout
-                // Uses PERSIST_USER_KEY constant for maintainability (DRY principle)
-                if (typeof window !== 'undefined' && window.localStorage) {
-                    try {
-                        window.localStorage.removeItem(PERSIST_USER_KEY)
-                        console.log('Logout: Cleared persisted Redux user state')
-                    } catch (error) {
-                        console.error('Failed to clear persisted Redux state:', error)
                     }
                 }
 
