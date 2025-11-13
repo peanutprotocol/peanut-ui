@@ -70,10 +70,13 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     usePullToRefresh({ shouldPullToRefresh })
 
     useEffect(() => {
-        if (!isPublicPath && !isFetchingUser && !user) {
+        // OFFLINE FIX: Don't redirect if user has JWT token (logged in, waiting for SW cache)
+        // Race condition: Sometimes useEffect runs before useUserQuery starts
+        // hasToken check prevents redirect while waiting for cached user data
+        if (!isPublicPath && !isFetchingUser && !user && !hasToken) {
             router.push('/setup')
         }
-    }, [user, isFetchingUser])
+    }, [user, isFetchingUser, hasToken, isPublicPath, router])
 
     // For public paths, skip user loading and just show content when ready
     if (isPublicPath) {

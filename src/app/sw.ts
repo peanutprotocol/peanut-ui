@@ -130,8 +130,10 @@ const serwist = new Serwist({
         // 🔴 TIER 1 (CRITICAL): /home page - NEVER EVICT
         // Landing page for PWA launch. Must always be available offline.
         // Separate cache ensures it survives quota pressure from other pages.
+        // IMPORTANT: Also matches root '/' since Next.js redirects / → /home
         {
-            matcher: ({ request, url }) => request.mode === 'navigate' && url.pathname === '/home',
+            matcher: ({ request, url }) =>
+                request.mode === 'navigate' && (url.pathname === '/home' || url.pathname === '/'),
             handler: new NetworkFirst({
                 cacheName: 'navigation-home', // Isolated cache for protection
                 plugins: [
@@ -139,7 +141,7 @@ const serwist = new Serwist({
                         statuses: [200],
                     }),
                     new ExpirationPlugin({
-                        maxEntries: 1, // Only /home
+                        maxEntries: 2, // /home and / (root)
                         maxAgeSeconds: TIME.THIRTY_DAYS, // 30 days (long TTL)
                     }),
                 ],
