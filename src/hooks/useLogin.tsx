@@ -1,6 +1,6 @@
 import { useAuth } from '@/context/authContext'
 import { useZeroDev } from './useZeroDev'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { getRedirectUrl, getValidRedirectUrl, clearRedirectUrl } from '@/utils'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -25,10 +25,12 @@ export const useLogin = () => {
     const { handleLogin, isLoggingIn } = useZeroDev()
     const searchParams = useSearchParams()
     const router = useRouter()
+    const [isloginClicked, setIsloginClicked] = useState(false)
 
     // Wait for user to be fetched, then redirect
     useEffect(() => {
-        if (user) {
+        // Run only if login button is clicked to provide un-intentional redirects.
+        if (isloginClicked && user) {
             const localStorageRedirect = getRedirectUrl()
             const redirect_uri = searchParams.get('redirect_uri')
             if (redirect_uri) {
@@ -42,9 +44,10 @@ export const useLogin = () => {
                 router.push('/home')
             }
         }
-    }, [user, router, searchParams])
+    }, [user, router, searchParams, isloginClicked])
 
     const handleLoginClick = async () => {
+        setIsloginClicked(true)
         await handleLogin()
     }
 

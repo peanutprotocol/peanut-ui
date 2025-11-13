@@ -22,7 +22,7 @@ function InvitePageContent() {
     const inviteCode = searchParams.get('code')
     const redirectUri = searchParams.get('redirect_uri')
     const campaign = searchParams.get('campaign')
-    const { user } = useAuth()
+    const { user, isFetchingUser } = useAuth()
 
     const dispatch = useAppDispatch()
     const router = useRouter()
@@ -42,15 +42,22 @@ function InvitePageContent() {
     // Users without app access should stay on this page to claim the invite and get access
     useEffect(() => {
         // Wait for both user and invite data to be loaded
-        if (!user?.user || !inviteCodeData || isLoading) {
+        if (!user?.user || !inviteCodeData || isLoading || isFetchingUser) {
             return
         }
 
-        // If user has app access and invite is valid, redirect to inviter's profile
+        // If user has app access and invite is valid, redirect to inviter's profile, if a campaign is provided, award the badge and redirect to the home page
         if (!redirectUri && user.user.hasAppAccess && inviteCodeData.success && inviteCodeData.username) {
-            router.push(`/${inviteCodeData.username}`)
+            // If the potential ambassador is already a peanut user, simply award the badge and redirect to the home page
+            if (campaign) {
+                invitesApi.awardBadge(campaign).then(() => {
+                    router.push('/home')
+                })
+            } else {
+                router.push(`/${inviteCodeData.username}`)
+            }
         }
-    }, [user, inviteCodeData, isLoading, router])
+    }, [user, inviteCodeData, isLoading, router, campaign])
 
     const handleClaimInvite = async () => {
         if (inviteCode) {
@@ -69,7 +76,7 @@ function InvitePageContent() {
         }
     }
 
-    if (isLoading) {
+    if (isLoading || isFetchingUser) {
         return <PeanutLoading coverFullScreen />
     }
 
