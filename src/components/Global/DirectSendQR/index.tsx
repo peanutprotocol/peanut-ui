@@ -510,30 +510,22 @@ export default function DirectSendQr({
                             </div>
                         }
                     >
-                        <Suspense
-                            fallback={
-                                <div className="fixed inset-0 z-40">
-                                    <PeanutLoading coverFullScreen />
-                                    <QRBottomDrawer
-                                        url={payUserUrl}
-                                        collapsedTitle="My QR"
-                                        expandedTitle="Show QR to Get Paid"
-                                        text="Let others scan this to pay you"
-                                        buttonText="Share your profile"
-                                    />
-                                </div>
-                            }
-                        >
+                        <Suspense fallback={<PeanutLoading coverFullScreen />}>
                             <QRScanner onScan={processQRCode} onClose={() => setIsQRScannerOpen(false)} isOpen={true} />
-                            <QRBottomDrawer
-                                url={payUserUrl}
-                                collapsedTitle="My QR"
-                                expandedTitle="Show QR to Get Paid"
-                                text="Let others scan this to pay you"
-                                buttonText="Share your profile"
-                            />
                         </Suspense>
                     </LazyLoadErrorBoundary>
+                    {/* Render QRBottomDrawer once outside Suspense to prevent duplicate mounting
+                        Wrapped in div with z-[60] to ensure drawer appears above QRScanner (z-50)
+                        This allows "scan OR be scanned" dual functionality */}
+                    <div className="relative z-[60]">
+                        <QRBottomDrawer
+                            url={payUserUrl}
+                            collapsedTitle="My QR"
+                            expandedTitle="Show QR to Get Paid"
+                            text="Let others scan this to pay you"
+                            buttonText="Share your profile"
+                        />
+                    </div>
                 </>
             )}
         </>

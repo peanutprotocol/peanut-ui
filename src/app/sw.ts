@@ -44,6 +44,7 @@ const RPC_HOSTNAMES = [
     'base.org',
     'bnbchain.org',
     'public-rpc.com',
+    'scroll.io',
 ] as const
 
 // This declares the value of `injectionPoint` to TypeScript.

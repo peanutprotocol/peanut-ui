@@ -93,11 +93,16 @@ export const useSendMoney = ({ address, handleSendUserOpEncoded }: UseSendMoneyO
 
         // On success, refresh real data from blockchain
         onSuccess: () => {
-            // Invalidate balance to fetch real value
+            // Invalidate TanStack Query balance cache to fetch fresh value
             queryClient.invalidateQueries({ queryKey: ['balance', address] })
 
             // Invalidate transaction history to show new transaction
             queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+
+            // NOTE: We intentionally do NOT clear Service Worker RPC cache here
+            // This prioritizes instant load (<50ms) over immediate accuracy
+            // User sees cached balance instantly, then it updates via background refresh (1-2s)
+            // Tradeoff: After payment, user may see old balance briefly on next app open
 
             console.log('[useSendMoney] Transaction successful, refreshing balance and history')
         },
