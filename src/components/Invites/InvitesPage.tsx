@@ -57,7 +57,7 @@ function InvitePageContent() {
                 router.push(`/${inviteCodeData.username}`)
             }
         }
-    }, [user, inviteCodeData, isLoading, router, campaign])
+    }, [user, inviteCodeData, isLoading, isFetchingUser, router, campaign, redirectUri])
 
     const handleClaimInvite = async () => {
         if (inviteCode) {
