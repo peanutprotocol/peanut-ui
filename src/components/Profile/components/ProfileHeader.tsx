@@ -61,10 +61,17 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                         shadowSize="4"
                         className="flex h-10 w-fit items-center justify-center rounded-full py-3 pl-6 pr-4"
                         onClick={() => {
-                            // navigator.clipboard.writeText(profileUrl)
-                            navigator.share({
-                                url: profileUrl,
-                            })
+                            if (navigator.share) {
+                                navigator
+                                    .share({
+                                        url: profileUrl,
+                                    })
+                                    .catch((error) => {
+                                        console.error('Error sharing:', error)
+                                    })
+                            } else {
+                                navigator.clipboard.writeText(profileUrl)
+                            }
                         }}
                     >
                         <div className="text-sm font-semibold">{profileUrl.replace('https://', '')}</div>
