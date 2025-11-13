@@ -216,31 +216,17 @@ const serwist = new Serwist({
             }),
         },
 
-        // Blockchain RPC calls: Stale-while-revalidate for instant balance/blockchain data
-        // Caches eth_call, balanceOf, and other read-only RPC responses
-        // Critical for instant balance display on home screen
+        // ⚠️ NOTE: RPC POST request caching is NOT supported by Cache Storage API
+        // See: https://w3c.github.io/ServiceWorker/#cache-put (point 4)
         //
-        // ⚠️ Cache TTL considerations:
-        // - Balance CAN change frequently (user makes payment, receives money)
-        // - 5min cache balances instant load vs. stale data risk
-        // - StaleWhileRevalidate ensures fresh data loads in background (1-2s)
-        // - User sees cached balance instantly, then it updates when fresh data arrives
-        {
-            matcher: ({ url, request }) =>
-                request.method === 'POST' && RPC_HOSTNAMES.some((hostname) => url.hostname.includes(hostname)),
-            handler: new StaleWhileRevalidate({
-                cacheName: getCacheNameWithVersion(CACHE_NAMES.RPC, CACHE_VERSION),
-                plugins: [
-                    new CacheableResponsePlugin({
-                        statuses: [200],
-                    }),
-                    new ExpirationPlugin({
-                        maxAgeSeconds: 60 * 5, // 5 min (balance can change from txs/payments)
-                        maxEntries: 50,
-                    }),
-                ],
-            }),
-        },
+        // Blockchain RPC calls (balanceOf, eth_call) use POST method and cannot be cached
+        // by Service Workers. Alternative solutions:
+        // - Option 1: Server-side proxy to convert POST→GET (enables SW caching)
+        // - Option 2: Custom IndexedDB caching (complex, ~100 lines of code)
+        // - Option 3: TanStack Query in-memory cache only (current approach)
+        //
+        // Current: Relying on TanStack Query's in-memory cache (30s staleTime)
+        // Future: Consider implementing server-side proxy for true offline balance display
     ],
 })
 

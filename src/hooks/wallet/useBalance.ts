@@ -6,28 +6,27 @@ import { PEANUT_WALLET_TOKEN, peanutPublicClient } from '@/constants'
 /**
  * Hook to fetch and auto-refresh wallet balance using TanStack Query
  *
- * Cache-first strategy with background updates (instant load):
- * 1. TanStack tries to fetch (staleTime: 0)
- * 2. Service Worker intercepts RPC call with StaleWhileRevalidate
- * 3. SW returns cached balance instantly (<50ms)
- * 4. SW fetches fresh balance in background from blockchain RPC
- * 5. UI updates seamlessly when fresh balance arrives
+ * ⚠️ NOTE: Service Worker CANNOT cache RPC POST requests
+ * - Blockchain RPC calls use POST method (not cacheable by Cache Storage API)
+ * - See: https://w3c.github.io/ServiceWorker/#cache-put (point 4)
+ * - Future: Consider server-side proxy to enable SW caching
  *
- * Why staleTime: 0:
- * - Always attempts refetch to trigger SW cache layer
- * - SW returns cached data instantly (no waiting)
- * - Fresh data loads in background and updates UI
- * - Prevents excessive RPC calls (SW handles deduplication)
+ * Current caching strategy (in-memory only):
+ * - TanStack Query caches balance for 30 seconds in memory
+ * - Cache is lost on page refresh/reload
+ * - Balance refetches from blockchain RPC on every app open
  *
- * Cache layers:
- * - Service Worker: 5 minutes (balanceOf calls cached at HTTP level)
- * - TanStack Query: In-memory for 5min (fast subsequent renders)
+ * Why staleTime: 30s:
+ * - Balances data that's 30s old during active session
+ * - Reduces RPC calls during navigation (balance displayed on multiple pages)
+ * - Prevents rate limiting from RPC providers
+ * - Balance still updates every 30s automatically
  *
  * Features:
- * - Instant cached response on repeat visits (<50ms)
- * - Background refresh for accuracy
+ * - In-memory cache for 30s (fast during active session)
  * - Auto-refreshes every 30 seconds
- * - Built-in retry on failure
+ * - Built-in retry with exponential backoff
+ * - Refetches on window focus and network reconnection
  */
 export const useBalance = (address: Address | undefined) => {
     return useQuery({
@@ -43,7 +42,7 @@ export const useBalance = (address: Address | undefined) => {
             return balance
         },
         enabled: !!address, // Only run query if address exists
-        staleTime: 0, // Always refetch to trigger SW cache-first (instant) + background update
+        staleTime: 30 * 1000, // Cache balance for 30s in memory (no SW caching for POST requests)
         gcTime: 5 * 60 * 1000, // Keep in memory for 5min
         refetchInterval: 30 * 1000, // Auto-refresh every 30 seconds
         refetchOnWindowFocus: true, // Refresh when tab regains focus
