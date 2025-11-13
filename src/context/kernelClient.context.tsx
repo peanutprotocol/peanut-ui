@@ -194,24 +194,24 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             // Currently only 1 chain configured (Arbitrum), but this enables future multi-chain support
             const clientPromises = Object.entries(PUBLIC_CLIENTS_BY_CHAIN).map(
                 async ([chainId, { client, chain, bundlerUrl, paymasterUrl }]) => {
-                try {
-                    const kernelClient = await createKernelClientForChain(
-                        client,
-                        chain,
-                        isAfterZeroDevMigration,
-                        webAuthnKey,
-                        isAfterZeroDevMigration
-                            ? undefined
-                            : (user?.accounts.find((a) => a.type === 'peanut-wallet')!.identifier as Address),
-                        {
-                            bundlerUrl,
-                            paymasterUrl,
-                        }
-                    )
+                    try {
+                        const kernelClient = await createKernelClientForChain(
+                            client,
+                            chain,
+                            isAfterZeroDevMigration,
+                            webAuthnKey,
+                            isAfterZeroDevMigration
+                                ? undefined
+                                : (user?.accounts.find((a) => a.type === 'peanut-wallet')!.identifier as Address),
+                            {
+                                bundlerUrl,
+                                paymasterUrl,
+                            }
+                        )
                         return { chainId, kernelClient, success: true } as const
-                } catch (error) {
-                    console.error(`Error creating kernel client for chain ${chainId}:`, error)
-                    captureException(error)
+                    } catch (error) {
+                        console.error(`Error creating kernel client for chain ${chainId}:`, error)
+                        captureException(error)
                         return { chainId, error, success: false } as const
                     }
                 }

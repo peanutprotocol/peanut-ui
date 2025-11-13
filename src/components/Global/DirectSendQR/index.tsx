@@ -6,11 +6,9 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import Modal from '@/components/Global/Modal'
 import QRBottomDrawer from '@/components/Global/QRBottomDrawer'
 import PeanutLoading from '@/components/Global/PeanutLoading'
-// Lazy load QR scanner to reduce initial bundle size (~50KB with jsQR library)
-// Wrapped in error boundary to gracefully handle chunk load failures
-import { lazy, Suspense } from 'react'
-const QRScanner = lazy(() => import('@/components/Global/QRScanner'))
-import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
+// QRScanner is NOT lazy-loaded - critical path for payments, needs instant response
+// 50KB bundle cost is worth it for better UX on primary flow
+import QRScanner from '@/components/Global/QRScanner'
 import { useAuth } from '@/context/authContext'
 import { usePush } from '@/context/pushProvider'
 import { useAppDispatch } from '@/redux/hooks'
@@ -503,29 +501,17 @@ export default function DirectSendQr({
 
             {isQRScannerOpen && (
                 <>
-                    <LazyLoadErrorBoundary
-                        fallback={
-                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-                                <div className="text-white">Failed to load QR scanner. Please refresh the page.</div>
-                            </div>
-                        }
-                    >
-                        <Suspense fallback={<PeanutLoading coverFullScreen />}>
-                            <QRScanner onScan={processQRCode} onClose={() => setIsQRScannerOpen(false)} isOpen={true} />
-                        </Suspense>
-                    </LazyLoadErrorBoundary>
-                    {/* Render QRBottomDrawer once outside Suspense to prevent duplicate mounting
-                        Wrapped in div with z-[60] to ensure drawer appears above QRScanner (z-50)
+                    <QRScanner onScan={processQRCode} onClose={() => setIsQRScannerOpen(false)} isOpen={true} />
+                    {/* Render QRBottomDrawer with z-[60] to ensure it appears above QRScanner (z-50)
                         This allows "scan OR be scanned" dual functionality */}
-                    <div className="relative z-[60]">
-                        <QRBottomDrawer
-                            url={payUserUrl}
-                            collapsedTitle="My QR"
-                            expandedTitle="Show QR to Get Paid"
-                            text="Let others scan this to pay you"
-                            buttonText="Share your profile"
-                        />
-                    </div>
+                    <QRBottomDrawer
+                        url={payUserUrl}
+                        collapsedTitle="My QR"
+                        expandedTitle="Show QR to Get Paid"
+                        text="Let others scan this to pay you"
+                        buttonText="Share your profile"
+                        className="z-[60]"
+                    />
                 </>
             )}
         </>

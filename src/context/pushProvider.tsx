@@ -29,17 +29,21 @@ export function PushProvider({ children }: { children: React.ReactNode }) {
     const [subscription, setSubscription] = useState<webpush.PushSubscription | null>(null)
 
     const registerServiceWorker = async () => {
-        console.log('Registering service worker')
+        console.log('[PushProvider] Getting service worker registration')
         try {
-            const reg = await navigator.serviceWorker.register('/sw.js', {
-                scope: '/',
-                updateViaCache: 'none',
-            })
-            console.log({ reg })
+            // Use existing SW registration (registered in layout.tsx for offline support)
+            // navigator.serviceWorker.ready waits for SW to be registered and active
+            // Timeout after 10s to prevent infinite wait if SW registration fails
+            const reg = (await Promise.race([
+                navigator.serviceWorker.ready,
+                new Promise((_, reject) => setTimeout(() => reject(new Error('SW registration timeout')), 10000)),
+            ])) as ServiceWorkerRegistration
+
+            console.log('[PushProvider] SW already registered:', reg.scope)
             setRegistration(reg)
             const sub = await reg.pushManager.getSubscription()
 
-            console.log({ sub })
+            console.log('[PushProvider] Push subscription:', sub)
 
             if (sub) {
                 // @ts-ignore
@@ -47,8 +51,9 @@ export function PushProvider({ children }: { children: React.ReactNode }) {
                 setIsSubscribed(true)
             }
         } catch (error) {
-            console.error('Service Worker registration failed:', error)
+            console.error('[PushProvider] Failed to get SW registration:', error)
             captureException(error)
+            // toast.error('Failed to initialize notifications')
         }
     }
 
@@ -65,7 +70,7 @@ export function PushProvider({ children }: { children: React.ReactNode }) {
                 .catch((error) => {
                     console.error('Service Worker not ready:', error)
                     captureException(error)
-                    toast.error('Failed to initialize notifications')
+                    // toast.error('Failed to initialize notifications')
                 })
         } else {
             console.log('Service Worker and Push Manager are not supported')
