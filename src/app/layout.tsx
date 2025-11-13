@@ -70,10 +70,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <head>
                 <meta name="color-scheme" content="light" />
 
-                {/* NETWORK RESILIENCE: Optimize critical path resource loading */}
-                {/* Preload: Forces high-priority download during initial page load */}
-                <link rel="preload" href="/metadata-img.png" as="image" />
-
+                {/* Optimize critical path resource loading */}
                 {/* Prefetch: Hints to browser to download during idle time for faster subsequent navigation */}
                 <link rel="prefetch" href="/qr-pay" />
 
