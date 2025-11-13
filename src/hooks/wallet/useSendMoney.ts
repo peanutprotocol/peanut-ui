@@ -40,6 +40,10 @@ export const useSendMoney = ({ address, handleSendUserOpEncoded }: UseSendMoneyO
 
     return useMutation({
         mutationKey: [BALANCE_DECREASE, SEND_MONEY],
+        // Disable retry for financial transactions to prevent duplicate payments
+        // Blockchain transactions are not idempotent at the mutation level
+        // If a transaction succeeds but times out, retrying would create a duplicate payment
+        retry: false,
         mutationFn: async ({ toAddress, amountInUsd }: SendMoneyParams) => {
             const amountToSend = parseUnits(amountInUsd, PEANUT_WALLET_TOKEN_DECIMALS)
 

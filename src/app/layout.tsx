@@ -69,6 +69,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <html lang="en" style={{ colorScheme: 'light' }} data-theme="light">
             <head>
                 <meta name="color-scheme" content="light" />
+
+                {/* NETWORK RESILIENCE: Optimize critical path resource loading */}
+                {/* Preload: Forces high-priority download during initial page load */}
+                <link rel="preload" href="/metadata-img.png" as="image" />
+
+                {/* Prefetch: Hints to browser to download during idle time for faster subsequent navigation */}
+                <link rel="prefetch" href="/qr-pay" />
+
+                {/* DNS prefetch: Resolves DNS for external domains early to reduce latency on first API call */}
+                <link rel="dns-prefetch" href="https://api.peanut.me" />
+
                 {/* Note: Google Tag Manager (gtag.js) does not support version pinning.*/}
                 {process.env.NODE_ENV !== 'development' && process.env.NEXT_PUBLIC_GA_KEY && (
                     <>
