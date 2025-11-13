@@ -12,6 +12,7 @@ const CODE_TO_PATH: Record<string, string> = {
     MOST_INVITES: '/badges/most_invites.svg',
     BIGGEST_REQUEST_POT: '/badges/biggest_request_pot.svg',
     SEEDLING_DEVCONNECT_BA_2025: '/badges/seedlings_devconnect.svg',
+    ARBIVERSE_DEVCONNECT_BA_2025: '/badges/arbiverse_devconnect.svg',
 }
 
 // public-facing descriptions for badges (third-person perspective)
@@ -25,7 +26,8 @@ const PUBLIC_DESCRIPTIONS: Record<string, string> = {
     MOST_PAYMENTS_DEVCON: `Money Machine - They move money like it's light work. Most payments made!`,
     MOST_INVITES: 'Onboarded more users than Coinbase ads!',
     BIGGEST_REQUEST_POT: 'High Roller or Master Beggar? They created the pot with the highest number of contributors.',
-    SEEDLING_DEVCONNECT_BA_2025: 'Peanut Ambassador. You spread the word and brought others into the ecosystem.',
+    SEEDLING_DEVCONNECT_BA_2025: 'Peanut Ambassador. They spread the word and brought others into the ecosystem.',
+    ARBIVERSE_DEVCONNECT_BA_2025: 'Peanut 🤝 Arbiverse. They joined us at the amazing Arbiverse booth during Devconnect 2025.',
 }
 
 export function getBadgeIcon(code?: string) {
