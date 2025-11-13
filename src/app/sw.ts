@@ -88,6 +88,10 @@ declare const self: ServiceWorkerGlobalScope
 // Uses double assertion to avoid 'as any' while maintaining type safety
 const getEnv = (): NextPublicEnv => process.env as unknown as NextPublicEnv
 
+// CRITICAL: Capture SW manifest immediately - Serwist replaces self.__SW_MANIFEST at build time
+// and expects to see it ONLY ONCE in the entire file. Store it in a variable for reuse.
+const precacheManifest = self.__SW_MANIFEST || []
+
 // Cache version tied to API version - automatic invalidation on breaking changes
 // Uses NEXT_PUBLIC_API_VERSION (set in Vercel env vars or .env)
 // Increment NEXT_PUBLIC_API_VERSION only when:
@@ -108,9 +112,14 @@ console.log('[SW] Initializing with config:', {
     API_URL,
     API_HOSTNAME,
     CACHE_VERSION,
-    manifestEntries: self.__SW_MANIFEST?.length || 0,
-    hasManifest: !!self.__SW_MANIFEST,
+    manifestEntries: precacheManifest.length,
+    hasManifest: precacheManifest.length > 0,
 })
+
+// Warn if no manifest (shouldn't happen in production builds)
+if (precacheManifest.length === 0) {
+    console.warn('[SW] ⚠️ No precache manifest found - SW will only use runtime caching')
+}
 
 /**
  * Matches API requests to the configured API hostname
@@ -118,12 +127,6 @@ console.log('[SW] Initializing with config:', {
  */
 const isApiRequest = (url: URL): boolean => {
     return url.hostname === API_HOSTNAME
-}
-
-// Ensure manifest exists (empty array if undefined to prevent Serwist errors)
-const precacheManifest = self.__SW_MANIFEST || []
-if (!self.__SW_MANIFEST) {
-    console.warn('[SW] ⚠️ No precache manifest found - SW will only use runtime caching')
 }
 
 // NATIVE PWA: Custom caching strategies for API endpoints
