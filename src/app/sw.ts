@@ -174,55 +174,55 @@ const serwist = new Serwist({
             matcher: ({ request, url }) =>
                 request.mode === 'navigate' && (url.pathname === '/home' || url.pathname === '/'),
             handler: new NetworkFirst({
-                cacheName: 'navigation-home', // Isolated cache for protection
+                cacheName: 'navigation-home',
                 plugins: [
                     new CacheableResponsePlugin({
-                        statuses: [200],
+                        statuses: [0, 200], // 0 = opaque responses, 200 = success
                     }),
                     new ExpirationPlugin({
                         maxEntries: 2, // /home and / (root)
                         maxAgeSeconds: TIME.THIRTY_DAYS, // 30 days (long TTL)
                     }),
                 ],
+                networkTimeoutSeconds: 3, // Fallback to cache after 3s network timeout
             }),
         },
 
         // 🟡 TIER 2 (IMPORTANT): Key pages - Evict before /home
-        // Pages users visit regularly: history, profile, points
-        // Separate cache protects from being evicted with random pages
         {
             matcher: ({ request, url }) =>
                 request.mode === 'navigate' &&
                 ['/history', '/profile', '/points'].some((path) => url.pathname.startsWith(path)),
             handler: new NetworkFirst({
-                cacheName: 'navigation-important', // Medium priority cache
+                cacheName: 'navigation-important',
                 plugins: [
                     new CacheableResponsePlugin({
-                        statuses: [200],
+                        statuses: [0, 200],
                     }),
                     new ExpirationPlugin({
-                        maxEntries: 3, // 3 important pages
-                        maxAgeSeconds: TIME.ONE_WEEK, // 1 week
+                        maxEntries: 3,
+                        maxAgeSeconds: TIME.ONE_WEEK,
                     }),
                 ],
+                networkTimeoutSeconds: 3,
             }),
         },
 
         // 🟢 TIER 3 (LOW): All other pages - Evict first
-        // Random pages, settings, etc. Nice-to-have offline but not critical
         {
             matcher: ({ request }) => request.mode === 'navigate',
             handler: new NetworkFirst({
-                cacheName: 'navigation-other', // Low priority cache
+                cacheName: 'navigation-other',
                 plugins: [
                     new CacheableResponsePlugin({
-                        statuses: [200],
+                        statuses: [0, 200],
                     }),
                     new ExpirationPlugin({
-                        maxEntries: 6, // 6 miscellaneous pages
-                        maxAgeSeconds: TIME.ONE_DAY, // 1 day (short TTL)
+                        maxEntries: 6,
+                        maxAgeSeconds: TIME.ONE_DAY,
                     }),
                 ],
+                networkTimeoutSeconds: 3,
             }),
         },
 
