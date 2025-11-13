@@ -176,7 +176,10 @@ const TokenAmountInput = ({
                 }
 
                 const selectedAmountStr = parseFloat(selectedAmount.toFixed(4)).toString()
-                const maxDecimals = displayMode === 'FIAT' || displayMode === 'STABLE' || isInputUsd ? 6 : decimals
+                const maxDecimals =
+                    displayMode === 'FIAT' || displayMode === 'STABLE' || isInputUsd
+                        ? PEANUT_WALLET_TOKEN_DECIMALS
+                        : decimals
                 const formattedAmount = formatTokenAmount(selectedAmountStr, maxDecimals, true)
                 if (formattedAmount) {
                     onChange(formattedAmount, isInputUsd)
@@ -201,7 +204,7 @@ const TokenAmountInput = ({
         if (!isInitialInputUsd) {
             const value = tokenValue ? Number(tokenValue) : 0
             const calculatedValue = value * (currency?.price ?? 1)
-            const formattedValue = formatTokenAmount(calculatedValue, 6) ?? '0'
+            const formattedValue = formatTokenAmount(calculatedValue, PEANUT_WALLET_TOKEN_DECIMALS) ?? '0'
             onChange(formattedValue, isInputUsd)
         } else {
             onChange(displayValue, isInputUsd)
@@ -278,7 +281,10 @@ const TokenAmountInput = ({
     // Sync default slider suggested amount to the input
     useEffect(() => {
         if (defaultSliderSuggestedAmount) {
-            const formattedAmount = formatTokenAmount(defaultSliderSuggestedAmount.toString(), 6)
+            const formattedAmount = formatTokenAmount(
+                defaultSliderSuggestedAmount.toString(),
+                PEANUT_WALLET_TOKEN_DECIMALS
+            )
             if (formattedAmount) {
                 setTokenValue(formattedAmount)
                 setDisplayValue(formattedAmount)
@@ -307,7 +313,9 @@ const TokenAmountInput = ({
                                 let value = e.target.value
                                 // USD/currency → 6 decimals; token input → allow `decimals` (<= 6)
                                 const maxDecimals =
-                                    displayMode === 'FIAT' || displayMode === 'STABLE' || isInputUsd ? 6 : decimals
+                                    displayMode === 'FIAT' || displayMode === 'STABLE' || isInputUsd
+                                        ? PEANUT_WALLET_TOKEN_DECIMALS
+                                        : decimals
                                 const formattedAmount = formatTokenAmount(value, maxDecimals, true)
                                 if (formattedAmount !== undefined) {
                                     value = formattedAmount

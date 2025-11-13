@@ -9,7 +9,7 @@ import PeanutActionCard from '@/components/Global/PeanutActionCard'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import ShareButton from '@/components/Global/ShareButton'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import * as context from '@/context'
 import { useAuth } from '@/context/authContext'
@@ -39,7 +39,7 @@ export const CreateRequestLinkView = () => {
     // Sanitize amount and limit to 2 decimal places
     const sanitizedAmount = useMemo(() => {
         if (!paramsAmount || isNaN(parseFloat(paramsAmount))) return ''
-        return formatTokenAmount(paramsAmount, 6) ?? ''
+        return formatTokenAmount(paramsAmount, PEANUT_WALLET_TOKEN_DECIMALS) ?? ''
     }, [paramsAmount])
     const merchant = searchParams.get('merchant')
     const merchantComment = merchant ? `Bill split for ${merchant}` : null
