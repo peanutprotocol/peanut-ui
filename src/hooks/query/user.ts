@@ -45,19 +45,25 @@ export const useUserQuery = (dependsOn?: boolean) => {
         queryKey: [USER],
         queryFn: fetchUser,
         retry: 0,
-        // OFFLINE: Service Worker will cache the API response for instant loads
-        // staleTime: 0 ensures we always check SW cache first (10-50ms response)
-        // SW uses StaleWhileRevalidate: instant cache response + background update
+        // Enable if dependsOn is true (default: true) and no Redux user
         enabled: dependsOn && !authUser?.user.userId,
-        // Always check SW cache on mount for offline support
-        staleTime: 0,
-        // refetch only when window is focused if data is stale
-        refetchOnWindowFocus: true,
-        // Always refetch on mount to trigger SW cache check
+        // Two-tier caching strategy for optimal performance:
+        // TIER 1: TanStack Query in-memory cache (5 min)
+        //   - Zero latency for active sessions
+        //   - Lost on page refresh (intentional - forces SW cache check)
+        // TIER 2: Service Worker disk cache (1 week StaleWhileRevalidate)
+        //   - <50ms response on cold start/offline
+        //   - Persists across sessions
+        // Flow: TQ cache → if stale → fetch() → SW intercepts → SW cache → Network
+        staleTime: 5 * 60 * 1000, // 5 min (balance: fresh enough + reduces SW hits)
+        gcTime: 10 * 60 * 1000, // Keep unused data 10 min before garbage collection
+        // Refetch on mount - TQ automatically skips if data is fresh (< staleTime)
         refetchOnMount: true,
-        // add initial data from Redux if available
+        // Refetch on focus - TQ automatically skips if data is fresh (< staleTime)
+        refetchOnWindowFocus: true,
+        // Initialize with Redux data if available (hydration)
         initialData: authUser || undefined,
-        // keep previous data
+        // Keep previous data during refetch (smooth UX, no flicker)
         placeholderData: keepPreviousData,
     })
 }

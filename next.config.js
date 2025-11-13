@@ -211,7 +211,6 @@ if (process.env.NODE_ENV !== 'development' && !Boolean(process.env.LOCAL_BUILD))
     })
 }
 
-// CRITICAL FIX: Apply wrappers in correct order
 // Development: Only bundle analyzer (no Serwist or Sentry)
 // Production: Sentry → Serwist → Bundle Analyzer
 if (process.env.NODE_ENV !== 'development') {

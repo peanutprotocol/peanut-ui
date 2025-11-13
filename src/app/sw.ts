@@ -84,9 +84,33 @@ declare global {
 
 declare const self: ServiceWorkerGlobalScope
 
+// 🚨 DEBUG: Log immediately at top of file to verify SW is loading
+console.log('============================================')
+console.log('[SW] 🚀 Service Worker file is loading...')
+console.log('[SW] 📅 Timestamp:', new Date().toISOString())
+console.log('[SW] 🌐 Location:', self.location.href)
+console.log('============================================')
+
 // Helper to access Next.js build-time injected env vars with type safety
 // Uses double assertion to avoid 'as any' while maintaining type safety
-const getEnv = (): NextPublicEnv => process.env as unknown as NextPublicEnv
+const getEnv = (): NextPublicEnv => {
+    try {
+        return process.env as unknown as NextPublicEnv
+    } catch (e) {
+        console.error('[SW] ❌ Failed to access process.env:', e)
+        return {}
+    }
+}
+
+// 🚨 DEBUG: Log environment variable access
+console.log('[SW] 🔍 Reading environment variables...')
+const envVars = getEnv()
+console.log('[SW] 📋 Environment check:', {
+    hasApiUrl: !!envVars.NEXT_PUBLIC_PEANUT_API_URL,
+    hasApiVersion: !!envVars.NEXT_PUBLIC_API_VERSION,
+    apiUrl: envVars.NEXT_PUBLIC_PEANUT_API_URL || '❌ NOT_SET',
+    apiVersion: envVars.NEXT_PUBLIC_API_VERSION || '❌ NOT_SET',
+})
 
 // CRITICAL: Capture SW manifest immediately - Serwist replaces self.__SW_MANIFEST at build time
 // and expects to see it ONLY ONCE in the entire file. Store it in a variable for reuse.
@@ -99,27 +123,23 @@ const precacheManifest = self.__SW_MANIFEST || []
 // - Cache strategy changes (e.g., switching from NetworkFirst to CacheFirst)
 // Most deploys: API_VERSION stays the same → cache preserved (fast repeat visits)
 // Breaking changes: Bump API_VERSION (v1→v2) → cache auto-invalidates across all users
-const CACHE_VERSION = getEnv().NEXT_PUBLIC_API_VERSION || 'v1'
+const CACHE_VERSION = envVars.NEXT_PUBLIC_API_VERSION || 'v1'
 
 // Extract API hostname from build-time environment variable
-// Next.js replaces NEXT_PUBLIC_* variables at build time, so this works in all environments
-// Supports dev (localhost), staging, and production without hardcoding
-const API_URL = getEnv().NEXT_PUBLIC_PEANUT_API_URL || 'https://api.peanut.me'
+// FALLBACK: If env var injection fails, default to production API
+// This ensures SW works even if webpack DefinePlugin doesn't reach Serwist's build
+const API_URL = envVars.NEXT_PUBLIC_PEANUT_API_URL || 'https://api.peanut.me'
 const API_HOSTNAME = new URL(API_URL).hostname
 
-// Debug logging on SW activation
-console.log('[SW] Initializing with config:', {
+// 🚨 DEBUG: Log final configuration
+console.log('[SW] ⚙️  Final configuration:', {
     API_URL,
     API_HOSTNAME,
     CACHE_VERSION,
-    manifestEntries: precacheManifest.length,
-    hasManifest: precacheManifest.length > 0,
+    manifestType: typeof self.__SW_MANIFEST,
+    manifestIsArray: Array.isArray(self.__SW_MANIFEST),
 })
-
-// Warn if no manifest (shouldn't happen in production builds)
-if (precacheManifest.length === 0) {
-    console.warn('[SW] ⚠️ No precache manifest found - SW will only use runtime caching')
-}
+console.log('============================================')
 
 /**
  * Matches API requests to the configured API hostname
@@ -131,6 +151,7 @@ const isApiRequest = (url: URL): boolean => {
 
 // NATIVE PWA: Custom caching strategies for API endpoints
 // JWT token is in httpOnly cookies, so it's automatically sent with fetch requests
+console.log('[SW] 🔧 Initializing Serwist...')
 const serwist = new Serwist({
     precacheEntries: precacheManifest,
     skipWaiting: true,
@@ -595,5 +616,53 @@ self.addEventListener('message', (event) => {
 })
 
 serwist.addEventListeners()
+console.log('[SW] ✅ Serwist event listeners added')
+console.log('[SW] ✅ Service Worker initialization complete!')
+console.log('============================================')
 
-console.log('[SW] ✅ Service Worker initialized successfully')
+// DEBUG: Log SW lifecycle events
+self.addEventListener('install', (event) => {
+    console.log('[SW] 📦 INSTALL event fired')
+    console.log('[SW] 📦 SW version:', CACHE_VERSION)
+})
+
+self.addEventListener('activate', (event) => {
+    console.log('[SW] ⚡ ACTIVATE event fired')
+    console.log('[SW] ⚡ Taking control of all clients...')
+})
+
+// Debug logging for navigation requests (non-interfering)
+self.addEventListener('fetch', (event) => {
+    if (event.request.mode === 'navigate') {
+        const url = new URL(event.request.url)
+        console.log('[SW] 🔍 Navigation request:', url.pathname)
+    }
+
+    // Debug all fetch requests to see what's being intercepted
+    const url = new URL(event.request.url)
+    if (isApiRequest(url)) {
+        console.log('[SW] 📡 API request:', event.request.method, url.pathname)
+    }
+})
+
+// Monitor cache writes
+self.addEventListener('message', (event) => {
+    if (event.data?.type === 'CHECK_CACHES') {
+        ;(async () => {
+            const cacheNames = await caches.keys()
+            const cacheContents = {}
+
+            for (const name of cacheNames) {
+                const cache = await caches.open(name)
+                const keys = await cache.keys()
+                cacheContents[name] = keys.map((req) => req.url)
+            }
+
+            console.log('[SW] 📦 Cache contents:', cacheContents)
+
+            if (event.ports[0]) {
+                event.ports[0].postMessage({ caches: cacheContents })
+            }
+        })()
+    }
+})
