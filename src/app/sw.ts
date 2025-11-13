@@ -29,9 +29,12 @@ declare global {
         __SW_MANIFEST: (PrecacheEntry | string)[] | undefined
     }
     // Next.js replaces process.env.NEXT_PUBLIC_* at build time
+    // Vercel automatically injects NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA
     const process: {
         env: {
             NEXT_PUBLIC_PEANUT_API_URL?: string
+            NEXT_PUBLIC_GIT_COMMIT_HASH?: string
+            NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA?: string
         }
     }
 }
@@ -39,9 +42,13 @@ declare global {
 // @ts-ignore
 declare const self: ServiceWorkerGlobalScope
 
-// Cache version for invalidation on deploy
-// Increment this to force cache refresh on all clients
-const CACHE_VERSION = 'v1'
+// Cache version derived from build - automatically invalidates on deploy
+// Uses git commit hash from next.config.js (available in Vercel builds)
+// Falls back to timestamp in dev/local builds where git might not be available
+const CACHE_VERSION =
+    process.env.NEXT_PUBLIC_GIT_COMMIT_HASH && process.env.NEXT_PUBLIC_GIT_COMMIT_HASH !== 'unknown'
+        ? process.env.NEXT_PUBLIC_GIT_COMMIT_HASH
+        : `dev-${Date.now()}`
 
 // Extract API hostname from build-time environment variable
 // Next.js replaces NEXT_PUBLIC_* variables at build time, so this works in all environments
@@ -243,8 +250,8 @@ self.addEventListener('activate', (event) => {
             } catch (error) {
                 console.error('Cache cleanup failed:', error)
 
-                // Handle quota exceeded error (common on iOS with limited storage)
-                // Only clear API caches to preserve app shell (precache) for better UX
+                // Handle quota exceeded error (can occur on any platform when storage is full)
+                // Clear only API caches to preserve app shell (precache) for faster reload
                 if (error instanceof Error && error.name === 'QuotaExceededError') {
                     console.error('Quota exceeded - clearing API caches only, preserving app shell')
                     const allCaches = await caches.keys()
