@@ -8,7 +8,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { usePWAStatus } from '../usePWAStatus'
 import { useDeviceType } from '../useGetDeviceType'
 
-export const useUserQuery = (dependsOn?: boolean) => {
+export const useUserQuery = (dependsOn: boolean = true) => {
     const isPwa = usePWAStatus()
     const { deviceType } = useDeviceType()
     const dispatch = useAppDispatch()
@@ -45,9 +45,9 @@ export const useUserQuery = (dependsOn?: boolean) => {
         queryKey: [USER],
         queryFn: fetchUser,
         retry: 0,
-        // only enable the query if:
-        // 1. dependsOn is true
-        // 2. no user is currently in the Redux store
+        // OFFLINE: Only fetch if no user in Redux (from persistence or previous fetch)
+        // dependsOn defaults to true, allowing manual control when needed
+        // When Redux has user data (from redux-persist), query is disabled to avoid unnecessary API calls
         enabled: dependsOn && !authUser?.user.userId,
         // cache the data for 10 minutes
         staleTime: 1000 * 60 * 10,

@@ -70,10 +70,12 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     usePullToRefresh({ shouldPullToRefresh })
 
     useEffect(() => {
-        if (!isPublicPath && !isFetchingUser && !user) {
+        // OFFLINE SUPPORT: Only redirect to setup if no JWT token exists
+        // This allows offline rendering when user data is in Redux (from persistence)
+        if (!isPublicPath && !isFetchingUser && !user && !hasToken) {
             router.push('/setup')
         }
-    }, [user, isFetchingUser])
+    }, [user, isFetchingUser, hasToken, isPublicPath, router])
 
     // For public paths, skip user loading and just show content when ready
     if (isPublicPath) {
@@ -85,14 +87,35 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             )
         }
     } else {
-        // For protected paths, wait for user auth
-        if (!isReady || isFetchingUser || !hasToken || !user) {
+        // OFFLINE SUPPORT: Graceful auth fallback for PWA
+        // Flow:
+        // 1. If JWT exists but no user yet → allow render (Redux persistence or API in-flight)
+        // 2. If no JWT and no user → redirect to setup (not logged in)
+        // 3. Only block render while actively fetching on first load with no JWT
+
+        if (!isReady) {
             return (
                 <div className="flex h-[100dvh] w-full flex-col items-center justify-center">
                     <PeanutLoading />
                 </div>
             )
         }
+
+        // Block render only if:
+        // - No JWT token (not logged in)
+        // - No user data in Redux (no persistence)
+        // - Still fetching (first load)
+        if (!hasToken && !user && isFetchingUser) {
+            return (
+                <div className="flex h-[100dvh] w-full flex-col items-center justify-center">
+                    <PeanutLoading />
+                </div>
+            )
+        }
+
+        // If JWT exists but no user yet, allow render
+        // Components will handle null user gracefully, and API call will populate it
+        // This enables offline cold start with persisted data
     }
 
     // After setup flow is completed, show ios pwa install screen if not in pwa
