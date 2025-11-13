@@ -60,16 +60,22 @@ function InvitePageContent() {
             return
         }
 
-        // if user has app access and no redirect URI, they'll be redirected
-        // don't show content in this case
-        if (!redirectUri && user?.user?.hasAppAccess && !isError) {
+        // if invite validation is still loading, don't show content yet
+        if (isLoading) {
             setShouldShowContent(false)
             return
         }
 
-        // otherwise, safe to show content
+        // if user has app access AND invite is valid, they'll be redirected
+        // don't show content in this case (show loading instead)
+        if (!redirectUri && user?.user?.hasAppAccess && inviteCodeData?.success) {
+            setShouldShowContent(false)
+            return
+        }
+
+        // otherwise, safe to show content (either error view or invite screen)
         setShouldShowContent(true)
-    }, [user, isFetchingUser, redirectUri, isError])
+    }, [user, isFetchingUser, redirectUri, inviteCodeData, isLoading])
 
     // redirect logged-in users who already have app access
     // users without app access should stay on this page to claim the invite and get access
@@ -130,11 +136,9 @@ function InvitePageContent() {
     }
 
     // show loading if:
-    // 1. user data is being fetched
-    // 2. badge is being awarded
-    // 3. invite code is being validated
-    // 4. we determined content shouldn't be shown yet
-    if (isFetchingUser || isAwardingBadge || isLoading || !shouldShowContent) {
+    // 1. badge is being awarded
+    // 2. we determined content shouldn't be shown yet (covers user fetching + invite validation)
+    if (isAwardingBadge || !shouldShowContent) {
         return <PeanutLoading coverFullScreen />
     }
 
