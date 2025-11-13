@@ -43,6 +43,7 @@ export const useLogin = () => {
             } else {
                 router.push('/home')
             }
+            setIsloginClicked(false)
         }
     }, [user, router, searchParams, isloginClicked])
 
