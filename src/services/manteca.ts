@@ -175,6 +175,7 @@ export const mantecaApi = {
             | 'paymasterData'
             | 'paymasterVerificationGasLimit'
             | 'paymasterPostOpGasLimit'
+            | 'initCode'
         >
         chainId: string
         entryPointAddress: Address

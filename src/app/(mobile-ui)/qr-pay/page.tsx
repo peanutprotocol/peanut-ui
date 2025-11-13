@@ -585,6 +585,7 @@ export default function QRPayPage() {
                 callGasLimit: signedUserOpData.signedUserOp.callGasLimit,
                 verificationGasLimit: signedUserOpData.signedUserOp.verificationGasLimit,
                 preVerificationGas: signedUserOpData.signedUserOp.preVerificationGas,
+                initCode: signedUserOpData.signedUserOp.initCode,
                 maxFeePerGas: signedUserOpData.signedUserOp.maxFeePerGas,
                 maxPriorityFeePerGas: signedUserOpData.signedUserOp.maxPriorityFeePerGas,
                 paymaster: signedUserOpData.signedUserOp.paymaster,
@@ -607,13 +608,12 @@ export default function QRPayPage() {
             // Handle specific error cases
             if (errorMsg.toLowerCase().includes('nonce')) {
                 setErrorMessage(
-                    'Transaction failed due to account state change. Please try again. If the problem persists, contact support.u'
+                    'Transaction failed due to account state change. Please try again. If the problem persists, contact support.'
                 )
             } else if (errorMsg.toLowerCase().includes('expired') || errorMsg.toLowerCase().includes('stale')) {
                 setErrorMessage('Payment session expired. Please scan the QR code again.')
             } else {
-                setErrorMessage((error as Error).toString())
-                //setErrorMessage('Could not complete payment. Please contact support.')
+                setErrorMessage('Could not complete payment. Please contact support.')
             }
             setIsSuccess(false)
         } finally {
