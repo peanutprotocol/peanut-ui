@@ -75,12 +75,24 @@ let nextConfig = {
         webpackBuildWorker: true,
     },
 
-    webpack: (config, { isServer, dev }) => {
+    webpack: (config, { isServer, dev, webpack }) => {
         if (!dev || !process.env.NEXT_TURBO) {
             if (isServer) {
                 config.ignoreWarnings = [{ module: /@opentelemetry\/instrumentation/, message: /Critical dependency/ }]
             }
         }
+
+        // CRITICAL: Inject environment variables into Service Worker build
+        // Service Workers are isolated from the main app bundle and don't get NEXT_PUBLIC_* vars automatically
+        // This ensures SW can match the correct API hostname (staging vs prod)
+        config.plugins.push(
+            new webpack.DefinePlugin({
+                'process.env.NEXT_PUBLIC_PEANUT_API_URL': JSON.stringify(
+                    process.env.PEANUT_API_URL || process.env.NEXT_PUBLIC_PEANUT_API_URL || 'https://api.peanut.me'
+                ),
+                'process.env.NEXT_PUBLIC_API_VERSION': JSON.stringify(process.env.NEXT_PUBLIC_API_VERSION || 'v1'),
+            })
+        )
 
         return config
     },
@@ -206,14 +218,6 @@ if (process.env.NODE_ENV !== 'development') {
         const withSerwist = (await import('@serwist/next')).default({
             swSrc: './src/app/sw.ts',
             swDest: 'public/sw.js',
-            // Inject environment variables into Service Worker build context
-            // Without this, SW uses hardcoded fallbacks and won't match staging/prod API URLs
-            define: {
-                'process.env.NEXT_PUBLIC_PEANUT_API_URL': JSON.stringify(
-                    process.env.PEANUT_API_URL || process.env.NEXT_PUBLIC_PEANUT_API_URL || 'https://api.peanut.me'
-                ),
-                'process.env.NEXT_PUBLIC_API_VERSION': JSON.stringify(process.env.NEXT_PUBLIC_API_VERSION || 'v1'),
-            },
         })
         // Wrap both Serwist AND bundle analyzer
         return withSerwist(withBundleAnalyzer(nextConfig))
