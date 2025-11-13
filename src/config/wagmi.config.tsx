@@ -19,9 +19,26 @@ import {
 import { createAppKit } from '@reown/appkit/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { WagmiProvider, cookieToInitialState, type Config } from 'wagmi'
+import { RETRY_STRATEGIES } from '@/utils/retry.utils'
 
-// 0. Setup queryClient
-const queryClient = new QueryClient()
+// 0. Setup queryClient with network resilience defaults
+const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            ...RETRY_STRATEGIES.FAST,
+            staleTime: 30 * 1000, // Cache data as fresh for 30s
+            gcTime: 5 * 60 * 1000, // Keep inactive queries in memory for 5min
+            refetchOnWindowFocus: true, // Refetch stale data when user returns
+            refetchOnReconnect: true, // Refetch when connectivity restored
+            networkMode: 'online', // Pause queries while offline
+        },
+        mutations: {
+            retry: 1, // Total 2 attempts: immediate + 1 retry (conservative for write operations)
+            retryDelay: 1000, // Fixed 1s delay
+            networkMode: 'online', // Pause mutations while offline
+        },
+    },
+})
 
 // 1. Get projectId at https://cloud.reown.com
 const projectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID ?? ''

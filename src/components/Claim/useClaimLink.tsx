@@ -267,6 +267,10 @@ const useClaimLink = () => {
      */
     const claimLinkMutation = useMutation({
         mutationKey: [CLAIM_LINK],
+        // Disable retry for financial transactions to prevent duplicate claims
+        // Link claims transfer funds and are not idempotent at the mutation level
+        // If a claim succeeds but times out, retrying would create a duplicate claim
+        retry: false,
         mutationFn: async ({
             address,
             link,
@@ -312,6 +316,10 @@ const useClaimLink = () => {
      */
     const claimLinkXChainMutation = useMutation({
         mutationKey: [CLAIM_LINK_XCHAIN],
+        // Disable retry for financial transactions to prevent duplicate claims
+        // X-chain claims transfer funds and are not idempotent at the mutation level
+        // If a claim succeeds but times out, retrying would create a duplicate claim
+        retry: false,
         mutationFn: async ({
             address,
             link,

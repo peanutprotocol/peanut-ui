@@ -17,6 +17,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { createContext, type ReactNode, useContext, useState, useEffect, useMemo, useCallback } from 'react'
 import { captureException } from '@sentry/nextjs'
 import { PUBLIC_ROUTES_REGEX } from '@/constants/routes'
+import { USER_DATA_CACHE_PATTERNS } from '@/constants/cache.consts'
 
 interface AuthContextType {
     user: interfaces.IUserProfile | null
@@ -150,6 +151,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
                 // clear JWT cookie by setting it to expire
                 document.cookie = 'jwt-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
+
+                // Clear service worker caches to prevent user data leakage
+                // When User A logs out and User B logs in on the same device, cached API responses
+                // could expose User A's data (profile, transactions, KYC) to User B
+                // Only clears user-specific caches; preserves prices and external resources
+                if ('caches' in window) {
+                    try {
+                        const cacheNames = await caches.keys()
+                        await Promise.all(
+                            cacheNames
+                                .filter((name) => USER_DATA_CACHE_PATTERNS.some((pattern) => name.includes(pattern)))
+                                .map((name) => {
+                                    console.log('Logout: Clearing cache:', name)
+                                    return caches.delete(name)
+                                })
+                        )
+                    } catch (error) {
+                        console.error('Failed to clear caches on logout:', error)
+                        // Non-fatal: logout continues even if cache clearing fails
+                    }
+                }
 
                 // clear the iOS PWA prompt session flag
                 if (typeof window !== 'undefined') {

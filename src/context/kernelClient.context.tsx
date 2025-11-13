@@ -190,30 +190,42 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
         }
 
         const initializeClients = async () => {
+            // NETWORK RESILIENCE: Parallelize kernel client initialization across chains
+            // Currently only 1 chain configured (Arbitrum), but this enables future multi-chain support
+            const clientPromises = Object.entries(PUBLIC_CLIENTS_BY_CHAIN).map(
+                async ([chainId, { client, chain, bundlerUrl, paymasterUrl }]) => {
+                    try {
+                        const kernelClient = await createKernelClientForChain(
+                            client,
+                            chain,
+                            isAfterZeroDevMigration,
+                            webAuthnKey,
+                            isAfterZeroDevMigration
+                                ? undefined
+                                : (user?.accounts.find((a) => a.type === 'peanut-wallet')!.identifier as Address),
+                            {
+                                bundlerUrl,
+                                paymasterUrl,
+                            }
+                        )
+                        return { chainId, kernelClient, success: true } as const
+                    } catch (error) {
+                        console.error(`Error creating kernel client for chain ${chainId}:`, error)
+                        captureException(error)
+                        return { chainId, error, success: false } as const
+                    }
+                }
+            )
+
+            const results = await Promise.allSettled(clientPromises)
+
             const newClientsByChain: Record<string, GenericSmartAccountClient> = {}
-            for (const chainId in PUBLIC_CLIENTS_BY_CHAIN) {
-                const { client, chain, bundlerUrl, paymasterUrl } = PUBLIC_CLIENTS_BY_CHAIN[chainId]
-                try {
-                    const kernelClient = await createKernelClientForChain(
-                        client,
-                        chain,
-                        isAfterZeroDevMigration,
-                        webAuthnKey,
-                        isAfterZeroDevMigration
-                            ? undefined
-                            : (user?.accounts.find((a) => a.type === 'peanut-wallet')!.identifier as Address),
-                        {
-                            bundlerUrl,
-                            paymasterUrl,
-                        }
-                    )
-                    newClientsByChain[chainId] = kernelClient
-                } catch (error) {
-                    console.error(`Error creating kernel client for chain ${chainId}:`, error)
-                    captureException(error)
-                    continue
+            for (const result of results) {
+                if (result.status === 'fulfilled' && result.value.success) {
+                    newClientsByChain[result.value.chainId] = result.value.kernelClient
                 }
             }
+
             if (isMounted) {
                 fetchUser()
                 setClientsByChain(newClientsByChain)
