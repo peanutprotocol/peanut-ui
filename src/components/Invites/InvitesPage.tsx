@@ -38,7 +38,7 @@ function InvitePageContent() {
     const { handleLoginClick, isLoggingIn } = useLogin()
     const [isAwardingBadge, setIsAwardingBadge] = useState(false)
     const hasStartedAwardingRef = useRef(false)
-    
+
     // Track if we should show content (prevents flash)
     const [shouldShowContent, setShouldShowContent] = useState(false)
 
