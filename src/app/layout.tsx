@@ -86,15 +86,28 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     <Script id="sw-registration" strategy="beforeInteractive">
                         {`
                             if ('serviceWorker' in navigator) {
-                                window.addEventListener('load', () => {
-                                    navigator.serviceWorker.register('/sw.js', {
-                                        scope: '/',
-                                        updateViaCache: 'none'
-                                    }).then(registration => {
-                                        console.log('SW registered:', registration.scope);
-                                    }).catch(error => {
-                                        console.error('SW registration failed:', error);
-                                    });
+                                window.addEventListener('load', async () => {
+                                    try {
+                                        // CLEANUP: Unregister old/broken service workers before registering new one
+                                        // Fixes issue where multiple broken SWs accumulate and cause "no-response" errors
+                                        const registrations = await navigator.serviceWorker.getRegistrations();
+                                        if (registrations.length > 0) {
+                                            console.log('Found existing SW registrations:', registrations.length);
+                                            await Promise.all(registrations.map(reg => {
+                                                console.log('Unregistering old SW:', reg.scope);
+                                                return reg.unregister();
+                                            }));
+                                        }
+                                        
+                                        // Register fresh service worker
+                                        const registration = await navigator.serviceWorker.register('/sw.js', {
+                                            scope: '/',
+                                            updateViaCache: 'none'
+                                        });
+                                        console.log('✅ SW registered successfully:', registration.scope);
+                                    } catch (error) {
+                                        console.error('❌ SW registration failed:', error);
+                                    }
                                 });
                             }
                         `}

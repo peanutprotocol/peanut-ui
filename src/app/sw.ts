@@ -113,8 +113,9 @@ const isApiRequest = (url: URL): boolean => {
 
 // NATIVE PWA: Custom caching strategies for API endpoints
 // JWT token is in httpOnly cookies, so it's automatically sent with fetch requests
+// NOTE: Precaching disabled - runtime caching handles everything we need
 const serwist = new Serwist({
-    precacheEntries: self.__SW_MANIFEST,
+    precacheEntries: [], // Disable precaching to prevent install failures
     skipWaiting: true,
     clientsClaim: true,
     navigationPreload: true,
