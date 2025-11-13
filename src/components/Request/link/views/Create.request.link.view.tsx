@@ -39,7 +39,7 @@ export const CreateRequestLinkView = () => {
     // Sanitize amount and limit to 2 decimal places
     const sanitizedAmount = useMemo(() => {
         if (!paramsAmount || isNaN(parseFloat(paramsAmount))) return ''
-        return formatTokenAmount(paramsAmount, 2) ?? ''
+        return formatTokenAmount(paramsAmount, 6) ?? ''
     }, [paramsAmount])
     const merchant = searchParams.get('merchant')
     const merchantComment = merchant ? `Bill split for ${merchant}` : null

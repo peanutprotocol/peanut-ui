@@ -176,7 +176,7 @@ const TokenAmountInput = ({
                 }
 
                 const selectedAmountStr = parseFloat(selectedAmount.toFixed(4)).toString()
-                const maxDecimals = displayMode === 'FIAT' || displayMode === 'STABLE' || isInputUsd ? 2 : decimals
+                const maxDecimals = displayMode === 'FIAT' || displayMode === 'STABLE' || isInputUsd ? 6 : decimals
                 const formattedAmount = formatTokenAmount(selectedAmountStr, maxDecimals, true)
                 if (formattedAmount) {
                     onChange(formattedAmount, isInputUsd)
@@ -200,7 +200,8 @@ const TokenAmountInput = ({
 
         if (!isInitialInputUsd) {
             const value = tokenValue ? Number(tokenValue) : 0
-            const formattedValue = (value * (currency?.price ?? 1)).toFixed(2)
+            const calculatedValue = value * (currency?.price ?? 1)
+            const formattedValue = formatTokenAmount(calculatedValue, 6) ?? '0'
             onChange(formattedValue, isInputUsd)
         } else {
             onChange(displayValue, isInputUsd)
@@ -277,7 +278,7 @@ const TokenAmountInput = ({
     // Sync default slider suggested amount to the input
     useEffect(() => {
         if (defaultSliderSuggestedAmount) {
-            const formattedAmount = formatTokenAmount(defaultSliderSuggestedAmount.toString(), 2)
+            const formattedAmount = formatTokenAmount(defaultSliderSuggestedAmount.toString(), 6)
             if (formattedAmount) {
                 setTokenValue(formattedAmount)
                 setDisplayValue(formattedAmount)
@@ -304,9 +305,9 @@ const TokenAmountInput = ({
                             placeholder={'0.00'}
                             onChange={(e) => {
                                 let value = e.target.value
-                                // USD/currency → 2 decimals; token input → allow `decimals` (<= 6)
+                                // USD/currency → 6 decimals; token input → allow `decimals` (<= 6)
                                 const maxDecimals =
-                                    displayMode === 'FIAT' || displayMode === 'STABLE' || isInputUsd ? 2 : decimals
+                                    displayMode === 'FIAT' || displayMode === 'STABLE' || isInputUsd ? 6 : decimals
                                 const formattedAmount = formatTokenAmount(value, maxDecimals, true)
                                 if (formattedAmount !== undefined) {
                                     value = formattedAmount
