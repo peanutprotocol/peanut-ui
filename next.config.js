@@ -206,6 +206,14 @@ if (process.env.NODE_ENV !== 'development') {
         const withSerwist = (await import('@serwist/next')).default({
             swSrc: './src/app/sw.ts',
             swDest: 'public/sw.js',
+            // Inject environment variables into Service Worker build context
+            // Without this, SW uses hardcoded fallbacks and won't match staging/prod API URLs
+            define: {
+                'process.env.NEXT_PUBLIC_PEANUT_API_URL': JSON.stringify(
+                    process.env.PEANUT_API_URL || process.env.NEXT_PUBLIC_PEANUT_API_URL || 'https://api.peanut.me'
+                ),
+                'process.env.NEXT_PUBLIC_API_VERSION': JSON.stringify(process.env.NEXT_PUBLIC_API_VERSION || 'v1'),
+            },
         })
         // Wrap both Serwist AND bundle analyzer
         return withSerwist(withBundleAnalyzer(nextConfig))
