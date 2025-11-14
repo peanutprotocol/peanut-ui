@@ -7,7 +7,7 @@ import {
 } from '@/types/manteca.types'
 import { fetchWithSentry, jsonStringify } from '@/utils'
 import Cookies from 'js-cookie'
-import type { Address, Hash } from 'viem'
+import type { Address } from 'viem'
 import type { SignUserOperationReturnType } from '@zerodev/sdk/actions'
 
 export interface QrPaymentRequest {
@@ -109,29 +109,6 @@ export const mantecaApi = {
                 Authorization: `Bearer ${Cookies.get('jwt-token')}`,
             },
             body: jsonStringify(data),
-        })
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}))
-            throw new Error(errorData.message || `QR payment failed: ${response.statusText}`)
-        }
-
-        return response.json()
-    },
-    completeQrPayment: async ({
-        paymentLockCode,
-        txHash,
-    }: {
-        paymentLockCode: string
-        txHash: Hash
-    }): Promise<QrPayment> => {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/manteca/qr-payment/complete`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${Cookies.get('jwt-token')}`,
-            },
-            body: jsonStringify({ paymentLockCode, txHash }),
         })
 
         if (!response.ok) {
