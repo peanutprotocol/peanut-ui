@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState, useEffect } from 'react'
+import { useCallback, useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/context/authContext'
 import { MantecaKycStatus } from '@/interfaces'
 import { getBridgeCustomerCountry } from '@/app/actions/bridge/get-customer'
@@ -21,15 +21,43 @@ export interface QrKycGateResult {
 /**
  * This hook determines the KYC gate state for the QR pay page.
  * It checks the user's KYC status and the country of the QR code to determine the appropriate action.
+ * @param paymentProcessor - The payment processor type ('MANTECA' | 'SIMPLEFI' | null)
  * @returns {QrKycGateResult} An object with the KYC gate state and a boolean indicating if the user should be blocked from paying.
+ *
+ * Note: KYC is only required for MANTECA payments. SimpleFi payments do not require KYC.
  */
-export function useQrKycGate(): QrKycGateResult {
-    const { user } = useAuth()
+export function useQrKycGate(paymentProcessor?: 'MANTECA' | 'SIMPLEFI' | null): QrKycGateResult {
+    const { user, isFetchingUser, fetchUser } = useAuth()
     const [kycGateState, setKycGateState] = useState<QrKycState>(QrKycState.LOADING)
+    const hasRequestedUserFetchRef = useRef(false)
 
     const determineKycGateState = useCallback(async () => {
+        // SimpleFi payments do not require KYC - allow payment immediately
+        if (paymentProcessor === 'SIMPLEFI') {
+            setKycGateState(QrKycState.PROCEED_TO_PAY)
+            return
+        }
+
         const currentUser = user?.user
+        // while auth is fetching, keep loading to avoid flashing the verify modal
+        if (isFetchingUser) {
+            setKycGateState(QrKycState.LOADING)
+            return
+        }
+
         if (!currentUser) {
+            // on public routes (like qr pay), auth may not auto-fetch; trigger it explicitly once and wait
+            if (!hasRequestedUserFetchRef.current) {
+                hasRequestedUserFetchRef.current = true
+                setKycGateState(QrKycState.LOADING)
+                try {
+                    await fetchUser()
+                } catch {
+                    // ignore errors and fall through after one attempt
+                }
+                return
+            }
+            // if we already tried fetching and still have no user, require verification
             setKycGateState(QrKycState.REQUIRES_IDENTITY_VERIFICATION)
             return
         }
@@ -51,7 +79,6 @@ export function useQrKycGate(): QrKycGateResult {
                 const { countryCode } = await getBridgeCustomerCountry(currentUser.bridgeCustomerId)
                 // if (countryCode && countryCode.toUpperCase() === 'AR') {
                 if (false) {
-                    setKycGateState(QrKycState.REQUIRES_MANTECA_KYC_FOR_ARG_BRIDGE_USER)
                 } else {
                     setKycGateState(QrKycState.PROCEED_TO_PAY)
                 }
@@ -68,7 +95,7 @@ export function useQrKycGate(): QrKycGateResult {
         }
 
         setKycGateState(QrKycState.REQUIRES_IDENTITY_VERIFICATION)
-    }, [user?.user])
+    }, [user?.user, isFetchingUser, paymentProcessor, fetchUser])
 
     useEffect(() => {
         determineKycGateState()

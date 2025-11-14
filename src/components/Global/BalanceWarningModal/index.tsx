@@ -89,33 +89,36 @@ export default function BalanceWarningModal({ visible, onCloseAction }: BalanceW
                 </div>
 
                 <div className="space-y-4">
-                    <h2 className="text-xl font-bold">High Balance Warning</h2>
+                    <h2 className="text-xl font-bold">High Balance</h2>
                     <div className="space-y-3 text-sm text-gray-600">
+                        <p>You're rich! Congrats on having a high balance.</p>
                         <p>
-                            Peanut is completely self-custodial and you need your biometric passkey to access your
-                            account.
+                            With Peanut, you're the only one who can access your funds. No bank, no company, no agency —
+                            not even our support team — can ever access them.
                         </p>
                         <p>
-                            No support team ever has access to your account and cannot recover it.{' '}
-                            {platformInfo && (
-                                <>
-                                    Learn more about how to secure your passkey on{' '}
-                                    <a
-                                        href={platformInfo.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-blue-600 underline"
-                                    >
-                                        {platformInfo.name}
-                                    </a>
-                                    .
-                                </>
-                            )}
+                            Your biometric passkey is your key to full control and security. If it's lost, it can't be
+                            recovered because only you ever have access.
                         </p>
+
+                        {platformInfo && (
+                            <>
+                                Learn how to keep your passkey secure on{' '}
+                                <a
+                                    href={platformInfo.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 underline"
+                                >
+                                    {platformInfo.name}
+                                </a>
+                                .
+                            </>
+                        )}
                     </div>
                 </div>
 
-                <Slider onAccepted={onCloseAction} />
+                <Slider onAccepted={onCloseAction} title="Slide to Continue" />
             </div>
         </Modal>
     )

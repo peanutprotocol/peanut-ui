@@ -7,6 +7,7 @@ import { EHistoryEntryType, type HistoryEntry, useTransactionHistory } from '@/h
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useUserStore } from '@/redux/hooks'
 import * as Sentry from '@sentry/nextjs'
+import { useAuth } from '@/context/authContext'
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
@@ -20,26 +21,26 @@ import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { completeHistoryEntry } from '@/utils/history.utils'
 import { formatUnits } from 'viem'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
+import { useHaptic } from 'use-haptic'
 
 /**
  * component to display a preview of the most recent transactions on the home page.
  */
-const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; username?: string }) => {
+const HomeHistory = ({ username }: { username?: string }) => {
     const { user } = useUserStore()
     const isLoggedIn = !!user?.user.userId || false
-    // fetch the latest 5 transaction history entries
-    const mode = isPublic ? 'public' : 'latest'
-    const limit = isPublic ? 20 : 5
     // Only filter when user is requesting for some different user's history
-    const filterMutualTxs = !isPublic && username !== user?.user.username
+    const filterMutualTxs = username !== user?.user.username
     const {
         data: historyData,
         isLoading,
         isError,
         error,
-    } = useTransactionHistory({ mode, limit, username, filterMutualTxs, enabled: isLoggedIn })
+    } = useTransactionHistory({ mode: 'latest', limit: 5, username, filterMutualTxs, enabled: isLoggedIn })
     // check if the username is the same as the current user
     const { fetchBalance } = useWallet()
+    const { triggerHaptic } = useHaptic()
+    const { fetchUser } = useAuth()
 
     const isViewingOwnHistory = useMemo(
         () => (isLoggedIn && !username) || (isLoggedIn && username === user?.user.username),
@@ -60,6 +61,14 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
                 }
             },
             [fetchBalance]
+        ),
+        onKycStatusUpdate: useCallback(
+            async (newStatus: string) => {
+                // refetch user data when kyc status changes so the status item appears immediately
+                console.log('KYC status updated via WebSocket:', newStatus)
+                await fetchUser()
+            },
+            [fetchUser]
         ),
     })
 
@@ -100,6 +109,8 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
                     const badges = user?.user?.badges ?? []
                     badges.forEach((b) => {
                         if (!b.earnedAt) return
+                        // dev-note: dev-connect badge to be shown in ui after post devconnect marketing campaign
+                        if (b.code.toLowerCase() === 'devconnect_ba_2025') return
                         entries.push({
                             isBadge: true,
                             uuid: b.id,
@@ -166,9 +177,9 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
                     }
                 }
 
-                // Add KYC status item if applicable and not on a public page
-                // and the user is viewing their own history
-                if (isViewingOwnHistory && !isPublic) {
+                // Add KYC status item if applicable and the user is
+                // viewing their own history
+                if (isViewingOwnHistory) {
                     if (user?.user?.bridgeKycStatus && user.user.bridgeKycStatus !== 'not_started') {
                         entries.push({
                             isKyc: true,
@@ -198,7 +209,7 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
                 })
 
                 // Limit to the most recent entries
-                setCombinedEntries(entries.slice(0, isPublic ? 20 : 5))
+                setCombinedEntries(entries.slice(0, 5))
             }
 
             processEntries()
@@ -208,7 +219,7 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
                 cancelled = true
             }
         }
-    }, [historyData, wsHistoryEntries, isPublic, user, isLoading, isViewingOwnHistory])
+    }, [historyData, wsHistoryEntries, user, isLoading, isViewingOwnHistory])
 
     const pendingRequests = useMemo(() => {
         if (!combinedEntries.length) return []
@@ -300,7 +311,7 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
     return (
         <div className={twMerge('mx-auto w-full space-y-3 md:max-w-2xl md:space-y-3', isLoggedIn ? 'pb-4' : 'pb-0')}>
             {/* link to the full history page */}
-            {pendingRequests.length > 0 && !isPublic && (
+            {pendingRequests.length > 0 && (
                 <>
                     <h2 className="text-base font-bold">Pending transactions</h2>
                     <div className="h-full w-full">
@@ -333,7 +344,7 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
             {!isViewingOwnHistory ? (
                 <h2 className="text-base font-bold">Latest Transactions</h2>
             ) : (
-                <Link href="/history" className="flex items-center justify-between">
+                <Link href="/history" className="flex items-center justify-between" onClick={() => triggerHaptic()}>
                     <h2 className="text-base font-bold">Activity</h2>
                     <Icon width={30} height={30} name="arrow-next" />
                 </Link>

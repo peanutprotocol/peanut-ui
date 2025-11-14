@@ -23,6 +23,7 @@ export interface IOnrampData {
         bankBeneficiaryAddress?: string
         iban?: string
         bic?: string
+        accountHolderName?: string
     }
 }
 

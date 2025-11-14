@@ -19,7 +19,6 @@ import Link from 'next/link'
 import { useEffect, useMemo, useState, useCallback } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { useAccount } from 'wagmi'
-import AddMoneyPromptModal from '@/components/Home/AddMoneyPromptModal'
 import BalanceWarningModal from '@/components/Global/BalanceWarningModal'
 // import ReferralCampaignModal from '@/components/Home/ReferralCampaignModal'
 // import FloatingReferralButton from '@/components/Home/FloatingReferralButton'
@@ -38,6 +37,9 @@ import NoMoreJailModal from '@/components/Global/NoMoreJailModal'
 import EarlyUserModal from '@/components/Global/EarlyUserModal'
 import InvitesIcon from '@/components/Home/InvitesIcon'
 import NavigationArrow from '@/components/Global/NavigationArrow'
+import KycCompletedModal from '@/components/Home/KycCompletedModal'
+import { updateUserById } from '@/app/actions/users'
+import { useHaptic } from 'use-haptic'
 
 const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
 const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_EXPIRY ?? '1814400') // 21 days in seconds
@@ -55,16 +57,24 @@ export default function Home() {
     })
     const { isConnected: isWagmiConnected } = useAccount()
     const { disconnect: disconnectWagmi } = useDisconnect()
+    const { triggerHaptic } = useHaptic()
 
-    const { isFetchingUser, addAccount } = useAuth()
+    const { isFetchingUser, addAccount, fetchUser } = useAuth()
     const { isUserKycApproved } = useKycStatus()
     const username = user?.user.username
 
     const [showIOSPWAInstallModal, setShowIOSPWAInstallModal] = useState(false)
-    const [showAddMoneyPromptModal, setShowAddMoneyPromptModal] = useState(false)
     const [showBalanceWarningModal, setShowBalanceWarningModal] = useState(false)
     // const [showReferralCampaignModal, setShowReferralCampaignModal] = useState(false)
     const [isPostSignupActionModalVisible, setIsPostSignupActionModalVisible] = useState(false)
+    const [showKycModal, setShowKycModal] = useState(user?.user.showKycCompletedModal ?? false)
+
+    // sync modal state with user data when it changes
+    useEffect(() => {
+        if (user?.user.showKycCompletedModal !== undefined) {
+            setShowKycModal(user.user.showKycCompletedModal)
+        }
+    }, [user?.user.showKycCompletedModal])
 
     const userFullName = useMemo(() => {
         if (!user) return
@@ -155,75 +165,12 @@ export default function Home() {
                 balanceInUsd > BALANCE_WARNING_THRESHOLD &&
                 !hasSeenBalanceWarning &&
                 !showIOSPWAInstallModal &&
-                !showAddMoneyPromptModal &&
                 !isPostSignupActionModalVisible
             ) {
                 setShowBalanceWarningModal(true)
             }
         }
-    }, [
-        balance,
-        isFetchingBalance,
-        showIOSPWAInstallModal,
-        showAddMoneyPromptModal,
-        isPostSignupActionModalVisible,
-        user,
-    ])
-
-    // effect for showing add money prompt modal
-    useEffect(() => {
-        if (typeof window === 'undefined' || isFetchingBalance || !user || !address) return
-
-        // Don't show modal if balance is still loading (undefined)
-        if (balance === undefined) return
-
-        const hasSeenAddMoneyPromptThisSession = sessionStorage.getItem('hasSeenAddMoneyPromptThisSession')
-        const showNoMoreJailModal = sessionStorage.getItem('showNoMoreJailModal')
-
-        // determine if we should show the add money modal based on all conditions
-        // show if:
-        // 1. balance is zero.
-        // 2. user hasn't seen this prompt in the current session.
-        // 3. setup notifications modal is not visible (priority: setup modal > add money prompt)
-        // 4. the iOS PWA install modal is not currently active.
-        // 5. the balance warning modal is not currently active.
-        // 6. no other post-signup modal is active
-        const shouldShow =
-            balance === 0n &&
-            !hasSeenAddMoneyPromptThisSession &&
-            !showPermissionModal &&
-            !showIOSPWAInstallModal &&
-            !showBalanceWarningModal &&
-            !isPostSignupActionModalVisible &&
-            showNoMoreJailModal !== 'true' &&
-            !user?.showEarlyUserModal // Give Early User and No more jail modal precedence, showing two modals together isn't ideal and it messes up their functionality
-
-        if (shouldShow && !showAddMoneyPromptModal) {
-            // Only set state, don't set sessionStorage here to avoid race conditions
-            setShowAddMoneyPromptModal(true)
-        } else if (showAddMoneyPromptModal && showPermissionModal) {
-            // priority enforcement: hide add money modal if notification modal appears
-            // this handles race conditions where both modals try to show simultaneously
-            setShowAddMoneyPromptModal(false)
-        }
-    }, [
-        balance,
-        isFetchingBalance,
-        showPermissionModal,
-        showIOSPWAInstallModal,
-        showBalanceWarningModal,
-        isPostSignupActionModalVisible,
-        showAddMoneyPromptModal,
-        user,
-        address,
-    ])
-
-    // Set sessionStorage flag when modal becomes visible to prevent showing again
-    useEffect(() => {
-        if (showAddMoneyPromptModal) {
-            sessionStorage.setItem('hasSeenAddMoneyPromptThisSession', 'true')
-        }
-    }, [showAddMoneyPromptModal])
+    }, [balance, isFetchingBalance, showIOSPWAInstallModal, isPostSignupActionModalVisible, user])
 
     if (isLoading) {
         return <PeanutLoading coverFullScreen />
@@ -234,7 +181,7 @@ export default function Home() {
             <div className="h-full w-full space-y-6 p-5">
                 <div className="flex items-center justify-between gap-2">
                     <UserHeader username={username!} fullName={userFullName} isVerified={isUserKycApproved} />
-                    <Link href="/points" className="flex items-center gap-0">
+                    <Link onClick={() => triggerHaptic()} href="/points" className="flex items-center gap-0">
                         <InvitesIcon />
                         <span className="whitespace-nowrap pl-1 text-sm font-semibold md:text-base">Points</span>
                         <NavigationArrow size={16} className="fill-black" />
@@ -283,11 +230,29 @@ export default function Home() {
             <IOSInstallPWAModal visible={showIOSPWAInstallModal} onClose={() => setShowIOSPWAInstallModal(false)} />
 
             {/* Add Money Prompt Modal */}
-            <AddMoneyPromptModal visible={showAddMoneyPromptModal} onClose={() => setShowAddMoneyPromptModal(false)} />
+            {/* TODO @dev Disabling this, re-enable after properly fixing */}
+            {/* <AddMoneyPromptModal visible={showAddMoneyPromptModal} onClose={() => setShowAddMoneyPromptModal(false)} /> */}
 
             <NoMoreJailModal />
 
             <EarlyUserModal />
+
+            <KycCompletedModal
+                isOpen={showKycModal}
+                onClose={async () => {
+                    // close the modal immediately for better ux
+                    setShowKycModal(false)
+                    // update the database and refetch user to ensure sync
+                    if (user?.user.userId) {
+                        await updateUserById({
+                            userId: user.user.userId,
+                            showKycCompletedModal: false,
+                        })
+                        // refetch user to ensure the modal doesn't reappear
+                        await fetchUser()
+                    }
+                }}
+            />
 
             {/* Balance Warning Modal */}
             <BalanceWarningModal

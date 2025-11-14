@@ -3,6 +3,7 @@ import React, { forwardRef, useEffect, useRef, useState, useCallback } from 'rea
 import { twMerge } from 'tailwind-merge'
 import { Icon, type IconName } from '../Global/Icons/Icon'
 import Loading from '../Global/Loading'
+import { useHaptic } from 'use-haptic'
 
 export type ButtonVariant =
     | 'purple'
@@ -37,6 +38,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
         onLongPressStart?: () => void
         onLongPressEnd?: () => void
     }
+    disableHaptics?: boolean
 }
 
 const buttonVariants: Record<ButtonVariant, string> = {
@@ -93,12 +95,15 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             iconContainerClassName,
             longPress,
             onClick,
+            disableHaptics,
             ...props
         },
         ref
     ) => {
         const localRef = useRef<HTMLButtonElement>(null)
         const buttonRef = (ref as React.RefObject<HTMLButtonElement>) || localRef
+
+        const { triggerHaptic } = useHaptic()
 
         // Long press state
         const [isLongPressed, setIsLongPressed] = useState(false)
@@ -191,6 +196,11 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
                     // If long press is enabled but not completed, don't trigger onClick
                     return
                 }
+
+                if (!disableHaptics) {
+                    triggerHaptic()
+                }
+
                 onClick?.(e)
             },
             [longPress, isLongPressed, onClick]

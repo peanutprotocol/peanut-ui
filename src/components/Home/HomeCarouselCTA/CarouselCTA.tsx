@@ -8,6 +8,7 @@ import React, { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import ActionModal from '@/components/Global/ActionModal'
 import { CAROUSEL_CLOSE_BUTTON_POSITION, CAROUSEL_CLOSE_ICON_SIZE } from '@/constants/carousel.consts'
+import { useHaptic } from 'use-haptic'
 
 interface CarouselCTAProps {
     icon: IconName
@@ -19,6 +20,8 @@ interface CarouselCTAProps {
     iconContainerClassName?: string
     // Notification-specific props
     isPermissionDenied?: boolean
+    secondaryIcon?: StaticImageData | string
+    iconSize?: number
 }
 
 const CarouselCTA = ({
@@ -30,8 +33,11 @@ const CarouselCTA = ({
     logo,
     iconContainerClassName,
     isPermissionDenied,
+    secondaryIcon,
+    iconSize = 22,
 }: CarouselCTAProps) => {
     const [showPermissionDeniedModal, setShowPermissionDeniedModal] = useState(false)
+    const { triggerHaptic } = useHaptic()
 
     const handleClose = (e: React.MouseEvent) => {
         e.stopPropagation()
@@ -40,6 +46,7 @@ const CarouselCTA = ({
 
     const handleClick = async () => {
         try {
+            triggerHaptic()
             if (isPermissionDenied) {
                 setShowPermissionDeniedModal(true)
             } else if (onClick) {
@@ -87,15 +94,25 @@ const CarouselCTA = ({
                 {/* Icon container */}
                 <div
                     className={twMerge(
-                        'flex size-8 items-center justify-center rounded-full',
+                        'relative flex size-8 items-center justify-center rounded-full',
                         logo ? 'bg-transparent' : 'bg-primary-1',
                         iconContainerClassName
                     )}
                 >
                     {/* Show icon only if logo isn't provided. Logo takes precedence over icon. */}
-                    {!logo && <Icon name={icon} size={20} />}
+                    {!logo && <Icon name={icon} size={iconSize} />}
                     {logo && (
-                        <Image src={logo} alt={typeof title === 'string' ? title : 'logo'} width={32} height={32} />
+                        <Image src={logo} alt={typeof title === 'string' ? title : 'logo'} width={36} height={36} />
+                    )}
+                    {secondaryIcon && (
+                        <Image
+                            src={secondaryIcon}
+                            alt="secondary icon"
+                            height={64}
+                            width={64}
+                            quality={100}
+                            className="absolute -right-1 bottom-0 z-50 size-4 rounded-full object-cover"
+                        />
                     )}
                 </div>
 

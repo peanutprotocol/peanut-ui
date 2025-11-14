@@ -15,12 +15,14 @@ import { useAuth } from '@/context/authContext'
 import { EInviteType } from '@/services/services.types'
 import { saveToCookie } from '@/utils'
 import { useLogin } from '@/hooks/useLogin'
+import UnsupportedBrowserModal from '../Global/UnsupportedBrowserModal'
 
 function InvitePageContent() {
     const searchParams = useSearchParams()
     const inviteCode = searchParams.get('code')
     const redirectUri = searchParams.get('redirect_uri')
-    const { user } = useAuth()
+    const campaign = searchParams.get('campaign')
+    const { user, isFetchingUser } = useAuth()
 
     const dispatch = useAppDispatch()
     const router = useRouter()
@@ -40,21 +42,31 @@ function InvitePageContent() {
     // Users without app access should stay on this page to claim the invite and get access
     useEffect(() => {
         // Wait for both user and invite data to be loaded
-        if (!user?.user || !inviteCodeData || isLoading) {
+        if (!user?.user || !inviteCodeData || isLoading || isFetchingUser) {
             return
         }
 
-        // If user has app access and invite is valid, redirect to inviter's profile
-        if (user.user.hasAppAccess && inviteCodeData.success && inviteCodeData.username) {
-            router.push(`/${inviteCodeData.username}`)
+        // If user has app access and invite is valid, redirect to inviter's profile, if a campaign is provided, award the badge and redirect to the home page
+        if (!redirectUri && user.user.hasAppAccess && inviteCodeData.success && inviteCodeData.username) {
+            // If the potential ambassador is already a peanut user, simply award the badge and redirect to the home page
+            if (campaign) {
+                invitesApi.awardBadge(campaign).then(() => {
+                    router.push('/home')
+                })
+            } else {
+                router.push(`/${inviteCodeData.username}`)
+            }
         }
-    }, [user, inviteCodeData, isLoading, router])
+    }, [user, inviteCodeData, isLoading, isFetchingUser, router, campaign, redirectUri])
 
     const handleClaimInvite = async () => {
         if (inviteCode) {
             dispatch(setupActions.setInviteCode(inviteCode))
             dispatch(setupActions.setInviteType(EInviteType.PAYMENT_LINK))
             saveToCookie('inviteCode', inviteCode) // Save to cookies as well, so that if user installs PWA, they can still use the invite code
+            if (campaign) {
+                saveToCookie('campaignTag', campaign)
+            }
             if (redirectUri) {
                 const encodedRedirectUri = encodeURIComponent(redirectUri)
                 router.push('/setup?step=signup&redirect_uri=' + encodedRedirectUri)
@@ -64,7 +76,7 @@ function InvitePageContent() {
         }
     }
 
-    if (isLoading) {
+    if (isLoading || isFetchingUser) {
         return <PeanutLoading coverFullScreen />
     }
 
@@ -90,7 +102,7 @@ function InvitePageContent() {
                 )}
             >
                 <div className="mx-auto w-full md:max-w-xs">
-                    <div className="flex h-full flex-col justify-between gap-4 md:gap-10 md:pt-5">
+                    <div className="flex h-full flex-col justify-between gap-4 md:gap-6 md:pt-5">
                         <h1 className="text-xl font-extrabold">{inviteCodeData?.username} invited you to Peanut</h1>
                         <p className="text-base font-medium">
                             Members-only access. Use this invite to open your wallet and start sending and receiving
@@ -101,13 +113,20 @@ function InvitePageContent() {
                         </Button>
 
                         {!user?.user && (
-                            <button disabled={isLoggingIn} onClick={handleLoginClick} className="text-sm underline">
-                                {isLoggingIn ? 'Please wait...' : 'Already have an account? Log in!'}
-                            </button>
+                            <Button
+                                disabled={isLoggingIn}
+                                loading={isLoggingIn}
+                                variant="primary-soft"
+                                onClick={handleLoginClick}
+                                shadowSize="4"
+                            >
+                                Already have an account? Log in!
+                            </Button>
                         )}
                     </div>
                 </div>
             </div>
+            <UnsupportedBrowserModal allowClose={false} />
         </InvitesPageLayout>
     )
 }

@@ -7,6 +7,7 @@ import { useNotifications } from './useNotifications'
 import { useRouter } from 'next/navigation'
 import useKycStatus from './useKycStatus'
 import type { StaticImageData } from 'next/image'
+import { useQrCodeContext } from '@/context/QrCodeContext'
 
 export type CarouselCTA = {
     id: string
@@ -19,6 +20,8 @@ export type CarouselCTA = {
     onClose?: () => void
     isPermissionDenied?: boolean
     iconContainerClassName?: string
+    secondaryIcon?: StaticImageData | string
+    iconSize?: number
 }
 
 export const useHomeCarouselCTAs = () => {
@@ -27,10 +30,35 @@ export const useHomeCarouselCTAs = () => {
     const { showReminderBanner, requestPermission, snoozeReminderBanner, afterPermissionAttempt, isPermissionDenied } =
         useNotifications()
     const router = useRouter()
-    const { isUserKycApproved, isUserBridgeKycUnderReview } = useKycStatus()
+    const { isUserKycApproved, isUserBridgeKycUnderReview, isUserMantecaKycApproved } = useKycStatus()
+
+    const { setIsQRScannerOpen } = useQrCodeContext()
 
     const generateCarouselCTAs = useCallback(() => {
         const _carouselCTAs: CarouselCTA[] = []
+
+        // Show QR code payment prompt if user's Bridge or Manteca KYC is approved.
+        if (isUserKycApproved || isUserMantecaKycApproved) {
+            _carouselCTAs.push({
+                id: 'qr-payment',
+                title: (
+                    <p>
+                        Pay with <b>QR code payments</b>
+                    </p>
+                ),
+                description: (
+                    <p>
+                        Get the best exchange rate, pay like a <b>local</b> and earn <b>points</b>.
+                    </p>
+                ),
+                iconContainerClassName: 'bg-secondary-1',
+                icon: 'qr-code',
+                onClick: () => {
+                    setIsQRScannerOpen(true)
+                },
+                iconSize: 16,
+            })
+        }
 
         // add notification prompt as first item if it should be shown
         if (showReminderBanner) {

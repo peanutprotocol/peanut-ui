@@ -35,6 +35,7 @@ import { useGeoFilteredPaymentOptions } from '@/hooks/useGeoFilteredPaymentOptio
 import { tokenSelectorContext } from '@/context'
 import SupportCTA from '../Global/SupportCTA'
 import { DEVCONNECT_LOGO } from '@/assets'
+import useKycStatus from '@/hooks/useKycStatus'
 
 interface IActionListProps {
     flow: 'claim' | 'request'
@@ -103,6 +104,7 @@ export default function ActionList({
     const [isUsePeanutBalanceModalShown, setIsUsePeanutBalanceModalShown] = useState(false)
     const [showUsePeanutBalanceModal, setShowUsePeanutBalanceModal] = useState(false)
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null)
+    const { isUserMantecaKycApproved } = useKycStatus()
 
     const dispatch = useAppDispatch()
 
@@ -320,6 +322,12 @@ export default function ActionList({
                         )
                     }
 
+                    let methodRequiresVerification = method.id === 'bank' && requiresVerification
+
+                    if ((!isUserMantecaKycApproved && method.id == 'mercadopago') || method.id == 'pix') {
+                        methodRequiresVerification = true
+                    }
+
                     return (
                         <MethodCard
                             onClick={() => {
@@ -332,7 +340,7 @@ export default function ActionList({
                             }}
                             key={method.id}
                             method={method}
-                            requiresVerification={method.id === 'bank' && requiresVerification}
+                            requiresVerification={methodRequiresVerification}
                         />
                     )
                 })}

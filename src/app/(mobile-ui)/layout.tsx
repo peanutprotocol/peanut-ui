@@ -24,6 +24,10 @@ import { PUBLIC_ROUTES_REGEX } from '@/constants/routes'
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     const pathName = usePathname()
+
+    // Allow access to public paths without authentication
+    const isPublicPath = PUBLIC_ROUTES_REGEX.test(pathName)
+
     const { isFetchingUser, user } = useAuth()
     const [isReady, setIsReady] = useState(false)
     const [hasToken, setHasToken] = useState(false)
@@ -75,21 +79,30 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         }
     }, [])
 
-    // Allow access to public paths without authentication
-    const isPublicPath = PUBLIC_ROUTES_REGEX.test(pathName)
-
     useEffect(() => {
         if (!isPublicPath && !isFetchingUser && !user) {
             router.push('/setup')
         }
     }, [user, isFetchingUser])
 
-    if (!isReady || isFetchingUser || (!hasToken && !isPublicPath) || (!isPublicPath && !user)) {
-        return (
-            <div className="flex h-[100dvh] w-full flex-col items-center justify-center">
-                <PeanutLoading />
-            </div>
-        )
+    // For public paths, skip user loading and just show content when ready
+    if (isPublicPath) {
+        if (!isReady) {
+            return (
+                <div className="flex h-[100dvh] w-full flex-col items-center justify-center">
+                    <PeanutLoading />
+                </div>
+            )
+        }
+    } else {
+        // For protected paths, wait for user auth
+        if (!isReady || isFetchingUser || !hasToken || !user) {
+            return (
+                <div className="flex h-[100dvh] w-full flex-col items-center justify-center">
+                    <PeanutLoading />
+                </div>
+            )
+        }
     }
 
     // After setup flow is completed, show ios pwa install screen if not in pwa
