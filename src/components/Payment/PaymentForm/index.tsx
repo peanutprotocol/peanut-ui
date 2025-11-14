@@ -36,7 +36,6 @@ import { useAccount } from 'wagmi'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { useUserByUsername } from '@/hooks/useUserByUsername'
 import { type PaymentFlow } from '@/app/[...recipient]/client'
-import MantecaFulfillment from '../Views/MantecaFulfillment.view'
 import { invitesApi } from '@/services/invites'
 import { EInviteType } from '@/services/services.types'
 import ContributorCard from '@/components/Global/Contributors/ContributorCard'
@@ -86,9 +85,9 @@ export const PaymentForm = ({
         error: paymentStoreError,
         attachmentOptions,
         currentView,
+        parsedPaymentData,
     } = usePaymentStore()
-    const { fulfillUsingManteca, setFulfillUsingManteca, triggerPayWithPeanut, setTriggerPayWithPeanut } =
-        useRequestFulfillmentFlow()
+    const { triggerPayWithPeanut, setTriggerPayWithPeanut } = useRequestFulfillmentFlow()
     const recipientUsername = !chargeDetails && recipient?.recipientType === 'USERNAME' ? recipient.identifier : null
     const { user: recipientUser } = useUserByUsername(recipientUsername)
 
@@ -269,9 +268,22 @@ export const PaymentForm = ({
                 if (
                     !showRequestPotInitialView && // don't apply balance check on request pot payment initial view
                     isActivePeanutWallet &&
-                    (areEvmAddressesEqual(selectedTokenAddress, PEANUT_WALLET_TOKEN) || !isExternalRecipient)
+                    !isExternalRecipient
                 ) {
-                    // peanut wallet payment (for USERNAME or default token)
+                    // peanut wallet payment for USERNAME recipients
+                    const walletNumeric = parseFloat(String(peanutWalletBalance).replace(/,/g, ''))
+                    if (walletNumeric < parsedInputAmount) {
+                        dispatch(paymentActions.setError('Insufficient balance'))
+                    } else {
+                        dispatch(paymentActions.setError(null))
+                    }
+                } else if (
+                    !showRequestPotInitialView &&
+                    isActivePeanutWallet &&
+                    isExternalRecipient &&
+                    areEvmAddressesEqual(selectedTokenAddress, PEANUT_WALLET_TOKEN)
+                ) {
+                    // for external recipients (ADDRESS/ENS) paying with peanut wallet, check peanut wallet balance directly
                     const walletNumeric = parseFloat(String(peanutWalletBalance).replace(/,/g, ''))
                     if (walletNumeric < parsedInputAmount) {
                         dispatch(paymentActions.setError('Insufficient balance'))
@@ -297,7 +309,7 @@ export const PaymentForm = ({
                         dispatch(paymentActions.setError(null))
                     }
                 } else if (isExternalRecipient && isActivePeanutWallet) {
-                    // for external recipients with peanut wallet, balance will be checked via cross-chain route
+                    // for external recipients with peanut wallet using non-USDC tokens, balance will be checked via cross-chain route
                     dispatch(paymentActions.setError(null))
                 } else {
                     dispatch(paymentActions.setError(null))
@@ -422,9 +434,10 @@ export const PaymentForm = ({
         if (inviteError) {
             setInviteError(false)
         }
-        // Invites will be handled in the payment page, skip this step for request pots initial view
+        // redirect to add money if insufficient balance
         if (!showRequestPotInitialView && isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow) {
-            // If the user doesn't have app access, accept the invite before claiming the link
+            // if the user doesn't have app access, accept the invite before redirecting
+            // only applies to USERNAME recipients (invite links)
             if (recipient.recipientType === 'USERNAME' && !user?.user.hasAppAccess) {
                 const isAccepted = await handleAcceptInvite()
                 if (!isAccepted) return
@@ -512,7 +525,7 @@ export const PaymentForm = ({
             chargeId: chargeDetails?.uuid,
             currency,
             currencyAmount,
-            isExternalWalletFlow: !!isExternalWalletFlow || fulfillUsingManteca,
+            isExternalWalletFlow: !!isExternalWalletFlow,
             transactionType: isExternalWalletFlow
                 ? 'DEPOSIT'
                 : isDirectUsdPayment || !requestId
@@ -530,7 +543,7 @@ export const PaymentForm = ({
             triggerHaptic()
             dispatch(paymentActions.setView('STATUS'))
         } else if (result.status === 'Charge Created') {
-            if (!fulfillUsingManteca && !showRequestPotInitialView) {
+            if (!showRequestPotInitialView) {
                 dispatch(paymentActions.setView('CONFIRM'))
             }
         } else if (result.status === 'Error') {
@@ -539,7 +552,6 @@ export const PaymentForm = ({
             console.warn('Unexpected status from usePaymentInitiator:', result.status)
         }
     }, [
-        fulfillUsingManteca,
         canInitiatePayment,
         isDepositRequest,
         isConnected,
@@ -637,21 +649,6 @@ export const PaymentForm = ({
         }
     }, [amount, inputTokenAmount, initialSetupDone, showRequestPotInitialView])
 
-    useEffect(() => {
-        const stepFromURL = searchParams.get('step')
-        if (user && stepFromURL === 'regional-req-fulfill') {
-            setFulfillUsingManteca(true)
-        } else {
-            setFulfillUsingManteca(false)
-        }
-    }, [user, searchParams])
-
-    useEffect(() => {
-        if (fulfillUsingManteca && !chargeDetails) {
-            handleInitiatePayment()
-        }
-    }, [fulfillUsingManteca, chargeDetails, handleInitiatePayment])
-
     // Trigger payment with peanut from action list
     useEffect(() => {
         if (triggerPayWithPeanut) {
@@ -661,7 +658,7 @@ export const PaymentForm = ({
     }, [triggerPayWithPeanut, handleInitiatePayment, setTriggerPayWithPeanut])
 
     const isInsufficientBalanceError = useMemo(() => {
-        return error?.includes("You don't have enough balance.")
+        return error?.includes("You don't have enough balance.") || error?.includes('Insufficient balance')
     }, [error])
 
     const isButtonDisabled = useMemo(() => {
@@ -763,10 +760,6 @@ export const PaymentForm = ({
         // Cap at 100% max
         return { percentage: Math.min(percentage, 100), suggestedAmount }
     }, [requestDetails?.charges, requestDetails?.tokenAmount, totalAmountCollected])
-
-    if (fulfillUsingManteca && chargeDetails) {
-        return <MantecaFulfillment />
-    }
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
