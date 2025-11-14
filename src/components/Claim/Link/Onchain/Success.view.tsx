@@ -10,7 +10,7 @@ import { useUserStore } from '@/redux/hooks'
 import { ESendLinkStatus, sendLinksApi } from '@/services/sendLinks'
 import { formatTokenAmount, getTokenDetails, printableAddress, shortenStringLong } from '@/utils'
 import { useQueryClient } from '@tanstack/react-query'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo } from 'react'
 import type { Hash } from 'viem'
 import { formatUnits } from 'viem'
@@ -33,6 +33,8 @@ export const SuccessClaimLinkView = ({
     const queryClient = useQueryClient()
     const { offrampDetails, claimType, bankDetails } = useClaimBankFlow()
     const { triggerHaptic } = useHaptic()
+    const params = useSearchParams()
+    const campaignTag = params.get('campaignTag')
 
     // @dev: Claimers don't earn points (only senders do), so we don't call calculatePoints
     // Points will show in activity history once the sender's transaction is processed
@@ -192,6 +194,11 @@ export const SuccessClaimLinkView = ({
                 />
                 <PeanutActionDetailsCard {...cardProps} />
                 {renderButtons()}
+                {campaignTag === 'devconnect_ba_2025' && (
+                    <p className="text-center text-xs text-grey-1">
+                        Tap the X button at the top left to return to the Devconnect app
+                    </p>
+                )}
             </div>
         </div>
     )

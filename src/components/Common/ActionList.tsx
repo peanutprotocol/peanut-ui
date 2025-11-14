@@ -37,6 +37,8 @@ import SupportCTA from '../Global/SupportCTA'
 import { DEVCONNECT_LOGO } from '@/assets'
 import useKycStatus from '@/hooks/useKycStatus'
 
+const SHOW_INVITE_MODAL_FOR_DEVCONNECT = false
+
 interface IActionListProps {
     flow: 'claim' | 'request'
     claimLinkData?: ClaimLinkData
@@ -254,13 +256,7 @@ export default function ActionList({
     const username = claimLinkData?.sender?.username ?? requestLinkData?.recipient?.identifier
     const userHasAppAccess = user?.user?.hasAppAccess ?? false
 
-    const devconnectMethod: PaymentMethod = {
-        id: 'devconnect',
-        title: 'Devconnect',
-        description: 'Claim to your Devconnect wallet',
-        icons: [DEVCONNECT_LOGO],
-        soon: false,
-    }
+    const devconnectMethod = DEVCONNECT_CLAIM_METHODS.find((m) => m.id === 'devconnect')!
 
     if (isGeoLoading) {
         return (
@@ -274,25 +270,45 @@ export default function ActionList({
         <div className="space-y-2">
             {/* TODO @dev remove this after devconnect app testing phase */}
             {showDevconnectMethod && (
-                <MethodCard
-                    onClick={() => {
-                        handleMethodClick(devconnectMethod)
-                    }}
-                    method={devconnectMethod}
-                    requiresVerification={false}
-                />
+                <>
+                    <Button
+                        variant="primary-soft"
+                        shadowSize="4"
+                        icon="arrow-down"
+                        onClick={() => {
+                            if (SHOW_INVITE_MODAL_FOR_DEVCONNECT) {
+                                setSelectedMethod(devconnectMethod)
+                                setShowInviteModal(true)
+                            } else {
+                                handleMethodClick(devconnectMethod)
+                            }
+                        }}
+                    >
+                        <div className="flex items-center gap-1">
+                            Claim on <Image src={DEVCONNECT_LOGO} alt="Devconnect Logo" className="size-5" /> Devconnect
+                            app
+                        </div>
+                    </Button>
+
+                    <Divider text="or" />
+                </>
             )}
 
             {!isLoggedIn && (
-                <Button shadowSize="4" onClick={handleContinueWithPeanut} className="flex w-full items-center gap-1">
-                    <div>Continue with </div>
+                <Button
+                    icon={showDevconnectMethod ? 'arrow-down' : undefined}
+                    shadowSize="4"
+                    onClick={handleContinueWithPeanut}
+                    className="flex w-full items-center gap-1"
+                >
+                    {showDevconnectMethod ? <div>Claim on</div> : <div>Continue with </div>}
                     <div className="flex items-center gap-1">
                         <Image src={PEANUTMAN_LOGO} alt="Peanut Logo" className="size-5" />
                         <Image src={PEANUT_LOGO_BLACK} alt="Peanut Logo" />
                     </div>
                 </Button>
             )}
-            {isInviteLink && !userHasAppAccess && username && (
+            {SHOW_INVITE_MODAL_FOR_DEVCONNECT && isInviteLink && !userHasAppAccess && username && (
                 <div className="!mt-6 flex w-full items-center justify-center gap-1 md:gap-2">
                     <Image src={starStraightImage.src} alt="star" width={20} height={20} />{' '}
                     <p className="text-center text-sm">Invited by {username}, you have early access!</p>
