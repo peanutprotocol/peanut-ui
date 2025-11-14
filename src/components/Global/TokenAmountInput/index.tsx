@@ -65,6 +65,7 @@ const TokenAmountInput = ({
     const searchParams = useSearchParams()
     const inputRef = useRef<HTMLInputElement>(null)
     const inputType = useMemo(() => (window.innerWidth < 640 ? 'text' : 'number'), [])
+    const isInternalUpdateRef = useRef(false)
     const [isFocused, setIsFocused] = useState(false)
     const { deviceType } = useDeviceType()
     // Only autofocus on desktop (WEB), not on mobile devices (IOS/ANDROID)
@@ -200,16 +201,22 @@ const TokenAmountInput = ({
     useEffect(() => {
         // early return if tokenValue is empty.
         if (!tokenValue) return
+        // Prevent loop: skip if this update was triggered by this useEffect
+        if (isInternalUpdateRef.current) {
+            isInternalUpdateRef.current = false
+            return
+        }
 
         if (!isInitialInputUsd) {
             const value = tokenValue ? Number(tokenValue) : 0
             const calculatedValue = value * (currency?.price ?? 1)
             const formattedValue = formatTokenAmount(calculatedValue, PEANUT_WALLET_TOKEN_DECIMALS) ?? '0'
+            isInternalUpdateRef.current = true
             onChange(formattedValue, isInputUsd)
         } else {
             onChange(displayValue, isInputUsd)
         }
-    }, [selectedTokenData?.price]) // Seriously, this is ok
+    }, [selectedTokenData?.price, currency?.price, isInitialInputUsd, tokenValue])
 
     useEffect(() => {
         switch (displayMode) {
