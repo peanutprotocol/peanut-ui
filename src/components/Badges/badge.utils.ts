@@ -27,8 +27,7 @@ const PUBLIC_DESCRIPTIONS: Record<string, string> = {
     MOST_INVITES: 'Onboarded more users than Coinbase ads!',
     BIGGEST_REQUEST_POT: 'High Roller or Master Beggar? They created the pot with the highest number of contributors.',
     SEEDLING_DEVCONNECT_BA_2025: 'Peanut Ambassador. They spread the word and brought others into the ecosystem.',
-    ARBIVERSE_DEVCONNECT_BA_2025:
-        'Peanut 🤝 Arbiverse. They joined us at the amazing Arbiverse booth during Devconnect 2025.',
+    ARBIVERSE_DEVCONNECT_BA_2025: 'Peanut 🤝 Arbiverse. They joined us at the amazing Arbiverse booth.',
 }
 
 export function getBadgeIcon(code?: string) {
