@@ -117,7 +117,7 @@ const UnsupportedBrowserModalContent = ({
             onClose={handleModalClose}
             title="Open this link in your browser"
             description={
-                "Peanut doesn't work inside this app because of browser limitations. To continue, please open this link in your default browser."
+                "We're still working on making Peanut work on your browser. For now, please use Chrome or Safari."
             }
             icon={'alert' as IconName}
             iconContainerClassName="bg-primary-1"
