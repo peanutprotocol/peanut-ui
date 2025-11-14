@@ -259,6 +259,7 @@ export default function ActionList({
                         return
                     }
                     setRequestFulfillmentRegionalMethodType(method.id)
+                    // @dev: for devconnect flows, this will create a deposit without charge and save intent - to be deleted post devconnect
                     setFulfillUsingManteca(true)
                     break
                 // 'exchange-or-wallet' case removed - handled by ActionListDaimoPayButton

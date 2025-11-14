@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { type CountryData } from '@/components/AddMoney/consts'
 import MantecaDepositShareDetails from '@/components/AddMoney/components/MantecaDepositShareDetails'
 import PeanutLoading from '@/components/Global/PeanutLoading'
@@ -10,13 +10,22 @@ import { mantecaApi } from '@/services/manteca'
 import { useQuery } from '@tanstack/react-query'
 import useKycStatus from '@/hooks/useKycStatus'
 import ErrorAlert from '@/components/Global/ErrorAlert'
+import { saveDevConnectIntent } from '@/utils'
 
 const MantecaFulfillment = () => {
     const { setFulfillUsingManteca, selectedCountry, setSelectedCountry } = useRequestFulfillmentFlow()
-    const { requestDetails, chargeDetails } = usePaymentStore()
+    const { requestDetails, chargeDetails, parsedPaymentData, usdAmount } = usePaymentStore()
     const [isKYCModalOpen, setIsKYCModalOpen] = useState(false)
     const { isUserMantecaKycApproved, isUserBridgeKycApproved } = useKycStatus()
-    const { fetchUser } = useAuth()
+    const { fetchUser, user } = useAuth()
+
+    // @dev: check if this is a devconnect flow (address@chain format) - to be deleted post devconnect
+    const isDevConnectFlow = parsedPaymentData?.isDevConnectFlow || false
+
+    // @dev: for devconnect flows, we create a deposit without chargeId and save the intent - to be deleted post devconnect
+    const shouldCreateDeposit = isDevConnectFlow
+        ? isUserMantecaKycApproved && !!usdAmount
+        : Boolean(chargeDetails?.uuid) && isUserMantecaKycApproved
 
     const currency = selectedCountry?.currency || 'ARS'
     const {
@@ -25,26 +34,43 @@ const MantecaFulfillment = () => {
         isError,
         error,
     } = useQuery({
-        queryKey: ['manteca-deposit', chargeDetails?.uuid, currency],
-        queryFn: () =>
-            mantecaApi.deposit({
-                usdAmount: requestDetails?.tokenAmount || chargeDetails?.tokenAmount || '0',
+        queryKey: ['manteca-deposit', chargeDetails?.uuid, currency, isDevConnectFlow ? usdAmount : null],
+        queryFn: async () => {
+            const depositAmount = isDevConnectFlow
+                ? usdAmount || '0'
+                : requestDetails?.tokenAmount || chargeDetails?.tokenAmount || '0'
+
+            const result = await mantecaApi.deposit({
+                usdAmount: depositAmount,
                 currency,
-                chargeId: chargeDetails?.uuid,
-            }),
+                chargeId: isDevConnectFlow ? undefined : chargeDetails?.uuid,
+            })
+
+            // @dev: save devconnect intent if this is a devconnect flow - to be deleted post devconnect
+            if (isDevConnectFlow && result.data?.externalId) {
+                saveDevConnectIntent(user?.user?.userId, parsedPaymentData, depositAmount, result.data.externalId)
+            }
+
+            return result
+        },
         refetchOnWindowFocus: false,
         staleTime: Infinity, // don't refetch the data
-        enabled: Boolean(chargeDetails?.uuid) && isUserMantecaKycApproved,
+        enabled: shouldCreateDeposit,
     })
 
     const errorMessage = useMemo(() => {
         if (error) {
             return error.message
         }
-        if (!chargeDetails) {
+        // @dev: only check for charge details in non-devconnect flows - to be deleted post devconnect
+        if (!isDevConnectFlow && !chargeDetails) {
             return 'Charge details not found'
         }
-    }, [error, chargeDetails])
+        // @dev: for devconnect flows, check if amount is provided - to be deleted post devconnect
+        if (isDevConnectFlow && !usdAmount) {
+            return 'Payment amount not found'
+        }
+    }, [error, chargeDetails, isDevConnectFlow, usdAmount])
 
     const argentinaCountryData = {
         id: 'AR',

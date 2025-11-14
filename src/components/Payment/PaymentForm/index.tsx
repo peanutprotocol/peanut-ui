@@ -86,6 +86,7 @@ export const PaymentForm = ({
         error: paymentStoreError,
         attachmentOptions,
         currentView,
+        parsedPaymentData,
     } = usePaymentStore()
     const { fulfillUsingManteca, setFulfillUsingManteca, triggerPayWithPeanut, setTriggerPayWithPeanut } =
         useRequestFulfillmentFlow()
@@ -647,10 +648,12 @@ export const PaymentForm = ({
     }, [user, searchParams])
 
     useEffect(() => {
-        if (fulfillUsingManteca && !chargeDetails) {
+        // @dev: skip charge creation for devconnect flows using manteca - to be deleted post devconnect
+        const isDevConnectFlow = parsedPaymentData?.isDevConnectFlow || false
+        if (fulfillUsingManteca && !chargeDetails && !isDevConnectFlow) {
             handleInitiatePayment()
         }
-    }, [fulfillUsingManteca, chargeDetails, handleInitiatePayment])
+    }, [fulfillUsingManteca, chargeDetails, handleInitiatePayment, parsedPaymentData?.isDevConnectFlow])
 
     // Trigger payment with peanut from action list
     useEffect(() => {
@@ -764,7 +767,8 @@ export const PaymentForm = ({
         return { percentage: Math.min(percentage, 100), suggestedAmount }
     }, [requestDetails?.charges, requestDetails?.tokenAmount, totalAmountCollected])
 
-    if (fulfillUsingManteca && chargeDetails) {
+    // @dev: for devconnect flows, chargeDetails won't exist as we create deposit directly - to be deleted post devconnect
+    if (fulfillUsingManteca && (chargeDetails || parsedPaymentData?.isDevConnectFlow)) {
         return <MantecaFulfillment />
     }
 
