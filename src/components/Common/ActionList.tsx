@@ -15,7 +15,7 @@ import { useRouter } from 'next/navigation'
 import { PEANUTMAN_LOGO } from '@/assets/peanut'
 import { BankClaimType, useDetermineBankClaimType } from '@/hooks/useDetermineBankClaimType'
 import useSavedAccounts from '@/hooks/useSavedAccounts'
-import { RequestFulfillmentBankFlowStep, useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
+import { useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import { type ParsedURL } from '@/lib/url-parser/types/payment'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermineBankRequestType'
@@ -36,7 +36,7 @@ import { tokenSelectorContext } from '@/context'
 import SupportCTA from '../Global/SupportCTA'
 import { DEVCONNECT_LOGO } from '@/assets'
 import useKycStatus from '@/hooks/useKycStatus'
-import { usePaymentInitiator, type InitiatePaymentPayload } from '@/hooks/usePaymentInitiator'
+import { usePaymentInitiator } from '@/hooks/usePaymentInitiator'
 import { MIN_BANK_TRANSFER_AMOUNT, validateMinimumAmount } from '@/constants'
 
 const SHOW_INVITE_MODAL_FOR_DEVCONNECT = false
@@ -216,51 +216,19 @@ export default function ActionList({
                     break
             }
         } else if (flow === 'request' && requestLinkData) {
-            // @dev TODO: Fix req fulfillment with bank properly post devconnect
-            // if (method.id === 'bank') {
-            //     if (user?.user) {
-            //         router.push('/add-money')
-            //     } else {
-            //         const redirectUri = encodeURIComponent('/add-money')
-            //         router.push(`/setup?redirect_uri=${redirectUri}`)
-            //     }
-            //     return
-            // }
-
+            // for bank/mercadopago/pix in request flow, redirect to add-money flow
             switch (method.id) {
                 case 'bank':
-                    if (requestType === BankRequestType.GuestKycNeeded) {
-                        addParamStep('bank')
-                        setIsGuestVerificationModalOpen(true)
-                    } else {
-                        // prevent duplicate charge creation if already in progress or charge exists
-                        if (!chargeDetails && parsedPaymentData && !isPaymentInProgress) {
-                            const payload: InitiatePaymentPayload = {
-                                recipient: parsedPaymentData?.recipient,
-                                tokenAmount: usdAmount ?? '0',
-                                isExternalWalletFlow: false,
-                                transactionType: 'REQUEST',
-                                returnAfterChargeCreation: true,
-                            }
-
-                            await initiatePayment(payload)
-                        }
-
-                        setShowRequestFulfilmentBankFlowManager(true)
-                        setRequestFulfilmentBankFlowStep(RequestFulfillmentBankFlowStep.BankCountryList)
-                    }
-                    break
                 case 'mercadopago':
                 case 'pix':
-                    // note: we only check for manteca kyc in request flow cuz claim has its own verification logic based on senders/receivers kyc status
-                    if (!user || !isUserMantecaKycApproved) {
-                        addParamStep('regional-req-fulfill')
-                        setIsGuestVerificationModalOpen(true)
-                        return
+                    if (user?.user) {
+                        // user is logged in, redirect to add-money
+                        router.push('/add-money')
+                    } else {
+                        // user is not logged in, save redirect url and go to setup
+                        const redirectUri = encodeURIComponent('/add-money')
+                        router.push(`/setup?redirect_uri=${redirectUri}`)
                     }
-                    setRequestFulfillmentRegionalMethodType(method.id)
-                    // @dev: for devconnect flows, this will create a deposit without charge and save intent - to be deleted post devconnect
-                    setFulfillUsingManteca(true)
                     break
                 // 'exchange-or-wallet' case removed - handled by ActionListDaimoPayButton
             }

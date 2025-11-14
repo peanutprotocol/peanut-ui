@@ -30,7 +30,6 @@ import ActionList from '@/components/Common/ActionList'
 import NavHeader from '@/components/Global/NavHeader'
 import { ReqFulfillBankFlowManager } from '@/components/Request/views/ReqFulfillBankFlowManager'
 import SupportCTA from '@/components/Global/SupportCTA'
-import MantecaFulfillment from '@/components/Payment/Views/MantecaFulfillment.view'
 import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermineBankRequestType'
 import { PointsAction } from '@/services/services.types'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
@@ -69,7 +68,6 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         showRequestFulfilmentBankFlowManager,
         setShowRequestFulfilmentBankFlowManager,
         setFlowStep: setRequestFulfilmentBankFlowStep,
-        fulfillUsingManteca,
     } = useRequestFulfillmentFlow()
     const { requestType } = useDetermineBankRequestType(chargeDetails?.requestLink.recipientAccount.userId ?? '')
     const { triggerHaptic } = useHaptic()
@@ -477,9 +475,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         }
     }, [transactionForDrawer, currentView, dispatch, openTransactionDetails, isExternalWalletFlow, chargeId])
 
-    const showActionList =
-        (flow !== 'direct_pay' || (flow === 'direct_pay' && !user)) && // Show for direct-pay when user is not logged in
-        !fulfillUsingManteca // Show when not fulfilling using Manteca
+    const showActionList = flow !== 'direct_pay' || (flow === 'direct_pay' && !user) // Show for direct-pay when user is not logged in
     // Send to bank step if its mentioned in the URL and guest KYC is not needed
     useEffect(() => {
         const stepFromURL = searchParams.get('step')
@@ -525,11 +521,6 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     // render request fulfilment bank flow manager
     if (showRequestFulfilmentBankFlowManager) {
         return <ReqFulfillBankFlowManager parsedPaymentData={parsedPaymentData as ParsedURL} />
-    }
-
-    // render manteca fulfillment (mercado pago / pix)
-    if (fulfillUsingManteca) {
-        return <MantecaFulfillment />
     }
 
     // render PUBLIC_PROFILE view

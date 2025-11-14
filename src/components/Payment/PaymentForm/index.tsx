@@ -36,7 +36,6 @@ import { useAccount } from 'wagmi'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { useUserByUsername } from '@/hooks/useUserByUsername'
 import { type PaymentFlow } from '@/app/[...recipient]/client'
-import MantecaFulfillment from '../Views/MantecaFulfillment.view'
 import { invitesApi } from '@/services/invites'
 import { EInviteType } from '@/services/services.types'
 import ContributorCard from '@/components/Global/Contributors/ContributorCard'
@@ -88,8 +87,7 @@ export const PaymentForm = ({
         currentView,
         parsedPaymentData,
     } = usePaymentStore()
-    const { fulfillUsingManteca, setFulfillUsingManteca, triggerPayWithPeanut, setTriggerPayWithPeanut } =
-        useRequestFulfillmentFlow()
+    const { triggerPayWithPeanut, setTriggerPayWithPeanut } = useRequestFulfillmentFlow()
     const recipientUsername = !chargeDetails && recipient?.recipientType === 'USERNAME' ? recipient.identifier : null
     const { user: recipientUser } = useUserByUsername(recipientUsername)
 
@@ -477,18 +475,6 @@ export const PaymentForm = ({
             return
         }
 
-        // additional balance check before proceeding with payment
-        if (isActivePeanutWallet && !isExternalWalletFlow) {
-            const parsedInputAmount = parseFloat(inputTokenAmount.replace(/,/g, ''))
-            const walletNumeric = parseFloat(String(peanutWalletBalance).replace(/,/g, ''))
-
-            if (!isNaN(parsedInputAmount) && parsedInputAmount > 0 && walletNumeric < parsedInputAmount) {
-                dispatch(paymentActions.setError('Insufficient balance'))
-                // prevent proceeding to confirm view with insufficient balance
-                return
-            }
-        }
-
         if (inputUsdValue && parseFloat(inputUsdValue) > 0) {
             dispatch(paymentActions.setUsdAmount(inputUsdValue))
         }
@@ -539,7 +525,7 @@ export const PaymentForm = ({
             chargeId: chargeDetails?.uuid,
             currency,
             currencyAmount,
-            isExternalWalletFlow: !!isExternalWalletFlow || fulfillUsingManteca,
+            isExternalWalletFlow: !!isExternalWalletFlow,
             transactionType: isExternalWalletFlow
                 ? 'DEPOSIT'
                 : isDirectUsdPayment || !requestId
@@ -557,7 +543,7 @@ export const PaymentForm = ({
             triggerHaptic()
             dispatch(paymentActions.setView('STATUS'))
         } else if (result.status === 'Charge Created') {
-            if (!fulfillUsingManteca && !showRequestPotInitialView) {
+            if (!showRequestPotInitialView) {
                 dispatch(paymentActions.setView('CONFIRM'))
             }
         } else if (result.status === 'Error') {
@@ -566,7 +552,6 @@ export const PaymentForm = ({
             console.warn('Unexpected status from usePaymentInitiator:', result.status)
         }
     }, [
-        fulfillUsingManteca,
         canInitiatePayment,
         isDepositRequest,
         isConnected,
@@ -663,23 +648,6 @@ export const PaymentForm = ({
             setInputTokenAmount(amount)
         }
     }, [amount, inputTokenAmount, initialSetupDone, showRequestPotInitialView])
-
-    useEffect(() => {
-        const stepFromURL = searchParams.get('step')
-        if (user && stepFromURL === 'regional-req-fulfill') {
-            setFulfillUsingManteca(true)
-        } else {
-            setFulfillUsingManteca(false)
-        }
-    }, [user, searchParams])
-
-    useEffect(() => {
-        // @dev: skip charge creation for devconnect flows using manteca - to be deleted post devconnect
-        const isDevConnectFlow = parsedPaymentData?.isDevConnectFlow || false
-        if (fulfillUsingManteca && !chargeDetails && !isDevConnectFlow) {
-            handleInitiatePayment()
-        }
-    }, [fulfillUsingManteca, chargeDetails, handleInitiatePayment, parsedPaymentData?.isDevConnectFlow])
 
     // Trigger payment with peanut from action list
     useEffect(() => {
@@ -792,11 +760,6 @@ export const PaymentForm = ({
         // Cap at 100% max
         return { percentage: Math.min(percentage, 100), suggestedAmount }
     }, [requestDetails?.charges, requestDetails?.tokenAmount, totalAmountCollected])
-
-    // @dev: for devconnect flows, chargeDetails won't exist as we create deposit directly - to be deleted post devconnect
-    if (fulfillUsingManteca && (chargeDetails || parsedPaymentData?.isDevConnectFlow)) {
-        return <MantecaFulfillment />
-    }
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
