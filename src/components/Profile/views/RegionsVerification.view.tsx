@@ -75,7 +75,7 @@ const RegionsList = ({ regions, isLocked }: RegionsListProps) => {
                             router.push(`/profile/identity-verification/${region.path}`)
                         }
                     }}
-                    isDisabled={isLocked}
+                    isDisabled={!isLocked}
                     description={region.description}
                     descriptionClassName="text-xs"
                     rightContent={!isLocked ? <Icon name="check" className="size-4 text-success-1" /> : null}
