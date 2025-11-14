@@ -16,7 +16,11 @@ const RegionsVerification = () => {
 
     return (
         <div className="flex min-h-[inherit] flex-col space-y-8">
-            <NavHeader title="Regions & Verification" onPrev={() => router.replace('/profile')} />
+            <NavHeader
+                title="Regions & Verification"
+                onPrev={() => router.replace('/profile')}
+                titleClassName="text-xl md:text-2xl"
+            />
             <div className="my-auto space-y-2">
                 <h1 className="font-bold">Unlocked regions</h1>
                 <p className="mt-2 text-sm">
@@ -71,6 +75,7 @@ const RegionsList = ({ regions, isLocked }: RegionsListProps) => {
                             router.push(`/profile/identity-verification/${region.path}`)
                         }
                     }}
+                    isDisabled={isLocked}
                     description={region.description}
                     descriptionClassName="text-xs"
                     rightContent={!isLocked ? <Icon name="check" className="size-4 text-success-1" /> : null}
