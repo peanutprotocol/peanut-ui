@@ -80,10 +80,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     }, [])
 
     useEffect(() => {
-        if (!isPublicPath && !isFetchingUser && !user) {
+        if (!isPublicPath && isReady && !isFetchingUser && !user) {
             router.push('/setup')
         }
-    }, [user, isFetchingUser])
+    }, [user, isFetchingUser, isReady, isPublicPath, router])
 
     // For public paths, skip user loading and just show content when ready
     if (isPublicPath) {
