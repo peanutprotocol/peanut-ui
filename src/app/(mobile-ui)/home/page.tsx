@@ -253,52 +253,52 @@ export default function Home() {
 
             <LazyLoadErrorBoundary>
                 <Suspense fallback={null}>
-            <NoMoreJailModal />
+                    <NoMoreJailModal />
                 </Suspense>
             </LazyLoadErrorBoundary>
 
             <LazyLoadErrorBoundary>
                 <Suspense fallback={null}>
-            <EarlyUserModal />
+                    <EarlyUserModal />
                 </Suspense>
             </LazyLoadErrorBoundary>
 
             <LazyLoadErrorBoundary>
                 <Suspense fallback={null}>
-            <KycCompletedModal
-                isOpen={showKycModal}
-                onClose={async () => {
-                    // close the modal immediately for better ux
-                    setShowKycModal(false)
-                    // update the database and refetch user to ensure sync
-                    if (user?.user.userId) {
-                        await updateUserById({
-                            userId: user.user.userId,
-                            showKycCompletedModal: false,
-                        })
-                        // refetch user to ensure the modal doesn't reappear
-                        await fetchUser()
-                    }
-                }}
-            />
+                    <KycCompletedModal
+                        isOpen={showKycModal}
+                        onClose={async () => {
+                            // close the modal immediately for better ux
+                            setShowKycModal(false)
+                            // update the database and refetch user to ensure sync
+                            if (user?.user.userId) {
+                                await updateUserById({
+                                    userId: user.user.userId,
+                                    showKycCompletedModal: false,
+                                })
+                                // refetch user to ensure the modal doesn't reappear
+                                await fetchUser()
+                            }
+                        }}
+                    />
                 </Suspense>
             </LazyLoadErrorBoundary>
 
             {/* Balance Warning Modal */}
             <LazyLoadErrorBoundary>
                 <Suspense fallback={null}>
-            <BalanceWarningModal
-                visible={showBalanceWarningModal}
-                onCloseAction={() => {
-                    setShowBalanceWarningModal(false)
-                    updateUserPreferences(user!.user.userId, {
+                    <BalanceWarningModal
+                        visible={showBalanceWarningModal}
+                        onCloseAction={() => {
+                            setShowBalanceWarningModal(false)
+                            updateUserPreferences(user!.user.userId, {
                                 hasSeenBalanceWarning: {
                                     value: true,
                                     expiry: Date.now() + BALANCE_WARNING_EXPIRY * 1000,
                                 },
-                    })
-                }}
-            />
+                            })
+                        }}
+                    />
                 </Suspense>
             </LazyLoadErrorBoundary>
 

@@ -8,7 +8,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { usePWAStatus } from '../usePWAStatus'
 import { useDeviceType } from '../useGetDeviceType'
 
-export const useUserQuery = (dependsOn?: boolean) => {
+export const useUserQuery = (dependsOn: boolean = true) => {
     const isPwa = usePWAStatus()
     const { deviceType } = useDeviceType()
     const dispatch = useAppDispatch()
@@ -45,7 +45,7 @@ export const useUserQuery = (dependsOn?: boolean) => {
         queryKey: [USER],
         queryFn: fetchUser,
         retry: 0,
-        // Enable if dependsOn is true (default: true) and no Redux user
+        // Enable if dependsOn is true (defaults to true) and no Redux user exists yet
         enabled: dependsOn && !authUser?.user.userId,
         // Two-tier caching strategy for optimal performance:
         // TIER 1: TanStack Query in-memory cache (5 min)

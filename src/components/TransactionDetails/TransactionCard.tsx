@@ -186,13 +186,13 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
             {/* Transaction Details Drawer */}
             <LazyLoadErrorBoundary>
                 <Suspense fallback={null}>
-            <TransactionDetailsDrawer
-                isOpen={isDrawerOpen && selectedTransaction?.id === transaction.id}
-                onClose={closeTransactionDetails}
-                transaction={selectedTransaction}
-                transactionAmount={displayAmount}
-                avatarUrl={avatarUrl}
-            />
+                    <TransactionDetailsDrawer
+                        isOpen={isDrawerOpen && selectedTransaction?.id === transaction.id}
+                        onClose={closeTransactionDetails}
+                        transaction={selectedTransaction}
+                        transactionAmount={displayAmount}
+                        avatarUrl={avatarUrl}
+                    />
                 </Suspense>
             </LazyLoadErrorBoundary>
         </>
