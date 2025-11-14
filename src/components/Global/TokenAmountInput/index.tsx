@@ -67,6 +67,7 @@ const TokenAmountInput = ({
     const inputType = useMemo(() => (window.innerWidth < 640 ? 'text' : 'number'), [])
     const isInternalUpdateRef = useRef(false)
     const prevTokenValueRef = useRef<string | undefined>(tokenValue)
+    const hasUserInputRef = useRef(false)
     const [isFocused, setIsFocused] = useState(false)
     const { deviceType } = useDeviceType()
     // Only autofocus on desktop (WEB), not on mobile devices (IOS/ANDROID)
@@ -125,9 +126,12 @@ const TokenAmountInput = ({
     )
 
     const onChange = useCallback(
-        (value: string, _isInputUsd: boolean) => {
+        (value: string, _isInputUsd: boolean, isUserInput: boolean = false) => {
             setDisplayValue(value)
             setAlternativeDisplayValue(calculateAlternativeValue(value))
+            if (isUserInput) {
+                hasUserInputRef.current = true
+            }
             let tokenValue: string
             switch (displayMode) {
                 case 'STABLE': {
@@ -213,11 +217,19 @@ const TokenAmountInput = ({
         const isExternalChange = prevTokenValueRef.current !== tokenValue
         prevTokenValueRef.current = tokenValue
 
+        // Don't reconvert if user has manually entered a value (prevents precision errors on round-trip)
+        if (hasUserInputRef.current && displayValue && isExternalChange) {
+            // User typed a value, backend confirmed with slight precision difference
+            // Keep user's display value, don't reconvert
+            return
+        }
+
         if (!isInitialInputUsd && (isExternalChange || !displayValue)) {
             const value = tokenValue ? Number(tokenValue) : 0
             const calculatedValue = value * (currency?.price ?? 1)
             const formattedValue = formatTokenAmount(calculatedValue, PEANUT_WALLET_TOKEN_DECIMALS) ?? '0'
             isInternalUpdateRef.current = true
+            hasUserInputRef.current = false // Reset after external update
             onChange(formattedValue, isInputUsd)
         } else if (isInitialInputUsd) {
             onChange(displayValue, isInputUsd)
@@ -333,7 +345,7 @@ const TokenAmountInput = ({
                                 if (formattedAmount !== undefined) {
                                     value = formattedAmount
                                 }
-                                onChange(value, isInputUsd)
+                                onChange(value, isInputUsd, true) // Mark as user input
                             }}
                             ref={inputRef}
                             inputMode="decimal"
