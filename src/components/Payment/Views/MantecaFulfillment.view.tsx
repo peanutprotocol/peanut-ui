@@ -88,6 +88,12 @@ const MantecaFulfillment = () => {
         setFulfillUsingManteca(false)
     }
 
+    const handleBackClick = () => {
+        // reset manteca fulfillment state to show payment options again
+        setFulfillUsingManteca(false)
+        setSelectedCountry(null)
+    }
+
     useEffect(() => {
         if (!isUserMantecaKycApproved) {
             setIsKYCModalOpen(true)
@@ -100,7 +106,13 @@ const MantecaFulfillment = () => {
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8 md:min-h-fit">
-            {depositData?.data && <MantecaDepositShareDetails source={'bank'} depositDetails={depositData.data} />}
+            {depositData?.data && (
+                <MantecaDepositShareDetails
+                    source={'bank'}
+                    depositDetails={depositData.data}
+                    onBack={handleBackClick}
+                />
+            )}
             {errorMessage && <ErrorAlert description={errorMessage} />}
 
             {isKYCModalOpen && (

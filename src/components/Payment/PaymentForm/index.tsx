@@ -270,9 +270,22 @@ export const PaymentForm = ({
                 if (
                     !showRequestPotInitialView && // don't apply balance check on request pot payment initial view
                     isActivePeanutWallet &&
-                    (areEvmAddressesEqual(selectedTokenAddress, PEANUT_WALLET_TOKEN) || !isExternalRecipient)
+                    !isExternalRecipient
                 ) {
-                    // peanut wallet payment (for USERNAME or default token)
+                    // peanut wallet payment for USERNAME recipients
+                    const walletNumeric = parseFloat(String(peanutWalletBalance).replace(/,/g, ''))
+                    if (walletNumeric < parsedInputAmount) {
+                        dispatch(paymentActions.setError('Insufficient balance'))
+                    } else {
+                        dispatch(paymentActions.setError(null))
+                    }
+                } else if (
+                    !showRequestPotInitialView &&
+                    isActivePeanutWallet &&
+                    isExternalRecipient &&
+                    areEvmAddressesEqual(selectedTokenAddress, PEANUT_WALLET_TOKEN)
+                ) {
+                    // for external recipients (ADDRESS/ENS) paying with peanut wallet, check peanut wallet balance directly
                     const walletNumeric = parseFloat(String(peanutWalletBalance).replace(/,/g, ''))
                     if (walletNumeric < parsedInputAmount) {
                         dispatch(paymentActions.setError('Insufficient balance'))
@@ -298,7 +311,7 @@ export const PaymentForm = ({
                         dispatch(paymentActions.setError(null))
                     }
                 } else if (isExternalRecipient && isActivePeanutWallet) {
-                    // for external recipients with peanut wallet, balance will be checked via cross-chain route
+                    // for external recipients with peanut wallet using non-USDC tokens, balance will be checked via cross-chain route
                     dispatch(paymentActions.setError(null))
                 } else {
                     dispatch(paymentActions.setError(null))
@@ -423,9 +436,10 @@ export const PaymentForm = ({
         if (inviteError) {
             setInviteError(false)
         }
-        // Invites will be handled in the payment page, skip this step for request pots initial view
+        // redirect to add money if insufficient balance
         if (!showRequestPotInitialView && isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow) {
-            // If the user doesn't have app access, accept the invite before claiming the link
+            // if the user doesn't have app access, accept the invite before redirecting
+            // only applies to USERNAME recipients (invite links)
             if (recipient.recipientType === 'USERNAME' && !user?.user.hasAppAccess) {
                 const isAccepted = await handleAcceptInvite()
                 if (!isAccepted) return
@@ -461,6 +475,18 @@ export const PaymentForm = ({
             console.error('Invalid amount entered')
             dispatch(paymentActions.setError('Please enter a valid amount'))
             return
+        }
+
+        // additional balance check before proceeding with payment
+        if (isActivePeanutWallet && !isExternalWalletFlow) {
+            const parsedInputAmount = parseFloat(inputTokenAmount.replace(/,/g, ''))
+            const walletNumeric = parseFloat(String(peanutWalletBalance).replace(/,/g, ''))
+
+            if (!isNaN(parsedInputAmount) && parsedInputAmount > 0 && walletNumeric < parsedInputAmount) {
+                dispatch(paymentActions.setError('Insufficient balance'))
+                // prevent proceeding to confirm view with insufficient balance
+                return
+            }
         }
 
         if (inputUsdValue && parseFloat(inputUsdValue) > 0) {
@@ -664,7 +690,7 @@ export const PaymentForm = ({
     }, [triggerPayWithPeanut, handleInitiatePayment, setTriggerPayWithPeanut])
 
     const isInsufficientBalanceError = useMemo(() => {
-        return error?.includes("You don't have enough balance.")
+        return error?.includes("You don't have enough balance.") || error?.includes('Insufficient balance')
     }, [error])
 
     const isButtonDisabled = useMemo(() => {
