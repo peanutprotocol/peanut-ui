@@ -136,17 +136,24 @@ console.log('[SW] ⚙️  Final configuration:', {
     API_URL,
     API_HOSTNAME,
     CACHE_VERSION,
-    manifestType: typeof self.__SW_MANIFEST,
-    manifestIsArray: Array.isArray(self.__SW_MANIFEST),
+    manifestEntries: precacheManifest.length,
+    hasPrecache: precacheManifest.length > 0,
 })
 console.log('============================================')
 
 /**
- * Matches API requests to the configured API hostname
+ * Matches API requests to the configured API hostname OR Next.js API routes
  * Ensures caching works consistently across dev, staging, and production
  */
 const isApiRequest = (url: URL): boolean => {
-    return url.hostname === API_HOSTNAME
+    // Match direct API calls (production/staging)
+    if (url.hostname === API_HOSTNAME) return true
+
+    // Match Next.js API routes (development: localhost:3000/api/...)
+    // These proxy to the real API, so they should be cached the same way
+    if (url.pathname.startsWith('/api/')) return true
+
+    return false
 }
 
 // NATIVE PWA: Custom caching strategies for API endpoints
