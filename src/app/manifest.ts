@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next'
 
 // note: @dev incase you wanna change the icons,
 // better approach is to rename the image files so that browsers dont serve the cached old ones
+// also, do not forget to update the icons in the service worker and actions.ts file
 export default function manifest(): MetadataRoute.Manifest {
     let name = 'Peanut'
     switch (process.env.NODE_ENV) {

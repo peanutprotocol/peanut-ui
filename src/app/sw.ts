@@ -406,7 +406,7 @@ self.addEventListener('push', (event) => {
             body: data.message,
             tag: 'notification',
             vibrate: [100, 50, 100], // Mobile notification vibration pattern
-            icon: '/icons/icon-192x192.png',
+            icon: '/icons/icon-192x192-beta.png',
         } as NotificationOptions)
     )
 })
