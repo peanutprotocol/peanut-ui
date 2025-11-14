@@ -32,6 +32,7 @@ const RegionsVerification = () => {
                         title="You haven't unlocked any countries yet."
                         description="No countries unlocked yet. Complete verification to unlock countries and use supported payment methods."
                         icon="globe-lock"
+                        containerClassName="mt-3"
                     />
                 )}
 
