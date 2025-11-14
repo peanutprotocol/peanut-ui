@@ -938,11 +938,6 @@ export default function QRPayPage() {
 
     const isLoadingKycState = kycGateState === QrKycState.LOADING
 
-    // show loading spinner if we're still loading payment data OR KYC state
-    if (isLoadingPaymentData || isLoadingKycState) {
-        return <PeanutLoading />
-    }
-
     // only show KYC modals after both payment data and KYC state have loaded
     // explicitly check for KYC states that require blocking (not PROCEED_TO_PAY)
     const needsKycVerification =
@@ -1070,6 +1065,11 @@ export default function QRPayPage() {
                 </button>
             </div>
         )
+    }
+
+    // show loading spinner if we're still loading payment data OR KYC state
+    if (isLoadingPaymentData || isLoadingKycState) {
+        return <PeanutLoading />
     }
 
     //Success
