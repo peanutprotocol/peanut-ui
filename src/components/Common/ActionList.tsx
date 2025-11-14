@@ -336,7 +336,7 @@ export default function ActionList({
 
                     let methodRequiresVerification = method.id === 'bank' && requiresVerification
 
-                    if ((!isUserMantecaKycApproved && method.id == 'mercadopago') || method.id == 'pix') {
+                    if (!isUserMantecaKycApproved && ['mercadopago', 'pix'].includes(method.id)) {
                         methodRequiresVerification = true
                     }
 
