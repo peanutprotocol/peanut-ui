@@ -218,7 +218,10 @@ export default function Home() {
                     </ActionButtonGroup>
                 </div>
 
-                <HomeCarouselCTA />
+                <div className="space-y-2">
+                    <HomeCarouselCTA />
+                    <HomeHistory username={username ?? undefined} />
+                </div>
 
                 {showPermissionModal && (
                     <LazyLoadErrorBoundary>
@@ -228,7 +231,6 @@ export default function Home() {
                     </LazyLoadErrorBoundary>
                 )}
 
-                <HomeHistory username={username ?? undefined} />
                 {/* Render the new Rewards Modal
                 <RewardsModal />
                 */}

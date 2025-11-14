@@ -88,7 +88,7 @@ export default function AddMoneyCryptoDirectPage() {
                     />
 
                     <InfoCard
-                        variant="error"
+                        variant="warning"
                         icon="info"
                         iconSize={14}
                         description="This must match what you send from your wallet or exchange!"
@@ -119,7 +119,7 @@ export default function AddMoneyCryptoDirectPage() {
                             minAmount={0.1}
                             maxAmount={30_000}
                             onValidationError={setError}
-                            disabled={inputTokenAmount === '0.00'}
+                            disabled={inputTokenAmount === '0.00' || inputTokenAmount === ''}
                         >
                             Add Money
                         </DaimoPayButton>

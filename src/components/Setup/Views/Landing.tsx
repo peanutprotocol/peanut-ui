@@ -2,51 +2,15 @@
 
 import { Button, Card } from '@/components/0_Bruddle'
 import { useToast } from '@/components/0_Bruddle/Toast'
-import { useAuth } from '@/context/authContext'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useLogin } from '@/hooks/useLogin'
-import { getRedirectUrl, sanitizeRedirectURL, clearRedirectUrl } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect } from 'react'
 import Link from 'next/link'
 
 const LandingStep = () => {
     const { handleNext } = useSetupFlow()
     const { handleLoginClick, isLoggingIn } = useLogin()
-    const { user } = useAuth()
-    const { push } = useRouter()
     const toast = useToast()
-    const searchParams = useSearchParams()
-
-    useEffect(() => {
-        if (!!user) {
-            const localStorageRedirect = getRedirectUrl()
-            const redirect_uri = searchParams.get('redirect_uri')
-            if (redirect_uri) {
-                const sanitizedRedirectUrl = sanitizeRedirectURL(redirect_uri)
-                // Only redirect if the URL is safe (same-origin)
-                if (sanitizedRedirectUrl) {
-                    push(sanitizedRedirectUrl)
-                } else {
-                    // Reject external redirects, go to home instead
-                    push('/home')
-                }
-            } else if (localStorageRedirect) {
-                clearRedirectUrl()
-                const sanitizedLocalRedirect = sanitizeRedirectURL(localStorageRedirect)
-                // Only redirect if the URL is safe (same-origin)
-                if (sanitizedLocalRedirect) {
-                    push(sanitizedLocalRedirect)
-                } else {
-                    // Reject external redirects, go to home instead
-                    push('/home')
-                }
-            } else {
-                push('/home')
-            }
-        }
-    }, [user, push, searchParams])
 
     const handleError = (error: any) => {
         const errorMessage =

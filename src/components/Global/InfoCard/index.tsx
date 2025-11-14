@@ -51,7 +51,14 @@ const InfoCard = ({
     return (
         <Card className={twMerge('flex w-full border', variantClasses, className)}>
             <div className={twMerge('flex w-full gap-2', icon ? 'items-start' : 'items-center')}>
-                {icon && <Icon name={icon} width={iconSize} height={iconSize} className={iconClassName} />}
+                {icon && (
+                    <Icon
+                        name={icon}
+                        width={iconSize}
+                        height={iconSize}
+                        className={twMerge('mt-0.5 flex-shrink-0', iconClassName)}
+                    />
+                )}
                 <div className="flex flex-1 flex-col gap-1">
                     {title && <span className={twMerge(BASE_TEXT_CLASSES, 'font-bold', titleClassName)}>{title}</span>}
                     {description && (

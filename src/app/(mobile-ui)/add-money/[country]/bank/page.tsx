@@ -355,7 +355,7 @@ export default function OnrampBankPage() {
                     />
 
                     <InfoCard
-                        variant="error"
+                        variant="warning"
                         icon="alert"
                         description="This must match what you send from your bank!"
                     />
