@@ -86,15 +86,31 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     <Script id="sw-registration" strategy="beforeInteractive">
                         {`
                             if ('serviceWorker' in navigator) {
-                                window.addEventListener('load', () => {
-                                    navigator.serviceWorker.register('/sw.js', {
-                                        scope: '/',
-                                        updateViaCache: 'none'
-                                    }).then(registration => {
+                                window.addEventListener('load', async () => {
+                                    try {
+                                        // Register service worker - skipWaiting & clientsClaim handle updates
+                                        const registration = await navigator.serviceWorker.register('/sw.js', {
+                                            scope: '/',
+                                            updateViaCache: 'none'
+                                        });
                                         console.log('SW registered:', registration.scope);
-                                    }).catch(error => {
+                                        
+                                        // Handle updates: reload page when new SW is waiting
+                                        registration.addEventListener('updatefound', () => {
+                                            const newWorker = registration.installing;
+                                            if (newWorker) {
+                                                newWorker.addEventListener('statechange', () => {
+                                                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                                        // New SW installed, reload to activate
+                                                        console.log('New SW available, reloading...');
+                                                        window.location.reload();
+                                                    }
+                                                });
+                                            }
+                                        });
+                                    } catch (error) {
                                         console.error('SW registration failed:', error);
-                                    });
+                                    }
                                 });
                             }
                         `}

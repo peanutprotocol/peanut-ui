@@ -161,6 +161,7 @@ let nextConfig = {
     },
 }
 
+// Apply Sentry wrapper in production
 if (process.env.NODE_ENV !== 'development' && !Boolean(process.env.LOCAL_BUILD)) {
     const { withSentryConfig } = require('@sentry/nextjs')
 
@@ -208,20 +209,20 @@ if (process.env.NODE_ENV !== 'development' && !Boolean(process.env.LOCAL_BUILD))
             deleteSourcemapsAfterUpload: true,
         },
     })
-} else {
-    module.exports = nextConfig
 }
 
-// Apply bundle analyzer and Serwist (production only)
+// Development: Only bundle analyzer (no Serwist or Sentry)
+// Production: Sentry → Serwist → Bundle Analyzer
 if (process.env.NODE_ENV !== 'development') {
-    module.exports = async () => {
-        const withSerwist = (await import('@serwist/next')).default({
-            swSrc: './src/app/sw.ts',
-            swDest: 'public/sw.js',
-        })
-        // Wrap both Serwist AND bundle analyzer
-        return withSerwist(withBundleAnalyzer(nextConfig))
-    }
+    // Production: Wrap with Serwist and bundle analyzer
+    // NOTE: Serwist must be imported dynamically and configured synchronously
+    const withSerwist = require('@serwist/next').default({
+        swSrc: './src/app/sw.ts',
+        swDest: 'public/sw.js',
+    })
+
+    // Apply in order: Sentry (already applied to nextConfig) → Serwist → Bundle Analyzer
+    module.exports = withBundleAnalyzer(withSerwist(nextConfig))
 } else {
     // Development: only bundle analyzer (no Serwist)
     module.exports = withBundleAnalyzer(nextConfig)

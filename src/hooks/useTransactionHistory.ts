@@ -83,8 +83,8 @@ export function useTransactionHistory({
     }
 
     // Latest transactions mode (for home page)
-    // Cache-first strategy: TanStack refetches on every render, but SW returns
-    // cached data instantly (<50ms), then updates in background
+    // Two-tier caching: TQ in-memory (30s) → SW disk cache (1 week) → Network
+    // Balance: Fresh enough for home page + reduces redundant SW cache hits
     if (mode === 'latest') {
         // if filterMutualTxs is true, we need to add the username to the query key to invalidate the query when the username changes
         const queryKeyTxn = TRANSACTIONS + (filterMutualTxs ? username : '')
@@ -92,8 +92,14 @@ export function useTransactionHistory({
             queryKey: [queryKeyTxn, 'latest', { limit }],
             queryFn: () => fetchHistory({ limit }),
             enabled,
-            staleTime: 0, // Always refetch to trigger SW cache-first + background update
+            // 30s cache: Fresh enough for home page widget
+            // On cold start, will fetch → SW responds <50ms from cache
+            staleTime: 30 * 1000, // 30 seconds (balance: freshness vs performance)
             gcTime: 5 * 60 * 1000, // Keep in memory for 5min
+            // Refetch on mount - TQ automatically skips if data is fresh (< staleTime)
+            refetchOnMount: true,
+            // Refetch on focus - TQ automatically skips if data is fresh (< staleTime)
+            refetchOnWindowFocus: true,
         })
     }
 

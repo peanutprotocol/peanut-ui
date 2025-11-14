@@ -8,7 +8,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { usePWAStatus } from '../usePWAStatus'
 import { useDeviceType } from '../useGetDeviceType'
 
-export const useUserQuery = (dependsOn?: boolean) => {
+export const useUserQuery = (dependsOn: boolean = true) => {
     const isPwa = usePWAStatus()
     const { deviceType } = useDeviceType()
     const dispatch = useAppDispatch()
@@ -45,19 +45,25 @@ export const useUserQuery = (dependsOn?: boolean) => {
         queryKey: [USER],
         queryFn: fetchUser,
         retry: 0,
-        // only enable the query if:
-        // 1. dependsOn is true
-        // 2. no user is currently in the Redux store
+        // Enable if dependsOn is true (defaults to true) and no Redux user exists yet
         enabled: dependsOn && !authUser?.user.userId,
-        // cache the data for 10 minutes
-        staleTime: 1000 * 60 * 10,
-        // refetch only when window is focused if data is stale
+        // Two-tier caching strategy for optimal performance:
+        // TIER 1: TanStack Query in-memory cache (5 min)
+        //   - Zero latency for active sessions
+        //   - Lost on page refresh (intentional - forces SW cache check)
+        // TIER 2: Service Worker disk cache (1 week StaleWhileRevalidate)
+        //   - <50ms response on cold start/offline
+        //   - Persists across sessions
+        // Flow: TQ cache → if stale → fetch() → SW intercepts → SW cache → Network
+        staleTime: 5 * 60 * 1000, // 5 min (balance: fresh enough + reduces SW hits)
+        gcTime: 10 * 60 * 1000, // Keep unused data 10 min before garbage collection
+        // Refetch on mount - TQ automatically skips if data is fresh (< staleTime)
+        refetchOnMount: true,
+        // Refetch on focus - TQ automatically skips if data is fresh (< staleTime)
         refetchOnWindowFocus: true,
-        // prevent unnecessary refetches
-        refetchOnMount: false,
-        // add initial data from Redux if available
+        // Initialize with Redux data if available (hydration)
         initialData: authUser || undefined,
-        // keep previous data
+        // Keep previous data during refetch (smooth UX, no flicker)
         placeholderData: keepPreviousData,
     })
 }

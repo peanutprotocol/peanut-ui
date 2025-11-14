@@ -86,35 +86,85 @@ declare const self: ServiceWorkerGlobalScope
 
 // Helper to access Next.js build-time injected env vars with type safety
 // Uses double assertion to avoid 'as any' while maintaining type safety
-const getEnv = (): NextPublicEnv => process.env as unknown as NextPublicEnv
+const getEnv = (): NextPublicEnv => {
+    try {
+        return process.env as unknown as NextPublicEnv
+    } catch (e) {
+        console.error('[SW] ❌ Failed to access process.env:', e)
+        return {}
+    }
+}
 
-// Cache version tied to API version - automatic invalidation on breaking changes
-// Uses NEXT_PUBLIC_API_VERSION (set in Vercel env vars or .env)
-// Increment NEXT_PUBLIC_API_VERSION only when:
-// - API response structure changes (breaking changes)
-// - Cache strategy changes (e.g., switching from NetworkFirst to CacheFirst)
-// Most deploys: API_VERSION stays the same → cache preserved (fast repeat visits)
-// Breaking changes: Bump API_VERSION (v1→v2) → cache auto-invalidates across all users
-const CACHE_VERSION = getEnv().NEXT_PUBLIC_API_VERSION || 'v1'
+const envVars = getEnv()
 
-// Extract API hostname from build-time environment variable
-// Next.js replaces NEXT_PUBLIC_* variables at build time, so this works in all environments
-// Supports dev (localhost), staging, and production without hardcoding
-const API_URL = getEnv().NEXT_PUBLIC_PEANUT_API_URL || 'https://api.peanut.me'
-const API_HOSTNAME = new URL(API_URL).hostname
+// CRITICAL: Capture SW manifest immediately - Serwist replaces self.__SW_MANIFEST at build time
+// and expects to see it ONLY ONCE in the entire file. Store it in a variable for reuse.
+const precacheManifest = self.__SW_MANIFEST || []
 
 /**
- * Matches API requests to the configured API hostname
+ * Cache version tied to API version for automatic cache invalidation.
+ *
+ * @dev WHEN TO BUMP CACHE VERSION (NEXT_PUBLIC_API_VERSION):
+ *
+ * ✅ **DO BUMP** when:
+ *   - API response structure changes (breaking changes)
+ *     Example: User object adds/removes/renames fields
+ *   - Cache strategy changes (NetworkFirst → CacheFirst, TTL changes, etc.)
+ *   - Critical bug in cached data requires force refresh for all users
+ *   - Database schema changes that affect API responses
+ *
+ * ❌ **DON'T BUMP** when:
+ *   - Adding new endpoints (old caches unaffected)
+ *   - Bug fixes that don't affect cached data structure
+ *   - UI changes (CSS, components, etc.)
+ *   - Most regular deployments
+ *
+ * 📦 **AUTOMATIC MIGRATION** (no manual intervention needed):
+ *   1. Deploy with new NEXT_PUBLIC_API_VERSION (v1 → v2)
+ *   2. Browser detects SW update, installs new version
+ *   3. On next page load, activate event fires
+ *   4. Old caches (user-api-v1) auto-deleted by cleanup code
+ *   5. New caches (user-api-v2) created on first request
+ *   → Users seamlessly migrate to new cache version
+ *
+ * 💡 **EXAMPLE SCENARIOS**:
+ *   - "Added new /api/notifications endpoint" → DON'T BUMP (new cache, no conflict)
+ *   - "User.balance is now User.balances[]" → BUMP (breaking change)
+ *   - "Changed user cache from 1 week to 1 day" → BUMP (strategy change)
+ *   - "Fixed typo in component" → DON'T BUMP (UI only)
+ *
+ * Current version: Uses NEXT_PUBLIC_API_VERSION env var (set in Vercel/Railway or .env)
+ */
+const CACHE_VERSION = envVars.NEXT_PUBLIC_API_VERSION || 'v1'
+
+// Extract API hostname from build-time environment variable
+// FALLBACK: If env var injection fails, default to production API
+// This ensures SW works even if webpack DefinePlugin doesn't reach Serwist's build
+const API_URL = envVars.NEXT_PUBLIC_PEANUT_API_URL || 'https://api.peanut.me'
+const API_HOSTNAME = new URL(API_URL).hostname
+
+// Log configuration on initialization for debugging
+console.log('[SW] ⚙️ Initialized with:', { API_HOSTNAME, CACHE_VERSION, entries: precacheManifest.length })
+
+/**
+ * Matches API requests to the configured API hostname OR Next.js API routes
  * Ensures caching works consistently across dev, staging, and production
  */
 const isApiRequest = (url: URL): boolean => {
-    return url.hostname === API_HOSTNAME
+    // Match direct API calls (production/staging)
+    if (url.hostname === API_HOSTNAME) return true
+
+    // Match Next.js API routes (development: localhost:3000/api/...)
+    // These proxy to the real API, so they should be cached the same way
+    if (url.pathname.startsWith('/api/')) return true
+
+    return false
 }
 
 // NATIVE PWA: Custom caching strategies for API endpoints
 // JWT token is in httpOnly cookies, so it's automatically sent with fetch requests
 const serwist = new Serwist({
-    precacheEntries: self.__SW_MANIFEST,
+    precacheEntries: precacheManifest,
     skipWaiting: true,
     clientsClaim: true,
     navigationPreload: true,
@@ -130,8 +180,10 @@ const serwist = new Serwist({
         // 🔴 TIER 1 (CRITICAL): /home page - NEVER EVICT
         // Landing page for PWA launch. Must always be available offline.
         // Separate cache ensures it survives quota pressure from other pages.
+        // IMPORTANT: Also matches root '/' since Next.js redirects / → /home
         {
-            matcher: ({ request, url }) => request.mode === 'navigate' && url.pathname === '/home',
+            matcher: ({ request, url }) =>
+                request.mode === 'navigate' && (url.pathname === '/home' || url.pathname === '/'),
             handler: new NetworkFirst({
                 cacheName: 'navigation-home',
                 plugins: [
@@ -139,8 +191,8 @@ const serwist = new Serwist({
                         statuses: [0, 200], // 0 = opaque responses, 200 = success
                     }),
                     new ExpirationPlugin({
-                        maxEntries: 1,
-                        maxAgeSeconds: TIME.THIRTY_DAYS,
+                        maxEntries: 2, // /home and / (root)
+                        maxAgeSeconds: TIME.THIRTY_DAYS, // 30 days (long TTL)
                     }),
                 ],
                 networkTimeoutSeconds: 3, // Fallback to cache after 3s network timeout
@@ -380,9 +432,13 @@ self.addEventListener('notificationclick', (event) => {
 // Cache cleanup on service worker activation
 // Removes old cache versions when SW updates to prevent storage bloat
 self.addEventListener('activate', (event) => {
+    console.log('[SW] ⚡ Activating (version:', CACHE_VERSION + ')')
     event.waitUntil(
         (async () => {
             try {
+                // CRITICAL: Claim all clients immediately so SW controls all open pages
+                await self.clients.claim()
+
                 const cacheNames = await caches.keys()
                 const currentCaches = [
                     getCacheNameWithVersion(CACHE_NAMES.USER_API, CACHE_VERSION),
@@ -390,19 +446,22 @@ self.addEventListener('activate', (event) => {
                     getCacheNameWithVersion(CACHE_NAMES.TRANSACTIONS, CACHE_VERSION),
                     getCacheNameWithVersion(CACHE_NAMES.KYC_MERCHANT, CACHE_VERSION),
                     getCacheNameWithVersion(CACHE_NAMES.EXTERNAL_RESOURCES, CACHE_VERSION),
+                    'navigation-home',
+                    'navigation-important',
+                    'navigation-other',
                 ]
 
                 // Delete old cache versions (not current caches, not precache)
-                await Promise.all(
-                    cacheNames
-                        .filter((name) => !currentCaches.includes(name) && !name.startsWith('serwist-precache'))
-                        .map((name) => {
-                            console.log('Deleting old cache:', name)
-                            return caches.delete(name)
-                        })
+                const oldCaches = cacheNames.filter(
+                    (name) => !currentCaches.includes(name) && !name.startsWith('serwist-precache')
                 )
 
-                console.log('Service Worker activated with cache version:', CACHE_VERSION)
+                if (oldCaches.length > 0) {
+                    console.log('[SW] 🗑️ Cleaning up', oldCaches.length, 'old cache(s)')
+                    await Promise.all(oldCaches.map((name) => caches.delete(name)))
+                }
+
+                console.log('[SW] ✅ Activated')
             } catch (error) {
                 console.error('Cache cleanup failed:', error)
 
@@ -553,33 +612,4 @@ self.addEventListener('message', (event) => {
 })
 
 serwist.addEventListeners()
-
-// Debug logging for navigation requests (non-interfering)
-self.addEventListener('fetch', (event) => {
-    if (event.request.mode === 'navigate') {
-        const url = new URL(event.request.url)
-        console.log('[SW] 🔍 Navigation request:', url.pathname)
-    }
-})
-
-// Monitor cache writes
-self.addEventListener('message', (event) => {
-    if (event.data?.type === 'CHECK_CACHES') {
-        ;(async () => {
-            const cacheNames = await caches.keys()
-            const cacheContents = {}
-
-            for (const name of cacheNames) {
-                const cache = await caches.open(name)
-                const keys = await cache.keys()
-                cacheContents[name] = keys.map((req) => req.url)
-            }
-
-            console.log('[SW] 📦 Cache contents:', cacheContents)
-
-            if (event.ports[0]) {
-                event.ports[0].postMessage({ caches: cacheContents })
-            }
-        })()
-    }
-})
+console.log('[SW] ✅ Service Worker initialized')
