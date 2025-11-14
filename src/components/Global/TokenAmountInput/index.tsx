@@ -65,6 +65,9 @@ const TokenAmountInput = ({
     const searchParams = useSearchParams()
     const inputRef = useRef<HTMLInputElement>(null)
     const inputType = useMemo(() => (window.innerWidth < 640 ? 'text' : 'number'), [])
+    const isInternalUpdateRef = useRef(false)
+    const prevTokenValueRef = useRef<string | undefined>(tokenValue)
+    const hasUserInputRef = useRef(false)
     const [isFocused, setIsFocused] = useState(false)
     const { deviceType } = useDeviceType()
     // Only autofocus on desktop (WEB), not on mobile devices (IOS/ANDROID)
@@ -76,6 +79,14 @@ const TokenAmountInput = ({
     const [displaySymbol, setDisplaySymbol] = useState<string>('')
     const [alternativeDisplayValue, setAlternativeDisplayValue] = useState<string>('0.00')
     const [alternativeDisplaySymbol, setAlternativeDisplaySymbol] = useState<string>('')
+
+    // Reset hasUserInputRef when tokenValue changes from undefined to defined (new QR/flow)
+    useEffect(() => {
+        if (tokenValue && !prevTokenValueRef.current) {
+            // New value loaded (e.g., QR scan), reset user input flag
+            hasUserInputRef.current = false
+        }
+    }, [tokenValue])
 
     const displayMode = useMemo<'TOKEN' | 'STABLE' | 'FIAT'>(() => {
         if (currency) return 'FIAT'
@@ -123,9 +134,12 @@ const TokenAmountInput = ({
     )
 
     const onChange = useCallback(
-        (value: string, _isInputUsd: boolean) => {
+        (value: string, _isInputUsd: boolean, isUserInput: boolean = false) => {
             setDisplayValue(value)
             setAlternativeDisplayValue(calculateAlternativeValue(value))
+            if (isUserInput) {
+                hasUserInputRef.current = true
+            }
             let tokenValue: string
             switch (displayMode) {
                 case 'STABLE': {
@@ -149,6 +163,7 @@ const TokenAmountInput = ({
                     throw new Error('Invalid display mode')
                 }
             }
+            prevTokenValueRef.current = tokenValue // Track that we're updating it
             setTokenValue(tokenValue)
         },
         [displayMode, currency?.price, selectedTokenData?.price, calculateAlternativeValue]
@@ -176,10 +191,13 @@ const TokenAmountInput = ({
                 }
 
                 const selectedAmountStr = parseFloat(selectedAmount.toFixed(4)).toString()
-                const maxDecimals = displayMode === 'FIAT' || displayMode === 'STABLE' || isInputUsd ? 2 : decimals
+                const maxDecimals =
+                    displayMode === 'FIAT' || displayMode === 'STABLE' || isInputUsd
+                        ? PEANUT_WALLET_TOKEN_DECIMALS
+                        : decimals
                 const formattedAmount = formatTokenAmount(selectedAmountStr, maxDecimals, true)
                 if (formattedAmount) {
-                    onChange(formattedAmount, isInputUsd)
+                    onChange(formattedAmount, isInputUsd, true) // Mark slider as user input
                 }
             }
         },
@@ -197,15 +215,46 @@ const TokenAmountInput = ({
     useEffect(() => {
         // early return if tokenValue is empty.
         if (!tokenValue) return
+        // Prevent loop: skip if this update was triggered by this useEffect
+        if (isInternalUpdateRef.current) {
+            isInternalUpdateRef.current = false
+            return
+        }
 
-        if (!isInitialInputUsd) {
+        // Only run if tokenValue changed externally (from parent prop, not from our onChange)
+        const isExternalChange = prevTokenValueRef.current !== tokenValue
+
+        // Don't reconvert if user has manually entered a value (prevents precision errors on round-trip)
+        // But DO reconvert if the price changed significantly (token/currency selector change)
+        if (hasUserInputRef.current && displayValue && isExternalChange) {
+            // Check if this is a small precision change vs a major price change
+            const oldUsdValue = prevTokenValueRef.current ? Number(prevTokenValueRef.current) : 0
+            const newUsdValue = tokenValue ? Number(tokenValue) : 0
+            const percentChange = oldUsdValue ? Math.abs((newUsdValue - oldUsdValue) / oldUsdValue) : 1
+
+            // If change is < 1%, it's likely a precision round-trip, keep user's display
+            // If change is >= 1%, it's a real change (price update, new QR), reconvert
+            if (percentChange < 0.01) {
+                prevTokenValueRef.current = tokenValue
+                return // Skip reconversion for small precision differences
+            }
+            // Large change detected, reset flag and proceed with conversion
+            hasUserInputRef.current = false
+        }
+
+        prevTokenValueRef.current = tokenValue
+
+        if (!isInitialInputUsd && (isExternalChange || !displayValue)) {
             const value = tokenValue ? Number(tokenValue) : 0
-            const formattedValue = (value * (currency?.price ?? 1)).toFixed(2)
+            const calculatedValue = value * (currency?.price ?? 1)
+            const formattedValue = formatTokenAmount(calculatedValue, PEANUT_WALLET_TOKEN_DECIMALS) ?? '0'
+            isInternalUpdateRef.current = true
+            hasUserInputRef.current = false // Reset after external update
             onChange(formattedValue, isInputUsd)
-        } else {
+        } else if (isInitialInputUsd) {
             onChange(displayValue, isInputUsd)
         }
-    }, [selectedTokenData?.price]) // Seriously, this is ok
+    }, [selectedTokenData?.price, currency?.price, isInitialInputUsd, tokenValue])
 
     useEffect(() => {
         switch (displayMode) {
@@ -277,7 +326,10 @@ const TokenAmountInput = ({
     // Sync default slider suggested amount to the input
     useEffect(() => {
         if (defaultSliderSuggestedAmount) {
-            const formattedAmount = formatTokenAmount(defaultSliderSuggestedAmount.toString(), 2)
+            const formattedAmount = formatTokenAmount(
+                defaultSliderSuggestedAmount.toString(),
+                PEANUT_WALLET_TOKEN_DECIMALS
+            )
             if (formattedAmount) {
                 setTokenValue(formattedAmount)
                 setDisplayValue(formattedAmount)
@@ -304,14 +356,16 @@ const TokenAmountInput = ({
                             placeholder={'0.00'}
                             onChange={(e) => {
                                 let value = e.target.value
-                                // USD/currency → 2 decimals; token input → allow `decimals` (<= 6)
+                                // USD/currency → 6 decimals; token input → allow `decimals` (<= 6)
                                 const maxDecimals =
-                                    displayMode === 'FIAT' || displayMode === 'STABLE' || isInputUsd ? 2 : decimals
+                                    displayMode === 'FIAT' || displayMode === 'STABLE' || isInputUsd
+                                        ? PEANUT_WALLET_TOKEN_DECIMALS
+                                        : decimals
                                 const formattedAmount = formatTokenAmount(value, maxDecimals, true)
                                 if (formattedAmount !== undefined) {
                                     value = formattedAmount
                                 }
-                                onChange(value, isInputUsd)
+                                onChange(value, isInputUsd, true) // Mark as user input
                             }}
                             ref={inputRef}
                             inputMode="decimal"
@@ -346,7 +400,9 @@ const TokenAmountInput = ({
                         ≈{' '}
                         {displayMode === 'TOKEN'
                             ? alternativeDisplayValue
-                            : formatCurrency(alternativeDisplayValue.replace(',', ''))}{' '}
+                            : alternativeDisplayValue
+                              ? formatCurrency(alternativeDisplayValue.replace(',', ''))
+                              : '0.00'}{' '}
                         {alternativeDisplaySymbol}
                     </label>
                 )}

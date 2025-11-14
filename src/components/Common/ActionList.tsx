@@ -34,9 +34,9 @@ import { ActionListCard } from '../ActionListCard'
 import { useGeoFilteredPaymentOptions } from '@/hooks/useGeoFilteredPaymentOptions'
 import { tokenSelectorContext } from '@/context'
 import SupportCTA from '../Global/SupportCTA'
-import { usePaymentInitiator, type InitiatePaymentPayload } from '@/hooks/usePaymentInitiator'
 import useKycStatus from '@/hooks/useKycStatus'
-import { MIN_BANK_TRANSFER_AMOUNT, validateMinimumAmount } from '@/constants/payment.consts'
+import { usePaymentInitiator, type InitiatePaymentPayload } from '@/hooks/usePaymentInitiator'
+import { MIN_BANK_TRANSFER_AMOUNT, validateMinimumAmount } from '@/constants'
 
 interface IActionListProps {
     flow: 'claim' | 'request'
@@ -334,6 +334,12 @@ export default function ActionList({
                         )
                     }
 
+                    let methodRequiresVerification = method.id === 'bank' && requiresVerification
+
+                    if ((!isUserMantecaKycApproved && method.id == 'mercadopago') || method.id == 'pix') {
+                        methodRequiresVerification = true
+                    }
+
                     return (
                         <MethodCard
                             onClick={() => {
@@ -347,7 +353,7 @@ export default function ActionList({
                             key={method.id}
                             method={method}
                             requiresVerification={
-                                (method.id === 'bank' && requiresVerification) ||
+                                methodRequiresVerification ||
                                 (['mercadopago', 'pix'].includes(method.id) && !isUserMantecaKycApproved)
                             }
                             isDisabled={!isAmountEntered}
