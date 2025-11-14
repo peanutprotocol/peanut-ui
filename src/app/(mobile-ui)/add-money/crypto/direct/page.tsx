@@ -119,7 +119,7 @@ export default function AddMoneyCryptoDirectPage() {
                             minAmount={0.1}
                             maxAmount={30_000}
                             onValidationError={setError}
-                            disabled={inputTokenAmount === '0.00'}
+                            disabled={inputTokenAmount === '0.00' || inputTokenAmount === ''}
                         >
                             Add Money
                         </DaimoPayButton>

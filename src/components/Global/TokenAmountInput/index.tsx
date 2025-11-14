@@ -355,7 +355,9 @@ const TokenAmountInput = ({
                         ≈{' '}
                         {displayMode === 'TOKEN'
                             ? alternativeDisplayValue
-                            : formatCurrency(alternativeDisplayValue.replace(',', ''))}{' '}
+                            : alternativeDisplayValue
+                              ? formatCurrency(alternativeDisplayValue.replace(',', ''))
+                              : '0.00'}{' '}
                         {alternativeDisplaySymbol}
                     </label>
                 )}
