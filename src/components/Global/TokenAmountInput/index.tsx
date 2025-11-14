@@ -80,6 +80,14 @@ const TokenAmountInput = ({
     const [alternativeDisplayValue, setAlternativeDisplayValue] = useState<string>('0.00')
     const [alternativeDisplaySymbol, setAlternativeDisplaySymbol] = useState<string>('')
 
+    // Reset hasUserInputRef when tokenValue changes from undefined to defined (new QR/flow)
+    useEffect(() => {
+        if (tokenValue && !prevTokenValueRef.current) {
+            // New value loaded (e.g., QR scan), reset user input flag
+            hasUserInputRef.current = false
+        }
+    }, [tokenValue])
+
     const displayMode = useMemo<'TOKEN' | 'STABLE' | 'FIAT'>(() => {
         if (currency) return 'FIAT'
         if (selectedTokenData?.symbol && STABLE_COINS.includes(selectedTokenData?.symbol)) {
@@ -189,7 +197,7 @@ const TokenAmountInput = ({
                         : decimals
                 const formattedAmount = formatTokenAmount(selectedAmountStr, maxDecimals, true)
                 if (formattedAmount) {
-                    onChange(formattedAmount, isInputUsd)
+                    onChange(formattedAmount, isInputUsd, true) // Mark slider as user input
                 }
             }
         },
@@ -215,14 +223,26 @@ const TokenAmountInput = ({
 
         // Only run if tokenValue changed externally (from parent prop, not from our onChange)
         const isExternalChange = prevTokenValueRef.current !== tokenValue
-        prevTokenValueRef.current = tokenValue
 
         // Don't reconvert if user has manually entered a value (prevents precision errors on round-trip)
+        // But DO reconvert if the price changed significantly (token/currency selector change)
         if (hasUserInputRef.current && displayValue && isExternalChange) {
-            // User typed a value, backend confirmed with slight precision difference
-            // Keep user's display value, don't reconvert
-            return
+            // Check if this is a small precision change vs a major price change
+            const oldUsdValue = prevTokenValueRef.current ? Number(prevTokenValueRef.current) : 0
+            const newUsdValue = tokenValue ? Number(tokenValue) : 0
+            const percentChange = oldUsdValue ? Math.abs((newUsdValue - oldUsdValue) / oldUsdValue) : 1
+
+            // If change is < 1%, it's likely a precision round-trip, keep user's display
+            // If change is >= 1%, it's a real change (price update, new QR), reconvert
+            if (percentChange < 0.01) {
+                prevTokenValueRef.current = tokenValue
+                return // Skip reconversion for small precision differences
+            }
+            // Large change detected, reset flag and proceed with conversion
+            hasUserInputRef.current = false
         }
+
+        prevTokenValueRef.current = tokenValue
 
         if (!isInitialInputUsd && (isExternalChange || !displayValue)) {
             const value = tokenValue ? Number(tokenValue) : 0
