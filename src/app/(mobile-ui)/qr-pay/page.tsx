@@ -1310,7 +1310,7 @@ export default function QRPayPage() {
                                     onClick={() => {
                                         const now = new Date()
                                         openTransactionDetails({
-                                            id: qrPayment!.id,
+                                            id: qrPayment!.externalId,
                                             direction: 'qr_payment',
                                             userName: qrPayment!.details.merchant.name,
                                             fullName: qrPayment!.details.merchant.name,
