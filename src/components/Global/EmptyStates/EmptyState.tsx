@@ -14,8 +14,8 @@ interface EmptyStateProps {
 // EmptyState component - Used for dispalying when there's no data in a certain scneario and we want to inform users with a cta (optional)
 export default function EmptyState({ title, description, icon, cta, containerClassName }: EmptyStateProps) {
     return (
-        <Card position="single" className="p-0">
-            <div className={twMerge('flex flex-col items-center justify-center gap-2 px-4 py-6', containerClassName)}>
+        <Card position="single" className={twMerge('p-0', containerClassName)}>
+            <div className={'flex flex-col items-center justify-center gap-2 px-4 py-6'}>
                 <div className="rounded-full bg-primary-1 p-2">
                     <Icon name={icon} size={16} />
                 </div>

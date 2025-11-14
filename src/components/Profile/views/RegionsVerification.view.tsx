@@ -16,8 +16,12 @@ const RegionsVerification = () => {
 
     return (
         <div className="flex min-h-[inherit] flex-col space-y-8">
-            <NavHeader title="Regions & Verification" onPrev={() => router.replace('/profile')} />
-            <div className="my-auto space-y-2">
+            <NavHeader
+                title="Regions & Verification"
+                onPrev={() => router.replace('/profile')}
+                titleClassName="text-xl md:text-2xl"
+            />
+            <div className="my-auto">
                 <h1 className="font-bold">Unlocked regions</h1>
                 <p className="mt-2 text-sm">
                     Transfer to and receive from any bank account and use supported payments methods.
@@ -28,12 +32,13 @@ const RegionsVerification = () => {
                         title="You haven't unlocked any countries yet."
                         description="No countries unlocked yet. Complete verification to unlock countries and use supported payment methods."
                         icon="globe-lock"
+                        containerClassName="mt-3"
                     />
                 )}
 
                 <RegionsList regions={unlockedRegions} isLocked={false} />
 
-                <h1 className="font-bold">Locked regions</h1>
+                <h1 className="mt-5 font-bold">Locked regions</h1>
                 <p className="mt-2 text-sm">Where do you want to send and receive money?</p>
 
                 <RegionsList regions={lockedRegions} isLocked={true} />
@@ -51,7 +56,7 @@ interface RegionsListProps {
 const RegionsList = ({ regions, isLocked }: RegionsListProps) => {
     const router = useRouter()
     return (
-        <div>
+        <div className="mt-3">
             {regions.map((region, index) => (
                 <ActionListCard
                     key={region.path}
@@ -71,6 +76,7 @@ const RegionsList = ({ regions, isLocked }: RegionsListProps) => {
                             router.push(`/profile/identity-verification/${region.path}`)
                         }
                     }}
+                    isDisabled={!isLocked}
                     description={region.description}
                     descriptionClassName="text-xs"
                     rightContent={!isLocked ? <Icon name="check" className="size-4 text-success-1" /> : null}
