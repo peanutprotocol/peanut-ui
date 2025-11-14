@@ -53,7 +53,7 @@ const InstallPWA = ({
                     { platform: string; url?: string; id?: string; version?: string }[]
                 >
             }
-            const installedApps = (await _navigator.getInstalledRelatedApps()) ?? []
+            const installedApps = _navigator.getInstalledRelatedApps ? await _navigator.getInstalledRelatedApps() : []
             if (installedApps.length > 0) {
                 setIsPWAInstalled(true)
             } else {
