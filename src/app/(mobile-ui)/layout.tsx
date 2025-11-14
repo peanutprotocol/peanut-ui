@@ -70,16 +70,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     usePullToRefresh({ shouldPullToRefresh })
 
     useEffect(() => {
-        // Auth guard: Redirect to /setup if user is not authenticated
-        // Enhanced logic for offline cold starts:
-        // - Wait for isFetchingUser to complete (might be loading from SW cache)
-        // - Check hasToken to avoid redirect during SW cache load
-        // - Only redirect if definitely not authenticated
-        if (!isPublicPath && !isFetchingUser && !user && !hasToken) {
-            console.log('[Layout] Auth check failed: no user, no token, redirecting to /setup')
+        if (!isPublicPath && isReady && !isFetchingUser && !user) {
             router.push('/setup')
         }
-    }, [user, isFetchingUser, hasToken, isPublicPath, router])
+    }, [user, isFetchingUser, isReady, isPublicPath, router])
 
     // For public paths, skip user loading and just show content when ready
     if (isPublicPath) {

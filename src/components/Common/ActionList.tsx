@@ -34,9 +34,12 @@ import { ActionListCard } from '../ActionListCard'
 import { useGeoFilteredPaymentOptions } from '@/hooks/useGeoFilteredPaymentOptions'
 import { tokenSelectorContext } from '@/context'
 import SupportCTA from '../Global/SupportCTA'
+import { DEVCONNECT_LOGO } from '@/assets'
 import useKycStatus from '@/hooks/useKycStatus'
 import { usePaymentInitiator, type InitiatePaymentPayload } from '@/hooks/usePaymentInitiator'
 import { MIN_BANK_TRANSFER_AMOUNT, validateMinimumAmount } from '@/constants'
+
+const SHOW_INVITE_MODAL_FOR_DEVCONNECT = false
 
 interface IActionListProps {
     flow: 'claim' | 'request'
@@ -130,7 +133,9 @@ export default function ActionList({
             method.soon ||
             (method.id === 'bank' && requiresVerification) ||
             (['mercadopago', 'pix'].includes(method.id) && !isUserMantecaKycApproved),
-        methods: showDevconnectMethod ? DEVCONNECT_CLAIM_METHODS : undefined,
+        methods: showDevconnectMethod
+            ? DEVCONNECT_CLAIM_METHODS.filter((method) => method.id !== 'devconnect')
+            : undefined,
     })
 
     // Check if user has enough Peanut balance to pay for the request
@@ -283,6 +288,8 @@ export default function ActionList({
     const username = claimLinkData?.sender?.username ?? requestLinkData?.recipient?.identifier
     const userHasAppAccess = user?.user?.hasAppAccess ?? false
 
+    const devconnectMethod = DEVCONNECT_CLAIM_METHODS.find((m) => m.id === 'devconnect')!
+
     if (isGeoLoading) {
         return (
             <div className="flex w-full items-center justify-center py-8">
@@ -293,16 +300,47 @@ export default function ActionList({
 
     return (
         <div className="space-y-2">
+            {/* TODO @dev remove this after devconnect app testing phase */}
+            {showDevconnectMethod && (
+                <>
+                    <Button
+                        variant="primary-soft"
+                        shadowSize="4"
+                        icon="arrow-down"
+                        onClick={() => {
+                            if (SHOW_INVITE_MODAL_FOR_DEVCONNECT) {
+                                setSelectedMethod(devconnectMethod)
+                                setShowInviteModal(true)
+                            } else {
+                                handleMethodClick(devconnectMethod)
+                            }
+                        }}
+                    >
+                        <div className="flex items-center gap-1">
+                            Claim on <Image src={DEVCONNECT_LOGO} alt="Devconnect Logo" className="size-5" /> Devconnect
+                            app
+                        </div>
+                    </Button>
+
+                    <Divider text="or" />
+                </>
+            )}
+
             {!isLoggedIn && (
-                <Button shadowSize="4" onClick={handleContinueWithPeanut} className="flex w-full items-center gap-1">
-                    <div>Continue with </div>
+                <Button
+                    icon={showDevconnectMethod ? 'arrow-down' : undefined}
+                    shadowSize="4"
+                    onClick={handleContinueWithPeanut}
+                    className="flex w-full items-center gap-1"
+                >
+                    {showDevconnectMethod ? <div>Claim on</div> : <div>Continue with </div>}
                     <div className="flex items-center gap-1">
                         <Image src={PEANUTMAN_LOGO} alt="Peanut Logo" className="size-5" />
                         <Image src={PEANUT_LOGO_BLACK} alt="Peanut Logo" />
                     </div>
                 </Button>
             )}
-            {isInviteLink && !userHasAppAccess && username && (
+            {SHOW_INVITE_MODAL_FOR_DEVCONNECT && isInviteLink && !userHasAppAccess && username && (
                 <div className="!mt-6 flex w-full items-center justify-center gap-1 md:gap-2">
                     <Image src={starStraightImage.src} alt="star" width={20} height={20} />{' '}
                     <p className="text-center text-sm">Invited by {username}, you have early access!</p>

@@ -446,7 +446,7 @@ export default function DirectSendQr({
                 )}
                 disabled={disabled}
             >
-                <Icon name={icon} className="custom-size h-full w-11/12" />
+                <Icon name={icon} className="custom-size h-20 h-full w-20" />
             </Button>
 
             <Modal
