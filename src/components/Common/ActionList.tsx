@@ -133,7 +133,9 @@ export default function ActionList({
             method.soon ||
             (method.id === 'bank' && requiresVerification) ||
             (['mercadopago', 'pix'].includes(method.id) && !isUserMantecaKycApproved),
-        methods: showDevconnectMethod ? DEVCONNECT_CLAIM_METHODS : undefined,
+        methods: showDevconnectMethod
+            ? DEVCONNECT_CLAIM_METHODS.filter((method) => method.id !== 'devconnect')
+            : undefined,
     })
 
     // Check if user has enough Peanut balance to pay for the request
