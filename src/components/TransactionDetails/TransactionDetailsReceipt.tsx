@@ -594,9 +594,9 @@ export const TransactionDetailsReceipt = ({
                                     if (percentage === 100) {
                                         return `You received a full refund${amount ? ` (${amountStr})` : ''} as a Peanut Perk.`
                                     } else if (percentage > 100) {
-                                        return `You received ${percentage}% back${amount ? ` (${amountStr})` : ''} — that's more than you paid!`
+                                        return `You received back${amount ? ` (${amountStr})` : ''} — that's more than you paid!`
                                     } else {
-                                        return `You received ${percentage}% cashback${amount ? ` (${amountStr})` : ''} as a Peanut Perk.`
+                                        return `You received a Peanut Perk! ${amount ? ` ${amountStr}` : ''} cashback.`
                                     }
                                 })()}
                             </span>
