@@ -21,7 +21,7 @@ const RegionsVerification = () => {
                 onPrev={() => router.replace('/profile')}
                 titleClassName="text-xl md:text-2xl"
             />
-            <div className="my-auto space-y-2">
+            <div className="my-auto">
                 <h1 className="font-bold">Unlocked regions</h1>
                 <p className="mt-2 text-sm">
                     Transfer to and receive from any bank account and use supported payments methods.
@@ -37,7 +37,7 @@ const RegionsVerification = () => {
 
                 <RegionsList regions={unlockedRegions} isLocked={false} />
 
-                <h1 className="font-bold">Locked regions</h1>
+                <h1 className="mt-5 font-bold">Locked regions</h1>
                 <p className="mt-2 text-sm">Where do you want to send and receive money?</p>
 
                 <RegionsList regions={lockedRegions} isLocked={true} />
@@ -55,7 +55,7 @@ interface RegionsListProps {
 const RegionsList = ({ regions, isLocked }: RegionsListProps) => {
     const router = useRouter()
     return (
-        <div>
+        <div className="mt-3">
             {regions.map((region, index) => (
                 <ActionListCard
                     key={region.path}
