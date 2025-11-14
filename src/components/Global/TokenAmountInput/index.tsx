@@ -66,6 +66,7 @@ const TokenAmountInput = ({
     const inputRef = useRef<HTMLInputElement>(null)
     const inputType = useMemo(() => (window.innerWidth < 640 ? 'text' : 'number'), [])
     const isInternalUpdateRef = useRef(false)
+    const prevTokenValueRef = useRef<string | undefined>(tokenValue)
     const [isFocused, setIsFocused] = useState(false)
     const { deviceType } = useDeviceType()
     // Only autofocus on desktop (WEB), not on mobile devices (IOS/ANDROID)
@@ -150,6 +151,7 @@ const TokenAmountInput = ({
                     throw new Error('Invalid display mode')
                 }
             }
+            prevTokenValueRef.current = tokenValue // Track that we're updating it
             setTokenValue(tokenValue)
         },
         [displayMode, currency?.price, selectedTokenData?.price, calculateAlternativeValue]
@@ -207,13 +209,17 @@ const TokenAmountInput = ({
             return
         }
 
-        if (!isInitialInputUsd) {
+        // Only run if tokenValue changed externally (from parent prop, not from our onChange)
+        const isExternalChange = prevTokenValueRef.current !== tokenValue
+        prevTokenValueRef.current = tokenValue
+
+        if (!isInitialInputUsd && (isExternalChange || !displayValue)) {
             const value = tokenValue ? Number(tokenValue) : 0
             const calculatedValue = value * (currency?.price ?? 1)
             const formattedValue = formatTokenAmount(calculatedValue, PEANUT_WALLET_TOKEN_DECIMALS) ?? '0'
             isInternalUpdateRef.current = true
             onChange(formattedValue, isInputUsd)
-        } else {
+        } else if (isInitialInputUsd) {
             onChange(displayValue, isInputUsd)
         }
     }, [selectedTokenData?.price, currency?.price, isInitialInputUsd, tokenValue])
