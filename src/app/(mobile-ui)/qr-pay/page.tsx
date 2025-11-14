@@ -1462,7 +1462,7 @@ export default function QRPayPage() {
                     {/* Merchant Card */}
                     <Card className="p-4">
                         <div className="flex items-center space-x-3">
-                            <div className="flex items-center justify-center rounded-full bg-white">
+                            <div className="flex flex-shrink-0 items-center justify-center rounded-full bg-white">
                                 <Image
                                     src={methodIcon}
                                     alt="Payment method"
@@ -1471,11 +1471,11 @@ export default function QRPayPage() {
                                     className="h-12 w-12 rounded-full object-cover"
                                 />
                             </div>
-                            <div>
+                            <div className="min-w-0 flex-1">
                                 <p className="flex items-center gap-1 text-center text-sm text-gray-600">
                                     <Icon name="arrow-up-right" size={10} /> You're paying
                                 </p>
-                                <p className="text-xl font-semibold">{merchantName}</p>
+                                <p className="break-words text-xl font-semibold">{merchantName}</p>
                             </div>
                         </div>
                     </Card>
