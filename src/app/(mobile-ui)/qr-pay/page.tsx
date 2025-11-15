@@ -1129,13 +1129,30 @@ export default function QRPayPage() {
                                 <p className="text-sm text-gray-600">
                                     {(() => {
                                         const percentage = qrPayment?.perk?.discountPercentage || 100
-                                        if (percentage === 100) {
-                                            return 'This bill can be covered by Peanut. Claim it now to unlock your reward.'
-                                        } else if (percentage > 100) {
-                                            return `You're getting ${percentage}% back — that's more than you paid! Claim it now.`
-                                        } else {
-                                            return `You're getting ${percentage}% cashback! Claim it now to unlock your reward.`
+                                        const amountSponsored = qrPayment?.perk?.amountSponsored
+                                        const transactionUsd =
+                                            parseFloat(qrPayment?.details?.paymentAgainstAmount || '0') || 0
+
+                                        // Check if percentage matches the actual math (within 1% tolerance)
+                                        let percentageMatches = false
+                                        if (amountSponsored && transactionUsd > 0) {
+                                            const actualPercentage = (amountSponsored / transactionUsd) * 100
+                                            percentageMatches = Math.abs(actualPercentage - percentage) < 1
                                         }
+
+                                        if (percentageMatches) {
+                                            if (percentage === 100) {
+                                                return 'This bill can be covered by Peanut. Claim it now to unlock your reward.'
+                                            } else if (percentage > 100) {
+                                                return `You're getting ${percentage}% back — that's more than you paid! Claim it now.`
+                                            } else {
+                                                return `You're getting ${percentage}% cashback! Claim it now to unlock your reward.`
+                                            }
+                                        }
+
+                                        return amountSponsored && typeof amountSponsored === 'number'
+                                            ? `Get $${amountSponsored.toFixed(2)} back!`
+                                            : 'Claim it now to unlock your reward.'
                                     })()}
                                 </p>
                             </div>
