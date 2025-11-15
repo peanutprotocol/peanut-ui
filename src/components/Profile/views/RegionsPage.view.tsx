@@ -11,6 +11,8 @@ const RegionsPage = ({ path }: { path: string }) => {
     const router = useRouter()
     const { lockedRegions } = useIdentityVerification()
 
+    const hideVerifyButtonPaths = ['latam', 'rest-of-the-world']
+
     const region = lockedRegions.find((region) => region.path === path)
 
     if (!region) {
@@ -24,7 +26,7 @@ const RegionsPage = ({ path }: { path: string }) => {
 
                 <IdentityVerificationCountryList region={region.path} />
             </div>
-            {region.path !== 'latam' && (
+            {!hideVerifyButtonPaths.includes(region.path) && (
                 <div className="sticky bottom-4 flex justify-center">
                     <Button
                         onClick={() => router.push(`/profile/identity-verification/${region.path}/bridge`)}

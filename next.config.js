@@ -141,7 +141,7 @@ let nextConfig = {
                 headers: [
                     {
                         key: 'Permissions-Policy',
-                        value: 'camera=*, microphone=*, clipboard-read=(self), clipboard-write=(self)',
+                        value: 'camera=(self "*"), microphone=(self "*"), clipboard-read=(self), clipboard-write=(self)',
                     },
                 ],
             },
@@ -205,6 +205,8 @@ if (process.env.NODE_ENV !== 'development') {
         const withSerwist = (await import('@serwist/next')).default({
             swSrc: './src/app/sw.ts',
             swDest: 'public/sw.js',
+            // explicitly include offline screen assets in precache
+            additionalPrecacheEntries: ['/icons/peanut-icon.svg'],
         })
         return withSerwist(nextConfig)
     }

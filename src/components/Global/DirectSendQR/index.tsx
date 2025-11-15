@@ -5,6 +5,9 @@ import Checkbox from '@/components/0_Bruddle/Checkbox'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import Modal from '@/components/Global/Modal'
 import QRBottomDrawer from '@/components/Global/QRBottomDrawer'
+import PeanutLoading from '@/components/Global/PeanutLoading'
+// QRScanner is NOT lazy-loaded - critical path for payments, needs instant response
+// 50KB bundle cost is worth it for better UX on primary flow
 import QRScanner from '@/components/Global/QRScanner'
 import { useAuth } from '@/context/authContext'
 import { usePush } from '@/context/pushProvider'
@@ -438,7 +441,7 @@ export default function DirectSendQr({
                 shadowSize="4"
                 shadowType="primary"
                 className={twMerge(
-                    'mx-auto h-20 w-20 cursor-pointer justify-center rounded-full p-4 hover:bg-primary-1/100',
+                    'mx-auto h-20 w-20 cursor-pointer justify-center rounded-full p-4.5 hover:bg-primary-1/100',
                     className
                 )}
                 disabled={disabled}
@@ -499,12 +502,15 @@ export default function DirectSendQr({
             {isQRScannerOpen && (
                 <>
                     <QRScanner onScan={processQRCode} onClose={() => setIsQRScannerOpen(false)} isOpen={true} />
+                    {/* Render QRBottomDrawer with z-[60] to ensure it appears above QRScanner (z-50)
+                        This allows "scan OR be scanned" dual functionality */}
                     <QRBottomDrawer
                         url={payUserUrl}
                         collapsedTitle="My QR"
                         expandedTitle="Show QR to Get Paid"
                         text="Let others scan this to pay you"
                         buttonText="Share your profile"
+                        className="z-[60]"
                     />
                 </>
             )}

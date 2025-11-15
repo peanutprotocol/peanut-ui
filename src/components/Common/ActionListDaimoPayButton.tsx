@@ -1,4 +1,4 @@
-import { useCallback, useState, useRef, useEffect } from 'react'
+import { useCallback, useState, useRef } from 'react'
 import IconStack from '../Global/IconStack'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
@@ -16,12 +16,16 @@ interface ActionListDaimoPayButtonProps {
     handleContinueWithPeanut: () => void
     showConfirmModal: boolean
     onBeforeShow?: () => boolean | Promise<boolean>
+    isDisabled?: boolean
+    clickHandlerRef?: React.MutableRefObject<(() => void) | null>
 }
 
 const ActionListDaimoPayButton = ({
     handleContinueWithPeanut,
     showConfirmModal,
     onBeforeShow,
+    isDisabled,
+    clickHandlerRef,
 }: ActionListDaimoPayButtonProps) => {
     const dispatch = useAppDispatch()
     const searchParams = useSearchParams()
@@ -110,10 +114,18 @@ const ActionListDaimoPayButton = ({
             if (chargeDetails) {
                 dispatch(paymentActions.setIsDaimoPaymentProcessing(true))
                 try {
+                    // validate and parse destination chain id with proper fallback
+                    // use chargeDetails chainId if it's a valid non-negative integer, otherwise use daimo response
+                    const parsedChainId = Number(chargeDetails.chainId)
+                    const destinationChainId =
+                        Number.isInteger(parsedChainId) && parsedChainId >= 0
+                            ? parsedChainId
+                            : Number(daimoPaymentResponse.payment.destination.chainId)
+
                     const result = await completeDaimoPayment({
                         chargeDetails: chargeDetails,
                         txHash: daimoPaymentResponse.txHash as string,
-                        destinationchainId: daimoPaymentResponse.payment.destination.chainId,
+                        destinationchainId: destinationChainId,
                         payerAddress: peanutWalletAddress ?? daimoPaymentResponse.payment.source.payerAddress,
                         sourceChainId: daimoPaymentResponse.payment.source.chainId,
                         sourceTokenAddress: daimoPaymentResponse.payment.source.tokenAddress,
@@ -146,6 +158,8 @@ const ActionListDaimoPayButton = ({
             <DaimoPayButton
                 amount={usdAmount ?? '0.10'}
                 toAddress={parsedPaymentData.recipient.resolvedAddress}
+                toChainId={parsedPaymentData.chain?.chainId ? Number(parsedPaymentData.chain.chainId) : undefined}
+                toTokenAddress={parsedPaymentData.token?.address}
                 onPaymentCompleted={handleCompleteDaimoPayment}
                 onBeforeShow={async () => {
                     // First check if parent wants to intercept (e.g. show balance modal)
@@ -176,10 +190,14 @@ const ActionListDaimoPayButton = ({
                 {({ onClick, loading }) => {
                     // Store the onClick function so we can trigger it from elsewhere
                     daimoPayButtonClickRef.current = onClick
+                    // also store in parent ref if provided (for balance modal in ActionList)
+                    if (clickHandlerRef) {
+                        clickHandlerRef.current = onClick
+                    }
 
                     return (
                         <ActionListCard
-                            isDisabled={loading || isProcessing}
+                            isDisabled={loading || isProcessing || isDisabled}
                             position="single"
                             description={method.description}
                             descriptionClassName="text-[12px]"

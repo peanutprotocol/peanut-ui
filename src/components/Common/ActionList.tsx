@@ -5,7 +5,7 @@ import IconStack from '../Global/IconStack'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { type ClaimLinkData } from '@/services/sendLinks'
 import { formatUnits } from 'viem'
-import { useContext, useCallback, useMemo, useState } from 'react'
+import { useContext, useMemo, useState, useRef } from 'react'
 import ActionModal from '@/components/Global/ActionModal'
 import Divider from '../0_Bruddle/Divider'
 import { Button } from '../0_Bruddle'
@@ -15,7 +15,7 @@ import { useRouter } from 'next/navigation'
 import { PEANUTMAN_LOGO } from '@/assets/peanut'
 import { BankClaimType, useDetermineBankClaimType } from '@/hooks/useDetermineBankClaimType'
 import useSavedAccounts from '@/hooks/useSavedAccounts'
-import { RequestFulfillmentBankFlowStep, useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
+import { useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import { type ParsedURL } from '@/lib/url-parser/types/payment'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermineBankRequestType'
@@ -36,6 +36,8 @@ import { tokenSelectorContext } from '@/context'
 import SupportCTA from '../Global/SupportCTA'
 import { DEVCONNECT_LOGO } from '@/assets'
 import useKycStatus from '@/hooks/useKycStatus'
+import { usePaymentInitiator } from '@/hooks/usePaymentInitiator'
+import { MIN_BANK_TRANSFER_AMOUNT, validateMinimumAmount } from '@/constants'
 
 const SHOW_INVITE_MODAL_FOR_DEVCONNECT = false
 
@@ -47,6 +49,7 @@ interface IActionListProps {
     isInviteLink?: boolean
     showDevconnectMethod?: boolean
     setExternalWalletRecipient?: (recipient: { name: string | undefined; address: string }) => void
+    usdAmount?: string
 }
 
 /**
@@ -65,6 +68,7 @@ export default function ActionList({
     isInviteLink = false,
     showDevconnectMethod,
     setExternalWalletRecipient,
+    usdAmount: usdAmountValue,
 }: IActionListProps) {
     const router = useRouter()
     const {
@@ -78,15 +82,13 @@ export default function ActionList({
     const { balance } = useWallet()
     const [showMinAmountError, setShowMinAmountError] = useState(false)
     const { claimType } = useDetermineBankClaimType(claimLinkData?.sender?.userId ?? '')
-    const { chargeDetails } = usePaymentStore()
+    const { chargeDetails, usdAmount, parsedPaymentData } = usePaymentStore()
     const requesterUserId = chargeDetails?.requestLink?.recipientAccount?.userId ?? ''
     const { requestType } = useDetermineBankRequestType(requesterUserId)
     const savedAccounts = useSavedAccounts()
-    const { usdAmount } = usePaymentStore()
     const { addParamStep } = useClaimLink()
     const {
         setShowRequestFulfilmentBankFlowManager,
-        setShowExternalWalletFulfillMethods,
         setFlowStep: setRequestFulfilmentBankFlowStep,
         setFulfillUsingManteca,
         setRegionalMethodType: setRequestFulfillmentRegionalMethodType,
@@ -106,7 +108,11 @@ export default function ActionList({
     const [isUsePeanutBalanceModalShown, setIsUsePeanutBalanceModalShown] = useState(false)
     const [showUsePeanutBalanceModal, setShowUsePeanutBalanceModal] = useState(false)
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null)
+    const { initiatePayment, loadingStep } = usePaymentInitiator()
     const { isUserMantecaKycApproved } = useKycStatus()
+    const isPaymentInProgress = loadingStep !== 'Idle' && loadingStep !== 'Error' && loadingStep !== 'Success'
+    // ref to store daimo button click handler for triggering from balance modal
+    const daimoButtonClickRef = useRef<(() => void) | null>(null)
 
     const dispatch = useAppDispatch()
 
@@ -120,18 +126,15 @@ export default function ActionList({
         return false
     }, [claimType, requestType, flow])
 
-    // Memoize the callback to prevent unnecessary re-sorts
-    const isMethodUnavailable = useCallback(
-        (method: PaymentMethod) => method.soon || (method.id === 'bank' && requiresVerification),
-        [requiresVerification]
-    )
-
     // use the hook to filter and sort payment methods based on geolocation
     const { filteredMethods: sortedActionMethods, isLoading: isGeoLoading } = useGeoFilteredPaymentOptions({
         sortUnavailable: true,
-        isMethodUnavailable: (method) => method.soon || (method.id === 'bank' && requiresVerification),
+        isMethodUnavailable: (method) =>
+            method.soon ||
+            (method.id === 'bank' && requiresVerification) ||
+            (['mercadopago', 'pix'].includes(method.id) && !isUserMantecaKycApproved),
         methods: showDevconnectMethod
-            ? DEVCONNECT_CLAIM_METHODS.filter((method) => method.id !== 'devconnect') //TODO @dev remove this after devconnect app testing phase
+            ? DEVCONNECT_CLAIM_METHODS.filter((method) => method.id !== 'devconnect')
             : undefined,
     })
 
@@ -139,7 +142,24 @@ export default function ActionList({
     const amountInUsd = usdAmount ? parseFloat(usdAmount) : 0
     const hasSufficientPeanutBalance = user && balance && Number(balance) >= amountInUsd
 
+    // check if amount is valid for request flow
+    const currentRequestAmount = usdAmountValue ?? usdAmount
+    const requestAmountValue = currentRequestAmount ? parseFloat(currentRequestAmount) : 0
+    const isAmountEntered = flow === 'request' ? !!currentRequestAmount && requestAmountValue > 0 : true
+
     const handleMethodClick = async (method: PaymentMethod, bypassBalanceModal = false) => {
+        // validate minimum amount for bank/mercado pago/pix in request flow
+        if (flow === 'request' && requestLinkData) {
+            // check minimum amount for bank/mercado pago/pix
+            if (
+                ['bank', 'mercadopago', 'pix'].includes(method.id) &&
+                !validateMinimumAmount(requestAmountValue, method.id)
+            ) {
+                setShowMinAmountError(true)
+                return
+            }
+        }
+
         // For request flow: Check if user has sufficient Peanut balance and hasn't dismissed the modal
         if (flow === 'request' && requestLinkData && !bypassBalanceModal) {
             if (!isUsePeanutBalanceModalShown && hasSufficientPeanutBalance) {
@@ -151,7 +171,7 @@ export default function ActionList({
 
         if (flow === 'claim' && claimLinkData) {
             const amountInUsd = parseFloat(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals))
-            if (method.id === 'bank' && amountInUsd < 5) {
+            if (method.id === 'bank' && !validateMinimumAmount(amountInUsd, method.id)) {
                 setShowMinAmountError(true)
                 return
             }
@@ -196,40 +216,21 @@ export default function ActionList({
                     break
             }
         } else if (flow === 'request' && requestLinkData) {
-            // @dev TODO: Fix req fulfillment with bank properly post devconnect
-            if (method.id === 'bank') {
-                if (user?.user) {
-                    router.push('/add-money')
-                } else {
-                    const redirectUri = encodeURIComponent('/add-money')
-                    router.push(`/setup?redirect_uri=${redirectUri}`)
-                }
-                return
-            }
-
+            // for bank/mercadopago/pix in request flow, redirect to add-money flow
             switch (method.id) {
                 case 'bank':
-                    if (requestType === BankRequestType.GuestKycNeeded) {
-                        addParamStep('bank')
-                        setIsGuestVerificationModalOpen(true)
-                    } else {
-                        setShowRequestFulfilmentBankFlowManager(true)
-                        setRequestFulfilmentBankFlowStep(RequestFulfillmentBankFlowStep.BankCountryList)
-                    }
-                    break
                 case 'mercadopago':
                 case 'pix':
-                    if (!user) {
-                        addParamStep('regional-req-fulfill')
-                        setIsGuestVerificationModalOpen(true)
-                        return
+                    if (user?.user) {
+                        // user is logged in, redirect to add-money
+                        router.push('/add-money')
+                    } else {
+                        // user is not logged in, save redirect url and go to setup
+                        const redirectUri = encodeURIComponent('/add-money')
+                        router.push(`/setup?redirect_uri=${redirectUri}`)
                     }
-                    setRequestFulfillmentRegionalMethodType(method.id)
-                    setFulfillUsingManteca(true)
                     break
-                case 'exchange-or-wallet':
-                    setShowExternalWalletFulfillMethods(true)
-                    break
+                // 'exchange-or-wallet' case removed - handled by ActionListDaimoPayButton
             }
         }
     }
@@ -333,6 +334,8 @@ export default function ActionList({
                                         }
                                         return true // Proceed with Daimo
                                     }}
+                                    isDisabled={!isAmountEntered}
+                                    clickHandlerRef={daimoButtonClickRef}
                                 />
                             </div>
                         )
@@ -340,7 +343,7 @@ export default function ActionList({
 
                     let methodRequiresVerification = method.id === 'bank' && requiresVerification
 
-                    if ((!isUserMantecaKycApproved && method.id == 'mercadopago') || method.id == 'pix') {
+                    if (!isUserMantecaKycApproved && ['mercadopago', 'pix'].includes(method.id)) {
                         methodRequiresVerification = true
                     }
 
@@ -356,7 +359,11 @@ export default function ActionList({
                             }}
                             key={method.id}
                             method={method}
-                            requiresVerification={methodRequiresVerification}
+                            requiresVerification={
+                                methodRequiresVerification ||
+                                (['mercadopago', 'pix'].includes(method.id) && !isUserMantecaKycApproved)
+                            }
+                            isDisabled={!isAmountEntered}
                         />
                     )
                 })}
@@ -365,14 +372,15 @@ export default function ActionList({
             <ActionModal
                 visible={showMinAmountError}
                 onClose={() => setShowMinAmountError(false)}
-                title="Minimum Amount "
-                description={'The minimum amount for a bank transaction is $5. Please try a different method.'}
+                title="Minimum Amount"
+                description={`The minimum amount for this payment method is $${MIN_BANK_TRANSFER_AMOUNT}. Please enter a higher amount or try a different method.`}
                 icon="alert"
                 ctas={[{ text: 'Close', shadowSize: '4', onClick: () => setShowMinAmountError(false) }]}
                 iconContainerClassName="bg-yellow-400"
                 preventClose={false}
                 modalPanelClassName="max-w-md mx-8"
             />
+
             <GuestVerificationModal
                 secondaryCtaLabel="Use other method"
                 isOpen={isGuestVerificationModalOpen}
@@ -432,7 +440,16 @@ export default function ActionList({
                             setIsUsePeanutBalanceModalShown(true)
                             // Proceed with the method the user originally selected
                             if (selectedPaymentMethod) {
-                                handleMethodClick(selectedPaymentMethod, true) // true = bypass modal check
+                                // for exchange-or-wallet, trigger daimo button after state updates
+                                if (selectedPaymentMethod.id === 'exchange-or-wallet' && daimoButtonClickRef.current) {
+                                    // use setTimeout to ensure state updates are processed before triggering daimo
+                                    setTimeout(() => {
+                                        daimoButtonClickRef.current?.()
+                                    }, 0)
+                                } else {
+                                    // for other methods, use handleMethodClick
+                                    handleMethodClick(selectedPaymentMethod, true) // true = bypass modal check
+                                }
                             }
                             setSelectedPaymentMethod(null)
                         },
@@ -450,10 +467,12 @@ export const MethodCard = ({
     method,
     onClick,
     requiresVerification,
+    isDisabled,
 }: {
     method: PaymentMethod
     onClick: () => void
     requiresVerification?: boolean
+    isDisabled?: boolean
 }) => {
     return (
         <ActionListCard
@@ -472,7 +491,7 @@ export const MethodCard = ({
                 </div>
             }
             onClick={onClick}
-            isDisabled={method.soon}
+            isDisabled={method.soon || isDisabled}
             rightContent={<IconStack icons={method.icons} iconSize={method.id === 'bank' ? 80 : 24} />}
         />
     )

@@ -34,6 +34,7 @@ export const OnrampConfirmationModal = ({
             }
             content={
                 <div className="flex w-full flex-col gap-4">
+                    <h2 className="mr-auto font-bold">In the next step you'll see:</h2>
                     <InfoCard variant="default" items={['Bank details to send money to', 'A deposit reference code']} />
                     <h2 className="mr-auto font-bold">You MUST:</h2>
                     <InfoCard

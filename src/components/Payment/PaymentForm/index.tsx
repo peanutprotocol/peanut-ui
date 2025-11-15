@@ -10,8 +10,9 @@ import FileUploadInput from '@/components/Global/FileUploadInput'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
+import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import UserCard from '@/components/User/UserCard'
-import { PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
+import { PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS, PEANUT_WALLET_CHAIN } from '@/constants'
 import { tokenSelectorContext } from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
@@ -35,7 +36,6 @@ import { useAccount } from 'wagmi'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { useUserByUsername } from '@/hooks/useUserByUsername'
 import { type PaymentFlow } from '@/app/[...recipient]/client'
-import MantecaFulfillment from '../Views/MantecaFulfillment.view'
 import { invitesApi } from '@/services/invites'
 import { EInviteType } from '@/services/services.types'
 import ContributorCard from '@/components/Global/Contributors/ContributorCard'
@@ -85,15 +85,9 @@ export const PaymentForm = ({
         error: paymentStoreError,
         attachmentOptions,
         currentView,
+        parsedPaymentData,
     } = usePaymentStore()
-    const {
-        setShowExternalWalletFulfillMethods,
-        setExternalWalletFulfillMethod,
-        fulfillUsingManteca,
-        setFulfillUsingManteca,
-        triggerPayWithPeanut,
-        setTriggerPayWithPeanut,
-    } = useRequestFulfillmentFlow()
+    const { triggerPayWithPeanut, setTriggerPayWithPeanut } = useRequestFulfillmentFlow()
     const recipientUsername = !chargeDetails && recipient?.recipientType === 'USERNAME' ? recipient.identifier : null
     const { user: recipientUser } = useUserByUsername(recipientUsername)
 
@@ -182,6 +176,9 @@ export const PaymentForm = ({
             setInputTokenAmount(amount)
         }
 
+        // for ADDRESS/ENS recipients, initialize token/chain from URL or defaults
+        const isExternalRecipient = recipient?.recipientType === 'ADDRESS' || recipient?.recipientType === 'ENS'
+
         if (chain) {
             setSelectedChainID((chain.chainId || requestDetails?.chainId) ?? '')
             if (!token && !requestDetails?.tokenAddress) {
@@ -191,15 +188,37 @@ export const PaymentForm = ({
                     // Note: decimals automatically derived by useTokenPrice hook
                 }
             }
+        } else if (isExternalRecipient && !selectedChainID) {
+            // default to arbitrum for external recipients if no chain specified
+            setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
         }
 
         if (token) {
             setSelectedTokenAddress((token.address || requestDetails?.tokenAddress) ?? '')
             // Note: decimals automatically derived by useTokenPrice hook
+        } else if (isExternalRecipient && !selectedTokenAddress && selectedChainID) {
+            // default to USDC for external recipients if no token specified
+            const chainData = supportedSquidChainsAndTokens[selectedChainID]
+            const defaultToken = chainData?.tokens.find((t) => t.symbol.toLowerCase() === 'usdc')
+            if (defaultToken) {
+                setSelectedTokenAddress(defaultToken.address)
+            }
         }
 
         setInitialSetupDone(true)
-    }, [chain, token, amount, initialSetupDone, requestDetails, showRequestPotInitialView, isRequestPotLink])
+    }, [
+        chain,
+        token,
+        amount,
+        initialSetupDone,
+        requestDetails,
+        showRequestPotInitialView,
+        isRequestPotLink,
+        recipient?.recipientType,
+        selectedChainID,
+        selectedTokenAddress,
+        supportedSquidChainsAndTokens,
+    ])
 
     // reset error when component mounts or recipient changes
     useEffect(() => {
@@ -244,12 +263,27 @@ export const PaymentForm = ({
                 }
             } else {
                 // regular send/pay
+                const isExternalRecipient = recipient?.recipientType === 'ADDRESS' || recipient?.recipientType === 'ENS'
+
                 if (
                     !showRequestPotInitialView && // don't apply balance check on request pot payment initial view
                     isActivePeanutWallet &&
+                    !isExternalRecipient
+                ) {
+                    // peanut wallet payment for USERNAME recipients
+                    const walletNumeric = parseFloat(String(peanutWalletBalance).replace(/,/g, ''))
+                    if (walletNumeric < parsedInputAmount) {
+                        dispatch(paymentActions.setError('Insufficient balance'))
+                    } else {
+                        dispatch(paymentActions.setError(null))
+                    }
+                } else if (
+                    !showRequestPotInitialView &&
+                    isActivePeanutWallet &&
+                    isExternalRecipient &&
                     areEvmAddressesEqual(selectedTokenAddress, PEANUT_WALLET_TOKEN)
                 ) {
-                    // peanut wallet payment
+                    // for external recipients (ADDRESS/ENS) paying with peanut wallet, check peanut wallet balance directly
                     const walletNumeric = parseFloat(String(peanutWalletBalance).replace(/,/g, ''))
                     if (walletNumeric < parsedInputAmount) {
                         dispatch(paymentActions.setError('Insufficient balance'))
@@ -274,6 +308,9 @@ export const PaymentForm = ({
                     } else {
                         dispatch(paymentActions.setError(null))
                     }
+                } else if (isExternalRecipient && isActivePeanutWallet) {
+                    // for external recipients with peanut wallet using non-USDC tokens, balance will be checked via cross-chain route
+                    dispatch(paymentActions.setError(null))
                 } else {
                     dispatch(paymentActions.setError(null))
                 }
@@ -304,6 +341,7 @@ export const PaymentForm = ({
         currentView,
         isProcessing,
         hasPendingTransactions,
+        recipient?.recipientType,
     ])
 
     // Calculate USD value when requested token price is available
@@ -339,7 +377,12 @@ export const PaymentForm = ({
                 (!!inputTokenAmount && parseFloat(inputTokenAmount) > 0) || (!!usdValue && parseFloat(usdValue) > 0)
         }
 
-        const tokenSelected = !!selectedTokenAddress && !!selectedChainID
+        const isExternalRecipient = recipient?.recipientType === 'ADDRESS' || recipient?.recipientType === 'ENS'
+        // for external recipients, token selection is required
+        // for USERNAME recipients, token is always PEANUT_WALLET_TOKEN
+        const tokenSelected = isExternalRecipient
+            ? !!selectedTokenAddress && !!selectedChainID
+            : !!selectedTokenAddress && !!selectedChainID
         const recipientExists = !!recipient
         const walletConnected = isConnected
 
@@ -391,9 +434,10 @@ export const PaymentForm = ({
         if (inviteError) {
             setInviteError(false)
         }
-        // Invites will be handled in the payment page, skip this step for request pots initial view
+        // redirect to add money if insufficient balance
         if (!showRequestPotInitialView && isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow) {
-            // If the user doesn't have app access, accept the invite before claiming the link
+            // if the user doesn't have app access, accept the invite before redirecting
+            // only applies to USERNAME recipients (invite links)
             if (recipient.recipientType === 'USERNAME' && !user?.user.hasAppAccess) {
                 const isAccepted = await handleAcceptInvite()
                 if (!isAccepted) return
@@ -481,7 +525,7 @@ export const PaymentForm = ({
             chargeId: chargeDetails?.uuid,
             currency,
             currencyAmount,
-            isExternalWalletFlow: !!isExternalWalletFlow || fulfillUsingManteca,
+            isExternalWalletFlow: !!isExternalWalletFlow,
             transactionType: isExternalWalletFlow
                 ? 'DEPOSIT'
                 : isDirectUsdPayment || !requestId
@@ -499,7 +543,7 @@ export const PaymentForm = ({
             triggerHaptic()
             dispatch(paymentActions.setView('STATUS'))
         } else if (result.status === 'Charge Created') {
-            if (!fulfillUsingManteca && !showRequestPotInitialView) {
+            if (!showRequestPotInitialView) {
                 dispatch(paymentActions.setView('CONFIRM'))
             }
         } else if (result.status === 'Error') {
@@ -508,7 +552,6 @@ export const PaymentForm = ({
             console.warn('Unexpected status from usePaymentInitiator:', result.status)
         }
     }, [
-        fulfillUsingManteca,
         canInitiatePayment,
         isDepositRequest,
         isConnected,
@@ -606,21 +649,6 @@ export const PaymentForm = ({
         }
     }, [amount, inputTokenAmount, initialSetupDone, showRequestPotInitialView])
 
-    useEffect(() => {
-        const stepFromURL = searchParams.get('step')
-        if (user && stepFromURL === 'regional-req-fulfill') {
-            setFulfillUsingManteca(true)
-        } else {
-            setFulfillUsingManteca(false)
-        }
-    }, [user, searchParams])
-
-    useEffect(() => {
-        if (fulfillUsingManteca && !chargeDetails) {
-            handleInitiatePayment()
-        }
-    }, [fulfillUsingManteca, chargeDetails, handleInitiatePayment])
-
     // Trigger payment with peanut from action list
     useEffect(() => {
         if (triggerPayWithPeanut) {
@@ -630,7 +658,7 @@ export const PaymentForm = ({
     }, [triggerPayWithPeanut, handleInitiatePayment, setTriggerPayWithPeanut])
 
     const isInsufficientBalanceError = useMemo(() => {
-        return error?.includes("You don't have enough balance.")
+        return error?.includes("You don't have enough balance.") || error?.includes('Insufficient balance')
     }, [error])
 
     const isButtonDisabled = useMemo(() => {
@@ -678,11 +706,7 @@ export const PaymentForm = ({
     }, [recipient])
 
     const handleGoBack = () => {
-        if (isExternalWalletFlow) {
-            setShowExternalWalletFulfillMethods(true)
-            setExternalWalletFulfillMethod(null)
-            return
-        } else if (window.history.length > 1) {
+        if (window.history.length > 1) {
             router.back()
         } else {
             router.push('/')
@@ -736,10 +760,6 @@ export const PaymentForm = ({
         // Cap at 100% max
         return { percentage: Math.min(percentage, 100), suggestedAmount }
     }, [requestDetails?.charges, requestDetails?.tokenAmount, totalAmountCollected])
-
-    if (fulfillUsingManteca && chargeDetails) {
-        return <MantecaFulfillment />
-    }
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
@@ -809,30 +829,27 @@ export const PaymentForm = ({
                     defaultSliderSuggestedAmount={defaultSliderValue.suggestedAmount}
                 />
 
-                {/*
-                    Url request flow (peanut.me/<address>)
-                    If we are paying from peanut wallet we only need to
-                    select a token if it's not included in the url
-                    From other wallets we always need to select a token
-                */}
-                {/* we dont need this as daimo will handle token selection */}
-                {/* {!(chain && isPeanutWalletConnected) && isConnected && !isAddMoneyFlow && (
-                    <div className="space-y-2">
-                        {!isPeanutWalletUSDC && !selectedTokenAddress && !selectedChainID && (
-                            <div className="text-sm font-bold">Select token and chain to receive</div>
-                        )}
-                        <TokenSelector viewType="req_pay" />
-                        {!isPeanutWalletUSDC && selectedTokenAddress && selectedChainID && (
-                            <div className="pt-1 text-center text-xs text-grey-1">
-                                <span>Use USDC on Arbitrum for free transactions!</span>
-                            </div>
-                        )}
-                    </div>
-                )} */}
-
-                {/* {isExternalWalletConnected && isAddMoneyFlow && (
-                    <TokenSelector viewType="add" disabled={!isExternalWalletConnected && isAddMoneyFlow} />
-                )} */}
+                {/* Token selector for external ADDRESS/ENS recipients */}
+                {/* only show if chain is not specified in URL */}
+                {!isExternalWalletFlow &&
+                    !showRequestPotInitialView &&
+                    !chain?.chainId &&
+                    (recipient?.recipientType === 'ADDRESS' || recipient?.recipientType === 'ENS') &&
+                    isConnected && (
+                        <div className="space-y-2">
+                            <TokenSelector viewType="req_pay" />
+                            {selectedTokenAddress &&
+                                selectedChainID &&
+                                !(
+                                    areEvmAddressesEqual(selectedTokenAddress, PEANUT_WALLET_TOKEN) &&
+                                    selectedChainID === PEANUT_WALLET_CHAIN.id.toString()
+                                ) && (
+                                    <div className="pt-1 text-center text-xs text-grey-1">
+                                        <span>Use USDC on Arbitrum for free transactions!</span>
+                                    </div>
+                                )}
+                        </div>
+                    )}
 
                 {isDirectUsdPayment && (
                     <FileUploadInput

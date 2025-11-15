@@ -20,14 +20,12 @@ import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
-import { formatAmount, getInitialsFromName } from '@/utils'
+import { formatAmount, getInitialsFromName, updateUserPreferences, getUserPreferences } from '@/utils'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { fetchTokenPrice } from '@/app/actions/tokens'
-import { GenericBanner } from '@/components/Global/Banner'
 import { RequestFulfillmentBankFlowStep, useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
-import ExternalWalletFulfilManager from '@/components/Request/views/ExternalWalletFulfilManager'
 import ActionList from '@/components/Common/ActionList'
 import NavHeader from '@/components/Global/NavHeader'
 import { ReqFulfillBankFlowManager } from '@/components/Request/views/ReqFulfillBankFlowManager'
@@ -36,6 +34,7 @@ import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermi
 import { PointsAction } from '@/services/services.types'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import { useHaptic } from 'use-haptic'
+import { MAX_DEVCONNECT_INTENTS } from '@/constants'
 
 export type PaymentFlow = 'request_pay' | 'external_wallet' | 'direct_pay' | 'withdraw'
 interface Props {
@@ -66,11 +65,9 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     const { isDrawerOpen, selectedTransaction, openTransactionDetails } = useTransactionDetailsDrawer()
     const [isLinkCancelling, setisLinkCancelling] = useState(false)
     const {
-        showExternalWalletFulfillMethods,
         showRequestFulfilmentBankFlowManager,
         setShowRequestFulfilmentBankFlowManager,
         setFlowStep: setRequestFulfilmentBankFlowStep,
-        fulfillUsingManteca,
     } = useRequestFulfillmentFlow()
     const { requestType } = useDetermineBankRequestType(chargeDetails?.requestLink.recipientAccount.userId ?? '')
     const { triggerHaptic } = useHaptic()
@@ -176,6 +173,67 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                 }
                 dispatch(paymentActions.setParsedPaymentData(updatedParsedData))
                 setIsUrlParsed(true)
+
+                // ------------------------------------------------------------------------------------------------
+                // @dev: save devconnect flow info to user preferences so it persists across navigation
+                // this is needed because payment state gets reset on unmount
+                if (updatedParsedData.isDevConnectFlow && user?.user?.userId) {
+                    // validate required fields before storing (amount is optional at this stage)
+                    const recipientAddress = updatedParsedData.recipient?.resolvedAddress
+                    const chainId = updatedParsedData.chain?.chainId
+                    const amount = updatedParsedData.amount
+
+                    if (recipientAddress && chainId) {
+                        // create deterministic id based on recipient + chain only (not amount, as amount changes during flow)
+                        const createDeterministicId = (addr: string, chain: string): string => {
+                            const str = `${addr.toLowerCase()}-${chain.toLowerCase()}`
+                            let hash = 0
+                            for (let i = 0; i < str.length; i++) {
+                                const char = str.charCodeAt(i)
+                                hash = (hash << 5) - hash + char
+                                hash = hash & hash // convert to 32bit integer
+                            }
+                            return Math.abs(hash).toString(36)
+                        }
+
+                        const intentId = createDeterministicId(recipientAddress, chainId)
+                        const prefs = getUserPreferences(user.user.userId)
+                        const existingIntents = prefs?.devConnectIntents ?? []
+
+                        // check if intent with same id already exists
+                        const existingIntent = existingIntents.find((intent) => intent.id === intentId)
+
+                        if (!existingIntent) {
+                            // create new intent
+                            const sortedIntents = existingIntents.sort((a, b) => b.createdAt - a.createdAt)
+                            const prunedIntents = sortedIntents.slice(0, MAX_DEVCONNECT_INTENTS - 1)
+
+                            updateUserPreferences(user.user.userId, {
+                                devConnectIntents: [
+                                    {
+                                        id: intentId,
+                                        recipientAddress,
+                                        chain: chainId,
+                                        amount: amount || '',
+                                        createdAt: Date.now(),
+                                        status: 'pending',
+                                    },
+                                    ...prunedIntents,
+                                ],
+                            })
+                        } else if (amount && amount !== existingIntent.amount) {
+                            // update existing intent with new amount if provided
+                            const updatedIntents = existingIntents.map((intent) =>
+                                intent.id === intentId ? { ...intent, amount, createdAt: Date.now() } : intent
+                            )
+                            updateUserPreferences(user.user.userId, {
+                                devConnectIntents: updatedIntents,
+                            })
+                        }
+                    }
+
+                    // ------------------------------------------------------------------------------------------------
+                }
 
                 // render PUBLIC_PROFILE view if applicable
                 if (
@@ -417,9 +475,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         }
     }, [transactionForDrawer, currentView, dispatch, openTransactionDetails, isExternalWalletFlow, chargeId])
 
-    const showActionList =
-        (flow !== 'direct_pay' || (flow === 'direct_pay' && !user)) && // Show for direct-pay when user is not logged in
-        !fulfillUsingManteca // Show when not fulfilling using Manteca
+    const showActionList = flow !== 'direct_pay' || (flow === 'direct_pay' && !user) // Show for direct-pay when user is not logged in
     // Send to bank step if its mentioned in the URL and guest KYC is not needed
     useEffect(() => {
         const stepFromURL = searchParams.get('step')
@@ -462,11 +518,6 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         )
     }
 
-    // render external wallet fulfilment methods
-    if (showExternalWalletFulfillMethods) {
-        return <ExternalWalletFulfilManager parsedPaymentData={parsedPaymentData as ParsedURL} />
-    }
-
     // render request fulfilment bank flow manager
     if (showRequestFulfilmentBankFlowManager) {
         return <ReqFulfillBankFlowManager parsedPaymentData={parsedPaymentData as ParsedURL} />
@@ -491,15 +542,6 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
 
     return (
         <div className={twMerge('mx-auto min-h-[inherit] w-full space-y-8 self-center')}>
-            {!user && parsedPaymentData?.recipient?.recipientType !== 'USERNAME' && (
-                <div className="absolute left-0 top-0 z-50 md:top-22 md:z-0">
-                    <GenericBanner
-                        message="THIS FEATURE IS CURRENTLY IN TESTING - ONLY USE WITH SMALL AMOUNTS"
-                        marqueeClassName="flex h-11 items-center justify-center border-b-2 border-black"
-                        messageClassName="text-lg"
-                    />
-                </div>
-            )}
             {currentView === 'INITIAL' && (
                 <div className="space-y-2">
                     <InitialPaymentView
@@ -530,6 +572,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                                 isInviteLink={
                                     flow === 'request_pay' && parsedPaymentData?.recipient?.recipientType === 'USERNAME'
                                 } // invite link is only available for request pay flow
+                                usdAmount={usdAmount ?? undefined}
                             />
                         )}
                     </div>

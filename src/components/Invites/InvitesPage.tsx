@@ -1,5 +1,5 @@
 'use client'
-import React, { Suspense, useEffect } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import PeanutLoading from '../Global/PeanutLoading'
 import ValidationErrorView from '../Payment/Views/Error.validation.view'
 import InvitesPageLayout from './InvitesPageLayout'
@@ -17,16 +17,30 @@ import { saveToCookie } from '@/utils'
 import { useLogin } from '@/hooks/useLogin'
 import UnsupportedBrowserModal from '../Global/UnsupportedBrowserModal'
 
+// mapping of special invite codes to their campaign tags
+// when these invite codes are used, the corresponding campaign tag is automatically applied
+const INVITE_CODE_TO_CAMPAIGN_MAP: Record<string, string> = {
+    arbiverseinvitesyou: 'ARBIVERSE_DEVCONNECT_BA_2025',
+}
+
 function InvitePageContent() {
     const searchParams = useSearchParams()
-    const inviteCode = searchParams.get('code')
+    const inviteCode = searchParams.get('code')?.toLowerCase()
     const redirectUri = searchParams.get('redirect_uri')
-    const campaign = searchParams.get('campaign')
-    const { user, isFetchingUser } = useAuth()
+    const campaignParam = searchParams.get('campaign')
+    const { user, isFetchingUser, fetchUser } = useAuth()
+
+    // determine campaign tag: use query param if provided, otherwise check invite code mapping
+    const campaign = campaignParam || (inviteCode ? INVITE_CODE_TO_CAMPAIGN_MAP[inviteCode] : undefined)
 
     const dispatch = useAppDispatch()
     const router = useRouter()
     const { handleLoginClick, isLoggingIn } = useLogin()
+    const [isAwardingBadge, setIsAwardingBadge] = useState(false)
+    const hasStartedAwardingRef = useRef(false)
+
+    // Track if we should show content (prevents flash)
+    const [shouldShowContent, setShouldShowContent] = useState(false)
 
     const {
         data: inviteCodeData,
@@ -38,26 +52,71 @@ function InvitePageContent() {
         enabled: !!inviteCode,
     })
 
-    // Redirect logged-in users who already have app access to the inviter's profile
-    // Users without app access should stay on this page to claim the invite and get access
+    // determine if we should show content based on user state
     useEffect(() => {
-        // Wait for both user and invite data to be loaded
+        // if still fetching user, don't show content yet
+        if (isFetchingUser) {
+            setShouldShowContent(false)
+            return
+        }
+
+        // if invite validation is still loading, don't show content yet
+        if (isLoading) {
+            setShouldShowContent(false)
+            return
+        }
+
+        // if user has app access AND invite is valid, they'll be redirected
+        // don't show content in this case (show loading instead)
+        if (!redirectUri && user?.user?.hasAppAccess && inviteCodeData?.success) {
+            setShouldShowContent(false)
+            return
+        }
+
+        // otherwise, safe to show content (either error view or invite screen)
+        setShouldShowContent(true)
+    }, [user, isFetchingUser, redirectUri, inviteCodeData, isLoading])
+
+    // redirect logged-in users who already have app access
+    // users without app access should stay on this page to claim the invite and get access
+    useEffect(() => {
+        // wait for both user and invite data to be loaded
         if (!user?.user || !inviteCodeData || isLoading || isFetchingUser) {
             return
         }
 
-        // If user has app access and invite is valid, redirect to inviter's profile, if a campaign is provided, award the badge and redirect to the home page
+        // prevent running the effect multiple times (ref doesn't trigger re-renders)
+        if (hasStartedAwardingRef.current) {
+            return
+        }
+
+        // if user has app access and invite is valid, handle redirect
         if (!redirectUri && user.user.hasAppAccess && inviteCodeData.success && inviteCodeData.username) {
-            // If the potential ambassador is already a peanut user, simply award the badge and redirect to the home page
+            // if campaign is present, award the badge and redirect to home
             if (campaign) {
-                invitesApi.awardBadge(campaign).then(() => {
-                    router.push('/home')
-                })
+                hasStartedAwardingRef.current = true
+                setIsAwardingBadge(true)
+                invitesApi
+                    .awardBadge(campaign)
+                    .then(async () => {
+                        // refetch user data to get the newly awarded badge
+                        await fetchUser()
+                        router.push('/home')
+                    })
+                    .catch(async () => {
+                        // if badge awarding fails, still refetch and redirect
+                        await fetchUser()
+                        router.push('/home')
+                    })
+                    .finally(() => {
+                        setIsAwardingBadge(false)
+                    })
             } else {
+                // no campaign, just redirect to inviter's profile
                 router.push(`/${inviteCodeData.username}`)
             }
         }
-    }, [user, inviteCodeData, isLoading, isFetchingUser, router, campaign, redirectUri])
+    }, [user, inviteCodeData, isLoading, isFetchingUser, router, campaign, redirectUri, fetchUser])
 
     const handleClaimInvite = async () => {
         if (inviteCode) {
@@ -76,7 +135,10 @@ function InvitePageContent() {
         }
     }
 
-    if (isLoading || isFetchingUser) {
+    // show loading if:
+    // 1. badge is being awarded
+    // 2. we determined content shouldn't be shown yet (covers user fetching + invite validation)
+    if (isAwardingBadge || !shouldShowContent) {
         return <PeanutLoading coverFullScreen />
     }
 

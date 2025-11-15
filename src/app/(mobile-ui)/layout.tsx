@@ -4,23 +4,24 @@ import GuestLoginModal from '@/components/Global/GuestLoginModal'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import TopNavbar from '@/components/Global/TopNavbar'
 import WalletNavigation from '@/components/Global/WalletNavigation'
+import OfflineScreen from '@/components/Global/OfflineScreen'
 import { ThemeProvider } from '@/config'
 import { useAuth } from '@/context/authContext'
 import { hasValidJwtToken } from '@/utils/auth'
 import classNames from 'classnames'
 import { usePathname } from 'next/navigation'
-import PullToRefresh from 'pulltorefreshjs'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import '../../styles/globals.css'
 import SupportDrawer from '@/components/Global/SupportDrawer'
 import JoinWaitlistPage from '@/components/Invites/JoinWaitlistPage'
 import { useRouter } from 'next/navigation'
 import { Banner } from '@/components/Global/Banner'
-import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useSetupStore } from '@/redux/hooks'
 import ForceIOSPWAInstall from '@/components/ForceIOSPWAInstall'
 import { PUBLIC_ROUTES_REGEX } from '@/constants/routes'
+import { usePullToRefresh } from '@/hooks/usePullToRefresh'
+import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     const pathName = usePathname()
@@ -37,8 +38,13 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const isSupport = pathName === '/support'
     const alignStart = isHome || isHistory || isSupport
     const router = useRouter()
-    const { deviceType: detectedDeviceType } = useDeviceType()
     const { showIosPwaInstallScreen } = useSetupStore()
+
+    // detect online/offline status for full-page offline screen
+    const { isOnline, isInitialized } = useNetworkStatus()
+
+    // cache the scrollable content element to avoid DOM queries on every scroll event
+    const scrollableContentRef = useRef<Element | null>(null)
 
     useEffect(() => {
         // check for JWT token
@@ -47,43 +53,39 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         setIsReady(true)
     }, [])
 
-    // Pull-to-refresh is only enabled on iOS devices since Android has native pull-to-refresh
-    // docs here: https://github.com/BoxFactura/pulltorefresh.js
-    useEffect(() => {
-        if (typeof window === 'undefined') return
-
-        // Only initialize pull-to-refresh on iOS devices
-        if (detectedDeviceType !== DeviceType.IOS) return
-
-        PullToRefresh.init({
-            mainElement: 'body',
-            onRefresh: () => {
-                window.location.reload()
-            },
-            instructionsPullToRefresh: 'Pull down to refresh',
-            instructionsReleaseToRefresh: 'Release to refresh',
-            instructionsRefreshing: 'Refreshing...',
-            shouldPullToRefresh: () => {
-                const el = document.querySelector('body')
-                if (!el) return false
-
-                return el.scrollTop === 0 && window.scrollY === 0
-            },
-            distThreshold: 70,
-            distMax: 120,
-            distReload: 80,
-        })
-
-        return () => {
-            PullToRefresh.destroyAll()
+    // memoizing shouldPullToRefresh callback to prevent re-initialization on every render
+    // lazy-load element ref to ensure DOM is ready
+    const shouldPullToRefresh = useCallback(() => {
+        // lazy-load the element reference if not cached yet
+        if (!scrollableContentRef.current) {
+            scrollableContentRef.current = document.querySelector('#scrollable-content')
         }
+
+        const scrollableContent = scrollableContentRef.current
+        if (!scrollableContent) {
+            // fallback to window scroll check if element not found
+            return window.scrollY === 0
+        }
+
+        // only allow pull-to-refresh when at the very top
+        return scrollableContent.scrollTop === 0
     }, [])
+
+    // enable pull-to-refresh for both ios and android
+    usePullToRefresh({ shouldPullToRefresh })
 
     useEffect(() => {
         if (!isPublicPath && isReady && !isFetchingUser && !user) {
             router.push('/setup')
         }
     }, [user, isFetchingUser, isReady, isPublicPath, router])
+
+    // show full-page offline screen when user is offline
+    // only show after initialization to prevent flash on initial load
+    // when connection is restored, page auto-reloads (no "back online" screen)
+    if (isInitialized && !isOnline) {
+        return <OfflineScreen />
+    }
 
     // For public paths, skip user loading and just show content when ready
     if (isPublicPath) {

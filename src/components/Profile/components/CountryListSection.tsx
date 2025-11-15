@@ -1,6 +1,7 @@
 import { ActionListCard } from '@/components/ActionListCard'
 import { type CountryData } from '@/components/AddMoney/consts'
 import { getCardPosition } from '@/components/Global/Card'
+import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { Icon } from '@/components/Global/Icons/Icon'
 import * as Accordion from '@radix-ui/react-accordion'
 import Image from 'next/image'
@@ -40,6 +41,14 @@ const CountryListSection = ({
             </Accordion.Header>
             {description && <p className="text-xs font-normal">{description}</p>}
             <Accordion.Content className="mt-2 overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+                {countries.length === 0 && (
+                    <EmptyState
+                        icon="globe-lock"
+                        title="No available countries in this region"
+                        description="There are currently no supported countries in the selected region. Try selecting a different region or check back later as we expand our coverage."
+                    />
+                )}
+
                 {countries.map((country, index) => {
                     const position = getCardPosition(index, countries.length)
                     return (

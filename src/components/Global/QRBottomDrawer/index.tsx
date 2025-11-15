@@ -10,9 +10,10 @@ interface QRBottomDrawerProps {
     expandedTitle: string
     text: string
     buttonText: string
+    className?: string
 }
 
-const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText }: QRBottomDrawerProps) => {
+const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText, className }: QRBottomDrawerProps) => {
     const contentRef = useRef<HTMLDivElement>(null)
 
     const snapPoints = [0.75, 1] // 75%, 100% of screen height
@@ -31,7 +32,7 @@ const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText }
                 setActiveSnapPoint={handleSnapPointChange}
                 modal={false}
             >
-                <DrawerContent className="min-h-[200px] p-5">
+                <DrawerContent className={`min-h-[200px] p-5 ${className || ''}`}>
                     <DrawerTitle className="mb-8 space-y-2">
                         <h2 className="text-lg font-bold">
                             {activeSnapPoint === snapPoints[0] ? collapsedTitle : expandedTitle}

@@ -2,7 +2,7 @@
 
 import NavHeader from '@/components/Global/NavHeader'
 import { useParams, useRouter } from 'next/navigation'
-import React, { useMemo } from 'react'
+import { useMemo } from 'react'
 import { countryData } from '@/components/AddMoney/consts'
 import ShareButton from '@/components/Global/ShareButton'
 import { type MantecaDepositResponseData } from '@/types/manteca.types'
@@ -21,10 +21,12 @@ const MantecaDepositShareDetails = ({
     depositDetails,
     source,
     currencyAmount,
+    onBack,
 }: {
     depositDetails: MantecaDepositResponseData
     source: 'bank' | 'regionalMethod'
     currencyAmount?: string | undefined
+    onBack?: () => void
 }) => {
     const router = useRouter()
     const params = useParams()
@@ -84,7 +86,7 @@ const MantecaDepositShareDetails = ({
 
     return (
         <div className="flex h-full w-full flex-col justify-start gap-8 self-start">
-            <NavHeader title={'Add Money'} onPrev={() => router.back()} />
+            <NavHeader title={'Add Money'} onPrev={onBack || (() => router.back())} />
             <div className="my-auto flex h-full w-full flex-col justify-center space-y-4">
                 {/* Amount Display Card */}
                 <Card className="p-4">

@@ -1,7 +1,7 @@
 'use client'
 
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { useState, useMemo, useContext, useEffect, useCallback, useRef, useId } from 'react'
+import { useState, useMemo, useContext, useEffect, useCallback, useId } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
@@ -19,7 +19,6 @@ import { formatAmount, formatNumberForDisplay } from '@/utils'
 import { validateCbuCvuAlias, validatePixKey, normalizePixPhoneNumber, isPixPhoneNumber } from '@/utils/withdraw.utils'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
-import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { formatUnits, parseUnits } from 'viem'
 import type { TransactionReceipt, Hash } from 'viem'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
@@ -34,6 +33,7 @@ import {
     type MantecaBankCode,
     MANTECA_DEPOSIT_ADDRESS,
     TRANSACTIONS,
+    PEANUT_WALLET_TOKEN_DECIMALS,
 } from '@/constants'
 import Select from '@/components/Global/Select'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
@@ -75,7 +75,7 @@ export default function MantecaWithdrawFlow() {
     const queryClient = useQueryClient()
     const { isUserBridgeKycApproved } = useKycStatus()
     const { hasPendingTransactions } = usePendingTransactions()
-    const swapCurrency = searchParams.get('swap-currency') ?? 'false'
+    const swapCurrency = searchParams.get('swap-currency')
     // Get method and country from URL parameters
     const selectedMethodType = searchParams.get('method') // mercadopago, pix, bank-transfer, etc.
     const countryFromUrl = searchParams.get('country') // argentina, brazil, etc.
@@ -88,6 +88,10 @@ export default function MantecaWithdrawFlow() {
         return countryData.find((country) => country.type === 'country' && country.path === countryPath)
     }, [countryPath])
 
+    const isMantecaCountry = useMemo(() => {
+        return selectedCountry?.id && selectedCountry.id in MANTECA_COUNTRIES_CONFIG
+    }, [selectedCountry])
+
     const countryConfig = useMemo(() => {
         if (!selectedCountry) return undefined
         return MANTECA_COUNTRIES_CONFIG[selectedCountry.id]
@@ -99,6 +103,25 @@ export default function MantecaWithdrawFlow() {
         price: currencyPrice,
         isLoading: isCurrencyLoading,
     } = useCurrency(selectedCountry?.currency!)
+
+    // determine if initial input should be in usd or local currency
+    // for manteca countries, default to local currency unless explicitly overridden
+    const isInitialInputUsd = useMemo(() => {
+        // if swap-currency param is explicitly set to 'true' (user toggled to local currency)
+        // then show local currency first
+        if (swapCurrency === 'true') {
+            return false
+        }
+
+        // if it's a manteca country, default to local currency (not usd)
+        // ignore swap-currency=false for manteca countries to ensure local currency default
+        if (isMantecaCountry) {
+            return false
+        }
+
+        // otherwise default to usd (for non-manteca countries)
+        return true
+    }, [swapCurrency, isMantecaCountry])
 
     // Initialize KYC flow hook
     const { isMantecaKycRequired } = useMantecaKycFlow({ country: selectedCountry })
@@ -282,7 +305,8 @@ export default function MantecaWithdrawFlow() {
     useEffect(() => {
         // Skip balance check if transaction is being processed
         // Use hasPendingTransactions to prevent race condition with optimistic updates
-        if (hasPendingTransactions) {
+        // isLoading covers the gap between sendMoney completing and API withdraw completing
+        if (hasPendingTransactions || isLoading) {
             return
         }
 
@@ -300,7 +324,7 @@ export default function MantecaWithdrawFlow() {
         } else {
             setBalanceErrorMessage(null)
         }
-    }, [usdAmount, balance, hasPendingTransactions])
+    }, [usdAmount, balance, hasPendingTransactions, isLoading])
 
     // Fetch points early to avoid latency penalty - fetch as soon as we have usdAmount
     // Use flowId as uniqueId to prevent cache collisions between different withdrawal flows
@@ -431,7 +455,7 @@ export default function MantecaWithdrawFlow() {
                         walletBalance={
                             balance ? formatAmount(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS)) : undefined
                         }
-                        isInitialInputUsd={swapCurrency !== 'true'}
+                        isInitialInputUsd={isInitialInputUsd}
                     />
                     <Button
                         variant="purple"

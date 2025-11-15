@@ -16,12 +16,14 @@ import Image from 'next/image'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { useSignUserOp } from '@/hooks/wallet/useSignUserOp'
 import { clearRedirectUrl, getRedirectUrl, isTxReverted, saveRedirectUrl, formatNumberForDisplay } from '@/utils'
 import { getShakeClass, type ShakeIntensity } from '@/utils/perk.utils'
 import { calculateSavingsInCents, isArgentinaMantecaQrPayment, getSavingsMessage } from '@/utils/qr-payment.utils'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { PEANUT_WALLET_TOKEN_DECIMALS, TRANSACTIONS, PERK_HOLD_DURATION_MS } from '@/constants'
 import { MANTECA_DEPOSIT_ADDRESS } from '@/constants/manteca.consts'
+import { MIN_MANTECA_QR_PAYMENT_AMOUNT } from '@/constants/payment.consts'
 import { formatUnits, parseUnits } from 'viem'
 import type { TransactionReceipt, Hash } from 'viem'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
@@ -38,9 +40,9 @@ import { QrKycState, useQrKycGate } from '@/hooks/useQrKycGate'
 import ActionModal from '@/components/Global/ActionModal'
 import { MantecaGeoSpecificKycModal } from '@/components/Kyc/InitiateMantecaKYCModal'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQueryClient, useQuery } from '@tanstack/react-query'
 import { shootDoubleStarConfetti } from '@/utils/confetti'
-import { STAR_STRAIGHT_ICON } from '@/assets'
+import { PeanutGuyGIF, STAR_STRAIGHT_ICON } from '@/assets'
 import { useAuth } from '@/context/authContext'
 import { PointsAction } from '@/services/services.types'
 import { usePointsConfetti } from '@/hooks/usePointsConfetti'
@@ -49,10 +51,11 @@ import { useWebSocket } from '@/hooks/useWebSocket'
 import type { HistoryEntry } from '@/hooks/useTransactionHistory'
 import { completeHistoryEntry } from '@/utils/history.utils'
 import { useSupportModalContext } from '@/context/SupportModalContext'
-import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
 import maintenanceConfig from '@/config/underMaintenance.config'
+import PointsCard from '@/components/Common/PointsCard'
 
 const MAX_QR_PAYMENT_AMOUNT = '2000'
+const MIN_QR_PAYMENT_AMOUNT = '0.1'
 
 type PaymentProcessor = 'MANTECA' | 'SIMPLEFI'
 
@@ -63,6 +66,7 @@ export default function QRPayPage() {
     const timestamp = searchParams.get('t')
     const qrType = searchParams.get('type')
     const { balance, sendMoney } = useWallet()
+    const { signTransferUserOp } = useSignUserOp()
     const [isSuccess, setIsSuccess] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [balanceErrorMessage, setBalanceErrorMessage] = useState<string | null>(null)
@@ -246,6 +250,12 @@ export default function QRPayPage() {
         [pendingSimpleFiPaymentId, simpleFiPayment, setLoadingState]
     )
 
+    useEffect(() => {
+        if (isSuccess) {
+            setLoadingState('Idle')
+        }
+    }, [isSuccess])
+
     // First fetch for qrcode info — only after KYC gating allows proceeding
     useEffect(() => {
         resetState()
@@ -413,7 +423,7 @@ export default function QRPayPage() {
                 }
 
                 setSimpleFiPayment(response)
-                setAmount(response.currencyAmount)
+                setAmount(response.usdAmount)
                 setCurrencyAmount(response.currencyAmount)
                 setCurrency({
                     code: 'ARS',
@@ -442,35 +452,92 @@ export default function QRPayPage() {
     // 2. The actual payment action is blocked by shouldBlockPay (line 713 & 1109)
     // 3. KYC modals are shown if needed before user can pay
     // This reduces latency from 4-5s to <1s for KYC'd users
+    //
+    // NETWORK RESILIENCE: Retry network/timeout errors with exponential backoff
+    // - Max 3 attempts: immediate, +1s delay, +2s delay
+    // - Provider-specific errors (e.g., "can't decode") are NOT retried
+    // - Prevents state updates on unmounted component
+    // Fetch Manteca payment lock with TanStack Query - handles retries, caching, and loading states
+    const {
+        data: fetchedPaymentLock,
+        isLoading: isLoadingPaymentLock,
+        error: paymentLockError,
+        failureCount,
+    } = useQuery({
+        queryKey: ['manteca-payment-lock', qrCode, timestamp],
+        queryFn: async ({ queryKey }) => {
+            if (paymentProcessor !== 'MANTECA' || !qrCode || !isPaymentProcessorQR(qrCode)) {
+                return null
+            }
+            return mantecaApi.initiateQrPayment({ qrCode })
+        },
+        enabled: paymentProcessor === 'MANTECA' && !!qrCode && isPaymentProcessorQR(qrCode) && !paymentLock,
+        retry: (failureCount, error: any) => {
+            // Don't retry provider-specific errors
+            if (error?.message?.includes("provider can't decode it")) {
+                return false
+            }
+            // Retry network/timeout errors up to 2 times (3 total attempts)
+            return failureCount < 2
+        },
+        retryDelay: (attemptIndex) => {
+            const delayMs = Math.min(1000 * 2 ** attemptIndex, 2000) // 1s, 2s exponential backoff
+            const MAX_RETRIES = 2
+            const attemptNumber = attemptIndex + 1 // attemptIndex is 0-based, display as 1-based
+            console.log(
+                `Payment lock fetch failed, retrying in ${delayMs}ms... (attempt ${attemptNumber}/${MAX_RETRIES})`
+            )
+            return delayMs
+        },
+        staleTime: 0, // Always fetch fresh data
+        gcTime: 0, // Don't cache for garbage collection
+    })
+
+    // Handle payment lock fetch results
     useEffect(() => {
         if (paymentProcessor !== 'MANTECA') return
-        if (!qrCode || !isPaymentProcessorQR(qrCode)) return
-        if (!!paymentLock || !shouldRetry) return
 
-        setShouldRetry(false)
-        setLoadingState('Fetching details')
-        mantecaApi
-            .initiateQrPayment({ qrCode })
-            .then((pl) => {
-                setWaitingForMerchantAmount(false)
-                setPaymentLock(pl)
-            })
-            .catch((error) => {
-                if (error.message.includes("provider can't decode it")) {
-                    if (EQrType.PIX === qrType) {
-                        setErrorInitiatingPayment(
-                            'We are currently experiencing issues with PIX payments due to an external provider. We are working to fix it as soon as possible'
-                        )
-                    } else {
-                        setWaitingForMerchantAmount(true)
-                    }
+        if (isLoadingPaymentLock) {
+            setLoadingState('Fetching details')
+            return
+        }
+
+        if (fetchedPaymentLock && !paymentLock) {
+            setPaymentLock(fetchedPaymentLock)
+            setWaitingForMerchantAmount(false)
+            setLoadingState('Idle')
+        }
+
+        if (paymentLockError) {
+            const error = paymentLockError as Error
+            setLoadingState('Idle')
+
+            // Provider-specific errors: show appropriate message
+            if (error.message.includes("provider can't decode it")) {
+                if (EQrType.PIX === qrType) {
+                    setErrorInitiatingPayment(
+                        'We are currently experiencing issues with PIX payments due to an external provider. We are working to fix it as soon as possible'
+                    )
                 } else {
-                    setErrorInitiatingPayment(error.message)
-                    setWaitingForMerchantAmount(false)
+                    setWaitingForMerchantAmount(true)
                 }
-            })
-            .finally(() => setLoadingState('Idle'))
-    }, [paymentLock, qrCode, setLoadingState, paymentProcessor, shouldRetry, qrType])
+            } else {
+                // Network/timeout errors after all retries exhausted
+                setErrorInitiatingPayment(
+                    error.message || 'Failed to load payment details. Please check your connection and try again.'
+                )
+                setWaitingForMerchantAmount(false)
+            }
+        }
+    }, [
+        fetchedPaymentLock,
+        isLoadingPaymentLock,
+        paymentLockError,
+        paymentLock,
+        qrType,
+        paymentProcessor,
+        setLoadingState,
+    ])
 
     const merchantName = useMemo(() => {
         if (paymentProcessor === 'SIMPLEFI') {
@@ -569,13 +636,11 @@ export default function QRPayPage() {
             setLoadingState('Idle')
             return
         }
+
         setLoadingState('Preparing transaction')
-        let userOpHash: Hash
-        let receipt: TransactionReceipt | null
+        let signedUserOpData
         try {
-            const result = await sendMoney(MANTECA_DEPOSIT_ADDRESS, finalPaymentLock.paymentAgainstAmount)
-            userOpHash = result.userOpHash
-            receipt = result.receipt
+            signedUserOpData = await signTransferUserOp(MANTECA_DEPOSIT_ADDRESS, finalPaymentLock.paymentAgainstAmount)
         } catch (error) {
             if ((error as Error).toString().includes('not allowed')) {
                 setErrorMessage('Please confirm the transaction.')
@@ -587,26 +652,56 @@ export default function QRPayPage() {
             setLoadingState('Idle')
             return
         }
-        if (receipt !== null && isTxReverted(receipt)) {
-            setErrorMessage('Transaction reverted by the network.')
-            setLoadingState('Idle')
-            setIsSuccess(false)
-            return
-        }
-        const txHash = receipt?.transactionHash ?? userOpHash
-        setLoadingState('Paying')
+
+        // Send signed UserOp to backend for coordinated execution
+        // Backend will: 1) Complete Manteca payment, 2) Broadcast UserOp only if Manteca succeeds
+        setTimeout(() => setLoadingState('Paying'), 3000)
         try {
-            const qrPayment = await mantecaApi.completeQrPayment({ paymentLockCode: finalPaymentLock.code, txHash })
+            const signedUserOp = {
+                sender: signedUserOpData.signedUserOp.sender,
+                nonce: signedUserOpData.signedUserOp.nonce,
+                callData: signedUserOpData.signedUserOp.callData,
+                signature: signedUserOpData.signedUserOp.signature,
+                callGasLimit: signedUserOpData.signedUserOp.callGasLimit,
+                verificationGasLimit: signedUserOpData.signedUserOp.verificationGasLimit,
+                preVerificationGas: signedUserOpData.signedUserOp.preVerificationGas,
+                initCode: signedUserOpData.signedUserOp.initCode,
+                maxFeePerGas: signedUserOpData.signedUserOp.maxFeePerGas,
+                maxPriorityFeePerGas: signedUserOpData.signedUserOp.maxPriorityFeePerGas,
+                paymaster: signedUserOpData.signedUserOp.paymaster,
+                paymasterData: signedUserOpData.signedUserOp.paymasterData,
+                paymasterVerificationGasLimit: signedUserOpData.signedUserOp.paymasterVerificationGasLimit,
+                paymasterPostOpGasLimit: signedUserOpData.signedUserOp.paymasterPostOpGasLimit,
+            }
+            const qrPayment = await mantecaApi.completeQrPaymentWithSignedTx({
+                paymentLockCode: finalPaymentLock.code,
+                signedUserOp,
+                chainId: signedUserOpData.chainId,
+                entryPointAddress: signedUserOpData.entryPointAddress,
+            })
             setQrPayment(qrPayment)
             setIsSuccess(true)
         } catch (error) {
             captureException(error)
-            setErrorMessage('Could not complete payment due to unexpected error. Please contact support')
+            const errorMsg = (error as Error).message || 'Could not complete payment'
+
+            // Handle specific error cases
+            if (errorMsg.toLowerCase().includes('nonce')) {
+                setErrorMessage(
+                    'Transaction failed due to account state change. Please try again. If the problem persists, contact support.'
+                )
+            } else if (errorMsg.toLowerCase().includes('expired') || errorMsg.toLowerCase().includes('stale')) {
+                setErrorMessage('Payment session expired. Please scan the QR code again.')
+            } else {
+                setErrorMessage(
+                    'Could not complete payment. Please scan the QR code again. If problem persists contact support'
+                )
+            }
             setIsSuccess(false)
         } finally {
             setLoadingState('Idle')
         }
-    }, [paymentLock?.code, sendMoney, qrCode, currencyAmount, setLoadingState])
+    }, [paymentLock?.code, signTransferUserOp, qrCode, currencyAmount, setLoadingState])
 
     const payQR = useCallback(async () => {
         if (paymentProcessor === 'SIMPLEFI') {
@@ -776,7 +871,7 @@ export default function QRPayPage() {
         holdTimerRef.current = timer
     }, [claimPerk])
 
-    // Check user balance
+    // Check user balance and payment limits
     useEffect(() => {
         // Skip balance check on success screen (balance may not have updated yet)
         if (isSuccess) {
@@ -785,7 +880,8 @@ export default function QRPayPage() {
         }
 
         // Skip balance check if transaction is being processed
-        if (hasPendingTransactions || isWaitingForWebSocket) {
+        // isLoading covers the gap between sendMoney completing and completeQrPayment finishing
+        if (hasPendingTransactions || isWaitingForWebSocket || isLoading) {
             return
         }
 
@@ -794,14 +890,26 @@ export default function QRPayPage() {
             return
         }
         const paymentAmount = parseUnits(usdAmount.replace(/,/g, ''), PEANUT_WALLET_TOKEN_DECIMALS)
+
+        // Manteca-specific validation (PIX, MercadoPago, QR3)
+        if (paymentProcessor === 'MANTECA') {
+            if (paymentAmount < parseUnits(MIN_MANTECA_QR_PAYMENT_AMOUNT.toString(), PEANUT_WALLET_TOKEN_DECIMALS)) {
+                setBalanceErrorMessage(`Payment amount must be at least $${MIN_MANTECA_QR_PAYMENT_AMOUNT}`)
+                return
+            }
+        }
+
+        // Common validations for all payment processors
         if (paymentAmount > parseUnits(MAX_QR_PAYMENT_AMOUNT, PEANUT_WALLET_TOKEN_DECIMALS)) {
             setBalanceErrorMessage(`QR payment amount exceeds maximum limit of $${MAX_QR_PAYMENT_AMOUNT}`)
+        } else if (paymentAmount < parseUnits(MIN_QR_PAYMENT_AMOUNT, PEANUT_WALLET_TOKEN_DECIMALS)) {
+            setBalanceErrorMessage(`QR payment amount must be at least $${MIN_QR_PAYMENT_AMOUNT}`)
         } else if (paymentAmount > balance) {
             setBalanceErrorMessage('Not enough balance to complete payment. Add funds!')
         } else {
             setBalanceErrorMessage(null)
         }
-    }, [usdAmount, balance, hasPendingTransactions, isWaitingForWebSocket, isSuccess])
+    }, [usdAmount, balance, hasPendingTransactions, isWaitingForWebSocket, isSuccess, isLoading, paymentProcessor])
 
     // Use points confetti hook for animation - must be called unconditionally
     usePointsConfetti(isSuccess && pointsData?.estimatedPoints ? pointsData.estimatedPoints : undefined, pointsDivRef)
@@ -1013,25 +1121,7 @@ export default function QRPayPage() {
     }
 
     if (waitingForMerchantAmount) {
-        return (
-            <div className="my-auto flex h-full w-full flex-col items-center justify-center space-y-4">
-                <div className="relative">
-                    <Image
-                        src={chillPeanutAnim.src}
-                        alt="Peanut Mascot"
-                        width={20}
-                        height={20}
-                        className="absolute z-0 h-32 w-32 -translate-y-20 translate-x-26"
-                    />
-                    <Card className="relative z-10 flex w-full flex-col items-center gap-4 p-4">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-1 p-3">
-                            <Icon name="clock" className="h-full" />
-                        </div>
-                        <p className="font-medium">Waiting for the merchant to set the amount</p>
-                    </Card>
-                </div>
-            </div>
-        )
+        return <QrPayPageLoading message="Waiting for the merchant to set the amount" />
     }
 
     if (showOrderNotReadyModal) {
@@ -1068,14 +1158,18 @@ export default function QRPayPage() {
     }
 
     // show loading spinner if we're still loading payment data OR KYC state
-    if (isLoadingPaymentData || isLoadingKycState) {
-        return <PeanutLoading />
+    if (isLoadingPaymentData || isLoadingKycState || loadingState.toLowerCase() === 'paying') {
+        return (
+            <PeanutLoading
+                message={loadingState.toLowerCase() === 'paying' ? 'Almost there! Processing payment...' : undefined}
+            />
+        )
     }
 
     //Success
     if (isSuccess && paymentProcessor === 'MANTECA' && !qrPayment) {
         return null
-    } else if (isSuccess && paymentProcessor === 'MANTECA' && qrPayment) {
+    } else if (isSuccess && paymentProcessor === 'MANTECA') {
         // Calculate savings for Argentina Manteca QR payments only
         const savingsInCents = calculateSavingsInCents(usdAmount)
         const showSavingsMessage = savingsInCents > 0 && isArgentinaMantecaQrPayment(qrType, paymentProcessor)
@@ -1101,11 +1195,14 @@ export default function QRPayPage() {
 
                             <div className="space-y-1">
                                 <h1 className="text-sm font-normal text-grey-1">
-                                    You paid {qrPayment!.details.merchant.name}
+                                    You paid {qrPayment?.details.merchant.name ?? paymentLock?.paymentRecipientName}
                                 </h1>
                                 <div className="text-2xl font-extrabold">
                                     {currency.symbol}{' '}
-                                    {formatNumberForDisplay(qrPayment!.details.paymentAssetAmount, { maxDecimals: 2 })}
+                                    {formatNumberForDisplay(
+                                        qrPayment?.details.paymentAssetAmount ?? paymentLock?.paymentAssetAmount,
+                                        { maxDecimals: 2 }
+                                    )}
                                 </div>
                                 <div className="text-lg font-bold">
                                     ≈ {formatNumberForDisplay(usdAmount ?? undefined, { maxDecimals: 2 })} USD
@@ -1120,7 +1217,7 @@ export default function QRPayPage() {
 
                     {/* Perk Eligibility Card - Show before claiming */}
                     {qrPayment?.perk?.eligible && !perkClaimed && !qrPayment.perk.claimed && (
-                        <Card className="flex items-start gap-3 bg-white p-4">
+                        <Card ref={pointsDivRef} className="flex items-start gap-3 bg-white p-4">
                             <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-yellow-400">
                                 <Image src={STAR_STRAIGHT_ICON} alt="star" width={24} height={24} />
                             </div>
@@ -1184,14 +1281,8 @@ export default function QRPayPage() {
                     )}
 
                     {/* Points Display - ref used for confetti origin point */}
-                    {pointsData?.estimatedPoints && (
-                        <div ref={pointsDivRef} className="flex justify-center gap-2">
-                            <Image src={STAR_STRAIGHT_ICON} alt="star" width={20} height={20} />
-                            <p className="text-sm font-medium text-black">
-                                You&apos;ve earned {pointsData.estimatedPoints}{' '}
-                                {pointsData.estimatedPoints === 1 ? 'point' : 'points'}!
-                            </p>
-                        </div>
+                    {!qrPayment?.perk?.eligible && pointsData?.estimatedPoints && (
+                        <PointsCard points={pointsData.estimatedPoints} pointsDivRef={pointsDivRef} />
                     )}
 
                     <div className="w-full space-y-5">
@@ -1469,5 +1560,28 @@ export default function QRPayPage() {
                 </div>
             </div>
         </>
+    )
+}
+
+export const QrPayPageLoading = ({ message }: { message: string }) => {
+    return (
+        <div className="my-auto flex h-full w-full flex-col items-center justify-center space-y-4">
+            <div className="relative">
+                <Image
+                    src={PeanutGuyGIF}
+                    alt="Peanut Man"
+                    layout="fill"
+                    objectFit="contain"
+                    className="absolute z-0 h-32 w-32 -translate-y-20 "
+                />
+
+                <Card className="relative z-10 flex w-full flex-col items-center gap-4 p-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-1 p-3">
+                        <Icon name="clock" className="h-full" />
+                    </div>
+                    <p className="font-medium">{message}</p>
+                </Card>
+            </div>
+        </div>
     )
 }
