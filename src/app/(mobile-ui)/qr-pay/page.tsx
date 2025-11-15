@@ -423,7 +423,7 @@ export default function QRPayPage() {
                 }
 
                 setSimpleFiPayment(response)
-                setAmount(response.currencyAmount)
+                setAmount(response.usdAmount)
                 setCurrencyAmount(response.currencyAmount)
                 setCurrency({
                     code: 'ARS',
