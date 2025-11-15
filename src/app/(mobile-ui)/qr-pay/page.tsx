@@ -14,7 +14,6 @@ import NavHeader from '@/components/Global/NavHeader'
 import { MERCADO_PAGO, PIX, SIMPLEFI } from '@/assets/payment-apps'
 import Image from 'next/image'
 import PeanutLoading from '@/components/Global/PeanutLoading'
-import PeanutFactsLoading from '@/components/Global/PeanutFactsLoading'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSignUserOp } from '@/hooks/wallet/useSignUserOp'
@@ -43,7 +42,7 @@ import { MantecaGeoSpecificKycModal } from '@/components/Kyc/InitiateMantecaKYCM
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { useQueryClient, useQuery } from '@tanstack/react-query'
 import { shootDoubleStarConfetti } from '@/utils/confetti'
-import { STAR_STRAIGHT_ICON } from '@/assets'
+import { PeanutGuyGIF, STAR_STRAIGHT_ICON } from '@/assets'
 import { useAuth } from '@/context/authContext'
 import { PointsAction } from '@/services/services.types'
 import { usePointsConfetti } from '@/hooks/usePointsConfetti'
@@ -52,10 +51,10 @@ import { useWebSocket } from '@/hooks/useWebSocket'
 import type { HistoryEntry } from '@/hooks/useTransactionHistory'
 import { completeHistoryEntry } from '@/utils/history.utils'
 import { useSupportModalContext } from '@/context/SupportModalContext'
+import maintenanceConfig from '@/config/underMaintenance.config'
 // Lazy load 800KB success animation - only needed on success screen, not initial load
 // CRITICAL: This GIF is 80% of the /qr-pay bundle size. Load it dynamically.
 const chillPeanutAnim = '/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
-import maintenanceConfig from '@/config/underMaintenance.config'
 
 const MAX_QR_PAYMENT_AMOUNT = '2000'
 
@@ -1030,7 +1029,7 @@ export default function QRPayPage() {
 
     // Show peanut facts loading screen when paying
     if (loadingState?.toLowerCase() === 'paying') {
-        return <PeanutFactsLoading message="Waiting for merchant to receive the money..." />
+        return <QrPayPageLoading message="Waiting for merchant to receive the money..." />
     }
 
     // check if we're still loading payment data or KYC state before showing anything
@@ -1118,25 +1117,7 @@ export default function QRPayPage() {
     }
 
     if (waitingForMerchantAmount) {
-        return (
-            <div className="my-auto flex h-full w-full flex-col items-center justify-center space-y-4">
-                <div className="relative">
-                    <Image
-                        src={chillPeanutAnim}
-                        alt="Peanut Mascot"
-                        width={20}
-                        height={20}
-                        className="absolute z-0 h-32 w-32 -translate-y-20 translate-x-26"
-                    />
-                    <Card className="relative z-10 flex w-full flex-col items-center gap-4 p-4">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-1 p-3">
-                            <Icon name="clock" className="h-full" />
-                        </div>
-                        <p className="font-medium">Waiting for the merchant to set the amount</p>
-                    </Card>
-                </div>
-            </div>
-        )
+        return <QrPayPageLoading message="Waiting for the merchant to set the amount" />
     }
 
     if (showOrderNotReadyModal) {
@@ -1557,5 +1538,28 @@ export default function QRPayPage() {
                 </div>
             </div>
         </>
+    )
+}
+
+export const QrPayPageLoading = ({ message }: { message: string }) => {
+    return (
+        <div className="my-auto flex h-full w-full flex-col items-center justify-center space-y-4">
+            <div className="relative">
+                <Image
+                    src={PeanutGuyGIF}
+                    alt="Peanut Man"
+                    layout="fill"
+                    objectFit="contain"
+                    className="absolute z-0 h-32 w-32 -translate-y-20 "
+                />
+
+                <Card className="relative z-10 flex w-full flex-col items-center gap-4 p-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-1 p-3">
+                        <Icon name="clock" className="h-full" />
+                    </div>
+                    <p className="font-medium">{message}</p>
+                </Card>
+            </div>
+        </div>
     )
 }

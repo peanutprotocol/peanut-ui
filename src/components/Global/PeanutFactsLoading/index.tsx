@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Image from 'next/image'
 import { PeanutGuyGIF } from '@/assets/illustrations'
-import Card from '@/components/Global/Card'
+import Card from '../Card'
+import PeanutLoading from '../PeanutLoading'
 
 const PEANUT_FACTS = [
     "Peanuts aren't nuts—they're legumes! They're basically fancy beans pretending to be nuts.",
@@ -30,32 +31,36 @@ interface PeanutFactsLoadingProps {
 }
 
 export default function PeanutFactsLoading({ message = 'Processing...' }: PeanutFactsLoadingProps) {
-    const [currentFactIndex, setCurrentFactIndex] = useState(0)
-
-    useEffect(() => {
-        // Rotate facts every 4 seconds
-        const interval = setInterval(() => {
-            setCurrentFactIndex((prevIndex) => (prevIndex + 1) % PEANUT_FACTS.length)
-        }, 4000)
-
-        return () => clearInterval(interval)
-    }, [])
+    // pick a random fact once when component mounts
+    const [currentFactIndex] = useState(() => Math.floor(Math.random() * PEANUT_FACTS.length))
 
     return (
-        <div className="flex min-h-[inherit] flex-col items-center justify-center gap-6 p-6">
-            <div className="flex flex-col items-center gap-4">
-                <Image src={PeanutGuyGIF} alt="Peanut Guy" width={200} height={200} className="h-48 w-48" priority />
-                <p className="text-lg font-semibold text-gray-900">{message}</p>
-            </div>
-
-            <Card className="w-full max-w-md p-6">
-                <div className="flex flex-col gap-3">
-                    <p className="text-sm font-bold text-gray-900">Did you know?</p>
-                    <p className="min-h-[4rem] text-sm text-gray-700 transition-opacity duration-300">
+        <div className=" flex min-h-[inherit] flex-col items-center justify-center gap-6 p-6">
+            <div className="relative mt-28 items-center rounded-none">
+                <Card className="shadow-4 relative z-10 space-y-2 p-4">
+                    <p className="text-xs font-bold text-gray-900">Did you know?</p>
+                    <p className="text-sm text-gray-700 transition-opacity duration-300">
                         {PEANUT_FACTS[currentFactIndex]}
                     </p>
+                </Card>
+
+                {/* Peanutman with beer character at the top */}
+                <div
+                    className="absolute left-0 top-0 flex w-full justify-center"
+                    style={{ transform: 'translateY(-60%)' }}
+                >
+                    <div className="relative h-42 w-[90%] md:h-52">
+                        <Image src={PeanutGuyGIF} alt="Peanut Man" layout="fill" objectFit="contain" />
+                    </div>
                 </div>
-            </Card>
+
+                <div className="flex items-center justify-center gap-2 pt-6">
+                    <div>
+                        <PeanutLoading />
+                    </div>
+                    <p className="text-center text-sm font-semibold text-gray-900"> {message} </p>
+                </div>
+            </div>
         </div>
     )
 }
