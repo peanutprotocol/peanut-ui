@@ -1130,9 +1130,8 @@ export default function QRPayPage() {
                                     {(() => {
                                         const percentage = qrPayment?.perk?.discountPercentage || 100
                                         const amountSponsored = qrPayment?.perk?.amountSponsored
-                                        const transactionUsd = parseFloat(
-                                            qrPayment?.details?.paymentAgainstAmount || '0'
-                                        )
+                                        const transactionUsd =
+                                            parseFloat(qrPayment?.details?.paymentAgainstAmount || '0') || 0
 
                                         // Check if percentage matches the actual math (within 1% tolerance)
                                         let percentageMatches = false
@@ -1151,7 +1150,7 @@ export default function QRPayPage() {
                                             }
                                         }
 
-                                        return amountSponsored
+                                        return amountSponsored && typeof amountSponsored === 'number'
                                             ? `Get $${amountSponsored.toFixed(2)} back!`
                                             : 'Claim it now to unlock your reward.'
                                     })()}
