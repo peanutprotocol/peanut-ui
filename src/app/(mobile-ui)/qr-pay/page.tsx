@@ -53,9 +53,6 @@ import { completeHistoryEntry } from '@/utils/history.utils'
 import { useSupportModalContext } from '@/context/SupportModalContext'
 import maintenanceConfig from '@/config/underMaintenance.config'
 import PointsCard from '@/components/Common/PointsCard'
-// Lazy load 800KB success animation - only needed on success screen, not initial load
-// CRITICAL: This GIF is 80% of the /qr-pay bundle size. Load it dynamically.
-const chillPeanutAnim = '/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
 
 const MAX_QR_PAYMENT_AMOUNT = '2000'
 const MIN_QR_PAYMENT_AMOUNT = '0.1'
