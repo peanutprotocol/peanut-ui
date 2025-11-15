@@ -9,7 +9,7 @@ interface CardProps {
     className?: string
     onClick?: () => void
     border?: boolean
-    ref?: React.RefObject<HTMLDivElement>
+    ref?: React.Ref<HTMLDivElement>
 }
 
 export function getCardPosition(index: number, totalItems: number): CardPosition {

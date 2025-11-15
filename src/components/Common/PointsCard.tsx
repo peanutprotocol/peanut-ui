@@ -1,6 +1,3 @@
-import Image from 'next/image'
-
-import { STAR_STRAIGHT_ICON } from '@/assets'
 import Card from '../Global/Card'
 import InvitesIcon from '../Home/InvitesIcon'
 
