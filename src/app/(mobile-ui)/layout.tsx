@@ -4,6 +4,7 @@ import GuestLoginModal from '@/components/Global/GuestLoginModal'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import TopNavbar from '@/components/Global/TopNavbar'
 import WalletNavigation from '@/components/Global/WalletNavigation'
+import OfflineScreen from '@/components/Global/OfflineScreen'
 import { ThemeProvider } from '@/config'
 import { useAuth } from '@/context/authContext'
 import { hasValidJwtToken } from '@/utils/auth'
@@ -20,6 +21,7 @@ import { useSetupStore } from '@/redux/hooks'
 import ForceIOSPWAInstall from '@/components/ForceIOSPWAInstall'
 import { PUBLIC_ROUTES_REGEX } from '@/constants/routes'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
+import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     const pathName = usePathname()
@@ -37,6 +39,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const alignStart = isHome || isHistory || isSupport
     const router = useRouter()
     const { showIosPwaInstallScreen } = useSetupStore()
+
+    // detect online/offline status for full-page offline screen
+    const { isOnline, isInitialized } = useNetworkStatus()
 
     // cache the scrollable content element to avoid DOM queries on every scroll event
     const scrollableContentRef = useRef<Element | null>(null)
@@ -74,6 +79,13 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             router.push('/setup')
         }
     }, [user, isFetchingUser, isReady, isPublicPath, router])
+
+    // show full-page offline screen when user is offline
+    // only show after initialization to prevent flash on initial load
+    // when connection is restored, page auto-reloads (no "back online" screen)
+    if (isInitialized && !isOnline) {
+        return <OfflineScreen />
+    }
 
     // For public paths, skip user loading and just show content when ready
     if (isPublicPath) {
