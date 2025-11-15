@@ -52,11 +52,9 @@ import type { HistoryEntry } from '@/hooks/useTransactionHistory'
 import { completeHistoryEntry } from '@/utils/history.utils'
 import { useSupportModalContext } from '@/context/SupportModalContext'
 import maintenanceConfig from '@/config/underMaintenance.config'
-// Lazy load 800KB success animation - only needed on success screen, not initial load
-// CRITICAL: This GIF is 80% of the /qr-pay bundle size. Load it dynamically.
-const chillPeanutAnim = '/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
 
 const MAX_QR_PAYMENT_AMOUNT = '2000'
+const MIN_QR_PAYMENT_AMOUNT = '0.1'
 
 type PaymentProcessor = 'MANTECA' | 'SIMPLEFI'
 
@@ -250,6 +248,12 @@ export default function QRPayPage() {
         },
         [pendingSimpleFiPaymentId, simpleFiPayment, setLoadingState]
     )
+
+    useEffect(() => {
+        if (isSuccess) {
+            setLoadingState('Idle')
+        }
+    }, [isSuccess])
 
     // First fetch for qrcode info — only after KYC gating allows proceeding
     useEffect(() => {
@@ -650,7 +654,7 @@ export default function QRPayPage() {
 
         // Send signed UserOp to backend for coordinated execution
         // Backend will: 1) Complete Manteca payment, 2) Broadcast UserOp only if Manteca succeeds
-        setLoadingState('Paying')
+        setTimeout(() => setLoadingState('Paying'), 3000)
         try {
             const signedUserOp = {
                 sender: signedUserOpData.signedUserOp.sender,
@@ -897,6 +901,8 @@ export default function QRPayPage() {
         // Common validations for all payment processors
         if (paymentAmount > parseUnits(MAX_QR_PAYMENT_AMOUNT, PEANUT_WALLET_TOKEN_DECIMALS)) {
             setBalanceErrorMessage(`QR payment amount exceeds maximum limit of $${MAX_QR_PAYMENT_AMOUNT}`)
+        } else if (paymentAmount < parseUnits(MIN_QR_PAYMENT_AMOUNT, PEANUT_WALLET_TOKEN_DECIMALS)) {
+            setBalanceErrorMessage(`QR payment amount must be at least $${MIN_QR_PAYMENT_AMOUNT}`)
         } else if (paymentAmount > balance) {
             setBalanceErrorMessage('Not enough balance to complete payment. Add funds!')
         } else {
@@ -1029,11 +1035,6 @@ export default function QRPayPage() {
         )
     }
 
-    // Show peanut facts loading screen when paying
-    if (loadingState?.toLowerCase() === 'paying') {
-        return <QrPayPageLoading message="Waiting for merchant to receive the money..." />
-    }
-
     // check if we're still loading payment data or KYC state before showing anything
     // this prevents KYC modals from flashing on page refresh
     const isLoadingPaymentData =
@@ -1156,14 +1157,18 @@ export default function QRPayPage() {
     }
 
     // show loading spinner if we're still loading payment data OR KYC state
-    if (isLoadingPaymentData || isLoadingKycState) {
-        return <PeanutLoading />
+    if (isLoadingPaymentData || isLoadingKycState || loadingState.toLowerCase() === 'paying') {
+        return (
+            <PeanutLoading
+                message={loadingState.toLowerCase() === 'paying' ? 'Almost there! Processing payment...' : undefined}
+            />
+        )
     }
 
     //Success
     if (isSuccess && paymentProcessor === 'MANTECA' && !qrPayment) {
         return null
-    } else if (isSuccess && paymentProcessor === 'MANTECA' && qrPayment) {
+    } else if (isSuccess && paymentProcessor === 'MANTECA') {
         // Calculate savings for Argentina Manteca QR payments only
         const savingsInCents = calculateSavingsInCents(usdAmount)
         const showSavingsMessage = savingsInCents > 0 && isArgentinaMantecaQrPayment(qrType, paymentProcessor)
@@ -1189,11 +1194,14 @@ export default function QRPayPage() {
 
                             <div className="space-y-1">
                                 <h1 className="text-sm font-normal text-grey-1">
-                                    You paid {qrPayment!.details.merchant.name}
+                                    You paid {qrPayment?.details.merchant.name ?? paymentLock?.paymentRecipientName}
                                 </h1>
                                 <div className="text-2xl font-extrabold">
                                     {currency.symbol}{' '}
-                                    {formatNumberForDisplay(qrPayment!.details.paymentAssetAmount, { maxDecimals: 2 })}
+                                    {formatNumberForDisplay(
+                                        qrPayment?.details.paymentAssetAmount ?? paymentLock?.paymentAssetAmount,
+                                        { maxDecimals: 2 }
+                                    )}
                                 </div>
                                 <div className="text-lg font-bold">
                                     ≈ {formatNumberForDisplay(usdAmount ?? undefined, { maxDecimals: 2 })} USD
