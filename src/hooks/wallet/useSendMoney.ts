@@ -2,7 +2,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { parseUnits, encodeFunctionData, erc20Abi } from 'viem'
 import type { Address, Hash, Hex, TransactionReceipt } from 'viem'
 import { PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS, PEANUT_WALLET_CHAIN } from '@/constants'
-import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { TRANSACTIONS, BALANCE_DECREASE, SEND_MONEY } from '@/constants/query.consts'
 import { useToast } from '@/components/0_Bruddle/Toast'
 

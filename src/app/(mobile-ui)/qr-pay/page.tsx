@@ -16,6 +16,7 @@ import Image from 'next/image'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { useSignUserOp } from '@/hooks/wallet/useSignUserOp'
 import { clearRedirectUrl, getRedirectUrl, isTxReverted, saveRedirectUrl, formatNumberForDisplay } from '@/utils'
 import { getShakeClass, type ShakeIntensity } from '@/utils/perk.utils'
 import { calculateSavingsInCents, isArgentinaMantecaQrPayment, getSavingsMessage } from '@/utils/qr-payment.utils'
@@ -41,7 +42,7 @@ import { MantecaGeoSpecificKycModal } from '@/components/Kyc/InitiateMantecaKYCM
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { useQueryClient, useQuery } from '@tanstack/react-query'
 import { shootDoubleStarConfetti } from '@/utils/confetti'
-import { STAR_STRAIGHT_ICON } from '@/assets'
+import { PeanutGuyGIF, STAR_STRAIGHT_ICON } from '@/assets'
 import { useAuth } from '@/context/authContext'
 import { PointsAction } from '@/services/services.types'
 import { usePointsConfetti } from '@/hooks/usePointsConfetti'
@@ -50,10 +51,10 @@ import { useWebSocket } from '@/hooks/useWebSocket'
 import type { HistoryEntry } from '@/hooks/useTransactionHistory'
 import { completeHistoryEntry } from '@/utils/history.utils'
 import { useSupportModalContext } from '@/context/SupportModalContext'
+import maintenanceConfig from '@/config/underMaintenance.config'
 // Lazy load 800KB success animation - only needed on success screen, not initial load
 // CRITICAL: This GIF is 80% of the /qr-pay bundle size. Load it dynamically.
 const chillPeanutAnim = '/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
-import maintenanceConfig from '@/config/underMaintenance.config'
 
 const MAX_QR_PAYMENT_AMOUNT = '2000'
 
@@ -66,6 +67,7 @@ export default function QRPayPage() {
     const timestamp = searchParams.get('t')
     const qrType = searchParams.get('type')
     const { balance, sendMoney } = useWallet()
+    const { signTransferUserOp } = useSignUserOp()
     const [isSuccess, setIsSuccess] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [balanceErrorMessage, setBalanceErrorMessage] = useState<string | null>(null)
@@ -629,13 +631,11 @@ export default function QRPayPage() {
             setLoadingState('Idle')
             return
         }
+
         setLoadingState('Preparing transaction')
-        let userOpHash: Hash
-        let receipt: TransactionReceipt | null
+        let signedUserOpData
         try {
-            const result = await sendMoney(MANTECA_DEPOSIT_ADDRESS, finalPaymentLock.paymentAgainstAmount)
-            userOpHash = result.userOpHash
-            receipt = result.receipt
+            signedUserOpData = await signTransferUserOp(MANTECA_DEPOSIT_ADDRESS, finalPaymentLock.paymentAgainstAmount)
         } catch (error) {
             if ((error as Error).toString().includes('not allowed')) {
                 setErrorMessage('Please confirm the transaction.')
@@ -647,26 +647,54 @@ export default function QRPayPage() {
             setLoadingState('Idle')
             return
         }
-        if (receipt !== null && isTxReverted(receipt)) {
-            setErrorMessage('Transaction reverted by the network.')
-            setLoadingState('Idle')
-            setIsSuccess(false)
-            return
-        }
-        const txHash = receipt?.transactionHash ?? userOpHash
+
+        // Send signed UserOp to backend for coordinated execution
+        // Backend will: 1) Complete Manteca payment, 2) Broadcast UserOp only if Manteca succeeds
         setLoadingState('Paying')
         try {
-            const qrPayment = await mantecaApi.completeQrPayment({ paymentLockCode: finalPaymentLock.code, txHash })
+            const signedUserOp = {
+                sender: signedUserOpData.signedUserOp.sender,
+                nonce: signedUserOpData.signedUserOp.nonce,
+                callData: signedUserOpData.signedUserOp.callData,
+                signature: signedUserOpData.signedUserOp.signature,
+                callGasLimit: signedUserOpData.signedUserOp.callGasLimit,
+                verificationGasLimit: signedUserOpData.signedUserOp.verificationGasLimit,
+                preVerificationGas: signedUserOpData.signedUserOp.preVerificationGas,
+                initCode: signedUserOpData.signedUserOp.initCode,
+                maxFeePerGas: signedUserOpData.signedUserOp.maxFeePerGas,
+                maxPriorityFeePerGas: signedUserOpData.signedUserOp.maxPriorityFeePerGas,
+                paymaster: signedUserOpData.signedUserOp.paymaster,
+                paymasterData: signedUserOpData.signedUserOp.paymasterData,
+                paymasterVerificationGasLimit: signedUserOpData.signedUserOp.paymasterVerificationGasLimit,
+                paymasterPostOpGasLimit: signedUserOpData.signedUserOp.paymasterPostOpGasLimit,
+            }
+            const qrPayment = await mantecaApi.completeQrPaymentWithSignedTx({
+                paymentLockCode: finalPaymentLock.code,
+                signedUserOp,
+                chainId: signedUserOpData.chainId,
+                entryPointAddress: signedUserOpData.entryPointAddress,
+            })
             setQrPayment(qrPayment)
             setIsSuccess(true)
         } catch (error) {
             captureException(error)
-            setErrorMessage('Could not complete payment due to unexpected error. Please contact support')
+            const errorMsg = (error as Error).message || 'Could not complete payment'
+
+            // Handle specific error cases
+            if (errorMsg.toLowerCase().includes('nonce')) {
+                setErrorMessage(
+                    'Transaction failed due to account state change. Please try again. If the problem persists, contact support.'
+                )
+            } else if (errorMsg.toLowerCase().includes('expired') || errorMsg.toLowerCase().includes('stale')) {
+                setErrorMessage('Payment session expired. Please scan the QR code again.')
+            } else {
+                setErrorMessage('Could not complete payment. Please contact support.')
+            }
             setIsSuccess(false)
         } finally {
             setLoadingState('Idle')
         }
-    }, [paymentLock?.code, sendMoney, qrCode, currencyAmount, setLoadingState])
+    }, [paymentLock?.code, signTransferUserOp, qrCode, currencyAmount, setLoadingState])
 
     const payQR = useCallback(async () => {
         if (paymentProcessor === 'SIMPLEFI') {
@@ -999,6 +1027,11 @@ export default function QRPayPage() {
         )
     }
 
+    // Show peanut facts loading screen when paying
+    if (loadingState?.toLowerCase() === 'paying') {
+        return <QrPayPageLoading message="Waiting for merchant to receive the money..." />
+    }
+
     // check if we're still loading payment data or KYC state before showing anything
     // this prevents KYC modals from flashing on page refresh
     const isLoadingPaymentData =
@@ -1084,25 +1117,7 @@ export default function QRPayPage() {
     }
 
     if (waitingForMerchantAmount) {
-        return (
-            <div className="my-auto flex h-full w-full flex-col items-center justify-center space-y-4">
-                <div className="relative">
-                    <Image
-                        src={chillPeanutAnim}
-                        alt="Peanut Mascot"
-                        width={20}
-                        height={20}
-                        className="absolute z-0 h-32 w-32 -translate-y-20 translate-x-26"
-                    />
-                    <Card className="relative z-10 flex w-full flex-col items-center gap-4 p-4">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-1 p-3">
-                            <Icon name="clock" className="h-full" />
-                        </div>
-                        <p className="font-medium">Waiting for the merchant to set the amount</p>
-                    </Card>
-                </div>
-            </div>
-        )
+        return <QrPayPageLoading message="Waiting for the merchant to set the amount" />
     }
 
     if (showOrderNotReadyModal) {
@@ -1523,5 +1538,28 @@ export default function QRPayPage() {
                 </div>
             </div>
         </>
+    )
+}
+
+export const QrPayPageLoading = ({ message }: { message: string }) => {
+    return (
+        <div className="my-auto flex h-full w-full flex-col items-center justify-center space-y-4">
+            <div className="relative">
+                <Image
+                    src={PeanutGuyGIF}
+                    alt="Peanut Man"
+                    layout="fill"
+                    objectFit="contain"
+                    className="absolute z-0 h-32 w-32 -translate-y-20 "
+                />
+
+                <Card className="relative z-10 flex w-full flex-col items-center gap-4 p-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-1 p-3">
+                        <Icon name="clock" className="h-full" />
+                    </div>
+                    <p className="font-medium">{message}</p>
+                </Card>
+            </div>
+        </div>
     )
 }
