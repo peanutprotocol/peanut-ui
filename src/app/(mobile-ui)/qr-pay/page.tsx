@@ -688,7 +688,9 @@ export default function QRPayPage() {
             } else if (errorMsg.toLowerCase().includes('expired') || errorMsg.toLowerCase().includes('stale')) {
                 setErrorMessage('Payment session expired. Please scan the QR code again.')
             } else {
-                setErrorMessage('Could not complete payment. Please contact support.')
+                setErrorMessage(
+                    'Could not complete payment. Please scan the QR code again. If problem persists contact support'
+                )
             }
             setIsSuccess(false)
         } finally {
