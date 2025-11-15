@@ -75,24 +75,12 @@ let nextConfig = {
         webpackBuildWorker: true,
     },
 
-    webpack: (config, { isServer, dev, webpack }) => {
+    webpack: (config, { isServer, dev }) => {
         if (!dev || !process.env.NEXT_TURBO) {
             if (isServer) {
                 config.ignoreWarnings = [{ module: /@opentelemetry\/instrumentation/, message: /Critical dependency/ }]
             }
         }
-
-        // CRITICAL: Inject environment variables into Service Worker build
-        // Service Workers are isolated from the main app bundle and don't get NEXT_PUBLIC_* vars automatically
-        // This ensures SW can match the correct API hostname (staging vs prod)
-        config.plugins.push(
-            new webpack.DefinePlugin({
-                'process.env.NEXT_PUBLIC_PEANUT_API_URL': JSON.stringify(
-                    process.env.PEANUT_API_URL || process.env.NEXT_PUBLIC_PEANUT_API_URL || 'https://api.peanut.me'
-                ),
-                'process.env.NEXT_PUBLIC_API_VERSION': JSON.stringify(process.env.NEXT_PUBLIC_API_VERSION || 'v1'),
-            })
-        )
 
         return config
     },
@@ -153,7 +141,7 @@ let nextConfig = {
                 headers: [
                     {
                         key: 'Permissions-Policy',
-                        value: 'camera=*, microphone=*, clipboard-read=(self), clipboard-write=(self)',
+                        value: 'camera=(self "*"), microphone=(self "*"), clipboard-read=(self), clipboard-write=(self)',
                     },
                 ],
             },
@@ -161,7 +149,6 @@ let nextConfig = {
     },
 }
 
-// Apply Sentry wrapper in production
 if (process.env.NODE_ENV !== 'development' && !Boolean(process.env.LOCAL_BUILD)) {
     const { withSentryConfig } = require('@sentry/nextjs')
 
@@ -209,21 +196,20 @@ if (process.env.NODE_ENV !== 'development' && !Boolean(process.env.LOCAL_BUILD))
             deleteSourcemapsAfterUpload: true,
         },
     })
-}
-
-// Development: Only bundle analyzer (no Serwist or Sentry)
-// Production: Sentry → Serwist → Bundle Analyzer
-if (process.env.NODE_ENV !== 'development') {
-    // Production: Wrap with Serwist and bundle analyzer
-    // NOTE: Serwist must be imported dynamically and configured synchronously
-    const withSerwist = require('@serwist/next').default({
-        swSrc: './src/app/sw.ts',
-        swDest: 'public/sw.js',
-    })
-
-    // Apply in order: Sentry (already applied to nextConfig) → Serwist → Bundle Analyzer
-    module.exports = withBundleAnalyzer(withSerwist(nextConfig))
 } else {
-    // Development: only bundle analyzer (no Serwist)
-    module.exports = withBundleAnalyzer(nextConfig)
+    module.exports = nextConfig
 }
+
+if (process.env.NODE_ENV !== 'development') {
+    module.exports = async () => {
+        const withSerwist = (await import('@serwist/next')).default({
+            swSrc: './src/app/sw.ts',
+            swDest: 'public/sw.js',
+            // explicitly include offline screen assets in precache
+            additionalPrecacheEntries: ['/icons/peanut-icon.svg'],
+        })
+        return withSerwist(nextConfig)
+    }
+}
+
+module.exports = withBundleAnalyzer(nextConfig)
