@@ -90,4 +90,24 @@ export const invitesApi = {
             return { success: false, position: 0 }
         }
     },
+
+    awardBadge: async (campaignTag: string): Promise<{ success: boolean }> => {
+        try {
+            const response = await fetchWithSentry(`${PEANUT_API_URL}/badge/award`, {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ campaignTag }),
+            })
+            if (!response.ok) {
+                return { success: false }
+            }
+            return { success: true }
+        } catch (e) {
+            console.error('Error awarding badge:', e)
+            return { success: false }
+        }
+    },
 }

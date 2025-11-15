@@ -300,7 +300,7 @@ const TokenAmountInput = ({
                     <div className="relative">
                         <input
                             autoFocus={shouldAutoFocus}
-                            className={`h-12 w-[4ch] max-w-80 bg-transparent text-6xl font-black caret-primary-1 outline-none transition-colors placeholder:text-h1 placeholder:text-gray-1 focus:border-primary-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1`}
+                            className={`h-12 w-[4ch] max-w-80 bg-transparent text-6xl font-black text-black caret-primary-1 outline-none transition-colors placeholder:text-h1 placeholder:text-gray-1 focus:border-primary-1 disabled:opacity-100 disabled:[-webkit-text-fill-color:black] dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1 dark:disabled:[-webkit-text-fill-color:white]`}
                             placeholder={'0.00'}
                             onChange={(e) => {
                                 let value = e.target.value
@@ -346,7 +346,9 @@ const TokenAmountInput = ({
                         ≈{' '}
                         {displayMode === 'TOKEN'
                             ? alternativeDisplayValue
-                            : formatCurrency(alternativeDisplayValue.replace(',', ''))}{' '}
+                            : alternativeDisplayValue
+                              ? formatCurrency(alternativeDisplayValue.replace(',', ''))
+                              : '0.00'}{' '}
                         {alternativeDisplaySymbol}
                     </label>
                 )}

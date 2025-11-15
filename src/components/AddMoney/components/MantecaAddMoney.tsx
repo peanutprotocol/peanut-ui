@@ -2,7 +2,7 @@
 import { type FC, useEffect, useMemo, useState } from 'react'
 import MantecaDepositShareDetails from '@/components/AddMoney/components/MantecaDepositShareDetails'
 import InputAmountStep from '@/components/AddMoney/components/InputAmountStep'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { type CountryData, countryData } from '@/components/AddMoney/consts'
 import { type MantecaDepositResponseData } from '@/types/manteca.types'
 import { MantecaGeoSpecificKycModal } from '@/components/Kyc/InitiateMantecaKYCModal'
@@ -15,6 +15,9 @@ import { PEANUT_WALLET_TOKEN_DECIMALS, TRANSACTIONS } from '@/constants'
 import { parseUnits } from 'viem'
 import { useQueryClient } from '@tanstack/react-query'
 import useKycStatus from '@/hooks/useKycStatus'
+import { usePaymentStore } from '@/redux/hooks'
+import { saveDevConnectIntent } from '@/utils'
+import { MAX_MANTECA_DEPOSIT_AMOUNT, MIN_MANTECA_DEPOSIT_AMOUNT } from '@/constants/payment.consts'
 
 interface MantecaAddMoneyProps {
     source: 'bank' | 'regionalMethod'
@@ -22,12 +25,10 @@ interface MantecaAddMoneyProps {
 
 type stepType = 'inputAmount' | 'depositDetails'
 
-const MAX_DEPOSIT_AMOUNT = '2000'
-const MIN_DEPOSIT_AMOUNT = '1'
-
 const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
     const params = useParams()
     const router = useRouter()
+    const searchParams = useSearchParams()
     const [step, setStep] = useState<stepType>('inputAmount')
     const [isCreatingDeposit, setIsCreatingDeposit] = useState(false)
     const [tokenAmount, setTokenAmount] = useState('')
@@ -37,6 +38,7 @@ const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
     const [depositDetails, setDepositDetails] = useState<MantecaDepositResponseData>()
     const [isKycModalOpen, setIsKycModalOpen] = useState(false)
     const queryClient = useQueryClient()
+    const { parsedPaymentData } = usePaymentStore()
 
     const selectedCountryPath = params.country as string
     const selectedCountry = useMemo(() => {
@@ -65,10 +67,10 @@ const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
             return
         }
         const paymentAmount = parseUnits(usdAmount.replace(/,/g, ''), PEANUT_WALLET_TOKEN_DECIMALS)
-        if (paymentAmount < parseUnits(MIN_DEPOSIT_AMOUNT, PEANUT_WALLET_TOKEN_DECIMALS)) {
-            setError(`Deposit amount must be at least $${MIN_DEPOSIT_AMOUNT}`)
-        } else if (paymentAmount > parseUnits(MAX_DEPOSIT_AMOUNT, PEANUT_WALLET_TOKEN_DECIMALS)) {
-            setError(`Deposit amount exceeds maximum limit of $${MAX_DEPOSIT_AMOUNT}`)
+        if (paymentAmount < parseUnits(MIN_MANTECA_DEPOSIT_AMOUNT.toString(), PEANUT_WALLET_TOKEN_DECIMALS)) {
+            setError(`Deposit amount must be at least $${MIN_MANTECA_DEPOSIT_AMOUNT}`)
+        } else if (paymentAmount > parseUnits(MAX_MANTECA_DEPOSIT_AMOUNT.toString(), PEANUT_WALLET_TOKEN_DECIMALS)) {
+            setError(`Deposit amount exceeds maximum limit of $${MAX_MANTECA_DEPOSIT_AMOUNT}`)
         } else {
             setError(null)
         }
@@ -114,6 +116,10 @@ const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
                 return
             }
             setDepositDetails(depositData.data)
+
+            // @dev: save devconnect intent if this is a devconnect flow - to be deleted post devconnect
+            saveDevConnectIntent(user?.user?.userId, parsedPaymentData, usdAmount, depositData.data?.externalId)
+
             setStep('depositDetails')
         } catch (error) {
             console.log(error)

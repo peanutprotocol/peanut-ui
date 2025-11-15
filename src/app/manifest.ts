@@ -1,5 +1,8 @@
 import type { MetadataRoute } from 'next'
 
+// note: @dev incase you wanna change the icons,
+// better approach is to rename the image files so that browsers dont serve the cached old ones
+// also, do not forget to update the icons in the service worker and actions.ts file
 export default function manifest(): MetadataRoute.Manifest {
     let name = 'Peanut'
     switch (process.env.NODE_ENV) {
@@ -16,40 +19,41 @@ export default function manifest(): MetadataRoute.Manifest {
         description: 'Butter smooth global money',
         start_url: '/home',
         display: 'standalone',
+        display_override: ['standalone'],
         background_color: '#ffffff',
         theme_color: '#000000',
         icons: [
             {
-                src: '/icons/icon-192x192.png',
+                src: '/icons/icon-192x192-beta.png',
                 sizes: '192x192',
                 type: 'image/png',
                 purpose: 'maskable',
             },
             {
-                src: '/icons/icon-512x512.png',
+                src: '/icons/icon-512x512-beta.png',
                 sizes: '512x512',
                 type: 'image/png',
                 purpose: 'maskable',
             },
             {
-                src: '/icons/icon-192x192.png',
+                src: '/icons/icon-192x192-beta.png',
                 sizes: '192x192',
                 type: 'image/png',
                 purpose: 'any',
             },
             {
-                src: '/icons/icon-512x512.png',
+                src: '/icons/icon-512x512-beta.png',
                 sizes: '512x512',
                 type: 'image/png',
                 purpose: 'any',
             },
             {
-                src: '/icons/apple-touch-icon.png',
+                src: '/icons/apple-touch-icon-beta.png',
                 sizes: '180x180',
                 type: 'image/png',
             },
             {
-                src: '/icons/apple-touch-icon-152x152.png',
+                src: '/icons/apple-touch-icon-152x152-beta.png',
                 sizes: '152x152',
                 type: 'image/png',
             },

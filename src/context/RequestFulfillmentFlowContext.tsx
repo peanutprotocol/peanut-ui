@@ -5,8 +5,6 @@ import { type CountryData } from '@/components/AddMoney/consts'
 import { type IOnrampData } from './OnrampFlowContext'
 import { type User } from '@/interfaces'
 
-export type ExternalWalletFulfilMethod = 'exchange' | 'wallet'
-
 export enum RequestFulfillmentBankFlowStep {
     BankCountryList = 'bank-country-list',
     DepositBankDetails = 'deposit-bank-details',
@@ -16,12 +14,8 @@ export enum RequestFulfillmentBankFlowStep {
 
 interface RequestFulfillmentFlowContextType {
     resetFlow: () => void
-    showExternalWalletFulfillMethods: boolean
-    setShowExternalWalletFulfillMethods: (showExternalWalletFulfillMethods: boolean) => void
     showRequestFulfilmentBankFlowManager: boolean
     setShowRequestFulfilmentBankFlowManager: (showRequestFulfilmentBankFlowManager: boolean) => void
-    externalWalletFulfillMethod: ExternalWalletFulfilMethod | null
-    setExternalWalletFulfillMethod: (externalWalletFulfillMethod: ExternalWalletFulfilMethod | null) => void
     flowStep: RequestFulfillmentBankFlowStep | null
     setFlowStep: (step: RequestFulfillmentBankFlowStep | null) => void
     selectedCountry: CountryData | null
@@ -43,10 +37,6 @@ interface RequestFulfillmentFlowContextType {
 const RequestFulfillmentFlowContext = createContext<RequestFulfillmentFlowContextType | undefined>(undefined)
 
 export const RequestFulfilmentFlowContextProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [showExternalWalletFulfillMethods, setShowExternalWalletFulfillMethods] = useState(false)
-    const [externalWalletFulfillMethod, setExternalWalletFulfillMethod] = useState<ExternalWalletFulfilMethod | null>(
-        null
-    )
     const [showRequestFulfilmentBankFlowManager, setShowRequestFulfilmentBankFlowManager] = useState(false)
     const [flowStep, setFlowStep] = useState<RequestFulfillmentBankFlowStep | null>(null)
     const [selectedCountry, setSelectedCountry] = useState<CountryData | null>(null)
@@ -58,8 +48,6 @@ export const RequestFulfilmentFlowContextProvider: React.FC<{ children: ReactNod
     const [triggerPayWithPeanut, setTriggerPayWithPeanut] = useState(false) // To trigger the pay with peanut from Action List
 
     const resetFlow = useCallback(() => {
-        setExternalWalletFulfillMethod(null)
-        setShowExternalWalletFulfillMethods(false)
         setFlowStep(null)
         setShowRequestFulfilmentBankFlowManager(false)
         setSelectedCountry(null)
@@ -73,10 +61,6 @@ export const RequestFulfilmentFlowContextProvider: React.FC<{ children: ReactNod
     const value = useMemo(
         () => ({
             resetFlow,
-            externalWalletFulfillMethod,
-            setExternalWalletFulfillMethod,
-            showExternalWalletFulfillMethods,
-            setShowExternalWalletFulfillMethods,
             flowStep,
             setFlowStep,
             showRequestFulfilmentBankFlowManager,
@@ -98,8 +82,6 @@ export const RequestFulfilmentFlowContextProvider: React.FC<{ children: ReactNod
         }),
         [
             resetFlow,
-            externalWalletFulfillMethod,
-            showExternalWalletFulfillMethods,
             flowStep,
             showRequestFulfilmentBankFlowManager,
             selectedCountry,

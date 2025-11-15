@@ -83,6 +83,8 @@ export function useTransactionHistory({
     }
 
     // Latest transactions mode (for home page)
+    // Two-tier caching: TQ in-memory (30s) → SW disk cache (1 week) → Network
+    // Balance: Fresh enough for home page + reduces redundant SW cache hits
     if (mode === 'latest') {
         // if filterMutualTxs is true, we need to add the username to the query key to invalidate the query when the username changes
         const queryKeyTxn = TRANSACTIONS + (filterMutualTxs ? username : '')
@@ -90,17 +92,26 @@ export function useTransactionHistory({
             queryKey: [queryKeyTxn, 'latest', { limit }],
             queryFn: () => fetchHistory({ limit }),
             enabled,
-            staleTime: 5 * 60 * 1000, // 5 minutes
+            // 30s cache: Fresh enough for home page widget
+            // On cold start, will fetch → SW responds <50ms from cache
+            staleTime: 30 * 1000, // 30 seconds (balance: freshness vs performance)
+            gcTime: 5 * 60 * 1000, // Keep in memory for 5min
+            // Refetch on mount - TQ automatically skips if data is fresh (< staleTime)
+            refetchOnMount: true,
+            // Refetch on focus - TQ automatically skips if data is fresh (< staleTime)
+            refetchOnWindowFocus: true,
         })
     }
 
     // Infinite query mode (for main history page)
+    // Uses longer staleTime since user is actively browsing (less critical for instant updates)
     return useInfiniteQuery({
         queryKey: [TRANSACTIONS, 'infinite', { limit }],
         queryFn: ({ pageParam }) => fetchHistory({ cursor: pageParam, limit }),
         initialPageParam: undefined as string | undefined,
         getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.cursor : undefined),
         enabled,
-        staleTime: 5 * 60 * 1000, // 5 minutes
+        staleTime: 30 * 1000, // 30 seconds (infinite scroll doesn't need instant updates)
+        gcTime: 5 * 60 * 1000, // Keep in memory for 5min
     })
 }

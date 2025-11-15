@@ -1,7 +1,6 @@
 import Card, { type CardPosition } from '@/components/Global/Card'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
-import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
 import { type TransactionDirection } from '@/components/TransactionDetails/TransactionDetailsHeaderCard'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
@@ -14,7 +13,7 @@ import {
     isStableCoin,
     shortenStringLong,
 } from '@/utils'
-import React from 'react'
+import React, { lazy, Suspense } from 'react'
 import Image from 'next/image'
 import StatusPill, { type StatusPillType } from '../Global/StatusPill'
 import { VerifiedUserLabel } from '../UserHeader'
@@ -22,6 +21,16 @@ import { isAddress } from 'viem'
 import { EHistoryEntryType } from '@/utils/history.utils'
 import { PerkIcon } from './PerkIcon'
 import { useHaptic } from 'use-haptic'
+
+// Lazy load transaction details drawer (~40KB) to reduce initial bundle size
+// Only loaded when user taps a transaction to view details
+// Wrapped in error boundary to gracefully handle chunk load failures
+const TransactionDetailsDrawer = lazy(() =>
+    import('@/components/TransactionDetails/TransactionDetailsDrawer').then((mod) => ({
+        default: mod.TransactionDetailsDrawer,
+    }))
+)
+import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
 
 export type TransactionType =
     | 'send'
@@ -154,7 +163,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                 </div>
                             </div>
                             {/* display the action icon and type text */}
-                            <div className="flex items-center gap-2 text-xs font-medium text-gray-1">
+                            <div className="flex items-center gap-1 text-xs font-medium text-gray-1">
                                 {getActionIcon(type, transaction.direction)}
                                 <span className="capitalize">{isPerkReward ? 'Refund' : getActionText(type)}</span>
                                 {status && <StatusPill status={status} />}
@@ -175,13 +184,17 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
             </Card>
 
             {/* Transaction Details Drawer */}
-            <TransactionDetailsDrawer
-                isOpen={isDrawerOpen && selectedTransaction?.id === transaction.id}
-                onClose={closeTransactionDetails}
-                transaction={selectedTransaction}
-                transactionAmount={displayAmount}
-                avatarUrl={avatarUrl}
-            />
+            <LazyLoadErrorBoundary>
+                <Suspense fallback={null}>
+                    <TransactionDetailsDrawer
+                        isOpen={isDrawerOpen && selectedTransaction?.id === transaction.id}
+                        onClose={closeTransactionDetails}
+                        transaction={selectedTransaction}
+                        transactionAmount={displayAmount}
+                        avatarUrl={avatarUrl}
+                    />
+                </Suspense>
+            </LazyLoadErrorBoundary>
         </>
     )
 }

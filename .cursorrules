@@ -42,6 +42,7 @@
 
 - **Cache where possible** - avoid unnecessary re-renders and data fetching
 - **Fire simultaneous requests** - if you're doing multiple sequential awaits and they're not interdependent, fire them simultaneously
+- **Service Worker cache version** - only bump `NEXT_PUBLIC_API_VERSION` for breaking API changes (see JSDoc in `src/app/sw.ts`). Users auto-migrate.
 
 ## 📝 Commits
 

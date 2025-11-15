@@ -16,7 +16,8 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useRouter, usePathname } from 'next/navigation'
 import { createContext, type ReactNode, useContext, useState, useEffect, useMemo, useCallback } from 'react'
 import { captureException } from '@sentry/nextjs'
-import { PUBLIC_ROUTES_REGEX } from '@/constants/routes'
+// import { PUBLIC_ROUTES_REGEX } from '@/constants/routes'
+import { USER_DATA_CACHE_PATTERNS } from '@/constants/cache.consts'
 
 interface AuthContextType {
     user: interfaces.IUserProfile | null
@@ -53,19 +54,12 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
  */
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const router = useRouter()
-    const pathname = usePathname()
     const dispatch = useAppDispatch()
-    const { user: authUser } = useUserStore()
     const toast = useToast()
     const queryClient = useQueryClient()
     const WEB_AUTHN_COOKIE_KEY = 'web-authn-key'
 
-    // Check if current path is public (dev tools, etc.)
-    const isPublicPath = PUBLIC_ROUTES_REGEX.test(pathname)
-
-    // Only fetch user if not on a public path
-    const shouldFetchUser = !isPublicPath && !authUser?.user.userId
-    const { data: user, isLoading: isFetchingUser, refetch: fetchUser } = useUserQuery(shouldFetchUser)
+    const { data: user, isLoading: isFetchingUser, refetch: fetchUser } = useUserQuery()
 
     // Pre-compute a Set of invited usernames for O(1) lookups
     const invitedUsernamesSet = useMemo(() => {
@@ -150,6 +144,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
                 // clear JWT cookie by setting it to expire
                 document.cookie = 'jwt-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
+
+                // Clear service worker caches to prevent user data leakage
+                // When User A logs out and User B logs in on the same device, cached API responses
+                // could expose User A's data (profile, transactions, KYC) to User B
+                // Only clears user-specific caches; preserves prices and external resources
+                if ('caches' in window) {
+                    try {
+                        const cacheNames = await caches.keys()
+                        await Promise.all(
+                            cacheNames
+                                .filter((name) => USER_DATA_CACHE_PATTERNS.some((pattern) => name.includes(pattern)))
+                                .map((name) => {
+                                    console.log('Logout: Clearing cache:', name)
+                                    return caches.delete(name)
+                                })
+                        )
+                    } catch (error) {
+                        console.error('Failed to clear caches on logout:', error)
+                        // Non-fatal: logout continues even if cache clearing fails
+                    }
+                }
 
                 // clear the iOS PWA prompt session flag
                 if (typeof window !== 'undefined') {

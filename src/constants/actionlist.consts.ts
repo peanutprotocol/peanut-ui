@@ -15,7 +15,7 @@ export const ACTION_METHODS: PaymentMethod[] = [
     {
         id: 'bank',
         title: 'Bank',
-        description: 'EUR, USD, ARS (more coming soon)',
+        description: 'EUR, USD, MXN, ARS & more',
         icons: [
             'https://flagcdn.com/w160/ar.png',
             'https://flagcdn.com/w160/de.png',

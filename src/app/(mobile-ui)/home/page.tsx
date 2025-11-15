@@ -3,7 +3,6 @@
 import { Button, type ButtonSize, type ButtonVariant } from '@/components/0_Bruddle'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { Icon } from '@/components/Global/Icons/Icon'
-import IOSInstallPWAModal from '@/components/Global/IOSInstallPWAModal'
 import Loading from '@/components/Global/Loading'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 //import RewardsModal from '@/components/Global/RewardsModal'
@@ -16,10 +15,9 @@ import { useUserStore } from '@/redux/hooks'
 import { formatExtendedNumber, getUserPreferences, printableUsdc, updateUserPreferences, getRedirectUrl } from '@/utils'
 import { useDisconnect } from '@reown/appkit/react'
 import Link from 'next/link'
-import { useEffect, useMemo, useState, useCallback } from 'react'
+import { useEffect, useMemo, useState, useCallback, lazy, Suspense } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { useAccount } from 'wagmi'
-import BalanceWarningModal from '@/components/Global/BalanceWarningModal'
 // import ReferralCampaignModal from '@/components/Home/ReferralCampaignModal'
 // import FloatingReferralButton from '@/components/Home/FloatingReferralButton'
 import { AccountType } from '@/interfaces'
@@ -29,17 +27,24 @@ import { PostSignupActionManager } from '@/components/Global/PostSignupActionMan
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
-import SetupNotificationsModal from '@/components/Notifications/SetupNotificationsModal'
 import { useNotifications } from '@/hooks/useNotifications'
 import useKycStatus from '@/hooks/useKycStatus'
 import HomeCarouselCTA from '@/components/Home/HomeCarouselCTA'
-import NoMoreJailModal from '@/components/Global/NoMoreJailModal'
-import EarlyUserModal from '@/components/Global/EarlyUserModal'
 import InvitesIcon from '@/components/Home/InvitesIcon'
 import NavigationArrow from '@/components/Global/NavigationArrow'
-import KycCompletedModal from '@/components/Home/KycCompletedModal'
 import { updateUserById } from '@/app/actions/users'
 import { useHaptic } from 'use-haptic'
+
+// Lazy load heavy modal components (~20-30KB each) to reduce initial bundle size
+// Components are only loaded when user triggers them
+// Wrapped in error boundaries to gracefully handle chunk load failures
+const IOSInstallPWAModal = lazy(() => import('@/components/Global/IOSInstallPWAModal'))
+const BalanceWarningModal = lazy(() => import('@/components/Global/BalanceWarningModal'))
+const SetupNotificationsModal = lazy(() => import('@/components/Notifications/SetupNotificationsModal'))
+const NoMoreJailModal = lazy(() => import('@/components/Global/NoMoreJailModal'))
+const EarlyUserModal = lazy(() => import('@/components/Global/EarlyUserModal'))
+const KycCompletedModal = lazy(() => import('@/components/Home/KycCompletedModal'))
+import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
 
 const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
 const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_EXPIRY ?? '1814400') // 21 days in seconds
@@ -213,11 +218,19 @@ export default function Home() {
                     </ActionButtonGroup>
                 </div>
 
-                <HomeCarouselCTA />
+                <div className="space-y-2">
+                    <HomeCarouselCTA />
+                    <HomeHistory username={username ?? undefined} />
+                </div>
 
-                {showPermissionModal && <SetupNotificationsModal />}
+                {showPermissionModal && (
+                    <LazyLoadErrorBoundary>
+                        <Suspense fallback={null}>
+                            <SetupNotificationsModal />
+                        </Suspense>
+                    </LazyLoadErrorBoundary>
+                )}
 
-                <HomeHistory username={username ?? undefined} />
                 {/* Render the new Rewards Modal
                 <RewardsModal />
                 */}
@@ -227,43 +240,69 @@ export default function Home() {
                 */}
             </div>
             {/* iOS PWA Install Modal */}
-            <IOSInstallPWAModal visible={showIOSPWAInstallModal} onClose={() => setShowIOSPWAInstallModal(false)} />
+            <LazyLoadErrorBoundary>
+                <Suspense fallback={null}>
+                    <IOSInstallPWAModal
+                        visible={showIOSPWAInstallModal}
+                        onClose={() => setShowIOSPWAInstallModal(false)}
+                    />
+                </Suspense>
+            </LazyLoadErrorBoundary>
 
             {/* Add Money Prompt Modal */}
             {/* TODO @dev Disabling this, re-enable after properly fixing */}
             {/* <AddMoneyPromptModal visible={showAddMoneyPromptModal} onClose={() => setShowAddMoneyPromptModal(false)} /> */}
 
-            <NoMoreJailModal />
+            <LazyLoadErrorBoundary>
+                <Suspense fallback={null}>
+                    <NoMoreJailModal />
+                </Suspense>
+            </LazyLoadErrorBoundary>
 
-            <EarlyUserModal />
+            <LazyLoadErrorBoundary>
+                <Suspense fallback={null}>
+                    <EarlyUserModal />
+                </Suspense>
+            </LazyLoadErrorBoundary>
 
-            <KycCompletedModal
-                isOpen={showKycModal}
-                onClose={async () => {
-                    // close the modal immediately for better ux
-                    setShowKycModal(false)
-                    // update the database and refetch user to ensure sync
-                    if (user?.user.userId) {
-                        await updateUserById({
-                            userId: user.user.userId,
-                            showKycCompletedModal: false,
-                        })
-                        // refetch user to ensure the modal doesn't reappear
-                        await fetchUser()
-                    }
-                }}
-            />
+            <LazyLoadErrorBoundary>
+                <Suspense fallback={null}>
+                    <KycCompletedModal
+                        isOpen={showKycModal}
+                        onClose={async () => {
+                            // close the modal immediately for better ux
+                            setShowKycModal(false)
+                            // update the database and refetch user to ensure sync
+                            if (user?.user.userId) {
+                                await updateUserById({
+                                    userId: user.user.userId,
+                                    showKycCompletedModal: false,
+                                })
+                                // refetch user to ensure the modal doesn't reappear
+                                await fetchUser()
+                            }
+                        }}
+                    />
+                </Suspense>
+            </LazyLoadErrorBoundary>
 
             {/* Balance Warning Modal */}
-            <BalanceWarningModal
-                visible={showBalanceWarningModal}
-                onCloseAction={() => {
-                    setShowBalanceWarningModal(false)
-                    updateUserPreferences(user!.user.userId, {
-                        hasSeenBalanceWarning: { value: true, expiry: Date.now() + BALANCE_WARNING_EXPIRY * 1000 },
-                    })
-                }}
-            />
+            <LazyLoadErrorBoundary>
+                <Suspense fallback={null}>
+                    <BalanceWarningModal
+                        visible={showBalanceWarningModal}
+                        onCloseAction={() => {
+                            setShowBalanceWarningModal(false)
+                            updateUserPreferences(user!.user.userId, {
+                                hasSeenBalanceWarning: {
+                                    value: true,
+                                    expiry: Date.now() + BALANCE_WARNING_EXPIRY * 1000,
+                                },
+                            })
+                        }}
+                    />
+                </Suspense>
+            </LazyLoadErrorBoundary>
 
             {/* Referral Campaign Modal - DISABLED FOR NOW */}
             {/* <ReferralCampaignModal

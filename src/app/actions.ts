@@ -102,7 +102,7 @@ export async function sendNotification(
             JSON.stringify({
                 title,
                 message,
-                icon: '/icons/icon-192x192.png',
+                icon: '/icons/icon-192x192-beta.png',
             })
         )
         return { success: true }

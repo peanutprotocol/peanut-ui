@@ -13,6 +13,7 @@ interface NavHeaderProps {
     hideLabel?: boolean
     icon?: IconName
     showLogoutBtn?: boolean
+    titleClassName?: string
 }
 
 const NavHeader = ({
@@ -23,6 +24,7 @@ const NavHeader = ({
     onPrev,
     disableBackBtn,
     showLogoutBtn = false,
+    titleClassName,
 }: NavHeaderProps) => {
     const { logoutUser, isLoggingOut } = useAuth()
 
@@ -48,7 +50,12 @@ const NavHeader = ({
                 </Button>
             )}
             {!hideLabel && (
-                <div className="absolute left-1/2 top-1/2 min-w-max -translate-x-1/2 -translate-y-1/2 transform pb-1 text-2xl font-extrabold md:relative md:left-auto md:top-auto md:hidden md:translate-x-0 md:translate-y-0 md:transform-none md:pb-0 md:text-base md:font-semibold">
+                <div
+                    className={twMerge(
+                        'absolute left-1/2 top-1/2 min-w-max -translate-x-1/2 -translate-y-1/2 transform pb-1 text-2xl font-extrabold md:relative md:left-auto md:top-auto md:hidden md:translate-x-0 md:translate-y-0 md:transform-none md:pb-0 md:text-base md:font-semibold',
+                        titleClassName
+                    )}
+                >
                     {title}
                 </div>
             )}
