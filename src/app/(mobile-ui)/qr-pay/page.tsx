@@ -14,6 +14,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import { MERCADO_PAGO, PIX, SIMPLEFI } from '@/assets/payment-apps'
 import Image from 'next/image'
 import PeanutLoading from '@/components/Global/PeanutLoading'
+import PeanutFactsLoading from '@/components/Global/PeanutFactsLoading'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSignUserOp } from '@/hooks/wallet/useSignUserOp'
@@ -1025,6 +1026,11 @@ export default function QRPayPage() {
                 </Card>
             </div>
         )
+    }
+
+    // Show peanut facts loading screen when paying
+    if (loadingState?.toLowerCase() === 'paying') {
+        return <PeanutFactsLoading message="Waiting for merchant to receive the money..." />
     }
 
     // check if we're still loading payment data or KYC state before showing anything
