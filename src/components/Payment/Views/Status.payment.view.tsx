@@ -27,6 +27,7 @@ import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import { usePointsConfetti } from '@/hooks/usePointsConfetti'
 import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
 import { useHaptic } from 'use-haptic'
+import PointsCard from '@/components/Common/PointsCard'
 
 type DirectSuccessViewProps = {
     user?: ApiUser
@@ -252,14 +253,7 @@ const DirectSuccessView = ({
                     </div>
                 </Card>
 
-                {points && (
-                    <div ref={pointsDivRef} className="flex justify-center gap-2">
-                        <Image src={STAR_STRAIGHT_ICON} alt="star" width={20} height={20} />
-                        <p className="text-sm font-medium text-black">
-                            You&apos;ve earned {points} {points === 1 ? 'point' : 'points'}!
-                        </p>
-                    </div>
-                )}
+                {points && <PointsCard points={points} pointsDivRef={pointsDivRef} />}
 
                 <div className="w-full space-y-5">
                     {!!authUser?.user.userId ? (
