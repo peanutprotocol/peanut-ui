@@ -52,6 +52,10 @@ import type { HistoryEntry } from '@/hooks/useTransactionHistory'
 import { completeHistoryEntry } from '@/utils/history.utils'
 import { useSupportModalContext } from '@/context/SupportModalContext'
 import maintenanceConfig from '@/config/underMaintenance.config'
+import PointsCard from '@/components/Common/PointsCard'
+// Lazy load 800KB success animation - only needed on success screen, not initial load
+// CRITICAL: This GIF is 80% of the /qr-pay bundle size. Load it dynamically.
+const chillPeanutAnim = '/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
 
 const MAX_QR_PAYMENT_AMOUNT = '2000'
 const MIN_QR_PAYMENT_AMOUNT = '0.1'
@@ -1216,7 +1220,7 @@ export default function QRPayPage() {
 
                     {/* Perk Eligibility Card - Show before claiming */}
                     {qrPayment?.perk?.eligible && !perkClaimed && !qrPayment.perk.claimed && (
-                        <Card className="flex items-start gap-3 bg-white p-4">
+                        <Card ref={pointsDivRef} className="flex items-start gap-3 bg-white p-4">
                             <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-yellow-400">
                                 <Image src={STAR_STRAIGHT_ICON} alt="star" width={24} height={24} />
                             </div>
@@ -1263,14 +1267,8 @@ export default function QRPayPage() {
                     )}
 
                     {/* Points Display - ref used for confetti origin point */}
-                    {pointsData?.estimatedPoints && (
-                        <div ref={pointsDivRef} className="flex justify-center gap-2">
-                            <Image src={STAR_STRAIGHT_ICON} alt="star" width={20} height={20} />
-                            <p className="text-sm font-medium text-black">
-                                You&apos;ve earned {pointsData.estimatedPoints}{' '}
-                                {pointsData.estimatedPoints === 1 ? 'point' : 'points'}!
-                            </p>
-                        </div>
+                    {!qrPayment?.perk?.eligible && pointsData?.estimatedPoints && (
+                        <PointsCard points={pointsData.estimatedPoints} pointsDivRef={pointsDivRef} />
                     )}
 
                     <div className="w-full space-y-5">
