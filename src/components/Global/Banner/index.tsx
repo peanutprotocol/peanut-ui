@@ -18,8 +18,8 @@ export function Banner() {
         return <MaintenanceBanner />
     }
 
-    // don't show beta feedback banner on landing page or setup page
-    if (pathname === '/' || pathname === '/setup') return null
+    // don't show beta feedback banner on landing page, setup page, or quests pages
+    if (pathname === '/' || pathname === '/setup' || pathname.startsWith('/quests')) return null
 
     // show beta feedback banner when not in maintenance
     return <FeedbackBanner />
