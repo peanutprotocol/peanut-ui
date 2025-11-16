@@ -5,7 +5,7 @@
 
 import Cookies from 'js-cookie'
 import { fetchWithSentry } from '@/utils'
-import { PEANUT_API_URL, PEANUT_API_KEY } from '@/constants'
+import { PEANUT_API_URL } from '@/constants'
 import type { QuestLeaderboardData, AllQuestsLeaderboardData } from '@/app/quests/types'
 
 export const questsApi = {
@@ -26,7 +26,6 @@ export const questsApi = {
 
             const headers: HeadersInit = {
                 'Content-Type': 'application/json',
-                'api-key': PEANUT_API_KEY,
             }
 
             if (jwtToken) {
@@ -73,7 +72,6 @@ export const questsApi = {
 
             const headers: HeadersInit = {
                 'Content-Type': 'application/json',
-                'api-key': PEANUT_API_KEY,
             }
 
             if (jwtToken) {
