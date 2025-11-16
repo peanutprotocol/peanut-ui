@@ -38,8 +38,6 @@ interface PaymentAmountInputProps {
     defaultSliderSuggestedAmount?: number
 }
 
-
-
 /**
  * this is a shadow clone of TokenAmountInput, it is used to display the amount in the payment form, to deal with the useeffect fuckup in that component using this component temperiorly so that we can fix the useeffect fuckup in that component next week
  */
