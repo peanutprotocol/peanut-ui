@@ -36,4 +36,3 @@ export function UserRankCard({ metric, metricLabel, questTitle, badgeColor }: Us
         </div>
     )
 }
-
