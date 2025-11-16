@@ -49,5 +49,10 @@
         "source": "/foodie",
         "destination": "https://peanutprotocol.notion.site/Peanut-Foodie-Guide-29a83811757980e79896f2a610d6591a",
         "permanent": false
+    },
+    {
+        "source": "/devconnect",
+        "destination": "/quests",
+        "permanent": false
     }
 ]
