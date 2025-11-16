@@ -205,7 +205,7 @@ const TokenAmountInput = ({
         } else {
             onChange(displayValue, isInputUsd)
         }
-    }, [selectedTokenData?.price, tokenValue, displayValue, isInputUsd]) // no, now its okay (seriously, please dont touch this - took me ~1hr to debug and fix, yours sincerely, kush)
+    }, [selectedTokenData?.price, displayValue, isInputUsd]) // no, now its okay (seriously, please dont touch this - took me ~1hr to debug and fix, yours sincerely, kush)
 
     useEffect(() => {
         switch (displayMode) {
