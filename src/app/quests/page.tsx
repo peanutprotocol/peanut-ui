@@ -18,7 +18,7 @@ import { QuestsHero } from './components/QuestsHero'
 export default function QuestsPage() {
     const marqueeProps = {
         visible: true,
-        message: ['QUESTS', 'LEADERBOARDS', 'WIN $1000', 'DEVCONNECT', 'COMPETE', 'EARN BADGES'],
+        message: ['QUESTS', 'LEADERBOARDS', 'WIN $1500', 'DEVCONNECT', 'COMPETE', 'EARN BADGES'],
     }
 
     const faqs = {

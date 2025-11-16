@@ -14,6 +14,7 @@ import { UserRankCard } from '../components/UserRankCard'
 import { QUEST_CONFIG, getQuestStatus, type QuestId } from '../constants'
 import { useQuestLeaderboard } from '../hooks/useQuests'
 import PeanutLoading from '@/components/Global/PeanutLoading'
+import { useAuth } from '@/context/authContext'
 
 interface QuestDetailPageProps {
     params: Promise<{ questId: string }>
@@ -23,6 +24,7 @@ export default function QuestDetailPage(props: QuestDetailPageProps) {
     const params = use(props.params)
     const router = useRouter()
     const searchParams = useSearchParams()
+    const { userId, username } = useAuth()
     const useMockData = searchParams?.get('useMockData') === 'true'
     const useTestTimePeriod = searchParams?.get('useTestTimePeriod') === 'true'
     const [screenWidth, setScreenWidth] = useState(1080)
@@ -75,8 +77,7 @@ export default function QuestDetailPage(props: QuestDetailPageProps) {
 
     const leaderboard = questData?.leaderboard || []
     const userStatus = questData?.userStatus
-
-    const isAuthenticated = false // Replace with real auth check
+    const isAuthenticated = !!userId
 
     const bgColorClass =
         questConfig.backgroundColor === 'purple'
@@ -171,18 +172,6 @@ export default function QuestDetailPage(props: QuestDetailPageProps) {
                         </div>
                     </motion.div>
 
-                    {/* User Status (if authenticated) */}
-                    {isAuthenticated && userStatus && (
-                        <div className="mb-8">
-                            <UserRankCard
-                                metric={userStatus.metric}
-                                metricLabel={questConfig.metricLabel}
-                                questTitle={questConfig.title}
-                                badgeColor={questConfig.badgeColor}
-                            />
-                        </div>
-                    )}
-
                     {/* Leaderboard */}
                     <motion.div
                         className="mb-8"
@@ -198,29 +187,44 @@ export default function QuestDetailPage(props: QuestDetailPageProps) {
                             <div className="flex flex-col items-center justify-center rounded-sm border-2 border-black bg-white py-12 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                                 <PeanutLoading />
                             </div>
-                        ) : leaderboard.length === 0 ? (
-                            questStatus === 'not_started' ? (
-                                <div className="flex flex-col items-center justify-center rounded-sm border-2 border-black bg-white py-12 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                                    <div className="mb-4 text-5xl">⏰</div>
-                                    <p className="mb-2 text-lg font-bold text-gray-700">Coming Soon!</p>
-                                    <p className="text-sm text-gray-500">
-                                        Leaderboard will be available on November 17th, 2025
-                                    </p>
-                                </div>
-                            ) : (
-                                <div className="flex flex-col items-center justify-center rounded-sm border-2 border-black bg-white py-12 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                                    <div className="mb-4 text-4xl">🏆</div>
-                                    <p className="mb-2 text-lg font-bold text-gray-700">No entries yet</p>
-                                    <p className="text-sm text-gray-500">Be the first to compete!</p>
-                                </div>
-                            )
+                        ) : leaderboard.length === 0 &&
+                          !userStatus &&
+                          questStatus === 'not_started' &&
+                          !useTestTimePeriod ? (
+                            <div className="flex flex-col items-center justify-center rounded-sm border-2 border-black bg-white py-12 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                                <div className="mb-4 text-5xl">⏰</div>
+                                <p className="mb-2 text-lg font-bold text-gray-700">Coming Soon!</p>
+                                <p className="text-sm text-gray-500">
+                                    Leaderboard will be available on November 17th, 2025
+                                </p>
+                            </div>
                         ) : (
-                            <QuestLeaderboard
-                                entries={leaderboard}
-                                metricLabel={questConfig.metricLabel}
-                                badgeColor={questConfig.badgeColor}
-                                isCurrency={questId === 'bank_drainer'}
-                            />
+                            <div className="space-y-3">
+                                {leaderboard.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center rounded-sm border-2 border-black bg-white py-12 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                                        <div className="mb-4 text-4xl">🏆</div>
+                                        <p className="mb-2 text-lg font-bold text-gray-700">No entries yet</p>
+                                        <p className="text-sm text-gray-500">Be the first to compete!</p>
+                                    </div>
+                                ) : (
+                                    <QuestLeaderboard
+                                        entries={leaderboard}
+                                        metricLabel={questConfig.metricLabel}
+                                        badgeColor={questConfig.badgeColor}
+                                        isCurrency={questId === 'bank_drainer'}
+                                    />
+                                )}
+
+                                {/* User Status - shown as last entry if authenticated */}
+                                {isAuthenticated && userStatus && username && (
+                                    <UserRankCard
+                                        metric={userStatus.metric}
+                                        username={username}
+                                        isCurrency={questId === 'bank_drainer'}
+                                        backgroundColor={questConfig.backgroundColor}
+                                    />
+                                )}
+                            </div>
                         )}
                     </motion.div>
 

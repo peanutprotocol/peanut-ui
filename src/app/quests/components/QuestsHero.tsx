@@ -11,6 +11,7 @@ import Image from 'next/image'
 import { Button } from '@/components/0_Bruddle'
 import { QUEST_CONFIG, getQuestStatus } from '../constants'
 import { useAllQuestsLeaderboards } from '../hooks/useQuests'
+import { useAuth } from '@/context/authContext'
 
 interface QuestData {
     id: string
@@ -26,16 +27,19 @@ interface QuestData {
         metric: number
         badge?: string
     }>
+    hasUserData: boolean
 }
 
 export function QuestsHero() {
     const router = useRouter()
     const searchParams = useSearchParams()
+    const { userId, username } = useAuth()
     const useMockData = searchParams?.get('useMockData') === 'true'
     const useTestTimePeriod = searchParams?.get('useTestTimePeriod') === 'true'
     const [screenWidth, setScreenWidth] = useState(1080)
     const questStatus = getQuestStatus()
     const { data: questsData, isLoading } = useAllQuestsLeaderboards(3, useMockData, useTestTimePeriod)
+    const isAuthenticated = !!userId
 
     useEffect(() => {
         const handleResize = () => {
@@ -68,9 +72,9 @@ export function QuestsHero() {
     const quests: QuestData[] = useMemo(() => {
         if (!questsData) {
             return [
-                { ...QUEST_CONFIG.most_invites, leaderboard: [] },
-                { ...QUEST_CONFIG.bank_drainer, leaderboard: [] },
-                { ...QUEST_CONFIG.biggest_pot, leaderboard: [] },
+                { ...QUEST_CONFIG.most_invites, leaderboard: [], hasUserData: false },
+                { ...QUEST_CONFIG.bank_drainer, leaderboard: [], hasUserData: false },
+                { ...QUEST_CONFIG.biggest_pot, leaderboard: [], hasUserData: false },
             ]
         }
 
@@ -78,14 +82,17 @@ export function QuestsHero() {
             {
                 ...QUEST_CONFIG.most_invites,
                 leaderboard: questsData.most_invites?.leaderboard || [],
+                hasUserData: !!questsData.most_invites?.userStatus,
             },
             {
                 ...QUEST_CONFIG.bank_drainer,
                 leaderboard: questsData.bank_drainer?.leaderboard || [],
+                hasUserData: !!questsData.bank_drainer?.userStatus,
             },
             {
                 ...QUEST_CONFIG.biggest_pot,
                 leaderboard: questsData.biggest_pot?.leaderboard || [],
+                hasUserData: !!questsData.biggest_pot?.userStatus,
             },
         ]
     }, [questsData])
@@ -253,6 +260,17 @@ export function QuestsHero() {
                                 questStatus={questStatus}
                                 isLoading={isLoading}
                                 isCurrency={quest.id === 'bank_drainer'}
+                                hasUserData={quest.hasUserData}
+                                useTestTimePeriod={useTestTimePeriod}
+                                userStatus={
+                                    quest.id === 'most_invites'
+                                        ? questsData?.most_invites?.userStatus
+                                        : quest.id === 'bank_drainer'
+                                          ? questsData?.bank_drainer?.userStatus
+                                          : questsData?.biggest_pot?.userStatus
+                                }
+                                username={username}
+                                isAuthenticated={isAuthenticated}
                             />
                         </motion.div>
                     ))}

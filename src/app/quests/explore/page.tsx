@@ -14,22 +14,25 @@ import { UserRankCard } from '../components/UserRankCard'
 import { QUEST_CONFIG, getQuestStatus } from '../constants'
 import { useAllQuestsLeaderboards } from '../hooks/useQuests'
 import PeanutLoading from '@/components/Global/PeanutLoading'
+import { useAuth } from '@/context/authContext'
 
 export default function QuestsExplorePage() {
     const router = useRouter()
     const searchParams = useSearchParams()
+    const { userId, username } = useAuth()
     const useMockData = searchParams?.get('useMockData') === 'true'
     const useTestTimePeriod = searchParams?.get('useTestTimePeriod') === 'true'
     const [screenWidth, setScreenWidth] = useState(1080)
     const questStatus = getQuestStatus()
     const { data: questsData, isLoading } = useAllQuestsLeaderboards(10, useMockData, useTestTimePeriod)
+    const isAuthenticated = !!userId
 
     const quests = useMemo(() => {
         if (!questsData) {
             return [
-                { ...QUEST_CONFIG.most_invites, leaderboard: [] },
-                { ...QUEST_CONFIG.bank_drainer, leaderboard: [] },
-                { ...QUEST_CONFIG.biggest_pot, leaderboard: [] },
+                { ...QUEST_CONFIG.most_invites, leaderboard: [], hasUserData: false },
+                { ...QUEST_CONFIG.bank_drainer, leaderboard: [], hasUserData: false },
+                { ...QUEST_CONFIG.biggest_pot, leaderboard: [], hasUserData: false },
             ]
         }
 
@@ -37,14 +40,17 @@ export default function QuestsExplorePage() {
             {
                 ...QUEST_CONFIG.most_invites,
                 leaderboard: questsData.most_invites?.leaderboard || [],
+                hasUserData: !!questsData.most_invites?.userStatus,
             },
             {
                 ...QUEST_CONFIG.bank_drainer,
                 leaderboard: questsData.bank_drainer?.leaderboard || [],
+                hasUserData: !!questsData.bank_drainer?.userStatus,
             },
             {
                 ...QUEST_CONFIG.biggest_pot,
                 leaderboard: questsData.biggest_pot?.leaderboard || [],
+                hasUserData: !!questsData.biggest_pot?.userStatus,
             },
         ]
     }, [questsData])
@@ -196,39 +202,63 @@ export default function QuestsExplorePage() {
                                             <div className="flex flex-col items-center justify-center rounded-sm border-2 border-black bg-white py-8 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] md:py-12">
                                                 <PeanutLoading />
                                             </div>
+                                        ) : quest.leaderboard.length === 0 &&
+                                          !quest.hasUserData &&
+                                          questStatus === 'not_started' &&
+                                          !useTestTimePeriod ? (
+                                            <div className="flex flex-col items-center justify-center rounded-sm border-2 border-black bg-white py-8 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] md:py-12">
+                                                <div className="mb-3 text-4xl md:mb-4 md:text-5xl">⏰</div>
+                                                <p className="mb-2 text-base font-bold text-gray-700 md:text-lg">
+                                                    Coming Soon!
+                                                </p>
+                                                <p className="text-xs text-gray-500 md:text-sm">
+                                                    Leaderboards will be available on November 17th, 2025
+                                                </p>
+                                            </div>
                                         ) : quest.leaderboard.length === 0 ? (
-                                            questStatus === 'not_started' ? (
-                                                <div className="flex flex-col items-center justify-center rounded-sm border-2 border-black bg-white py-8 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] md:py-12">
-                                                    <div className="mb-3 text-4xl md:mb-4 md:text-5xl">⏰</div>
-                                                    <p className="mb-2 text-base font-bold text-gray-700 md:text-lg">
-                                                        Coming Soon!
-                                                    </p>
-                                                    <p className="text-xs text-gray-500 md:text-sm">
-                                                        Leaderboards will be available on November 17th, 2025
-                                                    </p>
-                                                </div>
-                                            ) : (
-                                                <div className="flex flex-col items-center justify-center rounded-sm border-2 border-black bg-white py-8 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] md:py-12">
-                                                    <div className="mb-3 text-3xl md:mb-4 md:text-4xl">🏆</div>
-                                                    <p className="mb-2 text-base font-bold text-gray-700 md:text-lg">
-                                                        No entries yet
-                                                    </p>
-                                                    <p className="text-xs text-gray-500 md:text-sm">
-                                                        Be the first to compete!
-                                                    </p>
-                                                </div>
-                                            )
+                                            <div className="flex flex-col items-center justify-center rounded-sm border-2 border-black bg-white py-8 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] md:py-12">
+                                                <div className="mb-3 text-3xl md:mb-4 md:text-4xl">🏆</div>
+                                                <p className="mb-2 text-base font-bold text-gray-700 md:text-lg">
+                                                    No entries yet
+                                                </p>
+                                                <p className="text-xs text-gray-500 md:text-sm">
+                                                    Be the first to compete!
+                                                </p>
+                                            </div>
                                         ) : (
-                                            <QuestLeaderboard
-                                                entries={quest.leaderboard}
-                                                metricLabel="points"
-                                                badgeColor={quest.badgeColor}
-                                                isCurrency={quest.id === 'bank_drainer'}
-                                            />
+                                            <div className="space-y-3">
+                                                <QuestLeaderboard
+                                                    entries={quest.leaderboard}
+                                                    metricLabel="points"
+                                                    badgeColor={quest.badgeColor}
+                                                    isCurrency={quest.id === 'bank_drainer'}
+                                                />
+
+                                                {/* User Status - shown as last entry if authenticated */}
+                                                {isAuthenticated &&
+                                                    username &&
+                                                    (quest.id === 'most_invites'
+                                                        ? questsData?.most_invites?.userStatus
+                                                        : quest.id === 'bank_drainer'
+                                                          ? questsData?.bank_drainer?.userStatus
+                                                          : questsData?.biggest_pot?.userStatus) && (
+                                                        <UserRankCard
+                                                            metric={
+                                                                (quest.id === 'most_invites'
+                                                                    ? questsData?.most_invites?.userStatus?.metric
+                                                                    : quest.id === 'bank_drainer'
+                                                                      ? questsData?.bank_drainer?.userStatus?.metric
+                                                                      : questsData?.biggest_pot?.userStatus?.metric) ||
+                                                                0
+                                                            }
+                                                            username={username}
+                                                            isCurrency={quest.id === 'bank_drainer'}
+                                                            backgroundColor={quest.backgroundColor}
+                                                        />
+                                                    )}
+                                            </div>
                                         )}
                                     </div>
-
-                                    {/* User rank card will be displayed here when authentication is implemented */}
                                 </motion.div>
                             )
                         })}

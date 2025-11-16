@@ -7,6 +7,7 @@ import { formatExtendedNumber } from '@/utils/general.utils'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { PRIZE_TIERS } from '../constants'
 import type { LeaderboardEntry } from '../types'
+import { UserRankCard } from './UserRankCard'
 
 export interface QuestCardProps {
     title: string
@@ -19,6 +20,11 @@ export interface QuestCardProps {
     questStatus?: 'not_started' | 'active' | 'ended'
     isLoading?: boolean
     isCurrency?: boolean
+    hasUserData?: boolean
+    useTestTimePeriod?: boolean
+    userStatus?: { metric: number }
+    username?: string
+    isAuthenticated?: boolean
 }
 
 export function QuestCard({
@@ -32,6 +38,11 @@ export function QuestCard({
     questStatus = 'active',
     isLoading = false,
     isCurrency = false,
+    hasUserData = false,
+    useTestTimePeriod = false,
+    userStatus,
+    username,
+    isAuthenticated = false,
 }: QuestCardProps) {
     const router = useRouter()
     const getBadgeColorClasses = (color: string) => {
@@ -74,62 +85,72 @@ export function QuestCard({
                     <div className="flex flex-col items-center justify-center rounded-sm border-2 border-black bg-white py-6 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                         <PeanutLoading />
                     </div>
+                ) : leaderboard.length === 0 && !hasUserData && questStatus === 'not_started' && !useTestTimePeriod ? (
+                    <div className="flex flex-col items-center justify-center rounded-sm border-2 border-black bg-white py-6 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                        <div className="mb-3 text-4xl">⏰</div>
+                        <p className="text-sm font-bold text-gray-700">Coming Soon!</p>
+                        <p className="text-xs text-gray-500">Starts Nov 17th</p>
+                    </div>
                 ) : leaderboard.length === 0 ? (
-                    questStatus === 'not_started' ? (
-                        <div className="flex flex-col items-center justify-center rounded-sm border-2 border-black bg-white py-6 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                            <div className="mb-3 text-4xl">⏰</div>
-                            <p className="text-sm font-bold text-gray-700">Coming Soon!</p>
-                            <p className="text-xs text-gray-500">Starts Nov 17th</p>
-                        </div>
-                    ) : (
-                        <div className="flex flex-col items-center justify-center rounded-sm border-2 border-black bg-white py-6 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                            <div className="mb-3 text-3xl">🏆</div>
-                            <p className="text-sm font-bold text-gray-700">No entries yet</p>
-                            <p className="text-xs text-gray-500">Be the first!</p>
-                        </div>
-                    )
+                    <div className="flex flex-col items-center justify-center rounded-sm border-2 border-black bg-white py-6 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                        <div className="mb-3 text-3xl">🏆</div>
+                        <p className="text-sm font-bold text-gray-700">No entries yet</p>
+                        <p className="text-xs text-gray-500">Be the first!</p>
+                    </div>
                 ) : (
-                    leaderboard.slice(0, 3).map((entry, index) => (
-                        <div
-                            key={entry.userId}
-                            onClick={(e) => {
-                                e.stopPropagation()
-                                router.push(`/${entry.username}`)
-                            }}
-                            className="flex cursor-pointer items-center justify-between border-2 border-black bg-white p-2.5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-100 hover:-translate-y-0.5 hover:shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] active:translate-x-1 active:translate-y-1 active:shadow-none md:p-3"
-                        >
-                            <div className="flex items-center gap-2 md:gap-3">
-                                {/* Rank Badge */}
-                                <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center md:h-8 md:w-8">
-                                    {entry.rank === 1 && <span className="text-xl md:text-2xl">🥇</span>}
-                                    {entry.rank === 2 && <span className="text-xl md:text-2xl">🥈</span>}
-                                    {entry.rank === 3 && <span className="text-xl md:text-2xl">🥉</span>}
-                                </div>
+                    <>
+                        {leaderboard.slice(0, 3).map((entry, index) => (
+                            <div
+                                key={entry.userId}
+                                onClick={(e) => {
+                                    e.stopPropagation()
+                                    router.push(`/${entry.username}`)
+                                }}
+                                className="flex cursor-pointer items-center justify-between border-2 border-black bg-white p-2.5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-100 hover:-translate-y-0.5 hover:shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] active:translate-x-1 active:translate-y-1 active:shadow-none md:p-3"
+                            >
+                                <div className="flex items-center gap-2 md:gap-3">
+                                    {/* Rank Badge */}
+                                    <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center md:h-8 md:w-8">
+                                        {entry.rank === 1 && <span className="text-xl md:text-2xl">🥇</span>}
+                                        {entry.rank === 2 && <span className="text-xl md:text-2xl">🥈</span>}
+                                        {entry.rank === 3 && <span className="text-xl md:text-2xl">🥉</span>}
+                                    </div>
 
-                                {/* Username */}
-                                <div className="flex min-w-0 flex-col">
-                                    <div className="flex items-center gap-1.5 md:gap-2">
-                                        <span className="truncate text-sm font-bold text-gray-900 md:text-base">
-                                            {entry.username}
-                                        </span>
-                                        {entry.rank <= 3 && (
-                                            <span
-                                                className={`flex-shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold md:px-2 md:text-xs ${getBadgeColorClasses(badgeColor)}`}
-                                            >
-                                                {PRIZE_TIERS[entry.rank as keyof typeof PRIZE_TIERS]}
+                                    {/* Username */}
+                                    <div className="flex min-w-0 flex-col">
+                                        <div className="flex items-center gap-1.5 md:gap-2">
+                                            <span className="truncate text-sm font-bold text-gray-900 md:text-base">
+                                                {entry.username}
                                             </span>
-                                        )}
+                                            {entry.rank <= 3 && (
+                                                <span
+                                                    className={`flex-shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold md:px-2 md:text-xs ${getBadgeColorClasses(badgeColor)}`}
+                                                >
+                                                    {PRIZE_TIERS[entry.rank as keyof typeof PRIZE_TIERS]}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            {/* Metric */}
-                            <span className="ml-2 flex-shrink-0 font-mono text-base font-bold text-black md:text-lg">
-                                {isCurrency && '$'}
-                                {formatExtendedNumber(Math.round(entry.metric), 6)}
-                            </span>
-                        </div>
-                    ))
+                                {/* Metric */}
+                                <span className="ml-2 flex-shrink-0 font-mono text-base font-bold text-black md:text-lg">
+                                    {isCurrency && '$'}
+                                    {formatExtendedNumber(Math.round(entry.metric), 6)}
+                                </span>
+                            </div>
+                        ))}
+
+                        {/* User Status - shown as last entry if authenticated */}
+                        {isAuthenticated && userStatus && username && (
+                            <UserRankCard
+                                metric={userStatus.metric}
+                                username={username}
+                                isCurrency={isCurrency}
+                                backgroundColor={backgroundColor}
+                            />
+                        )}
+                    </>
                 )}
             </div>
         </motion.div>
