@@ -5,13 +5,13 @@ import { tokenSelectorContext } from '@/context'
 import { formatTokenAmount, formatCurrency } from '@/utils'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import Icon from '../Icon'
+import { Icon } from '@/components/Global/Icons/Icon'
 import { twMerge } from 'tailwind-merge'
 import { Icon as IconComponent } from '@/components/Global/Icons/Icon'
-import { Slider } from '../Slider'
+import { Slider } from '@/components/Global/Slider'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 
-interface TokenAmountInputProps {
+interface PaymentAmountInputProps {
     className?: string
     tokenValue: string | undefined
     setTokenValue: (tokenvalue: string | undefined) => void
@@ -38,7 +38,13 @@ interface TokenAmountInputProps {
     defaultSliderSuggestedAmount?: number
 }
 
-const TokenAmountInput = ({
+
+
+/**
+ * this is a shadow clone of TokenAmountInput, it is used to display the amount in the payment form, to deal with the useeffect fuckup in that component using this component temperiorly so that we can fix the useeffect fuckup in that component next week
+ */
+
+const PaymentAmountInput = ({
     className,
     tokenValue,
     setTokenValue,
@@ -59,7 +65,7 @@ const TokenAmountInput = ({
     isInitialInputUsd = false,
     defaultSliderValue,
     defaultSliderSuggestedAmount,
-}: TokenAmountInputProps) => {
+}: PaymentAmountInputProps) => {
     const { selectedTokenData } = useContext(tokenSelectorContext)
     const router = useRouter()
     const searchParams = useSearchParams()
@@ -205,7 +211,7 @@ const TokenAmountInput = ({
         } else {
             onChange(displayValue, isInputUsd)
         }
-    }, [selectedTokenData?.price])
+    }, [selectedTokenData?.price, displayValue, isInputUsd])
 
     useEffect(() => {
         switch (displayMode) {
@@ -413,4 +419,4 @@ const TokenAmountInput = ({
     )
 }
 
-export default TokenAmountInput
+export default PaymentAmountInput

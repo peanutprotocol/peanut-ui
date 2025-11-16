@@ -9,7 +9,7 @@ import ErrorAlert from '@/components/Global/ErrorAlert'
 import FileUploadInput from '@/components/Global/FileUploadInput'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
-import TokenAmountInput from '@/components/Global/TokenAmountInput'
+import PaymentAmountInput from '@/components/Payment/PaymentAmountInput'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import UserCard from '@/components/User/UserCard'
 import { PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS, PEANUT_WALLET_CHAIN } from '@/constants'
@@ -42,6 +42,7 @@ import ContributorCard from '@/components/Global/Contributors/ContributorCard'
 import { getCardPosition } from '@/components/Global/Card'
 import * as Sentry from '@sentry/nextjs'
 import { useHaptic } from 'use-haptic'
+import TokenAmountInput from '@/components/Global/TokenAmountInput'
 
 export type PaymentFlowProps = {
     isExternalWalletFlow?: boolean
@@ -803,31 +804,59 @@ export const PaymentForm = ({
                     />
                 )}
 
+                {/* mark the date - 16/11/2025, the author has written worse piece of code that the humanity will ever witness, but it works, so in the promiseland of post devconnect, i the kush, the author will kill this code to fix it once and for all */}
                 {/* Amount Display Card */}
-                <TokenAmountInput
-                    tokenValue={inputTokenAmount}
-                    setTokenValue={(value: string | undefined) => setInputTokenAmount(value || '')}
-                    setUsdValue={(value: string) => {
-                        setInputUsdValue(value)
-                        dispatch(paymentActions.setUsdAmount(value))
-                    }}
-                    setCurrencyAmount={setCurrencyAmount}
-                    className="w-full"
-                    disabled={
-                        !showRequestPotInitialView &&
-                        !isExternalWalletFlow &&
-                        (!!requestDetails?.tokenAmount || !!chargeDetails?.tokenAmount)
-                    }
-                    walletBalance={isActivePeanutWallet ? peanutWalletBalance : undefined}
-                    currency={currency}
-                    hideCurrencyToggle={!currency}
-                    hideBalance={isExternalWalletFlow}
-                    showSlider={showRequestPotInitialView && amount ? Number(amount) > 0 : false}
-                    maxAmount={showRequestPotInitialView && amount ? Number(amount) : undefined}
-                    amountCollected={showRequestPotInitialView ? totalAmountCollected : 0}
-                    defaultSliderValue={defaultSliderValue.percentage}
-                    defaultSliderSuggestedAmount={defaultSliderValue.suggestedAmount}
-                />
+                {isDirectUsdPayment ? (
+                    <TokenAmountInput
+                        tokenValue={inputTokenAmount}
+                        setTokenValue={(value: string | undefined) => setInputTokenAmount(value || '')}
+                        setUsdValue={(value: string) => {
+                            setInputUsdValue(value)
+                            dispatch(paymentActions.setUsdAmount(value))
+                        }}
+                        setCurrencyAmount={setCurrencyAmount}
+                        className="w-full"
+                        disabled={
+                            !showRequestPotInitialView &&
+                            !isExternalWalletFlow &&
+                            (!!requestDetails?.tokenAmount || !!chargeDetails?.tokenAmount)
+                        }
+                        walletBalance={isActivePeanutWallet ? peanutWalletBalance : undefined}
+                        currency={currency}
+                        hideCurrencyToggle={!currency}
+                        hideBalance={isExternalWalletFlow}
+                        showSlider={showRequestPotInitialView && amount ? Number(amount) > 0 : false}
+                        maxAmount={showRequestPotInitialView && amount ? Number(amount) : undefined}
+                        amountCollected={showRequestPotInitialView ? totalAmountCollected : 0}
+                        defaultSliderValue={defaultSliderValue.percentage}
+                        defaultSliderSuggestedAmount={defaultSliderValue.suggestedAmount}
+                    />
+                ) : (
+                    <PaymentAmountInput
+                        tokenValue={inputTokenAmount}
+                        setTokenValue={(value: string | undefined) => setInputTokenAmount(value || '')}
+                        setUsdValue={(value: string) => {
+                            setInputUsdValue(value)
+                            dispatch(paymentActions.setUsdAmount(value))
+                        }}
+                        setCurrencyAmount={setCurrencyAmount}
+                        className="w-full"
+                        disabled={
+                            !showRequestPotInitialView &&
+                            !isExternalWalletFlow &&
+                            (!!requestDetails?.tokenAmount || !!chargeDetails?.tokenAmount)
+                        }
+                        walletBalance={isActivePeanutWallet ? peanutWalletBalance : undefined}
+                        currency={currency}
+                        hideCurrencyToggle={!currency}
+                        hideBalance={isExternalWalletFlow}
+                        showSlider={showRequestPotInitialView && amount ? Number(amount) > 0 : false}
+                        maxAmount={showRequestPotInitialView && amount ? Number(amount) : undefined}
+                        amountCollected={showRequestPotInitialView ? totalAmountCollected : 0}
+                        defaultSliderValue={defaultSliderValue.percentage}
+                        defaultSliderSuggestedAmount={defaultSliderValue.suggestedAmount}
+                    />
+                )}
 
                 {/* Token selector for external ADDRESS/ENS recipients */}
                 {/* only show if chain is not specified in URL */}
