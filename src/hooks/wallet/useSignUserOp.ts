@@ -9,7 +9,7 @@ import {
     PEANUT_WALLET_TOKEN_DECIMALS,
     USER_OP_ENTRY_POINT,
 } from '@/constants/zerodev.consts'
-import { parseUnits, encodeFunctionData, erc20Abi } from 'viem'
+import { parseUnits, encodeFunctionData, erc20Abi, concat } from 'viem'
 import type { Hex, Address } from 'viem'
 import type { SignUserOperationReturnType } from '@zerodev/sdk/actions'
 import { captureException } from '@sentry/nextjs'
@@ -52,6 +52,9 @@ export const useSignUserOp = () => {
                     throw new Error('Smart account not initialized')
                 }
 
+                const { factory, factoryData } = await client.account.getFactoryArgs()
+                const initCode = !!factory && factoryData ? concat([factory, factoryData]) : undefined
+
                 // Parse amount to USDC decimals (6 decimals)
                 const amount = parseUnits(amountInUsd.replace(/,/g, ''), PEANUT_WALLET_TOKEN_DECIMALS)
 
@@ -77,6 +80,7 @@ export const useSignUserOp = () => {
                     account: client.account,
                     callData: await client.account!.encodeCalls(calls),
                 })
+                signedUserOp.initCode = initCode
 
                 // Return everything the backend needs to submit the UserOp
                 return {
