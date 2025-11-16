@@ -34,6 +34,7 @@ import InvitesIcon from '@/components/Home/InvitesIcon'
 import NavigationArrow from '@/components/Global/NavigationArrow'
 import { updateUserById } from '@/app/actions/users'
 import { useHaptic } from 'use-haptic'
+import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
 
 // Lazy load heavy modal components (~20-30KB each) to reduce initial bundle size
 // Components are only loaded when user triggers them
@@ -44,7 +45,6 @@ const SetupNotificationsModal = lazy(() => import('@/components/Notifications/Se
 const NoMoreJailModal = lazy(() => import('@/components/Global/NoMoreJailModal'))
 const EarlyUserModal = lazy(() => import('@/components/Global/EarlyUserModal'))
 const KycCompletedModal = lazy(() => import('@/components/Home/KycCompletedModal'))
-import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
 
 const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
 const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_EXPIRY ?? '1814400') // 21 days in seconds
@@ -141,7 +141,8 @@ export default function Home() {
                 !hasSeenModalThisSession &&
                 !user?.hasPwaInstalled &&
                 !isPostSignupActionModalVisible &&
-                !redirectUrl
+                !redirectUrl &&
+                !showBalanceWarningModal
             ) {
                 setShowIOSPWAInstallModal(true)
                 sessionStorage.setItem('hasSeenIOSPWAPromptThisSession', 'true')
@@ -149,9 +150,11 @@ export default function Home() {
                 setShowIOSPWAInstallModal(false)
             }
         }
-    }, [user?.hasPwaInstalled, isPostSignupActionModalVisible, deviceType])
+    }, [user?.hasPwaInstalled, isPostSignupActionModalVisible, deviceType, showBalanceWarningModal])
 
     // effect for showing balance warning modal
+    // modal priority order: notifications -> kyc -> post signup -> ios pwa -> balance warning
+    // this ensures users complete important actions before seeing the balance warning
     useEffect(() => {
         if (isFetchingBalance || balance === undefined || !user) return
 
@@ -165,17 +168,27 @@ export default function Home() {
             // show if:
             // 1. balance is above the threshold
             // 2. user hasn't seen this warning in the current session
-            // 3. no other modals are currently active
+            // 3. no other modals are currently active (respects priority order)
             if (
                 balanceInUsd > BALANCE_WARNING_THRESHOLD &&
                 !hasSeenBalanceWarning &&
-                !showIOSPWAInstallModal &&
-                !isPostSignupActionModalVisible
+                !showPermissionModal && // highest priority
+                !showKycModal &&
+                !isPostSignupActionModalVisible &&
+                !showIOSPWAInstallModal
             ) {
                 setShowBalanceWarningModal(true)
             }
         }
-    }, [balance, isFetchingBalance, showIOSPWAInstallModal, isPostSignupActionModalVisible, user])
+    }, [
+        balance,
+        isFetchingBalance,
+        showPermissionModal,
+        showKycModal,
+        isPostSignupActionModalVisible,
+        showIOSPWAInstallModal,
+        user,
+    ])
 
     if (isLoading) {
         return <PeanutLoading coverFullScreen />
@@ -223,7 +236,7 @@ export default function Home() {
                     <HomeHistory username={username ?? undefined} />
                 </div>
 
-                {showPermissionModal && (
+                {showPermissionModal && !showBalanceWarningModal && (
                     <LazyLoadErrorBoundary>
                         <Suspense fallback={null}>
                             <SetupNotificationsModal />
@@ -253,22 +266,27 @@ export default function Home() {
             {/* TODO @dev Disabling this, re-enable after properly fixing */}
             {/* <AddMoneyPromptModal visible={showAddMoneyPromptModal} onClose={() => setShowAddMoneyPromptModal(false)} /> */}
 
-            <LazyLoadErrorBoundary>
-                <Suspense fallback={null}>
-                    <NoMoreJailModal />
-                </Suspense>
-            </LazyLoadErrorBoundary>
+            {/* these modals manage their own state internally */}
+            {!showBalanceWarningModal && (
+                <>
+                    <LazyLoadErrorBoundary>
+                        <Suspense fallback={null}>
+                            <NoMoreJailModal />
+                        </Suspense>
+                    </LazyLoadErrorBoundary>
 
-            <LazyLoadErrorBoundary>
-                <Suspense fallback={null}>
-                    <EarlyUserModal />
-                </Suspense>
-            </LazyLoadErrorBoundary>
+                    <LazyLoadErrorBoundary>
+                        <Suspense fallback={null}>
+                            <EarlyUserModal />
+                        </Suspense>
+                    </LazyLoadErrorBoundary>
+                </>
+            )}
 
             <LazyLoadErrorBoundary>
                 <Suspense fallback={null}>
                     <KycCompletedModal
-                        isOpen={showKycModal}
+                        isOpen={showKycModal && !showBalanceWarningModal}
                         onClose={async () => {
                             // close the modal immediately for better ux
                             setShowKycModal(false)
