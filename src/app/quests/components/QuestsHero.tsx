@@ -34,11 +34,10 @@ export function QuestsHero() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const { userId, username } = useAuth()
-    const useMockData = searchParams?.get('useMockData') === 'true'
     const useTestTimePeriod = searchParams?.get('useTestTimePeriod') === 'true'
     const [screenWidth, setScreenWidth] = useState(1080)
     const questStatus = getQuestStatus()
-    const { data: questsData, isLoading } = useAllQuestsLeaderboards(3, useMockData, useTestTimePeriod)
+    const { data: questsData, isLoading } = useAllQuestsLeaderboards(3, useTestTimePeriod)
     const isAuthenticated = !!userId
 
     useEffect(() => {

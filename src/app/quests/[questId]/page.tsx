@@ -25,12 +25,11 @@ export default function QuestDetailPage(props: QuestDetailPageProps) {
     const router = useRouter()
     const searchParams = useSearchParams()
     const { userId, username } = useAuth()
-    const useMockData = searchParams?.get('useMockData') === 'true'
     const useTestTimePeriod = searchParams?.get('useTestTimePeriod') === 'true'
     const [screenWidth, setScreenWidth] = useState(1080)
     const questStatus = getQuestStatus()
     const questId = params.questId as QuestId
-    const { data: questData, isLoading } = useQuestLeaderboard(questId, 10, useMockData, useTestTimePeriod)
+    const { data: questData, isLoading } = useQuestLeaderboard(questId, 10, useTestTimePeriod)
 
     useEffect(() => {
         const handleResize = () => {
