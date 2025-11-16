@@ -7,7 +7,7 @@ export interface LeaderboardEntry {
     userId: string
     username: string
     metric: number
-    badge?: string
+    medal?: string
 }
 
 export interface QuestLeaderboardData {

@@ -14,7 +14,7 @@ function generateMockLeaderboard(limit: number, baseMetric: number = 100) {
         userId: `debug-user-${i + 1}`,
         username: `user${i + 1}`,
         metric: baseMetric - i * 5,
-        badge: i === 0 ? 'GOLD' : i === 1 ? 'SILVER' : i === 2 ? 'BRONZE' : undefined,
+        medal: i === 0 ? 'GOLD' : i === 1 ? 'SILVER' : i === 2 ? 'BRONZE' : undefined,
     }))
 }
 
