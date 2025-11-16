@@ -75,7 +75,7 @@ export const useSignUserOp = () => {
                 // This fills in all required fields (gas, nonce, paymaster, signature)
                 const signedUserOp = await signUserOperation(client, {
                     account: client.account,
-                    calls,
+                    callData: await client.account!.encodeCalls(calls),
                 })
 
                 // Return everything the backend needs to submit the UserOp
