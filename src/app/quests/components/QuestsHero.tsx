@@ -97,7 +97,7 @@ export function QuestsHero() {
     }, [questsData])
 
     return (
-        <section className="relative min-h-screen overflow-hidden bg-[#FFC900] px-3 py-12 md:px-4 md:py-24">
+        <section className="relative flex min-h-screen items-center overflow-hidden bg-[#FFC900] px-3 py-12 md:px-4 md:py-16">
             {/* Animated Clouds - Reduced for performance */}
             <div className="absolute left-0 top-0 h-full w-full overflow-hidden">
                 <motion.img
