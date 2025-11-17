@@ -718,6 +718,13 @@ export const PaymentForm = ({
 
     const totalAmountCollected = requestDetails?.totalCollectedAmount ?? 0
 
+    // check if this is a request pot payment to a peanut username
+    // in this case, use TokenAmountInput instead of PaymentAmountInput to avoid typing issues
+    // note: kush to kill the annoying token amount input component
+    const isRequestPotToUsername = useMemo(() => {
+        return showRequestPotInitialView && recipient?.recipientType === 'USERNAME' && !!requestDetails
+    }, [showRequestPotInitialView, recipient?.recipientType, requestDetails])
+
     const defaultSliderValue = useMemo(() => {
         const charges = requestDetails?.charges
         const totalAmount = requestDetails?.tokenAmount ? parseFloat(requestDetails.tokenAmount) : 0
@@ -806,7 +813,8 @@ export const PaymentForm = ({
 
                 {/* mark the date - 16/11/2025, the author has written worse piece of code that the humanity will ever witness, but it works, so in the promiseland of post devconnect, i the kush, the author will kill this code to fix it once and for all */}
                 {/* Amount Display Card */}
-                {isDirectUsdPayment ? (
+                {/* use TokenAmountInput for direct usd payments and request pot payments to usernames to avoid typing issues */}
+                {isDirectUsdPayment || isRequestPotToUsername ? (
                     <TokenAmountInput
                         tokenValue={inputTokenAmount}
                         setTokenValue={(value: string | undefined) => setInputTokenAmount(value || '')}
