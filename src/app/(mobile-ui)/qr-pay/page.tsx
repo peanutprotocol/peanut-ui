@@ -251,10 +251,10 @@ export default function QRPayPage() {
     )
 
     useEffect(() => {
-        if (isSuccess) {
+        if (isSuccess || !!errorMessage) {
             setLoadingState('Idle')
         }
-    }, [isSuccess])
+    }, [isSuccess, errorMessage])
 
     // First fetch for qrcode info — only after KYC gating allows proceeding
     useEffect(() => {
