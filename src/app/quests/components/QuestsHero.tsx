@@ -148,7 +148,7 @@ export function QuestsHero() {
                 {/* Header */}
                 <div className="mb-12 text-center">
                     <div className="mb-6 flex items-center justify-center gap-3">
-                        <h1 className="text-3xl font-black text-black md:text-6xl">JOIN PEANUT AT</h1>
+                        <h1 className="text-2xl font-black text-black md:text-6xl">JOIN PEANUT AT</h1>
                         <Image
                             src="/logos/dvcn.svg"
                             alt="DevConnect"
@@ -224,7 +224,7 @@ export function QuestsHero() {
                 <div className="mb-8 mt-16 text-center md:mt-24">
                     <div className="mb-6 flex items-center justify-center gap-2 md:gap-3">
                         <Image src={handPointing} alt="" width={32} height={32} className="h-8 w-8 md:h-12 md:w-12" />
-                        <h2 className="text-2xl font-black text-black md:text-4xl">QUESTS LEADERBOARDS</h2>
+                        <h2 className="text-xl font-black text-black md:text-4xl">QUESTS LEADERBOARDS</h2>
                         <Image
                             src={handPointing}
                             alt=""

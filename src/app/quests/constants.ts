@@ -2,10 +2,9 @@
  * Quest constants shared across all quest pages
  */
 
-// DevConnect 2025 event period (Argentina Time: UTC-3)
-// Nov 17, 00:00:00 ART = Nov 17, 03:00:00 UTC
-// Nov 22, 23:59:59 ART = Nov 23, 02:59:59 UTC
-export const EVENT_START_UTC = new Date('2025-11-17T03:00:00Z')
+// DevConnect 2025 event period - ACTIVATED
+// Started at 11pm Nov 16 UTC (4 hours early)
+export const EVENT_START_UTC = new Date('2025-11-16T23:00:00Z') // Nov 16, 11pm UTC
 export const EVENT_END_UTC = new Date('2025-11-23T02:59:59Z')
 
 // Prize amounts for top 3 positions
@@ -63,7 +62,7 @@ export const QUEST_CONFIG = {
     biggest_pot: {
         id: 'biggest_pot' as const,
         title: 'Biggest Pot',
-        description: 'Most unique contributors to a pot!',
+        description: 'Get the most unique contributors to a request pot!',
         explainer:
             'Create the request pot with most unique contributors during Nov 17-22! Each unique user who contributes to your pot counts. Rally your community to win.',
         iconPath: '/badges/biggest_request_pot.svg',
