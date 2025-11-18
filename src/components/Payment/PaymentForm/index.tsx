@@ -173,7 +173,10 @@ export const PaymentForm = ({
         // chain and token are also USDC arb always, for cross-chain we use Daimo
         if (initialSetupDone || showRequestPotInitialView || isRequestPotLink) return
 
-        if (amount) {
+        // prioritize charge amount over URL amount
+        if (chargeDetails?.tokenAmount) {
+            setInputTokenAmount(chargeDetails.tokenAmount)
+        } else if (amount) {
             setInputTokenAmount(amount)
         }
 
@@ -643,12 +646,12 @@ export const PaymentForm = ({
 
     // Initialize inputTokenAmount
     useEffect(() => {
-        // skip this step for request pot payments
+        // skip this step for request pot payments and request pot links (charge view)
         // Amount is set by the user so we dont need to manually update it
-        if (amount && !inputTokenAmount && !initialSetupDone && !showRequestPotInitialView) {
+        if (amount && !inputTokenAmount && !initialSetupDone && !showRequestPotInitialView && !isRequestPotLink) {
             setInputTokenAmount(amount)
         }
-    }, [amount, inputTokenAmount, initialSetupDone, showRequestPotInitialView])
+    }, [amount, inputTokenAmount, initialSetupDone, showRequestPotInitialView, isRequestPotLink])
 
     // Trigger payment with peanut from action list
     useEffect(() => {
@@ -718,11 +721,16 @@ export const PaymentForm = ({
 
     const totalAmountCollected = requestDetails?.totalCollectedAmount ?? 0
 
-    // check if this is a request pot payment to a peanut username
-    // in this case, use TokenAmountInput instead of PaymentAmountInput to avoid typing issues
+    // determine when to use TokenAmountInput vs PaymentAmountInput
+    // use TokenAmountInput for:
+    // 1. request pot payments to usernames (typing bug fix)
+    // 2. payments to ADDRESS/ENS recipients (typing bug fix)
     // note: kush to kill the annoying token amount input component
-    const isRequestPotToUsername = useMemo(() => {
-        return showRequestPotInitialView && recipient?.recipientType === 'USERNAME' && !!requestDetails
+    const shouldUseTokenAmountInput = useMemo(() => {
+        const isRequestPotToUsername =
+            showRequestPotInitialView && recipient?.recipientType === 'USERNAME' && !!requestDetails
+        const isExternalRecipient = recipient?.recipientType === 'ADDRESS' || recipient?.recipientType === 'ENS'
+        return isRequestPotToUsername || isExternalRecipient
     }, [showRequestPotInitialView, recipient?.recipientType, requestDetails])
 
     const defaultSliderValue = useMemo(() => {
@@ -813,8 +821,8 @@ export const PaymentForm = ({
 
                 {/* mark the date - 16/11/2025, the author has written worse piece of code that the humanity will ever witness, but it works, so in the promiseland of post devconnect, i the kush, the author will kill this code to fix it once and for all */}
                 {/* Amount Display Card */}
-                {/* use TokenAmountInput for direct usd payments and request pot payments to usernames to avoid typing issues */}
-                {isDirectUsdPayment || isRequestPotToUsername ? (
+                {/* use TokenAmountInput for direct usd payments, request pot payments, and external address payments to avoid typing issues */}
+                {isDirectUsdPayment || shouldUseTokenAmountInput ? (
                     <TokenAmountInput
                         tokenValue={inputTokenAmount}
                         setTokenValue={(value: string | undefined) => setInputTokenAmount(value || '')}
@@ -836,8 +844,10 @@ export const PaymentForm = ({
                         showSlider={showRequestPotInitialView && amount ? Number(amount) > 0 : false}
                         maxAmount={showRequestPotInitialView && amount ? Number(amount) : undefined}
                         amountCollected={showRequestPotInitialView ? totalAmountCollected : 0}
-                        defaultSliderValue={defaultSliderValue.percentage}
-                        defaultSliderSuggestedAmount={defaultSliderValue.suggestedAmount}
+                        defaultSliderValue={showRequestPotInitialView ? defaultSliderValue.percentage : undefined}
+                        defaultSliderSuggestedAmount={
+                            showRequestPotInitialView ? defaultSliderValue.suggestedAmount : undefined
+                        }
                     />
                 ) : (
                     <PaymentAmountInput
@@ -861,8 +871,10 @@ export const PaymentForm = ({
                         showSlider={showRequestPotInitialView && amount ? Number(amount) > 0 : false}
                         maxAmount={showRequestPotInitialView && amount ? Number(amount) : undefined}
                         amountCollected={showRequestPotInitialView ? totalAmountCollected : 0}
-                        defaultSliderValue={defaultSliderValue.percentage}
-                        defaultSliderSuggestedAmount={defaultSliderValue.suggestedAmount}
+                        defaultSliderValue={showRequestPotInitialView ? defaultSliderValue.percentage : undefined}
+                        defaultSliderSuggestedAmount={
+                            showRequestPotInitialView ? defaultSliderValue.suggestedAmount : undefined
+                        }
                     />
                 )}
 
