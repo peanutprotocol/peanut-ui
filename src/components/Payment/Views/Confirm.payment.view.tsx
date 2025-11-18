@@ -91,7 +91,10 @@ export default function ConfirmPaymentView({
     const [isRouteExpired, setIsRouteExpired] = useState(false)
     const { triggerHaptic } = useHaptic()
 
-    const isUsingExternalWallet = isExternalWalletFlow || !isPeanutWallet
+    const isUsingExternalWallet = useMemo(
+        () => isExternalWalletFlow || !isPeanutWallet,
+        [isExternalWalletFlow, isPeanutWallet]
+    )
 
     const networkFee = useMemo<string | React.ReactNode>(() => {
         if (isFeeEstimationError) return '-'
