@@ -54,5 +54,10 @@
         "source": "/devconnect",
         "destination": "/quests",
         "permanent": false
+    },
+    {
+        "source": "/seedlings",
+        "destination": "https://peanutprotocol.notion.site/Influencer-information-form-2af8381175798067b271cd95a04d922a",
+        "permanent": false
     }
 ]
