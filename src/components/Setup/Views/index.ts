@@ -1,7 +1,7 @@
 export { default as InstallPWA } from './InstallPWA'
 export { default as SetupPasskey } from './SetupPasskey'
+export { default as SignTestTransaction } from './SignTestTransaction'
 export { default as SignupStep } from './Signup'
 export { default as WelcomeStep } from './Welcome'
 export { default as LandingStep } from './Landing'
 export { default as JoinBetaStep } from './JoinBeta'
-export { default as CollectEmail } from './CollectEmail'
