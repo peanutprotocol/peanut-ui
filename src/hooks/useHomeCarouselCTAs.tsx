@@ -88,10 +88,10 @@ export const useHomeCarouselCTAs = () => {
         // Devconnect Quests CTA
         _carouselCTAs.push({
             id: 'devconnect-quests',
-            title: 'Welcome to the Devconnect!',
+            title: 'Join Devconnect Quests',
             description: (
                 <p>
-                    Participate in this week's quests and win <b>$1500</b>
+                    Compete in <b>3 challenges,</b> climb the leaderboard and win <b>$1500</b>
                 </p>
             ),
             logo: DEVCONNECT_LOGO,
