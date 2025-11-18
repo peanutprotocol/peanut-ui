@@ -21,6 +21,8 @@ import { isAddress } from 'viem'
 import { EHistoryEntryType } from '@/utils/history.utils'
 import { PerkIcon } from './PerkIcon'
 import { useHaptic } from 'use-haptic'
+import { PEANUTMAN_LOGO } from '@/assets/peanut'
+import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
 
 // Lazy load transaction details drawer (~40KB) to reduce initial bundle size
 // Only loaded when user taps a transaction to view details
@@ -30,7 +32,6 @@ const TransactionDetailsDrawer = lazy(() =>
         default: mod.TransactionDetailsDrawer,
     }))
 )
-import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
 
 export type TransactionType =
     | 'send'
@@ -88,6 +89,8 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     const isPerkReward = transaction.extraDataForDrawer?.originalType === EHistoryEntryType.PERK_REWARD
     const userNameForAvatar = transaction.fullName || transaction.userName
     const avatarUrl = getAvatarUrl(transaction)
+    // check if this is a test transaction (setup confirmation)
+    const isTestTransaction = name === 'Enjoy Peanut!'
     let displayName = name
     if (isAddress(displayName)) {
         displayName = printableAddress(displayName)
@@ -125,7 +128,17 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         {/* txn avatar component handles icon/initials/colors */}
-                        {isPerkReward ? (
+                        {isTestTransaction ? (
+                            <div className={'relative flex size-7 items-center justify-center rounded-full p-0.5'}>
+                                <Image
+                                    src={PEANUTMAN_LOGO}
+                                    alt="Peanut Logo"
+                                    className="size-8 object-contain"
+                                    width={30}
+                                    height={30}
+                                />
+                            </div>
+                        ) : isPerkReward ? (
                             <>
                                 <PerkIcon size="extra-small" />
                             </>
@@ -164,8 +177,10 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                             </div>
                             {/* display the action icon and type text */}
                             <div className="flex items-center gap-1 text-xs font-medium text-gray-1">
-                                {getActionIcon(type, transaction.direction)}
-                                <span className="capitalize">{isPerkReward ? 'Refund' : getActionText(type)}</span>
+                                {!isTestTransaction && getActionIcon(type, transaction.direction)}
+                                <span className="capitalize">
+                                    {isTestTransaction ? 'Setup' : isPerkReward ? 'Refund' : getActionText(type)}
+                                </span>
                                 {status && <StatusPill status={status} />}
                             </div>
                         </div>

@@ -61,9 +61,9 @@ import {
 import { mantecaApi } from '@/services/manteca'
 import { getReceiptUrl } from '@/utils/history.utils'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
-import TransactionCard from './TransactionCard'
 import ContributorCard from '../Global/Contributors/ContributorCard'
 import { requestsApi } from '@/services/requests'
+import { PasskeyDocsLink } from '../Setup/Views/SignTestTransaction'
 
 export const TransactionDetailsReceipt = ({
     transaction,
@@ -1385,14 +1385,18 @@ export const TransactionDetailsReceipt = ({
                     </div>
                 )}
 
-            {/* support link section */}
-            <button
-                onClick={() => setIsSupportModalOpen(true)}
-                className="flex w-full items-center justify-center gap-2 text-sm font-medium text-grey-1 underline transition-colors hover:text-black"
-            >
-                <Icon name="peanut-support" size={16} className="text-grey-1" />
-                Issues with this transaction?
-            </button>
+            {/* support link section or passkey docs for test transactions */}
+            {transaction.userName === 'Enjoy Peanut!' ? (
+                <PasskeyDocsLink className="border-t-0 pt-0" />
+            ) : (
+                <button
+                    onClick={() => setIsSupportModalOpen(true)}
+                    className="flex w-full items-center justify-center gap-2 text-sm font-medium text-grey-1 underline transition-colors hover:text-black"
+                >
+                    <Icon name="peanut-support" size={16} className="text-grey-1" />
+                    Issues with this transaction?
+                </button>
+            )}
 
             {/* Cancel Link Modal  */}
 

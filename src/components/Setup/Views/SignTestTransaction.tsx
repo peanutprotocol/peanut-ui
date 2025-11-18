@@ -12,6 +12,7 @@ import { capturePasskeyDebugInfo } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { twMerge } from 'tailwind-merge'
 
 const SignTestTransaction = () => {
     const router = useRouter()
@@ -176,6 +177,21 @@ const SignTestTransaction = () => {
                 </div>
             </div>
         </div>
+    )
+}
+
+export const PasskeyDocsLink = ({ className }: { className?: string }) => {
+    return (
+        <p className={twMerge('border-t border-grey-1 pt-2 text-center text-xs text-grey-1', className)}>
+            <Link
+                rel="noopener noreferrer"
+                target="_blank"
+                className="underline underline-offset-2"
+                href="https://docs.peanut.me/passkeys"
+            >
+                Learn more about what Passkeys are
+            </Link>{' '}
+        </p>
     )
 }
 

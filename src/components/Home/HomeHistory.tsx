@@ -95,6 +95,8 @@ const HomeHistory = ({ username }: { username?: string }) => {
     // fetch the interaction status for the user ids
     const { interactions } = useUserInteractions(userIds)
 
+    console.log('combinedEntries', combinedEntries)
+
     useEffect(() => {
         if (!isLoading && historyData?.entries) {
             let cancelled = false
