@@ -20,7 +20,6 @@ import { twMerge } from 'tailwind-merge'
 import { useAccount } from 'wagmi'
 // import ReferralCampaignModal from '@/components/Home/ReferralCampaignModal'
 // import FloatingReferralButton from '@/components/Home/FloatingReferralButton'
-import { AccountType } from '@/interfaces'
 import { formatUnits } from 'viem'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { PostSignupActionManager } from '@/components/Global/PostSignupActionManager'
@@ -51,7 +50,7 @@ const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_
 
 export default function Home() {
     const { showPermissionModal } = useNotifications()
-    const { balance, address, isFetchingBalance } = useWallet()
+    const { balance, isFetchingBalance } = useWallet()
     const { resetFlow: resetClaimBankFlow } = useClaimBankFlow()
     const { resetWithdrawFlow } = useWithdrawFlow()
     const { deviceType } = useDeviceType()
@@ -64,7 +63,7 @@ export default function Home() {
     const { disconnect: disconnectWagmi } = useDisconnect()
     const { triggerHaptic } = useHaptic()
 
-    const { isFetchingUser, addAccount, fetchUser } = useAuth()
+    const { isFetchingUser, fetchUser } = useAuth()
     const { isUserKycApproved } = useKycStatus()
     const username = user?.user.username
 
@@ -106,19 +105,6 @@ export default function Home() {
         resetClaimBankFlow()
         resetWithdrawFlow()
     }, [resetClaimBankFlow, resetWithdrawFlow])
-
-    useEffect(() => {
-        if (isFetchingUser) return
-        // We have some users that didn't have the peanut wallet created
-        // correctly, so we need to create it
-        if (address && user && !user.accounts.some((a) => a.type === AccountType.PEANUT_WALLET)) {
-            addAccount({
-                accountIdentifier: address,
-                accountType: 'peanut-wallet',
-                userId: user.user.userId,
-            })
-        }
-    }, [user, address, isFetchingUser])
 
     // always reset external wallet connection on home page
     useEffect(() => {
