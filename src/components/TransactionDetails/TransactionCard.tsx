@@ -23,6 +23,7 @@ import { PerkIcon } from './PerkIcon'
 import { useHaptic } from 'use-haptic'
 import { PEANUTMAN_LOGO } from '@/assets/peanut'
 import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
+import InvitesIcon from '../Home/InvitesIcon'
 
 // Lazy load transaction details drawer (~40KB) to reduce initial bundle size
 // Only loaded when user taps a transaction to view details
@@ -187,14 +188,18 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                     </div>
 
                     {/* amount and status on the right side */}
-                    <div className="flex items-center gap-2">
-                        <div className="flex flex-col items-end gap-1">
-                            <span className="font-semibold">{displayAmount}</span>
-                            {currencyDisplayAmount && (
-                                <span className="text-sm font-medium text-gray-1">{currencyDisplayAmount}</span>
-                            )}
+                    {isTestTransaction ? (
+                        <InvitesIcon animate={false} className="size-4" />
+                    ) : (
+                        <div className="flex items-center gap-2">
+                            <div className="flex flex-col items-end gap-1">
+                                <span className="font-semibold">{displayAmount}</span>
+                                {currencyDisplayAmount && (
+                                    <span className="text-sm font-medium text-gray-1">{currencyDisplayAmount}</span>
+                                )}
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
             </Card>
 
