@@ -22,6 +22,7 @@ const SignTestTransaction = () => {
     const { user, isFetchingUser, fetchUser } = useAuth()
     const [error, setError] = useState<string | null>(null)
     const [isSigning, setIsSigning] = useState(false)
+    const [testTransactionCompleted, setTestTransactionCompleted] = useState(false)
 
     // ensure user is fetched when component mounts (important for new signups)
     useEffect(() => {
@@ -33,7 +34,14 @@ const SignTestTransaction = () => {
 
         if (!user && !isFetchingUser) {
             console.log('[SignTestTransaction] User not loaded, fetching user data')
-            fetchUser()
+            fetchUser().catch((err) => {
+                console.error('[SignTestTransaction] Failed to fetch user:', err)
+                Sentry.captureException(err, {
+                    tags: { feature: 'signup-test-transaction' },
+                    extra: { context: 'user-fetch-on-mount' },
+                })
+                setError('Failed to load user data. Please refresh the page.')
+            })
         } else if (user) {
             console.log('[SignTestTransaction] User loaded successfully:', {
                 userId: user.user.userId,
@@ -52,7 +60,7 @@ const SignTestTransaction = () => {
             console.log('[SignTestTransaction] Account exists, redirecting to home')
             router.push('/home')
         }
-    }, [accountExists])
+    }, [accountExists, router])
 
     const handleTestTransaction = async () => {
         if (!address) {
@@ -70,34 +78,41 @@ const SignTestTransaction = () => {
             address,
             accountExists,
             userId: user.user.userId,
+            testTransactionCompleted,
         })
         setIsSigning(true)
         setError(null)
         dispatch(setupActions.setLoading(true))
 
         try {
-            // create a 0 amount erc20 transfer transaction to test passkey signing
-            console.log('[SignTestTransaction] Encoding test transaction data')
-            const txData = encodeFunctionData({
-                abi: erc20Abi,
-                functionName: 'transfer',
-                args: [address as Address, 0n], // transfer 0 tokens to self
-            }) as Hex
+            // if test transaction already completed, skip signing and go straight to account creation
+            if (!testTransactionCompleted) {
+                // create a 0 amount erc20 transfer transaction to test passkey signing
+                console.log('[SignTestTransaction] Encoding test transaction data')
+                const txData = encodeFunctionData({
+                    abi: erc20Abi,
+                    functionName: 'transfer',
+                    args: [address as Address, 0n], // transfer 0 tokens to self
+                }) as Hex
 
-            const params = [
-                {
-                    to: PEANUT_WALLET_TOKEN as Hex,
-                    value: 0n,
-                    data: txData,
-                },
-            ]
+                const params = [
+                    {
+                        to: PEANUT_WALLET_TOKEN as Hex,
+                        value: 0n,
+                        data: txData,
+                    },
+                ]
 
-            // attempt to sign and send the test transaction
-            console.log('[SignTestTransaction] Requesting user to sign transaction')
-            const result = await handleSendUserOpEncoded(params, PEANUT_WALLET_CHAIN.id.toString())
-            console.log('[SignTestTransaction] Transaction signed successfully', {
-                userOpHash: result.userOpHash,
-            })
+                // attempt to sign and send the test transaction
+                console.log('[SignTestTransaction] Requesting user to sign transaction')
+                const result = await handleSendUserOpEncoded(params, PEANUT_WALLET_CHAIN.id.toString())
+                console.log('[SignTestTransaction] Transaction signed successfully', {
+                    userOpHash: result.userOpHash,
+                })
+                setTestTransactionCompleted(true)
+            } else {
+                console.log('[SignTestTransaction] Test transaction already completed, retrying account creation')
+            }
 
             // if successful and account doesn't exist, finalize account setup
             if (!accountExists) {
@@ -105,7 +120,9 @@ const SignTestTransaction = () => {
                 const success = await finalizeAccountSetup(address)
                 if (!success) {
                     console.error('[SignTestTransaction] Failed to finalize account setup')
-                    setError(setupError || 'Failed to complete account setup. Please try again.')
+                    setError(
+                        setupError || 'Failed to complete account setup. Please try again by clicking the button below.'
+                    )
                     setIsSigning(false)
                     dispatch(setupActions.setLoading(false))
                     return
@@ -131,6 +148,7 @@ const SignTestTransaction = () => {
                 extra: {
                     address,
                     accountExists,
+                    testTransactionCompleted,
                     errorMessage: (e as Error).message,
                     errorName: (e as Error).name,
                 },
@@ -148,6 +166,13 @@ const SignTestTransaction = () => {
     const isDisabled = isLoading || !user
     const displayError = error || setupError
 
+    // determine button text based on state
+    const getButtonText = () => {
+        if (isFetchingUser) return 'Loading...'
+        if (testTransactionCompleted && displayError) return 'Retry account setup'
+        return 'Sign test transaction'
+    }
+
     return (
         <div>
             <div className="flex h-full flex-col justify-between gap-11 p-0 md:min-h-32">
@@ -159,7 +184,7 @@ const SignTestTransaction = () => {
                         className="text-nowrap"
                         shadowSize="4"
                     >
-                        {isFetchingUser ? 'Loading...' : 'Sign test transaction'}
+                        {getButtonText()}
                     </Button>
                     {displayError && <p className="text-sm font-bold text-error">{displayError}</p>}
                 </div>
