@@ -176,7 +176,9 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                         <div className="flex flex-col items-end gap-1">
                             <span className="font-semibold">{displayAmount}</span>
                             {currencyDisplayAmount && (
-                                <span className="text-sm font-medium text-gray-1">{currencyDisplayAmount}</span>
+                                <span className={`text-sm font-medium text-gray-1 ${hasPerk ? 'line-through' : ''}`}>
+                                    {currencyDisplayAmount}
+                                </span>
                             )}
                         </div>
                     </div>
