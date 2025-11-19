@@ -72,9 +72,9 @@ const PIX_REGEX = /^.*000201.*0014br\.gov\.bcb\.pix.*5303986.*5802BR.*$/i
  * Dynamic URLs support both old format (/merchant/payment/123) and new format (/merchant/123).
  */
 export const SIMPLEFI_STATIC_REGEX =
-    /^(?:https?:\/\/)?(?:www\.)?(?:pagar|pay)\.simplefi\.tech\/(?<merchantSlug>[^\/]*)(\/static|\/?\?.*static\=true.*)/
-export const SIMPLEFI_USER_SPECIFIED_REGEX =
     /^(?:https?:\/\/)?(?:www\.)?(?:pagar|pay)\.simplefi\.tech\/(?<merchantSlug>[^\/\?]*)(?:\/)?(?:\?.*)?$/
+export const SIMPLEFI_USER_SPECIFIED_REGEX =
+    /^(?:https?:\/\/)?(?:www\.)?(?:pagar|pay)\.simplefi\.tech\/(?<merchantSlug>[^\/]*)\/user-order/
 export const SIMPLEFI_DYNAMIC_REGEX =
     /^(?:https?:\/\/)?(?:www\.)?(?:pagar|pay)\.simplefi\.tech\/(?<merchantId>[^\/]*)\/(?:payment\/)?(?<paymentId>[^\/\?]+)(?:\/)?(?:\?.*)?$/
 
@@ -94,9 +94,9 @@ const REGEXES_BY_TYPE: { [key in QrType]?: RegExp } = {
     //this order is important, first mercadipago, then argentina qr3
     [EQrType.MERCADO_PAGO]: MP_AR_REGEX,
     [EQrType.ARGENTINA_QR3]: ARGENTINA_QR3_REGEX,
-    [EQrType.SIMPLEFI_STATIC]: SIMPLEFI_STATIC_REGEX,
-    [EQrType.SIMPLEFI_DYNAMIC]: SIMPLEFI_DYNAMIC_REGEX,
     [EQrType.SIMPLEFI_USER_SPECIFIED]: SIMPLEFI_USER_SPECIFIED_REGEX,
+    [EQrType.SIMPLEFI_DYNAMIC]: SIMPLEFI_DYNAMIC_REGEX,
+    [EQrType.SIMPLEFI_STATIC]: SIMPLEFI_STATIC_REGEX,
     [EQrType.BITCOIN_ONCHAIN]: /^(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,39}$/,
     [EQrType.BITCOIN_INVOICE]: /^ln(bc|tb|bcrt)([0-9]{1,}[a-z0-9]+){1}$/,
     [EQrType.PIX]: PIX_REGEX,

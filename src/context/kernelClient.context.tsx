@@ -163,7 +163,14 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
 
     // lifecycle hooks
     useEffect(() => {
-        if (!user?.user.userId) return
+        if (!user?.user.userId) {
+            // clear webauthn key and clients when user logs out
+            console.log('[KernelClient] No user found, clearing webAuthnKey and clients')
+            setWebAuthnKey(undefined)
+            setClientsByChain({})
+            return
+        }
+
         const userPreferences = getUserPreferences(user.user.userId)
         const storedWebAuthnKey = userPreferences?.webAuthnKey ?? getFromCookie(WEB_AUTHN_COOKIE_KEY)
         if (storedWebAuthnKey) {

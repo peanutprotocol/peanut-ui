@@ -1,11 +1,9 @@
 import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
-import peanutWithGlassesAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_06.gif'
 import happyPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_03.gif'
 import { PEANUTMAN_MOBILE, ThinkingPeanut } from '@/assets'
 import type { ISetupStep } from '@/components/Setup/Setup.types'
-import { InstallPWA, SetupPasskey, SignupStep, JoinBetaStep, CollectEmail, LandingStep } from '@/components/Setup/Views'
+import { InstallPWA, SetupPasskey, SignupStep, LandingStep, SignTestTransaction } from '@/components/Setup/Views'
 import JoinWaitlist from './Views/JoinWaitlist'
-import ForceIOSPWAInstall from '../ForceIOSPWAInstall'
 
 export const setupSteps: ISetupStep[] = [
     {
@@ -89,12 +87,12 @@ export const setupSteps: ISetupStep[] = [
         contentClassName: 'flex flex-col items-end pt-8 justify-center gap-5',
     },
     {
-        screenId: 'collect-email',
+        screenId: 'sign-test-transaction',
         layoutType: 'signup',
-        title: 'Stay in the loop',
-        description: 'Enter your email to finish setup. We’ll send you an update as soon as you get access.',
+        title: 'Sign a test transaction',
+        description: "Let's make sure your passkey is working and you have everything set up correctly.",
         image: chillPeanutAnim.src,
-        component: CollectEmail,
+        component: SignTestTransaction,
         showBackButton: false,
         showSkipButton: false,
         contentClassName: 'flex flex-col items-center justify-center gap-5',

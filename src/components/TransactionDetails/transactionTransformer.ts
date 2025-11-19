@@ -318,7 +318,13 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         case EHistoryEntryType.DEPOSIT:
             direction = 'add'
             transactionCardType = 'add'
-            nameForDetails = entry.senderAccount?.identifier || 'Deposit Source'
+            // check if this is a test transaction (0 amount deposit during account setup), ideally this should be handled in the backend, but for now we'll handle it here cuz its a quick fix, and in promisland of post devconnect this should be handled in the backend.
+            const isTestTransaction = String(entry.amount) === '0' || entry.extraData?.usdAmount === '0'
+            if (isTestTransaction) {
+                nameForDetails = 'Enjoy Peanut!'
+            } else {
+                nameForDetails = entry.senderAccount?.identifier || 'Deposit Source'
+            }
             isPeerActuallyUser = false
             break
         case EHistoryEntryType.MANTECA_QR_PAYMENT:
@@ -486,6 +492,10 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         fullName = nameForDetails
     }
 
+    // check if this is a test transaction for adding a memo
+    const isTestDeposit =
+        entry.type === EHistoryEntryType.DEPOSIT && (String(entry.amount) === '0' || entry.extraData?.usdAmount === '0')
+
     // build the final transactiondetails object for the ui
     const transactionDetails: TransactionDetails = {
         id: entry.uuid,
@@ -502,7 +512,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         // only show verification badge if the other person is a peanut user
         date: new Date(entry.timestamp),
         fee: undefined,
-        memo: entry.memo?.trim(),
+        memo: isTestDeposit ? 'Your peanut wallet is ready to use!' : entry.memo?.trim(),
         attachmentUrl: entry.attachmentUrl,
         cancelledDate: entry.cancelledAt,
         txHash: entry.txHash,

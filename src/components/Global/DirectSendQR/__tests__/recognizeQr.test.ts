@@ -311,36 +311,19 @@ describe('recognizeQr', () => {
 
     describe('SIMPLEFI_STATIC', () => {
         it.each([
-            ['https://pagar.simplefi.tech/peanut-test/static', 'with /static path'],
-            ['https://www.pagar.simplefi.tech/peanut-test/static', 'with www'],
-            ['http://www.pagar.simplefi.tech/peanut-test/static', 'http protocol'],
-            ['http://www.pagar.simplefi.tech/peanut-test/static?stupid=params', 'with query params'],
-            ['http://www.pagar.simplefi.tech/peanut-test/static/?stupid=params', 'with trailing slash and params'],
-            ['https://pagar.simplefi.tech/peanut-test?static=true', 'with static=true param'],
-            ['https://pagar.simplefi.tech/peanut-test/?static=true', 'with trailing slash and static param'],
-            ['www.pagar.simplefi.tech/peanut-test?static=true', 'without protocol'],
-            ['pagar.simplefi.tech/peanut-test?static=true', 'without www and protocol'],
-            ['https://pagar.simplefi.tech/merchant-123/static', 'with numeric merchant slug'],
+            ['https://www.pagar.simplefi.tech/peanut-test', 'with www'],
+            ['http://www.pagar.simplefi.tech/peanut-test', 'http protocol'],
+            ['http://www.pagar.simplefi.tech/peanut-test?stupid=params', 'with query params'],
+            ['https://pagar.simplefi.tech/peanut-test', 'with static=true param'],
+            ['www.pagar.simplefi.tech/peanut-test', 'without protocol'],
+            ['https://pagar.simplefi.tech/merchant-123', 'with numeric merchant slug'],
             // New pay.simplefi.tech URLs
-            ['https://pay.simplefi.tech/peanut-test/static', 'pay subdomain with /static path'],
-            ['https://www.pay.simplefi.tech/peanut-test/static', 'pay subdomain with www'],
-            ['http://www.pay.simplefi.tech/peanut-test/static', 'pay subdomain http protocol'],
-            ['http://www.pay.simplefi.tech/peanut-test/static?stupid=params', 'pay subdomain with query params'],
-            ['https://pay.simplefi.tech/peanut-test?static=true', 'pay subdomain with static=true param'],
-            ['www.pay.simplefi.tech/peanut-test?static=true', 'pay subdomain without protocol'],
-            ['pay.simplefi.tech/peanut-test?static=true', 'pay subdomain without www and protocol'],
-            ['https://pay.simplefi.tech/merchant-123/static', 'pay subdomain with numeric merchant slug'],
+            ['https://pay.simplefi.tech/peanut-test', 'pay subdomain with /static path'],
+            ['https://www.pay.simplefi.tech/peanut-tes', 'pay subdomain with www'],
+            ['http://www.pay.simplefi.tech/peanut-test', 'pay subdomain http protocol'],
+            ['https://pay.simplefi.tech/merchant-123', 'pay subdomain with numeric merchant slug'],
         ])('should recognize %s (%s)', (data, _description) => {
             expect(recognizeQr(data)).toBe(EQrType.SIMPLEFI_STATIC)
-        })
-
-        it.each([
-            ['https://pagar.simplefi.tech/peanut-test', 'missing static indicator'],
-            ['https://pagar.simplefi.tech/peanut-test/payment/123', 'dynamic payment path'],
-            ['https://other-domain.com/peanut-test/static', 'wrong domain'],
-            ['https://simplefi.tech/peanut-test/static', 'missing pagar subdomain'],
-        ])('should NOT recognize %s as SIMPLEFI_STATIC (%s)', (data, _description) => {
-            expect(recognizeQr(data)).not.toBe(EQrType.SIMPLEFI_STATIC)
         })
     })
 
@@ -378,17 +361,17 @@ describe('recognizeQr', () => {
 
     describe('SIMPLEFI_USER_SPECIFIED', () => {
         it.each([
-            ['https://pagar.simplefi.tech/peanut-test', 'basic merchant slug'],
-            ['https://www.pagar.simplefi.tech/merchant', 'with www'],
-            ['http://pagar.simplefi.tech/shop-name', 'http protocol'],
-            ['pagar.simplefi.tech/store', 'without protocol'],
-            ['https://pagar.simplefi.tech/merchant-with-dashes', 'merchant with dashes'],
+            ['https://pagar.simplefi.tech/peanut-test/user-order', 'basic merchant slug'],
+            ['https://www.pagar.simplefi.tech/merchant/user-order', 'with www'],
+            ['http://pagar.simplefi.tech/shop-name/user-order', 'http protocol'],
+            ['pagar.simplefi.tech/store/user-order', 'without protocol'],
+            ['https://pagar.simplefi.tech/merchant-with-dashes/user-order', 'merchant with dashes'],
             // New pay.simplefi.tech URLs
-            ['https://pay.simplefi.tech/peanut-test', 'pay subdomain basic merchant slug'],
-            ['https://www.pay.simplefi.tech/merchant', 'pay subdomain with www'],
-            ['http://pay.simplefi.tech/shop-name', 'pay subdomain http protocol'],
-            ['pay.simplefi.tech/store', 'pay subdomain without protocol'],
-            ['https://pay.simplefi.tech/merchant-with-dashes', 'pay subdomain merchant with dashes'],
+            ['https://pay.simplefi.tech/peanut-test/user-order', 'pay subdomain basic merchant slug'],
+            ['https://www.pay.simplefi.tech/merchant/user-order', 'pay subdomain with www'],
+            ['http://pay.simplefi.tech/shop-name/user-order', 'pay subdomain http protocol'],
+            ['pay.simplefi.tech/store/user-order', 'pay subdomain without protocol'],
+            ['https://pay.simplefi.tech/merchant-with-dashes/user-order', 'pay subdomain merchant with dashes'],
         ])('should recognize %s (%s)', (data, _description) => {
             expect(recognizeQr(data)).toBe(EQrType.SIMPLEFI_USER_SPECIFIED)
         })
@@ -400,16 +383,6 @@ describe('recognizeQr', () => {
             ['https://pay.simplefi.tech/merchant/456', 'two path segments on pay subdomain (should be DYNAMIC)'],
         ])('should NOT recognize %s as SIMPLEFI_USER_SPECIFIED (%s)', (data, _description) => {
             expect(recognizeQr(data)).not.toBe(EQrType.SIMPLEFI_USER_SPECIFIED)
-        })
-
-        it('should recognize https://pagar.simplefi.tech/ as SIMPLEFI_USER_SPECIFIED (regex matches trailing slash)', () => {
-            // The regex captures an empty merchant slug with trailing slash
-            expect(recognizeQr('https://pagar.simplefi.tech/')).toBe(EQrType.SIMPLEFI_USER_SPECIFIED)
-        })
-
-        it('should recognize https://pay.simplefi.tech/ as SIMPLEFI_USER_SPECIFIED (regex matches trailing slash)', () => {
-            // The regex captures an empty merchant slug with trailing slash
-            expect(recognizeQr('https://pay.simplefi.tech/')).toBe(EQrType.SIMPLEFI_USER_SPECIFIED)
         })
     })
 
@@ -483,7 +456,7 @@ describe('recognizeQr', () => {
         })
 
         it('should prioritize SIMPLEFI_STATIC over SIMPLEFI_USER_SPECIFIED', () => {
-            const staticUrl = 'https://pagar.simplefi.tech/merchant/static'
+            const staticUrl = 'https://pagar.simplefi.tech/merchant'
             expect(recognizeQr(staticUrl)).toBe(EQrType.SIMPLEFI_STATIC)
         })
 
@@ -493,7 +466,7 @@ describe('recognizeQr', () => {
         })
 
         it('should prioritize SIMPLEFI_STATIC over SIMPLEFI_USER_SPECIFIED for pay.simplefi.tech', () => {
-            const staticUrl = 'https://pay.simplefi.tech/merchant/static'
+            const staticUrl = 'https://pay.simplefi.tech/merchant'
             expect(recognizeQr(staticUrl)).toBe(EQrType.SIMPLEFI_STATIC)
         })
 

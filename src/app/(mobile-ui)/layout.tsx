@@ -22,6 +22,7 @@ import ForceIOSPWAInstall from '@/components/ForceIOSPWAInstall'
 import { PUBLIC_ROUTES_REGEX } from '@/constants/routes'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
+import { useAccountSetupRedirect } from '@/hooks/useAccountSetupRedirect'
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     const pathName = usePathname()
@@ -80,6 +81,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         }
     }, [user, isFetchingUser, isReady, isPublicPath, router])
 
+    // redirect logged-in users without peanut wallet account to complete setup
+    const { needsRedirect, isCheckingAccount } = useAccountSetupRedirect()
+
     // show full-page offline screen when user is offline
     // only show after initialization to prevent flash on initial load
     // when connection is restored, page auto-reloads (no "back online" screen)
@@ -97,8 +101,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             )
         }
     } else {
-        // For protected paths, wait for user auth
-        if (!isReady || isFetchingUser || !hasToken || !user) {
+        // for protected paths, wait for user auth and account setup check
+        if (!isReady || isFetchingUser || !hasToken || !user || needsRedirect || isCheckingAccount) {
             return (
                 <div className="flex h-[100dvh] w-full flex-col items-center justify-center">
                     <PeanutLoading />
