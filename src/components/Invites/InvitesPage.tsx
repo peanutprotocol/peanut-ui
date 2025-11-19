@@ -25,7 +25,8 @@ const INVITE_CODE_TO_CAMPAIGN_MAP: Record<string, string> = {
 
 function InvitePageContent() {
     const searchParams = useSearchParams()
-    const inviteCode = searchParams.get('code')?.toLowerCase()
+    // trim trailing '?' from invite code to handle qr codes with ? at the end
+    const inviteCode = searchParams.get('code')?.toLowerCase().replace(/\?+$/, '')
     const redirectUri = searchParams.get('redirect_uri')
     const campaignParam = searchParams.get('campaign')
     const { user, isFetchingUser, fetchUser } = useAuth()
