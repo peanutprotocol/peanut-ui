@@ -4,7 +4,7 @@ import Layout from '@/components/Global/Layout'
 import { motion } from 'framer-motion'
 import borderCloud from '@/assets/illustrations/border-cloud.svg'
 import noHiddenFees from '@/assets/illustrations/no-hidden-fees.svg'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Star } from '@/assets'
 import Image from 'next/image'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
@@ -32,6 +32,16 @@ export default function UsdArsPrice() {
             },
         }
     }
+
+    useEffect(() => {
+        const handleResize = () => {
+            setScreenWidth(window.innerWidth)
+        }
+
+        handleResize()
+        window.addEventListener('resize', handleResize)
+        return () => window.removeEventListener('resize', handleResize)
+    }, [])
 
     return (
         <Layout className="enable-select !m-0 w-full !p-0">
@@ -111,6 +121,12 @@ export default function UsdArsPrice() {
 
                     <div className="mt-10 flex items-center justify-center border-4 border-black bg-white p-10 md:p-20">
                         {isLoading && <div className="mx-auto h-8 w-full animate-pulse rounded-full bg-grey-2" />}
+
+                        {!isLoading && isError && (
+                            <p className="font-roboto text-3xl font-bold ">
+                                Couldn&apos;t load ARS rate. Please try again.
+                            </p>
+                        )}
                         {!isLoading && !isError && (
                             <p className="font-roboto text-3xl font-bold md:text-[70px] md:font-extraBlack">
                                 ${sourceAmount} = {destinationAmount} ARS
