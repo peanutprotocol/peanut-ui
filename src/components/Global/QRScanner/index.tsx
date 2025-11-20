@@ -25,12 +25,12 @@ const CAMERA_ERRORS = {
 } as const
 
 // Scanner configuration
-const SCANNER_CONFIG: QrScannerLib.ScannerOptions = {
+const SCANNER_CONFIG = {
     returnDetailedScanResult: true,
     highlightScanRegion: false,
     highlightCodeOutline: false,
     maxScansPerSecond: SCANNER_MAX_SCANS_PER_SECOND,
-}
+} as const
 
 // Supported payment methods
 const PAYMENT_METHODS = [
