@@ -34,6 +34,8 @@ export const Profile = () => {
 
     const fullName = user?.user.fullName || user?.user?.username || 'Anonymous User'
     const username = user?.user.username || 'anonymous'
+    // respect user's showFullName preference: use fullName only if showFullName is true, otherwise use username
+    const displayName = user?.user.showFullName && user?.user.fullName ? user.user.fullName : username
 
     const inviteData = generateInviteCodeLink(user?.user.username ?? '')
 
@@ -54,7 +56,7 @@ export const Profile = () => {
                 }}
             />
             <div className="space-y-8">
-                <ProfileHeader name={fullName || username} username={username} isVerified={isUserKycApproved} />
+                <ProfileHeader name={displayName} username={username} isVerified={isUserKycApproved} />
                 <div className="space-y-4">
                     <ProfileMenuItem
                         icon="smile"
