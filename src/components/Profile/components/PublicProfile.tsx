@@ -30,6 +30,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
     const dispatch = useAppDispatch()
     const [totalSentByLoggedInUser, setTotalSentByLoggedInUser] = useState<string>('0')
     const [fullName, setFullName] = useState<string>(username)
+    const [showFullName, setShowFullName] = useState<boolean>(false)
     const [isKycVerified, setIsKycVerified] = useState<boolean>(false)
     const router = useRouter()
     const { user } = useAuth()
@@ -56,6 +57,8 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
     useEffect(() => {
         usersApi.getByUsername(username).then((apiUser) => {
             if (apiUser?.fullName) setFullName(apiUser.fullName)
+            // get the profile owner's showFullName preference
+            setShowFullName(apiUser?.showFullName ?? false)
             if (
                 apiUser?.bridgeKycStatus === 'approved' ||
                 apiUser?.kycVerifications?.some((v) => v.status === MantecaKycStatus.ACTIVE)
@@ -75,6 +78,9 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
 
     // this flag is true if the current user has sent money to the profile user before.
     const haveSentMoneyToUser = useMemo(() => Number(totalSentByLoggedInUser) > 0, [totalSentByLoggedInUser])
+
+    // respect profile owner's showFullName preference: use fullName only if showFullName is true, otherwise use username
+    const displayName = showFullName && fullName ? fullName : username
 
     return (
         <div className="flex h-full w-full flex-col space-y-4 bg-background">
@@ -106,7 +112,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                 {/* Profile Header - Using the reusable component */}
                 <ProfileHeader
                     showShareButton={false}
-                    name={fullName}
+                    name={displayName}
                     username={username}
                     isVerified={isKycVerified}
                     className="mb-6"
