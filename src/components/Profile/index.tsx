@@ -18,6 +18,7 @@ import CopyToClipboard from '../Global/CopyToClipboard'
 import KycVerifiedOrReviewModal from '../Global/KycVerifiedOrReviewModal'
 import { STAR_STRAIGHT_ICON } from '@/assets'
 import Image from 'next/image'
+import QRCode from 'react-qr-code'
 
 export const Profile = () => {
     const { logoutUser, isLoggingOut, user } = useAuth()
@@ -142,6 +143,17 @@ export const Profile = () => {
                 icon="user-plus"
                 content={
                     <>
+                        {inviteData.inviteLink && (
+                            <div className="my-2 size-44">
+                                <QRCode
+                                    value={inviteData.inviteLink}
+                                    size={120}
+                                    style={{ height: 'auto', maxWidth: '100%', width: '100%' }}
+                                    viewBox={`0 0 120 120`}
+                                    level="H" // Highest error correction level to allow for logo
+                                />
+                            </div>
+                        )}
                         <div className="flex w-full items-center justify-between gap-3">
                             <Card className="flex items-center justify-between py-2">
                                 <p className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-bold ">{`${inviteData.inviteCode}`}</p>
