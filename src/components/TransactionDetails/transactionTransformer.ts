@@ -96,6 +96,8 @@ export interface TransactionDetails {
             iban?: string
             bic?: string
             account_holder_name?: string
+            // Mexican format (SPEI)
+            clabe?: string
         }
         receipt?: {
             depositDetails?: {
