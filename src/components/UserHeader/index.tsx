@@ -1,6 +1,5 @@
 'use client'
 
-import { BASE_URL } from '@/components/Global/DirectSendQR/utils'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import Link from 'next/link'
 import { Icon } from '../Global/Icons/Icon'
@@ -8,7 +7,6 @@ import { twMerge } from 'tailwind-merge'
 import { Tooltip } from '../Tooltip'
 import { useMemo } from 'react'
 import { isAddress } from 'viem'
-import useKycStatus from '@/hooks/useKycStatus'
 import { useAuth } from '@/context/authContext'
 import AddressLink from '../Global/AddressLink'
 import { Button } from '@/components/0_Bruddle'
@@ -20,6 +18,10 @@ interface UserHeaderProps {
 }
 
 export const UserHeader = ({ username, fullName, isVerified }: UserHeaderProps) => {
+    const { user } = useAuth()
+    // respect user's showFullName preference: use fullName only if showFullName is true, otherwise use username
+    const nameForAvatar = user?.user.showFullName && fullName ? fullName : username
+
     return (
         <Link href={`/profile`} className="block">
             <Button
@@ -33,7 +35,7 @@ export const UserHeader = ({ username, fullName, isVerified }: UserHeaderProps) 
                 <AvatarWithBadge
                     size="extra-small"
                     className="h-5 w-5 text-[10px] md:h-6 md:w-6 md:text-[11px]"
-                    name={fullName || username}
+                    name={nameForAvatar}
                 />
                 <span className="whitespace-nowrap text-xs font-semibold md:text-sm">{username}</span>
             </Button>

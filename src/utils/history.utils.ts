@@ -116,6 +116,7 @@ export type HistoryEntry = {
               username?: string | undefined
               fullName?: string
               userId?: string
+              showFullName?: boolean
           }
         | undefined
     recipientAccount: {
@@ -125,6 +126,7 @@ export type HistoryEntry = {
         username?: string | undefined
         fullName?: string
         userId?: string
+        showFullName?: boolean
     }
     extraData?: Record<string, any>
     claimedAt?: string | Date

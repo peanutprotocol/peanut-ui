@@ -21,6 +21,7 @@ import { isAddress } from 'viem'
 import { EHistoryEntryType } from '@/utils/history.utils'
 import { PerkIcon } from './PerkIcon'
 import { useHaptic } from 'use-haptic'
+import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
 
 // Lazy load transaction details drawer (~40KB) to reduce initial bundle size
 // Only loaded when user taps a transaction to view details
@@ -30,7 +31,6 @@ const TransactionDetailsDrawer = lazy(() =>
         default: mod.TransactionDetailsDrawer,
     }))
 )
-import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
 
 export type TransactionType =
     | 'send'
@@ -86,7 +86,9 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
 
     const isLinkTx = transaction.extraDataForDrawer?.isLinkTransaction ?? false
     const isPerkReward = transaction.extraDataForDrawer?.originalType === EHistoryEntryType.PERK_REWARD
-    const userNameForAvatar = transaction.fullName || transaction.userName
+    // respect user's showFullName preference: use fullName only if showFullName is true, otherwise use username
+    const userNameForAvatar =
+        transaction.showFullName && transaction.fullName ? transaction.fullName : transaction.userName
     const avatarUrl = getAvatarUrl(transaction)
     let displayName = name
     if (isAddress(displayName)) {
