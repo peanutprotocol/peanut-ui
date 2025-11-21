@@ -239,17 +239,20 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
     // Toggle camera facing mode
     const toggleCamera = useCallback(async () => {
         const newFacingMode = facingMode === 'user' ? 'environment' : 'user'
-        setFacingMode(newFacingMode)
 
         if (scannerRef.current && isScanning) {
             try {
+                // Use the scanner's built-in setCamera method (doesn't require new permissions)
                 await scannerRef.current.setCamera(newFacingMode)
+                // Only update state after successful camera switch
+                setFacingMode(newFacingMode)
             } catch (error) {
                 console.error('Error toggling camera:', error)
-                cleanupScanner()
+                // If setCamera fails, try restarting the scanner with new facing mode
+                setFacingMode(newFacingMode)
             }
         }
-    }, [facingMode, isScanning, cleanupScanner])
+    }, [facingMode, isScanning])
 
     // Start or stop scanner based on isScanning state
     useEffect(() => {
