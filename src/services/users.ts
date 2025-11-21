@@ -25,6 +25,7 @@ export type ApiUser = {
     fullName: string
     firstName: string
     lastName: string
+    showFullName?: boolean
     totalUsdSentToCurrentUser: string
     totalUsdReceivedFromCurrentUser: string
     bridgeKycStatus: string
