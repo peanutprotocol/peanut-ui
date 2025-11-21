@@ -183,44 +183,47 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
         }
     }, [onClose, cleanupScanner])
 
-    const startCamera = useCallback(async () => {
-        setError(null)
+    const startCamera = useCallback(
+        async (preferredCamera: 'user' | 'environment' = facingMode) => {
+            setError(null)
 
-        if (!videoRef.current) {
-            setError('Video element not available')
-            return
-        }
-
-        try {
-            // Clean up any existing scanner
-            cleanupScanner()
-
-            // iOS-specific delay to release camera hardware
-            if (deviceType === DeviceType.IOS) {
-                await new Promise((resolve) => setTimeout(resolve, IOS_CAMERA_DELAY_MS))
+            if (!videoRef.current) {
+                setError('Video element not available')
+                return
             }
 
-            // Create and start new scanner
-            const scanner = new QrScannerLib(
-                videoRef.current,
-                (result) => {
-                    if (!processingQR) {
-                        handleQRScan(result.data)
-                    }
-                },
-                {
-                    ...SCANNER_CONFIG,
-                    preferredCamera: facingMode,
-                }
-            )
+            try {
+                // Clean up any existing scanner
+                cleanupScanner()
 
-            scannerRef.current = scanner
-            await scanner.start()
-            resetRetryCount()
-        } catch (error: any) {
-            handleCameraError(error)
-        }
-    }, [facingMode, deviceType, handleQRScan, processingQR, cleanupScanner, resetRetryCount, handleCameraError])
+                // iOS-specific delay to release camera hardware
+                if (deviceType === DeviceType.IOS) {
+                    await new Promise((resolve) => setTimeout(resolve, IOS_CAMERA_DELAY_MS))
+                }
+
+                // Create and start new scanner
+                const scanner = new QrScannerLib(
+                    videoRef.current,
+                    (result) => {
+                        if (!processingQR) {
+                            handleQRScan(result.data)
+                        }
+                    },
+                    {
+                        ...SCANNER_CONFIG,
+                        preferredCamera,
+                    }
+                )
+
+                scannerRef.current = scanner
+                await scanner.start()
+                resetRetryCount()
+            } catch (error: any) {
+                handleCameraError(error)
+            }
+        },
+        [deviceType, handleQRScan, processingQR, cleanupScanner, resetRetryCount, handleCameraError, facingMode]
+    )
 
     // Handle visibility change - pause camera when app goes to background
     useEffect(() => {
@@ -238,30 +241,32 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
 
     // Toggle camera facing mode
     const toggleCamera = useCallback(async () => {
+        if (!scannerRef.current || !isScanning) {
+            return
+        }
+
         const newFacingMode = facingMode === 'user' ? 'environment' : 'user'
 
-        if (scannerRef.current && isScanning) {
-            try {
-                // Use the scanner's built-in setCamera method (doesn't require new permissions)
-                await scannerRef.current.setCamera(newFacingMode)
-                // Only update state after successful camera switch
-                setFacingMode(newFacingMode)
-            } catch (error) {
-                console.error('Error toggling camera:', error)
-                // If setCamera fails, try restarting the scanner with new facing mode
-                setFacingMode(newFacingMode)
-            }
+        try {
+            // Use setCamera to switch without destroying the scanner (official library pattern)
+            await scannerRef.current.setCamera(newFacingMode)
+            // Update state only after successful switch
+            setFacingMode(newFacingMode)
+        } catch (error: any) {
+            console.error('Error switching camera:', error)
+            setError('Failed to switch camera. Please try again.')
         }
     }, [facingMode, isScanning])
 
-    // Start or stop scanner based on isScanning state
+    // Start or stop scanner based on isScanning state (only on mount/unmount or isScanning changes)
     useEffect(() => {
         if (isScanning) {
             startCamera()
         } else {
             cleanupScanner()
         }
-    }, [isScanning, startCamera, cleanupScanner])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isScanning]) // Only depend on isScanning, not startCamera
 
     // Handle isOpen prop changes
     useEffect(() => {
