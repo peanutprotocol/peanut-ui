@@ -21,16 +21,19 @@ import UnsupportedBrowserModal from '../Global/UnsupportedBrowserModal'
 // when these invite codes are used, the corresponding campaign tag is automatically applied
 const INVITE_CODE_TO_CAMPAIGN_MAP: Record<string, string> = {
     arbiverseinvitesyou: 'ARBIVERSE_DEVCONNECT_BA_2025',
+    squirrelinvitesyou: 'ARBIVERSE_DEVCONNECT_BA_2025', // temporary: maps to arbiverse until 12pm noon tomorrow
 }
 
 function InvitePageContent() {
     const searchParams = useSearchParams()
-    const inviteCode = searchParams.get('code')?.toLowerCase()
+    // trim trailing '?' from invite code to handle qr codes with ? at the end
+    const inviteCode = searchParams.get('code')?.toLowerCase().replace(/\?+$/, '')
     const redirectUri = searchParams.get('redirect_uri')
-    const campaignParam = searchParams.get('campaign')
+    // support both 'campaign' and 'campaignTag' query parameters
+    const campaignParam = searchParams.get('campaign') || searchParams.get('campaignTag')
     const { user, isFetchingUser, fetchUser } = useAuth()
 
-    // determine campaign tag: use query param if provided, otherwise check invite code mapping
+    // determine campaign tag: use query param if provided (takes precedence), otherwise check invite code mapping
     const campaign = campaignParam || (inviteCode ? INVITE_CODE_TO_CAMPAIGN_MAP[inviteCode] : undefined)
 
     const dispatch = useAppDispatch()

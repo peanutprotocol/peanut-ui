@@ -85,6 +85,23 @@ export const useHomeCarouselCTAs = () => {
     const generateCarouselCTAs = useCallback(() => {
         const _carouselCTAs: CarouselCTA[] = []
 
+        // Devconnect Quests CTA
+        _carouselCTAs.push({
+            id: 'devconnect-quests',
+            title: 'Join Devconnect Quests',
+            description: (
+                <p>
+                    Compete in <b>3 challenges,</b> climb the leaderboard and win <b>$1500</b>
+                </p>
+            ),
+            logo: DEVCONNECT_LOGO,
+            icon: 'arrow-up-right',
+            onClick: () => {
+                router.push('/quests')
+            },
+            iconSize: 16,
+        })
+
         // Show QR code payment prompt if user's Bridge or Manteca KYC is approved.
         if (isUserKycApproved || isUserMantecaKycApproved) {
             _carouselCTAs.push({
