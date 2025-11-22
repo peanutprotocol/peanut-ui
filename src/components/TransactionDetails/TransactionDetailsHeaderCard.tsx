@@ -13,6 +13,7 @@ import { VerifiedUserLabel } from '../UserHeader'
 import ProgressBar from '../Global/ProgressBar'
 import { useRouter } from 'next/navigation'
 import { twMerge } from 'tailwind-merge'
+import { PEANUTMAN_LOGO } from '@/assets'
 
 export type TransactionDirection =
     | 'send'
@@ -78,6 +79,11 @@ const getTitle = (
     } else {
         const isAddress = isWalletAddress(userName)
         const displayName = isAddress ? printableAddress(userName) : userName
+
+        // check if this is a test transaction (setup confirmation)
+        // note: bad check, but its a quick fix for now - kush (18 nov 2025), to be handled in the backend post devconnect.
+        const isTestTransaction = displayName === 'Enjoy Peanut!'
+
         switch (direction) {
             case 'send':
                 if (status === 'pending' || status === 'cancelled') {
@@ -112,7 +118,11 @@ const getTitle = (
                 break
             case 'add':
             case 'bank_deposit':
-                titleText = `${status === 'completed' ? 'Added' : 'Adding'} from ${displayName}`
+                if (isTestTransaction) {
+                    titleText = 'Enjoy Peanut!'
+                } else {
+                    titleText = `${status === 'completed' ? 'Added' : 'Adding'} from ${displayName}`
+                }
                 break
             case 'claim_external':
                 if (status === 'completed') {
@@ -141,8 +151,12 @@ const getTitle = (
     return titleText
 }
 
-const getIcon = (direction: TransactionDirection, isLinkTransaction?: boolean): IconName | undefined => {
-    if (isLinkTransaction) {
+const getIcon = (
+    direction: TransactionDirection,
+    isLinkTransaction?: boolean,
+    isTestTransaction?: boolean
+): IconName | undefined => {
+    if (isLinkTransaction || isTestTransaction) {
         return undefined
     }
 
@@ -195,7 +209,9 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     // respect user's showFullName preference: use fullName only if showFullName is true, otherwise use username
     const nameForAvatar = showFullName && fullName ? fullName : userName
 
-    const icon = getIcon(direction, isLinkTransaction)
+    // check if this is a test transaction (setup confirmation)
+    const isTestTransaction = userName === 'Enjoy Peanut!'
+    const icon = getIcon(direction, isLinkTransaction, isTestTransaction)
 
     const handleUserPfpClick = () => {
         if (isAvatarClickable) {
@@ -207,65 +223,77 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
 
     return (
         <Card className="relative p-4 md:p-6" position="single">
-            <div className="flex items-center gap-3">
-                <div className={twMerge(isAvatarClickable && 'cursor-pointer')} onClick={handleUserPfpClick}>
-                    {avatarUrl ? (
-                        <div className="flex h-16 w-16 items-center justify-center rounded-full">
-                            <Image
-                                src={avatarUrl}
-                                alt="Icon"
-                                className="size-full rounded-full object-cover"
-                                width={160}
-                                height={160}
+            {isTestTransaction ? (
+                <div className="flex items-center gap-3">
+                    <div>
+                        <Image src={PEANUTMAN_LOGO} alt="Peanut Logo" width={64} height={64} className="size-8" />
+                    </div>
+                    <div>
+                        <h2 className="text-xl font-extrabold">Enjoy Peanut!</h2>
+                    </div>
+                </div>
+            ) : (
+                <div className="flex items-center gap-3">
+                    <div className={twMerge(isAvatarClickable && 'cursor-pointer')} onClick={handleUserPfpClick}>
+                        {avatarUrl ? (
+                            <div className="flex h-16 w-16 items-center justify-center rounded-full">
+                                <Image
+                                    src={avatarUrl}
+                                    alt="Icon"
+                                    className="size-full rounded-full object-cover"
+                                    width={160}
+                                    height={160}
+                                />
+                            </div>
+                        ) : (
+                            <TransactionAvatarBadge
+                                initials={initials}
+                                userName={nameForAvatar}
+                                isLinkTransaction={isLinkTransaction}
+                                transactionType={typeForAvatar}
+                                context="header"
+                                size="small"
                             />
-                        </div>
-                    ) : (
-                        <TransactionAvatarBadge
-                            initials={initials}
-                            userName={nameForAvatar}
-                            isLinkTransaction={isLinkTransaction}
-                            transactionType={typeForAvatar}
-                            context="header"
-                            size="small"
-                        />
-                    )}
-                </div>
-                <div className="w-full space-y-1">
-                    <h2 className="flex items-center gap-2 text-sm font-medium text-grey-1">
-                        {icon && <Icon name={icon} size={10} />}
-                        <VerifiedUserLabel
-                            username={userName}
-                            name={
-                                isRequestPotTransaction
-                                    ? userName
-                                    : (getTitle(direction, userName, isLinkTransaction, status) as string)
-                            }
-                            isVerified={isVerified}
-                            className="flex items-center gap-1"
-                            haveSentMoneyToUser={haveSentMoneyToUser}
-                            iconSize={18}
-                            onNameClick={isAvatarClickable ? handleUserPfpClick : undefined}
-                        />
-
-                        <div className="ml-auto">
-                            {status && <StatusBadge status={status} size="small" className="py-0" />}
-                        </div>
-                    </h2>
-                    <h1
-                        className={twMerge(
-                            'text-3xl font-extrabold md:text-4xl',
-                            status === 'cancelled' && 'text-grey-1 line-through',
-                            isNoGoalSet && 'text-xl text-black md:text-3xl'
                         )}
-                    >
-                        {amountDisplay}
-                    </h1>
+                    </div>
+                    <div className="w-full space-y-1">
+                        <h2 className="flex items-center gap-2 text-sm font-medium text-grey-1">
+                            {icon && <Icon name={icon} size={10} />}
+                            <VerifiedUserLabel
+                                username={userName}
+                                name={
+                                    isRequestPotTransaction
+                                        ? userName
+                                        : (getTitle(direction, userName, isLinkTransaction, status) as string)
+                                }
+                                isVerified={isVerified}
+                                className="flex items-center gap-1"
+                                haveSentMoneyToUser={haveSentMoneyToUser}
+                                iconSize={18}
+                                onNameClick={isAvatarClickable ? handleUserPfpClick : undefined}
+                            />
 
-                    {convertedAmount && <h2 className="font-bold">≈ {convertedAmount}</h2>}
+                            <div className="ml-auto">
+                                {status && <StatusBadge status={status} size="small" className="py-0" />}
+                            </div>
+                        </h2>
+                        <h1
+                            className={twMerge(
+                                'text-3xl font-extrabold md:text-4xl',
+                                status === 'cancelled' && 'text-grey-1 line-through',
+                                isNoGoalSet && 'text-xl text-black md:text-3xl'
+                            )}
+                        >
+                            {amountDisplay}
+                        </h1>
 
-                    {isNoGoalSet && <h4 className="text-sm font-medium text-black">No goal set</h4>}
+                        {convertedAmount && <h2 className="font-bold">≈ {convertedAmount}</h2>}
+
+                        {isNoGoalSet && <h4 className="text-sm font-medium text-black">No goal set</h4>}
+                    </div>
                 </div>
-            </div>
+            )}
+
             {!isNoGoalSet && showProgessBar && goal !== undefined && progress !== undefined && (
                 <div className="mt-4">
                     <ProgressBar goal={goal} progress={progress} isClosed={isTransactionClosed} />

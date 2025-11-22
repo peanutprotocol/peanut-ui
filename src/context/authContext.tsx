@@ -2,8 +2,9 @@
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { useUserQuery } from '@/hooks/query/user'
 import * as interfaces from '@/interfaces'
-import { useAppDispatch, useUserStore } from '@/redux/hooks'
+import { useAppDispatch } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
+import { zerodevActions } from '@/redux/slices/zerodev-slice'
 import {
     fetchWithSentry,
     removeFromCookie,
@@ -13,7 +14,7 @@ import {
 } from '@/utils'
 import { resetCrispProxySessions } from '@/utils/crisp'
 import { useQueryClient } from '@tanstack/react-query'
-import { useRouter, usePathname } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { createContext, type ReactNode, useContext, useState, useEffect, useMemo, useCallback } from 'react'
 import { captureException } from '@sentry/nextjs'
 // import { PUBLIC_ROUTES_REGEX } from '@/constants/routes'
@@ -137,13 +138,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             })
 
             if (response.ok) {
+                // clear user preferences (webauthn key in localStorage)
                 updateUserPreferences(user?.user.userId, { webAuthnKey: undefined })
+
+                // clear cookies
                 removeFromCookie(WEB_AUTHN_COOKIE_KEY)
+                document.cookie = 'jwt-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
+
+                // clear redirect url
                 clearRedirectUrl()
+
+                // invalidate all queries
                 queryClient.invalidateQueries()
 
-                // clear JWT cookie by setting it to expire
-                document.cookie = 'jwt-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
+                // reset redux state (setup and zerodev)
+                dispatch(setupActions.resetSetup())
+                dispatch(zerodevActions.resetZeroDevState())
+                console.log('[Logout] Cleared redux state (setup and zerodev)')
 
                 // Clear service worker caches to prevent user data leakage
                 // When User A logs out and User B logs in on the same device, cached API responses
@@ -177,8 +188,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     resetCrispProxySessions()
                 }
 
+                // fetch user (should return null after logout)
                 await fetchUser()
-                dispatch(setupActions.resetSetup())
+
+                // redirect to setup page
                 router.replace('/setup')
 
                 toast.success('Logged out successfully')
