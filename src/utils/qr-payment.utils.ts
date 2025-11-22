@@ -2,13 +2,13 @@ import { formatNumberForDisplay } from './general.utils'
 import { EQrType } from '@/components/Global/DirectSendQR/utils'
 
 /**
- * Calculate savings amount (5% of transaction value) in cents
+ * Calculate savings amount (9.13% of transaction value) in cents
  * @param usdAmount Transaction amount in USD
  * @returns Savings amount in cents, or 0 if invalid
  */
 export function calculateSavingsInCents(usdAmount: string | null | undefined): number {
     if (!usdAmount) return 0
-    const savingsAmount = parseFloat(usdAmount) * 0.05
+    const savingsAmount = parseFloat(usdAmount) * 0.0913
     return Math.round(savingsAmount * 100)
 }
 
