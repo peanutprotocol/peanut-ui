@@ -327,7 +327,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             nameForDetails = 'Bank Account'
             isPeerActuallyUser = false
             break
-        case EHistoryEntryType.DEPOSIT:
+        case EHistoryEntryType.DEPOSIT: {
             direction = 'add'
             transactionCardType = 'add'
             // check if this is a test transaction (0 amount deposit during account setup), ideally this should be handled in the backend, but for now we'll handle it here cuz its a quick fix, and in promisland of post devconnect this should be handled in the backend.
@@ -339,6 +339,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             }
             isPeerActuallyUser = false
             break
+        }
         case EHistoryEntryType.MANTECA_QR_PAYMENT:
             direction = 'qr_payment'
             transactionCardType = 'pay'
