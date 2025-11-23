@@ -115,6 +115,7 @@ export default function QRPayPage() {
     const holdTimerRef = useRef<NodeJS.Timeout | null>(null)
     const progressIntervalRef = useRef<NodeJS.Timeout | null>(null)
     const holdStartTimeRef = useRef<number | null>(null)
+    const payingStateTimerRef = useRef<NodeJS.Timeout | null>(null)
     const { user } = useAuth()
     const [pendingSimpleFiPaymentId, setPendingSimpleFiPaymentId] = useState<string | null>(null)
     const [isWaitingForWebSocket, setIsWaitingForWebSocket] = useState(false)
@@ -140,6 +141,7 @@ export default function QRPayPage() {
         setLoadingState('Idle')
         if (holdTimerRef.current) clearTimeout(holdTimerRef.current)
         if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
+        if (payingStateTimerRef.current) clearTimeout(payingStateTimerRef.current)
         holdStartTimeRef.current = null
         setHoldProgress(0)
         setIsShaking(false)
@@ -160,6 +162,7 @@ export default function QRPayPage() {
         return () => {
             if (holdTimerRef.current) clearTimeout(holdTimerRef.current)
             if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
+            if (payingStateTimerRef.current) clearTimeout(payingStateTimerRef.current)
             holdStartTimeRef.current = null
         }
     }, [])
@@ -655,7 +658,8 @@ export default function QRPayPage() {
 
         // Send signed UserOp to backend for coordinated execution
         // Backend will: 1) Complete Manteca payment, 2) Broadcast UserOp only if Manteca succeeds
-        setTimeout(() => setLoadingState('Paying'), 3000)
+        // schedule "paying" state after 3 seconds to give user feedback that payment is processing
+        payingStateTimerRef.current = setTimeout(() => setLoadingState('Paying'), 3000)
         try {
             const signedUserOp = {
                 sender: signedUserOpData.signedUserOp.sender,
@@ -680,9 +684,19 @@ export default function QRPayPage() {
                 chainId: signedUserOpData.chainId,
                 entryPointAddress: signedUserOpData.entryPointAddress,
             })
+            // clear the timer since we got a response
+            if (payingStateTimerRef.current) {
+                clearTimeout(payingStateTimerRef.current)
+                payingStateTimerRef.current = null
+            }
             setQrPayment(qrPayment)
             setIsSuccess(true)
         } catch (error) {
+            // clear the timer on error to prevent race condition
+            if (payingStateTimerRef.current) {
+                clearTimeout(payingStateTimerRef.current)
+                payingStateTimerRef.current = null
+            }
             captureException(error)
             const errorMsg = (error as Error).message || 'Could not complete payment'
 
