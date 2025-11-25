@@ -24,6 +24,7 @@ export interface IOnrampData {
         iban?: string
         bic?: string
         accountHolderName?: string
+        clabe?: string
     }
 }
 

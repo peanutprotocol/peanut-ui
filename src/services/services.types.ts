@@ -423,6 +423,7 @@ export interface PointsInvite {
     inviteeId: string
     username: string
     fullName: string | null
+    showFullName?: boolean
     invitedAt: string
     kycStatus: BridgeKycStatus | null
     kycVerified: boolean

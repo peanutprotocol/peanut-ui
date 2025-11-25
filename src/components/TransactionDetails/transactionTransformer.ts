@@ -37,6 +37,7 @@ export interface TransactionDetails {
     direction: TransactionDirection
     userName: string
     fullName: string
+    showFullName?: boolean
     amount: number | bigint
     currency?: {
         amount: string
@@ -96,6 +97,8 @@ export interface TransactionDetails {
             iban?: string
             bic?: string
             account_holder_name?: string
+            // Mexican format (SPEI)
+            clabe?: string
         }
         receipt?: {
             depositDetails?: {
@@ -164,6 +167,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     let isLinkTx = false
     let isPeerActuallyUser = false
     let fullName = '' // Full name of the user for PFP Avatar
+    let showFullName: boolean | undefined = undefined // User's preference for showing full name
 
     // determine direction, card type, peer name, and flags based on original type and user role
     switch (entry.type) {
@@ -174,12 +178,14 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             if (entry.userRole === EHistoryUserRole.SENDER) {
                 nameForDetails = entry.recipientAccount?.username ?? entry.recipientAccount?.identifier
                 fullName = entry.recipientAccount?.fullName ?? ''
+                showFullName = entry.recipientAccount?.showFullName
             } else {
                 direction = 'receive'
                 transactionCardType = 'receive'
                 nameForDetails =
                     entry.senderAccount?.username ?? entry.senderAccount?.identifier ?? 'Requested via Link'
                 ;((fullName = entry.senderAccount?.fullName ?? ''), (isLinkTx = !entry.senderAccount)) // If the sender is not an user then it's a public link
+                showFullName = entry.senderAccount?.showFullName
             }
             break
         case EHistoryEntryType.SEND_LINK:
@@ -192,6 +198,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                     entry.recipientAccount?.identifier ||
                     (entry.status === 'COMPLETED' ? 'You sent via link' : "You're sending via link")
                 fullName = entry.recipientAccount?.username ?? ''
+                showFullName = entry.recipientAccount?.showFullName
                 isPeerActuallyUser = !!entry.recipientAccount?.isUser
                 isLinkTx = !isPeerActuallyUser
             } else if (entry.userRole === EHistoryUserRole.RECIPIENT) {
@@ -208,6 +215,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                     nameForDetails =
                         entry.senderAccount?.username || entry.senderAccount?.identifier || 'Received via Link'
                     fullName = entry.senderAccount?.fullName ?? ''
+                    showFullName = entry.senderAccount?.showFullName
                     isPeerActuallyUser = !!entry.senderAccount?.isUser
                     isLinkTx = !isPeerActuallyUser
                 }
@@ -220,6 +228,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                 transactionCardType = 'claim_external'
                 nameForDetails = entry.recipientAccount?.username || entry.recipientAccount?.identifier
                 fullName = entry.recipientAccount?.username ?? ''
+                showFullName = entry.recipientAccount?.showFullName
             }
             break
         case EHistoryEntryType.REQUEST:
@@ -228,6 +237,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                 direction = 'bank_request_fulfillment'
                 nameForDetails = entry.recipientAccount?.username ?? entry.recipientAccount?.identifier
                 fullName = entry.recipientAccount?.fullName ?? ''
+                showFullName = entry.recipientAccount?.showFullName
                 isPeerActuallyUser = !!entry.recipientAccount?.isUser || !!entry.senderAccount?.isUser
             } else if (entry.userRole === EHistoryUserRole.RECIPIENT) {
                 direction = 'request_sent'
@@ -235,6 +245,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                 nameForDetails =
                     entry.senderAccount?.username || entry.senderAccount?.identifier || 'Requested via Link'
                 fullName = entry.senderAccount?.fullName ?? ''
+                showFullName = entry.senderAccount?.showFullName
                 isPeerActuallyUser = !!entry.senderAccount?.isUser
             } else {
                 if (
@@ -248,6 +259,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                         entry.recipientAccount?.identifier ||
                         `Request From ${entry.recipientAccount?.username || entry.recipientAccount?.identifier}`
                     fullName = entry.recipientAccount?.fullName ?? ''
+                    showFullName = entry.recipientAccount?.showFullName
                     isPeerActuallyUser = !!entry.recipientAccount?.isUser
                 } else {
                     direction = 'send'
@@ -315,7 +327,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             nameForDetails = 'Bank Account'
             isPeerActuallyUser = false
             break
-        case EHistoryEntryType.DEPOSIT:
+        case EHistoryEntryType.DEPOSIT: {
             direction = 'add'
             transactionCardType = 'add'
             // check if this is a test transaction (0 amount deposit during account setup), ideally this should be handled in the backend, but for now we'll handle it here cuz its a quick fix, and in promisland of post devconnect this should be handled in the backend.
@@ -327,6 +339,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             }
             isPeerActuallyUser = false
             break
+        }
         case EHistoryEntryType.MANTECA_QR_PAYMENT:
             direction = 'qr_payment'
             transactionCardType = 'pay'
@@ -492,6 +505,10 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         fullName = nameForDetails
     }
 
+    // determine which name to use for initials based on showFullName preference
+    // if showFullName is false or undefined, use username; otherwise use fullName
+    const nameForInitials = showFullName && fullName ? fullName : nameForDetails
+
     // check if this is a test transaction for adding a memo
     const isTestDeposit =
         entry.type === EHistoryEntryType.DEPOSIT && (String(entry.amount) === '0' || entry.extraData?.usdAmount === '0')
@@ -503,10 +520,11 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         userName: nameForDetails,
         amount,
         fullName,
+        showFullName,
         currency: rewardData ? undefined : entry.currency,
         currencySymbol: `${entry.userRole === EHistoryUserRole.SENDER ? '-' : '+'}$`,
         tokenSymbol: rewardData?.getSymbol(amount) ?? entry.tokenSymbol,
-        initials: getInitialsFromName(nameForDetails),
+        initials: getInitialsFromName(nameForInitials),
         status: uiStatus,
         isVerified: entry.isVerified && isPeerActuallyUser,
         // only show verification badge if the other person is a peanut user

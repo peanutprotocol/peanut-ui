@@ -226,15 +226,18 @@ export default function DirectSendQr({
                 if (permissionStatus.state === 'granted') {
                     startScanner()
                 } else {
-                    setShowPermissionModal(true)
+                    // setShowPermissionModal(true)
+                    handleCameraPermission()
                 }
             } catch (err) {
                 console.error('Could not query permissions, showing custom prompt.', err)
-                setShowPermissionModal(true)
+                // setShowPermissionModal(true)
+                handleCameraPermission()
             }
         } else {
             // fallback for browsers that do not support the Permissions API
-            setShowPermissionModal(true)
+            // setShowPermissionModal(true)
+            handleCameraPermission()
         }
     }
 
