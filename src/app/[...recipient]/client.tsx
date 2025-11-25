@@ -640,6 +640,8 @@ function getErrorProps({
 }): ValidationErrorViewProps {
     const username = recipient[0] || 'unknown'
 
+    console.log(error, 'error')
+
     switch (error.message) {
         case EParseUrlError.INVALID_RECIPIENT:
             return {

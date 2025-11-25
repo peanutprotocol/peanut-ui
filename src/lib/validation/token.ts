@@ -16,6 +16,8 @@ export async function getTokenAndChainDetails(
     const normalizeTokenSymbol = tokenSymbol.toLowerCase()
     const squidChainsAndTokens = await getSquidChainsAndTokens()
 
+    console.log(squidChainsAndTokens, 'squidChainsAndTokens')
+
     if (chain) {
         //TODO what about chains and tokens that are not supported by squid? we should
         //support direct token transfers for those chains
@@ -26,6 +28,8 @@ export async function getTokenAndChainDetails(
                 (token) => token.symbol.toLowerCase() === normalizeTokenSymbol
             )
         }
+
+        console.log('here')
         return {
             chain: chainDetails,
             token: tokenDetails,
@@ -34,9 +38,11 @@ export async function getTokenAndChainDetails(
 
     if (tokenSymbol) {
         const arbitrumChainDetails = squidChainsAndTokens[PEANUT_WALLET_CHAIN.id]
+        console.log(arbitrumChainDetails, 'arbitrumChainDetails')
         const tokenDetails = arbitrumChainDetails.tokens.find(
             (token) => token.symbol.toLowerCase() === normalizeTokenSymbol
         )
+        console.log('here 2')
         return {
             chain: null,
             token: tokenDetails,

@@ -123,6 +123,11 @@ export async function parsePaymentURL(
     let tokenDetails: interfaces.ISquidToken | undefined = undefined
     if (segments.length > 1) {
         const { amount, token } = parseAmountAndToken(segments[1])
+
+        console.log(amount, 'amount')
+        console.log(token, 'token')
+        console.log(chainDetails, 'chainDetails')
+        console.log(isPeanutRecipient, 'isPeanutRecipient')
         if (amount) {
             try {
                 parsedAmount = validateAmount(amount)
@@ -137,6 +142,8 @@ export async function parsePaymentURL(
             }
             const tokenAndChainData = await getTokenAndChainDetails(token, chainId)
             tokenDetails = tokenAndChainData?.token
+
+            console.log(tokenDetails, 'tokenDetails')
 
             if (!tokenDetails) {
                 return { parsedUrl: null, error: { message: EParseUrlError.INVALID_TOKEN, recipient } }
