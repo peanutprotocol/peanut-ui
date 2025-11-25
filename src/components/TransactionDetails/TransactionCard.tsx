@@ -21,8 +21,8 @@ import { isAddress } from 'viem'
 import { EHistoryEntryType } from '@/utils/history.utils'
 import { PerkIcon } from './PerkIcon'
 import { useHaptic } from 'use-haptic'
-import { PEANUTMAN_LOGO } from '@/assets/peanut'
 import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
+import { PEANUTMAN_LOGO } from '@/assets/peanut'
 import InvitesIcon from '../Home/InvitesIcon'
 
 // Lazy load transaction details drawer (~40KB) to reduce initial bundle size
@@ -88,7 +88,9 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
 
     const isLinkTx = transaction.extraDataForDrawer?.isLinkTransaction ?? false
     const isPerkReward = transaction.extraDataForDrawer?.originalType === EHistoryEntryType.PERK_REWARD
-    const userNameForAvatar = transaction.fullName || transaction.userName
+    // respect user's showFullName preference: use fullName only if showFullName is true, otherwise use username
+    const userNameForAvatar =
+        transaction.showFullName && transaction.fullName ? transaction.fullName : transaction.userName
     const avatarUrl = getAvatarUrl(transaction)
     // check if this is a test transaction (setup confirmation)
     const isTestTransaction = name === 'Enjoy Peanut!'

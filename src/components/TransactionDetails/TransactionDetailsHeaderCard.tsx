@@ -47,6 +47,8 @@ interface TransactionDetailsHeaderCardProps {
     isRequestPotTransaction?: boolean
     isTransactionClosed: boolean
     convertedAmount?: string
+    showFullName?: boolean
+    fullName?: string
 }
 
 const getTitle = (
@@ -197,10 +199,15 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     isRequestPotTransaction,
     isTransactionClosed,
     convertedAmount,
+    showFullName,
+    fullName,
 }) => {
     const router = useRouter()
     const typeForAvatar =
         transactionType ?? (direction === 'add' ? 'add' : direction === 'withdraw' ? 'withdraw' : 'send')
+
+    // respect user's showFullName preference: use fullName only if showFullName is true, otherwise use username
+    const nameForAvatar = showFullName && fullName ? fullName : userName
 
     // check if this is a test transaction (setup confirmation)
     const isTestTransaction = userName === 'Enjoy Peanut!'
@@ -241,7 +248,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                         ) : (
                             <TransactionAvatarBadge
                                 initials={initials}
-                                userName={userName}
+                                userName={nameForAvatar}
                                 isLinkTransaction={isLinkTransaction}
                                 transactionType={typeForAvatar}
                                 context="header"

@@ -548,7 +548,7 @@ export const TransactionDetailsReceipt = ({
                 direction={transaction.direction}
                 userName={transaction.userName}
                 amountDisplay={amountDisplay}
-                initials={getInitialsFromName(transaction.userName)}
+                initials={transaction.initials}
                 status={transaction.status}
                 isVerified={transaction.isVerified}
                 isLinkTransaction={transaction.extraDataForDrawer?.isLinkTransaction}
@@ -562,6 +562,8 @@ export const TransactionDetailsReceipt = ({
                 isRequestPotTransaction={transaction.isRequestPotLink}
                 isTransactionClosed={transaction.status === 'closed'}
                 convertedAmount={convertedAmount ?? undefined}
+                showFullName={transaction.showFullName}
+                fullName={transaction.fullName}
             />
 
             {/* Perk eligibility banner */}

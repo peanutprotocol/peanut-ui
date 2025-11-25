@@ -165,7 +165,13 @@ Account Holder Name: ${onrampData?.depositInstructions?.accountHolderName}
             `
         }
 
-        // only include Bank Address for non-Mexico countries since Mexico doesn't return IBAN/BIC or equivalent
+        // for mexico, include clabe
+        if (isMexico) {
+            bankDetails += `
+CLABE: ${onrampData?.depositInstructions?.clabe || 'Loading...'}`
+        }
+
+        // only include bank address and account details for non-mexico countries
         if (!isMexico) {
             bankDetails += `
 Bank Address: ${onrampData?.depositInstructions?.bankAddress || 'Loading...'}`
@@ -291,7 +297,14 @@ Please use these details to complete your bank transfer.`
                         />
                     )}
 
-                    {currentCountryDetails?.id !== 'MX' && (
+                    {currentCountryDetails?.id === 'MX' ? (
+                        <PaymentInfoRow
+                            label="CLABE"
+                            value={onrampData?.depositInstructions?.clabe || 'N/A'}
+                            allowCopy={!!onrampData?.depositInstructions?.clabe}
+                            hideBottomBorder
+                        />
+                    ) : (
                         <PaymentInfoRow
                             label={onrampData?.depositInstructions?.bankAccountNumber ? 'Account Number' : 'IBAN'}
                             value={
