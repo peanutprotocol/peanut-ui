@@ -7,16 +7,18 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { checkPasskeySupport, withWebAuthnRetry } from '@/utils'
 import { PasskeySetupHelpModal } from './PasskeySetupHelpModal'
+import ErrorAlert from '@/components/Global/ErrorAlert'
 import * as Sentry from '@sentry/nextjs'
 
 const SetupPasskey = () => {
     const { username } = useSetupStore()
     const { isLoading, handleNext } = useSetupFlow()
-    const { handleRegister, address } = useZeroDev()
+    const { handleRegister, address, isRegistering } = useZeroDev()
     const { deviceType } = useDeviceType()
     const [errorName, setErrorName] = useState<string | null>(null)
     const [showErrorModal, setShowErrorModal] = useState(false)
     const [preflightWarning, setPreflightWarning] = useState<string | null>(null)
+    const [inlineError, setInlineError] = useState<string | null>(null)
 
     // preflight check for common passkey issues
     useEffect(() => {
@@ -32,6 +34,9 @@ const SetupPasskey = () => {
 
     // handle passkey registration with retry logic
     const handlePasskeySetup = async () => {
+        // clear any previous inline errors
+        setInlineError(null)
+
         try {
             await withWebAuthnRetry(() => handleRegister(username), 'passkey-registration')
             // success - useEffect below will handle navigation
@@ -39,8 +44,15 @@ const SetupPasskey = () => {
             const err = error as Error
             console.error('Passkey registration failed:', err)
 
-            // show help modal for retriable errors
-            if (['NotReadableError', 'NotAllowedError', 'InvalidStateError', 'NotSupportedError'].includes(err.name)) {
+            // notallowederror is typically user cancellation - show inline error
+            // note: withWebAuthnRetry doesn't retry this error, so if we see it, user likely cancelled
+            if (err.name === 'NotAllowedError') {
+                setInlineError('Passkey setup was cancelled. Please try again when ready.')
+                return
+            }
+
+            // device/system issues - show detailed help modal with troubleshooting steps
+            if (['NotReadableError', 'InvalidStateError', 'NotSupportedError'].includes(err.name)) {
                 setErrorName(err.name)
                 setShowErrorModal(true)
             } else {
@@ -67,8 +79,8 @@ const SetupPasskey = () => {
             <div className="flex h-full flex-col justify-between gap-11 p-0 md:min-h-32">
                 <div className="flex h-full flex-col justify-end gap-2 text-center">
                     <Button
-                        loading={isLoading}
-                        disabled={isLoading || !!preflightWarning}
+                        loading={isRegistering || isLoading}
+                        disabled={isRegistering || isLoading || !!preflightWarning}
                         onClick={handlePasskeySetup}
                         className="text-nowrap"
                         shadowSize="4"
@@ -76,6 +88,7 @@ const SetupPasskey = () => {
                         Set it up
                     </Button>
                     {preflightWarning && <p className="text-sm font-bold text-orange-1">{preflightWarning}</p>}
+                    {inlineError && <ErrorAlert description={inlineError} />}
                 </div>
                 <div>
                     <p className="border-t border-grey-1 pt-2 text-center text-xs text-grey-1">
