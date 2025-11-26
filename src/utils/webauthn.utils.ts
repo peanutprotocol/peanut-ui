@@ -100,9 +100,22 @@ export async function withWebAuthnRetry<T>(
  * Sources:
  * - W3C WebAuthn spec error definitions: https://www.w3.org/TR/webauthn-3/#sctn-op-make-cred
  * - MDN WebAuthn errors: https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API
+ *
+ * NotAllowedError can occur even with screen lock enabled due to:
+ * 1. User explicitly cancelled the passkey prompt
+ * 2. Browser timeout (user didn't respond within ~60s)
+ * 3. Private/Incognito mode restrictions (some browsers)
+ * 4. iCloud Keychain disabled on iOS (even with Face ID enabled)
+ * 5. Credential manager disabled in browser settings
+ * 6. Cross-origin iframe context issues
+ * 7. Invalid RP ID (domain mismatch)
+ * 8. Browser treating rapid attempts as spam/duplicate
+ * 9. Platform authenticator locked or unavailable (despite screen lock)
+ * 10. Browser extension interference (password managers, etc.)
  */
 const WEBAUTHN_ERROR_MESSAGES: Record<string, string> = {
-    NotAllowedError: 'Registration cancelled. Please try again.',
+    NotAllowedError:
+        'Passkey setup was blocked. Make sure your device is up to date and has the latest security updates.',
     NotReadableError: 'Credential manager is busy. Please try again.',
     UnknownError: 'Unable to create passkey. Please try again.',
     InvalidStateError: 'A passkey already exists for this device.',
@@ -120,19 +133,34 @@ const WEBAUTHN_ERROR_MESSAGES: Record<string, string> = {
  * - Android NotReadableError: https://github.com/w3c/webauthn/issues/1879
  * - Community discussions: Stack Overflow, GitHub issues from major implementations
  *
+ * ANDROID SECURITY PATCHES ISSUE:
+ * - Budget Android devices (Redmi, Realme, etc.) often stop receiving security updates after 1-2 years
+ * - Google Play Services (which handles WebAuthn) requires recent security patches for full passkey support
+ * - Devices with security patches >6 months old may have outdated Play Services with WebAuthn bugs
+ * - This is especially common on devices <$200 where OEMs abandon update support quickly
+ * - User will see NotAllowedError even with screen lock enabled if Play Services is outdated
+ *
  * RISK: If Android/iOS change their credential manager behavior, these may become outdated
  */
 const PLATFORM_SPECIFIC_HELP = {
     android: {
-        NotReadableError: `If this persists, try:
+        NotReadableError: `Try these fixes:
 • Restart your device
 • Update Google Play Services
-• Ensure screen lock is enabled`,
+• Enable screen lock in Settings`,
+        NotAllowedError: `Try these fixes:
+• Enable screen lock (Settings > Security)
+• Update Google Play Services and Chrome
+• Check for system updates
+• Disable third-party password managers temporarily
+
+Note: Your device may need recent security updates for passkeys to work.`,
     },
     ios: {
-        NotAllowedError: `If this persists, try:
+        NotAllowedError: `Try these fixes:
 • Enable Face ID/Touch ID in Settings
-• Check iCloud Keychain is enabled`,
+• Enable iCloud Keychain in Settings
+• Use Safari browser`,
     },
 }
 
