@@ -16,6 +16,7 @@ export function useNotifications() {
 
     // ui state for permission modal (shown once on login)
     const [showPermissionModal, setShowPermissionModal] = useState(false)
+    const [isRequestingPermission, setIsRequestingPermission] = useState(false)
 
     // track notification permission state
     const [permissionState, setPermissionState] = useState<'default' | 'granted' | 'denied'>(() => {
@@ -235,6 +236,8 @@ export function useNotifications() {
     const requestPermission = useCallback(async (): Promise<'granted' | 'denied' | 'default'> => {
         if (typeof window === 'undefined' || !oneSignalInitialized) return 'default'
 
+        setIsRequestingPermission(true)
+
         try {
             // always use the native browser permission dialog, avoid onesignal slidedown ui
             // optIn may trigger the native prompt on supported browsers, but we explicitly request permission
@@ -243,6 +246,8 @@ export function useNotifications() {
             }
         } catch (error) {
             console.warn('Error requesting permission:', error)
+        } finally {
+            setIsRequestingPermission(false)
         }
 
         // update permission state after request
@@ -328,6 +333,7 @@ export function useNotifications() {
         permissionState,
         isPermissionDenied: permissionState === 'denied',
         isPermissionGranted: permissionState === 'granted',
+        isRequestingPermission,
         refreshPermissionState,
     }
 }
