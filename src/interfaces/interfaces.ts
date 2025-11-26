@@ -249,6 +249,7 @@ export interface User {
     bridgeKycApprovedAt?: string
     bridgeKycRejectedAt?: string
     kycVerifications?: IUserKycVerification[] // currently only used for Manteca, can be extended to other providers in the future, bridge is not migrated as it might affect existing users
+    bridgeKycRejectionReasonString?: string | null
     tosStatus?: string
     tosAcceptedAt?: string
     bridgeCustomerId: string | null

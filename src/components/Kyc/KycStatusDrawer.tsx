@@ -39,8 +39,6 @@ interface KycStatusDrawerProps {
 
 // this component determines which kyc state to show inside the drawer and fetches rejection reasons if the kyc has failed.
 export const KycStatusDrawer = ({ isOpen, onClose, verification, bridgeKycStatus }: KycStatusDrawerProps) => {
-    const [rejectionReason, setRejectionReason] = useState<string | null>(null)
-    const [isLoading, setIsLoading] = useState(false)
     const { user } = useUserStore()
 
     const status = verification ? verification.status : bridgeKycStatus
@@ -80,42 +78,7 @@ export const KycStatusDrawer = ({ isOpen, onClose, verification, bridgeKycStatus
 
     const isLoadingKyc = isBridgeLoading || isMantecaLoading
 
-    useEffect(() => {
-        // if the drawer is open and the kyc has failed, fetch the reason
-        if (isOpen && statusCategory === 'failed') {
-            const fetchRejectionReason = async () => {
-                setIsLoading(true)
-                setRejectionReason(null)
-                try {
-                    // the getKycDetails endpoint returns rejection reasons if they exist
-                    const response = await getKycDetails()
-                    if (response.data?.reasons && response.data.reasons.length > 0) {
-                        setRejectionReason(response.data.reasons[0].reason)
-                    } else if (response.error) {
-                        setRejectionReason(response.error)
-                    } else {
-                        setRejectionReason('No specific reason provided.')
-                    }
-                } catch (error: any) {
-                    // the api service throws an error with a message on failure
-                    setRejectionReason(error.message || 'Could not retrieve rejection reason.')
-                } finally {
-                    setIsLoading(false)
-                }
-            }
-            fetchRejectionReason()
-        }
-    }, [isOpen, statusCategory])
-
     const renderContent = () => {
-        if (isLoading) {
-            return (
-                <div className="flex h-48 items-center justify-center">
-                    <PeanutLoading />
-                </div>
-            )
-        }
-
         switch (statusCategory) {
             case 'processing':
                 return (
@@ -136,7 +99,7 @@ export const KycStatusDrawer = ({ isOpen, onClose, verification, bridgeKycStatus
             case 'failed':
                 return (
                     <KycFailed
-                        reason={rejectionReason}
+                        reason={user?.user?.bridgeKycRejectionReasonString ?? ''}
                         bridgeKycRejectedAt={verification?.updatedAt ?? user?.user?.bridgeKycRejectedAt}
                         countryCode={countryCode ?? undefined}
                         isBridge={isBridgeKyc}
