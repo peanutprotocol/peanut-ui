@@ -1,24 +1,59 @@
 import { Button } from '@/components/0_Bruddle'
-import { setupActions } from '@/redux/slices/setup-slice'
-import { useAppDispatch, useSetupStore } from '@/redux/hooks'
+import { useSetupStore } from '@/redux/hooks'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
-import { useAuth } from '@/context/authContext'
 import { useDeviceType } from '@/hooks/useGetDeviceType'
 import { useEffect, useState } from 'react'
-import * as Sentry from '@sentry/nextjs'
-import { WebAuthnError } from '@simplewebauthn/browser'
 import Link from 'next/link'
-import { clearAuthState, withWebAuthnRetry, getWebAuthnErrorMessage } from '@/utils'
+import { checkPasskeySupport, withWebAuthnRetry } from '@/utils'
+import { PasskeySetupHelpModal } from './PasskeySetupHelpModal'
+import * as Sentry from '@sentry/nextjs'
 
 const SetupPasskey = () => {
-    const dispatch = useAppDispatch()
     const { username } = useSetupStore()
     const { isLoading, handleNext } = useSetupFlow()
     const { handleRegister, address } = useZeroDev()
-    const { user } = useAuth()
     const { deviceType } = useDeviceType()
-    const [error, setError] = useState<string | null>(null)
+    const [errorName, setErrorName] = useState<string | null>(null)
+    const [showErrorModal, setShowErrorModal] = useState(false)
+    const [preflightWarning, setPreflightWarning] = useState<string | null>(null)
+
+    // preflight check for common passkey issues
+    useEffect(() => {
+        const runPreflightCheck = async () => {
+            const result = await checkPasskeySupport()
+            if (!result.isSupported && result.warning) {
+                setPreflightWarning(result.warning)
+            }
+        }
+
+        runPreflightCheck()
+    }, [])
+
+    // handle passkey registration with retry logic
+    const handlePasskeySetup = async () => {
+        try {
+            await withWebAuthnRetry(() => handleRegister(username), 'passkey-registration')
+            // success - useEffect below will handle navigation
+        } catch (error) {
+            const err = error as Error
+            console.error('Passkey registration failed:', err)
+
+            // show help modal for retriable errors
+            if (['NotReadableError', 'NotAllowedError', 'InvalidStateError', 'NotSupportedError'].includes(err.name)) {
+                setErrorName(err.name)
+                setShowErrorModal(true)
+            } else {
+                // unexpected error - show generic message and log to sentry
+                Sentry.captureException(error, {
+                    tags: { error_type: 'passkey_setup_error' },
+                    extra: { errorName: err.name, deviceType },
+                })
+                setErrorName('UnknownError')
+                setShowErrorModal(true)
+            }
+        }
+    }
 
     // once passkey is registered successfully, move to test transaction step
     useEffect(() => {
@@ -33,38 +68,14 @@ const SetupPasskey = () => {
                 <div className="flex h-full flex-col justify-end gap-2 text-center">
                     <Button
                         loading={isLoading}
-                        disabled={isLoading}
-                        onClick={async () => {
-                            dispatch(setupActions.setLoading(true))
-                            try {
-                                // use retry wrapper for transient errors (NotReadableError, etc.)
-                                await withWebAuthnRetry(() => handleRegister(username), 'passkey-registration')
-                            } catch (e) {
-                                if (e instanceof WebAuthnError) {
-                                    // webauthn errors: no state was saved yet (state only saved after success)
-                                    // user can safely retry without losing username/setup progress
-                                    setError(getWebAuthnErrorMessage(e, deviceType))
-                                } else {
-                                    // network/backend errors: might have partial state, clear it
-                                    clearAuthState(user?.user.userId)
-                                    const error = e as Error
-                                    setError(
-                                        error.name
-                                            ? getWebAuthnErrorMessage(error, deviceType)
-                                            : 'Error registering passkey. Please try again.'
-                                    )
-                                }
-                                console.error('Error registering passkey:', e)
-                                Sentry.captureException(e)
-                                dispatch(setupActions.setLoading(false))
-                            }
-                        }}
+                        disabled={isLoading || !!preflightWarning}
+                        onClick={handlePasskeySetup}
                         className="text-nowrap"
                         shadowSize="4"
                     >
                         Set it up
                     </Button>
-                    {error && <p className="text-sm font-bold text-error">{error}</p>}
+                    {preflightWarning && <p className="text-sm font-bold text-orange-1">{preflightWarning}</p>}
                 </div>
                 <div>
                     <p className="border-t border-grey-1 pt-2 text-center text-xs text-grey-1">
@@ -79,6 +90,20 @@ const SetupPasskey = () => {
                     </p>
                 </div>
             </div>
+
+            {/* help modal for passkey setup issues */}
+            {errorName && (
+                <PasskeySetupHelpModal
+                    visible={showErrorModal}
+                    onClose={() => setShowErrorModal(false)}
+                    onRetry={() => {
+                        setShowErrorModal(false)
+                        handlePasskeySetup()
+                    }}
+                    errorName={errorName}
+                    platform={deviceType}
+                />
+            )}
         </div>
     )
 }
