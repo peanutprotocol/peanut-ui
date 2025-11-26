@@ -5,7 +5,7 @@ import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useDeviceType } from '@/hooks/useGetDeviceType'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { checkPasskeySupport, withWebAuthnRetry } from '@/utils'
+import { capturePasskeyDebugInfo, checkPasskeySupport, WebAuthnErrorName, withWebAuthnRetry } from '@/utils'
 import { PasskeySetupHelpModal } from './PasskeySetupHelpModal'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import * as Sentry from '@sentry/nextjs'
@@ -36,6 +36,7 @@ const SetupPasskey = () => {
     const handlePasskeySetup = async () => {
         // clear any previous inline errors
         setInlineError(null)
+        capturePasskeyDebugInfo('passkey-registration-started')
 
         try {
             await withWebAuthnRetry(() => handleRegister(username), 'passkey-registration')
@@ -46,15 +47,22 @@ const SetupPasskey = () => {
 
             // notallowederror is typically user cancellation - show inline error
             // note: withWebAuthnRetry doesn't retry this error, so if we see it, user likely cancelled
-            if (err.name === 'NotAllowedError') {
+            if (err.name === WebAuthnErrorName.NotAllowed) {
                 setInlineError('Passkey setup was cancelled. Please try again when ready.')
                 return
             }
 
             // device/system issues - show detailed help modal with troubleshooting steps
-            if (['NotReadableError', 'InvalidStateError', 'NotSupportedError'].includes(err.name)) {
+            if (
+                [
+                    WebAuthnErrorName.NotReadable,
+                    WebAuthnErrorName.InvalidState,
+                    WebAuthnErrorName.NotSupported,
+                ].includes(err.name as WebAuthnErrorName)
+            ) {
                 setErrorName(err.name)
                 setShowErrorModal(true)
+                capturePasskeyDebugInfo('passkey-registration-failed-device-issue')
             } else {
                 // unexpected error - show generic message and log to sentry
                 Sentry.captureException(error, {
@@ -63,6 +71,7 @@ const SetupPasskey = () => {
                 })
                 setErrorName('UnknownError')
                 setShowErrorModal(true)
+                capturePasskeyDebugInfo('passkey-registration-failed-unexpected-error')
             }
         }
     }

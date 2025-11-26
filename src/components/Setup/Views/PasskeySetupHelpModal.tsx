@@ -3,6 +3,7 @@
 import { Button } from '@/components/0_Bruddle'
 import ActionModal from '@/components/Global/ActionModal'
 import InfoCard from '@/components/Global/InfoCard'
+import { PASSKEY_TROUBLESHOOTING_STEPS, PASSKEY_WARNINGS, WebAuthnErrorName } from '@/utils'
 
 interface PasskeySetupHelpModalProps {
     visible: boolean
@@ -12,66 +13,43 @@ interface PasskeySetupHelpModalProps {
     platform: 'android' | 'ios' | 'web'
 }
 
-// platform-specific troubleshooting steps
-const ANDROID_STEPS = {
-    NotReadableError: [
-        'Restart your device',
-        'Update Google Play Services',
-        'Enable screen lock in Settings > Security',
-    ],
-    NotAllowedError: [
-        'Enable screen lock (Settings > Security)',
-        'Update Google Play Services and Chrome',
-        'Check for system security updates',
-        'Disable third-party password managers temporarily',
-    ],
-}
-
-const IOS_STEPS = {
-    NotAllowedError: [
-        'Enable Face ID/Touch ID in Settings',
-        'Enable iCloud Keychain in Settings',
-        'Use Safari browser',
-    ],
-}
-
 const getErrorTitle = (errorName: string): string => {
-    if (errorName === 'NotReadableError') return 'Credential Manager Busy'
-    if (errorName === 'NotAllowedError') return 'Passkey Setup Blocked'
-    if (errorName === 'InvalidStateError') return 'Passkey Already Exists'
-    if (errorName === 'NotSupportedError') return 'Passkeys Not Supported'
+    if (errorName === WebAuthnErrorName.NotReadable) return 'Credential Manager Busy'
+    if (errorName === WebAuthnErrorName.NotAllowed) return 'Passkey Setup Blocked'
+    if (errorName === WebAuthnErrorName.InvalidState) return 'Passkey Already Exists'
+    if (errorName === WebAuthnErrorName.NotSupported) return 'Passkeys Not Supported'
     return 'Setup Issue'
 }
 
 const getErrorDescription = (errorName: string, platform: 'android' | 'ios' | 'web'): string => {
-    if (errorName === 'NotReadableError') {
+    if (errorName === WebAuthnErrorName.NotReadable) {
         return "Your device's credential manager is temporarily unavailable. This usually happens when the system is busy or needs to be restarted."
     }
-    if (errorName === 'NotAllowedError') {
+    if (errorName === WebAuthnErrorName.NotAllowed) {
         if (platform === 'android') {
             return 'Your device blocked passkey creation. This typically means security features need to be configured or updated.'
         }
         return 'Passkey creation was blocked. Make sure security features are enabled on your device.'
     }
-    if (errorName === 'InvalidStateError') {
+    if (errorName === WebAuthnErrorName.InvalidState) {
         return 'A passkey already exists for this account on your device.'
     }
     return 'An error occurred during passkey setup.'
 }
 
-const getTroubleshootingSteps = (errorName: string, platform: 'android' | 'ios' | 'web'): string[] => {
-    if (platform === 'android' && errorName in ANDROID_STEPS) {
-        return ANDROID_STEPS[errorName as keyof typeof ANDROID_STEPS]
+const getTroubleshootingSteps = (errorName: string, platform: 'android' | 'ios' | 'web'): readonly string[] => {
+    if (platform === 'android' && errorName in PASSKEY_TROUBLESHOOTING_STEPS.android) {
+        return PASSKEY_TROUBLESHOOTING_STEPS.android[errorName as keyof typeof PASSKEY_TROUBLESHOOTING_STEPS.android]
     }
-    if (platform === 'ios' && errorName in IOS_STEPS) {
-        return IOS_STEPS[errorName as keyof typeof IOS_STEPS]
+    if (platform === 'ios' && errorName in PASSKEY_TROUBLESHOOTING_STEPS.ios) {
+        return PASSKEY_TROUBLESHOOTING_STEPS.ios[errorName as keyof typeof PASSKEY_TROUBLESHOOTING_STEPS.ios]
     }
-    return ['Check your device security settings', 'Restart your device', 'Update your browser and OS']
+    return PASSKEY_TROUBLESHOOTING_STEPS.web.default
 }
 
 const getWarningMessage = (errorName: string, platform: 'android' | 'ios' | 'web'): string | null => {
-    if (errorName === 'NotAllowedError' && platform === 'android') {
-        return 'Budget Android devices may require recent security updates for passkeys to work properly.'
+    if (platform === 'android' && errorName in PASSKEY_WARNINGS.android) {
+        return PASSKEY_WARNINGS.android[errorName as keyof typeof PASSKEY_WARNINGS.android]
     }
     return null
 }
@@ -110,7 +88,7 @@ export const PasskeySetupHelpModal = ({
                         variant="info"
                         itemIcon="check"
                         itemIconClassName="text-secondary-7"
-                        items={troubleshootingSteps}
+                        items={[...troubleshootingSteps]}
                     />
 
                     {warning && (

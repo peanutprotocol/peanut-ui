@@ -18,6 +18,13 @@ const WEBAUTHN_RETRY_CONFIG = {
     retriableErrors: ['NotReadableError'], // ONLY NotReadableError (transient Android issue)
 }
 
+export enum WebAuthnErrorName {
+    NotAllowed = 'NotAllowedError',
+    NotReadable = 'NotReadableError',
+    InvalidState = 'InvalidStateError',
+    NotSupported = 'NotSupportedError',
+}
+
 /**
  * Delays execution for specified milliseconds
  */
@@ -126,7 +133,7 @@ const WEBAUTHN_ERROR_MESSAGES: Record<string, string> = {
 }
 
 /**
- * Platform-specific help text for common issues
+ * Platform-specific troubleshooting steps for common issues
  *
  * IMPORTANT: These are suggestions based on community reports, not official fixes
  * Sources:
@@ -142,26 +149,47 @@ const WEBAUTHN_ERROR_MESSAGES: Record<string, string> = {
  *
  * RISK: If Android/iOS change their credential manager behavior, these may become outdated
  */
-const PLATFORM_SPECIFIC_HELP = {
+export const PASSKEY_TROUBLESHOOTING_STEPS = {
     android: {
-        NotReadableError: `Try these fixes:
-• Restart your device
-• Update Google Play Services
-• Enable screen lock in Settings`,
-        NotAllowedError: `Try these fixes:
-• Enable screen lock (Settings > Security)
-• Update Google Play Services and Chrome
-• Check for system updates
-• Disable third-party password managers temporarily
-
-Note: Your device may need recent security updates for passkeys to work.`,
+        NotReadableError: [
+            'Restart your device',
+            'Update Google Play Services',
+            'Enable screen lock in Settings > Security',
+        ],
+        NotAllowedError: [
+            'Enable screen lock (Settings > Security)',
+            'Update Google Play Services and Chrome',
+            'Check for system security updates',
+            'Disable third-party password managers temporarily',
+        ],
     },
     ios: {
-        NotAllowedError: `Try these fixes:
-• Enable Face ID/Touch ID in Settings
-• Enable iCloud Keychain in Settings
-• Use Safari browser`,
+        NotAllowedError: [
+            'Enable Face ID/Touch ID in Settings',
+            'Enable iCloud Keychain in Settings',
+            'Use Safari browser',
+        ],
     },
+    web: {
+        // generic fallback for desktop/unsupported platforms
+        default: ['Check your device security settings', 'Restart your device', 'Update your browser and OS'],
+    },
+} as const
+
+/**
+ * Platform-specific warnings for common issues
+ */
+export const PASSKEY_WARNINGS = {
+    android: {
+        NotAllowedError: 'Lower end Android devices may require recent security updates for passkeys to work properly.',
+    },
+} as const
+
+/**
+ * Helper to format steps as text (for inline error messages)
+ */
+const formatStepsAsText = (steps: readonly string[]): string => {
+    return `Try these fixes:\n${steps.map((step) => `• ${step}`).join('\n')}`
 }
 
 /**
@@ -177,7 +205,7 @@ Note: Your device may need recent security updates for passkeys to work.`,
 export function getWebAuthnErrorMessage(error: Error, deviceType?: 'ios' | 'android' | 'web'): string {
     const baseMessage = WEBAUTHN_ERROR_MESSAGES[error.name] || error.message
 
-    // If no deviceType provided, do basic detection (fallback)
+    // if no deviceType provided, do basic detection (fallback)
     let platform: 'android' | 'ios' | 'web' = 'web'
     if (deviceType) {
         platform = deviceType
@@ -187,13 +215,25 @@ export function getWebAuthnErrorMessage(error: Error, deviceType?: 'ios' | 'andr
         else if (/iPhone|iPad|iPod/i.test(ua)) platform = 'ios'
     }
 
-    // Add platform-specific help for known issues
-    if (platform === 'android' && error.name in PLATFORM_SPECIFIC_HELP.android) {
-        return `${baseMessage}\n\n${PLATFORM_SPECIFIC_HELP.android[error.name as keyof typeof PLATFORM_SPECIFIC_HELP.android]}`
-    }
+    // add platform-specific help for known issues
+    const steps =
+        platform === 'android' && error.name in PASSKEY_TROUBLESHOOTING_STEPS.android
+            ? PASSKEY_TROUBLESHOOTING_STEPS.android[error.name as keyof typeof PASSKEY_TROUBLESHOOTING_STEPS.android]
+            : platform === 'ios' && error.name in PASSKEY_TROUBLESHOOTING_STEPS.ios
+              ? PASSKEY_TROUBLESHOOTING_STEPS.ios[error.name as keyof typeof PASSKEY_TROUBLESHOOTING_STEPS.ios]
+              : null
 
-    if (platform === 'ios' && error.name in PLATFORM_SPECIFIC_HELP.ios) {
-        return `${baseMessage}\n\n${PLATFORM_SPECIFIC_HELP.ios[error.name as keyof typeof PLATFORM_SPECIFIC_HELP.ios]}`
+    if (steps) {
+        const formattedSteps = formatStepsAsText(steps)
+        // add warning if exists
+        const warning =
+            platform === 'android' &&
+            error.name in PASSKEY_WARNINGS.android &&
+            PASSKEY_WARNINGS.android[error.name as keyof typeof PASSKEY_WARNINGS.android]
+
+        return warning
+            ? `${baseMessage}\n\n${formattedSteps}\n\nNote: ${warning}`
+            : `${baseMessage}\n\n${formattedSteps}`
     }
 
     return baseMessage
