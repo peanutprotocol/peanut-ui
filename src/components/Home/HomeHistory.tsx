@@ -109,8 +109,6 @@ const HomeHistory = ({ username }: { username?: string }) => {
                     const badges = user?.user?.badges ?? []
                     badges.forEach((b) => {
                         if (!b.earnedAt) return
-                        // dev-note: dev-connect badge to be shown in ui after post devconnect marketing campaign
-                        if (b.code.toLowerCase() === 'devconnect_ba_2025') return
                         entries.push({
                             isBadge: true,
                             uuid: b.id,
