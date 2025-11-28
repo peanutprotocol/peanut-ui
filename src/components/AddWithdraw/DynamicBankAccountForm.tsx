@@ -494,11 +494,6 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                 })}
                             </>
                         )}
-
-                        <div className="flex items-center gap-2 text-gray-1">
-                            <Icon name="info" className="size-4" />
-                            <p className="text-sm">You can only withdraw to accounts under your name.</p>
-                        </div>
                         <Button
                             type="submit"
                             variant="purple"
