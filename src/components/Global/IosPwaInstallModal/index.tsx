@@ -2,7 +2,6 @@ import React from 'react'
 
 import ActionModal from '../ActionModal'
 import { BrowserType, useGetBrowserType } from '@/hooks/useGetBrowserType'
-import { useModalContext } from '@chakra-ui/react'
 import { useModalsContext } from '@/context/ModalsContext'
 
 const IosPwaInstallModal = () => {
@@ -35,9 +34,16 @@ const IosPwaInstallModal = () => {
             description="Follow a quick guide to add the app to your home screen, no download needed."
             icon="mobile-install"
             content={
-                <div>
+                <div className="flex w-full flex-col">
                     {!isLoading && (
-                        <video className="h-96 w-96 object-contain" autoPlay loop muted playsInline key={videoSource}>
+                        <video
+                            className="max-h-[60vh] w-full object-contain"
+                            autoPlay
+                            loop
+                            muted
+                            playsInline
+                            key={videoSource}
+                        >
                             <source src={videoSource} type="video/quicktime" />
                             Your browser does not support the video tag.
                         </video>
