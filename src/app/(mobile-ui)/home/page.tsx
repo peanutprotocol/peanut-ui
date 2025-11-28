@@ -44,6 +44,7 @@ const SetupNotificationsModal = lazy(() => import('@/components/Notifications/Se
 const NoMoreJailModal = lazy(() => import('@/components/Global/NoMoreJailModal'))
 const EarlyUserModal = lazy(() => import('@/components/Global/EarlyUserModal'))
 const KycCompletedModal = lazy(() => import('@/components/Home/KycCompletedModal'))
+const IosPwaInstallModal = lazy(() => import('@/components/Global/IosPwaInstallModal'))
 
 const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
 const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_EXPIRY ?? '1814400') // 21 days in seconds
@@ -305,6 +306,12 @@ export default function Home() {
                             })
                         }}
                     />
+                </Suspense>
+            </LazyLoadErrorBoundary>
+
+            <LazyLoadErrorBoundary>
+                <Suspense fallback={null}>
+                    <IosPwaInstallModal />
                 </Suspense>
             </LazyLoadErrorBoundary>
 

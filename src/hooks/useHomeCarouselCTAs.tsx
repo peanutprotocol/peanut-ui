@@ -11,6 +11,9 @@ import { useQrCodeContext } from '@/context/QrCodeContext'
 import { getUserPreferences, updateUserPreferences } from '@/utils'
 import { DEVCONNECT_LOGO } from '@/assets'
 import { DEVCONNECT_INTENT_EXPIRY_MS } from '@/constants'
+import { DeviceType, useDeviceType } from './useGetDeviceType'
+import { usePWAStatus } from './usePWAStatus'
+import { useModalsContext } from '@/context/ModalsContext'
 
 export type CarouselCTA = {
     id: string
@@ -34,6 +37,9 @@ export const useHomeCarouselCTAs = () => {
         useNotifications()
     const router = useRouter()
     const { isUserKycApproved, isUserBridgeKycUnderReview, isUserMantecaKycApproved } = useKycStatus()
+    const { deviceType } = useDeviceType()
+    const isPwa = usePWAStatus()
+    const { setIsIosPwaInstallModalOpen } = useModalsContext()
 
     const { setIsQRScannerOpen } = useQrCodeContext()
 
@@ -84,6 +90,20 @@ export const useHomeCarouselCTAs = () => {
 
     const generateCarouselCTAs = useCallback(() => {
         const _carouselCTAs: CarouselCTA[] = []
+
+        if (deviceType === DeviceType.IOS && !isPwa) {
+            _carouselCTAs.push({
+                id: 'ios-pwa-install',
+                title: 'Add Peanut to your home screen',
+                description: 'Follow a quick guide to add the app to your home screen, no download needed.',
+                iconContainerClassName: 'bg-secondary-1',
+                icon: 'mobile-install',
+                onClick: () => {
+                    setIsIosPwaInstallModalOpen(true)
+                },
+                iconSize: 16,
+            })
+        }
 
         // Show QR code payment prompt if user's Bridge or Manteca KYC is approved.
         if (isUserKycApproved || isUserMantecaKycApproved) {
@@ -186,6 +206,8 @@ export const useHomeCarouselCTAs = () => {
         requestPermission,
         afterPermissionAttempt,
         snoozeReminderBanner,
+        deviceType,
+        isPwa,
     ])
 
     useEffect(() => {
