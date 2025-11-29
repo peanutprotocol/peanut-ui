@@ -26,6 +26,7 @@ import { PointsAction } from '@/services/services.types'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import { useSearchParams } from 'next/navigation'
 import { parseUnits } from 'viem'
+import { useNonEurSepaRedirect } from '@/hooks/useNonEurSepaRedirect'
 
 type View = 'INITIAL' | 'SUCCESS'
 
@@ -48,6 +49,13 @@ export default function WithdrawBankPage() {
     const country = params.country as string
     const [balanceErrorMessage, setBalanceErrorMessage] = useState<string | null>(null)
     const { hasPendingTransactions } = usePendingTransactions()
+
+    // redirect to withdraw if this is a non-eur sepa country (blocked)
+    useNonEurSepaRedirect({
+        countryIdentifier: country,
+        redirectPath: '/withdraw',
+        shouldRedirect: true,
+    })
 
     // check if we came from send flow - using method param to detect (only bank goes through this page)
     const methodParam = searchParams.get('method')
