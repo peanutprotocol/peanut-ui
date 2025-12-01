@@ -99,6 +99,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
         telegramHandle?: string
     }) => {
+        console.log('[addAccount] Starting account addition', { userId, accountType })
+
         const response = await fetchWithSentry('/api/peanut/user/add-account', {
             method: 'POST',
             headers: {
@@ -115,6 +117,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         })
 
         if (!response.ok) {
+            console.error('[addAccount] Failed to add account', {
+                status: response.status,
+                statusText: response.statusText,
+            })
+
             if (response.status === 409) {
                 throw new Error('Account already exists')
             }
@@ -122,7 +129,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             throw new Error('Unexpected error adding account')
         }
 
-        fetchUser()
+        console.log('[addAccount] Account added successfully, fetching user data')
+
+        // CRITICAL FIX: Wait for user data to be fetched before continuing
+        // This ensures JWT cookie is set and user data is available before redirect
+        const { data: updatedUser } = await fetchUser()
+
+        if (!updatedUser) {
+            console.error('[addAccount] Failed to fetch user after account creation')
+            throw new Error('Failed to load user data after account creation')
+        }
+
+        console.log('[addAccount] User data fetched successfully', {
+            userId: updatedUser.user.userId,
+            accountCount: updatedUser.accounts.length,
+        })
     }
 
     const logoutUser = useCallback(async () => {
