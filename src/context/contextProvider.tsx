@@ -11,6 +11,7 @@ import { RequestFulfilmentFlowContextProvider } from './RequestFulfillmentFlowCo
 import { SupportModalProvider } from './SupportModalContext'
 import { PasskeySupportProvider } from './passkeySupportContext'
 import { QrCodeProvider } from './QrCodeContext'
+import { ModalsProvider } from './ModalsContext'
 
 export const ContextProvider = ({ children }: { children: React.ReactNode }) => {
     return (
@@ -26,7 +27,9 @@ export const ContextProvider = ({ children }: { children: React.ReactNode }) => 
                                             <OnrampFlowContextProvider>
                                                 <SupportModalProvider>
                                                     <PasskeySupportProvider>
-                                                        <QrCodeProvider>{children}</QrCodeProvider>
+                                                        <QrCodeProvider>
+                                                            <ModalsProvider>{children}</ModalsProvider>
+                                                        </QrCodeProvider>
                                                     </PasskeySupportProvider>
                                                 </SupportModalProvider>
                                             </OnrampFlowContextProvider>

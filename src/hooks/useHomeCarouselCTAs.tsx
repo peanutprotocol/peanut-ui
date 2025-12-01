@@ -11,6 +11,9 @@ import { useQrCodeContext } from '@/context/QrCodeContext'
 import { getUserPreferences, updateUserPreferences } from '@/utils'
 import { DEVCONNECT_LOGO } from '@/assets'
 import { DEVCONNECT_INTENT_EXPIRY_MS } from '@/constants'
+import { DeviceType, useDeviceType } from './useGetDeviceType'
+import { usePWAStatus } from './usePWAStatus'
+import { useModalsContext } from '@/context/ModalsContext'
 
 export type CarouselCTA = {
     id: string
@@ -30,10 +33,12 @@ export type CarouselCTA = {
 export const useHomeCarouselCTAs = () => {
     const [carouselCTAs, setCarouselCTAs] = useState<CarouselCTA[]>([])
     const { user } = useAuth()
-    const { showReminderBanner, requestPermission, snoozeReminderBanner, afterPermissionAttempt, isPermissionDenied } =
-        useNotifications()
+    const { requestPermission, afterPermissionAttempt, isPermissionDenied, isPermissionGranted } = useNotifications()
     const router = useRouter()
     const { isUserKycApproved, isUserBridgeKycUnderReview, isUserMantecaKycApproved } = useKycStatus()
+    const { deviceType } = useDeviceType()
+    const isPwa = usePWAStatus()
+    const { setIsIosPwaInstallModalOpen } = useModalsContext()
 
     const { setIsQRScannerOpen } = useQrCodeContext()
 
@@ -85,6 +90,37 @@ export const useHomeCarouselCTAs = () => {
     const generateCarouselCTAs = useCallback(() => {
         const _carouselCTAs: CarouselCTA[] = []
 
+        // always show notification cta if notifications are not granted
+        // clicking it triggers native prompt (or shows reinstall modal if denied)
+        if (!isPermissionGranted) {
+            _carouselCTAs.push({
+                id: 'notification-prompt',
+                title: 'Stay in the loop!',
+                description: 'Turn on notifications and get alerts for all your wallet activity.',
+                icon: 'bell',
+                onClick: async () => {
+                    // trigger native notification permission prompt
+                    await requestPermission()
+                    await afterPermissionAttempt()
+                },
+                isPermissionDenied, // if true, CarouselCTA shows reinstall modal instead
+            })
+        }
+
+        if (deviceType === DeviceType.IOS && !isPwa) {
+            _carouselCTAs.push({
+                id: 'ios-pwa-install',
+                title: 'Add Peanut to your home screen',
+                description: 'Follow a quick guide to add the app to your home screen, no download needed.',
+                iconContainerClassName: 'bg-secondary-1',
+                icon: 'mobile-install',
+                onClick: () => {
+                    setIsIosPwaInstallModalOpen(true)
+                },
+                iconSize: 16,
+            })
+        }
+
         // Show QR code payment prompt if user's Bridge or Manteca KYC is approved.
         if (isUserKycApproved || isUserMantecaKycApproved) {
             _carouselCTAs.push({
@@ -135,24 +171,6 @@ export const useHomeCarouselCTAs = () => {
         }
         // --------------------------------------------------------------------------------------------------
 
-        // add notification prompt as first item if it should be shown
-        if (showReminderBanner) {
-            _carouselCTAs.push({
-                id: 'notification-prompt',
-                title: 'Stay in the loop!',
-                description: 'Turn on notifications and get alerts for all your wallet activity.',
-                icon: 'bell',
-                onClick: async () => {
-                    await requestPermission()
-                    await afterPermissionAttempt()
-                },
-                onClose: () => {
-                    snoozeReminderBanner()
-                },
-                isPermissionDenied,
-            })
-        }
-
         if (!isUserKycApproved && !isUserBridgeKycUnderReview) {
             _carouselCTAs.push({
                 id: 'kyc-prompt',
@@ -178,14 +196,17 @@ export const useHomeCarouselCTAs = () => {
     }, [
         pendingDevConnectIntent,
         user?.user?.userId,
-        showReminderBanner,
+        isPermissionGranted,
         isPermissionDenied,
         isUserKycApproved,
         isUserBridgeKycUnderReview,
+        isUserMantecaKycApproved,
         router,
         requestPermission,
         afterPermissionAttempt,
-        snoozeReminderBanner,
+        setIsQRScannerOpen,
+        deviceType,
+        isPwa,
     ])
 
     useEffect(() => {
@@ -195,7 +216,7 @@ export const useHomeCarouselCTAs = () => {
         }
 
         generateCarouselCTAs()
-    }, [user, generateCarouselCTAs])
+    }, [user, generateCarouselCTAs, isPermissionGranted])
 
     return { carouselCTAs, setCarouselCTAs }
 }
