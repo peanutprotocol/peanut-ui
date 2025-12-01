@@ -33,7 +33,7 @@ interface MaintenanceConfig {
 
 const underMaintenanceConfig: MaintenanceConfig = {
     enableFullMaintenance: false, // set to true to redirect all pages to /maintenance
-    enableMaintenanceBanner: true, // set to true to show maintenance banner on all pages
+    enableMaintenanceBanner: false, // set to true to show maintenance banner on all pages
     disabledPaymentProviders: [], // set to ['MANTECA'] to disable Manteca QR payments
 }
 
