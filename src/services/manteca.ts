@@ -228,12 +228,23 @@ export const mantecaApi = {
 
         // Helper to multiply price fields
         const multiplyPriceFields = (basePrice: MantecaPrice, multiplier: MantecaPrice): MantecaPrice => {
+            const multiplyPriceValues = (base: string, mult: string, fieldName: string): string => {
+                const baseNum = parseFloat(base)
+                const multNum = parseFloat(mult)
+
+                if (!base || !mult || isNaN(baseNum) || isNaN(multNum) || baseNum === 0 || multNum === 0) {
+                    throw new Error(`Invalid price values for ${fieldName}: base=${base}, multiplier=${mult}`)
+                }
+
+                return (baseNum * multNum).toString()
+            }
+
             return {
                 ...basePrice,
-                buy: (parseFloat(basePrice.buy) * parseFloat(multiplier.buy)).toString(),
-                sell: (parseFloat(basePrice.sell) * parseFloat(multiplier.sell)).toString(),
-                effectiveBuy: (parseFloat(basePrice.effectiveBuy) * parseFloat(multiplier.effectiveBuy)).toString(),
-                effectiveSell: (parseFloat(basePrice.effectiveSell) * parseFloat(multiplier.effectiveSell)).toString(),
+                buy: multiplyPriceValues(basePrice.buy, multiplier.buy, 'buy'),
+                sell: multiplyPriceValues(basePrice.sell, multiplier.sell, 'sell'),
+                effectiveBuy: multiplyPriceValues(basePrice.effectiveBuy, multiplier.effectiveBuy, 'effectiveBuy'),
+                effectiveSell: multiplyPriceValues(basePrice.effectiveSell, multiplier.effectiveSell, 'effectiveSell'),
             }
         }
 
