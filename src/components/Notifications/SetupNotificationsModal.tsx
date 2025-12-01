@@ -52,6 +52,7 @@ export default function SetupNotificationsModal() {
                         shadowSize: '4',
                         className: 'py-2.5',
                         loading: isRequestingPermission,
+                        disabled: isRequestingPermission,
                     },
                     {
                         text: 'Not now',
