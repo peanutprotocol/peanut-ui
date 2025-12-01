@@ -127,7 +127,8 @@ const SignTestTransaction = () => {
                     dispatch(setupActions.setLoading(false))
                     return
                 }
-                // account added successfully, redirect to home
+
+                // account setup complete - addAccount() already fetched and verified user data
                 console.log('[SignTestTransaction] Account setup complete, redirecting to home')
                 router.push('/home')
                 // keep loading state active until redirect completes
