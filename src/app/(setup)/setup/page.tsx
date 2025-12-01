@@ -12,10 +12,12 @@ import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal
 import { isLikelyWebview, isDeviceOsSupported } from '@/components/Setup/Setup.utils'
 import { getFromCookie } from '@/utils'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
+import { useAuth } from '@/context/authContext'
 
 function SetupPageContent() {
     const { steps, inviteCode } = useSetupStore()
     const { step, handleNext, handleBack } = useSetupFlow()
+    const { logoutUser, isLoggingOut } = useAuth()
     const [direction, setDirection] = useState(0)
     const [currentStepIndex, setCurrentStepIndex] = useState(0)
     const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
@@ -28,14 +30,15 @@ function SetupPageContent() {
     const { deviceType: detectedDeviceType } = useDeviceType()
 
     useEffect(() => {
-        setIsLoading(true)
-
         const determineInitialStep = async () => {
+            // wait for layout to populate steps after logout/mount
             if (!steps || steps.length === 0) {
-                console.warn('determineInitialStep: Redux steps not yet loaded. Will retry when steps update.')
-                setIsLoading(false) // prevent infinite loading if steps never arrive
+                console.log('[SetupPage] waiting for steps to be initialized by layout...')
+                setIsLoading(true)
                 return
             }
+
+            setIsLoading(true)
             await new Promise((resolve) => setTimeout(resolve, 100)) // ensure other initializations can complete
 
             // check for native passkey support
@@ -205,9 +208,12 @@ function SetupPageContent() {
             description={step.description}
             showBackButton={step.showBackButton}
             showSkipButton={step.showSkipButton}
+            showLogoutButton={step.screenId === 'sign-test-transaction'}
             imageClassName={step.imageClassName}
             onBack={handleBack}
             onSkip={() => handleNext()}
+            onLogout={logoutUser}
+            isLoggingOut={isLoggingOut}
             step={currentStepIndex}
             direction={direction}
             deferredPrompt={deferredPrompt}

@@ -212,10 +212,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 // fetch user (should return null after logout)
                 await fetchUser()
 
-                // redirect to setup page
-                router.replace('/setup')
-
-                toast.success('Logged out successfully')
+                // force full page refresh to /setup to clear all state
+                // this ensures no stale redux/react state persists after logout
+                window.location.href = '/setup'
             }
         } catch (error) {
             captureException(error)
