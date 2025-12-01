@@ -157,22 +157,29 @@ export const PASSKEY_TROUBLESHOOTING_STEPS = {
             'Enable screen lock in Settings > Security',
         ],
         NotAllowedError: [
+            'Exit Incognito/Private mode - use regular Chrome',
+            "Make sure you're signed into Google account in Chrome",
             'Enable screen lock (Settings > Security)',
+            'Turn off VPN or privacy apps temporarily',
             'Update Google Play Services and Chrome',
-            'Check for system security updates',
-            'Disable third-party password managers temporarily',
         ],
     },
     ios: {
         NotAllowedError: [
+            'Exit Private Browsing - use regular Safari',
             'Enable Face ID/Touch ID in Settings',
             'Enable iCloud Keychain in Settings',
-            'Use Safari browser',
+            'Turn off VPN temporarily',
         ],
     },
     web: {
         // generic fallback for desktop/unsupported platforms
-        default: ['Check your device security settings', 'Restart your device', 'Update your browser and OS'],
+        default: [
+            'Exit Incognito/Private mode',
+            'Check your device security settings',
+            'Restart your device',
+            'Update your browser and OS',
+        ],
     },
 } as const
 

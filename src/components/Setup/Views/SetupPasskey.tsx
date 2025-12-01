@@ -36,6 +36,7 @@ const SetupPasskey = () => {
     const handlePasskeySetup = async () => {
         // clear any previous inline errors
         setInlineError(null)
+        setErrorName(null)
         capturePasskeyDebugInfo('passkey-registration-started')
 
         try {
@@ -45,10 +46,35 @@ const SetupPasskey = () => {
             const err = error as Error
             console.error('Passkey registration failed:', err)
 
-            // notallowederror is typically user cancellation - show inline error
-            // note: withWebAuthnRetry doesn't retry this error, so if we see it, user likely cancelled
+            // capture debug info for all failures
+            await capturePasskeyDebugInfo('passkey-registration-failed')
+
+            // notallowederror can mean two things:
+            // 1. user actually cancelled (most common)
+            // 2. browser blocked it (incognito, privacy settings, etc)
             if (err.name === WebAuthnErrorName.NotAllowed) {
-                setInlineError('Passkey setup was cancelled. Please try again when ready.')
+                // check if this might be a browser block vs user cancellation
+                // if localStorage is blocked or cookies disabled, likely in private mode
+                const isProbablyPrivateMode = (() => {
+                    try {
+                        localStorage.setItem('test', 'test')
+                        localStorage.removeItem('test')
+                        return false // localStorage works, probably not private mode
+                    } catch {
+                        return true // localStorage blocked, likely private mode
+                    }
+                })()
+
+                if (isProbablyPrivateMode) {
+                    // browser blocking - show help modal with troubleshooting
+                    console.log('[SetupPasskey] Private mode detected, showing help modal')
+                    setErrorName(WebAuthnErrorName.NotAllowed)
+                    setShowErrorModal(true)
+                } else {
+                    // likely user cancellation - show simple inline error
+                    console.log('[SetupPasskey] User likely cancelled, showing inline error')
+                    setInlineError('Passkey setup was cancelled. Please try again when ready.')
+                }
                 return
             }
 
@@ -62,7 +88,6 @@ const SetupPasskey = () => {
             ) {
                 setErrorName(err.name)
                 setShowErrorModal(true)
-                capturePasskeyDebugInfo('passkey-registration-failed-device-issue')
             } else {
                 // unexpected error - show generic message and log to sentry
                 Sentry.captureException(error, {
@@ -71,7 +96,6 @@ const SetupPasskey = () => {
                 })
                 setErrorName('UnknownError')
                 setShowErrorModal(true)
-                capturePasskeyDebugInfo('passkey-registration-failed-unexpected-error')
             }
         }
     }

@@ -26,10 +26,7 @@ const getErrorDescription = (errorName: string, platform: 'android' | 'ios' | 'w
         return "Your device's credential manager is temporarily unavailable. This usually happens when the system is busy or needs to be restarted."
     }
     if (errorName === WebAuthnErrorName.NotAllowed) {
-        if (platform === 'android') {
-            return 'Your device blocked passkey creation. This typically means security features need to be configured or updated.'
-        }
-        return 'Passkey creation was blocked. Make sure security features are enabled on your device.'
+        return 'Your browser blocked passkey creation. This is most commonly caused by being in Incognito/Private mode, or having strict privacy settings enabled.'
     }
     if (errorName === WebAuthnErrorName.InvalidState) {
         return 'A passkey already exists for this account on your device.'
