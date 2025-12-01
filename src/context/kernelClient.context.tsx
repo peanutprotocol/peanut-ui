@@ -198,7 +198,8 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
 
         const initializeClients = async () => {
             // NETWORK RESILIENCE: Parallelize kernel client initialization across chains
-            // Currently only 1 chain configured (Arbitrum), but this enables future multi-chain support
+            // Arbitrum (primary wallet) is always initialized. Additional chains (mainnet, base, linea)
+            // are initialized if NEXT_PUBLIC_ZERO_DEV_RECOVERY_BUNDLER_URL is configured.
             const clientPromises = Object.entries(PUBLIC_CLIENTS_BY_CHAIN).map(
                 async ([chainId, { client, chain, bundlerUrl, paymasterUrl }]) => {
                     try {
@@ -260,7 +261,13 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
         (chainId: string) => {
             const client = clientsByChain[chainId]
             if (!client) {
-                throw new Error(`No client found for chain ${chainId}`)
+                const availableChains = Object.keys(clientsByChain).join(', ')
+                console.error(
+                    `[KernelClient] No client found for chain ${chainId}. Available chains: ${availableChains || 'none'}`
+                )
+                throw new Error(
+                    `No client found for chain ${chainId}. This chain may not be configured for wallet operations.`
+                )
             }
             return client
         },

@@ -273,7 +273,7 @@ export const fetchWalletBalances = unstable_cache(
         const assets = json.data.assets
             .filter((a: IMobulaAssetData) => !!a.price)
             .filter((a: IMobulaAssetData) => !!a.token_balance)
-        const balances = []
+        const balances: IUserBalance[] = []
         for (const asset of assets) {
             const symbol = asset.asset.symbol
             const price = isStableCoin(symbol) || estimateIfIsStableCoinFromPrice(asset.price) ? 1 : asset.price
@@ -283,9 +283,17 @@ export const fetchWalletBalances = unstable_cache(
            divide it
           */
             for (const chain of asset.asset.blockchains) {
-                const address = asset.cross_chain_balances[chain].address
-                const contractInfo = asset.contracts_balances.find((c) => areEvmAddressesEqual(c.address, address))
                 const crossChainBalance = asset.cross_chain_balances[chain]
+                if (!crossChainBalance || crossChainBalance.balance === 0) continue
+                const address =
+                    symbol === 'ETH' ? '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' : crossChainBalance.address
+                const contractInfo = asset.contracts_balances.find((c) => areEvmAddressesEqual(c.address, address))
+                if (
+                    balances.find(
+                        (b) => areEvmAddressesEqual(b.address, address) && b.chainId === crossChainBalance.chainId
+                    )
+                )
+                    continue
                 balances.push({
                     chainId: crossChainBalance.chainId,
                     address,
