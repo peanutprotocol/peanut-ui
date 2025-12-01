@@ -33,8 +33,7 @@ export type CarouselCTA = {
 export const useHomeCarouselCTAs = () => {
     const [carouselCTAs, setCarouselCTAs] = useState<CarouselCTA[]>([])
     const { user } = useAuth()
-    const { showReminderBanner, requestPermission, snoozeReminderBanner, afterPermissionAttempt, isPermissionDenied } =
-        useNotifications()
+    const { requestPermission, afterPermissionAttempt, isPermissionDenied, isPermissionGranted } = useNotifications()
     const router = useRouter()
     const { isUserKycApproved, isUserBridgeKycUnderReview, isUserMantecaKycApproved } = useKycStatus()
     const { deviceType } = useDeviceType()
@@ -90,6 +89,23 @@ export const useHomeCarouselCTAs = () => {
 
     const generateCarouselCTAs = useCallback(() => {
         const _carouselCTAs: CarouselCTA[] = []
+
+        // always show notification cta if notifications are not granted
+        // clicking it triggers native prompt (or shows reinstall modal if denied)
+        if (!isPermissionGranted) {
+            _carouselCTAs.push({
+                id: 'notification-prompt',
+                title: 'Stay in the loop!',
+                description: 'Turn on notifications and get alerts for all your wallet activity.',
+                icon: 'bell',
+                onClick: async () => {
+                    // trigger native notification permission prompt
+                    await requestPermission()
+                    await afterPermissionAttempt()
+                },
+                isPermissionDenied, // if true, CarouselCTA shows reinstall modal instead
+            })
+        }
 
         if (deviceType === DeviceType.IOS && !isPwa) {
             _carouselCTAs.push({
@@ -155,24 +171,6 @@ export const useHomeCarouselCTAs = () => {
         }
         // --------------------------------------------------------------------------------------------------
 
-        // add notification prompt as first item if it should be shown
-        if (showReminderBanner) {
-            _carouselCTAs.push({
-                id: 'notification-prompt',
-                title: 'Stay in the loop!',
-                description: 'Turn on notifications and get alerts for all your wallet activity.',
-                icon: 'bell',
-                onClick: async () => {
-                    await requestPermission()
-                    await afterPermissionAttempt()
-                },
-                onClose: () => {
-                    snoozeReminderBanner()
-                },
-                isPermissionDenied,
-            })
-        }
-
         if (!isUserKycApproved && !isUserBridgeKycUnderReview) {
             _carouselCTAs.push({
                 id: 'kyc-prompt',
@@ -198,14 +196,15 @@ export const useHomeCarouselCTAs = () => {
     }, [
         pendingDevConnectIntent,
         user?.user?.userId,
-        showReminderBanner,
+        isPermissionGranted,
         isPermissionDenied,
         isUserKycApproved,
         isUserBridgeKycUnderReview,
+        isUserMantecaKycApproved,
         router,
         requestPermission,
         afterPermissionAttempt,
-        snoozeReminderBanner,
+        setIsQRScannerOpen,
         deviceType,
         isPwa,
     ])
@@ -217,7 +216,7 @@ export const useHomeCarouselCTAs = () => {
         }
 
         generateCarouselCTAs()
-    }, [user, generateCarouselCTAs])
+    }, [user, generateCarouselCTAs, isPermissionGranted])
 
     return { carouselCTAs, setCarouselCTAs }
 }
