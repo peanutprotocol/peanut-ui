@@ -90,9 +90,9 @@ export const useHomeCarouselCTAs = () => {
     const generateCarouselCTAs = useCallback(() => {
         const _carouselCTAs: CarouselCTA[] = []
 
-        // always show notification cta if notifications are not granted
+        // show notification cta only in pwa when notifications are not granted
         // clicking it triggers native prompt (or shows reinstall modal if denied)
-        if (!isPermissionGranted) {
+        if (!isPermissionGranted && isPwa) {
             _carouselCTAs.push({
                 id: 'notification-prompt',
                 title: 'Stay in the loop!',
