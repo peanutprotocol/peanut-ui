@@ -136,7 +136,20 @@ export default function RecoverFundsPage() {
                 userOpHash = result.userOpHash
             }
         } catch (error) {
-            setErrorMessage('Error sending transaction, please try again')
+            console.error('Error recovering funds:', error)
+            captureException(error)
+            // Handle specific error cases
+            const errorMessage = error instanceof Error ? error.message : String(error)
+            if (errorMessage.includes('No client found')) {
+                const chainName = getChainName(selectedBalance.chainId) ?? `chain ${selectedBalance.chainId}`
+                setErrorMessage(
+                    `Recovery not yet available for ${chainName}. Please contact support or try again later.`
+                )
+            } else if (errorMessage.includes('session has expired')) {
+                setErrorMessage('Your session has expired. Please refresh the page and try again.')
+            } else {
+                setErrorMessage('Error sending transaction, please try again')
+            }
             setIsSigning(false)
             return
         }
