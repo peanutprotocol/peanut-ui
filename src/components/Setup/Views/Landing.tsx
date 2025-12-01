@@ -4,6 +4,9 @@ import { Button, Card } from '@/components/0_Bruddle'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useLogin } from '@/hooks/useLogin'
+import { removeFromCookie, clearAuthState } from '@/utils'
+import { useAppDispatch } from '@/redux/hooks'
+import { zerodevActions } from '@/redux/slices/zerodev-slice'
 import * as Sentry from '@sentry/nextjs'
 import Link from 'next/link'
 
@@ -11,6 +14,7 @@ const LandingStep = () => {
     const { handleNext } = useSetupFlow()
     const { handleLoginClick, isLoggingIn } = useLogin()
     const toast = useToast()
+    const dispatch = useAppDispatch()
 
     const handleError = (error: any) => {
         const errorMessage =
@@ -31,10 +35,20 @@ const LandingStep = () => {
         }
     }
 
+    const onSignupClick = () => {
+        // clear any persisted state from previous user
+        // this prevents old webAuthnKey from causing address to be set
+        // which would skip the user straight to test transaction screen
+        removeFromCookie('web-authn-key')
+        clearAuthState() // clear any localStorage state
+        dispatch(zerodevActions.resetZeroDevState()) // clear address and other zerodev state
+        handleNext()
+    }
+
     return (
         <Card className="border-0">
             <Card.Content className="space-y-4 p-0 pt-4">
-                <Button shadowSize="4" className="h-11" onClick={() => handleNext()}>
+                <Button shadowSize="4" className="h-11" onClick={onSignupClick}>
                     Sign up
                 </Button>
                 <Button
