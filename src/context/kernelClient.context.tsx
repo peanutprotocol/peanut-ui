@@ -165,9 +165,10 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
     useEffect(() => {
         if (!user?.user.userId) {
             // clear webauthn key and clients when user logs out
-            console.log('[KernelClient] No user found, clearing webAuthnKey and clients')
+            console.log('[KernelClient] No user found, clearing webAuthnKey, clients, and address')
             setWebAuthnKey(undefined)
             setClientsByChain({})
+            dispatch(zerodevActions.setAddress(undefined)) // explicitly clear address from redux
             return
         }
 

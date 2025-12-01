@@ -60,6 +60,13 @@ export const useZeroDev = () => {
 
     // register function
     const handleRegister = async (username: string): Promise<void> => {
+        // CRITICAL: clear any stale state from previous user before registering new passkey
+        // this is the SINGLE place where cleanup happens for new signups
+        // handles cases where: old cookies persist, session expired, user didn't logout properly
+        console.log('[useZeroDev] starting new passkey registration, clearing any stale state')
+        removeFromCookie(WEB_AUTHN_COOKIE_KEY) // clear old passkey cookie
+        dispatch(zerodevActions.resetZeroDevState()) // clear redux state (including old address)
+
         dispatch(zerodevActions.setIsRegistering(true))
         try {
             const webAuthnKey = await toWebAuthnKey({
