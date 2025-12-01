@@ -8,8 +8,6 @@ import { useGetBrowserType, BrowserType } from '@/hooks/useGetBrowserType'
 const ForceIOSPWAInstall = () => {
     const { browserType, isLoading } = useGetBrowserType()
 
-    console.log(browserType)
-
     const STAR_POSITIONS = [
         'left-[5%] top-[15%] size-10',
         'right-[10%] top-[10%] size-10',

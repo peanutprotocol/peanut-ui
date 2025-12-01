@@ -7,14 +7,13 @@ import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { useOnrampFlow } from '@/context/OnrampFlowContext'
 import { useRouter, useParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo } from 'react'
-import { type CountryData, countryData } from '@/components/AddMoney/consts'
+import { countryData } from '@/components/AddMoney/consts'
 import { formatCurrencyAmount } from '@/utils/currency'
 import { formatBankAccountDisplay } from '@/utils/format.utils'
 import { getCurrencyConfig, getCurrencySymbol } from '@/utils/bridge.utils'
 import { RequestFulfillmentBankFlowStep, useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import { usePaymentStore } from '@/redux/hooks'
 import { formatAmount } from '@/utils'
-import { AccountType } from '@/interfaces'
 import InfoCard from '@/components/Global/InfoCard'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import { Button } from '@/components/0_Bruddle'
@@ -22,13 +21,6 @@ import { useExchangeRate } from '@/hooks/useExchangeRate'
 
 interface IAddMoneyBankDetails {
     flow?: 'add-money' | 'request-fulfillment'
-}
-
-const getAccountTypeFromCountry = (country: CountryData | null): AccountType => {
-    if (!country) return AccountType.US
-    if (country.currency === 'MXN') return AccountType.CLABE
-    if (country.currency === 'EUR') return AccountType.IBAN
-    return AccountType.US
 }
 
 export default function AddMoneyBankDetails({ flow = 'add-money' }: IAddMoneyBankDetails) {
