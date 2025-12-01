@@ -4,11 +4,11 @@ import NavHeader from '@/components/Global/NavHeader'
 import ScrollableList from '@/components/Global/TokenSelector/Components/ScrollableList'
 import TokenListItem from '@/components/Global/TokenSelector/Components/TokenListItem'
 import { type IUserBalance } from '@/interfaces'
-import { useState, useEffect, useMemo, useCallback, useContext } from 'react'
+import { useState, useEffect, useCallback, useContext } from 'react'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { fetchWalletBalances } from '@/app/actions/tokens'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, nativeCurrencyAddresses } from '@/constants'
-import { areEvmAddressesEqual, isTxReverted, getExplorerUrl } from '@/utils'
+import { areEvmAddressesEqual, isTxReverted, getExplorerUrl, getChainName, getTokenLogo } from '@/utils'
 import { type RecipientState } from '@/context/WithdrawFlowContext'
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import { Button } from '@/components/0_Bruddle'
@@ -17,21 +17,28 @@ import Card from '@/components/Global/Card'
 import Image from 'next/image'
 import AddressLink from '@/components/Global/AddressLink'
 import PeanutLoading from '@/components/Global/PeanutLoading'
-import { erc20Abi, parseUnits, encodeFunctionData } from 'viem'
+import { erc20Abi, parseUnits, encodeFunctionData, formatUnits } from 'viem'
 import type { Address, Hash, TransactionReceipt } from 'viem'
 import { useRouter } from 'next/navigation'
 import { loadingStateContext } from '@/context'
 import Icon from '@/components/Global/Icon'
 import { captureException } from '@sentry/nextjs'
+import { mainnet, base, linea } from 'viem/chains'
+import { getPublicClient } from '@/app/actions/clients'
 
 // Helper function to check if a token is native ETH
 const isNativeToken = (tokenAddress: string): boolean => {
     return nativeCurrencyAddresses.some((nativeAddr) => areEvmAddressesEqual(nativeAddr, tokenAddress))
 }
 
+// Mobula does not returns Linea balance, we have one user balance with USDC in Linea so we will manually fetch it
+const USDC_IN_LINEA = '0x176211869cA2b568f2A7D4EE941E073a821EE1ff'
+
+const RECOVERABLE_CHAINS = [PEANUT_WALLET_CHAIN, mainnet, base, linea]
+
 export default function RecoverFundsPage() {
     const [tokenBalances, setTokenBalances] = useState<IUserBalance[]>([])
-    const [selectedTokenAddress, setSelectedTokenAddress] = useState('')
+    const [selectedBalance, setSelectedBalance] = useState<IUserBalance | undefined>()
     const [recipient, setRecipient] = useState<RecipientState>({ address: '', name: '' })
     const [errorMessage, setErrorMessage] = useState('')
     const [inputChanging, setInputChanging] = useState(false)
@@ -45,26 +52,43 @@ export default function RecoverFundsPage() {
 
     useEffect(() => {
         if (!peanutAddress) return
-        setFetchingBalances(true)
-        fetchWalletBalances(peanutAddress)
-            .then((balances) => {
-                const nonUsdcArbitrumBalances = balances.balances.filter(
-                    (b) =>
-                        b.chainId === PEANUT_WALLET_CHAIN.id.toString() &&
-                        !areEvmAddressesEqual(PEANUT_WALLET_TOKEN, b.address)
-                )
-                setTokenBalances(nonUsdcArbitrumBalances)
-            })
-            .finally(() => {
-                setFetchingBalances(false)
-            })
+        const fetchBalances = async () => {
+            setFetchingBalances(true)
+            const [balances, lineaBalance] = await Promise.all([
+                fetchWalletBalances(peanutAddress),
+                //Manually fetching Linea balance for USDC because Mobula does
+                //not return it
+                getPublicClient(linea.id).readContract({
+                    address: USDC_IN_LINEA,
+                    abi: erc20Abi,
+                    functionName: 'balanceOf',
+                    args: [peanutAddress as Address],
+                }),
+            ])
+            const recoverableBalances = balances.balances.filter(
+                (b) =>
+                    RECOVERABLE_CHAINS.some((chain) => b.chainId === chain.id.toString()) &&
+                    !areEvmAddressesEqual(PEANUT_WALLET_TOKEN, b.address)
+            )
+            if (!!lineaBalance) {
+                recoverableBalances.push({
+                    chainId: linea.id.toString(),
+                    address: USDC_IN_LINEA,
+                    name: 'USDC',
+                    symbol: 'USDC',
+                    decimals: 6,
+                    price: 1,
+                    amount: Number(formatUnits(lineaBalance, 6)),
+                    currency: 'usd',
+                    logoURI: getTokenLogo('USDC'),
+                    value: formatUnits(lineaBalance, 6),
+                })
+            }
+            setTokenBalances(recoverableBalances)
+            setFetchingBalances(false)
+        }
+        fetchBalances()
     }, [peanutAddress])
-
-    const selectedBalance = useMemo<IUserBalance | undefined>(() => {
-        if (selectedTokenAddress === '') return undefined
-        return tokenBalances.find((b) => areEvmAddressesEqual(b.address, selectedTokenAddress))
-    }, [tokenBalances, selectedTokenAddress])
-
     const reset = useCallback(() => {
         setErrorMessage('')
         setInputChanging(false)
@@ -72,7 +96,7 @@ export default function RecoverFundsPage() {
         setTxHash('')
         setStatus('init')
         setRecipient({ address: '', name: '' })
-        setSelectedTokenAddress('')
+        setSelectedBalance(undefined)
     }, [])
 
     const recoverFunds = useCallback(async () => {
@@ -89,12 +113,15 @@ export default function RecoverFundsPage() {
             // Check if the token is native ETH
             if (isNativeToken(selectedBalance.address)) {
                 // For native ETH, send a simple value transfer
-                const result = await sendTransactions([
-                    {
-                        to: recipient.address as Address,
-                        value: amount,
-                    },
-                ])
+                const result = await sendTransactions(
+                    [
+                        {
+                            to: recipient.address as Address,
+                            value: amount,
+                        },
+                    ],
+                    selectedBalance.chainId
+                )
                 receipt = result.receipt
                 userOpHash = result.userOpHash
             } else {
@@ -104,12 +131,25 @@ export default function RecoverFundsPage() {
                     functionName: 'transfer',
                     args: [recipient.address as Address, amount],
                 })
-                const result = await sendTransactions([{ to: selectedBalance.address, data }])
+                const result = await sendTransactions([{ to: selectedBalance.address, data }], selectedBalance.chainId)
                 receipt = result.receipt
                 userOpHash = result.userOpHash
             }
         } catch (error) {
-            setErrorMessage('Error sending transaction, please try again')
+            console.error('Error recovering funds:', error)
+            captureException(error)
+            // Handle specific error cases
+            const errorMessage = error instanceof Error ? error.message : String(error)
+            if (errorMessage.includes('No client found')) {
+                const chainName = getChainName(selectedBalance.chainId) ?? `chain ${selectedBalance.chainId}`
+                setErrorMessage(
+                    `Recovery not yet available for ${chainName}. Please contact support or try again later.`
+                )
+            } else if (errorMessage.includes('session has expired')) {
+                setErrorMessage('Your session has expired. Please refresh the page and try again.')
+            } else {
+                setErrorMessage('Error sending transaction, please try again')
+            }
             setIsSigning(false)
             return
         }
@@ -160,7 +200,8 @@ export default function RecoverFundsPage() {
                                 You will receive to <AddressLink address={recipient.address} />
                             </h1>
                             <h2 className="text-2xl font-extrabold">
-                                {selectedBalance!.amount} {selectedBalance!.symbol} in Arbitrum
+                                {selectedBalance!.amount} {selectedBalance!.symbol} in{' '}
+                                {getChainName(selectedBalance!.chainId) ?? `Chain ${selectedBalance!.chainId}`}
                             </h2>
                         </div>
                     </Card>
@@ -205,7 +246,8 @@ export default function RecoverFundsPage() {
                                 Sent to <AddressLink address={recipient.address} />
                             </h1>
                             <h2 className="text-2xl font-extrabold">
-                                {selectedBalance!.amount} {selectedBalance!.symbol} in Arbitrum
+                                {selectedBalance!.amount} {selectedBalance!.symbol} in{' '}
+                                {getChainName(selectedBalance!.chainId) ?? `Chain ${selectedBalance!.chainId}`}
                             </h2>
                             <a
                                 href={`${getExplorerUrl(selectedBalance!.chainId)}/tx/${txHash}`}
@@ -232,7 +274,15 @@ export default function RecoverFundsPage() {
                         variant="stroke"
                         shadowSize="4"
                         onClick={() => {
-                            setTokenBalances(tokenBalances.filter((b) => b.address !== selectedTokenAddress))
+                            setTokenBalances(
+                                tokenBalances.filter(
+                                    (b) =>
+                                        !(
+                                            areEvmAddressesEqual(b.address, selectedBalance!.address) &&
+                                            b.chainId === selectedBalance!.chainId
+                                        )
+                                )
+                            )
                             reset()
                         }}
                         className="w-full"
@@ -255,9 +305,13 @@ export default function RecoverFundsPage() {
                             <TokenListItem
                                 key={balance.address}
                                 balance={balance}
-                                isSelected={areEvmAddressesEqual(balance.address, selectedTokenAddress)}
+                                isSelected={
+                                    !!selectedBalance &&
+                                    areEvmAddressesEqual(balance.address, selectedBalance?.address) &&
+                                    balance.chainId === selectedBalance?.chainId
+                                }
                                 onClick={() => {
-                                    setSelectedTokenAddress(balance.address)
+                                    setSelectedBalance(balance)
                                 }}
                             />
                         ))
