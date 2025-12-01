@@ -128,11 +128,8 @@ const SignTestTransaction = () => {
                     return
                 }
 
-                // verify user data is loaded with new account before redirecting
-                // this ensures cookies and user context are ready for /home page
-                console.log('[SignTestTransaction] Account setup complete, verifying user data is loaded')
-                await fetchUser()
-                console.log('[SignTestTransaction] User data verified, redirecting to home')
+                // account setup complete - addAccount() already fetched and verified user data
+                console.log('[SignTestTransaction] Account setup complete, redirecting to home')
                 router.push('/home')
                 // keep loading state active until redirect completes
             } else {
