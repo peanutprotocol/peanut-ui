@@ -2,7 +2,7 @@ import { getEntryPoint, KERNEL_V3_1 } from '@zerodev/sdk/constants'
 import type { Chain, PublicClient } from 'viem'
 import { createPublicClient } from 'viem'
 import { getTransportWithFallback } from '@/app/actions/clients'
-import { arbitrum } from 'viem/chains'
+import { arbitrum, mainnet, base, linea } from 'viem/chains'
 
 // consts needed to define low level SDK kernel
 // as per: https://docs.zerodev.app/sdk/getting-started/tutorial-passkeys
@@ -39,6 +39,9 @@ export const USER_OP_ENTRY_POINT = getEntryPoint('0.7')
 export const ZERODEV_KERNEL_VERSION = KERNEL_V3_1
 export const USER_OPERATION_REVERT_REASON_TOPIC = '0x1c4fada7374c0a9ee8841fc38afe82932dc0f8e69012e927f061a8bae611a201'
 
+const ZERODEV_V3_URL = process.env.NEXT_PUBLIC_ZERO_DEV_RECOVERY_BUNDLER_URL
+const zerodevV3Url = (chainId: number | string) => `${ZERODEV_V3_URL}/chain/${chainId}`
+
 /**
  * This is a mapping of chain ID to the public client and chain details
  * This is for the standard chains supported in the app. For now Arbitrum, but
@@ -62,6 +65,36 @@ export const PUBLIC_CLIENTS_BY_CHAIN: Record<
         chain: PEANUT_WALLET_CHAIN,
         bundlerUrl: BUNDLER_URL,
         paymasterUrl: PAYMASTER_URL,
+    },
+    [mainnet.id]: {
+        client: createPublicClient({
+            transport: getTransportWithFallback(mainnet.id),
+            chain: mainnet,
+            pollingInterval: 12000,
+        }),
+        chain: mainnet,
+        bundlerUrl: zerodevV3Url(mainnet.id),
+        paymasterUrl: zerodevV3Url(mainnet.id),
+    },
+    [base.id]: {
+        client: createPublicClient({
+            transport: getTransportWithFallback(base.id),
+            chain: base,
+            pollingInterval: 2000,
+        }) as PublicClient,
+        chain: base,
+        bundlerUrl: zerodevV3Url(base.id),
+        paymasterUrl: zerodevV3Url(base.id),
+    },
+    [linea.id]: {
+        client: createPublicClient({
+            transport: getTransportWithFallback(linea.id),
+            chain: linea,
+            pollingInterval: 3000,
+        }),
+        chain: linea,
+        bundlerUrl: zerodevV3Url(linea.id),
+        paymasterUrl: zerodevV3Url(linea.id),
     },
 }
 
