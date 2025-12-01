@@ -206,19 +206,42 @@ export const mantecaApi = {
         return response.json()
     },
     getPrices: async ({ asset, against }: { asset: string; against: string }): Promise<MantecaPrice> => {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/manteca/prices?asset=${asset}&against=${against}`, {
-            headers: {
-                'Content-Type': 'application/json',
-                'api-key': PEANUT_API_KEY,
-            },
-        })
+        // Helper to fetch and parse price data
+        const fetchPrice = async (asset: string, against: string): Promise<MantecaPrice> => {
+            const response = await fetchWithSentry(
+                `${PEANUT_API_URL}/manteca/prices?asset=${asset}&against=${against}`,
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'api-key': PEANUT_API_KEY,
+                    },
+                }
+            )
 
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}))
-            throw new Error(errorData.message || `Get prices failed: ${response.statusText}`)
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}))
+                throw new Error(errorData.message || `Get prices failed: ${response.statusText}`)
+            }
+
+            return response.json()
         }
 
-        return response.json()
+        // Helper to multiply price fields
+        const multiplyPriceFields = (basePrice: MantecaPrice, multiplier: MantecaPrice): MantecaPrice => {
+            return {
+                ...basePrice,
+                buy: (parseFloat(basePrice.buy) * parseFloat(multiplier.buy)).toString(),
+                sell: (parseFloat(basePrice.sell) * parseFloat(multiplier.sell)).toString(),
+                effectiveBuy: (parseFloat(basePrice.effectiveBuy) * parseFloat(multiplier.effectiveBuy)).toString(),
+                effectiveSell: (parseFloat(basePrice.effectiveSell) * parseFloat(multiplier.effectiveSell)).toString(),
+            }
+        }
+
+        // Fetch USDC/USDT rate and the requested asset price in parallel
+        const [usdtRate, assetPrice] = await Promise.all([fetchPrice('USDC', 'USDT'), fetchPrice(asset, against)])
+
+        // Convert asset price from USDC to USDT equivalent
+        return multiplyPriceFields(assetPrice, usdtRate)
     },
     initiateOnboarding: async (params: {
         returnUrl: string
