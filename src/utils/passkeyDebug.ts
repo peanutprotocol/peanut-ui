@@ -6,14 +6,23 @@ import * as Sentry from '@sentry/nextjs'
  */
 export const capturePasskeyDebugInfo = async (context: string) => {
     try {
+        // compute rpID the same way it's done in useZeroDev
+        const rpId = window.location.hostname.replace(/^www\./, '')
+
         const debugInfo: Record<string, any> = {
             context,
             timestamp: new Date().toISOString(),
+            // rpID info - critical for debugging android issues
+            rpId,
+            hostname: window.location.hostname,
+            origin: window.location.origin,
             // basic environment checks
             isSecureContext: window.isSecureContext,
             cookieEnabled: navigator.cookieEnabled,
             userAgent: navigator.userAgent,
             platform: navigator.platform,
+            // android detection
+            isAndroid: /android/i.test(navigator.userAgent),
             // credentials api availability
             credentialsApiAvailable: 'credentials' in navigator,
             publicKeyCredentialAvailable: typeof window.PublicKeyCredential !== 'undefined',

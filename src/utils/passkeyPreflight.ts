@@ -14,9 +14,11 @@ export interface PasskeyPreflightResult {
         isAndroid: boolean
         chromeVersion?: number
         androidVersion?: string
+        androidVersionNum?: number
         deviceModel?: string
         uvpaAvailable?: boolean
         conditionalMediationAvailable?: boolean
+        rpId?: string
     }
 }
 
@@ -26,11 +28,17 @@ export interface PasskeyPreflightResult {
  * @returns preflight result with support status, warnings, and diagnostic data
  */
 export async function checkPasskeySupport(): Promise<PasskeyPreflightResult> {
+    // capture rpId for debugging - this is what will be used for passkey registration
+    const rpId = window.location.hostname.replace(/^www\./, '')
+
     const diagnostics: PasskeyPreflightResult['diagnostics'] = {
         hasPublicKeyCredential: 'PublicKeyCredential' in window,
         isHttps: window.location.protocol === 'https:' || window.location.hostname === 'localhost',
         isAndroid: /android/i.test(navigator.userAgent),
+        rpId,
     }
+
+    console.log('[PasskeyPreflight] rpId that will be used:', rpId)
 
     // check https (required for webauthn in production)
     if (!diagnostics.isHttps) {
@@ -73,6 +81,17 @@ export async function checkPasskeySupport(): Promise<PasskeyPreflightResult> {
         const androidMatch = navigator.userAgent.match(/Android (\d+(?:\.\d+)?)/)
         if (androidMatch) {
             diagnostics.androidVersion = androidMatch[1]
+            diagnostics.androidVersionNum = parseFloat(androidMatch[1])
+            console.log('[PasskeyPreflight] Android version:', diagnostics.androidVersion)
+
+            // android 9 (pie) is minimum for passkeys, but 10+ recommended
+            if (diagnostics.androidVersionNum < 9) {
+                return {
+                    isSupported: false,
+                    warning: 'Your Android version is too old for passkeys. Please update to Android 9 or later.',
+                    diagnostics,
+                }
+            }
         }
 
         // extract device model (e.g., Redmi 13 C shows as "23116RN72Y")
@@ -106,7 +125,8 @@ export async function checkPasskeySupport(): Promise<PasskeyPreflightResult> {
         console.warn('[PasskeyPreflight] Error checking platform authenticator:', e)
     }
 
-    // check for conditional mediation (better UX indicator, not blocking)
+    // check for conditional mediation (better UX indicator)
+    // on android, lack of conditional mediation often indicates outdated play services
     try {
         if (window.PublicKeyCredential?.isConditionalMediationAvailable) {
             diagnostics.conditionalMediationAvailable =
@@ -118,6 +138,19 @@ export async function checkPasskeySupport(): Promise<PasskeyPreflightResult> {
         }
     } catch (e) {
         console.warn('[PasskeyPreflight] Error checking conditional mediation:', e)
+    }
+
+    // log full diagnostics for debugging android issues
+    console.log('[PasskeyPreflight] Full diagnostics:', JSON.stringify(diagnostics, null, 2))
+
+    // return soft warning for android devices without conditional mediation
+    // this doesn't block registration but warns user about potential issues
+    if (diagnostics.isAndroid && diagnostics.conditionalMediationAvailable === false) {
+        return {
+            isSupported: true,
+            warning: 'Your device may have limited passkey support. If setup fails, try updating Google Play Services.',
+            diagnostics,
+        }
     }
 
     return {
