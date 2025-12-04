@@ -516,19 +516,19 @@ export default function QRPayPage() {
             setLoadingState('Idle')
 
             // Provider-specific errors: show appropriate message
-            if (error.message.includes("provider can't decode it")) {
+            if (error.message.includes('PAYMENT_DESTINATION_MISSING_AMOUNT')) {
+                setWaitingForMerchantAmount(true)
+            } else {
+                // Network/timeout errors after all retries exhausted
                 if (EQrType.PIX === qrType) {
                     setErrorInitiatingPayment(
                         'We are currently experiencing issues with PIX payments due to an external provider. We are working to fix it as soon as possible'
                     )
                 } else {
-                    setWaitingForMerchantAmount(true)
+                    setErrorInitiatingPayment(
+                        error.message || 'Failed to load payment details. Please check your connection and try again.'
+                    )
                 }
-            } else {
-                // Network/timeout errors after all retries exhausted
-                setErrorInitiatingPayment(
-                    error.message || 'Failed to load payment details. Please check your connection and try again.'
-                )
                 setWaitingForMerchantAmount(false)
             }
         }
