@@ -485,10 +485,10 @@ export default function QRPayPage() {
                 return false
             }
             // Retry network/timeout errors up to 2 times (3 total attempts)
-            return failureCount < 2
+            return failureCount < 3
         },
         retryDelay: (attemptIndex) => {
-            const delayMs = Math.min(1000 * 2 ** attemptIndex, 2000) // 1s, 2s exponential backoff
+            const delayMs = 3000 // 3s
             const MAX_RETRIES = 2
             const attemptNumber = attemptIndex + 1 // attemptIndex is 0-based, display as 1-based
             console.log(
