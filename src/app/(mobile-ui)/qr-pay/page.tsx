@@ -982,6 +982,9 @@ export default function QRPayPage() {
                 setWaitingForMerchantAmount(false)
                 setShowOrderNotReadyModal(true)
             }
+        } else if (!paymentLock) {
+            setWaitingForMerchantAmount(false)
+            setShowOrderNotReadyModal(true)
         }
     }, [waitingForMerchantAmount, shouldRetry, failureCount])
 
