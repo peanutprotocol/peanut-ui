@@ -311,6 +311,9 @@ export default function QRPayPage() {
             // It will convert to local currency for display using isInitialInputUsd=false
             setAmount(paymentLock.paymentAgainstAmount)
             setCurrencyAmount(paymentLock.paymentAssetAmount)
+            setWaitingForMerchantAmount(false)
+            setErrorInitiatingPayment(null)
+            setShouldRetry(false)
         }
     }, [paymentLock?.code, paymentProcessor])
 
@@ -968,7 +971,7 @@ export default function QRPayPage() {
 
     useEffect(() => {
         if (waitingForMerchantAmount && !shouldRetry) {
-            if (retryCount.current < 3) {
+            if (retryCount.current < 3 || failureCount < 3) {
                 retryCount.current++
                 setTimeout(() => {
                     setShouldRetry(true)
@@ -978,7 +981,7 @@ export default function QRPayPage() {
                 setShowOrderNotReadyModal(true)
             }
         }
-    }, [waitingForMerchantAmount, shouldRetry])
+    }, [waitingForMerchantAmount, shouldRetry, failureCount])
 
     // Show maintenance error if provider is disabled
     if (isProviderDisabled) {
