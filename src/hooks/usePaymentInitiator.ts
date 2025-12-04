@@ -231,6 +231,8 @@ export const usePaymentInitiator = () => {
                         { disableCoral }
                     )
 
+                    if (xChainRoute.error) throw new Error(xChainRoute.error)
+
                     const slippagePercentage = Number(xChainRoute.fromAmount) / Number(chargeDetails.tokenAmount) - 1
                     setXChainRoute(xChainRoute)
                     setXChainUnsignedTxs(

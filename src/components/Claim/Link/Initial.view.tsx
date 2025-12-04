@@ -608,6 +608,8 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     { disableCoral: true }
                 )
 
+                if (route.error) throw new Error(route.error)
+
                 setRoutes([...routes, route])
                 if (!toToken && !toChain) {
                     setSelectedRoute(route)
