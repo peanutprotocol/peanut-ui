@@ -971,7 +971,7 @@ export default function QRPayPage() {
 
     useEffect(() => {
         if (waitingForMerchantAmount && !shouldRetry) {
-            if (retryCount.current < 3 || failureCount < 3) {
+            if (retryCount.current < 3 && failureCount < 3) {
                 retryCount.current++
                 setTimeout(() => {
                     setShouldRetry(true)
