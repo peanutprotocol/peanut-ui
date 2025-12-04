@@ -4,13 +4,15 @@ import ErrorAlert from '@/components/Global/ErrorAlert'
 import { Icon } from '@/components/Global/Icons/Icon'
 import Modal from '@/components/Global/Modal'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
-import { type BeforeInstallPromptEvent, type ScreenId } from '@/components/Setup/Setup.types'
+import { type BeforeInstallPromptEvent, type ISetupStep, type ScreenId } from '@/components/Setup/Setup.types'
 import { useAuth } from '@/context/authContext'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import { captureException } from '@sentry/nextjs'
 import { DeviceType } from '@/hooks/useGetDeviceType'
+import { useAppDispatch, useSetupStore } from '@/redux/hooks'
+import { setupActions } from '@/redux/slices/setup-slice'
 
 const StepTitle = ({ text }: { text: string }) => <h3 className="text-xl font-extrabold leading-6">{text}</h3>
 
@@ -34,6 +36,7 @@ const InstallPWA = ({
 }) => {
     const toast = useToast()
     const { handleNext, isLoading: isSetupFlowLoading } = useSetupFlow()
+    const { inviteCode, steps } = useSetupStore()
     const [showModal, setShowModal] = useState(false)
     const [installComplete, setInstallComplete] = useState(false)
     const [installCancelled, setInstallCancelled] = useState(false)
@@ -42,6 +45,7 @@ const InstallPWA = ({
     const [isBrave, setIsBrave] = useState(false)
     const { user } = useAuth()
     const { push } = useRouter()
+    const dispatch = useAppDispatch()
 
     useEffect(() => {
         if (installComplete) {
@@ -215,7 +219,20 @@ const InstallPWA = ({
             <div className="space-y-2 text-center">
                 <p className="text-sm text-grey-1">Could not initiate automatic installation.</p>
                 <p className="text-sm text-grey-1">Please try adding to Home Screen manually via your browser menu.</p>
-                <Button onClick={() => handleNext()} className="mt-4 w-full" shadowSize="4" variant="purple">
+                <Button
+                    onClick={() => {
+                        // If user is on android and has an invite code, redirect to signup screen
+                        if (inviteCode && deviceType === DeviceType.ANDROID) {
+                            const signupScreeenIndex = steps.findIndex((s: ISetupStep) => s.screenId === 'signup')
+                            dispatch(setupActions.setStep(signupScreeenIndex + 1))
+                        } else {
+                            handleNext()
+                        }
+                    }}
+                    className="mt-4 w-full"
+                    shadowSize="4"
+                    variant="purple"
+                >
                     Continue
                 </Button>
             </div>
