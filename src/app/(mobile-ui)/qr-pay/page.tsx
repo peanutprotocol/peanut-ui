@@ -972,21 +972,25 @@ export default function QRPayPage() {
     }, [shouldRetry, handleSimplefiRetry])
 
     useEffect(() => {
-        if (waitingForMerchantAmount && !shouldRetry) {
-            if (retryCount.current < 3 && failureCount < 3) {
-                retryCount.current++
-                setTimeout(() => {
-                    setShouldRetry(true)
-                }, 3000)
-            } else {
+        if (paymentProcessor === 'SIMPLEFI') {
+            if (waitingForMerchantAmount && !shouldRetry) {
+                if (retryCount.current < 3) {
+                    retryCount.current++
+                    setTimeout(() => {
+                        setShouldRetry(true)
+                    }, 3000)
+                } else {
+                    setWaitingForMerchantAmount(false)
+                    setShowOrderNotReadyModal(true)
+                }
+            }
+        } else if (paymentProcessor === 'MANTECA') {
+            if (waitingForMerchantAmount && !isLoadingPaymentLock) {
                 setWaitingForMerchantAmount(false)
                 setShowOrderNotReadyModal(true)
             }
-        } else if (!paymentLock) {
-            setWaitingForMerchantAmount(false)
-            setShowOrderNotReadyModal(true)
         }
-    }, [waitingForMerchantAmount, shouldRetry, failureCount])
+    }, [waitingForMerchantAmount, shouldRetry, isLoadingPaymentLock, paymentProcessor])
 
     // Show maintenance error if provider is disabled
     if (isProviderDisabled) {
