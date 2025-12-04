@@ -14,6 +14,13 @@ import { DeviceType } from '@/hooks/useGetDeviceType'
 
 const StepTitle = ({ text }: { text: string }) => <h3 className="text-xl font-extrabold leading-6">{text}</h3>
 
+// detect if the browser is brave
+const isBraveBrowser = () => {
+    if (typeof window === 'undefined') return false
+    // brave browser has a specific navigator.brave property
+    return !!(navigator as Navigator & { brave?: { isBrave: () => Promise<boolean> } }).brave
+}
+
 const InstallPWA = ({
     canInstall,
     deferredPrompt,
@@ -32,6 +39,7 @@ const InstallPWA = ({
     const [installCancelled, setInstallCancelled] = useState(false)
     const [isInstallInProgress, setIsInstallInProgress] = useState(false)
     const [isPWAInstalled, setIsPWAInstalled] = useState(false)
+    const [isBrave, setIsBrave] = useState(false)
     const { user } = useAuth()
     const { push } = useRouter()
 
@@ -67,6 +75,11 @@ const InstallPWA = ({
     useEffect(() => {
         if (!!user) push('/home')
     }, [user])
+
+    // detect brave browser on mount
+    useEffect(() => {
+        setIsBrave(isBraveBrowser())
+    }, [])
 
     useEffect(() => {
         const handleAppInstalled = () => {
@@ -118,20 +131,49 @@ const InstallPWA = ({
     const AndroidPWASpecificInstallFlow = () => {
         // Scenario 1: Install finished (either PWA already there, or 'appinstalled' event fired)
         if (isPWAInstalled || installComplete) {
+            // if already in standalone mode (pwa is open), proceed to next step
+            if (window.matchMedia('(display-mode: standalone)').matches) {
+                return (
+                    <div className="flex w-full flex-col gap-4">
+                        <Button
+                            onClick={() => handleNext()}
+                            className="w-full"
+                            shadowSize="4"
+                            loading={isSetupFlowLoading}
+                        >
+                            Continue
+                        </Button>
+                    </div>
+                )
+            }
+
+            // if on brave browser, show instructions instead of trying to auto-open
+            // because brave doesn't support auto-opening pwa from browser
+            if (isBrave) {
+                return (
+                    <div className="space-y-2 text-center">
+                        <p className="text-sm text-grey-1">App installed successfully!</p>
+                        <p className="text-sm text-grey-1">
+                            Please open the Peanut app from your home screen to continue setup.
+                        </p>
+                        {/* <Button onClick={() => handleNext()} className="mt-4 w-full" shadowSize="4" variant="purple">
+                            Continue
+                        </Button> */}
+                    </div>
+                )
+            }
+
+            // for other browsers, try to open the pwa in a new tab
             return (
                 <div className="flex flex-col gap-4">
                     <Button
                         onClick={() => {
-                            if (window.matchMedia('(display-mode: standalone)').matches) {
-                                handleNext()
-                            } else {
-                                const link = document.createElement('a')
-                                link.href = '/setup'
-                                link.target = '_blank'
-                                document.body.appendChild(link)
-                                link.click()
-                                document.body.removeChild(link)
-                            }
+                            const link = document.createElement('a')
+                            link.href = '/setup'
+                            link.target = '_blank'
+                            document.body.appendChild(link)
+                            link.click()
+                            document.body.removeChild(link)
                         }}
                         className="w-full"
                         shadowSize="4"

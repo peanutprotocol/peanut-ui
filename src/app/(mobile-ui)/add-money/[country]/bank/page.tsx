@@ -15,6 +15,7 @@ import { useAuth } from '@/context/authContext'
 import { useCreateOnramp } from '@/hooks/useCreateOnramp'
 import { useRouter, useParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useNonEurSepaRedirect } from '@/hooks/useNonEurSepaRedirect'
 import { formatUnits } from 'viem'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
@@ -52,6 +53,14 @@ export default function OnrampBankPage() {
     const { parsedPaymentData } = usePaymentStore()
 
     const selectedCountryPath = params.country as string
+
+    // redirect to add-money if this is a non-eur sepa country (blocked)
+    useNonEurSepaRedirect({
+        countryIdentifier: selectedCountryPath,
+        redirectPath: '/add-money',
+        shouldRedirect: true,
+    })
+
     const selectedCountry = useMemo(() => {
         if (!selectedCountryPath) return null
         return countryData.find((country) => country.type === 'country' && country.path === selectedCountryPath)

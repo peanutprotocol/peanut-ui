@@ -118,6 +118,9 @@ export const ErrorHandler = (error: any) => {
             return 'Could not claim link, please refresh page. If problem persist confirm link with sender'
         } else if (error.toString().includes('Send link already claimed')) {
             return 'Send link already claimed'
+        } else if (error.toString().toLowerCase().includes('liquidity')) {
+            // Squid API liquidity errors - pass through the message
+            return error.message || 'Low liquidity. Please try a smaller amount or different route.'
         } else {
             return 'There was an issue with your request. Please contact support.'
         }

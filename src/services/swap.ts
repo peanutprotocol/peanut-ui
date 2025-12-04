@@ -265,9 +265,18 @@ async function getSquidRouteRaw(params: SquidGetRouteParams, options: RouteOptio
     })
 
     if (!response.ok) {
-        console.error(`Failed to get route: ${response.status}`)
-        console.dir(await response.json())
-        throw new Error(`Failed to get route: ${response.status}`)
+        let errorMessage = `Failed to get route: ${response.status}`
+        try {
+            const errorData = await response.json()
+            if (errorData.message) {
+                // Use Squid's error message directly (e.g., "Low liquidity, please reduce swap amount and try again")
+                errorMessage = errorData.message
+            }
+            console.error('Squid route request failed:', errorData)
+        } catch {
+            console.error(`Failed to get route: ${response.status}`)
+        }
+        throw new Error(errorMessage)
     }
 
     const data = await response.json()
@@ -412,6 +421,7 @@ export type PeanutCrossChainRoute = {
     }[]
     feeCostsUsd: number
     rawResponse: SquidRouteResponse
+    error?: string // Error message if route failed
 }
 
 /**
@@ -425,160 +435,166 @@ export async function getRoute(
     { from, to, ...amount }: RouteParams,
     options: RouteOptions = {}
 ): Promise<PeanutCrossChainRoute> {
-    let fromAmount: string
-    let response: SquidRouteResponse
+    try {
+        let fromAmount: string
+        let response: SquidRouteResponse
 
-    console.info('getRoute', { from, to }, amount)
+        console.info('getRoute', { from, to }, amount)
 
-    if (amount.fromAmount) {
-        fromAmount = amount.fromAmount.toString()
-        response = await getSquidRouteRaw(
-            {
-                fromChain: from.chainId,
-                fromToken: from.tokenAddress,
-                fromAmount: fromAmount,
-                fromAddress: from.address,
-                toAddress: to.address,
-                toChain: to.chainId,
-                toToken: to.tokenAddress,
-            },
-            options
-        )
-    } else if (amount.fromUsd) {
-        // Convert USD to token amount
-        const fromTokenPrice = await fetchTokenPrice(from.tokenAddress, from.chainId)
-        if (!fromTokenPrice) throw new Error('Could not fetch from token price')
+        if (amount.fromAmount) {
+            fromAmount = amount.fromAmount.toString()
+            response = await getSquidRouteRaw(
+                {
+                    fromChain: from.chainId,
+                    fromToken: from.tokenAddress,
+                    fromAmount: fromAmount,
+                    fromAddress: from.address,
+                    toAddress: to.address,
+                    toChain: to.chainId,
+                    toToken: to.tokenAddress,
+                },
+                options
+            )
+        } else if (amount.fromUsd) {
+            // Convert USD to token amount
+            const fromTokenPrice = await fetchTokenPrice(from.tokenAddress, from.chainId)
+            if (!fromTokenPrice) throw new Error('Could not fetch from token price')
 
-        const tokenAmount = Number(amount.fromUsd) / fromTokenPrice.price
-        fromAmount = parseUnits(tokenAmount.toFixed(fromTokenPrice.decimals), fromTokenPrice.decimals).toString()
+            const tokenAmount = Number(amount.fromUsd) / fromTokenPrice.price
+            fromAmount = parseUnits(tokenAmount.toFixed(fromTokenPrice.decimals), fromTokenPrice.decimals).toString()
 
-        response = await getSquidRouteRaw(
-            {
-                fromChain: from.chainId,
-                fromToken: from.tokenAddress,
-                fromAmount,
-                fromAddress: from.address,
-                toAddress: to.address,
-                toChain: to.chainId,
-                toToken: to.tokenAddress,
-            },
-            options
-        )
-    } else if (amount.toAmount) {
-        // Use binary search to find optimal fromAmount
-        response = await findOptimalFromAmount(
-            {
-                fromChain: from.chainId,
-                fromToken: from.tokenAddress,
-                fromAddress: from.address,
-                toAddress: to.address,
-                toChain: to.chainId,
-                toToken: to.tokenAddress,
-            },
-            amount.toAmount,
-            undefined /* _toTokenPrice */,
-            options
-        )
-    } else if (amount.toUsd) {
-        // Convert target USD to token amount, then use binary search
-        const toTokenPrice = await fetchTokenPrice(to.tokenAddress, to.chainId)
-        if (!toTokenPrice) throw new Error('Could not fetch to token price')
+            response = await getSquidRouteRaw(
+                {
+                    fromChain: from.chainId,
+                    fromToken: from.tokenAddress,
+                    fromAmount,
+                    fromAddress: from.address,
+                    toAddress: to.address,
+                    toChain: to.chainId,
+                    toToken: to.tokenAddress,
+                },
+                options
+            )
+        } else if (amount.toAmount) {
+            // Use binary search to find optimal fromAmount
+            response = await findOptimalFromAmount(
+                {
+                    fromChain: from.chainId,
+                    fromToken: from.tokenAddress,
+                    fromAddress: from.address,
+                    toAddress: to.address,
+                    toChain: to.chainId,
+                    toToken: to.tokenAddress,
+                },
+                amount.toAmount,
+                undefined /* _toTokenPrice */,
+                options
+            )
+        } else if (amount.toUsd) {
+            // Convert target USD to token amount, then use binary search
+            const toTokenPrice = await fetchTokenPrice(to.tokenAddress, to.chainId)
+            if (!toTokenPrice) throw new Error('Could not fetch to token price')
 
-        const targetToAmount = parseUnits(
-            (parseFloat(amount.toUsd) / toTokenPrice.price).toFixed(toTokenPrice.decimals),
-            toTokenPrice.decimals
-        )
-
-        response = await findOptimalFromAmount(
-            {
-                fromChain: from.chainId,
-                fromToken: from.tokenAddress,
-                fromAddress: from.address,
-                toAddress: to.address,
-                toChain: to.chainId,
-                toToken: to.tokenAddress,
-            },
-            targetToAmount,
-            toTokenPrice, // Pass the already-fetched price
-            options
-        )
-    } else {
-        throw new Error('No amount specified')
-    }
-
-    const route = response.route
-
-    let feeCostsUsd = [...route.estimate.feeCosts, ...route.estimate.gasCosts].reduce(
-        (sum, cost) => sum + Number(cost.amountUsd),
-        0
-    )
-
-    const transactions: {
-        to: Address
-        data: Hex
-        value: string
-    }[] = []
-
-    // Check if approval is needed for non-native tokens
-    if (!isNativeCurrency(from.tokenAddress)) {
-        const fromAmount = BigInt(route.estimate.fromAmount)
-        const spenderAddress = route.transactionRequest.target
-
-        try {
-            let currentAllowance = await checkTokenAllowance(
-                from.tokenAddress,
-                from.address,
-                spenderAddress,
-                from.chainId
+            const targetToAmount = parseUnits(
+                (parseFloat(amount.toUsd) / toTokenPrice.price).toFixed(toTokenPrice.decimals),
+                toTokenPrice.decimals
             )
 
-            const isUsdtInMainnet = from.chainId === '1' && areEvmAddressesEqual(from.tokenAddress, USDT_IN_MAINNET)
-            // USDT in mainnet is not an erc20 token and needs to have the
-            // allowance reseted to 0 before using it.
-            if (isUsdtInMainnet && currentAllowance > 0n) {
-                transactions.push(createApproveTransaction(from.tokenAddress, spenderAddress, 0n))
-                currentAllowance = 0n
-            }
+            response = await findOptimalFromAmount(
+                {
+                    fromChain: from.chainId,
+                    fromToken: from.tokenAddress,
+                    fromAddress: from.address,
+                    toAddress: to.address,
+                    toChain: to.chainId,
+                    toToken: to.tokenAddress,
+                },
+                targetToAmount,
+                toTokenPrice, // Pass the already-fetched price
+                options
+            )
+        } else {
+            throw new Error('No amount specified')
+        }
 
-            // If current allowance is insufficient, create approve transaction
-            if (currentAllowance < fromAmount) {
-                // Add approval transaction to the transactions array
-                transactions.push(createApproveTransaction(from.tokenAddress, spenderAddress, fromAmount))
+        const route = response.route
 
-                // Add approval cost to fee costs
-                const approvalCostUsd = await estimateApprovalCostUsd(
+        let feeCostsUsd = [...route.estimate.feeCosts, ...route.estimate.gasCosts].reduce(
+            (sum, cost) => sum + Number(cost.amountUsd),
+            0
+        )
+
+        const transactions: {
+            to: Address
+            data: Hex
+            value: string
+        }[] = []
+
+        // Check if approval is needed for non-native tokens
+        if (!isNativeCurrency(from.tokenAddress)) {
+            const fromAmount = BigInt(route.estimate.fromAmount)
+            const spenderAddress = route.transactionRequest.target
+
+            try {
+                let currentAllowance = await checkTokenAllowance(
                     from.tokenAddress,
-                    spenderAddress,
-                    fromAmount,
                     from.address,
+                    spenderAddress,
                     from.chainId
                 )
-                feeCostsUsd += approvalCostUsd
+
+                const isUsdtInMainnet = from.chainId === '1' && areEvmAddressesEqual(from.tokenAddress, USDT_IN_MAINNET)
+                // USDT in mainnet is not an erc20 token and needs to have the
+                // allowance reseted to 0 before using it.
+                if (isUsdtInMainnet && currentAllowance > 0n) {
+                    transactions.push(createApproveTransaction(from.tokenAddress, spenderAddress, 0n))
+                    currentAllowance = 0n
+                }
+
+                // If current allowance is insufficient, create approve transaction
+                if (currentAllowance < fromAmount) {
+                    // Add approval transaction to the transactions array
+                    transactions.push(createApproveTransaction(from.tokenAddress, spenderAddress, fromAmount))
+
+                    // Add approval cost to fee costs
+                    const approvalCostUsd = await estimateApprovalCostUsd(
+                        from.tokenAddress,
+                        spenderAddress,
+                        fromAmount,
+                        from.address,
+                        from.chainId
+                    )
+                    feeCostsUsd += approvalCostUsd
+                }
+            } catch (error) {
+                console.error('Error checking allowance:', error)
+                // Continue without approval transaction if there's an error
             }
-        } catch (error) {
-            console.error('Error checking allowance:', error)
-            // Continue without approval transaction if there's an error
         }
+
+        // Add the main swap transaction
+        transactions.push({
+            to: route.transactionRequest.target,
+            data: route.transactionRequest.data,
+            value: route.transactionRequest.value,
+        })
+
+        const xChainRoute = {
+            expiry: route.transactionRequest.expiry,
+            type: route.estimate.actions[0].type,
+            fromAmount: route.estimate.fromAmount,
+            transactions,
+            feeCostsUsd,
+            rawResponse: response,
+        }
+
+        console.info('xChainRoute', xChainRoute)
+        console.info('xChainRoute created with expiry:', route.transactionRequest.expiry)
+
+        return xChainRoute
+    } catch (error) {
+        // Return error as data - Next.js Server Actions strip thrown error messages in production
+        const message = error instanceof Error ? error.message : 'Failed to get route'
+        return { error: message } as PeanutCrossChainRoute
     }
-
-    // Add the main swap transaction
-    transactions.push({
-        to: route.transactionRequest.target,
-        data: route.transactionRequest.data,
-        value: route.transactionRequest.value,
-    })
-
-    const xChainRoute = {
-        expiry: route.transactionRequest.expiry,
-        type: route.estimate.actions[0].type,
-        fromAmount: route.estimate.fromAmount,
-        transactions,
-        feeCostsUsd,
-        rawResponse: response,
-    }
-
-    console.info('xChainRoute', xChainRoute)
-    console.info('xChainRoute created with expiry:', route.transactionRequest.expiry)
-
-    return xChainRoute
 }

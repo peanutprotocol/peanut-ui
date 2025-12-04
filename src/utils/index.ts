@@ -9,6 +9,7 @@ export * from './history.utils'
 export * from './auth.utils'
 export * from './webauthn.utils'
 export * from './passkeyDebug'
+export * from './passkeyPreflight'
 
 // Bridge utils - explicit exports to avoid naming conflicts
 export {

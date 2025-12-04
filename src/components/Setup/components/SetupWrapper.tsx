@@ -1,7 +1,7 @@
 import starImage from '@/assets/icons/star.png'
 import { Button } from '@/components/0_Bruddle'
 import CloudsBackground from '@/components/0_Bruddle/CloudsBackground'
-import Icon from '@/components/Global/Icon'
+import { Icon } from '@/components/Global/Icons/Icon'
 import { type BeforeInstallPromptEvent, type LayoutType, type ScreenId } from '@/components/Setup/Setup.types'
 import InstallPWA from '@/components/Setup/Views/InstallPWA'
 import { DeviceType } from '@/hooks/useGetDeviceType'
@@ -26,8 +26,11 @@ interface SetupWrapperProps {
     titleClassName?: HTMLDivElement['className']
     showBackButton?: boolean
     showSkipButton?: boolean
+    showLogoutButton?: boolean
     onBack?: () => void
     onSkip?: () => void
+    onLogout?: () => void
+    isLoggingOut?: boolean
     step?: number
     direction?: number
     deferredPrompt?: BeforeInstallPromptEvent | null
@@ -52,31 +55,49 @@ const STAR_POSITIONS = [
 ] as const
 
 /**
- * navigation component for back and skip buttons
- * rendered at the top of the layout when either button is enabled
+ * navigation component for back, skip, and logout buttons
+ * rendered at the top of the layout when any button is enabled
  */
 const Navigation = memo(
     ({
         showBackButton,
         showSkipButton,
+        showLogoutButton,
         onBack,
         onSkip,
-    }: Pick<SetupWrapperProps, 'showBackButton' | 'showSkipButton' | 'onBack' | 'onSkip'>) => {
-        if (!showBackButton && !showSkipButton) return null
+        onLogout,
+        isLoggingOut,
+    }: Pick<
+        SetupWrapperProps,
+        'showBackButton' | 'showSkipButton' | 'showLogoutButton' | 'onBack' | 'onSkip' | 'onLogout' | 'isLoggingOut'
+    >) => {
+        if (!showBackButton && !showSkipButton && !showLogoutButton) return null
 
         return (
             <div className="absolute top-8 z-20 flex w-full items-center justify-between px-6">
                 <div>
                     {showBackButton && (
                         <Button variant="stroke" onClick={onBack} className="h-8 w-8 p-0" aria-label="Go back">
-                            <Icon name="arrow-prev" className="h-7 w-7" />
+                            <Icon name="chevron-up" fill="black" size={32} className="-rotate-90" />
                         </Button>
                     )}
                 </div>
-                <div>
+                <div className="flex items-center gap-3">
                     {showSkipButton && (
                         <Button onClick={onSkip} variant="transparent-dark" className="h-auto w-fit p-0">
                             <span className="text-grey-1">Skip</span>
+                        </Button>
+                    )}
+                    {showLogoutButton && (
+                        <Button
+                            onClick={onLogout}
+                            loading={isLoggingOut}
+                            variant="stroke"
+                            className={twMerge('h-7 w-7 p-0', isLoggingOut && 'pl-3')}
+                            aria-label="Logout"
+                            disabled={isLoggingOut}
+                        >
+                            <Icon name="logout" fill="black" size={24} />
                         </Button>
                     )}
                 </div>
@@ -175,8 +196,11 @@ export const SetupWrapper = memo(
         contentClassName,
         showBackButton,
         showSkipButton,
+        showLogoutButton,
         onBack,
         onSkip,
+        onLogout,
+        isLoggingOut,
         screenId,
         imageClassName,
         deferredPrompt,
@@ -192,8 +216,11 @@ export const SetupWrapper = memo(
                     showSkipButton={
                         showSkipButton || (screenId === 'pwa-install' && (!canInstall || deviceType === DeviceType.WEB))
                     }
+                    showLogoutButton={showLogoutButton}
                     onBack={onBack}
                     onSkip={onSkip}
+                    onLogout={onLogout}
+                    isLoggingOut={isLoggingOut}
                 />
 
                 {/* content container */}

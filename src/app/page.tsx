@@ -11,6 +11,7 @@ import {
     SendInSeconds,
     YourMoney,
     RegulatedRails,
+    TweetCarousel,
 } from '@/components/LandingPage'
 import Footer from '@/components/LandingPage/Footer'
 import Manteca from '@/components/LandingPage/Manteca'
@@ -188,13 +189,15 @@ export default function LandingPage() {
         <Layout className="enable-select !m-0 w-full !p-0">
             <Hero primaryCta={hero.primaryCta} buttonVisible={buttonVisible} buttonScale={buttonScale} />
             <Marquee {...marqueeProps} />
-            <DropLink />
+            <Manteca />
+            <Marquee {...marqueeProps} />
+            <TweetCarousel />
             <Marquee {...marqueeProps} />
             <RegulatedRails />
             <Marquee {...marqueeProps} />
             <YourMoney />
             <Marquee {...marqueeProps} />
-            <Manteca />
+            <DropLink />
             <Marquee {...marqueeProps} />
             <SecurityBuiltIn />
             <Marquee {...marqueeProps} />
