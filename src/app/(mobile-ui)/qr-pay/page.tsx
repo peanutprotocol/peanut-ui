@@ -311,6 +311,9 @@ export default function QRPayPage() {
             // It will convert to local currency for display using isInitialInputUsd=false
             setAmount(paymentLock.paymentAgainstAmount)
             setCurrencyAmount(paymentLock.paymentAssetAmount)
+            setWaitingForMerchantAmount(false)
+            setErrorInitiatingPayment(null)
+            setShouldRetry(false)
         }
     }, [paymentLock?.code, paymentProcessor])
 
@@ -466,6 +469,7 @@ export default function QRPayPage() {
         isLoading: isLoadingPaymentLock,
         error: paymentLockError,
         failureCount,
+        failureReason: paymentLockFailureReason,
     } = useQuery({
         queryKey: ['manteca-payment-lock', qrCode, timestamp],
         queryFn: async ({ queryKey }) => {
@@ -481,10 +485,10 @@ export default function QRPayPage() {
                 return false
             }
             // Retry network/timeout errors up to 2 times (3 total attempts)
-            return failureCount < 2
+            return failureCount < 3
         },
         retryDelay: (attemptIndex) => {
-            const delayMs = Math.min(1000 * 2 ** attemptIndex, 2000) // 1s, 2s exponential backoff
+            const delayMs = 3000 // 3s
             const MAX_RETRIES = 2
             const attemptNumber = attemptIndex + 1 // attemptIndex is 0-based, display as 1-based
             console.log(
@@ -500,7 +504,7 @@ export default function QRPayPage() {
     useEffect(() => {
         if (paymentProcessor !== 'MANTECA') return
 
-        if (isLoadingPaymentLock) {
+        if (isLoadingPaymentLock && !paymentLockFailureReason) {
             setLoadingState('Fetching details')
             return
         }
@@ -511,8 +515,8 @@ export default function QRPayPage() {
             setLoadingState('Idle')
         }
 
-        if (paymentLockError) {
-            const error = paymentLockError as Error
+        if (paymentLockError || paymentLockFailureReason) {
+            const error = paymentLockError ?? paymentLockFailureReason
             setLoadingState('Idle')
 
             // Provider-specific errors: show appropriate message
@@ -530,6 +534,7 @@ export default function QRPayPage() {
         fetchedPaymentLock,
         isLoadingPaymentLock,
         paymentLockError,
+        paymentLockFailureReason,
         paymentLock,
         qrType,
         paymentProcessor,
@@ -967,18 +972,25 @@ export default function QRPayPage() {
     }, [shouldRetry, handleSimplefiRetry])
 
     useEffect(() => {
-        if (waitingForMerchantAmount && !shouldRetry) {
-            if (retryCount.current < 3) {
-                retryCount.current++
-                setTimeout(() => {
-                    setShouldRetry(true)
-                }, 3000)
-            } else {
+        if (paymentProcessor === 'SIMPLEFI') {
+            if (waitingForMerchantAmount && !shouldRetry) {
+                if (retryCount.current < 3) {
+                    retryCount.current++
+                    setTimeout(() => {
+                        setShouldRetry(true)
+                    }, 3000)
+                } else {
+                    setWaitingForMerchantAmount(false)
+                    setShowOrderNotReadyModal(true)
+                }
+            }
+        } else if (paymentProcessor === 'MANTECA') {
+            if (waitingForMerchantAmount && !isLoadingPaymentLock) {
                 setWaitingForMerchantAmount(false)
                 setShowOrderNotReadyModal(true)
             }
         }
-    }, [waitingForMerchantAmount, shouldRetry])
+    }, [waitingForMerchantAmount, shouldRetry, isLoadingPaymentLock, paymentProcessor])
 
     // Show maintenance error if provider is disabled
     if (isProviderDisabled) {
