@@ -504,7 +504,7 @@ export default function QRPayPage() {
     useEffect(() => {
         if (paymentProcessor !== 'MANTECA') return
 
-        if (isLoadingPaymentLock) {
+        if (isLoadingPaymentLock && !paymentLockFailureReason) {
             setLoadingState('Fetching details')
             return
         }
