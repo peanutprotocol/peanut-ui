@@ -1158,7 +1158,10 @@ export default function QRPayPage() {
                     </p>
                 </Card>
                 <Button
-                    onClick={router.refresh}
+                    onClick={() => {
+                        setShowOrderNotReadyModal(false)
+                        setShouldRetry(true)
+                    }}
                     variant="purple"
                     shadowSize="4"
                 >
