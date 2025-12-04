@@ -520,15 +520,9 @@ export default function QRPayPage() {
                 setWaitingForMerchantAmount(true)
             } else {
                 // Network/timeout errors after all retries exhausted
-                if (EQrType.PIX === qrType) {
-                    setErrorInitiatingPayment(
-                        'We are currently experiencing issues with PIX payments due to an external provider. We are working to fix it as soon as possible'
-                    )
-                } else {
-                    setErrorInitiatingPayment(
-                        error.message || 'Failed to load payment details. Please check your connection and try again.'
-                    )
-                }
+                setErrorInitiatingPayment(
+                    `We are currently experiencing issues with ${qrType} payments due to an external provider. We are working to fix it as soon as possible`
+                )
                 setWaitingForMerchantAmount(false)
             }
         }
