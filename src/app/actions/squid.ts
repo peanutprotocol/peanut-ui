@@ -47,7 +47,7 @@ export const getSquidChainsAndTokens = unstable_cache(
         }, {})
 
         tokens.forEach((token) => {
-            if (token.active && token.chainId in chainsById) {
+            if (token.chainId in chainsById) {
                 chainsById[token.chainId].tokens.push(token)
             }
         })
