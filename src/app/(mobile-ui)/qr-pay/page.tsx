@@ -1170,7 +1170,7 @@ export default function QRPayPage() {
     }
 
     // show loading spinner if we're still loading payment data OR KYC state
-    if (isLoadingPaymentData || isLoadingKycState || loadingState.toLowerCase() === 'paying') {
+    if ((isLoadingPaymentData && failureCount === 0) || isLoadingKycState || loadingState.toLowerCase() === 'paying') {
         return (
             <PeanutLoading
                 message={loadingState.toLowerCase() === 'paying' ? 'Almost there! Processing payment...' : undefined}
