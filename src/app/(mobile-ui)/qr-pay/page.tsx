@@ -469,6 +469,7 @@ export default function QRPayPage() {
         isLoading: isLoadingPaymentLock,
         error: paymentLockError,
         failureCount,
+        failureReason: paymentLockFailureReason,
     } = useQuery({
         queryKey: ['manteca-payment-lock', qrCode, timestamp],
         queryFn: async ({ queryKey }) => {
@@ -514,8 +515,8 @@ export default function QRPayPage() {
             setLoadingState('Idle')
         }
 
-        if (paymentLockError) {
-            const error = paymentLockError as Error
+        if (paymentLockError || paymentLockFailureReason) {
+            const error = paymentLockError ?? paymentLockFailureReason
             setLoadingState('Idle')
 
             // Provider-specific errors: show appropriate message
@@ -533,6 +534,7 @@ export default function QRPayPage() {
         fetchedPaymentLock,
         isLoadingPaymentLock,
         paymentLockError,
+        paymentLockFailureReason,
         paymentLock,
         qrType,
         paymentProcessor,
@@ -1170,7 +1172,7 @@ export default function QRPayPage() {
     }
 
     // show loading spinner if we're still loading payment data OR KYC state
-    if ((isLoadingPaymentData && failureCount === 0) || isLoadingKycState || loadingState.toLowerCase() === 'paying') {
+    if (isLoadingPaymentData || isLoadingKycState || loadingState.toLowerCase() === 'paying') {
         return (
             <PeanutLoading
                 message={loadingState.toLowerCase() === 'paying' ? 'Almost there! Processing payment...' : undefined}
