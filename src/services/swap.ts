@@ -265,9 +265,18 @@ async function getSquidRouteRaw(params: SquidGetRouteParams, options: RouteOptio
     })
 
     if (!response.ok) {
-        console.error(`Failed to get route: ${response.status}`)
-        console.dir(await response.json())
-        throw new Error(`Failed to get route: ${response.status}`)
+        let errorMessage = `Failed to get route: ${response.status}`
+        try {
+            const errorData = await response.json()
+            if (errorData.message) {
+                // Use Squid's error message directly (e.g., "Low liquidity, please reduce swap amount and try again")
+                errorMessage = errorData.message
+            }
+            console.error('Squid route request failed:', errorData)
+        } catch {
+            console.error(`Failed to get route: ${response.status}`)
+        }
+        throw new Error(errorMessage)
     }
 
     const data = await response.json()
