@@ -289,7 +289,10 @@ export default function WithdrawBankPage() {
                     />
 
                     <Card className="rounded-sm">
-                        <PaymentInfoRow label={'Full name'} value={user?.user.fullName} />
+                        <PaymentInfoRow
+                            label={'Account Owner'}
+                            value={bankAccount?.details?.accountOwnerName || user?.user.fullName || 'N/A'}
+                        />
                         {bankAccount?.type === AccountType.IBAN ? (
                             <>
                                 <PaymentInfoRow
