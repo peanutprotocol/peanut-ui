@@ -173,11 +173,14 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 const accountNumber = isMx ? data.clabe : data.accountNumber
 
                 // split accountOwnerName into first and last name for all flows
+                // note: bridge api requires both first_name and last_name for individual accounts,
+                // so we validate that accountOwnerName contains at least 2 words in the form
                 let firstName: string
                 let lastName: string
 
                 if (data.accountOwnerName) {
-                    // split the trimmed name into parts using one or more whitespace characters as the separator, this allows to handle cases where the name has multiple parts like "Peanut Guy" or "Happy Peanut Guy"
+                    // split the trimmed name into parts using one or more whitespace characters as the separator
+                    // this allows to handle cases where the name has multiple parts like "Peanut Guy" or "Happy Peanut Guy"
                     const nameParts = data.accountOwnerName.trim().split(/\s+/)
                     firstName = nameParts[0] || ''
                     lastName = nameParts.slice(1).join(' ') || ''
@@ -356,6 +359,14 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                             <div className="w-full space-y-4">
                                 {renderInput('accountOwnerName', 'Account Owner Name', {
                                     required: 'Account owner name is required',
+                                    validate: (value: string) => {
+                                        const trimmed = value.trim()
+                                        const parts = trimmed.split(/\s+/)
+                                        if (parts.length < 2) {
+                                            return 'Please enter both first and last name'
+                                        }
+                                        return true
+                                    },
                                 })}
                             </div>
                         )}
@@ -363,6 +374,14 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                             <div className="w-full space-y-4">
                                 {renderInput('accountOwnerName', 'Account Owner Name', {
                                     required: 'Account owner name is required',
+                                    validate: (value: string) => {
+                                        const trimmed = value.trim()
+                                        const parts = trimmed.split(/\s+/)
+                                        if (parts.length < 2) {
+                                            return 'Please enter both first and last name'
+                                        }
+                                        return true
+                                    },
                                 })}
                             </div>
                         )}
@@ -379,6 +398,14 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                             <div className="w-full space-y-4">
                                 {renderInput('accountOwnerName', 'Account Owner Name', {
                                     required: 'Account owner name is required',
+                                    validate: (value: string) => {
+                                        const trimmed = value.trim()
+                                        const parts = trimmed.split(/\s+/)
+                                        if (parts.length < 2) {
+                                            return 'Please enter both first and last name'
+                                        }
+                                        return true
+                                    },
                                 })}
                             </div>
                         )}
