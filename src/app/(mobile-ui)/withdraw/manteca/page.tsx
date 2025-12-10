@@ -45,6 +45,7 @@ import { PointsAction } from '@/services/services.types'
 import { usePointsConfetti } from '@/hooks/usePointsConfetti'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
+import PointsCard from '@/components/Common/PointsCard'
 
 type MantecaWithdrawStep = 'amountInput' | 'bankDetails' | 'review' | 'success' | 'failure'
 
@@ -369,13 +370,7 @@ export default function MantecaWithdrawFlow() {
 
                     {/* Points Display - ref used for confetti origin point */}
                     {pointsData?.estimatedPoints && (
-                        <div ref={pointsDivRef} className="flex justify-center gap-2">
-                            <Image src={STAR_STRAIGHT_ICON} alt="star" width={20} height={20} />
-                            <p className="text-sm font-medium text-black">
-                                You&apos;ve earned {pointsData.estimatedPoints}{' '}
-                                {pointsData.estimatedPoints === 1 ? 'point' : 'points'}!
-                            </p>
-                        </div>
+                        <PointsCard points={pointsData.estimatedPoints} pointsDivRef={pointsDivRef} />
                     )}
 
                     <div className="w-full space-y-5">
