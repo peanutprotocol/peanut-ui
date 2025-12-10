@@ -203,7 +203,7 @@ const PointsPage = () => {
                                 <div className="flex items-center gap-2">
                                     <Icon name="info" className="size-4 flex-shrink-0 text-black" />
                                     <p className="text-sm text-black">
-                                        Experimental. Only availabe for Seedlings badge holders.
+                                        Experimental. Only available for Seedlings badge holders.
                                     </p>
                                 </div>
                             </>
