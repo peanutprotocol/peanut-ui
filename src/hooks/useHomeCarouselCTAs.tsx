@@ -14,6 +14,7 @@ import { DEVCONNECT_INTENT_EXPIRY_MS } from '@/constants'
 import { DeviceType, useDeviceType } from './useGetDeviceType'
 import { usePWAStatus } from './usePWAStatus'
 import { useModalsContext } from '@/context/ModalsContext'
+import { useGeoLocation } from './useGeoLocation'
 
 export type CarouselCTA = {
     id: string
@@ -42,6 +43,7 @@ export const useHomeCarouselCTAs = () => {
     const { setIsIosPwaInstallModalOpen } = useModalsContext()
 
     const { setIsQRScannerOpen } = useQrCodeContext()
+    const { countryCode: userCountryCode } = useGeoLocation()
 
     // --------------------------------------------------------------------------------------------------
     /**
@@ -158,6 +160,33 @@ export const useHomeCarouselCTAs = () => {
         }
 
         // ------------------------------------------------------------------------------------------------
+        // LATAM Cashback CTA - show only to users in Argentina or Brazil
+        // Encourage them to invite friends to earn more cashback
+        const isLatamUser = userCountryCode === 'AR' || userCountryCode === 'BR'
+        if (isLatamUser && (isUserKycApproved || isUserMantecaKycApproved)) {
+            _carouselCTAs.push({
+                id: 'latam-cashback-invite',
+                title: (
+                    <p>
+                        Earn <b>20% cashback</b> on QR payments
+                    </p>
+                ),
+                description: (
+                    <p>
+                        Invite friends to <b>unlock more rewards</b>. The more they use, the more you earn!
+                    </p>
+                ),
+                iconContainerClassName: 'bg-secondary-1',
+                icon: 'gift',
+                onClick: () => {
+                    router.push('/profile/referral')
+                },
+                iconSize: 16,
+            })
+        }
+        // ------------------------------------------------------------------------------------------------
+
+        // ------------------------------------------------------------------------------------------------
         // add devconnect payment cta if there's a pending intent
         // @dev: note, this code needs to be deleted post devconnect, this is just to temporarily support onramp to devconnect wallet using bank accounts
         if (pendingDevConnectIntent) {
@@ -220,6 +249,7 @@ export const useHomeCarouselCTAs = () => {
         setIsQRScannerOpen,
         deviceType,
         isPwa,
+        userCountryCode,
     ])
 
     useEffect(() => {
