@@ -156,16 +156,14 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                             sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-top-navigation-by-user-activation allow-media-devices"
                         />
                         <div className="flex h-[15%] w-full flex-col items-center justify-center gap-2 px-5">
-                            <Button
-                                variant={'transparent'}
-                                className={`h-8 max-w-md font-normal underline`}
-                                onClick={() => {
-                                    window.open(src, '_blank', 'noopener,noreferrer')
-                                }}
-                                shadowType="primary"
+                            <a
+                                href={src}
+                                rel="external nofollow"
+                                target="_blank"
+                                className={`h-8 font-normal underline`}
                             >
                                 Continue in browser
-                            </Button>
+                            </a>
 
                             <button
                                 onClick={() => {
