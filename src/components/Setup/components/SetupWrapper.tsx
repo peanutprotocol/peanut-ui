@@ -211,7 +211,8 @@ export const SetupWrapper = memo(
     }: SetupWrapperProps) => {
         const { isBravePWAInstalled } = useBravePWAInstallState()
 
-        const shouldShowBraveInstalledHeaderOnly = screenId === 'pwa-install' && isBravePWAInstalled
+        const shouldShowBraveInstalledHeaderOnly =
+            (screenId === 'pwa-install' || screenId === 'android-initial-pwa-install') && isBravePWAInstalled
 
         const headingTitle = shouldShowBraveInstalledHeaderOnly ? 'Success!' : title
         const headingDescription = shouldShowBraveInstalledHeaderOnly

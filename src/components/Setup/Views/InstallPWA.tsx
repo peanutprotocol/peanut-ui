@@ -29,66 +29,24 @@ const InstallPWA = ({
     const toast = useToast()
     const { handleNext, isLoading: isSetupFlowLoading } = useSetupFlow()
     const [showModal, setShowModal] = useState(false)
-    const [installComplete, setInstallComplete] = useState(false)
     const [installCancelled, setInstallCancelled] = useState(false)
     const [isInstallInProgress, setIsInstallInProgress] = useState(false)
-    const [isPWAInstalled, setIsPWAInstalled] = useState(false)
-    const { isBrave } = useBravePWAInstallState()
+    const { isBrave, isPWAInstalled } = useBravePWAInstallState()
 
     const { user } = useAuth()
     const { push } = useRouter()
 
     useEffect(() => {
-        if (installComplete) {
-            setIsPWAInstalled(true)
-            return
-        }
-        if (typeof window === 'undefined') return
-
-        const checkInstallation = async () => {
-            const pwaInstalledByMedia = window.matchMedia('(display-mode: standalone)').matches
-            if (pwaInstalledByMedia) {
-                setIsPWAInstalled(true)
-                return
-            }
-            const _navigator = window.navigator as Navigator & {
-                getInstalledRelatedApps: () => Promise<
-                    { platform: string; url?: string; id?: string; version?: string }[]
-                >
-            }
-            const installedApps = _navigator.getInstalledRelatedApps ? await _navigator.getInstalledRelatedApps() : []
-            if (installedApps.length > 0) {
-                setIsPWAInstalled(true)
-            } else {
-                setIsPWAInstalled(false)
-            }
-        }
-
-        checkInstallation()
-    }, [installComplete])
-
-    useEffect(() => {
         if (!!user) push('/home')
-    }, [user])
+    }, [user, push])
 
+    // reset install progress when PWA is detected as installed
     useEffect(() => {
-        const handleAppInstalled = () => {
-            setTimeout(() => {
-                setInstallComplete(true)
-                setIsInstallInProgress(false)
-                setInstallCancelled(false)
-            }, 10000) // 10 seconds delay until install is complete
+        if (isPWAInstalled) {
+            setIsInstallInProgress(false)
+            setInstallCancelled(false)
         }
-
-        if (typeof window !== 'undefined') {
-            window.addEventListener('appinstalled', handleAppInstalled)
-        }
-        return () => {
-            if (typeof window !== 'undefined') {
-                window.removeEventListener('appinstalled', handleAppInstalled)
-            }
-        }
-    }, [])
+    }, [isPWAInstalled])
 
     useEffect(() => {
         if (screenId === 'pwa-install' && (deviceType === DeviceType.WEB || deviceType === DeviceType.IOS)) {
@@ -119,8 +77,8 @@ const InstallPWA = ({
     }, [deferredPrompt, toast])
 
     const AndroidPWASpecificInstallFlow = () => {
-        // Scenario 1: Install finished (either PWA already there, or 'appinstalled' event fired)
-        if (isPWAInstalled || installComplete) {
+        // Scenario 1: Install finished (PWA is detected as installed)
+        if (isPWAInstalled) {
             // if already in standalone mode (pwa is open), proceed to next step
             if (window.matchMedia('(display-mode: standalone)').matches) {
                 return (
@@ -236,7 +194,7 @@ const InstallPWA = ({
                                 shadowSize="4"
                                 variant="purple"
                             >
-                                {installComplete ? 'Open in the App' : 'Install App'}
+                                {isPWAInstalled ? 'Open in the App' : 'Install App'}
                             </Button>
                         </div>
                         {showModal && (
