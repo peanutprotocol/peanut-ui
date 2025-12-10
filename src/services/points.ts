@@ -31,6 +31,8 @@ type InvitesGraphResponse = {
     error?: string
 }
 
+const GRAPH_TIMEOUT_MS = 30000
+
 async function fetchInvitesGraph(
     endpoint: string,
     extraHeaders?: Record<string, string>,
@@ -44,21 +46,18 @@ async function fetchInvitesGraph(
             return { success: false, data: null, error: 'Not authenticated. Please log in.' }
         }
 
-        // Add 30s timeout for large graph data
-        const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 30000)
-
-        const response = await fetchWithSentry(`${PEANUT_API_URL}${endpoint}`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${jwtToken}`,
-                ...extraHeaders,
+        const response = await fetchWithSentry(
+            `${PEANUT_API_URL}${endpoint}`,
+            {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${jwtToken}`,
+                    ...extraHeaders,
+                },
             },
-            signal: controller.signal,
-        })
-
-        clearTimeout(timeoutId)
+            GRAPH_TIMEOUT_MS // 30s timeout for large graph data
+        )
 
         if (!response.ok) {
             console.error('getInvitesGraph: API request failed', response.status, response.statusText)
@@ -75,7 +74,8 @@ async function fetchInvitesGraph(
         const data = await response.json()
         return { success: true, data }
     } catch (error) {
-        if (error instanceof Error && error.name === 'AbortError') {
+        // fetchWithSentry throws a regular Error with timeout message, not AbortError
+        if (error instanceof Error && error.message.includes('timed out')) {
             console.error('getInvitesGraph: Request timeout after 30s')
             return { success: false, data: null, error: 'Request timeout. The graph is too large.' }
         } else {
