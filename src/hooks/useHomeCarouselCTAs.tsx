@@ -14,6 +14,7 @@ import { DEVCONNECT_INTENT_EXPIRY_MS } from '@/constants'
 import { DeviceType, useDeviceType } from './useGetDeviceType'
 import { usePWAStatus } from './usePWAStatus'
 import { useModalsContext } from '@/context/ModalsContext'
+import { useGeoLocation } from './useGeoLocation'
 
 export type CarouselCTA = {
     id: string
@@ -41,6 +42,7 @@ export const useHomeCarouselCTAs = () => {
     const { setIsIosPwaInstallModalOpen } = useModalsContext()
 
     const { setIsQRScannerOpen } = useQrCodeContext()
+    const { countryCode: userCountryCode } = useGeoLocation()
 
     // --------------------------------------------------------------------------------------------------
     /**
@@ -90,6 +92,10 @@ export const useHomeCarouselCTAs = () => {
     const generateCarouselCTAs = useCallback(() => {
         const _carouselCTAs: CarouselCTA[] = []
 
+        // DRY: Check KYC approval status once
+        const hasKycApproval = isUserKycApproved || isUserMantecaKycApproved
+        const isLatamUser = userCountryCode === 'AR' || userCountryCode === 'BR'
+
         // show notification cta only in pwa when notifications are not granted
         // clicking it triggers native prompt (or shows reinstall modal if denied)
         if (!isPermissionGranted && isPwa) {
@@ -122,7 +128,7 @@ export const useHomeCarouselCTAs = () => {
         }
 
         // Show QR code payment prompt if user's Bridge or Manteca KYC is approved.
-        if (isUserKycApproved || isUserMantecaKycApproved) {
+        if (hasKycApproval) {
             _carouselCTAs.push({
                 id: 'qr-payment',
                 title: (
@@ -143,6 +149,32 @@ export const useHomeCarouselCTAs = () => {
                 iconSize: 16,
             })
         }
+
+        // ------------------------------------------------------------------------------------------------
+        // LATAM Cashback CTA - show to all users in Argentina or Brazil
+        // Encourage them to invite friends to earn more cashback (and complete KYC if needed)
+        if (isLatamUser) {
+            _carouselCTAs.push({
+                id: 'latam-cashback-invite',
+                title: (
+                    <p>
+                        Earn <b>20% cashback</b> on QR payments
+                    </p>
+                ),
+                description: (
+                    <p>
+                        Invite friends to <b>unlock more rewards</b>. The more they use, the more you earn!
+                    </p>
+                ),
+                iconContainerClassName: 'bg-secondary-1',
+                icon: 'gift',
+                onClick: () => {
+                    router.push('/points')
+                },
+                iconSize: 16,
+            })
+        }
+        // ------------------------------------------------------------------------------------------------
 
         // ------------------------------------------------------------------------------------------------
         // add devconnect payment cta if there's a pending intent
@@ -171,7 +203,7 @@ export const useHomeCarouselCTAs = () => {
         }
         // --------------------------------------------------------------------------------------------------
 
-        if (!isUserKycApproved && !isUserBridgeKycUnderReview) {
+        if (!hasKycApproval && !isUserBridgeKycUnderReview) {
             _carouselCTAs.push({
                 id: 'kyc-prompt',
                 title: (
@@ -207,6 +239,7 @@ export const useHomeCarouselCTAs = () => {
         setIsQRScannerOpen,
         deviceType,
         isPwa,
+        userCountryCode,
     ])
 
     useEffect(() => {
