@@ -92,6 +92,10 @@ export const useHomeCarouselCTAs = () => {
     const generateCarouselCTAs = useCallback(() => {
         const _carouselCTAs: CarouselCTA[] = []
 
+        // DRY: Check KYC approval status once
+        const hasKycApproval = isUserKycApproved || isUserMantecaKycApproved
+        const isLatamUser = userCountryCode === 'AR' || userCountryCode === 'BR'
+
         // show notification cta only in pwa when notifications are not granted
         // clicking it triggers native prompt (or shows reinstall modal if denied)
         if (!isPermissionGranted && isPwa) {
@@ -124,7 +128,7 @@ export const useHomeCarouselCTAs = () => {
         }
 
         // Show QR code payment prompt if user's Bridge or Manteca KYC is approved.
-        if (isUserKycApproved || isUserMantecaKycApproved) {
+        if (hasKycApproval) {
             _carouselCTAs.push({
                 id: 'qr-payment',
                 title: (
@@ -147,10 +151,9 @@ export const useHomeCarouselCTAs = () => {
         }
 
         // ------------------------------------------------------------------------------------------------
-        // LATAM Cashback CTA - show only to users in Argentina or Brazil
-        // Encourage them to invite friends to earn more cashback
-        const isLatamUser = userCountryCode === 'AR' || userCountryCode === 'BR'
-        if (isLatamUser && (isUserKycApproved || isUserMantecaKycApproved)) {
+        // LATAM Cashback CTA - show to all users in Argentina or Brazil
+        // Encourage them to invite friends to earn more cashback (and complete KYC if needed)
+        if (isLatamUser) {
             _carouselCTAs.push({
                 id: 'latam-cashback-invite',
                 title: (
@@ -166,7 +169,7 @@ export const useHomeCarouselCTAs = () => {
                 iconContainerClassName: 'bg-secondary-1',
                 icon: 'gift',
                 onClick: () => {
-                    router.push('/profile/referral')
+                    router.push('/points')
                 },
                 iconSize: 16,
             })
@@ -200,7 +203,7 @@ export const useHomeCarouselCTAs = () => {
         }
         // --------------------------------------------------------------------------------------------------
 
-        if (!isUserKycApproved && !isUserBridgeKycUnderReview) {
+        if (!hasKycApproval && !isUserBridgeKycUnderReview) {
             _carouselCTAs.push({
                 id: 'kyc-prompt',
                 title: (
