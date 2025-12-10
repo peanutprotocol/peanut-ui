@@ -26,3 +26,10 @@ export const isDeviceOsSupported = (ua: string): boolean => {
     }
     return true // other os types are considered supported by this check
 }
+
+// detects if the current browser is Brave
+export const isBraveBrowser = () => {
+    if (typeof window === 'undefined') return false
+    // brave browser has a specific navigator.brave property
+    return !!(navigator as Navigator & { brave?: { isBrave: () => Promise<boolean> } }).brave
+}

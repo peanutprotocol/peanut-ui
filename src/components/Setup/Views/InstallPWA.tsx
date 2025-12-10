@@ -11,15 +11,9 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import { captureException } from '@sentry/nextjs'
 import { DeviceType } from '@/hooks/useGetDeviceType'
+import { useBravePWAInstallState } from '@/hooks/useBravePWAInstallState'
 
 const StepTitle = ({ text }: { text: string }) => <h3 className="text-xl font-extrabold leading-6">{text}</h3>
-
-// detect if the browser is brave
-const isBraveBrowser = () => {
-    if (typeof window === 'undefined') return false
-    // brave browser has a specific navigator.brave property
-    return !!(navigator as Navigator & { brave?: { isBrave: () => Promise<boolean> } }).brave
-}
 
 const InstallPWA = ({
     canInstall,
@@ -39,7 +33,7 @@ const InstallPWA = ({
     const [installCancelled, setInstallCancelled] = useState(false)
     const [isInstallInProgress, setIsInstallInProgress] = useState(false)
     const [isPWAInstalled, setIsPWAInstalled] = useState(false)
-    const [isBrave, setIsBrave] = useState(false)
+    const { isBrave, isBravePWAInstalled } = useBravePWAInstallState()
     const { user } = useAuth()
     const { push } = useRouter()
 
@@ -76,10 +70,11 @@ const InstallPWA = ({
         if (!!user) push('/home')
     }, [user])
 
-    // detect brave browser on mount
-    useEffect(() => {
-        setIsBrave(isBraveBrowser())
-    }, [])
+    // if on brave, on the pwa-install screen, and PWA is installed,
+    // let the SetupWrapper handle the copy and don't render any content here
+    if (screenId === 'pwa-install' && deviceType === DeviceType.ANDROID && isBravePWAInstalled) {
+        return null
+    }
 
     useEffect(() => {
         const handleAppInstalled = () => {
