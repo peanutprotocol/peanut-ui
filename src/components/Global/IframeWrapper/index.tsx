@@ -6,6 +6,7 @@ import ActionModal from '../ActionModal'
 import { useRouter } from 'next/navigation'
 import StartVerificationView from './StartVerificationView'
 import { useSupportModalContext } from '@/context/SupportModalContext'
+import NavHeader from '../NavHeader'
 
 export type IFrameWrapperProps = {
     src: string
@@ -136,6 +137,16 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
             ) : (
                 <div className="flex h-full flex-col gap-2 p-0">
                     <div className="h-full w-full flex-grow overflow-scroll">
+                        <div className="absolute right-5 top-5">
+                            <NavHeader
+                                icon="cancel"
+                                onPrev={() => {
+                                    setModalVariant('stop-verification')
+                                    setIsHelpModalOpen(true)
+                                }}
+                            />
+                        </div>
+
                         <iframe
                             key={src}
                             src={src}
@@ -149,12 +160,11 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                                 variant={'transparent'}
                                 className={`h-8 max-w-md font-normal underline`}
                                 onClick={() => {
-                                    setModalVariant('stop-verification')
-                                    setIsHelpModalOpen(true)
+                                    window.open(src, '_blank', 'noopener,noreferrer')
                                 }}
                                 shadowType="primary"
                             >
-                                Stop verification process
+                                Continue in browser
                             </Button>
 
                             <button
