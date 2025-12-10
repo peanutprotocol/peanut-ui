@@ -428,11 +428,9 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                     onPrev={() => setClaimBankFlowStep(null)}
                     savedAccounts={savedAccounts}
                     onAccountClick={async (account) => {
-                        const [firstName, ...lastNameParts] = (
-                            account.details.accountOwnerName ||
-                            user?.user.fullName ||
-                            ''
-                        ).split(' ')
+                        // for saved accounts, use the user's full name (these are assumed to be user's own accounts)
+                        const fullNameToUse = user?.user.fullName || ''
+                        const [firstName, ...lastNameParts] = fullNameToUse.split(' ')
                         const lastName = lastNameParts.join(' ')
 
                         const bankDetails = {
