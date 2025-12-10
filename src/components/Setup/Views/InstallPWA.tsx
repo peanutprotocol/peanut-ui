@@ -8,7 +8,7 @@ import { type BeforeInstallPromptEvent, type ScreenId } from '@/components/Setup
 import { useAuth } from '@/context/authContext'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { captureException } from '@sentry/nextjs'
 import { DeviceType } from '@/hooks/useGetDeviceType'
 
@@ -40,37 +40,40 @@ const InstallPWA = ({
     const [isInstallInProgress, setIsInstallInProgress] = useState(false)
     const [isPWAInstalled, setIsPWAInstalled] = useState(false)
     const [isBrave, setIsBrave] = useState(false)
+    const installTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     const { user } = useAuth()
     const { push } = useRouter()
+
+    const clearInstallTimeout = useCallback(() => {
+        if (installTimeoutRef.current) {
+            clearTimeout(installTimeoutRef.current)
+            installTimeoutRef.current = null
+        }
+    }, [])
+
+    const checkInstallation = useCallback(async () => {
+        if (typeof window === 'undefined') return false
+        const pwaInstalledByMedia = window.matchMedia('(display-mode: standalone)').matches
+        if (pwaInstalledByMedia) {
+            setIsPWAInstalled(true)
+            return true
+        }
+        const _navigator = window.navigator as Navigator & {
+            getInstalledRelatedApps: () => Promise<{ platform: string; url?: string; id?: string; version?: string }[]>
+        }
+        const installedApps = _navigator.getInstalledRelatedApps ? await _navigator.getInstalledRelatedApps() : []
+        const installed = installedApps.length > 0
+        setIsPWAInstalled(installed)
+        return installed
+    }, [])
 
     useEffect(() => {
         if (installComplete) {
             setIsPWAInstalled(true)
             return
         }
-        if (typeof window === 'undefined') return
-
-        const checkInstallation = async () => {
-            const pwaInstalledByMedia = window.matchMedia('(display-mode: standalone)').matches
-            if (pwaInstalledByMedia) {
-                setIsPWAInstalled(true)
-                return
-            }
-            const _navigator = window.navigator as Navigator & {
-                getInstalledRelatedApps: () => Promise<
-                    { platform: string; url?: string; id?: string; version?: string }[]
-                >
-            }
-            const installedApps = _navigator.getInstalledRelatedApps ? await _navigator.getInstalledRelatedApps() : []
-            if (installedApps.length > 0) {
-                setIsPWAInstalled(true)
-            } else {
-                setIsPWAInstalled(false)
-            }
-        }
-
-        checkInstallation()
-    }, [installComplete])
+        void checkInstallation()
+    }, [checkInstallation, installComplete])
 
     useEffect(() => {
         if (!!user) push('/home')
@@ -79,10 +82,11 @@ const InstallPWA = ({
     // detect brave browser on mount
     useEffect(() => {
         setIsBrave(isBraveBrowser())
-    }, [])
+    }, [clearInstallTimeout])
 
     useEffect(() => {
         const handleAppInstalled = () => {
+            clearInstallTimeout()
             setTimeout(() => {
                 setInstallComplete(true)
                 setIsInstallInProgress(false)
@@ -97,8 +101,16 @@ const InstallPWA = ({
             if (typeof window !== 'undefined') {
                 window.removeEventListener('appinstalled', handleAppInstalled)
             }
+            clearInstallTimeout()
         }
     }, [])
+
+    useEffect(() => {
+        if (installComplete || isPWAInstalled) {
+            clearInstallTimeout()
+            setIsInstallInProgress(false)
+        }
+    }, [clearInstallTimeout, installComplete, isPWAInstalled])
 
     useEffect(() => {
         if (screenId === 'pwa-install' && (deviceType === DeviceType.WEB || deviceType === DeviceType.IOS)) {
@@ -111,6 +123,7 @@ const InstallPWA = ({
 
     const handleInstall = useCallback(async () => {
         if (!deferredPrompt?.prompt) return
+        clearInstallTimeout()
         setIsInstallInProgress(true)
         setInstallCancelled(false)
         try {
@@ -119,14 +132,25 @@ const InstallPWA = ({
             if (outcome === 'dismissed') {
                 setInstallCancelled(true)
                 setIsInstallInProgress(false)
+                return
             }
+
+            // some browsers report "accepted" even if the native modal is later cancelled.
+            // re-check install state after a short grace period to unstick the UI.
+            installTimeoutRef.current = setTimeout(async () => {
+                const installed = await checkInstallation()
+                if (!installed) {
+                    setIsInstallInProgress(false)
+                    setInstallCancelled(true)
+                }
+            }, 6000)
         } catch (error) {
             console.error('Error during PWA installation prompt:', error)
             captureException(error)
             toast.error(JSON.stringify(deferredPrompt))
             setIsInstallInProgress(false)
         }
-    }, [deferredPrompt, toast])
+    }, [checkInstallation, clearInstallTimeout, deferredPrompt, toast])
 
     const AndroidPWASpecificInstallFlow = () => {
         // Scenario 1: Install finished (either PWA already there, or 'appinstalled' event fired)
