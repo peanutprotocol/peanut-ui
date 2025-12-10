@@ -9,7 +9,7 @@ import useKycStatus from './useKycStatus'
 import type { StaticImageData } from 'next/image'
 import { useQrCodeContext } from '@/context/QrCodeContext'
 import { getUserPreferences, updateUserPreferences } from '@/utils'
-import { DEVCONNECT_LOGO } from '@/assets'
+import { DEVCONNECT_LOGO, STAR_STRAIGHT_ICON } from '@/assets'
 import { DEVCONNECT_INTENT_EXPIRY_MS } from '@/constants'
 import { DeviceType, useDeviceType } from './useGetDeviceType'
 import { usePWAStatus } from './usePWAStatus'
@@ -21,6 +21,7 @@ export type CarouselCTA = {
     description: string | React.ReactNode
     icon: IconName
     logo?: StaticImageData
+    logoSize?: number
     // optional handlers for notification prompt
     onClick?: () => void | Promise<void>
     onClose?: () => void
@@ -89,6 +90,18 @@ export const useHomeCarouselCTAs = () => {
 
     const generateCarouselCTAs = useCallback(() => {
         const _carouselCTAs: CarouselCTA[] = []
+
+        _carouselCTAs.push({
+            id: 'invite-friends',
+            title: 'Invite friends. Get cashback',
+            description: "Your friends' activity earns you badges, perks & rewards.",
+            icon: 'invite-heart',
+            logo: STAR_STRAIGHT_ICON,
+            logoSize: 30,
+            onClick: () => {
+                router.push('/points')
+            },
+        })
 
         // show notification cta only in pwa when notifications are not granted
         // clicking it triggers native prompt (or shows reinstall modal if denied)
