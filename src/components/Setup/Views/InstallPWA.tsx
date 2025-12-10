@@ -33,7 +33,8 @@ const InstallPWA = ({
     const [installCancelled, setInstallCancelled] = useState(false)
     const [isInstallInProgress, setIsInstallInProgress] = useState(false)
     const [isPWAInstalled, setIsPWAInstalled] = useState(false)
-    const { isBrave, isBravePWAInstalled } = useBravePWAInstallState()
+    const { isBrave } = useBravePWAInstallState()
+
     const { user } = useAuth()
     const { push } = useRouter()
 
@@ -69,12 +70,6 @@ const InstallPWA = ({
     useEffect(() => {
         if (!!user) push('/home')
     }, [user])
-
-    // if on brave, on the pwa-install screen, and PWA is installed,
-    // let the SetupWrapper handle the copy and don't render any content here
-    if (screenId === 'pwa-install' && deviceType === DeviceType.ANDROID && isBravePWAInstalled) {
-        return null
-    }
 
     useEffect(() => {
         const handleAppInstalled = () => {
@@ -145,17 +140,7 @@ const InstallPWA = ({
             // if on brave browser, show instructions instead of trying to auto-open
             // because brave doesn't support auto-opening pwa from browser
             if (isBrave) {
-                return (
-                    <div className="space-y-2 text-center">
-                        <p className="text-sm text-grey-1">App installed successfully!</p>
-                        <p className="text-sm text-grey-1">
-                            Please open the Peanut app from your home screen to continue setup.
-                        </p>
-                        {/* <Button onClick={() => handleNext()} className="mt-4 w-full" shadowSize="4" variant="purple">
-                            Continue
-                        </Button> */}
-                    </div>
-                )
+                return null
             }
 
             // for other browsers, try to open the pwa in a new tab
