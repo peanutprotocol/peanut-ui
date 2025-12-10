@@ -56,7 +56,7 @@ const PointsPage = () => {
 
     const { data: myGraphResult } = useQuery({
         queryKey: ['myInviteGraph', user?.user.userId],
-        queryFn: () => pointsApi.getInvitesGraph(''),
+        queryFn: () => pointsApi.getUserInvitesGraph(),
         enabled:
             !!user?.user.userId && user?.user?.badges?.some((badge) => badge.code === 'SEEDLING_DEVCONNECT_BA_2025'),
     })
