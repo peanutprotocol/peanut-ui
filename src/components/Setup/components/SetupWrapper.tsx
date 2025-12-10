@@ -8,7 +8,7 @@ import { useBravePWAInstallState } from '@/hooks/useBravePWAInstallState'
 import { DeviceType } from '@/hooks/useGetDeviceType'
 import classNames from 'classnames'
 import Image from 'next/image'
-import { Children, type ReactNode, cloneElement, memo, type ReactElement } from 'react'
+import { Children, type ReactNode, cloneElement, memo, type ReactElement, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 
 /**
@@ -209,10 +209,13 @@ export const SetupWrapper = memo(
         deviceType,
         titleClassName,
     }: SetupWrapperProps) => {
-        const { isBravePWAInstalled } = useBravePWAInstallState()
+        const { isBrave } = useBravePWAInstallState()
+        const [showBraveSuccessMessage, setShowBraveSuccessMessage] = useState(false)
 
         const shouldShowBraveInstalledHeaderOnly =
-            (screenId === 'pwa-install' || screenId === 'android-initial-pwa-install') && isBravePWAInstalled
+            (screenId === 'pwa-install' || screenId === 'android-initial-pwa-install') &&
+            isBrave &&
+            showBraveSuccessMessage
 
         const headingTitle = shouldShowBraveInstalledHeaderOnly ? 'Success!' : title
         const headingDescription = shouldShowBraveInstalledHeaderOnly
@@ -282,6 +285,7 @@ export const SetupWrapper = memo(
                                         canInstall,
                                         deviceType,
                                         screenId,
+                                        setShowBraveSuccessMessage,
                                     })
                                 }
                                 return child
