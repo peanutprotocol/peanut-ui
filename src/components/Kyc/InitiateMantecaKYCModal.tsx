@@ -19,6 +19,7 @@ interface Props {
     description?: string | React.ReactNode
     ctaText?: string
     footer?: React.ReactNode
+    autoStartKyc?: boolean
 }
 
 const InitiateMantecaKYCModal = ({
@@ -31,6 +32,7 @@ const InitiateMantecaKYCModal = ({
     description,
     ctaText,
     footer,
+    autoStartKyc,
 }: Props) => {
     const { isLoading, iframeOptions, openMantecaKyc, handleIframeClose } = useMantecaKycFlow({
         onClose: onManualClose, // any non-success close from iframe is a manual close in case of Manteca KYC
@@ -53,16 +55,26 @@ const InitiateMantecaKYCModal = ({
         }
     }, [])
 
+    useEffect(() => {
+        if (autoStartKyc) {
+            openMantecaKyc(country)
+        }
+    }, [autoStartKyc])
+
+    const isAutoStarting = autoStartKyc && isLoading
+    const displayTitle = isAutoStarting ? 'Starting verification...' : (title ?? 'Verify your identity first')
+    const displayDescription = isAutoStarting
+        ? 'Please wait while we start your verification...'
+        : (description ??
+          'To continue, you need to complete identity verification. This usually takes just a few minutes.')
+
     return (
         <>
             <ActionModal
                 visible={isOpen && !iframeOptions.visible}
                 onClose={onClose}
-                title={title ?? 'Verify your identity first'}
-                description={
-                    description ??
-                    'To continue, you need to complete identity verification. This usually takes just a few minutes.'
-                }
+                title={displayTitle}
+                description={displayDescription}
                 icon={'badge' as IconName}
                 modalPanelClassName="max-w-full m-4"
                 ctaClassName="grid grid-cols-1 gap-3"
@@ -103,6 +115,7 @@ export const MantecaGeoSpecificKycModal = ({
 }) => {
     return (
         <InitiateMantecaKYCModal
+            autoStartKyc={!isUserBridgeKycApproved}
             title={isUserBridgeKycApproved ? `${selectedCountry.title} check required` : 'Verify your identity'}
             description={
                 isUserBridgeKycApproved ? (
