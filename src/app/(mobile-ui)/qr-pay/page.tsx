@@ -1572,7 +1572,7 @@ export default function QRPayPage() {
                         {isLoading || isWaitingForWebSocket
                             ? isWaitingForWebSocket
                                 ? 'Processing Payment...'
-                                : loadingState
+                                : 'Loading...'
                             : 'Pay'}
                     </Button>
 
