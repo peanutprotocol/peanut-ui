@@ -4,10 +4,11 @@ import CloudsBackground from '@/components/0_Bruddle/CloudsBackground'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { type BeforeInstallPromptEvent, type LayoutType, type ScreenId } from '@/components/Setup/Setup.types'
 import InstallPWA from '@/components/Setup/Views/InstallPWA'
+import { useBravePWAInstallState } from '@/hooks/useBravePWAInstallState'
 import { DeviceType } from '@/hooks/useGetDeviceType'
 import classNames from 'classnames'
 import Image from 'next/image'
-import { Children, type ReactNode, cloneElement, memo, type ReactElement } from 'react'
+import { Children, type ReactNode, cloneElement, memo, type ReactElement, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 
 /**
@@ -208,6 +209,19 @@ export const SetupWrapper = memo(
         deviceType,
         titleClassName,
     }: SetupWrapperProps) => {
+        const { isBrave } = useBravePWAInstallState()
+        const [showBraveSuccessMessage, setShowBraveSuccessMessage] = useState(false)
+
+        const shouldShowBraveInstalledHeaderOnly =
+            (screenId === 'pwa-install' || screenId === 'android-initial-pwa-install') &&
+            isBrave &&
+            showBraveSuccessMessage
+
+        const headingTitle = shouldShowBraveInstalledHeaderOnly ? 'Success!' : title
+        const headingDescription = shouldShowBraveInstalledHeaderOnly
+            ? 'Please open the Peanut app from your home screen to continue setup.'
+            : description
+
         return (
             <div className="flex min-h-[100dvh] flex-col">
                 {/* navigation buttons */}
@@ -248,17 +262,19 @@ export const SetupWrapper = memo(
                                 (screenId === 'signup' || screenId == 'join-beta') && 'md:max-h-12'
                             )}
                         >
-                            {title && (
+                            {headingTitle && (
                                 <h1
                                     className={twMerge(
                                         'w-full text-left text-xl font-extrabold leading-tight',
                                         titleClassName
                                     )}
                                 >
-                                    {title}
+                                    {headingTitle}
                                 </h1>
                             )}
-                            {description && <p className="text-base font-medium text-black">{description}</p>}
+                            {headingDescription && (
+                                <p className="text-base font-medium text-black">{headingDescription}</p>
+                            )}
                         </div>
                         {/* main content area */}
                         <div className="mx-auto w-full md:max-w-xs">
@@ -269,6 +285,7 @@ export const SetupWrapper = memo(
                                         canInstall,
                                         deviceType,
                                         screenId,
+                                        setShowBraveSuccessMessage,
                                     })
                                 }
                                 return child

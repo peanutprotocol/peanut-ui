@@ -11,26 +11,22 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import { captureException } from '@sentry/nextjs'
 import { DeviceType } from '@/hooks/useGetDeviceType'
+import { useBravePWAInstallState } from '@/hooks/useBravePWAInstallState'
 
 const StepTitle = ({ text }: { text: string }) => <h3 className="text-xl font-extrabold leading-6">{text}</h3>
-
-// detect if the browser is brave
-const isBraveBrowser = () => {
-    if (typeof window === 'undefined') return false
-    // brave browser has a specific navigator.brave property
-    return !!(navigator as Navigator & { brave?: { isBrave: () => Promise<boolean> } }).brave
-}
 
 const InstallPWA = ({
     canInstall,
     deferredPrompt,
     deviceType,
     screenId,
+    setShowBraveSuccessMessage,
 }: {
     canInstall?: boolean
     deferredPrompt?: BeforeInstallPromptEvent | null
     deviceType?: DeviceType
     screenId?: ScreenId
+    setShowBraveSuccessMessage?: (show: boolean) => void
 }) => {
     const toast = useToast()
     const { handleNext, isLoading: isSetupFlowLoading } = useSetupFlow()
@@ -39,7 +35,8 @@ const InstallPWA = ({
     const [installCancelled, setInstallCancelled] = useState(false)
     const [isInstallInProgress, setIsInstallInProgress] = useState(false)
     const [isPWAInstalled, setIsPWAInstalled] = useState(false)
-    const [isBrave, setIsBrave] = useState(false)
+    const { isBrave } = useBravePWAInstallState()
+
     const { user } = useAuth()
     const { push } = useRouter()
 
@@ -74,12 +71,7 @@ const InstallPWA = ({
 
     useEffect(() => {
         if (!!user) push('/home')
-    }, [user])
-
-    // detect brave browser on mount
-    useEffect(() => {
-        setIsBrave(isBraveBrowser())
-    }, [])
+    }, [user, push])
 
     useEffect(() => {
         const handleAppInstalled = () => {
@@ -99,6 +91,23 @@ const InstallPWA = ({
             }
         }
     }, [])
+
+    // notify parent when installation is complete on brave
+    useEffect(() => {
+        if (
+            isBrave &&
+            (isPWAInstalled || installComplete) &&
+            !window.matchMedia('(display-mode: standalone)').matches
+        ) {
+            setShowBraveSuccessMessage?.(true)
+        } else {
+            setShowBraveSuccessMessage?.(false)
+        }
+
+        return () => {
+            setShowBraveSuccessMessage?.(false)
+        }
+    }, [isBrave, isPWAInstalled, installComplete, setShowBraveSuccessMessage])
 
     useEffect(() => {
         if (screenId === 'pwa-install' && (deviceType === DeviceType.WEB || deviceType === DeviceType.IOS)) {
@@ -150,17 +159,7 @@ const InstallPWA = ({
             // if on brave browser, show instructions instead of trying to auto-open
             // because brave doesn't support auto-opening pwa from browser
             if (isBrave) {
-                return (
-                    <div className="space-y-2 text-center">
-                        <p className="text-sm text-grey-1">App installed successfully!</p>
-                        <p className="text-sm text-grey-1">
-                            Please open the Peanut app from your home screen to continue setup.
-                        </p>
-                        {/* <Button onClick={() => handleNext()} className="mt-4 w-full" shadowSize="4" variant="purple">
-                            Continue
-                        </Button> */}
-                    </div>
-                )
+                return null
             }
 
             // for other browsers, try to open the pwa in a new tab
