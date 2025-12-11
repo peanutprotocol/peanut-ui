@@ -126,8 +126,16 @@ function SetupPageContent() {
 
             // If invite code is present, set the step to the signup screen
             if (determinedSetupInitialStepId && userInviteCode) {
-                const signupScreenIndex = steps.findIndex((s: ISetupStep) => s.screenId === 'signup')
-                dispatch(setupActions.setStep(signupScreenIndex + 1))
+                // if user is on android and not in a standalone pwa, force them to install the PWA first
+                if (localDeviceType === 'android' && !isStandalonePWA) {
+                    const androidInitialPwaInstallScreenIndex = steps.findIndex(
+                        (s: ISetupStep) => s.screenId === 'android-initial-pwa-install'
+                    )
+                    dispatch(setupActions.setStep(androidInitialPwaInstallScreenIndex + 1))
+                } else {
+                    const signupScreenIndex = steps.findIndex((s: ISetupStep) => s.screenId === 'signup')
+                    dispatch(setupActions.setStep(signupScreenIndex + 1))
+                }
             } else if (determinedSetupInitialStepId) {
                 const initialStepIndex = steps.findIndex((s: ISetupStep) => s.screenId === determinedSetupInitialStepId)
                 if (initialStepIndex !== -1) {
