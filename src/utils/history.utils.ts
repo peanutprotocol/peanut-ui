@@ -8,6 +8,7 @@ import { getTokenDetails } from '@/utils'
 import { getCurrencyPrice } from '@/app/actions/currency'
 import { type ChargeEntry } from '@/services/services.types'
 
+// NOTE: do not change the order, add new entries at the end, keep synced with backend
 export enum EHistoryEntryType {
     REQUEST = 'REQUEST',
     CASHOUT = 'CASHOUT',
@@ -19,10 +20,10 @@ export enum EHistoryEntryType {
     BRIDGE_ONRAMP = 'BRIDGE_ONRAMP',
     BANK_SEND_LINK_CLAIM = 'BANK_SEND_LINK_CLAIM',
     MANTECA_QR_PAYMENT = 'MANTECA_QR_PAYMENT',
-    SIMPLEFI_QR_PAYMENT = 'SIMPLEFI_QR_PAYMENT',
     MANTECA_OFFRAMP = 'MANTECA_OFFRAMP',
     MANTECA_ONRAMP = 'MANTECA_ONRAMP',
     BRIDGE_GUEST_OFFRAMP = 'BRIDGE_GUEST_OFFRAMP',
+    SIMPLEFI_QR_PAYMENT = 'SIMPLEFI_QR_PAYMENT',
     PERK_REWARD = 'PERK_REWARD',
 }
 export function historyTypeToNumber(type: EHistoryEntryType): number {
