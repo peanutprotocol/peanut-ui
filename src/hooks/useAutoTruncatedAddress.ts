@@ -7,18 +7,14 @@ const SAFETY_MARGIN = 0.9
  * Calculates the optimal truncation for an address to fit within a container width.
  * Returns the formatted address like "0xF3...3he7e" with dynamic character counts.
  *
+ * Shows as many characters as fit in the container, never causing overflow.
+ *
  * @param address - The full address to truncate
  * @param containerWidth - Available width in pixels
  * @param charWidth - Estimated width per character in pixels (default: 8)
- * @param minChars - Minimum characters to show on each side (default: 4)
  * @returns Formatted address string
  */
-export const formatAddressToFitWidth = (
-    address: string,
-    containerWidth: number,
-    charWidth: number = 8,
-    minChars: number = 4
-): string => {
+export const formatAddressToFitWidth = (address: string, containerWidth: number, charWidth: number = 8): string => {
     if (!address || containerWidth <= 0) return address || ''
 
     // Apply safety margin to container width
@@ -35,7 +31,13 @@ export const formatAddressToFitWidth = (
     if (address.length * charWidth <= safeWidth) return address
 
     // Calculate chars for each side (half on each side)
-    const charsPerSide = Math.max(minChars, Math.floor(maxChars / 2))
+    const fitsPerSide = Math.floor(maxChars / 2)
+    const charsPerSide = Math.max(1, fitsPerSide)
+
+    // Edge case: container too narrow for even minimal truncation (need at least 1+3+1=5 chars width)
+    if (maxChars < 2) {
+        return address.substring(0, Math.max(1, maxChars)) + '…'
+    }
 
     const firstBit = address.substring(0, charsPerSide)
     const lastBit = address.substring(address.length - charsPerSide)
@@ -76,7 +78,7 @@ const measureCharWidth = (element: HTMLElement): number => {
 }
 
 interface UseAutoTruncatedAddressOptions {
-    /** Minimum characters to show on each side (default: 4) */
+    /** @deprecated No longer used - kept for API compatibility */
     minChars?: number
     /** Extra padding to subtract from container width (default: 0) */
     padding?: number
@@ -104,7 +106,7 @@ export const useAutoTruncatedAddress = <T extends HTMLElement = HTMLElement>(
     containerRef: (node: T | null) => void
     truncatedAddress: string
 } => {
-    const { minChars = 4, padding = 0 } = options
+    const { padding = 0 } = options
     const elementRef = useRef<T | null>(null)
     const [truncatedAddress, setTruncatedAddress] = useState(address)
     const resizeObserverRef = useRef<ResizeObserver | null>(null)
@@ -112,12 +114,12 @@ export const useAutoTruncatedAddress = <T extends HTMLElement = HTMLElement>(
     const lastWidthRef = useRef<number>(0)
 
     // Store options in refs to avoid recreating callbacks
-    const optionsRef = useRef({ minChars, padding, address })
-    optionsRef.current = { minChars, padding, address }
+    const optionsRef = useRef({ padding, address })
+    optionsRef.current = { padding, address }
 
     const updateTruncation = useCallback(() => {
         const container = elementRef.current
-        const { address: addr, minChars: min, padding: pad } = optionsRef.current
+        const { address: addr, padding: pad } = optionsRef.current
 
         if (!container || !addr) {
             setTruncatedAddress(addr || '')
@@ -133,7 +135,7 @@ export const useAutoTruncatedAddress = <T extends HTMLElement = HTMLElement>(
         lastWidthRef.current = containerWidth
 
         const charWidth = measureCharWidth(container)
-        const formatted = formatAddressToFitWidth(addr, containerWidth, charWidth, min)
+        const formatted = formatAddressToFitWidth(addr, containerWidth, charWidth)
 
         setTruncatedAddress(formatted)
     }, []) // Empty deps - uses refs for values
@@ -172,11 +174,11 @@ export const useAutoTruncatedAddress = <T extends HTMLElement = HTMLElement>(
         [updateTruncation, scheduleUpdate]
     )
 
-    // Update when address changes
+    // Update when address or padding changes
     useEffect(() => {
         lastWidthRef.current = 0 // Reset to force recalculation
         updateTruncation()
-    }, [address, minChars, padding, updateTruncation])
+    }, [address, padding, updateTruncation])
 
     // Cleanup on unmount
     useEffect(() => {
