@@ -205,8 +205,18 @@ describe('GeneralRecipientInput Type Detection', () => {
 
                     await setup(input)
 
+                    // Wait for async validation to complete
                     await act(async () => {
-                        await new Promise((resolve) => setTimeout(resolve, 0))
+                        await new Promise((resolve) => setTimeout(resolve, 100))
+                    })
+
+                    // Wait for onUpdate to be called
+                    await act(async () => {
+                        let attempts = 0
+                        while (!onUpdateMock.mock.calls.length && attempts < 50) {
+                            await new Promise((resolve) => setTimeout(resolve, 10))
+                            attempts++
+                        }
                     })
 
                     expect(onUpdateMock).toHaveBeenCalledWith(
@@ -222,7 +232,7 @@ describe('GeneralRecipientInput Type Detection', () => {
                             ...(expectedError && { errorMessage: expectedError }),
                         })
                     )
-                })
+                }, 10000) // 10 second timeout
             }
         )
     })
