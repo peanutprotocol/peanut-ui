@@ -8,10 +8,10 @@ import { AccountType } from '@/interfaces'
 import { useState, useEffect } from 'react'
 import { encodeFunctionData, erc20Abi, type Address, type Hex } from 'viem'
 import { PEANUT_WALLET_TOKEN, PEANUT_WALLET_CHAIN } from '@/constants'
-import { capturePasskeyDebugInfo } from '@/utils'
+import { capturePasskeyDebugInfo, clearRedirectUrl, getRedirectUrl, getValidRedirectUrl } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { twMerge } from 'tailwind-merge'
 
 const SignTestTransaction = () => {
@@ -23,6 +23,22 @@ const SignTestTransaction = () => {
     const [error, setError] = useState<string | null>(null)
     const [isSigning, setIsSigning] = useState(false)
     const [testTransactionCompleted, setTestTransactionCompleted] = useState(false)
+    const searchParams = useSearchParams()
+
+    const handleRedirect = () => {
+        const localStorageRedirect = getRedirectUrl()
+        const redirect_uri = searchParams.get('redirect_uri')
+        if (redirect_uri) {
+            const validRedirectUrl = getValidRedirectUrl(redirect_uri, '/home')
+            router.push(validRedirectUrl)
+        } else if (localStorageRedirect) {
+            clearRedirectUrl()
+            const validRedirectUrl = getValidRedirectUrl(String(localStorageRedirect), '/home')
+            router.push(validRedirectUrl)
+        } else {
+            router.push('/home')
+        }
+    }
 
     // ensure user is fetched when component mounts (important for new signups)
     useEffect(() => {
@@ -58,9 +74,9 @@ const SignTestTransaction = () => {
     useEffect(() => {
         if (accountExists) {
             console.log('[SignTestTransaction] Account exists, redirecting to home')
-            router.push('/home')
+            handleRedirect()
         }
-    }, [accountExists, router])
+    }, [accountExists])
 
     const handleTestTransaction = async () => {
         if (!address) {
@@ -130,12 +146,12 @@ const SignTestTransaction = () => {
 
                 // account setup complete - addAccount() already fetched and verified user data
                 console.log('[SignTestTransaction] Account setup complete, redirecting to home')
-                router.push('/home')
+                handleRedirect()
                 // keep loading state active until redirect completes
             } else {
                 // if account already exists, just navigate home (login flow)
                 console.log('[SignTestTransaction] Account exists, redirecting to home')
-                router.push('/home')
+                handleRedirect()
                 // keep loading state active until redirect completes
             }
         } catch (e) {
