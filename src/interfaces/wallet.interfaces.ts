@@ -1,6 +1,7 @@
-import { AccountType, type IUserBalance } from '@/interfaces/interfaces'
-
 // based on API AccountType
+
+import { AccountType, type IUserBalance } from './interfaces'
+
 // https://github.com/peanutprotocol/peanut-api-ts/blob/b32570b7bd366efed7879f607040c511fa036a57/src/db/interfaces/account.ts
 export enum WalletProviderType {
     PEANUT = AccountType.PEANUT_WALLET,
