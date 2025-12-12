@@ -20,7 +20,7 @@ import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
-import { formatAmount, getInitialsFromName, updateUserPreferences, getUserPreferences } from '@/utils'
+import { formatAmount, getInitialsFromName, updateUserPreferences, getUserPreferences } from '@/utils/general.utils'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
@@ -34,7 +34,7 @@ import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermi
 import { PointsAction } from '@/services/services.types'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import { useHaptic } from 'use-haptic'
-import { MAX_DEVCONNECT_INTENTS } from '@/constants'
+import { MAX_DEVCONNECT_INTENTS } from '@/constants/payment.consts'
 
 export type PaymentFlow = 'request_pay' | 'external_wallet' | 'direct_pay' | 'withdraw'
 interface Props {

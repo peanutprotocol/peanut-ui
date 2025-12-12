@@ -4,7 +4,7 @@ import { AddWithdrawRouterView } from '@/components/AddWithdraw/AddWithdrawRoute
 import { useOnrampFlow } from '@/context'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
-import { checkIfInternalNavigation } from '@/utils'
+import { checkIfInternalNavigation } from '@/utils/general.utils'
 
 export default function AddMoneyPage() {
     const router = useRouter()

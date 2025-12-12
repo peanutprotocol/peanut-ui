@@ -13,7 +13,7 @@ import { useAppDispatch } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { useAuth } from '@/context/authContext'
 import { EInviteType } from '@/services/services.types'
-import { saveToCookie } from '@/utils'
+import { saveToCookie } from '@/utils/general.utils'
 import { useLogin } from '@/hooks/useLogin'
 import UnsupportedBrowserModal from '../Global/UnsupportedBrowserModal'
 

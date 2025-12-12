@@ -7,7 +7,7 @@ import {
 } from '@/constants'
 import { AccountType, type IUserKycVerification } from '@/interfaces'
 import { type IAttachmentOptions } from '@/redux/types/send-flow.types'
-import { fetchWithSentry } from '@/utils'
+import { fetchWithSentry } from '@/utils/sentry.utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { chargesApi } from './charges'
 import { type TCharge } from './services.types'

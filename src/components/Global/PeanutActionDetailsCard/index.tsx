@@ -1,7 +1,7 @@
 import AvatarWithBadge, { type AvatarSize } from '@/components/Profile/AvatarWithBadge'
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
 import { type RecipientType } from '@/lib/url-parser/types/payment'
-import { printableAddress } from '@/utils'
+import { printableAddress } from '@/utils/general.utils'
 import { AVATAR_TEXT_DARK, getColorForUsername } from '@/utils/color.utils'
 import { useCallback } from 'react'
 import { twMerge } from 'tailwind-merge'

@@ -16,7 +16,8 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { useUserStore } from '@/redux/hooks'
 import { chargesApi } from '@/services/charges'
 import useClaimLink from '@/components/Claim/useClaimLink'
-import { formatAmount, formatDate, getInitialsFromName, isStableCoin, formatCurrency, getAvatarUrl } from '@/utils'
+import { formatAmount, formatDate, isStableCoin, formatCurrency } from '@/utils/general.utils'
+import { getAvatarUrl } from '@/utils/history.utils'
 import {
     formatIban,
     getContributorsFromCharge,

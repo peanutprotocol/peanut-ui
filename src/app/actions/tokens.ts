@@ -1,11 +1,18 @@
 'use server'
 import { unstable_cache } from 'next/cache'
-import { fetchWithSentry, isAddressZero, estimateIfIsStableCoinFromPrice } from '@/utils'
+import {
+    isAddressZero,
+    estimateIfIsStableCoinFromPrice,
+    getTokenDetails,
+    isStableCoin,
+    areEvmAddressesEqual,
+} from '@/utils/general.utils'
+import { fetchWithSentry } from '@/utils/sentry.utils'
+import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
 import { type ITokenPriceData } from '@/interfaces'
 import { parseAbi, formatUnits } from 'viem'
 import { type ChainId, getPublicClient } from '@/app/actions/clients'
 import type { Address, Hex } from 'viem'
-import { getTokenDetails, isStableCoin, areEvmAddressesEqual, NATIVE_TOKEN_ADDRESS } from '@/utils'
 import { type IUserBalance } from '@/interfaces'
 
 type IMobulaMarketData = {

@@ -1,5 +1,5 @@
 import { PEANUT_API_URL } from '@/constants'
-import { fetchWithSentry } from '@/utils'
+import { fetchWithSentry } from '@/utils/sentry.utils'
 import { type RewardLink } from './services.types'
 import Cookies from 'js-cookie'
 

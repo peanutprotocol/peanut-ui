@@ -16,15 +16,10 @@ import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { sendLinksApi } from '@/services/sendLinks'
-import {
-    areEvmAddressesEqual,
-    ErrorHandler,
-    fetchWithSentry,
-    formatTokenAmount,
-    getBridgeChainName,
-    getBridgeTokenName,
-    printableAddress,
-} from '@/utils'
+import { areEvmAddressesEqual, formatTokenAmount, printableAddress } from '@/utils/general.utils'
+import { ErrorHandler } from '@/utils/sdkErrorHandler.utils'
+import { fetchWithSentry } from '@/utils/sentry.utils'
+import { getBridgeChainName, getBridgeTokenName } from '@/utils/bridge-accounts.utils'
 import { NATIVE_TOKEN_ADDRESS, SQUID_ETH_ADDRESS, checkTokenSupportsXChain } from '@/utils/token.utils'
 import * as Sentry from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'

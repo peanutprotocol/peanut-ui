@@ -1,6 +1,6 @@
 'use client'
 
-import { getRedirectUrl, clearRedirectUrl } from '@/utils'
+import { getRedirectUrl, clearRedirectUrl } from '@/utils/general.utils'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import ActionModal from '../ActionModal'

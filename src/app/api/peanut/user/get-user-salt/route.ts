@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import * as consts from '@/constants'
-import { fetchWithSentry } from '@/utils'
+import { fetchWithSentry } from '@/utils/sentry.utils'
 
 export async function POST(request: NextRequest) {
     const { email } = await request.json()

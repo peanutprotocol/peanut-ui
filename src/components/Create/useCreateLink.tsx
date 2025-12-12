@@ -2,7 +2,7 @@
 import { getLinkFromTx, getNextDepositIndex } from '@/app/actions/claimLinks'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, next_proxy_url } from '@/constants'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
-import { isNativeCurrency, saveToLocalStorage } from '@/utils'
+import { isNativeCurrency, saveToLocalStorage } from '@/utils/general.utils'
 import peanut, {
     generateKeysFromString,
     getLatestContractVersion,

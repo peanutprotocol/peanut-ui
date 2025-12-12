@@ -1,5 +1,5 @@
 import { PEANUT_API_URL } from '@/constants'
-import { fetchWithSentry } from '@/utils'
+import { fetchWithSentry } from '@/utils/sentry.utils'
 import { NextRequest, NextResponse } from 'next/server'
 
 export const maxDuration = 300 // vercel timeout

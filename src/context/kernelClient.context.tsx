@@ -9,7 +9,7 @@ import { useAuth } from '@/context/authContext'
 import { createKernelMigrationAccount } from '@zerodev/sdk/accounts'
 import { useAppDispatch } from '@/redux/hooks'
 import { zerodevActions } from '@/redux/slices/zerodev-slice'
-import { getFromCookie, updateUserPreferences, getUserPreferences } from '@/utils'
+import { getFromCookie, updateUserPreferences, getUserPreferences } from '@/utils/general.utils'
 import { PasskeyValidatorContractVersion, toPasskeyValidator, toWebAuthnKey } from '@zerodev/passkey-validator'
 import {
     createKernelAccount,

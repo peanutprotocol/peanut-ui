@@ -1,4 +1,4 @@
-import { fetchWithSentry } from '@/utils'
+import { fetchWithSentry } from '@/utils/sentry.utils'
 import { NextResponse } from 'next/server'
 import { SQUID_API_URL, SQUID_INTEGRATOR_ID, SQUID_INTEGRATOR_ID_WITHOUT_CORAL } from '@/constants'
 

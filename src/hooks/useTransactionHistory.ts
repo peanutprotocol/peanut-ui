@@ -1,6 +1,6 @@
 import { PEANUT_API_URL } from '@/constants'
 import { TRANSACTIONS } from '@/constants/query.consts'
-import { fetchWithSentry } from '@/utils'
+import { fetchWithSentry } from '@/utils/sentry.utils'
 import type { InfiniteData, InfiniteQueryObserverResult, QueryObserverResult } from '@tanstack/react-query'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import Cookies from 'js-cookie'

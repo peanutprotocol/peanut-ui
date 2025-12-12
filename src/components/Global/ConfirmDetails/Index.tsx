@@ -1,4 +1,4 @@
-import { formatAmount } from '@/utils'
+import { formatAmount } from '@/utils/general.utils'
 import Icon from '../Icon'
 
 interface IConfirmDetailsProps {

@@ -1,5 +1,6 @@
 import * as consts from '@/constants'
-import { areEvmAddressesEqual, fetchWithSentry } from '@/utils'
+import { areEvmAddressesEqual } from '@/utils/general.utils'
+import { fetchWithSentry } from '@/utils/sentry.utils'
 import { isIBAN } from 'validator'
 
 const ALLOWED_PARENT_DOMAINS = ['intersend.io', 'app.intersend.io']

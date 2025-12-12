@@ -1,7 +1,7 @@
 'use server'
 
-import { PEANUT_API_URL } from '@/constants'
-import { fetchWithSentry } from '@/utils'
+import { PEANUT_API_URL } from '@/constants/general.consts'
+import { fetchWithSentry } from '@/utils/sentry.utils'
 import { cookies } from 'next/headers'
 import webpush from 'web-push'
 

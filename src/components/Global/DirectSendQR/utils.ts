@@ -1,4 +1,4 @@
-import { getTokenSymbol, getTokenDecimals } from '@/utils'
+import { getTokenSymbol, getTokenDecimals } from '@/utils/general.utils'
 import { isAddress, formatUnits } from 'viem'
 import { ENS_NAME_REGEX } from '@/constants'
 

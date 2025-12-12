@@ -2,7 +2,7 @@
 
 import { sendNotification, subscribeUser } from '@/app/actions'
 import { useToast } from '@/components/0_Bruddle/Toast'
-import { urlBase64ToUint8Array } from '@/utils'
+import { urlBase64ToUint8Array } from '@/utils/general.utils'
 import { captureException } from '@sentry/nextjs'
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import webpush from 'web-push'

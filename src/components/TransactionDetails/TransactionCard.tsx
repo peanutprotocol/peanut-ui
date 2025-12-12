@@ -8,11 +8,10 @@ import {
     formatNumberForDisplay,
     formatCurrency,
     printableAddress,
-    getAvatarUrl,
-    getTransactionSign,
     isStableCoin,
     shortenStringLong,
-} from '@/utils'
+} from '@/utils/general.utils'
+import { getAvatarUrl, getTransactionSign } from '@/utils/history.utils'
 import React, { lazy, Suspense } from 'react'
 import Image from 'next/image'
 import StatusPill, { type StatusPillType } from '../Global/StatusPill'

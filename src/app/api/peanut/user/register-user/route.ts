@@ -1,5 +1,5 @@
 import * as consts from '@/constants'
-import { fetchWithSentry } from '@/utils'
+import { fetchWithSentry } from '@/utils/sentry.utils'
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
 

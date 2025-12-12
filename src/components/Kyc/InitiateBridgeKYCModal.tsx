@@ -3,7 +3,7 @@ import { useBridgeKycFlow } from '@/hooks/useBridgeKycFlow'
 import IframeWrapper from '@/components/Global/IframeWrapper'
 import { KycVerificationInProgressModal } from './KycVerificationInProgressModal'
 import { type IconName } from '@/components/Global/Icons/Icon'
-import { saveRedirectUrl } from '@/utils'
+import { saveRedirectUrl } from '@/utils/general.utils'
 import useClaimLink from '../Claim/useClaimLink'
 
 interface BridgeKycModalFlowProps {

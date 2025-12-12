@@ -10,7 +10,7 @@ import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { type ITokenPriceData } from '@/interfaces'
-import { formatAmount, isStableCoin } from '@/utils'
+import { formatAmount, isStableCoin } from '@/utils/general.utils'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
 import { type PeanutCrossChainRoute } from '@/services/swap'
 import { useMemo, useState } from 'react'

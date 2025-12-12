@@ -2,7 +2,7 @@
 
 import { PEANUT_WALLET_TOKEN_DECIMALS, STABLE_COINS } from '@/constants'
 import { tokenSelectorContext } from '@/context'
-import { formatTokenAmount, formatCurrency } from '@/utils'
+import { formatTokenAmount, formatCurrency } from '@/utils/general.utils'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Icon from '../Icon'

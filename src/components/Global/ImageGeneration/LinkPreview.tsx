@@ -1,4 +1,4 @@
-import { formatAmount, printableAddress } from '@/utils'
+import { formatAmount, printableAddress } from '@/utils/general.utils'
 import { isAddress } from 'viem'
 
 export enum PreviewType {
