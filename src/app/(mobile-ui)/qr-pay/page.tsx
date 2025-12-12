@@ -32,7 +32,6 @@ import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHisto
 import { loadingStateContext } from '@/context'
 import { getCurrencyPrice } from '@/app/actions/currency'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
-import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 import { captureException } from '@sentry/nextjs'
 import { isPaymentProcessorQR, parseSimpleFiQr, EQrType } from '@/components/Global/DirectSendQR/utils'
 import type { SimpleFiQrData } from '@/components/Global/DirectSendQR/utils'
@@ -106,7 +105,6 @@ export default function QRPayPage() {
 
     const { shouldBlockPay, kycGateState } = useQrKycGate(paymentProcessor)
     const queryClient = useQueryClient()
-    const { hasPendingTransactions } = usePendingTransactions()
     const [isShaking, setIsShaking] = useState(false)
     const [shakeIntensity, setShakeIntensity] = useState<ShakeIntensity>('none')
     const [isClaimingPerk, setIsClaimingPerk] = useState(false)
@@ -311,9 +309,6 @@ export default function QRPayPage() {
             // It will convert to local currency for display using isInitialInputUsd=false
             setAmount(paymentLock.paymentAgainstAmount)
             setCurrencyAmount(paymentLock.paymentAssetAmount)
-            setWaitingForMerchantAmount(false)
-            setErrorInitiatingPayment(null)
-            setShouldRetry(false)
         }
     }, [paymentLock?.code, paymentProcessor])
 
@@ -468,11 +463,10 @@ export default function QRPayPage() {
         data: fetchedPaymentLock,
         isLoading: isLoadingPaymentLock,
         error: paymentLockError,
-        failureCount,
         failureReason: paymentLockFailureReason,
     } = useQuery({
         queryKey: ['manteca-payment-lock', qrCode, timestamp],
-        queryFn: async ({ queryKey }) => {
+        queryFn: async () => {
             if (paymentProcessor !== 'MANTECA' || !qrCode || !isPaymentProcessorQR(qrCode)) {
                 return null
             }
@@ -487,15 +481,7 @@ export default function QRPayPage() {
             // Retry network/timeout errors up to 2 times (3 total attempts)
             return failureCount < 3
         },
-        retryDelay: (attemptIndex) => {
-            const delayMs = 3000 // 3s
-            const MAX_RETRIES = 2
-            const attemptNumber = attemptIndex + 1 // attemptIndex is 0-based, display as 1-based
-            console.log(
-                `Payment lock fetch failed, retrying in ${delayMs}ms... (attempt ${attemptNumber}/${MAX_RETRIES})`
-            )
-            return delayMs
-        },
+        retryDelay: 3000,
         staleTime: 0, // Always fetch fresh data
         gcTime: 0, // Don't cache for garbage collection
     })
@@ -887,18 +873,6 @@ export default function QRPayPage() {
 
     // Check user balance and payment limits
     useEffect(() => {
-        // Skip balance check on success screen (balance may not have updated yet)
-        if (isSuccess) {
-            setBalanceErrorMessage(null)
-            return
-        }
-
-        // Skip balance check if transaction is being processed
-        // isLoading covers the gap between sendMoney completing and completeQrPayment finishing
-        if (hasPendingTransactions || isWaitingForWebSocket || isLoading) {
-            return
-        }
-
         if (!usdAmount || usdAmount === '0.00' || isNaN(Number(usdAmount)) || balance === undefined) {
             setBalanceErrorMessage(null)
             return
@@ -923,7 +897,7 @@ export default function QRPayPage() {
         } else {
             setBalanceErrorMessage(null)
         }
-    }, [usdAmount, balance, hasPendingTransactions, isWaitingForWebSocket, isSuccess, isLoading, paymentProcessor])
+    }, [usdAmount, balance, paymentProcessor])
 
     // Use points confetti hook for animation - must be called unconditionally
     usePointsConfetti(isSuccess && pointsData?.estimatedPoints ? pointsData.estimatedPoints : undefined, pointsDivRef)
@@ -972,25 +946,11 @@ export default function QRPayPage() {
     }, [shouldRetry, handleSimplefiRetry])
 
     useEffect(() => {
-        if (paymentProcessor === 'SIMPLEFI') {
-            if (waitingForMerchantAmount && !shouldRetry) {
-                if (retryCount.current < 3) {
-                    retryCount.current++
-                    setTimeout(() => {
-                        setShouldRetry(true)
-                    }, 3000)
-                } else {
-                    setWaitingForMerchantAmount(false)
-                    setShowOrderNotReadyModal(true)
-                }
-            }
-        } else if (paymentProcessor === 'MANTECA') {
-            if (waitingForMerchantAmount && !isLoadingPaymentLock) {
-                setWaitingForMerchantAmount(false)
-                setShowOrderNotReadyModal(true)
-            }
+        if (waitingForMerchantAmount && !isLoadingPaymentLock) {
+            setWaitingForMerchantAmount(false)
+            setShowOrderNotReadyModal(true)
         }
-    }, [waitingForMerchantAmount, shouldRetry, isLoadingPaymentLock, paymentProcessor])
+    }, [waitingForMerchantAmount, isLoadingPaymentLock])
 
     // Show maintenance error if provider is disabled
     if (isProviderDisabled) {
@@ -1584,7 +1544,7 @@ export default function QRPayPage() {
     )
 }
 
-export const QrPayPageLoading = ({ message }: { message: string }) => {
+const QrPayPageLoading = ({ message }: { message: string }) => {
     return (
         <div className="my-auto flex h-full w-full flex-col items-center justify-center space-y-4">
             <div className="relative">

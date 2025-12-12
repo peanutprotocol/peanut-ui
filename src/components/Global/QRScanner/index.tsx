@@ -85,28 +85,24 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
             console.error('Error closing QR scanner:', error)
         }
     }, [onClose, stopCamera])
-    const handleQRScan = useCallback(
-        async (data: string) => {
-            if (processingQR) return
-            try {
-                setProcessingQR(true)
-                const result = await onScan(data)
-                if (result.success) {
-                    toast.info('QR code recognized')
-                } else {
-                    toast.error(result.error || 'QR code processing failed')
-                    // Resume scanning
-                    setProcessingQR(false)
-                }
-            } catch (error) {
-                console.error('Error processing QR code:', error)
-                toast.error('Error processing QR code')
+    const handleQRScan = async (data: string) => {
+        try {
+            setProcessingQR(true)
+            const result = await onScan(data)
+            if (result.success) {
+                toast.info('QR code recognized')
+            } else {
+                toast.error(result.error || 'QR code processing failed')
+                // Resume scanning
                 setProcessingQR(false)
             }
-        },
-        [processingQR]
-    )
-    const setupQRScanning = useCallback(() => {
+        } catch (error) {
+            console.error('Error processing QR code:', error)
+            toast.error('Error processing QR code')
+            setProcessingQR(false)
+        }
+    }
+    const setupQRScanning = () => {
         if (!videoRef.current || !canvasRef.current) return
         const video = videoRef.current
         const canvas = canvasRef.current
@@ -132,7 +128,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                         inversionAttempts: 'attemptBoth',
                     })
 
-                    if (code && !processingQR) {
+                    if (code) {
                         handleQRScan(code.data)
                     }
                 } catch (err) {
@@ -140,7 +136,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                 }
             }
         }, QR_SCAN_INTERVAL_MS)
-    }, [handleQRScan, processingQR])
+    }
     const startCamera = useCallback(async () => {
         setError(null)
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
@@ -214,7 +210,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
         } else {
             setError('Your browser does not support camera access')
         }
-    }, [facingMode, setupQRScanning, isScanning, deviceType])
+    }, [facingMode, isScanning, deviceType])
     // Handle visibility change - pause camera when app goes to background
     useEffect(() => {
         const handleVisibilityChange = () => {
