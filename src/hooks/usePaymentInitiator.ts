@@ -14,7 +14,8 @@ import {
     type TChargeTransactionType,
     type TRequestChargeResponse,
 } from '@/services/services.types'
-import { areEvmAddressesEqual, ErrorHandler, isNativeCurrency, isTxReverted } from '@/utils'
+import { areEvmAddressesEqual, isNativeCurrency, isTxReverted } from '@/utils/general.utils'
+import { ErrorHandler } from '@/utils/sdkErrorHandler.utils'
 import { useAppKitAccount } from '@reown/appkit/react'
 import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'

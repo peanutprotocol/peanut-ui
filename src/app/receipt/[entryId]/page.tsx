@@ -10,8 +10,8 @@ import { TransactionDetailsReceipt } from '@/components/TransactionDetails/Trans
 import NavHeader from '@/components/Global/NavHeader'
 import { generateMetadata as generateBaseMetadata } from '@/app/metadata'
 import { type Metadata } from 'next'
-import { BASE_URL } from '@/constants'
-import { formatAmount, formatCurrency, isStableCoin } from '@/utils'
+import { BASE_URL } from '@/constants/general.consts'
+import { formatAmount, formatCurrency, isStableCoin } from '@/utils/general.utils'
 import getOrigin from '@/lib/hosting/get-origin'
 
 // Helper function to map transaction card type to OG image type

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { fetchWithSentry } from '@/utils'
+import { fetchWithSentry } from '@/utils/sentry.utils'
 import { SELF_URL } from '@/constants'
 
 export const dynamic = 'force-dynamic'

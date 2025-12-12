@@ -1,4 +1,4 @@
-import { formatAmount } from '@/utils'
+import { formatAmount } from '@/utils/general.utils'
 import { useState } from 'react'
 import Icon from '../Icon'
 import InfoRow from '../InfoRow'

@@ -17,7 +17,7 @@ import { captureException } from '@sentry/nextjs'
 import { next_proxy_url } from '@/constants'
 import { CLAIM_LINK, CLAIM_LINK_XCHAIN, TRANSACTIONS } from '@/constants/query.consts'
 import { loadingStateContext } from '@/context'
-import { isTestnetChain } from '@/utils'
+import { isTestnetChain } from '@/utils/general.utils'
 import { sendLinksApi, ESendLinkStatus } from '@/services/sendLinks'
 
 // ============================================================================

@@ -1,4 +1,4 @@
-import { fetchWithSentry } from '@/utils'
+import { fetchWithSentry } from '@/utils/sentry.utils'
 import { NextRequest } from 'next/server'
 
 interface TransferDetails {

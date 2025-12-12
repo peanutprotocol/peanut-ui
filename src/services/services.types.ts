@@ -1,4 +1,4 @@
-import { type BridgeKycStatus } from '@/utils'
+import { type BridgeKycStatus } from '@/utils/bridge-accounts.utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 
 export type TStatus = 'NEW' | 'PENDING' | 'COMPLETED' | 'EXPIRED' | 'FAILED' | 'SIGNED' | 'SUCCESSFUL' | 'CANCELLED'

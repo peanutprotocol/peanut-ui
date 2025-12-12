@@ -1,6 +1,6 @@
 import * as consts from '@/constants'
-import { fetchWithSentry, getExplorerUrl } from '@/utils'
-import * as Sentry from '@sentry/nextjs'
+import { fetchWithSentry } from '@/utils/sentry.utils'
+import { getExplorerUrl } from '@/utils/general.utils'
 
 type ISquidChainData = {
     id: string

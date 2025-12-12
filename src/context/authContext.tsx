@@ -6,12 +6,12 @@ import { useAppDispatch } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { zerodevActions } from '@/redux/slices/zerodev-slice'
 import {
-    fetchWithSentry,
     removeFromCookie,
     syncLocalStorageToCookie,
     clearRedirectUrl,
     updateUserPreferences,
-} from '@/utils'
+} from '@/utils/general.utils'
+import { fetchWithSentry } from '@/utils/sentry.utils'
 import { resetCrispProxySessions } from '@/utils/crisp'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'

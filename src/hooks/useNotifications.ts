@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import OneSignal from 'react-onesignal'
-import { getUserPreferences, updateUserPreferences } from '@/utils'
+import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { useUserStore } from '@/redux/hooks'
 
 export function useNotifications() {

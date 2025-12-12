@@ -1,5 +1,5 @@
 'use client'
-import React, { createContext, useState, useCallback, useMemo, useEffect } from 'react'
+import React, { createContext, useState, useCallback, useEffect } from 'react'
 
 import {
     PEANUT_WALLET_CHAIN,
@@ -8,7 +8,7 @@ import {
     PEANUT_WALLET_TOKEN_IMG_URL,
     PEANUT_WALLET_TOKEN_NAME,
     PEANUT_WALLET_TOKEN_SYMBOL,
-} from '@/constants'
+} from '@/constants/zerodev.consts'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSquidChainsAndTokens } from '@/hooks/useSquidChainsAndTokens'
 import { useTokenPrice } from '@/hooks/useTokenPrice'

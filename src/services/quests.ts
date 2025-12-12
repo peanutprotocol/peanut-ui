@@ -4,7 +4,7 @@
  */
 
 import Cookies from 'js-cookie'
-import { fetchWithSentry } from '@/utils'
+import { fetchWithSentry } from '@/utils/sentry.utils'
 import { PEANUT_API_URL } from '@/constants'
 import type { QuestLeaderboardData, AllQuestsLeaderboardData } from '@/app/quests/types'
 

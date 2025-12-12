@@ -1,7 +1,7 @@
 import Cookies from 'js-cookie'
 import { type CalculatePointsRequest, PointsAction, type TierInfo } from './services.types'
-import { fetchWithSentry } from '@/utils'
-import { PEANUT_API_URL } from '@/constants'
+import { fetchWithSentry } from '@/utils/sentry.utils'
+import { PEANUT_API_URL } from '@/constants/general.consts'
 
 type InvitesGraphResponse = {
     success: boolean

@@ -16,7 +16,7 @@ import { parseUnits } from 'viem'
 import { useQueryClient } from '@tanstack/react-query'
 import useKycStatus from '@/hooks/useKycStatus'
 import { usePaymentStore } from '@/redux/hooks'
-import { saveDevConnectIntent } from '@/utils'
+import { saveDevConnectIntent } from '@/utils/general.utils'
 import { MAX_MANTECA_DEPOSIT_AMOUNT, MIN_MANTECA_DEPOSIT_AMOUNT } from '@/constants/payment.consts'
 
 interface MantecaAddMoneyProps {

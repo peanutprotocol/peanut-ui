@@ -1,10 +1,10 @@
 'use client'
-import React, { createContext, useContext, useMemo, useState } from 'react'
+import React, { createContext, useMemo, useState } from 'react'
 
-import * as consts from '@/constants'
+import type { LoadingStates } from '@/constants/loadingStates.consts'
 export const loadingStateContext = createContext({
-    loadingState: '' as consts.LoadingStates,
-    setLoadingState: (state: consts.LoadingStates) => {},
+    loadingState: '' as LoadingStates,
+    setLoadingState: (state: LoadingStates) => {},
     isLoading: false as boolean,
 })
 
@@ -14,7 +14,7 @@ export const loadingStateContext = createContext({
  * Used for all loading states; e.g., fetching data, processing transactions, switching chains...
  */
 export const LoadingStateContextProvider = ({ children }: { children: React.ReactNode }) => {
-    const [loadingState, setLoadingState] = useState<consts.LoadingStates>('Idle')
+    const [loadingState, setLoadingState] = useState<LoadingStates>('Idle')
     const isLoading = useMemo(() => loadingState !== 'Idle', [loadingState])
 
     return (

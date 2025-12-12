@@ -1,6 +1,5 @@
 import { type ChargeEntry } from '@/services/services.types'
-import { getContributorsFromCharge } from '@/utils'
-import React from 'react'
+import { getContributorsFromCharge } from '@/utils/general.utils'
 import ContributorCard from './ContributorCard'
 import { getCardPosition } from '../Card'
 

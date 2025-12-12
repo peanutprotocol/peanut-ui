@@ -4,7 +4,7 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, SQUID_API_URL, SQUID_INTEGRAT
 import { tokenSelectorContext } from '@/context'
 import { useAppDispatch, useSendFlowStore } from '@/redux/hooks'
 import { sendFlowActions } from '@/redux/slices/send-flow-slice'
-import { fetchWithSentry } from '@/utils'
+import { fetchWithSentry } from '@/utils/sentry.utils'
 import { useContext, useEffect } from 'react'
 import NavHeader from '../../Global/NavHeader'
 import LinkSendInitialView from './views/Initial.link.send.view'

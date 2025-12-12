@@ -2,8 +2,8 @@
 
 import { EHistoryEntryType, completeHistoryEntry } from '@/utils/history.utils'
 import type { HistoryEntry } from '@/utils/history.utils'
-import { PEANUT_API_URL } from '@/constants'
-import { fetchWithSentry } from '@/utils'
+import { PEANUT_API_URL } from '@/constants/general.consts'
+import { fetchWithSentry } from '@/utils/sentry.utils'
 
 /**
  * Fetches a single history entry from the API. This is used for receipts

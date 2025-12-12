@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 
-import { getRequestLink } from '@/utils'
+import { getRequestLink } from '@/utils/general.utils'
 import { useRouter } from 'next/navigation'
 import { chargesApi } from '@/services/charges'
 

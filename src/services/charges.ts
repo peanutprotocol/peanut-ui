@@ -1,5 +1,6 @@
 import { PEANUT_API_URL } from '@/constants'
-import { fetchWithSentry, jsonParse } from '@/utils'
+import { fetchWithSentry } from '@/utils/sentry.utils'
+import { jsonParse } from '@/utils/general.utils'
 import Cookies from 'js-cookie'
 import {
     type CreateChargeRequest,

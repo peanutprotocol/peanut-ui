@@ -1,6 +1,6 @@
 import { Drawer, DrawerContent } from '@/components/Global/Drawer'
 import Image from 'next/image'
-import { formatDate } from '@/utils'
+import { formatDate } from '@/utils/general.utils'
 import Card from '../Global/Card'
 import { PaymentInfoRow } from '../Payment/PaymentInfoRow'
 import ShareButton from '../Global/ShareButton'

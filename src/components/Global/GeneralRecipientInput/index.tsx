@@ -1,7 +1,7 @@
 'use client'
 import ValidatedInput, { type InputUpdate } from '@/components/Global/ValidatedInput'
 import * as interfaces from '@/interfaces'
-import { validateBankAccount } from '@/utils'
+import { validateBankAccount } from '@/utils/bridge-accounts.utils'
 import { formatBankAccountDisplay, sanitizeBankAccount } from '@/utils/format.utils'
 import * as Senty from '@sentry/nextjs'
 import { useCallback, useRef } from 'react'

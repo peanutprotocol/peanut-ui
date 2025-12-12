@@ -1,6 +1,6 @@
 import * as consts from '@/constants'
 import { STABLE_COINS, USER_OPERATION_REVERT_REASON_TOPIC, ENS_NAME_REGEX } from '@/constants'
-import { AccountType } from '@/interfaces'
+import { AccountType } from '@/interfaces/interfaces'
 import * as Sentry from '@sentry/nextjs'
 import peanut, { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import type { Address, TransactionReceipt } from 'viem'

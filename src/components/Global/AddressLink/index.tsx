@@ -1,4 +1,4 @@
-import { printableAddress } from '@/utils'
+import { printableAddress } from '@/utils/general.utils'
 import { usePrimaryName } from '@justaname.id/react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'

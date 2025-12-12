@@ -1,6 +1,6 @@
 import { validateInviteCode } from '@/app/actions/invites'
 import { PEANUT_API_URL } from '@/constants'
-import { fetchWithSentry } from '@/utils'
+import { fetchWithSentry } from '@/utils/sentry.utils'
 import Cookies from 'js-cookie'
 import { EInviteType, type PointsInvitesResponse } from './services.types'
 
