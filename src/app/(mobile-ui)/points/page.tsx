@@ -20,8 +20,9 @@ import Image from 'next/image'
 import { pointsApi } from '@/services/points'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { getInitialsFromName } from '@/utils'
-import { type PointsInvite } from '@/services/services.types'
+import type { PointsInvite } from '@/services/services.types'
 import { useEffect } from 'react'
+import InvitesGraph from '@/components/Global/InvitesGraph'
 
 const PointsPage = () => {
     const router = useRouter()
@@ -51,6 +52,13 @@ const PointsPage = () => {
         queryKey: ['tierInfo', user?.user.userId],
         queryFn: () => pointsApi.getTierInfo(),
         enabled: !!user?.user.userId,
+    })
+
+    const { data: myGraphResult } = useQuery({
+        queryKey: ['myInviteGraph', user?.user.userId],
+        queryFn: () => pointsApi.getUserInvitesGraph(),
+        enabled:
+            !!user?.user.userId && user?.user?.badges?.some((badge) => badge.code === 'SEEDLING_DEVCONNECT_BA_2025'),
     })
     const username = user?.user.username
     const { inviteCode, inviteLink } = generateInviteCodeLink(username ?? '')
@@ -179,6 +187,28 @@ const PointsPage = () => {
                             <h2 className="font-bold">People you invited</h2>
                             <NavigationArrow className="text-black" />
                         </div>
+
+                        {/* Invite Graph */}
+                        {myGraphResult?.data && (
+                            <>
+                                <Card className="overflow-hidden p-0">
+                                    <InvitesGraph
+                                        minimal
+                                        data={myGraphResult.data}
+                                        height={250}
+                                        backgroundColor="#ffffff"
+                                        showUsernames
+                                    />
+                                </Card>
+                                <div className="flex items-center gap-2">
+                                    <Icon name="info" className="size-4 flex-shrink-0 text-black" />
+                                    <p className="text-sm text-black">
+                                        Experimental. Only available for Seedlings badge holders.
+                                    </p>
+                                </div>
+                            </>
+                        )}
+
                         <div>
                             {invites.invitees?.map((invite: PointsInvite, i: number) => {
                                 const username = invite.username
