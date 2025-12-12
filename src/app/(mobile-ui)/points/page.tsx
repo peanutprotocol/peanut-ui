@@ -19,12 +19,7 @@ import { STAR_STRAIGHT_ICON, TIER_0_BADGE, TIER_1_BADGE, TIER_2_BADGE, TIER_3_BA
 import Image from 'next/image'
 import { pointsApi } from '@/services/points'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
-<<<<<<< Updated upstream
-import { getInitialsFromName } from '@/utils'
-import type { PointsInvite } from '@/services/services.types'
-=======
 import { type PointsInvite } from '@/services/services.types'
->>>>>>> Stashed changes
 import { useEffect } from 'react'
 import InvitesGraph from '@/components/Global/InvitesGraph'
 
