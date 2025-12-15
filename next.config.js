@@ -58,12 +58,6 @@ let nextConfig = {
         },
     },
 
-    // External packages that shouldn't be bundled (server-side only)
-    // These packages use Node.js native bindings or APIs not compatible with bundling
-    serverExternalPackages: [
-        'web-push', // Uses crypto native module
-    ],
-
     // Disable source maps in production (already handled by Sentry)
     productionBrowserSourceMaps: false,
 
@@ -73,7 +67,8 @@ let nextConfig = {
     // Experimental features for optimization
     experimental: {
         // Note: turbopackFileSystemCacheForDev is enabled by default in Next.js 16+
-        // Optimize package imports for tree-shaking (barrel file optimization)
+        // optimize package imports for tree-shaking (barrel file optimization)
+        // lodash and date-fns are used by transitive dependencies (e.g. chakra, framer-motion)
         optimizePackageImports: [
             '@chakra-ui/react',
             'framer-motion',

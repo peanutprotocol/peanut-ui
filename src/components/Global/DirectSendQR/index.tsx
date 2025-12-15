@@ -9,7 +9,6 @@ import QRBottomDrawer from '@/components/Global/QRBottomDrawer'
 // 50KB bundle cost is worth it for better UX on primary flow
 import QRScanner from '@/components/Global/QRScanner'
 import { useAuth } from '@/context/authContext'
-import { usePush } from '@/context/pushProvider'
 import { useAppDispatch } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { hitUserMetric } from '@/utils/metrics.utils'
@@ -50,8 +49,9 @@ const MODAL_CONTENTS: Record<ModalType, React.ComponentType<ModalContentProps>> 
     [EModalType.UNRECOGNIZED]: UnrecognizedContent,
 }
 
+// note: push notifications are now handled by onesignal via useNotifications hook.
+// this component just tracks the metric and shows confirmation.
 function NotSupportedContent({ setModalContent, qrType }: ModalContentProps) {
-    const pushNotifications = usePush()
     const { user } = useAuth()
     return (
         <div className="flex flex-col justify-center p-6">
@@ -59,15 +59,10 @@ function NotSupportedContent({ setModalContent, qrType }: ModalContentProps) {
             <span className="text-sm">Get notified when it goes live!</span>
             <Button
                 onClick={() => {
-                    if (pushNotifications.isSupported && !pushNotifications.isSubscribed) {
-                        pushNotifications.subscribe().then(() => {
-                            setModalContent(EModalType.WILL_BE_NOTIFIED)
-                            return
-                        })
-                    } else {
-                        setModalContent(EModalType.WILL_BE_NOTIFIED)
+                    setModalContent(EModalType.WILL_BE_NOTIFIED)
+                    if (user?.user.userId) {
+                        hitUserMetric(user.user.userId, 'qr-notify-me', { qrType })
                     }
-                    hitUserMetric(user!.user.userId, 'qr-notify-me', { qrType })
                 }}
                 className="mt-4 w-full"
                 shadowType="primary"

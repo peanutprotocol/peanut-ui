@@ -90,7 +90,6 @@
         "vaul": "^1.1.2",
         "viem": "^2.22.0",
         "wagmi": "2.16.3",
-        "web-push": "^3.6.7",
         "yup": "^1.4.0"
     },
     "devDependencies": {
@@ -112,7 +111,6 @@
         "@types/react-dom": "^18.3.1",
         "@types/uuid": "^9.0.8",
         "@types/validator": "^13.12.2",
-        "@types/web-push": "^3.6.4",
         "jest": "^29.7.0",
         "jest-environment-jsdom": "^29.7.0",
         "jest-transform-stub": "^2.0.0",
@@ -152,7 +150,6 @@
             "^@squirrel-labs/peanut-sdk$": "<rootDir>/src/utils/__mocks__/peanut-sdk.ts",
             "^@reown/appkit/react$": "<rootDir>/src/utils/__mocks__/reown-appkit.ts",
             "^@justaname\\.id/react$": "<rootDir>/src/utils/__mocks__/justaname.ts",
-            "^web-push$": "<rootDir>/src/utils/__mocks__/web-push.ts",
             "^next/cache$": "<rootDir>/src/utils/__mocks__/next-cache.ts",
             "^@zerodev/sdk(.*)$": "<rootDir>/src/utils/__mocks__/zerodev-sdk.ts",
             "^@simplewebauthn/browser$": "<rootDir>/src/utils/__mocks__/simplewebauthn-browser.ts",
