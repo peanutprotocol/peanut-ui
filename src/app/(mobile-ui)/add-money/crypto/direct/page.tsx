@@ -14,7 +14,7 @@ import { trackDaimoDepositTransactionHash } from '@/app/actions/users'
 import InfoCard from '@/components/Global/InfoCard'
 import Link from 'next/link'
 import ActionModal from '@/components/Global/ActionModal'
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import { Slider } from '@/components/Slider'
 
 export default function AddMoneyCryptoDirectPage() {

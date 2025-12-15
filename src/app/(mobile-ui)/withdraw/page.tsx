@@ -1,6 +1,6 @@
 'use client'
 
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import { AddWithdrawRouterView } from '@/components/AddWithdraw/AddWithdrawRouterView'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'

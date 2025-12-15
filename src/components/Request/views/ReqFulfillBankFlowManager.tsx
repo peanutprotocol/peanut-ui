@@ -15,10 +15,10 @@ import { UserDetailsForm, type UserDetailsFormData } from '@/components/AddMoney
 import { useMemo, useState, useRef, useEffect } from 'react'
 import NavHeader from '@/components/Global/NavHeader'
 import ErrorAlert from '@/components/Global/ErrorAlert'
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import { updateUserById } from '@/app/actions/users'
 import { type Address } from 'viem'
-import { getCurrencyConfig, getCurrencySymbol, getMinimumAmount } from '@/utils/bridge.utils'
+import { getCurrencyConfig, getMinimumAmount } from '@/utils/bridge.utils'
 import { getCurrencyPrice } from '@/app/actions/currency'
 
 /**

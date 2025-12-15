@@ -1,10 +1,10 @@
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useAppDispatch, useSetupStore } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
-import React, { useState } from 'react'
+import { useState } from 'react'
 
 const JoinBeta = () => {
     const { handleNext } = useSetupFlow()

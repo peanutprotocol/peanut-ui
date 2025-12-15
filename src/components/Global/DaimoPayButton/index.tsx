@@ -1,6 +1,6 @@
 'use client'
 
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { PEANUT_WALLET_TOKEN } from '@/constants'
 import { DaimoPayButton as DaimoPayButtonSDK, useDaimoPayUI } from '@daimo/pay'

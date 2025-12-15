@@ -1,5 +1,5 @@
 import { PEANUTMAN_RAISING_HANDS } from '@/assets'
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import { useAuth } from '@/context/authContext'
 import { rewardsApi } from '@/services/rewards'
 import { type RewardLink } from '@/services/services.types'

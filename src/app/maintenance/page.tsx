@@ -1,6 +1,6 @@
 'use client'
 import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 

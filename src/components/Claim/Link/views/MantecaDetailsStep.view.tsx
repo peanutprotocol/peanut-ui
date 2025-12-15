@@ -1,6 +1,6 @@
 'use client'
 
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { MercadoPagoStep } from '@/types/manteca.types'
 import { type Dispatch, type FC, type SetStateAction, useState } from 'react'

@@ -1,6 +1,6 @@
 'use client'
 
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
 import { BASE_URL } from '@/constants'

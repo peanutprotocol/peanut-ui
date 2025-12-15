@@ -1,6 +1,6 @@
 'use client'
 
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import { useSupportModalContext } from '@/context/SupportModalContext'
 import Image from 'next/image'
 import Link from 'next/link'

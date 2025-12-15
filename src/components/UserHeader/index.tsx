@@ -9,7 +9,7 @@ import { useMemo } from 'react'
 import { isAddress } from 'viem'
 import { useAuth } from '@/context/authContext'
 import AddressLink from '../Global/AddressLink'
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 
 interface UserHeaderProps {
     username: string

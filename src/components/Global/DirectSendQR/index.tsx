@@ -1,11 +1,10 @@
 'use client'
 import { resolveEns } from '@/app/actions/ens'
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import Checkbox from '@/components/0_Bruddle/Checkbox'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import Modal from '@/components/Global/Modal'
 import QRBottomDrawer from '@/components/Global/QRBottomDrawer'
-import PeanutLoading from '@/components/Global/PeanutLoading'
 // QRScanner is NOT lazy-loaded - critical path for payments, needs instant response
 // 50KB bundle cost is worth it for better UX on primary flow
 import QRScanner from '@/components/Global/QRScanner'

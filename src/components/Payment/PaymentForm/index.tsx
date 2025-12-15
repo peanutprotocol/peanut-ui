@@ -2,7 +2,7 @@
 
 import { PEANUT_LOGO_BLACK } from '@/assets'
 import { PEANUTMAN_LOGO } from '@/assets/peanut'
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import ActionModal from '@/components/Global/ActionModal'
 import AddressLink from '@/components/Global/AddressLink'
 import ErrorAlert from '@/components/Global/ErrorAlert'

@@ -1,10 +1,9 @@
 'use client'
 
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import ValidatedInput from '@/components/Global/ValidatedInput'
-import { useZeroDev } from '@/hooks/useZeroDev'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import * as Sentry from '@sentry/nextjs'
 import { useSetupFlow } from '@/hooks/useSetupFlow'

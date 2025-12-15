@@ -1,4 +1,4 @@
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import { useSetupStore } from '@/redux/hooks'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useSetupFlow } from '@/hooks/useSetupFlow'

@@ -1,4 +1,4 @@
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import MantecaDetailsCard, { type MantecaCardRow } from '@/components/Global/MantecaDetailsCard'
 import PeanutLoading from '@/components/Global/PeanutLoading'
