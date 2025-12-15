@@ -27,14 +27,6 @@ import { MantecaGeoSpecificKycModal } from '@/components/Kyc/InitiateMantecaKYCM
 import { useAuth } from '@/context/authContext'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useSupportModalContext } from '@/context/SupportModalContext'
-import {
-    MantecaAccountType,
-    MANTECA_COUNTRIES_CONFIG,
-    type MantecaBankCode,
-    MANTECA_DEPOSIT_ADDRESS,
-    TRANSACTIONS,
-    PEANUT_WALLET_TOKEN_DECIMALS,
-} from '@/constants'
 import Select from '@/components/Global/Select'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { useQueryClient } from '@tanstack/react-query'
@@ -44,8 +36,15 @@ import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 import { PointsAction } from '@/services/services.types'
 import { usePointsConfetti } from '@/hooks/usePointsConfetti'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
-import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import PointsCard from '@/components/Common/PointsCard'
+import {
+    MANTECA_COUNTRIES_CONFIG,
+    MANTECA_DEPOSIT_ADDRESS,
+    MantecaAccountType,
+    type MantecaBankCode,
+} from '@/constants/manteca.consts'
+import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
+import { TRANSACTIONS } from '@/constants/query.consts'
 
 type MantecaWithdrawStep = 'amountInput' | 'bankDetails' | 'review' | 'success' | 'failure'
 

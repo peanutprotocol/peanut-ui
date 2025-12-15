@@ -1,9 +1,10 @@
 'use client'
 
-import { Button, Card } from '@/components/0_Bruddle'
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSupportModalContext } from '@/context/SupportModalContext'
+import { Button } from '@/components/0_Bruddle/Button'
+import { Card } from '@/components/0_Bruddle/Card'
 
 export default function PaymentError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
     const router = useRouter()

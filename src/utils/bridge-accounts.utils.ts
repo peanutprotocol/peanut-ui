@@ -1,4 +1,4 @@
-import * as consts from '@/constants'
+import { supportedBridgeTokensDictionary, supportedBridgeChainsDictionary } from '@/constants/cashout.consts'
 import { areEvmAddressesEqual } from '@/utils/general.utils'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { isIBAN } from 'validator'
@@ -32,14 +32,15 @@ export const convertPersonaUrl = (url: string) => {
     return `https://bridge.withpersona.com/widget?environment=production&inquiry-template-id=${templateId}&fields[iqt_token=${iqtToken}&iframe-origin=${origin}&redirect-uri=${origin}&fields[developer_id]=${developerId}&reference-id=${referenceId}`
 }
 
-export type BridgeKycStatus = 'not_started' | 'under_review' | 'approved' | 'rejected' | 'incomplete'
+// Re-export from interfaces (defined there to avoid circular dependency)
+export type { BridgeKycStatus } from '@/interfaces/interfaces'
 
 export async function validateIban(iban: string): Promise<boolean> {
     return isIBAN(iban.replace(/\s+/g, ''))
 }
 
 export function getBridgeTokenName(chainId: string, tokenAddress: string): string | undefined {
-    const token = consts.supportedBridgeTokensDictionary
+    const token = supportedBridgeTokensDictionary
         .find((chain) => chain.chainId === chainId)
         ?.tokens.find((token) => areEvmAddressesEqual(token.address, tokenAddress))
         ?.token.toLowerCase()
@@ -48,7 +49,7 @@ export function getBridgeTokenName(chainId: string, tokenAddress: string): strin
 }
 
 export function getBridgeChainName(chainId: string): string | undefined {
-    const chain = consts.supportedBridgeChainsDictionary.find((chain) => chain.chainId === chainId)?.chain
+    const chain = supportedBridgeChainsDictionary.find((chain) => chain.chainId === chainId)?.chain
     return chain ?? undefined
 }
 

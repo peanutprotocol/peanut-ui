@@ -1,7 +1,7 @@
-import { Card } from '@/components/0_Bruddle'
 import { CrispButton } from '@/components/CrispChat'
 import React from 'react'
 import { PaymentsFooter } from '../PaymentsFooter'
+import { Card } from '@/components/0_Bruddle/Card'
 
 interface StatusViewWrapperProps {
     title: React.ReactNode

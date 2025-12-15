@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { PEANUT_API_URL } from '@/constants'
+import { PEANUT_API_URL } from '@/constants/general.consts'
 
 interface RedirectQrStatusData {
     claimed: boolean

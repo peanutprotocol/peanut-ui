@@ -1,4 +1,4 @@
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '../Icons/Icon'
 import { type ReactNode } from 'react'
 

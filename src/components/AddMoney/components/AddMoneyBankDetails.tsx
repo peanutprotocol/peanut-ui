@@ -16,7 +16,7 @@ import { usePaymentStore } from '@/redux/hooks'
 import { formatAmount } from '@/utils/general.utils'
 import InfoCard from '@/components/Global/InfoCard'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
 
 interface IAddMoneyBankDetails {

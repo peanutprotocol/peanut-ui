@@ -1,7 +1,7 @@
 'use client'
 
 import { AddWithdrawRouterView } from '@/components/AddWithdraw/AddWithdrawRouterView'
-import { useOnrampFlow } from '@/context'
+import { useOnrampFlow } from '@/context/OnrampFlowContext'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import { checkIfInternalNavigation } from '@/utils/general.utils'

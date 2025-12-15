@@ -1,6 +1,5 @@
 'use client'
 
-import { PEANUT_WALLET_TOKEN_DECIMALS, STABLE_COINS } from '@/constants'
 import { tokenSelectorContext } from '@/context'
 import { formatTokenAmount, formatCurrency } from '@/utils/general.utils'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
@@ -10,6 +9,8 @@ import { twMerge } from 'tailwind-merge'
 import { Icon as IconComponent } from '@/components/Global/Icons/Icon'
 import { Slider } from '@/components/Global/Slider'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
+import { STABLE_COINS } from '@/constants/general.consts'
+import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 
 interface PaymentAmountInputProps {
     className?: string

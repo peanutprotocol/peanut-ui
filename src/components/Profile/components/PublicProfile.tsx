@@ -1,7 +1,7 @@
 'use client'
 
 import { HandThumbsUpV2, PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import HomeHistory from '@/components/Home/HomeHistory'

@@ -1,4 +1,4 @@
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { tokenSelectorContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { type ParsedURL } from '@/lib/url-parser/types/payment'

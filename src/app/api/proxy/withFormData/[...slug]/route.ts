@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PEANUT_API_URL } from '@/constants'
 import { fetchWithSentry } from '@/utils/sentry.utils'
+import { PEANUT_API_URL } from '@/constants/general.consts'
 
 async function handleFormDataRequest(request: NextRequest, method: string) {
     const separator = '/api/proxy/withFormData/'

@@ -1,9 +1,11 @@
-// middleware.ts
+// proxy.ts
+// nextjs 16 renamed middleware.ts to proxy.ts
+// https://nextjs.org/docs/messages/middleware-to-proxy
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import maintenanceConfig from '@/config/underMaintenance.config'
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl
 
     // /dev/ routes are now accessible in production for testing

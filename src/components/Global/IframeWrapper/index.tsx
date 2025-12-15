@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import Modal from '../Modal'
-import { Button, type ButtonVariant } from '@/components/0_Bruddle'
 import { Icon, type IconName } from '../Icons/Icon'
 import ActionModal from '../ActionModal'
 import { useRouter } from 'next/navigation'
 import StartVerificationView from './StartVerificationView'
 import { useSupportModalContext } from '@/context/SupportModalContext'
+import { Button, type ButtonVariant } from '@/components/0_Bruddle/Button'
 
 export type IFrameWrapperProps = {
     src: string

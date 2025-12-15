@@ -1,6 +1,6 @@
 'use client'
 
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import AddressLink from '@/components/Global/AddressLink'
 import Card from '@/components/Global/Card'
 import DisplayIcon from '@/components/Global/DisplayIcon'
@@ -15,7 +15,7 @@ import { interfaces } from '@squirrel-labs/peanut-sdk'
 import { type PeanutCrossChainRoute } from '@/services/swap'
 import { useMemo, useState } from 'react'
 import { formatUnits } from 'viem'
-import { ROUTE_NOT_FOUND_ERROR } from '@/constants'
+import { ROUTE_NOT_FOUND_ERROR } from '@/constants/general.consts'
 
 interface WithdrawConfirmViewProps {
     amount: string

@@ -13,11 +13,12 @@ import NetworkSelectionView, { type SelectedNetwork } from '@/components/AddMone
 import TokenSelectionView from '@/components/AddMoney/views/TokenSelection.view'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutLoading from '@/components/Global/PeanutLoading'
-import { PEANUT_WALLET_CHAIN } from '@/constants'
 import { useWallet } from '@/hooks/wallet/useWallet'
+
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import TokenAndNetworkConfirmationModal from '@/components/Global/TokenAndNetworkConfirmationModal'
+import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 
 type AddMoneyCryptoStep = 'sourceSelection' | 'tokenSelection' | 'networkSelection' | 'riskModal' | 'qrScreen'
 

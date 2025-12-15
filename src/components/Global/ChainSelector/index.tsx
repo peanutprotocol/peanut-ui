@@ -1,6 +1,5 @@
 'use client'
 
-import { supportedPeanutChains } from '@/constants'
 import { tokenSelectorContext } from '@/context'
 import { type IPeanutChainDetails, type IUserBalance } from '@/interfaces'
 import { calculateValuePerChain } from '@/utils/balance.utils'
@@ -9,6 +8,7 @@ import { Menu, Transition } from '@headlessui/react'
 import { useContext, useMemo, useState } from 'react'
 import Icon from '../Icon'
 import Search from '../Search'
+import { supportedPeanutChains } from '@/constants/general.consts'
 
 type Chain = {
     name: string

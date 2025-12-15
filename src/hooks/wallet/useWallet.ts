@@ -1,6 +1,6 @@
 'use client'
 
-import { PEANUT_WALLET_CHAIN } from '@/constants'
+import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import { useAppDispatch, useWalletStore } from '@/redux/hooks'
 import { walletActions } from '@/redux/slices/wallet-slice'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'

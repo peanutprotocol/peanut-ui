@@ -8,7 +8,7 @@ import { formatUnits } from 'viem'
 import { useContext, useMemo, useState, useRef } from 'react'
 import ActionModal from '@/components/Global/ActionModal'
 import Divider from '../0_Bruddle/Divider'
-import { Button } from '../0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import { PEANUT_LOGO_BLACK } from '@/assets/illustrations'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -37,7 +37,7 @@ import SupportCTA from '../Global/SupportCTA'
 import { DEVCONNECT_LOGO } from '@/assets'
 import useKycStatus from '@/hooks/useKycStatus'
 import { usePaymentInitiator } from '@/hooks/usePaymentInitiator'
-import { MIN_BANK_TRANSFER_AMOUNT, validateMinimumAmount } from '@/constants'
+import { MIN_BANK_TRANSFER_AMOUNT, validateMinimumAmount } from '@/constants/payment.consts'
 
 const SHOW_INVITE_MODAL_FOR_DEVCONNECT = false
 
@@ -82,7 +82,7 @@ export default function ActionList({
     const { balance } = useWallet()
     const [showMinAmountError, setShowMinAmountError] = useState(false)
     const { claimType } = useDetermineBankClaimType(claimLinkData?.sender?.userId ?? '')
-    const { chargeDetails, usdAmount, parsedPaymentData } = usePaymentStore()
+    const { chargeDetails, usdAmount } = usePaymentStore()
     const requesterUserId = chargeDetails?.requestLink?.recipientAccount?.userId ?? ''
     const { requestType } = useDetermineBankRequestType(requesterUserId)
     const savedAccounts = useSavedAccounts()

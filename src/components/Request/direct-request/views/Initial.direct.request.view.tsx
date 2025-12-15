@@ -1,5 +1,5 @@
 'use client'
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import FileUploadInput from '@/components/Global/FileUploadInput'
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'

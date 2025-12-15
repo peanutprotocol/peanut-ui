@@ -1,6 +1,6 @@
 'use client'
 
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import ActionModal from '@/components/Global/ActionModal'
 import Card from '@/components/Global/Card'
 import DisplayIcon from '@/components/Global/DisplayIcon'
@@ -26,15 +26,11 @@ import { useAccount } from 'wagmi'
 import { PaymentInfoRow } from '../PaymentInfoRow'
 import { formatUnits } from 'viem'
 import type { Address } from 'viem'
-import {
-    PEANUT_WALLET_CHAIN,
-    PEANUT_WALLET_TOKEN,
-    ROUTE_NOT_FOUND_ERROR,
-    PEANUT_WALLET_TOKEN_SYMBOL,
-} from '@/constants'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
 import { captureMessage } from '@sentry/nextjs'
 import AddressLink from '@/components/Global/AddressLink'
 import { useHaptic } from 'use-haptic'
+import { ROUTE_NOT_FOUND_ERROR } from '@/constants/general.consts'
 
 type ConfirmPaymentViewProps = {
     currency?: {

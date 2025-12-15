@@ -58,9 +58,6 @@ let nextConfig = {
         },
     },
 
-    // External packages that shouldn't be bundled (server-side only)
-    serverExternalPackages: [],
-
     // Disable source maps in production (already handled by Sentry)
     productionBrowserSourceMaps: false,
 
@@ -69,9 +66,23 @@ let nextConfig = {
 
     // Experimental features for optimization
     experimental: {
-        // Optimize package imports for tree-shaking
-        optimizePackageImports: ['@chakra-ui/react', 'framer-motion', '@headlessui/react'],
-        // Speed up webpack builds (fallback mode when not using --turbo)
+        // Note: turbopackFileSystemCacheForDev is enabled by default in Next.js 16+
+        // optimize package imports for tree-shaking (barrel file optimization)
+        // lodash and date-fns are used by transitive dependencies (e.g. chakra, framer-motion)
+        optimizePackageImports: [
+            '@chakra-ui/react',
+            'framer-motion',
+            '@headlessui/react',
+            '@radix-ui/react-accordion',
+            '@radix-ui/react-select',
+            '@radix-ui/react-slider',
+            '@reduxjs/toolkit',
+            'react-redux',
+            'lodash',
+            'date-fns',
+            'react-hook-form',
+        ],
+        // Speed up webpack builds (used for production builds with --webpack flag)
         webpackBuildWorker: true,
     },
 

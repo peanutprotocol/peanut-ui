@@ -1,5 +1,5 @@
 'use client'
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import Link from 'next/link'
 import { twMerge } from 'tailwind-merge'
 import { Icon, type IconName } from '../Icons/Icon'

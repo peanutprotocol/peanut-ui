@@ -13,7 +13,7 @@ import { VerifiedUserLabel } from '@/components/UserHeader'
 import { SearchInput } from '@/components/SearchInput'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 
 export default function ContactsView() {
     const router = useRouter()

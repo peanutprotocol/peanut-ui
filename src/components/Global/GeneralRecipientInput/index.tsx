@@ -7,7 +7,7 @@ import * as Senty from '@sentry/nextjs'
 import { useCallback, useRef } from 'react'
 import { isIBAN } from 'validator'
 import { validateAndResolveRecipient } from '@/lib/validation/recipient'
-import { BASE_URL } from '@/constants'
+import { BASE_URL } from '@/constants/general.consts'
 
 type GeneralRecipientInputProps = {
     className?: string

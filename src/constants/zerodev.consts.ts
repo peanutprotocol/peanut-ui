@@ -1,8 +1,5 @@
 import { getEntryPoint, KERNEL_V3_1 } from '@zerodev/sdk/constants'
-import type { Chain, PublicClient } from 'viem'
-import { createPublicClient } from 'viem'
-import { getTransportWithFallback } from '@/app/actions/clients'
-import { arbitrum, mainnet, base, linea } from 'viem/chains'
+import { arbitrum } from 'viem/chains'
 
 // consts needed to define low level SDK kernel
 // as per: https://docs.zerodev.app/sdk/getting-started/tutorial-passkeys
@@ -38,81 +35,3 @@ export const PEANUT_WALLET_SUPPORTED_TOKENS: Record<string, string[]> = {
 export const USER_OP_ENTRY_POINT = getEntryPoint('0.7')
 export const ZERODEV_KERNEL_VERSION = KERNEL_V3_1
 export const USER_OPERATION_REVERT_REASON_TOPIC = '0x1c4fada7374c0a9ee8841fc38afe82932dc0f8e69012e927f061a8bae611a201'
-
-const ZERODEV_V3_URL = process.env.NEXT_PUBLIC_ZERO_DEV_RECOVERY_BUNDLER_URL
-const zerodevV3Url = (chainId: number | string) => `${ZERODEV_V3_URL}/chain/${chainId}`
-
-/**
- * This is a mapping of chain ID to the public client and chain details
- * This is for the standard chains supported in the app. Arbitrum is always included
- * as it's the primary wallet chain. Additional chains (mainnet, base, linea) are only
- * included if NEXT_PUBLIC_ZERO_DEV_RECOVERY_BUNDLER_URL is configured.
- */
-export const PUBLIC_CLIENTS_BY_CHAIN: Record<
-    string,
-    {
-        client: PublicClient
-        chain: Chain
-        bundlerUrl: string
-        paymasterUrl: string
-    }
-> = {
-    // Arbitrum (primary wallet chain - always included)
-    [arbitrum.id]: {
-        client: createPublicClient({
-            transport: getTransportWithFallback(arbitrum.id),
-            chain: arbitrum,
-            pollingInterval: 500,
-        }),
-        chain: PEANUT_WALLET_CHAIN,
-        bundlerUrl: BUNDLER_URL,
-        paymasterUrl: PAYMASTER_URL,
-    },
-}
-
-// Conditionally add recovery chains if env var is configured
-if (ZERODEV_V3_URL) {
-    const mainnetUrl = zerodevV3Url(mainnet.id)
-    if (mainnetUrl) {
-        PUBLIC_CLIENTS_BY_CHAIN[mainnet.id] = {
-            client: createPublicClient({
-                transport: getTransportWithFallback(mainnet.id),
-                chain: mainnet,
-                pollingInterval: 12000,
-            }),
-            chain: mainnet,
-            bundlerUrl: mainnetUrl,
-            paymasterUrl: mainnetUrl,
-        }
-    }
-
-    const baseUrl = zerodevV3Url(base.id)
-    if (baseUrl) {
-        PUBLIC_CLIENTS_BY_CHAIN[base.id] = {
-            client: createPublicClient({
-                transport: getTransportWithFallback(base.id),
-                chain: base,
-                pollingInterval: 2000,
-            }) as PublicClient,
-            chain: base,
-            bundlerUrl: baseUrl,
-            paymasterUrl: baseUrl,
-        }
-    }
-
-    const lineaUrl = zerodevV3Url(linea.id)
-    if (lineaUrl) {
-        PUBLIC_CLIENTS_BY_CHAIN[linea.id] = {
-            client: createPublicClient({
-                transport: getTransportWithFallback(linea.id),
-                chain: linea,
-                pollingInterval: 3000,
-            }),
-            chain: linea,
-            bundlerUrl: lineaUrl,
-            paymasterUrl: lineaUrl,
-        }
-    }
-}
-
-export const peanutPublicClient = PUBLIC_CLIENTS_BY_CHAIN[PEANUT_WALLET_CHAIN.id].client

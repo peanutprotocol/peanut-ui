@@ -1,8 +1,8 @@
-import { PEANUT_API_URL } from '@/constants'
 import { type CreateRequestRequest, type TRequestResponse } from './services.types'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { jsonStringify } from '@/utils/general.utils'
 import Cookies from 'js-cookie'
+import { PEANUT_API_URL } from '@/constants/general.consts'
 
 export const requestsApi = {
     create: async (data: CreateRequestRequest): Promise<TRequestResponse> => {

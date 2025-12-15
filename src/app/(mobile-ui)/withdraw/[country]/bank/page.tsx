@@ -1,6 +1,6 @@
 'use client'
 
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import { ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
 import Card from '@/components/Global/Card'
 import ErrorAlert from '@/components/Global/ErrorAlert'

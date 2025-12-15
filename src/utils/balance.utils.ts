@@ -1,4 +1,4 @@
-import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
+import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { type ChainValue, type IUserBalance } from '@/interfaces'
 import * as Sentry from '@sentry/nextjs'
 import { formatUnits } from 'viem'

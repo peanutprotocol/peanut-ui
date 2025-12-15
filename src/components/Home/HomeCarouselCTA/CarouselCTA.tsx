@@ -1,6 +1,5 @@
 'use client'
 
-import { Card } from '@/components/0_Bruddle'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import type { StaticImageData } from 'next/image'
 import Image from 'next/image'
@@ -9,6 +8,7 @@ import { twMerge } from 'tailwind-merge'
 import ActionModal from '@/components/Global/ActionModal'
 import { CAROUSEL_CLOSE_BUTTON_POSITION, CAROUSEL_CLOSE_ICON_SIZE } from '@/constants/carousel.consts'
 import { useHaptic } from 'use-haptic'
+import { Card } from '@/components/0_Bruddle/Card'
 
 interface CarouselCTAProps {
     icon: IconName

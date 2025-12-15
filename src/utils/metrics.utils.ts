@@ -1,7 +1,7 @@
 import { type JSONObject } from '@/interfaces'
-import { PEANUT_API_URL } from '@/constants'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import Cookies from 'js-cookie'
+import { PEANUT_API_URL } from '@/constants/general.consts'
 
 export async function hitUserMetric(userId: string, name: string, value: JSONObject = {}): Promise<void> {
     try {

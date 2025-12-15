@@ -2,7 +2,7 @@
 
 import { PEANUT_LOGO_BLACK } from '@/assets'
 import { PEANUTMAN_LOGO } from '@/assets/peanut'
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import ActionModal from '@/components/Global/ActionModal'
 import AddressLink from '@/components/Global/AddressLink'
 import ErrorAlert from '@/components/Global/ErrorAlert'
@@ -12,7 +12,6 @@ import NavHeader from '@/components/Global/NavHeader'
 import PaymentAmountInput from '@/components/Payment/PaymentAmountInput'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import UserCard from '@/components/User/UserCard'
-import { PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS, PEANUT_WALLET_CHAIN } from '@/constants'
 import { tokenSelectorContext } from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
@@ -44,6 +43,7 @@ import { getCardPosition } from '@/components/Global/Card'
 import * as Sentry from '@sentry/nextjs'
 import { useHaptic } from 'use-haptic'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 
 export type PaymentFlowProps = {
     isExternalWalletFlow?: boolean

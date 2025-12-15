@@ -1,4 +1,4 @@
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import Image from 'next/image'
 import React, { useState } from 'react'

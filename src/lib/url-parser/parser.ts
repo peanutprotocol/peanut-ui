@@ -1,5 +1,5 @@
 import { getSquidChainsAndTokens } from '@/app/actions/squid'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
 import { validateAmount } from '../validation/amount'
 import { validateAndResolveRecipient } from '../validation/recipient'

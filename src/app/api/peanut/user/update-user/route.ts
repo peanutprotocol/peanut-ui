@@ -1,8 +1,8 @@
-import * as consts from '@/constants'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import type { BridgeKycStatus } from '@/utils/bridge-accounts.utils'
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
+import { PEANUT_API_URL } from '@/constants/general.consts'
 
 type UserPayload = {
     userId: string
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
             payload.fullName = fullName
         }
 
-        const response = await fetchWithSentry(`${consts.PEANUT_API_URL}/update-user`, {
+        const response = await fetchWithSentry(`${PEANUT_API_URL}/update-user`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

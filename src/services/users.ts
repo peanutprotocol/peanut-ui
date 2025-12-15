@@ -1,10 +1,9 @@
 import {
-    PEANUT_API_URL,
     PEANUT_WALLET_CHAIN,
     PEANUT_WALLET_TOKEN,
     PEANUT_WALLET_TOKEN_DECIMALS,
     PEANUT_WALLET_TOKEN_SYMBOL,
-} from '@/constants'
+} from '@/constants/zerodev.consts'
 import { AccountType, type IUserKycVerification } from '@/interfaces'
 import { type IAttachmentOptions } from '@/redux/types/send-flow.types'
 import { fetchWithSentry } from '@/utils/sentry.utils'
@@ -12,6 +11,7 @@ import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { chargesApi } from './charges'
 import { type TCharge } from './services.types'
 import Cookies from 'js-cookie'
+import { PEANUT_API_URL } from '@/constants/general.consts'
 
 type ApiAccount = {
     identifier: string

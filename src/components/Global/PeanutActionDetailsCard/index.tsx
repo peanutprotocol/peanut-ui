@@ -1,5 +1,4 @@
 import AvatarWithBadge, { type AvatarSize } from '@/components/Profile/AvatarWithBadge'
-import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
 import { type RecipientType } from '@/lib/url-parser/types/payment'
 import { printableAddress } from '@/utils/general.utils'
 import { AVATAR_TEXT_DARK, getColorForUsername } from '@/utils/color.utils'
@@ -11,6 +10,7 @@ import { Icon, type IconName } from '../Icons/Icon'
 import RouteExpiryTimer from '../RouteExpiryTimer'
 import Image, { type StaticImageData } from 'next/image'
 import Loading from '../Loading'
+import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
 
 export type PeanutActionDetailsCardTransactionType =
     | 'REQUEST'

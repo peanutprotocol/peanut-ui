@@ -1,8 +1,8 @@
 'use client'
 
+import { TWEETS, type Tweet } from '@/constants/tweets.consts'
 import { useMemo, useState } from 'react'
 import Marquee from 'react-fast-marquee'
-import { TWEETS, type Tweet } from '@/constants'
 
 // =============================================================================
 // Constants

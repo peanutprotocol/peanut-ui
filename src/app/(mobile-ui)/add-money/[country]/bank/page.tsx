@@ -1,6 +1,6 @@
 'use client'
 
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'

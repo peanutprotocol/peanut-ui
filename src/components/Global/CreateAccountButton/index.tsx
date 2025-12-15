@@ -1,9 +1,8 @@
 'use client'
 
 import { PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import Image from 'next/image'
-import React from 'react'
 
 interface CreateAccountButtonProps {
     onClick: () => void

@@ -7,7 +7,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 
 import NavHeader from '../Global/NavHeader'
 import Divider from '../0_Bruddle/Divider'
-import { Button } from '../0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import { ActionListCard } from '../ActionListCard'
 
 interface SavedAccountListProps {

@@ -12,7 +12,6 @@ import { validateIban, validateBic, isValidRoutingNumber } from '@/utils/bridge-
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { getBicFromIban } from '@/app/actions/ibanToBic'
 import PeanutActionDetailsCard, { type PeanutActionDetailsCardProps } from '../Global/PeanutActionDetailsCard'
-import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { getCountryFromIban, validateMXCLabeAccount, validateUSBankAccount } from '@/utils/withdraw.utils'
 import useSavedAccounts from '@/hooks/useSavedAccounts'
@@ -21,6 +20,7 @@ import { bankFormActions } from '@/redux/slices/bank-form-slice'
 import { useDebounce } from '@/hooks/useDebounce'
 import { twMerge } from 'tailwind-merge'
 import { MX_STATES, US_STATES } from '@/constants/stateCodes.consts'
+import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
 
 const isIBANCountry = (country: string) => {
     return BRIDGE_ALPHA3_TO_ALPHA2[country.toUpperCase()] !== undefined

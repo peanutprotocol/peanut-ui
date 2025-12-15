@@ -1,5 +1,5 @@
 import Image from 'next/image'
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import handThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
 import handWaving from '@/assets/illustrations/hand-waving.svg'
 import handPeace from '@/assets/illustrations/hand-peace.svg'

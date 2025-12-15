@@ -1,7 +1,7 @@
 'use client'
 
 import { ThinkingPeanut } from '@/assets'
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import CloudsBackground from '@/components/0_Bruddle/CloudsBackground'
 import Image from 'next/image'
 import NavHeader from '../NavHeader'
