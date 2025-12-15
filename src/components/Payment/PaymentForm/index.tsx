@@ -776,6 +776,7 @@ export const PaymentForm = ({
         // Cap at 100% max
         return { percentage: Math.min(percentage, 100), suggestedAmount }
     }, [requestDetails?.charges, requestDetails?.tokenAmount, totalAmountCollected])
+    console.log('inputTokenAmount', inputTokenAmount)
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
@@ -824,7 +825,7 @@ export const PaymentForm = ({
                 {/* use TokenAmountInput for direct usd payments, request pot payments, and external address payments to avoid typing issues */}
                 {isDirectUsdPayment || shouldUseTokenAmountInput ? (
                     <TokenAmountInput
-                        tokenValue={inputTokenAmount}
+                        tokenValue={inputTokenAmount.replace(/,/g, '')}
                         setTokenValue={(value: string | undefined) => setInputTokenAmount(value || '')}
                         setUsdValue={(value: string) => {
                             setInputUsdValue(value)
