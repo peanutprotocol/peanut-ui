@@ -8,7 +8,7 @@
     "scripts": {
         "dev": "NODE_OPTIONS=\"--max-old-space-size=8192\" next dev --turbo",
         "dev:fallback": "next dev",
-        "build": "next build",
+        "build": "next build --webpack",
         "start": "next start",
         "lint": "next lint",
         "knip": "knip",
@@ -93,7 +93,7 @@
         "yup": "^1.4.0"
     },
     "devDependencies": {
-        "@next/bundle-analyzer": "^15.2.4",
+        "@next/bundle-analyzer": "^16.0.0",
         "@serwist/build": "^9.0.10",
         "@size-limit/preset-app": "^11.2.0",
         "@testing-library/jest-dom": "^6.4.2",
