@@ -12,7 +12,7 @@
         "moduleResolution": "bundler",
         "resolveJsonModule": true,
         "isolatedModules": true,
-        "jsx": "preserve",
+        "jsx": "react-jsx",
         "incremental": true,
         "tsBuildInfoFile": ".next/.tsbuildinfo",
         "plugins": [
@@ -33,7 +33,8 @@
         "**/*.tsx",
         ".next/types/**/*.ts",
         "src/app/api/assetLinks.js",
-        "src/app/api/appleAppSiteAssociation.js"
+        "src/app/api/appleAppSiteAssociation.js",
+        ".next/dev/types/**/*.ts"
     ],
     "exclude": ["node_modules", "src/app/sw.ts", ".next"]
 }
