@@ -66,7 +66,7 @@
         "jsqr": "^1.4.0",
         "lottie-react": "^2.4.0",
         "multicoin-address-validator": "^0.5.22",
-        "next": "15.3.6",
+        "next": "16.0.10",
         "pulltorefreshjs": "^0.1.22",
         "react": "^19.2.1",
         "react-csv": "^2.2.2",
