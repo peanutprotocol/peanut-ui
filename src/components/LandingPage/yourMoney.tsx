@@ -1,6 +1,6 @@
 import Image from 'next/image'
 import { LandingCountries } from '@/assets'
-import { Button } from '../0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 
 export function YourMoney() {
     return (

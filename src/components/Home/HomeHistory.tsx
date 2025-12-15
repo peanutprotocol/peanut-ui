@@ -20,8 +20,8 @@ import { BadgeStatusItem, isBadgeHistoryItem } from '@/components/Badges/BadgeSt
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { completeHistoryEntry } from '@/utils/history.utils'
 import { formatUnits } from 'viem'
-import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { useHaptic } from 'use-haptic'
+import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 
 /**
  * component to display a preview of the most recent transactions on the home page.

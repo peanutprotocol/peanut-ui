@@ -1,4 +1,3 @@
-import { PEANUT_API_URL } from '@/constants'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import type { InfiniteData, InfiniteQueryObserverResult, QueryObserverResult } from '@tanstack/react-query'
@@ -6,6 +5,7 @@ import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import Cookies from 'js-cookie'
 import { completeHistoryEntry } from '@/utils/history.utils'
 import type { HistoryEntry } from '@/utils/history.utils'
+import { PEANUT_API_URL } from '@/constants/general.consts'
 
 //TODO: remove and import all from utils everywhere
 export { EHistoryEntryType, EHistoryUserRole } from '@/utils/history.utils'

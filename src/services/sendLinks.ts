@@ -1,10 +1,10 @@
 // Removed claimSendLink import - no longer used (was insecure)
-import { PEANUT_API_URL } from '@/constants'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { jsonParse, jsonStringify } from '@/utils/general.utils'
 import { generateKeysFromString, getParamsFromLink } from '@squirrel-labs/peanut-sdk'
 import Cookies from 'js-cookie'
 import type { SendLink } from '@/services/services.types'
+import { PEANUT_API_URL } from '@/constants/general.consts'
 
 export { ESendLinkStatus } from '@/services/services.types'
 export type { SendLinkStatus, SendLink } from '@/services/services.types'

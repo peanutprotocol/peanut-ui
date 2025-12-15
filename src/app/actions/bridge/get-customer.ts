@@ -1,8 +1,8 @@
 'use server'
 
 import { unstable_cache } from 'next/cache'
-import { PEANUT_API_KEY, PEANUT_API_URL } from '@/constants'
 import { countryData } from '@/components/AddMoney/consts'
+import { PEANUT_API_KEY, PEANUT_API_URL } from '@/constants/general.consts'
 
 type BridgeCustomer = {
     id: string

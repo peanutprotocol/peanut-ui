@@ -9,7 +9,6 @@ import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { type StatusPillType } from '@/components/Global/StatusPill'
 import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
-import { TRANSACTIONS, BASE_URL } from '@/constants'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
@@ -27,6 +26,8 @@ import { usePointsConfetti } from '@/hooks/usePointsConfetti'
 import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
 import { useHaptic } from 'use-haptic'
 import PointsCard from '@/components/Common/PointsCard'
+import { BASE_URL } from '@/constants/general.consts'
+import { TRANSACTIONS } from '@/constants/query.consts'
 
 type DirectSuccessViewProps = {
     user?: ApiUser

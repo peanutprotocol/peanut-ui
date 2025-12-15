@@ -1,7 +1,7 @@
 'use server'
 import { unstable_cache } from 'next/cache'
-import { PEANUT_API_URL } from '@/constants'
 import { fetchWithSentry } from '@/utils/sentry.utils'
+import { PEANUT_API_URL } from '@/constants/general.consts'
 
 const API_KEY = process.env.PEANUT_API_KEY!
 

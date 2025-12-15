@@ -1,6 +1,6 @@
 'use client'
 
-import { Button, type ButtonSize, type ButtonVariant } from '@/components/0_Bruddle'
+import { Button, type ButtonSize, type ButtonVariant } from '@/components/0_Bruddle/Button'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { Icon } from '@/components/Global/Icons/Icon'
 import Loading from '@/components/Global/Loading'

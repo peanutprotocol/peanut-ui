@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { CloudImages, HeroImages } from './imageAssets'
 import Image from 'next/image'
-import { Button } from '../0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 
 type CTAButton = {
     label: string

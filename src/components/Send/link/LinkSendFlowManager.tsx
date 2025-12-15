@@ -1,6 +1,5 @@
 'use client'
 
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, SQUID_API_URL, SQUID_INTEGRATOR_ID } from '@/constants'
 import { tokenSelectorContext } from '@/context'
 import { useAppDispatch, useSendFlowStore } from '@/redux/hooks'
 import { sendFlowActions } from '@/redux/slices/send-flow-slice'
@@ -9,6 +8,8 @@ import { useContext, useEffect } from 'react'
 import NavHeader from '../../Global/NavHeader'
 import LinkSendInitialView from './views/Initial.link.send.view'
 import LinkSendSuccessView from './views/Success.link.send.view'
+import { SQUID_INTEGRATOR_ID, SQUID_API_URL } from '@/constants/general.consts'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 
 interface LinkSendFlowManagerProps {
     onPrev?: () => void

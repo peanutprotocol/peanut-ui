@@ -1,7 +1,7 @@
+import { PEANUT_WALLET_TOKEN, peanutPublicClient } from '@/constants/zerodev.consts'
 import { useQuery } from '@tanstack/react-query'
 import { erc20Abi } from 'viem'
 import type { Address } from 'viem'
-import { PEANUT_WALLET_TOKEN, peanutPublicClient } from '@/constants'
 
 /**
  * Hook to fetch and auto-refresh wallet balance using TanStack Query

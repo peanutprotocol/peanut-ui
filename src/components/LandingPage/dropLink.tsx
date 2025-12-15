@@ -1,7 +1,7 @@
 'use client'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
-import { Button } from '../0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import iphoneDropALink from '@/assets/iphone-ss/iphone-drop-a-link.png'
 import iphoneDropALinkMobile from '@/assets/iphone-ss/iphone-drop-a-link-mobile.png'
 import { WHATSAPP_ICON, IMESSAGE_ICON, FBMessenger_ICON, TELEGRAM_ICON } from '@/assets/icons'

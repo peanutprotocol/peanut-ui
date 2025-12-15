@@ -6,7 +6,6 @@ import { fetchTokenDetails, fetchTokenPrice } from '@/app/actions/tokens'
 import { type StatusType } from '@/components/Global/Badges/StatusBadge'
 import { TransactionDetailsReceipt } from '@/components/TransactionDetails/TransactionDetailsReceipt'
 import { type TransactionDetails, REWARD_TOKENS } from '@/components/TransactionDetails/transactionTransformer'
-import * as consts from '@/constants'
 import { tokenSelectorContext } from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
@@ -30,6 +29,7 @@ import { twMerge } from 'tailwind-merge'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useSearchParams } from 'next/navigation'
 import { useHaptic } from 'use-haptic'
+import type { IOfframpForm } from '@/constants/cashout.consts'
 
 export const Claim = ({}) => {
     const [linkUrl, setLinkUrl] = useState<string>('')
@@ -52,7 +52,7 @@ export const Claim = ({}) => {
     const [hasFetchedRoute, setHasFetchedRoute] = useState<boolean>(false)
 
     const [recipientType, setRecipientType] = useState<interfaces.RecipientType>('address')
-    const [offrampForm, setOfframpForm] = useState<consts.IOfframpForm>({
+    const [offrampForm, setOfframpForm] = useState<IOfframpForm>({
         name: '',
         email: '',
         password: '',

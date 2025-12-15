@@ -1,4 +1,3 @@
-import { USER } from '@/constants'
 import { type IUserProfile } from '@/interfaces'
 import { useAppDispatch, useUserStore } from '@/redux/hooks'
 import { userActions } from '@/redux/slices/user-slice'
@@ -7,6 +6,7 @@ import { hitUserMetric } from '@/utils/metrics.utils'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { usePWAStatus } from '../usePWAStatus'
 import { useDeviceType } from '../useGetDeviceType'
+import { USER } from '@/constants/query.consts'
 
 export const useUserQuery = (dependsOn: boolean = true) => {
     const isPwa = usePWAStatus()

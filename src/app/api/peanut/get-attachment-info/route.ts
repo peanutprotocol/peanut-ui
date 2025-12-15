@@ -1,8 +1,5 @@
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
-import { getRawParamsFromLink, generateKeysFromString } from '@squirrel-labs/peanut-sdk' // Adjust the import paths according to your project structure
-import * as consts from '@/constants'
-import { fetchWithSentry } from '@/utils/sentry.utils'
 
 export async function POST(request: NextRequest) {
     //TODO: enable if we have attachments again, using /send-link instead of

@@ -1,6 +1,6 @@
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
-import * as consts from '@/constants'
+import { PEANUT_API_URL } from '@/constants/general.consts'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 
 export async function POST(request: NextRequest) {
@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
             return new NextResponse('Bad Request: missing required parameters', { status: 400 })
         }
 
-        const response = await fetchWithSentry(`${consts.PEANUT_API_URL}/is-valid-bic`, {
+        const response = await fetchWithSentry(`${PEANUT_API_URL}/is-valid-bic`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

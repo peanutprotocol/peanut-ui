@@ -1,5 +1,5 @@
-import { PEANUT_API_URL } from '@/constants'
 import Cookies from 'js-cookie'
+import { PEANUT_API_URL } from '@/constants/general.consts'
 
 export type InAppItem = {
     id: string

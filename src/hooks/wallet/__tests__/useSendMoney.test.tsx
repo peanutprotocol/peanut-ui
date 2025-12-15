@@ -13,7 +13,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ToastProvider } from '@/components/0_Bruddle/Toast'
 import { useSendMoney } from '../useSendMoney'
 import { parseUnits } from 'viem'
-import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
+import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import type { ReactNode } from 'react'
 
 // Mock dependencies

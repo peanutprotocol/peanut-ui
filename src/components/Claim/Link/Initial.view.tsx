@@ -10,7 +10,6 @@ import {
     optimismChainId,
     usdcAddressOptimism,
 } from '@/components/Offramp/Offramp.consts'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, ROUTE_NOT_FOUND_ERROR } from '@/constants'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useAuth } from '@/context/authContext'
@@ -44,6 +43,8 @@ import MantecaFlowManager from './MantecaFlowManager'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { invitesApi } from '@/services/invites'
 import { EInviteType } from '@/services/services.types'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
+import { ROUTE_NOT_FOUND_ERROR } from '@/constants/general.consts'
 
 export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     // get campaign tag from claim link url

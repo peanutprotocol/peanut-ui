@@ -1,5 +1,12 @@
-import * as consts from '@/constants'
-import { STABLE_COINS, USER_OPERATION_REVERT_REASON_TOPIC, ENS_NAME_REGEX } from '@/constants'
+import {
+    nativeCurrencyAddresses,
+    supportedPeanutChains,
+    peanutTokenDetails,
+    pathTitles,
+    BASE_URL,
+} from '@/constants/general.consts'
+import { type LoadingStates } from '@/constants/loadingStates.consts'
+import { STABLE_COINS, ENS_NAME_REGEX } from '@/constants/general.consts'
 import { AccountType } from '@/interfaces/interfaces'
 import * as Sentry from '@sentry/nextjs'
 import peanut, { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
@@ -11,6 +18,7 @@ import { NATIVE_TOKEN_ADDRESS, SQUID_ETH_ADDRESS } from './token.utils'
 import { type ChargeEntry } from '@/services/services.types'
 import { toWebAuthnKey } from '@zerodev/passkey-validator'
 import type { ParsedURL } from '@/lib/url-parser/types/payment'
+import { USER_OPERATION_REVERT_REASON_TOPIC } from '@/constants/zerodev.consts'
 
 export function urlBase64ToUint8Array(base64String: string) {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -434,7 +442,7 @@ export const isAddressZero = (address: string): boolean => {
 }
 
 export const isNativeCurrency = (address: string) => {
-    if (consts.nativeCurrencyAddresses.includes(address.toLowerCase())) {
+    if (nativeCurrencyAddresses.includes(address.toLowerCase())) {
         return true
     } else return false
 }
@@ -511,7 +519,7 @@ export const estimateIfIsStableCoinFromPrice = (tokenPrice: number) => {
 }
 
 export const getExplorerUrl = (chainId: string) => {
-    const explorers = consts.supportedPeanutChains.find((detail) => detail.chainId === chainId)?.explorers
+    const explorers = supportedPeanutChains.find((detail) => detail.chainId === chainId)?.explorers
     // if the explorers array has blockscout, return the blockscout url, else return the first one
     if (explorers?.find((explorer) => explorer.url.includes('blockscout'))) {
         return explorers?.find((explorer) => explorer.url.includes('blockscout'))?.url
@@ -565,7 +573,7 @@ export const switchNetwork = async ({
 }: {
     chainId: string
     currentChainId: string | undefined
-    setLoadingState: (state: consts.LoadingStates) => void
+    setLoadingState: (state: LoadingStates) => void
     switchChainAsync: ({ chainId }: { chainId: number }) => Promise<void>
 }) => {
     if (currentChainId !== chainId) {
@@ -585,7 +593,7 @@ export const switchNetwork = async ({
 
 /** Gets the token decimals for a given token address and chain ID. */
 export function getTokenDecimals(tokenAddress: string, chainId: string): number | undefined {
-    return consts.peanutTokenDetails
+    return peanutTokenDetails
         .find((chain) => chain.chainId === chainId)
         ?.tokens.find((token) => areEvmAddressesEqual(token.address, tokenAddress))?.decimals
 }
@@ -597,7 +605,7 @@ export function getTokenDetails({ tokenAddress, chainId }: { tokenAddress: Addre
           decimals: number
       }
     | undefined {
-    const chainTokens = consts.peanutTokenDetails.find((c) => c.chainId === chainId)?.tokens
+    const chainTokens = peanutTokenDetails.find((c) => c.chainId === chainId)?.tokens
     if (!chainTokens) return undefined
     const tokenDetails = chainTokens.find((token) => areEvmAddressesEqual(token.address, tokenAddress))
     if (!tokenDetails) return undefined
@@ -615,7 +623,7 @@ export function getTokenDetails({ tokenAddress, chainId }: { tokenAddress: Addre
 export function getTokenSymbol(tokenAddress: string | undefined, chainId: string | undefined): string | undefined {
     if (!tokenAddress || !chainId) return undefined
 
-    const chainTokens = consts.peanutTokenDetails.find((chain) => chain.chainId === chainId)?.tokens
+    const chainTokens = peanutTokenDetails.find((chain) => chain.chainId === chainId)?.tokens
     if (!chainTokens) return undefined
 
     return chainTokens.find((token) => areEvmAddressesEqual(token.address, tokenAddress))?.symbol
@@ -659,7 +667,7 @@ export function getChainName(chainId: string): string | undefined {
 }
 
 export const getHeaderTitle = (pathname: string) => {
-    return consts.pathTitles[pathname] || 'Peanut' // default title if path not found
+    return pathTitles[pathname] || 'Peanut' // default title if path not found
 }
 
 /**
@@ -896,7 +904,7 @@ export const generateInviteCodeSuffix = (username: string): string => {
 export const generateInviteCodeLink = (username: string) => {
     const suffix = generateInviteCodeSuffix(username)
     const inviteCode = `${username.toUpperCase()}INVITESYOU${suffix}`
-    const inviteLink = `${consts.BASE_URL}/invite?code=${inviteCode}`
+    const inviteLink = `${BASE_URL}/invite?code=${inviteCode}`
     return { inviteLink, inviteCode }
 }
 

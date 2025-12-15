@@ -3,7 +3,7 @@ import peanut from '@squirrel-labs/peanut-sdk'
 import { useForm } from 'react-hook-form'
 import { useConfig, useSendTransaction } from 'wagmi'
 
-import * as consts from '@/constants'
+import { supportedPeanutChains } from '@/constants/general.consts'
 import { loadingStateContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useAppDispatch } from '@/redux/hooks'
@@ -12,7 +12,8 @@ import * as Sentry from '@sentry/nextjs'
 import { useContext, useState } from 'react'
 import { waitForTransactionReceipt } from 'wagmi/actions'
 import { walletActions } from '../../redux/slices/wallet-slice'
-import { Button, Card } from '../0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
+import { Card } from '@/components/0_Bruddle/Card'
 import BaseInput from '../0_Bruddle/BaseInput'
 import PageContainer from '../0_Bruddle/PageContainer'
 import Select from '../Global/Select'
@@ -140,12 +141,12 @@ export const Refund = () => {
                                 classButton="h-auto px-0 border-none bg-trasparent text-sm !font-normal"
                                 classOptions="-left-4 -right-3 w-auto py-1 overflow-auto max-h-36"
                                 classArrow="ml-1"
-                                items={consts.supportedPeanutChains.map((chain) => ({
+                                items={supportedPeanutChains.map((chain) => ({
                                     id: chain.chainId,
                                     title: chain.name,
                                 }))}
                                 value={
-                                    consts.supportedPeanutChains
+                                    supportedPeanutChains
                                         .map((c) => ({ id: c.chainId, title: c.name }))
                                         .find((i) => i.id === refundFormWatch.chainId) ?? null
                                 }

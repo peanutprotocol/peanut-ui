@@ -2,11 +2,11 @@
 
 import { useAuth } from '@/context/authContext'
 import { invitesApi } from '@/services/invites'
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import InvitesPageLayout from './InvitesPageLayout'
 import { twMerge } from 'tailwind-merge'
 import ValidatedInput from '../Global/ValidatedInput'
-import { Button } from '../0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import ErrorAlert from '../Global/ErrorAlert'
 import peanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_02.gif'
 import { useRouter } from 'next/navigation'

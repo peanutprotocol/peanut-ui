@@ -1,8 +1,8 @@
+import { rpcUrls } from '@/constants/general.consts'
+import { PUBLIC_CLIENTS_BY_CHAIN } from '@/constants/zerodev.consts'
 import type { PublicClient, Chain, Transport } from 'viem'
 import { createPublicClient, http, extractChain, fallback } from 'viem'
 import * as chains from 'viem/chains'
-
-import { PUBLIC_CLIENTS_BY_CHAIN, rpcUrls } from '@/constants'
 
 const allChains = Object.values(chains)
 export type ChainId = (typeof allChains)[number]['id']

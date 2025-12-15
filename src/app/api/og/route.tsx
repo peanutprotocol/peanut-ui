@@ -4,7 +4,6 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { type PaymentLink } from '@/interfaces'
 import { promises as fs } from 'fs'
 import path from 'path'
-import { BASE_URL } from '@/constants'
 import getOrigin from '@/lib/hosting/get-origin'
 import { ReceiptCardOG } from '@/components/og/ReceiptCardOG'
 import { printableAddress } from '@/utils/general.utils'
@@ -12,6 +11,7 @@ import { resolveAddressToUsername } from '@/utils/ens.utils'
 import { isAddress } from 'viem'
 import { ProfileCardOG } from '@/components/og/ProfileCardOG'
 import { InviteCardOG } from '@/components/og/InviteCardOG'
+import { BASE_URL } from '@/constants/general.consts'
 
 export const runtime = 'nodejs' //node.js instead of edge!
 

@@ -1,5 +1,5 @@
+import { PERK_HOLD_DURATION_MS } from '@/constants/general.consts'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { PERK_HOLD_DURATION_MS } from '@/constants'
 
 export type ShakeIntensity = 'none' | 'weak' | 'medium' | 'strong' | 'intense'
 

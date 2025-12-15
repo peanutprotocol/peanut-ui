@@ -7,7 +7,7 @@ import {
     TOKEN_SELECTOR_COMING_SOON_NETWORKS,
     TOKEN_SELECTOR_POPULAR_NETWORK_IDS,
 } from '@/components/Global/TokenSelector/TokenSelector.consts'
-import { PEANUT_WALLET_CHAIN } from '@/constants'
+import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import React, { useContext } from 'react'
 

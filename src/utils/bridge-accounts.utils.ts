@@ -1,4 +1,4 @@
-import * as consts from '@/constants'
+import { supportedBridgeTokensDictionary, supportedBridgeChainsDictionary } from '@/constants/cashout.consts'
 import { areEvmAddressesEqual } from '@/utils/general.utils'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { isIBAN } from 'validator'
@@ -39,7 +39,7 @@ export async function validateIban(iban: string): Promise<boolean> {
 }
 
 export function getBridgeTokenName(chainId: string, tokenAddress: string): string | undefined {
-    const token = consts.supportedBridgeTokensDictionary
+    const token = supportedBridgeTokensDictionary
         .find((chain) => chain.chainId === chainId)
         ?.tokens.find((token) => areEvmAddressesEqual(token.address, tokenAddress))
         ?.token.toLowerCase()
@@ -48,7 +48,7 @@ export function getBridgeTokenName(chainId: string, tokenAddress: string): strin
 }
 
 export function getBridgeChainName(chainId: string): string | undefined {
-    const chain = consts.supportedBridgeChainsDictionary.find((chain) => chain.chainId === chainId)?.chain
+    const chain = supportedBridgeChainsDictionary.find((chain) => chain.chainId === chainId)?.chain
     return chain ?? undefined
 }
 

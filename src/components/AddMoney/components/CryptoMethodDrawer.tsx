@@ -1,12 +1,12 @@
 'use client'
 
 import { ARBITRUM_ICON, OTHER_CHAINS_ICON } from '@/assets'
-import { Card } from '@/components/0_Bruddle'
 import { Drawer, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import React, { type Dispatch, type SetStateAction, useState } from 'react'
 import TokenAndNetworkConfirmationModal from '@/components/Global/TokenAndNetworkConfirmationModal'
+import { Card } from '@/components/0_Bruddle/Card'
 
 const CryptoMethodDrawer = ({
     isDrawerOpen,

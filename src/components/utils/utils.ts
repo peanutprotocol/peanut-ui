@@ -1,4 +1,4 @@
-import * as consts from '@/constants'
+import { SQUID_API_URL, SQUID_INTEGRATOR_ID } from '@/constants/general.consts'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { getExplorerUrl } from '@/utils/general.utils'
 
@@ -70,8 +70,8 @@ type ISquidStatusResponse = {
 
 export async function checkTransactionStatus(txHash: string): Promise<ISquidStatusResponse> {
     try {
-        const response = await fetchWithSentry(`${consts.SQUID_API_URL}/status?transactionId=${txHash}`, {
-            headers: { 'x-integrator-id': consts.SQUID_INTEGRATOR_ID }, // TODO: request v2 removes checking squid status
+        const response = await fetchWithSentry(`${SQUID_API_URL}/status?transactionId=${txHash}`, {
+            headers: { 'x-integrator-id': SQUID_INTEGRATOR_ID }, // TODO: request v2 removes checking squid status
         })
         const data = await response.json()
         return data

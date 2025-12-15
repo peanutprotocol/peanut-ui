@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { Tooltip } from '../Tooltip'
 import { twMerge } from 'tailwind-merge'
-import { Button } from '../0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '../Global/Icons/Icon'
 import { getBadgeIcon, getPublicBadgeDescription } from './badge.utils'
 
