@@ -1,6 +1,5 @@
-import { generateMetadata } from '@/app/metadata'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
-import React from 'react'
+import { generateMetadata } from '@/app/metadata'
 
 export const metadata = generateMetadata({
     title: 'Add Money | Peanut',
