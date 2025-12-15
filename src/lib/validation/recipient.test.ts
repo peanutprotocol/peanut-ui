@@ -17,7 +17,7 @@ jest.mock('@/utils/sentry.utils', () => ({
     fetchWithSentry: jest.fn(),
 }))
 
-jest.mock('@/constants', () => ({
+jest.mock('@/constants/general.consts', () => ({
     JUSTANAME_ENS: 'testvc.eth',
     PEANUT_API_URL: process.env.NEXT_PUBLIC_PEANUT_API_URL,
 }))

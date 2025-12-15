@@ -32,7 +32,8 @@ export const convertPersonaUrl = (url: string) => {
     return `https://bridge.withpersona.com/widget?environment=production&inquiry-template-id=${templateId}&fields[iqt_token=${iqtToken}&iframe-origin=${origin}&redirect-uri=${origin}&fields[developer_id]=${developerId}&reference-id=${referenceId}`
 }
 
-export type BridgeKycStatus = 'not_started' | 'under_review' | 'approved' | 'rejected' | 'incomplete'
+// Re-export from interfaces (defined there to avoid circular dependency)
+export type { BridgeKycStatus } from '@/interfaces/interfaces'
 
 export async function validateIban(iban: string): Promise<boolean> {
     return isIBAN(iban.replace(/\s+/g, ''))
