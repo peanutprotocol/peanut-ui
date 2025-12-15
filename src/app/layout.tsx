@@ -91,11 +91,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <head>
                 <meta name="color-scheme" content="light" />
 
-                {/* CRITICAL PATH: Optimize QR payment flow loading */}
-                {/* Prefetch /qr-pay route + DNS for Manteca API */}
-                <link rel="prefetch" href="/qr-pay" />
+                {/* DNS prefetch for API */}
                 <link rel="dns-prefetch" href={apiHostname} />
                 <link rel="preconnect" href={apiHostname} crossOrigin="anonymous" />
+
+                {/* Prefetch /qr-pay route - disabled in dev to avoid 9s+ compile time */}
+                {process.env.NODE_ENV !== 'development' && <link rel="prefetch" href="/qr-pay" />}
 
                 {/* Service Worker Registration: Register early for offline support and caching */}
                 {/* CRITICAL: Must run before React hydration to enable offline-first PWA */}
