@@ -57,6 +57,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     // memoizing shouldPullToRefresh callback to prevent re-initialization on every render
     // lazy-load element ref to ensure DOM is ready
     const shouldPullToRefresh = useCallback(() => {
+        // window must be at the top first
+        if (window.scrollY > 0) {
+            return false
+        }
+
         // lazy-load the element reference if not cached yet
         if (!scrollableContentRef.current) {
             scrollableContentRef.current = document.querySelector('#scrollable-content')
@@ -64,11 +69,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
         const scrollableContent = scrollableContentRef.current
         if (!scrollableContent) {
-            // fallback to window scroll check if element not found
-            return window.scrollY === 0
+            // if element not found, window check already passed above
+            return true
         }
 
-        // only allow pull-to-refresh when at the very top
+        // scrollable content must also be at the top
         return scrollableContent.scrollTop === 0
     }, [])
 
