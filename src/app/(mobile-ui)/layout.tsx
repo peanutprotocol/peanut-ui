@@ -47,33 +47,25 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     // cache the scrollable content element to avoid DOM queries on every scroll event
     const scrollableContentRef = useRef<Element | null>(null)
 
+    // memoized callback for performance - caches element ref to avoid repeated DOM queries
+    const shouldPullToRefresh = useCallback(() => {
+        if (!scrollableContentRef.current) {
+            scrollableContentRef.current = document.querySelector('#scrollable-content')
+        }
+        const el = scrollableContentRef.current
+        // only trigger pull-to-refresh when scrolled to the very top
+        return el ? el.scrollTop <= 1 : window.scrollY <= 1
+    }, [])
+
+    // enable pull-to-refresh for both ios and android
+    usePullToRefresh({ shouldPullToRefresh })
+
     useEffect(() => {
         // check for JWT token
         setHasToken(hasValidJwtToken())
 
         setIsReady(true)
     }, [])
-
-    // memoizing shouldPullToRefresh callback to prevent re-initialization on every render
-    // lazy-load element ref to ensure DOM is ready
-    const shouldPullToRefresh = useCallback(() => {
-        // lazy-load the element reference if not cached yet
-        if (!scrollableContentRef.current) {
-            scrollableContentRef.current = document.querySelector('#scrollable-content')
-        }
-
-        const scrollableContent = scrollableContentRef.current
-        if (!scrollableContent) {
-            // fallback to window scroll check if element not found
-            return window.scrollY === 0
-        }
-
-        // only allow pull-to-refresh when at the very top
-        return scrollableContent.scrollTop === 0
-    }, [])
-
-    // enable pull-to-refresh for both ios and android
-    usePullToRefresh({ shouldPullToRefresh })
 
     useEffect(() => {
         if (!isPublicPath && isReady && !isFetchingUser && !user) {

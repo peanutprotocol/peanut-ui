@@ -8,7 +8,7 @@ const DIST_RELOAD = 80 // distance at which refresh is triggered when released
 
 interface UsePullToRefreshOptions {
     // custom function to determine if pull-to-refresh should be enabled
-    // defaults to checking if window is at the top
+    // useful for performance optimization with cached element refs
     shouldPullToRefresh?: () => boolean
     // whether to enable pull-to-refresh (defaults to true)
     enabled?: boolean
@@ -35,23 +35,21 @@ export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
     useEffect(() => {
         if (typeof window === 'undefined' || !enabled) return
 
-        // default behavior: allow pull-to-refresh when window is at the top
-        const defaultShouldPullToRefresh = () => window.scrollY === 0
+        // default: allow pull-to-refresh when window is at top
+        const defaultCheck = () => window.scrollY <= 1
 
         PullToRefresh.init({
             mainElement: 'body',
             onRefresh: () => {
-                // full page reload like native apps (iOS/Android)
                 window.location.reload()
+            },
+            shouldPullToRefresh: () => {
+                const check = shouldPullToRefreshRef.current
+                return check ? check() : defaultCheck()
             },
             instructionsPullToRefresh: 'Pull down to refresh',
             instructionsReleaseToRefresh: 'Release to refresh',
             instructionsRefreshing: 'Refreshing...',
-            shouldPullToRefresh: () => {
-                // use latest callback from ref
-                const callback = shouldPullToRefreshRef.current
-                return callback ? callback() : defaultShouldPullToRefresh()
-            },
             distThreshold: DIST_THRESHOLD,
             distMax: DIST_MAX,
             distReload: DIST_RELOAD,
