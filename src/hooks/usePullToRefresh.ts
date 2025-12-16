@@ -12,9 +12,6 @@ interface UsePullToRefreshOptions {
     shouldPullToRefresh?: () => boolean
     // whether to enable pull-to-refresh (defaults to true)
     enabled?: boolean
-    // element selector to capture touch events from (defaults to body)
-    // should match the actual scrolling container to prevent scroll interference
-    triggerElement?: string
 }
 
 /**
@@ -25,7 +22,7 @@ interface UsePullToRefreshOptions {
  * uses window.location.reload() for true page refresh (like native apps)
  */
 export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
-    const { shouldPullToRefresh, enabled = true, triggerElement } = options
+    const { shouldPullToRefresh, enabled = true } = options
 
     // store callback in ref to avoid re-initialization when function reference changes
     const shouldPullToRefreshRef = useRef(shouldPullToRefresh)
@@ -43,12 +40,8 @@ export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
 
         PullToRefresh.init({
             mainElement: 'body',
-            // capture touch events from the scrollable container if specified
-            // this prevents scroll momentum interference on iOS/Android
-            ...(triggerElement && { triggerElement }),
             onRefresh: () => {
                 // full page reload like native apps (iOS/Android)
-                // this provides proper feedback and clears all state
                 window.location.reload()
             },
             instructionsPullToRefresh: 'Pull down to refresh',
@@ -67,5 +60,5 @@ export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
         return () => {
             PullToRefresh.destroyAll()
         }
-    }, [enabled, triggerElement])
+    }, [enabled])
 }
