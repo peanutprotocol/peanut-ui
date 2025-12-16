@@ -39,7 +39,6 @@ export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
         PullToRefresh.init({
             mainElement: 'body',
             onRefresh: () => {
-                // router.refresh() returns void, wrap in promise for pulltorefreshjs
                 window.location.reload()
                 return Promise.resolve()
             },
