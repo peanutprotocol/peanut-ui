@@ -824,7 +824,7 @@ export const PaymentForm = ({
                 {/* use TokenAmountInput for direct usd payments, request pot payments, and external address payments to avoid typing issues */}
                 {isDirectUsdPayment || shouldUseTokenAmountInput ? (
                     <TokenAmountInput
-                        tokenValue={inputTokenAmount}
+                        tokenValue={inputTokenAmount.replace(/,/g, '')}
                         setTokenValue={(value: string | undefined) => setInputTokenAmount(value || '')}
                         setUsdValue={(value: string) => {
                             setInputUsdValue(value)
@@ -851,7 +851,7 @@ export const PaymentForm = ({
                     />
                 ) : (
                     <PaymentAmountInput
-                        tokenValue={inputTokenAmount}
+                        tokenValue={inputTokenAmount.replace(/,/g, '')}
                         setTokenValue={(value: string | undefined) => setInputTokenAmount(value || '')}
                         setUsdValue={(value: string) => {
                             setInputUsdValue(value)
