@@ -1,4 +1,3 @@
-import { useRouter } from 'next/navigation'
 import { useEffect, useRef } from 'react'
 import PullToRefresh from 'pulltorefreshjs'
 
@@ -21,7 +20,6 @@ interface UsePullToRefreshOptions {
  * this hook uses pulltorefreshjs library for consistent behavior across ios and android
  */
 export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
-    const router = useRouter()
     const { shouldPullToRefresh, enabled = true } = options
 
     // store callback in ref to avoid re-initialization when function reference changes
@@ -41,9 +39,8 @@ export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
         PullToRefresh.init({
             mainElement: 'body',
             onRefresh: () => {
-                console.log('triggered')
                 // router.refresh() returns void, wrap in promise for pulltorefreshjs
-                router.refresh()
+                window.location.reload()
                 return Promise.resolve()
             },
             instructionsPullToRefresh: 'Pull down to refresh',
@@ -62,5 +59,5 @@ export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
         return () => {
             PullToRefresh.destroyAll()
         }
-    }, [router, enabled])
+    }, [enabled])
 }
