@@ -286,6 +286,8 @@ const TokenAmountInput = ({
         }
     }, [defaultSliderSuggestedAmount])
 
+    console.log(displayValue)
+
     return (
         <form
             ref={formRef}
@@ -317,7 +319,7 @@ const TokenAmountInput = ({
                             ref={inputRef}
                             inputMode="decimal"
                             type={inputType}
-                            value={displayValue}
+                            value={displayValue.replace(/,/g, '')}
                             step="any"
                             min="0"
                             autoComplete="off"
