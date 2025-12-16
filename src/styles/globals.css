@@ -20,6 +20,23 @@
         /* disable tap highlight */
         -webkit-tap-highlight-color: transparent;
     }
+
+    /* pulltorefreshjs library styles - ensure proper positioning and cleanup */
+    .ptr--ptr {
+        /* ensure ptr element doesn't affect page layout when hidden */
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        pointer-events: none;
+        z-index: 9999;
+    }
+
+    .ptr--refresh {
+        /* ensure body resets properly after refresh */
+        transform: none !important;
+        -webkit-transform: none !important;
+    }
 }
 
 @layer utilities {

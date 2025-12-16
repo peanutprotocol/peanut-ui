@@ -6,6 +6,7 @@ import PullToRefresh from 'pulltorefreshjs'
 const DIST_THRESHOLD = 70 // minimum pull distance to trigger refresh
 const DIST_MAX = 120 // maximum pull distance (visual limit)
 const DIST_RELOAD = 80 // distance at which refresh is triggered when released
+const REFRESH_TIMEOUT = 300 // ms to wait for refresh animation to complete
 
 interface UsePullToRefreshOptions {
     // custom function to determine if pull-to-refresh should be enabled
@@ -13,6 +14,25 @@ interface UsePullToRefreshOptions {
     shouldPullToRefresh?: () => boolean
     // whether to enable pull-to-refresh (defaults to true)
     enabled?: boolean
+}
+
+/**
+ * resets any residual transforms/scroll offsets left by pulltorefreshjs
+ */
+const resetScrollState = () => {
+    // reset body transform that pulltorefreshjs applies during pull
+    document.body.style.transform = ''
+
+    // reset scroll positions to top
+    window.scrollTo(0, 0)
+    document.documentElement.scrollTop = 0
+    document.body.scrollTop = 0
+
+    // also reset any scrollable content containers
+    const scrollableContent = document.querySelector('#scrollable-content')
+    if (scrollableContent) {
+        scrollableContent.scrollTop = 0
+    }
 }
 
 /**
@@ -41,9 +61,17 @@ export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
         PullToRefresh.init({
             mainElement: 'body',
             onRefresh: () => {
-                // router.refresh() returns void, wrap in promise for pulltorefreshjs
-                router.refresh()
-                return Promise.resolve()
+                return new Promise<void>((resolve) => {
+                    // trigger next.js refresh
+                    router.refresh()
+
+                    // wait for animation to complete, then reset scroll state
+                    // using timeout because router.refresh() is async but returns void
+                    setTimeout(() => {
+                        resetScrollState()
+                        resolve()
+                    }, REFRESH_TIMEOUT)
+                })
             },
             instructionsPullToRefresh: 'Pull down to refresh',
             instructionsReleaseToRefresh: 'Release to refresh',
@@ -60,6 +88,8 @@ export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
 
         return () => {
             PullToRefresh.destroyAll()
+            // ensure clean state on unmount
+            resetScrollState()
         }
     }, [router, enabled])
 }
