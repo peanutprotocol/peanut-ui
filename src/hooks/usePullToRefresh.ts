@@ -41,6 +41,7 @@ export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
         PullToRefresh.init({
             mainElement: 'body',
             onRefresh: () => {
+                console.log('triggered')
                 // router.refresh() returns void, wrap in promise for pulltorefreshjs
                 router.refresh()
                 return Promise.resolve()
