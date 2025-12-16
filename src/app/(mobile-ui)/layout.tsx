@@ -73,7 +73,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     }, [])
 
     // enable pull-to-refresh for both ios and android
-    usePullToRefresh({ shouldPullToRefresh })
+    // triggerElement matches the scrolling container to prevent scroll momentum interference
+    usePullToRefresh({ shouldPullToRefresh, triggerElement: '#scrollable-content' })
 
     useEffect(() => {
         if (!isPublicPath && isReady && !isFetchingUser && !user) {
