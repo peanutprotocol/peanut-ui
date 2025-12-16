@@ -286,8 +286,6 @@ const TokenAmountInput = ({
         }
     }, [defaultSliderSuggestedAmount])
 
-    console.log(displayValue)
-
     return (
         <form
             ref={formRef}
