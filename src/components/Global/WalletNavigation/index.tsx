@@ -3,7 +3,7 @@ import { PEANUT_LOGO } from '@/assets'
 import DirectSendQr from '@/components/Global/DirectSendQR'
 import { Icon, type IconName, Icon as NavIcon } from '@/components/Global/Icons/Icon'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
-import { useSupportModalContext } from '@/context/SupportModalContext'
+import { useModalsContext } from '@/context/ModalsContext'
 import { useUserStore } from '@/redux/hooks'
 import classNames from 'classnames'
 import Image from 'next/image'
@@ -69,7 +69,7 @@ type MobileNavProps = {
 }
 
 const MobileNav: React.FC<MobileNavProps> = ({ pathName }) => {
-    const { setIsSupportModalOpen } = useSupportModalContext()
+    const { setIsSupportModalOpen } = useModalsContext()
     const { triggerHaptic } = useHaptic()
 
     return (

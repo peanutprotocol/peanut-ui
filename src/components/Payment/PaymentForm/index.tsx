@@ -23,7 +23,7 @@ import { useSquidChainsAndTokens } from '@/hooks/useSquidChainsAndTokens'
 import { type ParsedURL } from '@/lib/url-parser/types/payment'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
-import { walletActions } from '@/redux/slices/wallet-slice'
+import { useModalsContext } from '@/context/ModalsContext'
 import { areEvmAddressesEqual, formatAmount, formatCurrency, getContributorsFromCharge } from '@/utils/general.utils'
 import { ErrorHandler } from '@/utils/sdkErrorHandler.utils'
 import { useAppKit, useDisconnect } from '@reown/appkit/react'
@@ -79,6 +79,7 @@ export const PaymentForm = ({
 }: PaymentFormProps) => {
     const dispatch = useAppDispatch()
     const router = useRouter()
+    const { setIsSignInModalOpen } = useModalsContext()
     const { user, fetchUser } = useAuth()
     const {
         requestDetails,
@@ -467,7 +468,7 @@ export const PaymentForm = ({
 
         // skip this step for request pots initial view
         if (!showRequestPotInitialView && !isConnected) {
-            dispatch(walletActions.setSignInModalVisible(true))
+            setIsSignInModalOpen(true)
             return
         }
 

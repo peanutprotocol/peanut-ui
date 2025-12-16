@@ -26,7 +26,7 @@ import { useMantecaKycFlow } from '@/hooks/useMantecaKycFlow'
 import { MantecaGeoSpecificKycModal } from '@/components/Kyc/InitiateMantecaKYCModal'
 import { useAuth } from '@/context/authContext'
 import { useWebSocket } from '@/hooks/useWebSocket'
-import { useSupportModalContext } from '@/context/SupportModalContext'
+import { useModalsContext } from '@/context/ModalsContext'
 import Select from '@/components/Global/Select'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { useQueryClient } from '@tanstack/react-query'
@@ -71,7 +71,7 @@ export default function MantecaWithdrawFlow() {
     const { sendMoney, balance } = useWallet()
     const { isLoading, loadingState, setLoadingState } = useContext(loadingStateContext)
     const { user, fetchUser } = useAuth()
-    const { setIsSupportModalOpen } = useSupportModalContext()
+    const { setIsSupportModalOpen } = useModalsContext()
     const queryClient = useQueryClient()
     const { isUserBridgeKycApproved } = useKycStatus()
     const { hasPendingTransactions } = usePendingTransactions()

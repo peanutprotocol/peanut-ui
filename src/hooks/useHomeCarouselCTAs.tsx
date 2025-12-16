@@ -7,13 +7,12 @@ import { useNotifications } from './useNotifications'
 import { useRouter } from 'next/navigation'
 import useKycStatus from './useKycStatus'
 import type { StaticImageData } from 'next/image'
-import { useQrCodeContext } from '@/context/QrCodeContext'
+import { useModalsContext } from '@/context/ModalsContext'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { DEVCONNECT_LOGO } from '@/assets'
 import { DEVCONNECT_INTENT_EXPIRY_MS } from '@/constants/payment.consts'
 import { DeviceType, useDeviceType } from './useGetDeviceType'
 import { usePWAStatus } from './usePWAStatus'
-import { useModalsContext } from '@/context/ModalsContext'
 import { useGeoLocation } from './useGeoLocation'
 
 export type CarouselCTA = {
@@ -41,7 +40,7 @@ export const useHomeCarouselCTAs = () => {
     const isPwa = usePWAStatus()
     const { setIsIosPwaInstallModalOpen } = useModalsContext()
 
-    const { setIsQRScannerOpen } = useQrCodeContext()
+    const { setIsQRScannerOpen } = useModalsContext()
     const { countryCode: userCountryCode } = useGeoLocation()
 
     // --------------------------------------------------------------------------------------------------
