@@ -3,7 +3,7 @@
 // orchestrator hook for semantic request flow
 // handles charge creation, route calculation, and payment execution
 
-import { useCallback, useMemo, useEffect, useContext } from 'react'
+import { useCallback, useMemo, useEffect, useContext, useState } from 'react'
 import { type Address, type Hash } from 'viem'
 import { useSemanticRequestFlowContext } from './SemanticRequestFlowContext'
 import { useChargeManager } from '@/features/payments/shared/hooks/useChargeManager'
@@ -26,6 +26,7 @@ export function useSemanticRequestFlow() {
         setCurrentView,
         parsedUrl,
         recipient,
+        chargeIdFromUrl,
         isAmountFromUrl,
         isTokenFromUrl,
         isChainFromUrl,
@@ -47,7 +48,7 @@ export function useSemanticRequestFlow() {
     } = useSemanticRequestFlowContext()
 
     const { user } = useAuth()
-    const { createCharge, isCreating: isCreatingCharge } = useChargeManager()
+    const { createCharge, fetchCharge, isCreating: isCreatingCharge, isFetching: isFetchingCharge } = useChargeManager()
     const { recordPayment, isRecording } = usePaymentRecorder()
     const {
         route: calculatedRoute,
@@ -57,6 +58,7 @@ export function useSemanticRequestFlow() {
         isCalculating: isCalculatingRoute,
         isFeeEstimationError,
         error: routeError,
+        reset: resetRoute,
     } = useRouteCalculation()
     const {
         isConnected,
@@ -67,9 +69,12 @@ export function useSemanticRequestFlow() {
         hasSufficientBalance,
     } = useWallet()
 
-    // use token selector context for ui integration (same as PaymentForm)
+    // use token selector context for ui integration
     const { selectedChainID, selectedTokenAddress, selectedTokenData, setSelectedChainID, setSelectedTokenAddress } =
         useContext(tokenSelectorContext)
+
+    // route expiry state
+    const [isRouteExpired, setIsRouteExpired] = useState(false)
 
     const isLoggedIn = !!user?.user?.userId
 
@@ -136,8 +141,25 @@ export function useSemanticRequestFlow() {
         return null
     }, [recipient?.recipientType, selectedChainID])
 
+    // update url with chargeId (shallow update - no re-render)
+    const updateUrlWithChargeId = useCallback((chargeId: string) => {
+        const currentUrl = new URL(window.location.href)
+        if (currentUrl.searchParams.get('chargeId') !== chargeId) {
+            currentUrl.searchParams.set('chargeId', chargeId)
+            window.history.replaceState({}, '', currentUrl.pathname + currentUrl.search)
+        }
+    }, [])
+
+    // remove chargeId from url (shallow update - no re-render)
+    const removeChargeIdFromUrl = useCallback(() => {
+        const currentUrl = new URL(window.location.href)
+        if (currentUrl.searchParams.has('chargeId')) {
+            currentUrl.searchParams.delete('chargeId')
+            window.history.replaceState({}, '', currentUrl.pathname + currentUrl.search)
+        }
+    }, [])
+
     // handle payment button click - decides whether to skip confirm or not
-    // follows old PaymentForm logic:
     // - if logged in + peanut wallet + same chain/token → create charge and pay directly
     // - if logged in + peanut wallet + cross-chain/diff token → go to confirm view
     // - if not logged in → action list handles it
@@ -181,7 +203,7 @@ export function useSemanticRequestFlow() {
 
             setCharge(chargeResult)
 
-            // step 2: decide flow based on token/chain (like old usePaymentInitiator)
+            // step 2: decide flow based on token/chain
             // if same chain and same token (USDC on Arb) → pay directly (skip confirm)
             // if cross-chain or different token → go to confirm view
             if (isSameChainSameToken) {
@@ -204,7 +226,8 @@ export function useSemanticRequestFlow() {
                 setCurrentView('STATUS')
             } else {
                 // cross-chain or different token → go to confirm view
-                // route will be calculated when confirm view mounts
+                // update url with chargeId
+                updateUrlWithChargeId(chargeResult.uuid)
                 setCurrentView('CONFIRM')
             }
         } catch (err) {
@@ -228,6 +251,7 @@ export function useSemanticRequestFlow() {
         createCharge,
         sendMoney,
         recordPayment,
+        updateUrlWithChargeId,
         setCharge,
         setTxHash,
         setPayment,
@@ -238,9 +262,11 @@ export function useSemanticRequestFlow() {
         clearError,
     ])
 
-    // prepare route when entering confirm view (like ConfirmPaymentView does)
+    // prepare route when entering confirm view
     const prepareRoute = useCallback(async () => {
         if (!charge || !walletAddress || !selectedTokenData || !selectedChainID) return
+
+        setIsRouteExpired(false)
 
         if (needsRoute) {
             await calculateRoute({
@@ -262,12 +288,70 @@ export function useSemanticRequestFlow() {
         }
     }, [charge, walletAddress, selectedTokenData, selectedChainID, needsRoute, calculateRoute, usdAmount, amount])
 
-    // call prepareRoute when entering confirm view
+    // fetch charge from url if chargeIdFromUrl is present but charge is not loaded
+    useEffect(() => {
+        if (chargeIdFromUrl && !charge && currentView === 'CONFIRM' && !isFetchingCharge) {
+            fetchCharge(chargeIdFromUrl)
+                .then((fetchedCharge) => {
+                    setCharge(fetchedCharge)
+                    // set amount from charge if not already set
+                    if (!amount && fetchedCharge.tokenAmount) {
+                        setAmount(fetchedCharge.tokenAmount)
+                        setUsdAmount(fetchedCharge.currencyAmount || fetchedCharge.tokenAmount)
+                    }
+                    // set token/chain from charge for token selector context
+                    if (fetchedCharge.chainId) {
+                        setSelectedChainID(fetchedCharge.chainId)
+                    }
+                    if (fetchedCharge.tokenAddress) {
+                        setSelectedTokenAddress(fetchedCharge.tokenAddress)
+                    }
+                })
+                .catch((err) => {
+                    console.error('failed to fetch charge:', err)
+                    setError({ showError: true, errorMessage: 'failed to load payment details' })
+                })
+        }
+    }, [
+        chargeIdFromUrl,
+        charge,
+        currentView,
+        isFetchingCharge,
+        fetchCharge,
+        setCharge,
+        amount,
+        setAmount,
+        setUsdAmount,
+        setError,
+        setSelectedChainID,
+        setSelectedTokenAddress,
+    ])
+
+    // call prepareRoute when entering confirm view and charge is ready
     useEffect(() => {
         if (currentView === 'CONFIRM' && charge) {
             prepareRoute()
         }
     }, [currentView, charge, prepareRoute])
+
+    // handle route expiry - sets state, useEffect will trigger refetch
+    const handleRouteExpired = useCallback(() => {
+        setIsRouteExpired(true)
+    }, [])
+
+    // auto-refetch route when expired
+    useEffect(() => {
+        if (isRouteExpired && currentView === 'CONFIRM' && !isLoading && !isCalculatingRoute) {
+            prepareRoute()
+        }
+    }, [isRouteExpired, currentView, isLoading, isCalculatingRoute, prepareRoute])
+
+    // handle route near expiry - refetch immediately
+    const handleRouteNearExpiry = useCallback(() => {
+        if (!isLoading && !isCalculatingRoute) {
+            prepareRoute()
+        }
+    }, [isLoading, isCalculatingRoute, prepareRoute])
 
     // execute cross-chain payment from confirm view
     const executePayment = useCallback(async () => {
@@ -344,7 +428,10 @@ export function useSemanticRequestFlow() {
     const goBackToInitial = useCallback(() => {
         setCurrentView('INITIAL')
         setCharge(null)
-    }, [setCurrentView, setCharge])
+        resetRoute()
+        setIsRouteExpired(false)
+        removeChargeIdFromUrl()
+    }, [setCurrentView, setCharge, resetRoute, removeChargeIdFromUrl])
 
     return {
         // state
@@ -361,8 +448,9 @@ export function useSemanticRequestFlow() {
         payment,
         txHash,
         error,
-        isLoading: isLoading || isCreatingCharge || isRecording || isCalculatingRoute,
+        isLoading: isLoading || isCreatingCharge || isFetchingCharge || isRecording || isCalculatingRoute,
         isSuccess,
+        isFetchingCharge,
 
         // route calculation state (for confirm view)
         calculatedRoute,
@@ -371,6 +459,7 @@ export function useSemanticRequestFlow() {
         isCalculatingRoute,
         isFeeEstimationError,
         routeError,
+        isRouteExpired,
 
         // computed
         canProceed,
@@ -401,5 +490,7 @@ export function useSemanticRequestFlow() {
         goBackToInitial,
         resetSemanticRequestFlow,
         setCurrentView,
+        handleRouteExpired,
+        handleRouteNearExpiry,
     }
 }

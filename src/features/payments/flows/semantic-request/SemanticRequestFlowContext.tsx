@@ -45,6 +45,9 @@ interface SemanticRequestFlowContextValue {
     // recipient (from parsed url)
     recipient: SemanticRequestRecipient | null
 
+    // charge id from url (for direct confirm view access)
+    chargeIdFromUrl: string | undefined
+
     // amount state (can be preset from url or entered)
     amount: string
     setAmount: (amount: string) => void
@@ -83,11 +86,19 @@ const SemanticRequestFlowContext = createContext<SemanticRequestFlowContextValue
 interface SemanticRequestFlowProviderProps {
     children: ReactNode
     initialParsedUrl: ParsedURL
+    initialChargeId?: string
 }
 
-export function SemanticRequestFlowProvider({ children, initialParsedUrl }: SemanticRequestFlowProviderProps) {
-    // view state
-    const [currentView, setCurrentView] = useState<SemanticRequestFlowView>('INITIAL')
+export function SemanticRequestFlowProvider({
+    children,
+    initialParsedUrl,
+    initialChargeId,
+}: SemanticRequestFlowProviderProps) {
+    // view state - start at CONFIRM if chargeId is present in url
+    const [currentView, setCurrentView] = useState<SemanticRequestFlowView>(initialChargeId ? 'CONFIRM' : 'INITIAL')
+
+    // store the initial charge id for fetching
+    const [chargeIdFromUrl] = useState<string | undefined>(initialChargeId)
 
     // parsed url data
     const [parsedUrl, setParsedUrl] = useState<ParsedURL | null>(initialParsedUrl)
@@ -145,6 +156,7 @@ export function SemanticRequestFlowProvider({ children, initialParsedUrl }: Sema
             parsedUrl,
             setParsedUrl,
             recipient,
+            chargeIdFromUrl,
             amount,
             setAmount,
             usdAmount,
@@ -172,6 +184,7 @@ export function SemanticRequestFlowProvider({ children, initialParsedUrl }: Sema
             currentView,
             parsedUrl,
             recipient,
+            chargeIdFromUrl,
             amount,
             usdAmount,
             isAmountFromUrl,
