@@ -41,6 +41,7 @@
         "@reduxjs/toolkit": "^2.5.0",
         "@reown/appkit": "1.6.9",
         "@reown/appkit-adapter-wagmi": "1.6.9",
+        "@rhino.fi/sdk": "^1.12.1",
         "@safe-global/safe-apps-sdk": "^9.1.0",
         "@sentry/nextjs": "^8.39.0",
         "@serwist/next": "^9.0.10",
