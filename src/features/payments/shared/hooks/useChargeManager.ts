@@ -1,7 +1,6 @@
 'use client'
 
 // hook for managing charge lifecycle (create, fetch, cache)
-// extracted from usePaymentInitiator for single responsibility
 
 import { useState, useCallback } from 'react'
 import { chargesApi } from '@/services/charges'

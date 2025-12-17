@@ -1,7 +1,6 @@
 'use client'
 
 // hook for recording payments to the backend after transaction execution
-// extracted from usePaymentInitiator for single responsibility
 
 import { useState, useCallback } from 'react'
 import { chargesApi } from '@/services/charges'

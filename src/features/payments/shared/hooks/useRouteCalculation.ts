@@ -1,7 +1,6 @@
 'use client'
 
 // hook for calculating cross-chain routes and preparing transactions
-// extracted from usePaymentInitiator for single responsibility
 
 import { useState, useCallback } from 'react'
 import { parseUnits } from 'viem'
