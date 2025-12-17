@@ -1,3 +1,5 @@
+// todo: to be deleted
+
 'use client'
 import { Button } from '@/components/0_Bruddle/Button'
 import AddressLink from '@/components/Global/AddressLink'
