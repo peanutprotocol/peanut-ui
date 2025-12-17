@@ -97,36 +97,33 @@ export function BadgesRow({ badges, className, isSelfProfile = true }: BadgesRow
                     role="region"
                     aria-label="Badge collection"
                 >
-                    {visibleBadges
-                        // dev-note: dev-connect badge to be shown in ui after post devconnect marketing campaign
-                        .filter((badge) => badge.code.toLowerCase() !== 'devconnect_ba_2025')
-                        .map((badge) => {
-                            // use public description if viewing someone else's profile, otherwise use original
-                            const displayDescription = isSelfProfile
-                                ? badge.description
-                                : getPublicBadgeDescription(badge.code) || badge.description
+                    {visibleBadges.map((badge) => {
+                        // use public description if viewing someone else's profile, otherwise use original
+                        const displayDescription = isSelfProfile
+                            ? badge.description
+                            : getPublicBadgeDescription(badge.code) || badge.description
 
-                            return (
-                                <Tooltip
-                                    key={badge.code}
-                                    content={
-                                        <div className="flex flex-col items-center justify-center gap-1">
-                                            <div className="relative text-sm font-bold">{badge.name}</div>
-                                            <p className="text-center font-normal">{displayDescription}</p>
-                                        </div>
-                                    }
-                                >
-                                    <Image
-                                        src={getBadgeIcon(badge.code)}
-                                        alt={badge.name}
-                                        className="min-h-10 min-w-10 object-contain"
-                                        height={48}
-                                        width={48}
-                                        unoptimized
-                                    />
-                                </Tooltip>
-                            )
-                        })}
+                        return (
+                            <Tooltip
+                                key={badge.code}
+                                content={
+                                    <div className="flex flex-col items-center justify-center gap-1">
+                                        <div className="relative text-sm font-bold">{badge.name}</div>
+                                        <p className="text-center font-normal">{displayDescription}</p>
+                                    </div>
+                                }
+                            >
+                                <Image
+                                    src={getBadgeIcon(badge.code)}
+                                    alt={badge.name}
+                                    className="min-h-10 min-w-10 object-contain"
+                                    height={48}
+                                    width={48}
+                                    unoptimized
+                                />
+                            </Tooltip>
+                        )
+                    })}
                 </div>
 
                 {/* Right navigation button */}
