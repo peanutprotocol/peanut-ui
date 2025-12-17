@@ -41,7 +41,7 @@ export default function PaymentLayoutWrapper({ children }: { children: React.Rea
                         className={classNames(
                             twMerge(
                                 'flex-1 overflow-y-auto bg-background p-6 md:pb-6',
-                                isUserLoggedIn ? 'pb-24' : 'pb-6'
+                                isUserLoggedIn ? 'pb-24' : 'pb-4'
                             )
                         )}
                     >

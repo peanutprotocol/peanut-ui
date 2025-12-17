@@ -20,7 +20,6 @@ import { type ParsedURL } from '@/lib/url-parser/types/payment'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermineBankRequestType'
 import { GuestVerificationModal } from '../Global/GuestVerificationModal'
-import ActionListDaimoPayButton from './ActionListDaimoPayButton'
 import { DEVCONNECT_CLAIM_METHODS, type PaymentMethod } from '@/constants/actionlist.consts'
 import useClaimLink from '../Claim/useClaimLink'
 import { setupActions } from '@/redux/slices/setup-slice'
@@ -319,28 +318,6 @@ export default function ActionList({
             <Divider text="or" />
             <div className="space-y-2">
                 {sortedActionMethods.map((method) => {
-                    if (flow === 'request' && method.id === 'exchange-or-wallet') {
-                        return (
-                            <div key={method.id}>
-                                <ActionListDaimoPayButton
-                                    handleContinueWithPeanut={handleContinueWithPeanut}
-                                    showConfirmModal={isInviteLink && !userHasAppAccess}
-                                    onBeforeShow={() => {
-                                        // Check balance before showing Daimo widget
-                                        if (!isUsePeanutBalanceModalShown && hasSufficientPeanutBalance) {
-                                            setSelectedPaymentMethod(method)
-                                            setShowUsePeanutBalanceModal(true)
-                                            return false // Don't show Daimo yet
-                                        }
-                                        return true // Proceed with Daimo
-                                    }}
-                                    isDisabled={!isAmountEntered}
-                                    clickHandlerRef={daimoButtonClickRef}
-                                />
-                            </div>
-                        )
-                    }
-
                     let methodRequiresVerification = method.id === 'bank' && requiresVerification
 
                     if (!isUserMantecaKycApproved && ['mercadopago', 'pix'].includes(method.id)) {
