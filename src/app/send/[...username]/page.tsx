@@ -1,6 +1,6 @@
-import PaymentPage from '@/app/[...recipient]/client'
 import { generateMetadata as generateBaseMetadata } from '@/app/metadata'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
+import { SendPageWrapper } from '@/features/payments/flows/send/SendPageWrapper'
 import { type Metadata } from 'next'
 import { use } from 'react'
 
@@ -11,12 +11,11 @@ type PageProps = {
 export default function DirectPaymentPage(props: PageProps) {
     const params = use(props.params)
     const usernameSegments = params.username ?? []
-
-    const recipient = usernameSegments
+    const username = usernameSegments[0] ? decodeURIComponent(usernameSegments[0]) : ''
 
     return (
         <PageContainer>
-            <PaymentPage recipient={recipient} flow="direct_pay" />
+            <SendPageWrapper username={username} />
         </PageContainer>
     )
 }
