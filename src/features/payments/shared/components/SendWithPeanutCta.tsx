@@ -50,26 +50,22 @@ export default function SendWithPeanutCta({ title, requiresAuth = true, onClick,
             onClick={handleClick}
             {...props}
         >
-            {!title ? (
-                !isLoggedIn ? (
+            {!isLoggedIn ? (
+                <div className="flex items-center gap-1">
+                    <div>Continue with </div>
                     <div className="flex items-center gap-1">
-                        <div>Continue with </div>
-                        <div className="flex items-center gap-1">
-                            <Image src={PEANUTMAN_LOGO} alt="Peanut Logo" className="size-5" />
-                            <Image src={PEANUT_LOGO_BLACK} alt="Peanut Logo" />
-                        </div>
+                        <Image src={PEANUTMAN_LOGO} alt="Peanut Logo" className="size-5" />
+                        <Image src={PEANUT_LOGO_BLACK} alt="Peanut Logo" />
                     </div>
-                ) : (
-                    <div className="flex items-center gap-1">
-                        <div>Send with </div>
-                        <div className="flex items-center gap-1">
-                            <Image src={PEANUTMAN_LOGO} alt="Peanut Logo" className="size-5" />
-                            <Image src={PEANUT_LOGO_BLACK} alt="Peanut Logo" />
-                        </div>
-                    </div>
-                )
+                </div>
             ) : (
-                title
+                <div className="flex items-center gap-1">
+                    <div>{title || 'Send with '} </div>
+                    <div className="flex items-center gap-1">
+                        <Image src={PEANUTMAN_LOGO} alt="Peanut Logo" className="size-5" />
+                        <Image src={PEANUT_LOGO_BLACK} alt="Peanut Logo" />
+                    </div>
+                </div>
             )}
         </Button>
     )
