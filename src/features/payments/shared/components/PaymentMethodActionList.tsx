@@ -11,30 +11,30 @@ import Loading from '@/components/Global/Loading'
 import useKycStatus from '@/hooks/useKycStatus'
 import { saveRedirectUrl } from '@/utils/general.utils'
 
-interface SendActionListProps {
+interface PaymentMethodActionListProps {
     isAmountEntered: boolean
+    showDivider?: boolean
 }
 
 /**
- * payment options for send flow (only for not-logged in users)
- * shows available payment methods, redirects to setup with add-money as final destination after login/signup
- * @param isAmountEntered - either the amount is entered or not in the input
+ * generic payment method action list for both direct send and semantic request flows
+ * shows bank/mercadopago/pix options
+ * redirects to setup with add-money as final destination after login/signup if user is not logged in
+ * @param isAmountEntered - whether the amount is entered
+ * @param showDivider - whether to show the divider
  * @returns the payment options list component
  */
 
-export function SendActionList({ isAmountEntered }: SendActionListProps) {
+export function PaymentMethodActionList({ isAmountEntered, showDivider = true }: PaymentMethodActionListProps) {
     const router = useRouter()
-    const { isUserMantecaKycApproved } = useKycStatus()
-
-    // filter out exchange-or-wallet since daimo is being killed
-    const availableMethods = ACTION_METHODS
+    const { isUserMantecaKycApproved, isUserBridgeKycApproved } = useKycStatus()
 
     // use geo filtering hook to sort methods based on user location
     // note: we don't mark verification-required methods as unavailable - they're still clickable
     const { filteredMethods: sortedMethods, isLoading: isGeoLoading } = useGeoFilteredPaymentOptions({
         sortUnavailable: true,
         isMethodUnavailable: (method) => method.soon,
-        methods: availableMethods,
+        methods: ACTION_METHODS,
     })
 
     const handleMethodClick = (method: PaymentMethod) => {
@@ -61,13 +61,15 @@ export function SendActionList({ isAmountEntered }: SendActionListProps) {
 
     return (
         <div className="space-y-2">
-            <Divider text="or" />
+            {showDivider && <Divider text="or" />}
             <div className="space-y-2">
                 {sortedMethods.map((method) => {
                     // check if method requires verification (for badge display only)
+                    const methodRequiresMantecaVerification =
+                        ['mercadopago', 'pix'].includes(method.id) && !isUserMantecaKycApproved
+                    const methodRequiresBridgeVerification = method.id === 'bank' && !isUserBridgeKycApproved
                     const methodRequiresVerification =
-                        ['mercadopago', 'pix', 'bank'].includes(method.id) && !isUserMantecaKycApproved
-
+                        methodRequiresMantecaVerification || methodRequiresBridgeVerification
                     return (
                         <ActionListCard
                             key={method.id}
@@ -95,3 +97,6 @@ export function SendActionList({ isAmountEntered }: SendActionListProps) {
         </div>
     )
 }
+
+// re-export for backward compatibility
+export { PaymentMethodActionList as SendActionList }

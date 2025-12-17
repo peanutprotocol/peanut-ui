@@ -13,7 +13,7 @@ import { useSendFlow } from '../useSendFlow'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/authContext'
 import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPeanutCta'
-import { SendActionList } from '@/features/payments/shared/components/SendActionList'
+import { PaymentMethodActionList } from '@/features/payments/shared/components/PaymentMethodActionList'
 
 export function SendInputView() {
     const router = useRouter()
@@ -107,7 +107,7 @@ export function SendInputView() {
                 </div>
 
                 {/* action list for non-logged in users */}
-                {!isLoggedIn && !isFetchingUser && <SendActionList isAmountEntered={isAmountEntered} />}
+                {!isLoggedIn && !isFetchingUser && <PaymentMethodActionList isAmountEntered={isAmountEntered} />}
             </div>
 
             {/* support cta for guest users */}
