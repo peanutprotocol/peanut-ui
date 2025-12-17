@@ -1,7 +1,6 @@
 'use client'
 
 // input view for send flow
-// matches existing PaymentForm UI pattern
 
 import NavHeader from '@/components/Global/NavHeader'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
