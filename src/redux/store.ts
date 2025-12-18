@@ -1,5 +1,4 @@
 import { configureStore } from '@reduxjs/toolkit'
-import sendFlowReducer from './slices/send-flow-slice'
 import setupReducer from './slices/setup-slice'
 import userReducer from './slices/user-slice'
 import walletReducer from './slices/wallet-slice'
@@ -12,7 +11,6 @@ const store = configureStore({
         wallet: walletReducer,
         zeroDev: zeroDevReducer,
         user: userReducer,
-        sendFlow: sendFlowReducer,
         bankForm: bankFormReducer,
     },
     // disable redux serialization checks

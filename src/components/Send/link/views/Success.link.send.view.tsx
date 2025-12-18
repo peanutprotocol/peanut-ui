@@ -4,14 +4,12 @@ import { Button } from '@/components/0_Bruddle/Button'
 import CancelSendLinkModal from '@/components/Global/CancelSendLinkModal'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
-import PeanutLoading from '@/components/Global/PeanutLoading'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import ShareButton from '@/components/Global/ShareButton'
 import { SuccessViewDetailsCard } from '@/components/Global/SuccessViewComponents/SuccessViewDetailsCard'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { useAppDispatch, useSendFlowStore, useUserStore } from '@/redux/hooks'
-import { sendFlowActions } from '@/redux/slices/send-flow-slice'
-import { sendLinksApi } from '@/services/sendLinks'
+import { useLinkSendFlow } from '@/context/LinkSendFlowContext'
+import { useUserStore } from '@/redux/hooks'
 import { captureException } from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
@@ -21,9 +19,8 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import { TRANSACTIONS } from '@/constants/query.consts'
 
 const LinkSendSuccessView = () => {
-    const dispatch = useAppDispatch()
     const router = useRouter()
-    const { link, attachmentOptions, tokenValue } = useSendFlowStore()
+    const { link, attachmentOptions, tokenValue, resetLinkSendFlow } = useLinkSendFlow()
     const queryClient = useQueryClient()
     const { fetchBalance } = useWallet()
     const { user } = useUserStore()
@@ -37,9 +34,9 @@ const LinkSendSuccessView = () => {
     useEffect(() => {
         return () => {
             // clear state on unmount
-            dispatch(sendFlowActions.resetSendFlow())
+            resetLinkSendFlow()
         }
-    }, [dispatch])
+    }, [resetLinkSendFlow])
 
     return (
         <div className="flex  w-full flex-col justify-start space-y-8">
@@ -48,7 +45,7 @@ const LinkSendSuccessView = () => {
                 title="Send"
                 onPrev={() => {
                     router.push('/home')
-                    dispatch(sendFlowActions.resetSendFlow())
+                    resetLinkSendFlow()
                 }}
             />
             <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
