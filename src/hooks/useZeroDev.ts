@@ -12,6 +12,7 @@ import { useCallback, useContext } from 'react'
 import type { TransactionReceipt, Hex, Hash } from 'viem'
 import { captureException } from '@sentry/nextjs'
 import { invitesApi } from '@/services/invites'
+import { keccak256 } from 'viem'
 
 // types
 type UserOpEncodedParams = {
@@ -45,6 +46,101 @@ const isStaleKeyError = (error: unknown): boolean => {
     // AA24 = ERC-4337 EntryPoint signature verification failed
     // wapk + unauthorized = ZeroDev's specific WebAuthn key error (not generic 401)
     return errorStr.includes('aa24') || (errorStr.includes('wapk') && errorStr.includes('unauthorized'))
+}
+
+/**
+ * helper to convert base64url to hex string
+ */
+const b64ToBytes = (base64: string): Uint8Array => {
+    const padding = '='.repeat((4 - (base64.length % 4)) % 4)
+    const b64 = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/')
+    const rawData = atob(b64)
+    const outputArray = new Uint8Array(rawData.length)
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i)
+    }
+    return outputArray
+}
+
+const uint8ArrayToHexString = (arr: Uint8Array): `0x${string}` => {
+    return `0x${Array.from(arr)
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join('')}`
+}
+
+/**
+ * custom login function that supports legacyMode for passkey recovery
+ * this is needed because toWebAuthnKey doesn't support custom parameters
+ */
+const loginWithLegacyMode = async (
+    passkeyServerUrl: string,
+    rpID: string,
+    passkeyServerHeaders: Record<string, string> = {}
+): Promise<Awaited<ReturnType<typeof toWebAuthnKey>>> => {
+    console.log('[useZeroDev] Attempting legacy mode login for passkey recovery')
+
+    // 1. get login options with legacyMode enabled
+    const optionsResponse = await fetch(`${passkeyServerUrl}/login/options`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            ...passkeyServerHeaders,
+        },
+        body: JSON.stringify({ rpID, legacyMode: true }),
+        credentials: 'include',
+    })
+    const options = await optionsResponse.json()
+
+    // 2. start authentication with the browser
+    const { startAuthentication } = await import('@simplewebauthn/browser')
+    const credential = await startAuthentication(options)
+
+    // 3. verify the credential
+    const verifyResponse = await fetch(`${passkeyServerUrl}/login/verify`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            ...passkeyServerHeaders,
+        },
+        body: JSON.stringify({ cred: credential, rpID }),
+        credentials: 'include',
+    })
+    const verifyResult = await verifyResponse.json()
+
+    if (!verifyResult.verification?.verified) {
+        throw new Error('Legacy login verification failed')
+    }
+
+    // 4. extract public key and build WebAuthnKey object
+    // the server returns pubkey in base64 SPKI format - decode to Uint8Array
+    const spkiBase64 = verifyResult.pubkey as string
+    const spkiDer = Uint8Array.from(atob(spkiBase64), (c) => c.charCodeAt(0))
+
+    const key = await crypto.subtle.importKey('spki', spkiDer, { name: 'ECDSA', namedCurve: 'P-256' }, true, ['verify'])
+
+    // export to raw format to get x,y coordinates
+    const rawKey = await crypto.subtle.exportKey('raw', key)
+    const rawKeyArray = new Uint8Array(rawKey)
+
+    // first byte is 0x04 (uncompressed), followed by x and y (32 bytes each)
+    const pubKeyX = Array.from(rawKeyArray.subarray(1, 33))
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join('')
+    const pubKeyY = Array.from(rawKeyArray.subarray(33))
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join('')
+
+    const authenticatorIdHash = keccak256(uint8ArrayToHexString(b64ToBytes(credential.id)))
+
+    console.log('[useZeroDev] Legacy mode login successful')
+
+    return {
+        pubX: BigInt(`0x${pubKeyX}`),
+        pubY: BigInt(`0x${pubKeyY}`),
+        authenticatorId: credential.id,
+        authenticatorIdHash,
+        rpID: '',
+    }
 }
 
 export const useZeroDev = () => {
@@ -112,41 +208,82 @@ export const useZeroDev = () => {
         }
     }
 
-    // login function
+    // login function with automatic legacy mode fallback for passkey recovery
     const handleLogin = async () => {
         dispatch(zerodevActions.setIsLoggingIn(true))
+
+        // compute rpID - must be hostname only (no protocol, no www prefix)
+        const rpID = window.location.hostname.replace(/^www\./, '')
+        console.log('[useZeroDev] Login rpID:', rpID, 'hostname:', window.location.hostname)
+
+        const passkeyServerHeaders: Record<string, string> = {}
+        if (user?.user?.username) {
+            passkeyServerHeaders['x-username'] = user.user.username
+        }
+
+        // try normal login first
         try {
-            const passkeyServerHeaders: Record<string, string> = {}
-
-            if (user?.user?.username) {
-                passkeyServerHeaders['x-username'] = user.user.username
-            }
-
             const webAuthnKey = await toWebAuthnKey({
                 passkeyName: '[]',
                 passkeyServerUrl: consts.PASSKEY_SERVER_URL as string,
                 mode: WebAuthnMode.Login,
                 passkeyServerHeaders,
-                rpID: window.location.hostname.replace(/^www\./, ''),
+                rpID,
             })
 
             setWebAuthnKey(webAuthnKey)
             saveToCookie(WEB_AUTHN_COOKIE_KEY, webAuthnKey, 90)
-        } catch (e) {
-            const error = e as Error
+            return
+        } catch (normalError) {
+            const error = normalError as Error
+
+            // if NotAllowedError, try legacy mode (for users who registered with buggy rpID)
             if (error.name === 'NotAllowedError') {
-                // User cancelled - no state was saved, just let them retry
-                dispatch(zerodevActions.setIsLoggingIn(false))
-                throw new PasskeyError(
-                    'Login was canceled or no passkey found. Please try again or register.',
-                    'LOGIN_CANCELED'
-                )
+                console.log('[useZeroDev] Normal login failed, trying legacy mode for passkey recovery')
+
+                try {
+                    const webAuthnKey = await loginWithLegacyMode(
+                        consts.PASSKEY_SERVER_URL as string,
+                        rpID,
+                        passkeyServerHeaders
+                    )
+
+                    // legacy mode worked! log for monitoring
+                    console.log('[useZeroDev] Legacy mode login successful - user had legacy rpID passkey')
+                    captureException(new Error('Legacy passkey login used'), {
+                        level: 'info',
+                        tags: { passkey_recovery: 'legacy_rpid' },
+                    })
+
+                    setWebAuthnKey(webAuthnKey)
+                    saveToCookie(WEB_AUTHN_COOKIE_KEY, webAuthnKey, 90)
+                    return
+                } catch (legacyError) {
+                    // legacy mode also failed - user either cancelled or truly has no passkey
+                    console.log('[useZeroDev] Legacy mode also failed:', (legacyError as Error).message)
+
+                    // check if user cancelled the legacy attempt too
+                    if ((legacyError as Error).name === 'NotAllowedError') {
+                        dispatch(zerodevActions.setIsLoggingIn(false))
+                        throw new PasskeyError(
+                            'Login was canceled or no passkey found. Please try again or register.',
+                            'LOGIN_CANCELED'
+                        )
+                    }
+
+                    // other error in legacy mode
+                    console.error('Error in legacy login', legacyError)
+                    clearAuthState(user?.user.userId)
+                    captureException(legacyError, { tags: { error_type: 'legacy_login_error' } })
+                    dispatch(zerodevActions.setIsLoggingIn(false))
+                    throw new PasskeyError('An unexpected error occurred during login.', 'LOGIN_ERROR')
+                }
             }
 
-            // Other login errors - clear any stale state
-            console.error('Error logging in', e)
+            // non-NotAllowedError - clear stale state and throw
+            console.error('Error logging in', normalError)
             clearAuthState(user?.user.userId)
-            captureException(e, { tags: { error_type: 'login_error' } })
+            captureException(normalError, { tags: { error_type: 'login_error' } })
             dispatch(zerodevActions.setIsLoggingIn(false))
             throw new PasskeyError('An unexpected error occurred during login.', 'LOGIN_ERROR')
         }
