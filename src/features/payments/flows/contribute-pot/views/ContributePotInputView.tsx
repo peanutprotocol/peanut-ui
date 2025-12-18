@@ -80,6 +80,7 @@ export function ContributePotInputView() {
                         amount={totalAmount}
                         amountCollected={totalCollected}
                         isRequestPot={true}
+                        contributors={contributors}
                     />
                 )}
 
