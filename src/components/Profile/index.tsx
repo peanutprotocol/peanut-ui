@@ -99,6 +99,13 @@ export const Profile = () => {
                                 </div>
                             </div>
                         </Card>
+                        <ProfileMenuItem
+                            icon="upload-cloud"
+                            label="Backup"
+                            href="/profile/backup"
+                            onClick={() => router.push('/profile/backup')}
+                            position="last"
+                        />
                         {/* Enable with Account Management project. */}
                         {/* <ProfileMenuItem
                             icon="bank"
