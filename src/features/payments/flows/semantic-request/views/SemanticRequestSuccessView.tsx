@@ -1,28 +1,33 @@
 'use client'
 
-// success view for semantic request flow
-// uses shared PaymentSuccessView component
-
-import { PaymentSuccessView } from '@/features/payments/shared/components/PaymentSuccessView'
+import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
 import { useSemanticRequestFlow } from '../useSemanticRequestFlow'
-import { printableAddress } from '@/utils/general.utils'
+import { usePointsCalculation } from '@/hooks/usePointsCalculation'
+import { PointsAction } from '@/services/services.types'
 
 export function SemanticRequestSuccessView() {
-    const { amount, usdAmount, recipient, attachment, resetSemanticRequestFlow } = useSemanticRequestFlow()
+    const { usdAmount, recipient, parsedUrl, attachment, charge, payment, resetSemanticRequestFlow } =
+        useSemanticRequestFlow()
 
-    // get recipient display name
-    const recipientDisplayName =
-        recipient?.recipientType === 'ADDRESS'
-            ? printableAddress(recipient.resolvedAddress)
-            : recipient?.identifier || ''
+    // determine recipient type from parsed url
+    const recipientType = recipient?.recipientType || 'ADDRESS'
+
+    // calculate points for the payment (request fulfillment)
+    const { pointsData } = usePointsCalculation(PointsAction.P2P_REQUEST_PAYMENT, usdAmount, !!payment, payment?.uuid)
 
     return (
         <PaymentSuccessView
-            type="send"
-            amount={usdAmount || amount}
-            recipientName={recipientDisplayName}
+            type="SEND"
+            headerTitle="Pay"
+            recipientType={recipientType}
+            usdAmount={usdAmount}
             message={attachment.message}
-            onReset={resetSemanticRequestFlow}
+            chargeDetails={charge}
+            paymentDetails={payment}
+            parsedPaymentData={parsedUrl}
+            onComplete={resetSemanticRequestFlow}
+            redirectTo="/home"
+            points={pointsData?.estimatedPoints}
         />
     )
 }
