@@ -40,14 +40,10 @@ export function PaymentMethodActionList({ isAmountEntered, showDivider = true }:
     const handleMethodClick = (method: PaymentMethod) => {
         // for all methods, save current url and redirect to setup with add-money as final destination
         // verification will be handled in the add-money flow after login
-        switch (method.id) {
-            case 'bank':
-            case 'mercadopago':
-            case 'pix':
-                saveRedirectUrl()
-                const redirectUri = encodeURIComponent('/add-money')
-                router.push(`/setup?redirect_uri=${redirectUri}`)
-                break
+        if (['bank', 'mercadopago', 'pix'].includes(method.id)) {
+            saveRedirectUrl()
+            const redirectUri = encodeURIComponent('/add-money')
+            router.push(`/setup?redirect_uri=${redirectUri}`)
         }
     }
 

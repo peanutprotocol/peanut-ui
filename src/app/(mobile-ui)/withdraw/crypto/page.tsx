@@ -349,7 +349,7 @@ export default function WithdrawCryptoPage() {
             resetPaymentRecorder()
             resetTokenContextProvider() // reset token selector context to make sure previously selected token is not cached
         }
-    }, [resetWithdrawFlow, resetRouteCalculation, resetPaymentRecorder, resetTokenContextProvider])
+    }, [resetRouteCalculation, resetPaymentRecorder, resetTokenContextProvider])
 
     // Check for route type errors (similar to payment flow)
     const routeTypeError = useMemo<string | null>(() => {
