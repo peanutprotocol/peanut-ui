@@ -104,7 +104,7 @@ export default function BackupPage() {
                             icon="check"
                             iconClassName="text-success"
                             title="Backup is enabled"
-                            description="Sign into your new phone with your [Apple ID/Google account]. Download Peanut. Your wallet restores automatically"
+                            description={`Sign into your new phone with your ${accountType}. Download Peanut. Your wallet restores automatically`}
                         />
                         <InfoCard
                             variant="error"
