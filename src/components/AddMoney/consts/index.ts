@@ -254,7 +254,7 @@ const countrySpecificWithdrawMethods: Record<
             title: 'Mercado Pago',
             description: 'Instant transfers',
             icon: MERCADO_PAGO,
-            isSoon: true,
+            isSoon: false,
         },
     ],
     Mexico: [{ title: 'CoDi', description: 'Central bank-backed RTP, adoption growing.' }],
@@ -2814,12 +2814,12 @@ export const NON_EUR_SEPA_ALPHA2 = new Set(
 )
 
 const enabledBankWithdrawCountries = new Set(
-    [...Object.values(BRIDGE_ALPHA3_TO_ALPHA2), 'US', 'MX'].filter((code) => !NON_EUR_SEPA_ALPHA2.has(code))
+    [...Object.values(BRIDGE_ALPHA3_TO_ALPHA2), 'US', 'MX', 'AR'].filter((code) => !NON_EUR_SEPA_ALPHA2.has(code))
 )
 
 // exclude non-euro sepa countries from bank deposits, same as withdrawals
 const enabledBankDepositCountries = new Set(
-    [...Object.values(BRIDGE_ALPHA3_TO_ALPHA2), 'US', 'MX'].filter((code) => !NON_EUR_SEPA_ALPHA2.has(code))
+    [...Object.values(BRIDGE_ALPHA3_TO_ALPHA2), 'US', 'MX', 'AR'].filter((code) => !NON_EUR_SEPA_ALPHA2.has(code))
 )
 
 // Helper function to check if a country code is enabled for bank transfers
