@@ -25,13 +25,13 @@ export function SendInputView() {
         formattedBalance,
         canProceed,
         hasSufficientBalance,
+        isInsufficientBalance,
+        isLoggedIn,
         isLoading,
         setAmount,
         setAttachment,
         executePayment,
     } = useSendFlow()
-
-    const isLoggedIn = !!user?.user?.userId
 
     // handle submit - directly execute payment
     const handleSubmit = () => {
@@ -50,7 +50,6 @@ export function SendInputView() {
     }
 
     // determine button text and state
-    const isInsufficientBalance = isLoggedIn && amount && !hasSufficientBalance
     const isButtonDisabled = !canProceed || (isLoggedIn && !hasSufficientBalance) || isLoading
     const isAmountEntered = !!amount && parseFloat(amount) > 0
 

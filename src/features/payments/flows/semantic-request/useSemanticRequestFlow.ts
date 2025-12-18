@@ -130,6 +130,29 @@ export function useSemanticRequestFlow() {
         return hasSufficientBalance(amount)
     }, [amount, hasSufficientBalance])
 
+    // check if should show insufficient balance error
+    const isInsufficientBalance = useMemo(() => {
+        return (
+            isLoggedIn &&
+            !!amount &&
+            !hasEnoughBalance &&
+            !isLoading &&
+            !isCreatingCharge &&
+            !isFetchingCharge &&
+            !isRecording &&
+            !isCalculatingRoute
+        )
+    }, [
+        isLoggedIn,
+        amount,
+        hasEnoughBalance,
+        isLoading,
+        isCreatingCharge,
+        isFetchingCharge,
+        isRecording,
+        isCalculatingRoute,
+    ])
+
     // validate username recipient can only receive on arbitrum
     const validateUsernameRecipient = useCallback((): string | null => {
         if (recipient?.recipientType === 'USERNAME') {
@@ -464,6 +487,7 @@ export function useSemanticRequestFlow() {
         // computed
         canProceed,
         hasSufficientBalance: hasEnoughBalance,
+        isInsufficientBalance,
         isConnected,
         isLoggedIn,
         walletAddress,

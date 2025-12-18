@@ -9,6 +9,7 @@ import { useSendFlowContext } from './SendFlowContext'
 import { useChargeManager } from '@/features/payments/shared/hooks/useChargeManager'
 import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentRecorder'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { useAuth } from '@/context/authContext'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { ErrorHandler } from '@/utils/sdkErrorHandler.utils'
 
@@ -38,9 +39,12 @@ export function useSendFlow() {
         resetSendFlow,
     } = useSendFlowContext()
 
+    const { user } = useAuth()
     const { createCharge, isCreating: isCreatingCharge } = useChargeManager()
     const { recordPayment, isRecording } = usePaymentRecorder()
     const { isConnected, address: walletAddress, sendMoney, formattedBalance, hasSufficientBalance } = useWallet()
+
+    const isLoggedIn = !!user?.user?.userId
 
     // set amount (for peanut wallet, amount is always in usd)
     const handleSetAmount = useCallback(
@@ -69,6 +73,11 @@ export function useSendFlow() {
         if (!amount) return false
         return hasSufficientBalance(amount)
     }, [amount, hasSufficientBalance])
+
+    // check if should show insufficient balance error
+    const isInsufficientBalance = useMemo(() => {
+        return isLoggedIn && !!amount && !hasEnoughBalance && !isLoading && !isCreatingCharge && !isRecording
+    }, [isLoggedIn, amount, hasEnoughBalance, isLoading, isCreatingCharge, isRecording])
 
     // execute the payment (called from input view)
     const executePayment = useCallback(async () => {
@@ -158,6 +167,8 @@ export function useSendFlow() {
         // computed
         canProceed,
         hasSufficientBalance: hasEnoughBalance,
+        isInsufficientBalance,
+        isLoggedIn,
         isConnected,
         walletAddress,
         formattedBalance,

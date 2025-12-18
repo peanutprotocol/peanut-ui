@@ -25,16 +25,14 @@ export function SemanticRequestInputView() {
         recipient,
         parsedUrl,
         isAmountFromUrl,
-        attachment,
         error,
         formattedBalance,
         canProceed,
-        hasSufficientBalance,
+        isInsufficientBalance,
         isLoading,
         isLoggedIn,
         isConnected,
         setAmount,
-        setAttachment,
         handlePayment,
     } = useSemanticRequestFlow()
 
@@ -92,7 +90,6 @@ export function SemanticRequestInputView() {
     }
 
     // determine button state
-    const isInsufficientBalance = isLoggedIn && amount && !hasSufficientBalance
     const isButtonDisabled = !canProceed || isLoading
     const isAmountEntered = !!amount && parseFloat(amount) > 0
 

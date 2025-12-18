@@ -25,6 +25,8 @@ export function ContributePotInputView() {
         formattedBalance,
         canProceed,
         hasSufficientBalance,
+        isInsufficientBalance,
+        isLoggedIn,
         isLoading,
         totalAmount,
         totalCollected,
@@ -33,8 +35,6 @@ export function ContributePotInputView() {
         setAmount,
         executeContribution,
     } = useContributePotFlow()
-
-    const isLoggedIn = !!user?.user?.userId
 
     // handle submit - directly execute contribution
     const handlePayWithPeanut = () => {
@@ -53,7 +53,6 @@ export function ContributePotInputView() {
     }
 
     // determine button state
-    const isInsufficientBalance = isLoggedIn && amount && !hasSufficientBalance
     const isAmountEntered = !!amount && parseFloat(amount) > 0
 
     return (
