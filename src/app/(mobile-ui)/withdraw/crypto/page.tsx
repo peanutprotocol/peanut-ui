@@ -3,20 +3,17 @@
 import ActionModal from '@/components/Global/ActionModal'
 import AddressLink from '@/components/Global/AddressLink'
 import PeanutLoading from '@/components/Global/PeanutLoading'
-import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
+import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
 import ConfirmWithdrawView from '@/components/Withdraw/views/Confirm.withdraw.view'
 import InitialWithdrawView from '@/components/Withdraw/views/Initial.withdraw.view'
 import { useWithdrawFlow, type WithdrawData } from '@/context/WithdrawFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
-import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
 import type {
     CreateChargeRequest,
     CreateRequestRequest as CreateRequestPayloadServices,
     TCharge,
-    TRequestChargeResponse,
     TRequestResponse,
 } from '@/services/services.types'
 import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
@@ -37,8 +34,6 @@ import { ErrorHandler } from '@/utils/sdkErrorHandler.utils'
 
 export default function WithdrawCryptoPage() {
     const router = useRouter()
-    const dispatch = useAppDispatch()
-    const { chargeDetails: activeChargeDetailsFromStore } = usePaymentStore()
     const { isConnected: isPeanutWallet, address, sendTransactions } = useWallet()
     const { resetTokenContextProvider } = useContext(tokenSelectorContext)
     const {
@@ -56,6 +51,11 @@ export default function WithdrawCryptoPage() {
         paymentError,
         setPaymentError,
         setError: setWithdrawError,
+        chargeDetails,
+        setChargeDetails,
+        setTransactionHash,
+        paymentDetails,
+        setPaymentDetails,
         resetWithdrawFlow,
     } = useWithdrawFlow()
 
@@ -79,18 +79,17 @@ export default function WithdrawCryptoPage() {
     // combined processing state
     const isProcessing = useMemo(() => isSendingTx || isRecording, [isSendingTx, isRecording])
 
-    // Helper to manage errors consistently
+    // helper to manage errors consistently
     const setError = useCallback(
         (error: string | null) => {
             setPaymentError(error)
-            dispatch(paymentActions.setError(error))
-            // Also set the withdraw flow error state for display in InitialWithdrawView
+            // also set the withdraw flow error state for display in InitialWithdrawView
             setWithdrawError({
                 showError: !!error,
                 errorMessage: error || '',
             })
         },
-        [setPaymentError, dispatch, setWithdrawError]
+        [setPaymentError, setWithdrawError]
     )
 
     const clearErrors = useCallback(() => {
@@ -99,18 +98,20 @@ export default function WithdrawCryptoPage() {
 
     // reset on mount
     useEffect(() => {
-        dispatch(paymentActions.resetPaymentState())
+        setChargeDetails(null)
+        setTransactionHash(null)
+        setPaymentDetails(null)
         resetRouteCalculation()
         resetPaymentRecorder()
-    }, [dispatch, resetRouteCalculation, resetPaymentRecorder])
+    }, [setChargeDetails, setTransactionHash, setPaymentDetails, resetRouteCalculation, resetPaymentRecorder])
 
     // clear errors when amount changes
     useEffect(() => {
         if (amountToWithdraw) {
             clearErrors()
-            dispatch(paymentActions.setChargeDetails(null))
+            setChargeDetails(null)
         }
-    }, [amountToWithdraw, clearErrors, dispatch])
+    }, [amountToWithdraw, clearErrors, setChargeDetails])
 
     // propagate route/record errors
     useEffect(() => {
@@ -122,9 +123,9 @@ export default function WithdrawCryptoPage() {
 
     // prepare transaction when entering confirm view
     useEffect(() => {
-        if (currentView === 'CONFIRM' && activeChargeDetailsFromStore && withdrawData && address) {
+        if (currentView === 'CONFIRM' && chargeDetails && withdrawData && address) {
             console.log('Preparing withdraw transaction details...')
-            console.dir(activeChargeDetailsFromStore)
+            console.dir(chargeDetails)
             calculateRoute({
                 source: {
                     address: address as Address,
@@ -132,18 +133,18 @@ export default function WithdrawCryptoPage() {
                     chainId: PEANUT_WALLET_CHAIN.id.toString(),
                 },
                 destination: {
-                    recipientAddress: activeChargeDetailsFromStore.requestLink.recipientAddress as Address,
-                    tokenAddress: activeChargeDetailsFromStore.tokenAddress as Address,
-                    tokenAmount: activeChargeDetailsFromStore.tokenAmount,
-                    tokenDecimals: activeChargeDetailsFromStore.tokenDecimals,
-                    tokenType: Number(activeChargeDetailsFromStore.tokenType),
-                    chainId: activeChargeDetailsFromStore.chainId,
+                    recipientAddress: chargeDetails.requestLink.recipientAddress as Address,
+                    tokenAddress: chargeDetails.tokenAddress as Address,
+                    tokenAmount: chargeDetails.tokenAmount,
+                    tokenDecimals: chargeDetails.tokenDecimals,
+                    tokenType: Number(chargeDetails.tokenType),
+                    chainId: chargeDetails.chainId,
                 },
                 usdAmount: usdAmount,
                 skipGasEstimate: true, // peanut wallet handles gas
             })
         }
-    }, [currentView, activeChargeDetailsFromStore, withdrawData, calculateRoute, usdAmount, address])
+    }, [currentView, chargeDetails, withdrawData, calculateRoute, usdAmount, address])
 
     const handleSetupReview = useCallback(
         async (data: Omit<WithdrawData, 'amount'>) => {
@@ -154,7 +155,7 @@ export default function WithdrawCryptoPage() {
             }
 
             clearErrors()
-            dispatch(paymentActions.setChargeDetails(null))
+            setChargeDetails(null)
             setIsPreparingReview(true)
 
             try {
@@ -204,9 +205,9 @@ export default function WithdrawCryptoPage() {
                     throw new Error('Failed to create charge for withdrawal or charge ID missing.')
                 }
 
-                const fullChargeDetails: TRequestChargeResponse = await chargesApi.get(createdCharge.data.id)
+                const fullChargeDetails = await chargesApi.get(createdCharge.data.id)
 
-                dispatch(paymentActions.setChargeDetails(fullChargeDetails))
+                setChargeDetails(fullChargeDetails)
                 setShowCompatibilityModal(true)
             } catch (err: any) {
                 console.error('Error during setup review (request/charge creation):', err)
@@ -216,21 +217,29 @@ export default function WithdrawCryptoPage() {
                 setIsPreparingReview(false)
             }
         },
-        [amountToWithdraw, dispatch, setCurrentView]
+        [
+            amountToWithdraw,
+            clearErrors,
+            setChargeDetails,
+            setIsPreparingReview,
+            setWithdrawData,
+            setShowCompatibilityModal,
+            setError,
+        ]
     )
 
     const handleCompatibilityProceed = useCallback(() => {
         setShowCompatibilityModal(false)
-        if (activeChargeDetailsFromStore && withdrawData) {
+        if (chargeDetails && withdrawData) {
             setCurrentView('CONFIRM')
         } else {
             console.error('Proceeding to confirm, but charge details or withdraw data are missing.')
             setError('Failed to load withdrawal details for confirmation. Please go back and try again.')
         }
-    }, [activeChargeDetailsFromStore, withdrawData, setCurrentView])
+    }, [chargeDetails, withdrawData, setCurrentView, setShowCompatibilityModal, setError])
 
     const handleConfirmWithdrawal = useCallback(async () => {
-        if (!activeChargeDetailsFromStore || !withdrawData || !amountToWithdraw || !address) {
+        if (!chargeDetails || !withdrawData || !amountToWithdraw || !address) {
             console.error('Withdraw data, active charge details, or amount missing for final confirmation')
             setError('Essential withdrawal information is missing.')
             return
@@ -243,7 +252,6 @@ export default function WithdrawCryptoPage() {
         }
 
         clearErrors()
-        dispatch(paymentActions.setError(null))
         setIsSendingTx(true)
 
         try {
@@ -261,15 +269,15 @@ export default function WithdrawCryptoPage() {
 
             // record payment to backend
             const payment = await recordPayment({
-                chargeId: activeChargeDetailsFromStore.uuid,
+                chargeId: chargeDetails.uuid,
                 chainId: PEANUT_WALLET_CHAIN.id.toString(),
                 txHash: finalTxHash,
                 tokenAddress: PEANUT_WALLET_TOKEN,
                 payerAddress: address as Address,
             })
 
-            dispatch(paymentActions.setTransactionHash(finalTxHash))
-            dispatch(paymentActions.setPaymentDetails(payment))
+            setTransactionHash(finalTxHash)
+            setPaymentDetails(payment)
             triggerHaptic()
             setCurrentView('STATUS')
         } catch (err) {
@@ -280,22 +288,23 @@ export default function WithdrawCryptoPage() {
             setIsSendingTx(false)
         }
     }, [
-        activeChargeDetailsFromStore,
+        chargeDetails,
         withdrawData,
         amountToWithdraw,
         address,
         transactions,
-        dispatch,
         sendTransactions,
         recordPayment,
         setCurrentView,
+        setTransactionHash,
+        setPaymentDetails,
         clearErrors,
         setError,
         triggerHaptic,
     ])
 
     const handleRouteRefresh = useCallback(async () => {
-        if (!activeChargeDetailsFromStore || !address) return
+        if (!chargeDetails || !address) return
         console.log('Refreshing withdraw route due to expiry...')
         await calculateRoute({
             source: {
@@ -304,35 +313,34 @@ export default function WithdrawCryptoPage() {
                 chainId: PEANUT_WALLET_CHAIN.id.toString(),
             },
             destination: {
-                recipientAddress: activeChargeDetailsFromStore.requestLink.recipientAddress as Address,
-                tokenAddress: activeChargeDetailsFromStore.tokenAddress as Address,
-                tokenAmount: activeChargeDetailsFromStore.tokenAmount,
-                tokenDecimals: activeChargeDetailsFromStore.tokenDecimals,
-                tokenType: Number(activeChargeDetailsFromStore.tokenType),
-                chainId: activeChargeDetailsFromStore.chainId,
+                recipientAddress: chargeDetails.requestLink.recipientAddress as Address,
+                tokenAddress: chargeDetails.tokenAddress as Address,
+                tokenAmount: chargeDetails.tokenAmount,
+                tokenDecimals: chargeDetails.tokenDecimals,
+                tokenType: Number(chargeDetails.tokenType),
+                chainId: chargeDetails.chainId,
             },
             usdAmount: usdAmount,
             skipGasEstimate: true,
         })
-    }, [activeChargeDetailsFromStore, calculateRoute, usdAmount, address])
+    }, [chargeDetails, calculateRoute, usdAmount, address])
 
     const handleBackFromConfirm = useCallback(() => {
         setCurrentView('INITIAL')
         clearErrors()
-        dispatch(paymentActions.setError(null))
-        dispatch(paymentActions.setChargeDetails(null))
-    }, [dispatch, setCurrentView])
+        setChargeDetails(null)
+    }, [setCurrentView, clearErrors, setChargeDetails])
 
     // check if this is a cross-chain withdrawal
     const isCrossChainWithdrawal = useMemo<boolean>(() => {
-        if (!withdrawData || !activeChargeDetailsFromStore) return false
+        if (!withdrawData || !chargeDetails) return false
 
         // in withdraw flow, we're moving from Peanut Wallet to the selected chain
         const fromChainId = isPeanutWallet ? PEANUT_WALLET_CHAIN.id.toString() : withdrawData.chain.chainId
-        const toChainId = activeChargeDetailsFromStore.chainId
+        const toChainId = chargeDetails.chainId
 
         return fromChainId !== toChainId
-    }, [withdrawData, activeChargeDetailsFromStore, isPeanutWallet])
+    }, [withdrawData, chargeDetails, isPeanutWallet])
 
     // reset withdraw flow when this component unmounts
     useEffect(() => {
@@ -390,7 +398,7 @@ export default function WithdrawCryptoPage() {
                 />
             )}
 
-            {currentView === 'CONFIRM' && withdrawData && activeChargeDetailsFromStore && (
+            {currentView === 'CONFIRM' && withdrawData && chargeDetails && (
                 <ConfirmWithdrawView
                     amount={usdAmount}
                     token={withdrawData.token}
@@ -410,15 +418,18 @@ export default function WithdrawCryptoPage() {
                 />
             )}
 
-            {currentView === 'STATUS' && withdrawData && activeChargeDetailsFromStore && (
+            {currentView === 'STATUS' && withdrawData && chargeDetails && (
                 <>
-                    <DirectSuccessView
+                    <PaymentSuccessView
                         headerTitle="Withdraw"
                         recipientType="ADDRESS"
                         type="SEND"
                         amount={usdAmount}
                         isWithdrawFlow={true}
                         redirectTo="/home"
+                        chargeDetails={chargeDetails}
+                        paymentDetails={paymentDetails}
+                        usdAmount={usdAmount}
                         message={
                             <AddressLink
                                 className="text-sm font-normal text-grey-1 no-underline"
