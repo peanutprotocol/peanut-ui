@@ -109,9 +109,14 @@ export function SendInputView() {
 
                 {/* button and error */}
                 <div className="space-y-4">
-                    <SendWithPeanutCta onClick={handleSubmit} disabled={isButtonDisabled} loading={isLoading} />
+                    <SendWithPeanutCta
+                        onClick={handleSubmit}
+                        disabled={isButtonDisabled}
+                        loading={isLoading}
+                        insufficientBalance={isInsufficientBalance}
+                    />
                     {isInsufficientBalance && (
-                        <ErrorAlert description="Not enough balance to fulfill this request with Peanut" />
+                        <ErrorAlert description="Not enough balance to fulfill this payment with Peanut" />
                     )}
                     {error.showError && <ErrorAlert description={error.errorMessage} />}
                 </div>

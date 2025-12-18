@@ -21,7 +21,6 @@ import { useContributePotFlow } from '../useContributePotFlow'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/authContext'
 import { RequestPotActionList } from '../components/RequestPotActionList'
-import { ContributorsDrawer } from '../components/ContributorsDrawer'
 
 export function ContributePotInputView() {
     const router = useRouter()
@@ -113,9 +112,6 @@ export function ContributePotInputView() {
                     onPayWithPeanut={handlePayWithPeanut}
                     isPaymentLoading={isLoading}
                 />
-
-                {/* contributors drawer */}
-                <ContributorsDrawer contributors={contributors} />
             </div>
 
             {/* support cta */}

@@ -140,7 +140,7 @@ export function RequestPotActionList({
                 onClick={handleContinueWithPeanut}
                 disabled={!isAmountEntered || isPaymentLoading}
                 loading={isPaymentLoading}
-                title="Pay with "
+                insufficientBalance={!userHasSufficientPeanutBalance}
             />
 
             <Divider text="or" />
