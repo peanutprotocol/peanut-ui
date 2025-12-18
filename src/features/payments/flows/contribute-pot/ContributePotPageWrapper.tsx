@@ -1,7 +1,13 @@
 'use client'
 
-// wrapper component for ContributePotPage that handles request fetching
-// used by the /[...recipient]?id=xxx route
+/**
+ * wrapper component for ContributePotPage
+ *
+ * handles async request fetching before rendering the actual flow.
+ * shows loading/error states while fetching.
+ *
+ * used by: /[...recipient]?id=xyz route when id param is a request pot uuid
+ */
 
 import { ContributePotPage } from './ContributePotPage'
 import { requestsApi } from '@/services/requests'

@@ -1,7 +1,16 @@
 'use client'
 
-// input view for contribute pot flow
-// shows slider for amount selection and payment options in one view
+/**
+ * input view for contribute pot flow
+ *
+ * displays:
+ * - recipient card with pot progress (amount collected / total)
+ * - amount input with slider (defaults to smart suggestion)
+ * - payment method options
+ * - contributors drawer (see who else paid)
+ *
+ * executes payment directly on submit
+ */
 
 import NavHeader from '@/components/Global/NavHeader'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
@@ -16,7 +25,7 @@ import { ContributorsDrawer } from '../components/ContributorsDrawer'
 
 export function ContributePotInputView() {
     const router = useRouter()
-    const { user, isFetchingUser } = useAuth()
+    const { isFetchingUser } = useAuth()
     const {
         amount,
         request,

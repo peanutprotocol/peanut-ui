@@ -1,7 +1,14 @@
 'use client'
 
-// main entry point for send flow
-// renders correct view based on flow state
+/**
+ * main entry point for direct send flow
+ *
+ * wraps content with context provider and renders the correct view:
+ * - INITIAL: amount input with optional message
+ * - STATUS: success view after payment
+ *
+ * receives pre-resolved recipient data from wrapper
+ */
 
 import { SendFlowProvider, useSendFlowContext, type SendRecipient } from './SendFlowContext'
 import { SendInputView } from './views/SendInputView'

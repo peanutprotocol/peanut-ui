@@ -1,7 +1,16 @@
 'use client'
 
-// orchestrator hook for send flow
-// coordinates charge creation, transaction sending, and payment recording
+/**
+ * hook for direct send flow
+ *
+ * handles the full payment lifecycle for direct sends to peanut users:
+ * 1. validates amount and checks balance
+ * 2. creates a charge in backend
+ * 3. sends usdc via peanut wallet
+ * 4. records the payment to backend
+ *
+ * note: no cross-chain, always usdc on arbitrum
+ */
 
 import { useCallback, useMemo } from 'react'
 import { type Address, type Hash } from 'viem'

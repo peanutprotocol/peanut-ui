@@ -1,7 +1,17 @@
 'use client'
 
-// confirm view for semantic request flow
-// shows payment details, fees, and confirm button
+/**
+ * confirm view for semantic request flow (cross-chain payments only)
+ *
+ * displays:
+ * - recipient and amount being sent
+ * - min received after slippage
+ * - source token (usdc on arb) → destination token
+ * - network fees (usually sponsored by peanut)
+ * - countdown timer for rfq routes (auto-refreshes before expiry)
+ *
+ * handles route expiry - auto-fetches new quote when current expires
+ */
 
 import { Button } from '@/components/0_Bruddle/Button'
 import Card from '@/components/Global/Card'

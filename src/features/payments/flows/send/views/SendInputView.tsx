@@ -1,6 +1,16 @@
 'use client'
 
-// input view for send flow
+/**
+ * input view for send flow
+ *
+ * displays:
+ * - recipient card (peanut username)
+ * - amount input
+ * - optional message/file attachment
+ * - payment method options
+ *
+ * executes payment directly on submit (no confirm step)
+ */
 
 import NavHeader from '@/components/Global/NavHeader'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
@@ -16,7 +26,7 @@ import { PaymentMethodActionList } from '@/features/payments/shared/components/P
 
 export function SendInputView() {
     const router = useRouter()
-    const { user, isFetchingUser } = useAuth()
+    const { isFetchingUser } = useAuth()
     const {
         amount,
         recipient,

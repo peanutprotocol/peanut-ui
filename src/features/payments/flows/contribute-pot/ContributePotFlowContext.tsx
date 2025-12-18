@@ -1,7 +1,17 @@
 'use client'
 
-// context provider for contribute pot flow state
-// manages the state machine for contributing to request pots
+/**
+ * context provider for request pot flow
+ *
+ * request pots are group payment requests where multiple people can contribute.
+ * this context manages all state for the contribution flow:
+ * - amount being contributed
+ * - request details and recipient info
+ * - charge/payment results after execution
+ * - derived data like total collected and contributors list
+ *
+ * wraps ContributePotPage and provides state to all child views
+ */
 
 import { createContext, useContext, useState, useMemo, useCallback, type ReactNode } from 'react'
 import { type Address, type Hash } from 'viem'

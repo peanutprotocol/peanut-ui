@@ -1,7 +1,14 @@
 'use client'
 
-// drawer component to show all contributors for a request pot
-// shows a list of people who have contributed with their amounts
+/**
+ * drawer component to show all contributors for a request pot
+ *
+ * displays a scrollable list of people who have contributed with:
+ * - their username or address
+ * - amount contributed
+ *
+ * hidden when there are no contributors yet
+ */
 
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/Global/Drawer'
 import ContributorCard, { type Contributor } from '@/components/Global/Contributors/ContributorCard'

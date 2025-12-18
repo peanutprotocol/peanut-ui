@@ -1,7 +1,14 @@
 'use client'
 
-// main entry point for contribute pot flow
-// renders correct view based on flow state
+/**
+ * main entry point for contribute pot flow
+ *
+ * wraps content with context provider and renders the correct view:
+ * - INITIAL: amount input with slider
+ * - STATUS: success view after payment
+ *
+ * receives pre-fetched request data from wrapper
+ */
 
 import { ContributePotFlowProvider, useContributePotFlowContext } from './ContributePotFlowContext'
 import { ContributePotInputView } from './views/ContributePotInputView'

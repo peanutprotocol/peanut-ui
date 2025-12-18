@@ -1,7 +1,13 @@
 'use client'
 
-// success view for send flow
-// uses PaymentSuccessView for consistent ui and features (drawer, points, etc.)
+/**
+ * success view for send flow
+ *
+ * thin wrapper around PaymentSuccessView that:
+ * - pulls data from send flow context
+ * - calculates points earned for the send
+ * - provides reset callback on completion
+ */
 
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
 import { useSendFlow } from '../useSendFlow'

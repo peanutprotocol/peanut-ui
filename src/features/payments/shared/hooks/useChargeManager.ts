@@ -1,6 +1,19 @@
 'use client'
 
-// hook for managing charge lifecycle (create, fetch, cache)
+/**
+ * hook for managing charge lifecycle (create, fetch, cache)
+ *
+ * charges are payment requests stored in our backend. they track:
+ * - what token/chain the recipient wants
+ * - the amount requested
+ * - optional attachments/messages
+ *
+ * used by all payment flows before executing transactions
+ *
+ * @example
+ * const { createCharge, fetchCharge, charge } = useChargeManager()
+ * const newCharge = await createCharge({ tokenAmount: '10', ... })
+ */
 
 import { useState, useCallback } from 'react'
 import { chargesApi } from '@/services/charges'

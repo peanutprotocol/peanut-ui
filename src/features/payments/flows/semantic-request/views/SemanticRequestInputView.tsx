@@ -1,7 +1,17 @@
 'use client'
 
-// input view for semantic request flow
-// shows amount input, token selector, and recipient info
+/**
+ * input view for semantic request flow
+ *
+ * displays:
+ * - recipient card (address/ens/username)
+ * - amount input
+ * - token selector (for address/ens recipients, not usernames)
+ * - payment method options
+ *
+ * for same-chain usdc: executes payment directly
+ * for cross-chain: navigates to confirm view
+ */
 
 import { useEffect, useContext } from 'react'
 import NavHeader from '@/components/Global/NavHeader'

@@ -1,7 +1,15 @@
 'use client'
 
-// wrapper component for SendPage that handles username resolution
-// used by the /send/[...username] route
+/**
+ * wrapper component for SendPage
+ *
+ * handles async username resolution before rendering the actual flow.
+ * finds the user's peanut wallet address from their username.
+ *
+ * shows loading/error states while resolving
+ *
+ * used by: /send/[...username] route
+ */
 
 import { SendPage } from './SendPage'
 import { type SendRecipient } from './SendFlowContext'

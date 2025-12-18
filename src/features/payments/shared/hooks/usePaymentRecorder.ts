@@ -1,6 +1,18 @@
 'use client'
 
-// hook for recording payments to the backend after transaction execution
+/**
+ * hook for recording payments to the backend after transaction execution
+ *
+ * after a blockchain transaction is confirmed, this hook notifies our backend
+ * so we can:
+ * - mark the charge as paid
+ * - update the recipient's balance/history
+ * - track cross-chain payment sources
+ *
+ * @example
+ * const { recordPayment } = usePaymentRecorder()
+ * await recordPayment({ chargeId, chainId, txHash, tokenAddress, payerAddress })
+ */
 
 import { useState, useCallback } from 'react'
 import { chargesApi } from '@/services/charges'

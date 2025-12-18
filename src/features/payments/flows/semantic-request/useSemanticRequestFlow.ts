@@ -1,7 +1,17 @@
 'use client'
 
-// orchestrator hook for semantic request flow
-// handles charge creation, route calculation, and payment execution
+/**
+ * hook for semantic request flow
+ *
+ * handles the full payment lifecycle for semantic url payments:
+ * 1. creates a charge with recipient/amount details
+ * 2. for same-chain usdc: sends directly via peanut wallet
+ * 3. for cross-chain/different token: calculates route, shows confirm view
+ * 4. executes swap/bridge transaction
+ * 5. records payment to backend
+ *
+ * supports route expiry handling - auto-refreshes routes when expired
+ */
 
 import { useCallback, useMemo, useEffect, useContext, useState } from 'react'
 import { type Address, type Hash } from 'viem'

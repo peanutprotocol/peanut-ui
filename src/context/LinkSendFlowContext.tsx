@@ -1,5 +1,16 @@
 'use client'
 
+/**
+ * context for send link flow state management
+ *
+ * send links let users create claimable payment links that can be:
+ * - shared via any messaging app
+ * - claimed by anyone with the link
+ * - cross-chain claimable
+ *
+ * this context manages state for creating these links
+ */
+
 import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from 'react'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 

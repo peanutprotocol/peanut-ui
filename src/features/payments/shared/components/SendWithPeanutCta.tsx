@@ -1,5 +1,13 @@
 'use client'
 
+/**
+ * primary cta button for peanut wallet payments
+ *
+ * shows different states:
+ * - not logged in: "continue with peanut" + redirects to signup, then redirects to the current page
+ * - logged in: "send with peanut" + executes payment
+ */
+
 import { PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
 import { Button, type ButtonProps } from '@/components/0_Bruddle/Button'
 import { useAuth } from '@/context/authContext'

@@ -1,6 +1,19 @@
 'use client'
 
-// hook for calculating cross-chain routes and preparing transactions
+/**
+ * hook for calculating cross-chain routes and preparing transactions
+ *
+ * handles two scenarios:
+ * 1. same chain + same token: prepares a simple transfer
+ * 2. cross-chain or different token: uses squid router to find best route
+ * todo: @dev squid to be updated in deposit v2
+ *
+ * returns unsigned transactions ready to be sent via wallet
+ *
+ * @example
+ * const { calculateRoute, transactions, estimatedGasCostUsd } = useRouteCalculation()
+ * await calculateRoute({ source: { ... }, destination: { ... } })
+ */
 
 import { useState, useCallback } from 'react'
 import { parseUnits } from 'viem'

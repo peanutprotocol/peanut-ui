@@ -1,7 +1,17 @@
 'use client'
 
-// orchestrator hook for contribute pot flow
-// coordinates charge creation, transaction sending, and payment recording
+/**
+ * hook for contribute pot flow
+ *
+ * handles the full payment lifecycle for request pot contributions:
+ * 1. validates amount and checks balance
+ * 2. creates a charge in backend
+ * 3. sends payment via peanut wallet
+ * 4. records the payment to backend
+ *
+ * also provides smart defaults for the contribution slider
+ * based on existing contributions (e.g. suggests 1/3 for split bills)
+ */
 
 import { useCallback, useMemo } from 'react'
 import { type Address, type Hash } from 'viem'

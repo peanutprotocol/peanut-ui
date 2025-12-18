@@ -1,7 +1,16 @@
 'use client'
 
-// wrapper component for SemanticRequestPage that handles url parsing
-// used by the /[...recipient] route for address/ens payments
+/**
+ * wrapper component for SemanticRequestPage
+ *
+ * handles async url parsing before rendering the actual flow.
+ * parses semantic urls like /username, /0x1234..., /vitalik.eth
+ * also supports amount/token/chain in url path
+ *
+ * shows loading/error states while parsing
+ *
+ * used by: /[...recipient] route for address/ens/username payments
+ */
 
 import { SemanticRequestPage } from './SemanticRequestPage'
 import { parsePaymentURL, type ParseUrlError } from '@/lib/url-parser/parser'

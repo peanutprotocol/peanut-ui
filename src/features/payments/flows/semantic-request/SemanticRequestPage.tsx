@@ -1,7 +1,15 @@
 'use client'
 
-// main entry point for semantic request flow
-// renders correct view based on flow state
+/**
+ * main entry point for semantic request flow
+ *
+ * wraps content with context provider and renders the correct view:
+ * - INITIAL: amount/token input
+ * - CONFIRM: review cross-chain payment details
+ * - STATUS: success view after payment
+ *
+ * receives pre-parsed url data from wrapper
+ */
 
 import { SemanticRequestFlowProvider, useSemanticRequestFlowContext } from './SemanticRequestFlowContext'
 import { SemanticRequestInputView } from './views/SemanticRequestInputView'

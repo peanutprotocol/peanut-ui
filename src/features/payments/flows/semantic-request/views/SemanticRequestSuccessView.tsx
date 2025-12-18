@@ -1,5 +1,14 @@
 'use client'
 
+/**
+ * success view for semantic request flow
+ *
+ * thin wrapper around PaymentSuccessView that:
+ * - pulls data from semantic request flow context
+ * - calculates points earned for the payment
+ * - provides reset callback on completion
+ */
+
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
 import { useSemanticRequestFlow } from '../useSemanticRequestFlow'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'

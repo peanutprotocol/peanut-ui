@@ -1,7 +1,13 @@
 'use client'
 
-// success view for contribute pot flow
-// uses PaymentSuccessView for consistent ui and features (drawer, points, etc.)
+/**
+ * success view for contribute pot flow
+ *
+ * thin wrapper around PaymentSuccessView that:
+ * - pulls data from contribute pot flow context
+ * - calculates points earned for the contribution
+ * - provides reset callback on completion
+ */
 
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
 import { useContributePotFlow } from '../useContributePotFlow'

@@ -1,7 +1,19 @@
 'use client'
 
-// action list for claim flow only
-// shows payment methods for claiming send links
+/**
+ * action list for claim flow
+ *
+ * shows available methods for claiming a send link:
+ * - continue with peanut (creates account)
+ * - bank transfer (requires kyc)
+ * - mercadopago/pix (regional, requires verification)
+ * - external wallet (claim to any address)
+ *
+ * handles invite link logic - shows invite modal before allowing
+ * non-peanut claim methods
+ *
+ * note: request payment flows use RequestPotActionList instead
+ */
 
 import StatusBadge from '../../Global/Badges/StatusBadge'
 import IconStack from '../../Global/IconStack'

@@ -1,8 +1,19 @@
 'use client'
 
-// context provider for semantic request flow state
-// handles semantic payments to addresses/ens names
-// note: token/chain selection uses tokenSelectorContext (not duplicated here)
+/**
+ * context provider for semantic request flow state
+ *
+ * handles payments via semantic urls like:
+ * - /username (peanut user)
+ * - /0x1234... (address)
+ * - /vitalik.eth (ens)
+ * - /username/10/usdc/arbitrum (with amount/token/chain)
+ *
+ * supports cross-chain payments - user pays in usdc on arbitrum,
+ * recipient can receive on different chain/token
+ *
+ * note: token/chain selection uses tokenSelectorContext
+ */
 
 import { createContext, useContext, useState, useMemo, useCallback, type ReactNode } from 'react'
 import { type Address, type Hash } from 'viem'

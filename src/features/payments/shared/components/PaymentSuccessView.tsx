@@ -1,4 +1,18 @@
 'use client'
+
+/**
+ * shared success view for all payment flows
+ *
+ * displays:
+ * - success animation with peanut mascot
+ * - amount sent and recipient name
+ * - optional message/attachment
+ * - points earned (with confetti)
+ * - receipt drawer for transaction details
+ *
+ * used by: send, contribute-pot, semantic-request, withdraw flows
+ */
+
 import { Button } from '@/components/0_Bruddle/Button'
 import AddressLink from '@/components/Global/AddressLink'
 import Card from '@/components/Global/Card'

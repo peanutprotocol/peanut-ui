@@ -1,8 +1,17 @@
 'use client'
 
-// payment options for request pot flow
-// shows bank/mercadopago/pix methods for both logged in and logged out users
-// redirects to add-money flow for payment
+/**
+ * payment options for request pot flow
+ *
+ * shows payment methods for contributing to a request pot:
+ * - pay with peanut (primary, uses wallet balance)
+ * - bank/mercadopago/pix (redirects to add-money)
+ *
+ * includes smart "use your peanut balance" modal - if user has
+ * enough balance but clicks on bank, suggests using peanut instead
+ *
+ * validates minimum amounts for bank transfers
+ */
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'

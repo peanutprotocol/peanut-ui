@@ -1,7 +1,14 @@
 'use client'
 
-// context for send flow state management
-// follows the same pattern as WithdrawFlowContext
+/**
+ * context for send flow state management
+ *
+ * direct send flow for paying another peanut user by username.
+ * payments are always usdc on arbitrum (peanut wallet).
+ *
+ * route: /send/username
+ *
+ */
 
 import React, { createContext, useContext, useMemo, useState, useCallback, type ReactNode } from 'react'
 import { type Address, type Hash } from 'viem'

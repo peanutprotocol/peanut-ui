@@ -1,5 +1,16 @@
 'use client'
 
+/**
+ * payment method action list for payment flows
+ *
+ * shows alternative payment methods (bank, mercadopago, pix)
+ * for users who don't have peanut wallet balance.
+ *
+ * redirects to add-money flow after login/signup
+ *
+ * used by: send, semantic-request input views
+ */
+
 import { useRouter } from 'next/navigation'
 import Divider from '@/components/0_Bruddle/Divider'
 import { ActionListCard } from '@/components/ActionListCard'
