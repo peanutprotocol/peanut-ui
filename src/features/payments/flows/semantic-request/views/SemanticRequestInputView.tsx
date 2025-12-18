@@ -164,7 +164,9 @@ export function SemanticRequestInputView() {
                 {/* button and error */}
                 <div className="space-y-4">
                     <SendWithPeanutCta onClick={handleSubmit} disabled={isButtonDisabled} loading={isLoading} />
-                    {isInsufficientBalance && <ErrorAlert description="Insufficient balance" />}
+                    {isInsufficientBalance && (
+                        <ErrorAlert description="Not enough balance to fulfill this request with Peanut" />
+                    )}
                     {error.showError && <ErrorAlert description={error.errorMessage} />}
                 </div>
 

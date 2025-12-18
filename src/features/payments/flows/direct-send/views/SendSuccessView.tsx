@@ -10,12 +10,12 @@
  */
 
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
-import { useSendFlow } from '../useSendFlow'
+import { useDirectSendFlow } from '../useDirectSendFlow'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import { PointsAction } from '@/services/services.types'
 
 export function SendSuccessView() {
-    const { usdAmount, recipient, attachment, charge, payment, resetSendFlow } = useSendFlow()
+    const { usdAmount, recipient, attachment, charge, payment, resetSendFlow } = useDirectSendFlow()
 
     // calculate points for the transaction
     const { pointsData } = usePointsCalculation(

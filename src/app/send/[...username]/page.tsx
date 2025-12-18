@@ -1,6 +1,6 @@
 import { generateMetadata as generateBaseMetadata } from '@/app/metadata'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
-import { SendPageWrapper } from '@/features/payments/flows/send/SendPageWrapper'
+import { DirectSendPageWrapper } from '@/features/payments/flows/direct-send/DirectSendPageWrapper'
 import { type Metadata } from 'next'
 import { use } from 'react'
 
@@ -15,7 +15,7 @@ export default function DirectPaymentPage(props: PageProps) {
 
     return (
         <PageContainer>
-            <SendPageWrapper username={username} />
+            <DirectSendPageWrapper username={username} />
         </PageContainer>
     )
 }

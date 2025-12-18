@@ -18,7 +18,7 @@ import UserCard from '@/components/User/UserCard'
 import FileUploadInput from '@/components/Global/FileUploadInput'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import SupportCTA from '@/components/Global/SupportCTA'
-import { useSendFlow } from '../useSendFlow'
+import { useDirectSendFlow } from '../useDirectSendFlow'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/authContext'
 import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPeanutCta'
@@ -41,7 +41,7 @@ export function SendInputView() {
         setAmount,
         setAttachment,
         executePayment,
-    } = useSendFlow()
+    } = useDirectSendFlow()
 
     // handle submit - directly execute payment
     const handleSubmit = () => {
@@ -110,7 +110,9 @@ export function SendInputView() {
                 {/* button and error */}
                 <div className="space-y-4">
                     <SendWithPeanutCta onClick={handleSubmit} disabled={isButtonDisabled} loading={isLoading} />
-                    {isInsufficientBalance && <ErrorAlert description="Insufficient balance" />}
+                    {isInsufficientBalance && (
+                        <ErrorAlert description="Not enough balance to fulfill this request with Peanut" />
+                    )}
                     {error.showError && <ErrorAlert description={error.errorMessage} />}
                 </div>
 

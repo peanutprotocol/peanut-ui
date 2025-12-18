@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * wrapper component for SendPage
+ * wrapper component for DirectSendPage
  *
  * handles async username resolution before rendering the actual flow.
  * finds the user's peanut wallet address from their username.
@@ -11,8 +11,6 @@
  * used by: /send/[...username] route
  */
 
-import { SendPage } from './SendPage'
-import { type SendRecipient } from './SendFlowContext'
 import { useUserByUsername } from '@/hooks/useUserByUsername'
 import { AccountType } from '@/interfaces'
 import PeanutLoading from '@/components/Global/PeanutLoading'
@@ -21,17 +19,19 @@ import NavHeader from '@/components/Global/NavHeader'
 import { useRouter } from 'next/navigation'
 import { useMemo } from 'react'
 import { type Address } from 'viem'
+import type { DirectSendRecipient } from './DirectSendFlowContext'
+import { DirectSendPage } from './DirectSendPage'
 
-interface SendPageWrapperProps {
+interface DirectSendPageWrapperProps {
     username: string
 }
 
-export function SendPageWrapper({ username }: SendPageWrapperProps) {
+export function DirectSendPageWrapper({ username }: DirectSendPageWrapperProps) {
     const router = useRouter()
     const { user, isLoading, error } = useUserByUsername(username)
 
     // resolve user to recipient
-    const recipient = useMemo<SendRecipient | null>(() => {
+    const recipient = useMemo<DirectSendRecipient | null>(() => {
         if (!user) return null
 
         // find peanut wallet address
@@ -68,5 +68,5 @@ export function SendPageWrapper({ username }: SendPageWrapperProps) {
         )
     }
 
-    return <SendPage recipient={recipient} />
+    return <DirectSendPage recipient={recipient} />
 }

@@ -14,7 +14,7 @@
 
 import { useCallback, useMemo } from 'react'
 import { type Address, type Hash } from 'viem'
-import { useSendFlowContext } from './SendFlowContext'
+import { useDirectSendFlowContext } from './DirectSendFlowContext'
 import { useChargeManager } from '@/features/payments/shared/hooks/useChargeManager'
 import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentRecorder'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -22,7 +22,7 @@ import { useAuth } from '@/context/authContext'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { ErrorHandler } from '@/utils/sdkErrorHandler.utils'
 
-export function useSendFlow() {
+export function useDirectSendFlow() {
     const {
         amount,
         setAmount,
@@ -46,7 +46,7 @@ export function useSendFlow() {
         isSuccess,
         setIsSuccess,
         resetSendFlow,
-    } = useSendFlowContext()
+    } = useDirectSendFlowContext()
 
     const { user } = useAuth()
     const { createCharge, isCreating: isCreatingCharge } = useChargeManager()

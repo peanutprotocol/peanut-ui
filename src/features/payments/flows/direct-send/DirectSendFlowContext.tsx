@@ -15,10 +15,10 @@ import { type Address, type Hash } from 'viem'
 import { type TRequestChargeResponse, type PaymentCreationResponse } from '@/services/services.types'
 
 // view states
-export type SendFlowView = 'INITIAL' | 'STATUS'
+export type DirectSendFlowView = 'INITIAL' | 'STATUS'
 
 // recipient info
-export interface SendRecipient {
+export interface DirectSendRecipient {
     username: string
     address: Address
     userId?: string
@@ -26,39 +26,39 @@ export interface SendRecipient {
 }
 
 // attachment options
-export interface SendAttachment {
+export interface DirectSendAttachment {
     message?: string
     file?: File
     fileUrl?: string
 }
 
 // error state for input view
-export interface SendFlowErrorState {
+export interface DirectSendFlowErrorState {
     showError: boolean
     errorMessage: string
 }
 
 // context type
-interface SendFlowContextType {
+interface DirectSendFlowContextType {
     // state
     amount: string
     setAmount: (amount: string) => void
     usdAmount: string
     setUsdAmount: (amount: string) => void
-    currentView: SendFlowView
-    setCurrentView: (view: SendFlowView) => void
-    recipient: SendRecipient | null
-    setRecipient: (recipient: SendRecipient | null) => void
-    attachment: SendAttachment
-    setAttachment: (attachment: SendAttachment) => void
+    currentView: DirectSendFlowView
+    setCurrentView: (view: DirectSendFlowView) => void
+    recipient: DirectSendRecipient | null
+    setRecipient: (recipient: DirectSendRecipient | null) => void
+    attachment: DirectSendAttachment
+    setAttachment: (attachment: DirectSendAttachment) => void
     charge: TRequestChargeResponse | null
     setCharge: (charge: TRequestChargeResponse | null) => void
     payment: PaymentCreationResponse | null
     setPayment: (payment: PaymentCreationResponse | null) => void
     txHash: Hash | null
     setTxHash: (hash: Hash | null) => void
-    error: SendFlowErrorState
-    setError: (error: SendFlowErrorState) => void
+    error: DirectSendFlowErrorState
+    setError: (error: DirectSendFlowErrorState) => void
     isLoading: boolean
     setIsLoading: (loading: boolean) => void
     isSuccess: boolean
@@ -68,23 +68,23 @@ interface SendFlowContextType {
     resetSendFlow: () => void
 }
 
-const SendFlowContext = createContext<SendFlowContextType | undefined>(undefined)
+const DirectSendFlowContext = createContext<DirectSendFlowContextType | undefined>(undefined)
 
 interface SendFlowProviderProps {
     children: ReactNode
-    initialRecipient?: SendRecipient
+    initialRecipient?: DirectSendRecipient
 }
 
-export const SendFlowProvider: React.FC<SendFlowProviderProps> = ({ children, initialRecipient }) => {
+export const DirectSendFlowProvider: React.FC<SendFlowProviderProps> = ({ children, initialRecipient }) => {
     const [amount, setAmount] = useState<string>('')
     const [usdAmount, setUsdAmount] = useState<string>('')
-    const [currentView, setCurrentView] = useState<SendFlowView>('INITIAL')
-    const [recipient, setRecipient] = useState<SendRecipient | null>(initialRecipient ?? null)
-    const [attachment, setAttachment] = useState<SendAttachment>({})
+    const [currentView, setCurrentView] = useState<DirectSendFlowView>('INITIAL')
+    const [recipient, setRecipient] = useState<DirectSendRecipient | null>(initialRecipient ?? null)
+    const [attachment, setAttachment] = useState<DirectSendAttachment>({})
     const [charge, setCharge] = useState<TRequestChargeResponse | null>(null)
     const [payment, setPayment] = useState<PaymentCreationResponse | null>(null)
     const [txHash, setTxHash] = useState<Hash | null>(null)
-    const [error, setError] = useState<SendFlowErrorState>({ showError: false, errorMessage: '' })
+    const [error, setError] = useState<DirectSendFlowErrorState>({ showError: false, errorMessage: '' })
     const [isLoading, setIsLoading] = useState<boolean>(false)
     const [isSuccess, setIsSuccess] = useState<boolean>(false)
 
@@ -143,13 +143,13 @@ export const SendFlowProvider: React.FC<SendFlowProviderProps> = ({ children, in
         ]
     )
 
-    return <SendFlowContext.Provider value={value}>{children}</SendFlowContext.Provider>
+    return <DirectSendFlowContext.Provider value={value}>{children}</DirectSendFlowContext.Provider>
 }
 
-export const useSendFlowContext = (): SendFlowContextType => {
-    const context = useContext(SendFlowContext)
+export const useDirectSendFlowContext = (): DirectSendFlowContextType => {
+    const context = useContext(DirectSendFlowContext)
     if (context === undefined) {
-        throw new Error('useSendFlowContext must be used within SendFlowProvider')
+        throw new Error('useDirectSendFlowContext must be used within DirectSendFlowProvider')
     }
     return context
 }

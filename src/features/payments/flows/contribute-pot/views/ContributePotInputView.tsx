@@ -100,7 +100,9 @@ export function ContributePotInputView() {
                 />
 
                 {/* error display */}
-                {isInsufficientBalance && <ErrorAlert description="Insufficient balance" />}
+                {isInsufficientBalance && (
+                    <ErrorAlert description="Not enough balance to fulfill this request with Peanut" />
+                )}
                 {error.showError && <ErrorAlert description={error.errorMessage} />}
 
                 {/* payment options */}

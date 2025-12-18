@@ -10,13 +10,13 @@
  * receives pre-resolved recipient data from wrapper
  */
 
-import { SendFlowProvider, useSendFlowContext, type SendRecipient } from './SendFlowContext'
+import { DirectSendFlowProvider, useDirectSendFlowContext, type DirectSendRecipient } from './DirectSendFlowContext'
 import { SendInputView } from './views/SendInputView'
 import { SendSuccessView } from './views/SendSuccessView'
 
 // internal component that switches views
 function SendFlowContent() {
-    const { currentView } = useSendFlowContext()
+    const { currentView } = useDirectSendFlowContext()
 
     switch (currentView) {
         case 'STATUS':
@@ -28,15 +28,15 @@ function SendFlowContent() {
 }
 
 // props for the page
-interface SendPageProps {
-    recipient: SendRecipient
+interface DirectSendPageProps {
+    recipient: DirectSendRecipient
 }
 
 // exported page component with provider
-export function SendPage({ recipient }: SendPageProps) {
+export function DirectSendPage({ recipient }: DirectSendPageProps) {
     return (
-        <SendFlowProvider initialRecipient={recipient}>
+        <DirectSendFlowProvider initialRecipient={recipient}>
             <SendFlowContent />
-        </SendFlowProvider>
+        </DirectSendFlowProvider>
     )
 }
