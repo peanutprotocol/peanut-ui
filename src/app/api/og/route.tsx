@@ -83,13 +83,15 @@ export async function GET(req: NextRequest) {
 
     if (isInvite === 'true') {
         return new ImageResponse(
-            <InviteCardOG
-                username={username}
-                scribbleSrc={`${origin}/scribble.svg`}
-                iconSrc={`${origin}/icons/peanut-icon.svg`}
-                logoSrc={`${origin}/logos/peanut-logo.svg`}
-                arrowSrcs={arrowSrcs}
-            />,
+            (
+                <InviteCardOG
+                    username={username}
+                    scribbleSrc={`${origin}/scribble.svg`}
+                    iconSrc={`${origin}/icons/peanut-icon.svg`}
+                    logoSrc={`${origin}/logos/peanut-logo.svg`}
+                    arrowSrcs={arrowSrcs}
+                />
+            ),
             {
                 width: 1200,
                 height: 630,
@@ -122,12 +124,14 @@ export async function GET(req: NextRequest) {
 
     if (isPeanutUsername === 'true' && isReceipt === 'false') {
         return new ImageResponse(
-            <ProfileCardOG
-                username={username}
-                scribbleSrc={`${origin}/scribble.svg`}
-                logoSrc={`${origin}/logos/peanut-logo.svg`}
-                iconSrc={`${origin}/icons/peanut-icon.svg`}
-            />,
+            (
+                <ProfileCardOG
+                    username={username}
+                    scribbleSrc={`${origin}/scribble.svg`}
+                    logoSrc={`${origin}/logos/peanut-logo.svg`}
+                    iconSrc={`${origin}/icons/peanut-icon.svg`}
+                />
+            ),
             {
                 width: 1200,
                 height: 630,
@@ -149,13 +153,15 @@ export async function GET(req: NextRequest) {
             token: token || undefined,
         }
         return new ImageResponse(
-            <ReceiptCardOG
-                link={link}
-                iconSrc={`${origin}/icons/peanut-icon.svg`}
-                logoSrc={`${origin}/logos/peanut-logo.svg`}
-                scribbleSrc={`${origin}/scribble.svg`}
-                arrowSrcs={arrowSrcs}
-            />,
+            (
+                <ReceiptCardOG
+                    link={link}
+                    iconSrc={`${origin}/icons/peanut-icon.svg`}
+                    logoSrc={`${origin}/logos/peanut-logo.svg`}
+                    scribbleSrc={`${origin}/scribble.svg`}
+                    arrowSrcs={arrowSrcs}
+                />
+            ),
             {
                 width: 1200,
                 height: 630,
@@ -177,13 +183,15 @@ export async function GET(req: NextRequest) {
         token: token || undefined,
     }
     return new ImageResponse(
-        <PaymentCardOG
-            link={link}
-            iconSrc={`${origin}/icons/peanut-icon.svg`}
-            logoSrc={`${origin}/logos/peanut-logo.svg`}
-            scribbleSrc={`${origin}/scribble.svg`}
-            arrowSrcs={arrowSrcs}
-        />,
+        (
+            <PaymentCardOG
+                link={link}
+                iconSrc={`${origin}/icons/peanut-icon.svg`}
+                logoSrc={`${origin}/logos/peanut-logo.svg`}
+                scribbleSrc={`${origin}/scribble.svg`}
+                arrowSrcs={arrowSrcs}
+            />
+        ),
         {
             width: 1200,
             height: 630,

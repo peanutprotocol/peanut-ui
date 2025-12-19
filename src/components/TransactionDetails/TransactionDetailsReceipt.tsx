@@ -168,6 +168,7 @@ export const TransactionDetailsReceipt = ({
                 transaction.completedAt &&
                 transaction.extraDataForDrawer?.originalType !== EHistoryEntryType.DIRECT_SEND
             ),
+            refunded: transaction.status === 'refunded',
             fee: transaction.fee !== undefined,
             exchangeRate: !!(
                 (transaction.direction === 'bank_deposit' ||
@@ -640,6 +641,14 @@ export const TransactionDetailsReceipt = ({
                             label={getLabelText(transaction)}
                             value={formatDate(new Date(transaction.completedAt!))}
                             hideBottomBorder={shouldHideBorder('completed')}
+                        />
+                    )}
+
+                    {rowVisibilityConfig.refunded && (
+                        <PaymentInfoRow
+                            label="Refunded"
+                            value={formatDate(new Date(transaction.date))}
+                            hideBottomBorder={shouldHideBorder('refunded')}
                         />
                     )}
 
