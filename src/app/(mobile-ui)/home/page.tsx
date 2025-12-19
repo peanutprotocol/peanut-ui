@@ -69,7 +69,6 @@ export default function Home() {
     const { isUserKycApproved } = useKycStatus()
     const username = user?.user.username
 
-    const [showIOSPWAInstallModal, setShowIOSPWAInstallModal] = useState(false)
     const [showBalanceWarningModal, setShowBalanceWarningModal] = useState(false)
     // const [showReferralCampaignModal, setShowReferralCampaignModal] = useState(false)
     const [isPostSignupActionModalVisible, setIsPostSignupActionModalVisible] = useState(false)
@@ -115,31 +114,6 @@ export default function Home() {
         }
     }, [isWagmiConnected, disconnectWagmi])
 
-    // effect for showing iOS PWA Install modal
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const isIOS = deviceType === DeviceType.IOS
-            const isStandalone = window.matchMedia('(display-mode: standalone)').matches
-            const hasSeenModalThisSession = sessionStorage.getItem('hasSeenIOSPWAPromptThisSession')
-            const redirectUrl = getRedirectUrl()
-
-            if (
-                isIOS &&
-                !isStandalone &&
-                !hasSeenModalThisSession &&
-                !user?.hasPwaInstalled &&
-                !isPostSignupActionModalVisible &&
-                !redirectUrl &&
-                !showBalanceWarningModal
-            ) {
-                setShowIOSPWAInstallModal(true)
-                sessionStorage.setItem('hasSeenIOSPWAPromptThisSession', 'true')
-            } else {
-                setShowIOSPWAInstallModal(false)
-            }
-        }
-    }, [user?.hasPwaInstalled, isPostSignupActionModalVisible, deviceType, showBalanceWarningModal])
-
     // effect for showing balance warning modal
     // modal priority order: notifications -> kyc -> post signup -> ios pwa -> balance warning
     // this ensures users complete important actions before seeing the balance warning
@@ -162,21 +136,12 @@ export default function Home() {
                 !hasSeenBalanceWarning &&
                 !showPermissionModal && // highest priority
                 !showKycModal &&
-                !isPostSignupActionModalVisible &&
-                !showIOSPWAInstallModal
+                !isPostSignupActionModalVisible
             ) {
                 setShowBalanceWarningModal(true)
             }
         }
-    }, [
-        balance,
-        isFetchingBalance,
-        showPermissionModal,
-        showKycModal,
-        isPostSignupActionModalVisible,
-        showIOSPWAInstallModal,
-        user,
-    ])
+    }, [balance, isFetchingBalance, showPermissionModal, showKycModal, isPostSignupActionModalVisible, user])
 
     if (isLoading) {
         return <PeanutLoading coverFullScreen />
@@ -240,16 +205,6 @@ export default function Home() {
                 <RewardsCardModal visible={isRewardsModalOpen} onClose={() => setIsRewardsModalOpen(false)} />
                 */}
             </div>
-            {/* iOS PWA Install Modal */}
-            <LazyLoadErrorBoundary>
-                <Suspense fallback={null}>
-                    <IOSInstallPWAModal
-                        visible={showIOSPWAInstallModal}
-                        onClose={() => setShowIOSPWAInstallModal(false)}
-                    />
-                </Suspense>
-            </LazyLoadErrorBoundary>
-
             {/* Add Money Prompt Modal */}
             {/* TODO @dev Disabling this, re-enable after properly fixing */}
             {/* <AddMoneyPromptModal visible={showAddMoneyPromptModal} onClose={() => setShowAddMoneyPromptModal(false)} /> */}
