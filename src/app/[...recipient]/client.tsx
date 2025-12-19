@@ -6,6 +6,7 @@ import { SemanticRequestPageWrapper } from '@/features/payments/flows/semantic-r
 import { isAddress } from 'viem'
 import PublicProfile from '@/components/Profile/components/PublicProfile'
 import { useAuth } from '@/context/authContext'
+import { ValidatedUsernameWrapper } from '@/components/Username/ValidatedUsernameWrapper'
 
 // kept for backward compatibility with old payment form
 export type PaymentFlow = 'request_pay' | 'external_wallet' | 'direct_pay' | 'withdraw'
@@ -63,8 +64,10 @@ export default function PaymentPage({ recipient }: Props) {
     }
 
     return (
-        <div className="mx-auto h-full w-full space-y-8 self-start">
-            <PublicProfile username={username} isLoggedIn={!!user} onSendClick={handleSendClick} />
-        </div>
+        <ValidatedUsernameWrapper username={username}>
+            <div className="mx-auto h-full w-full space-y-8 self-start">
+                <PublicProfile username={username} isLoggedIn={!!user} onSendClick={handleSendClick} />
+            </div>
+        </ValidatedUsernameWrapper>
     )
 }
