@@ -6,7 +6,7 @@ import { MarqueeWrapper } from '../MarqueeWrapper'
 import maintenanceConfig from '@/config/underMaintenance.config'
 import { HandThumbsUp } from '@/assets'
 import Image from 'next/image'
-import { useSupportModalContext } from '@/context/SupportModalContext'
+import { useModalsContext } from '@/context/ModalsContext'
 import { GIT_COMMIT_HASH, IS_PRODUCTION } from '@/constants/general.consts'
 
 export function Banner() {
@@ -26,7 +26,7 @@ export function Banner() {
 }
 
 function FeedbackBanner() {
-    const { setIsSupportModalOpen } = useSupportModalContext()
+    const { setIsSupportModalOpen } = useModalsContext()
 
     const handleClick = () => {
         setIsSupportModalOpen(true)

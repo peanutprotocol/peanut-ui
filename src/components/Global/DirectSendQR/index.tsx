@@ -18,7 +18,7 @@ import ActionModal from '../ActionModal'
 import { Icon, type IconName } from '../Icons/Icon'
 import { EQrType, NAME_BY_QR_TYPE, parseEip681, recognizeQr } from './utils'
 import { useHaptic } from 'use-haptic'
-import { useQrCodeContext } from '@/context/QrCodeContext'
+import { useModalsContext } from '@/context/ModalsContext'
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL!
 
@@ -192,7 +192,7 @@ export default function DirectSendQr({
         return `${BASE_URL}/pay/${user.user.username}`
     }, [user?.user.username])
     const { triggerHaptic } = useHaptic()
-    const { isQRScannerOpen, setIsQRScannerOpen } = useQrCodeContext()
+    const { isQRScannerOpen, setIsQRScannerOpen } = useModalsContext()
 
     const startScanner = () => {
         setIsQRScannerOpen(true)

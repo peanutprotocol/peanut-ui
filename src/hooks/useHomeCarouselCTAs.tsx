@@ -7,10 +7,9 @@ import { useNotifications } from './useNotifications'
 import { useRouter } from 'next/navigation'
 import useKycStatus from './useKycStatus'
 import type { StaticImageData } from 'next/image'
-import { useQrCodeContext } from '@/context/QrCodeContext'
+import { useModalsContext } from '@/context/ModalsContext'
 import { DeviceType, useDeviceType } from './useGetDeviceType'
 import { usePWAStatus } from './usePWAStatus'
-import { useModalsContext } from '@/context/ModalsContext'
 import { useGeoLocation } from './useGeoLocation'
 
 export type CarouselCTA = {
@@ -38,7 +37,7 @@ export const useHomeCarouselCTAs = () => {
     const isPwa = usePWAStatus()
     const { setIsIosPwaInstallModalOpen } = useModalsContext()
 
-    const { setIsQRScannerOpen } = useQrCodeContext()
+    const { setIsQRScannerOpen } = useModalsContext()
     const { countryCode: userCountryCode } = useGeoLocation()
 
     const generateCarouselCTAs = useCallback(() => {

@@ -4,7 +4,7 @@ import { Icon, type IconName } from '../Icons/Icon'
 import ActionModal from '../ActionModal'
 import { useRouter } from 'next/navigation'
 import StartVerificationView from './StartVerificationView'
-import { useSupportModalContext } from '@/context/SupportModalContext'
+import { useModalsContext } from '@/context/ModalsContext'
 import { Button, type ButtonVariant } from '@/components/0_Bruddle/Button'
 
 export type IFrameWrapperProps = {
@@ -21,7 +21,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
     const [copied, setCopied] = useState(false)
     const [isVerificationStarted, setIsVerificationStarted] = useState(false)
     const router = useRouter()
-    const { setIsSupportModalOpen } = useSupportModalContext()
+    const { setIsSupportModalOpen } = useModalsContext()
 
     const handleCopy = (textToCopy: string) => {
         navigator.clipboard.writeText(textToCopy).then(() => {

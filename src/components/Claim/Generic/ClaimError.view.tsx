@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
-import { useSupportModalContext } from '@/context/SupportModalContext'
+import { useModalsContext } from '@/context/ModalsContext'
 import Image from 'next/image'
 import Link from 'next/link'
 import PEANUTMAN_CRY from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_05.gif'
@@ -14,7 +14,7 @@ type ClaimErrorViewProps = {
 }
 
 export const ClaimErrorView = ({ title, message, primaryButtonText, onPrimaryClick }: ClaimErrorViewProps) => {
-    const { openSupportWithMessage } = useSupportModalContext()
+    const { openSupportWithMessage } = useModalsContext()
 
     return (
         <div className="flex flex-col items-center justify-center space-y-4 rounded-lg text-center">

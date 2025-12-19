@@ -6,12 +6,11 @@ import { useConfig, useSendTransaction } from 'wagmi'
 import { supportedPeanutChains } from '@/constants/general.consts'
 import { loadingStateContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { useAppDispatch } from '@/redux/hooks'
 import { getExplorerUrl } from '@/utils/general.utils'
 import * as Sentry from '@sentry/nextjs'
 import { useContext, useState } from 'react'
 import { waitForTransactionReceipt } from 'wagmi/actions'
-import { walletActions } from '../../redux/slices/wallet-slice'
+import { useModalsContext } from '@/context/ModalsContext'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import BaseInput from '../0_Bruddle/BaseInput'
@@ -22,7 +21,7 @@ export const Refund = () => {
     const { isConnected } = useWallet()
     const { sendTransactionAsync } = useSendTransaction()
     const config = useConfig()
-    const dispatch = useAppDispatch()
+    const { setIsSignInModalOpen } = useModalsContext()
 
     const [errorState, setErrorState] = useState<{
         showError: boolean
@@ -173,7 +172,7 @@ export const Refund = () => {
                                 type={isConnected ? 'submit' : 'button'}
                                 onClick={() => {
                                     if (!isConnected) {
-                                        dispatch(walletActions.setSignInModalVisible(true))
+                                        setIsSignInModalOpen(true)
                                     }
                                 }}
                                 disabled={isLoading || claimedExploredUrlWithHash ? true : false}
