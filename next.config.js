@@ -81,6 +81,7 @@ let nextConfig = {
             'lodash',
             'date-fns',
             'react-hook-form',
+            '@mui/icons-material',
         ],
         // Speed up webpack builds (used for production builds with --webpack flag)
         webpackBuildWorker: true,

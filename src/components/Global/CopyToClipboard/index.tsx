@@ -23,6 +23,17 @@ const CopyToClipboard = ({ textToCopy, fill, className, iconSize = '6', type = '
         })
     }
 
+    // convert tailwind size to pixels (2=8px, 3=12px, 4=16px, 6=24px, 8=32px)
+    const sizeMap: Record<string, number> = {
+        '2': 8,
+        '3': 12,
+        '4': 16,
+        '6': 24,
+        '8': 32,
+    }
+
+    const iconSizePx = sizeMap[iconSize] || 24
+
     if (type === 'button') {
         return (
             <Button
@@ -41,10 +52,8 @@ const CopyToClipboard = ({ textToCopy, fill, className, iconSize = '6', type = '
     return (
         <Icon
             name={copied ? 'check' : 'copy'}
-            className={twMerge(
-                `min-h-${iconSize} min-w-${iconSize} h-${iconSize} w-${iconSize} cursor-pointer hover:opacity-80`,
-                className
-            )}
+            size={iconSizePx}
+            className={twMerge('cursor-pointer hover:opacity-80', className)}
             fill={fill ? fill : 'white'}
             onClick={handleCopy}
         />
