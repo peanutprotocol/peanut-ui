@@ -39,7 +39,6 @@ import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
 // Lazy load heavy modal components (~20-30KB each) to reduce initial bundle size
 // Components are only loaded when user triggers them
 // Wrapped in error boundaries to gracefully handle chunk load failures
-const IOSInstallPWAModal = lazy(() => import('@/components/Global/IOSInstallPWAModal'))
 const BalanceWarningModal = lazy(() => import('@/components/Global/BalanceWarningModal'))
 const SetupNotificationsModal = lazy(() => import('@/components/Notifications/SetupNotificationsModal'))
 const NoMoreJailModal = lazy(() => import('@/components/Global/NoMoreJailModal'))
