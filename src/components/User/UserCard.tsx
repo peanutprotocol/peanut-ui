@@ -9,6 +9,8 @@ import AvatarWithBadge, { type AvatarSize } from '../Profile/AvatarWithBadge'
 import { VerifiedUserLabel } from '../UserHeader'
 import { twMerge } from 'tailwind-merge'
 import ProgressBar from '../Global/ProgressBar'
+import { ContributorsDrawer } from '@/features/payments/flows/contribute-pot/components/ContributorsDrawer'
+import type { PotContributor } from '@/features/payments/flows/contribute-pot/ContributePotFlowContext'
 
 interface UserCardProps {
     type: 'send' | 'request' | 'received_link' | 'request_pay'
@@ -23,6 +25,7 @@ interface UserCardProps {
     amount?: number
     amountCollected?: number
     isRequestPot?: boolean
+    contributors?: PotContributor[]
 }
 
 const UserCard = ({
@@ -38,6 +41,7 @@ const UserCard = ({
     amount,
     amountCollected,
     isRequestPot,
+    contributors,
 }: UserCardProps) => {
     const getIcon = (): IconName | undefined => {
         if (type === 'send') return 'arrow-up-right'
@@ -112,6 +116,9 @@ const UserCard = ({
             {amount !== undefined && amountCollected !== undefined && type === 'request_pay' && amount > 0 && (
                 <ProgressBar goal={amount} progress={amountCollected} isClosed={amountCollected >= amount} />
             )}
+
+            {/* request pot contributors drawer */}
+            {isRequestPot && contributors && <ContributorsDrawer contributors={contributors} />}
         </Card>
     )
 }

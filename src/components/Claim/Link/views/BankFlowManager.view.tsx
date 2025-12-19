@@ -472,13 +472,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                 />
             )
         case ClaimBankFlowStep.BankCountryList:
-            return (
-                <CountryListRouter
-                    flow="claim"
-                    claimLinkData={claimLinkData}
-                    inputTitle="Select your bank account's country"
-                />
-            )
+            return <CountryListRouter claimLinkData={claimLinkData} inputTitle="Select your bank account's country" />
         case ClaimBankFlowStep.BankDetailsForm:
             return (
                 <div className="flex min-h-[inherit] flex-col justify-between gap-8 md:min-h-fit">

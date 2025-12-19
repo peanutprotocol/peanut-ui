@@ -1,3 +1,10 @@
+/**
+ * full network list view for the token selector
+ *
+ * shows searchable list of all supported networks plus "coming soon" networks
+ * accessed via the "more" button in the popular networks section
+ */
+
 import React, { useMemo } from 'react'
 
 import EmptyState from '../../EmptyStates/EmptyState'

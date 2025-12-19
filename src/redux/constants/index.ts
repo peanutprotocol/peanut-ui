@@ -1,7 +1,5 @@
 export const SETUP = 'setup'
 export const WALLET_SLICE = 'wallet_slice'
 export const ZERODEV_SLICE = 'zerodev_slice'
-export const PAYMENT_SLICE = 'payment_slice'
 export const AUTH_SLICE = 'auth_slice'
-export const SEND_FLOW_SLICE = 'send_flow_slice'
 export const BANK_FORM_SLICE = 'bank_form_slice'

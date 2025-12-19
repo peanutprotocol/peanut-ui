@@ -1,9 +1,6 @@
 'use client'
 import NavHeader from '@/components/Global/NavHeader'
-import PeanutActionDetailsCard, {
-    type PeanutActionDetailsCardRecipientType,
-    type PeanutActionDetailsCardTransactionType,
-} from '@/components/Global/PeanutActionDetailsCard'
+import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { formatUnits } from 'viem'
 import { formatTokenAmount, printableAddress } from '@/utils/general.utils'
@@ -11,178 +8,62 @@ import { CountryList } from '@/components/Common/CountryList'
 import { type ClaimLinkData } from '@/services/sendLinks'
 import { type CountryData, MantecaSupportedExchanges } from '@/components/AddMoney/consts'
 import useSavedAccounts from '@/hooks/useSavedAccounts'
-import { type ParsedURL } from '@/lib/url-parser/types/payment'
 import { useCallback, useMemo } from 'react'
-import { RequestFulfillmentBankFlowStep, useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
-import { usePaymentStore } from '@/redux/hooks'
-import { useAuth } from '@/context/authContext'
-import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermineBankRequestType'
 
 interface ICountryListRouterViewProps {
-    claimLinkData?: ClaimLinkData
+    claimLinkData: ClaimLinkData
     inputTitle: string
-    requestLinkData?: ParsedURL
-    flow: 'claim' | 'request'
 }
 
 /**
- * Used to display countries list for claim link and request flow with @PeanutActionDetailsCard component as header
- *
- * @param {object} props
- * @param {'claim' | 'request'} props.flow The flow type (claim or request)
- * @param {ClaimLinkData} props.claimLinkData The claim link data
- * @param {ParsedURL} props.requestLinkData The request link data
- * @param {string} props.inputTitle The input title to be passed to @CountryList component
- * @returns {JSX.Element}
+ * displays countries list for claim link flow with @PeanutActionDetailsCard component as header
  */
-export const CountryListRouter = ({
-    flow,
-    claimLinkData,
-    requestLinkData,
-    inputTitle,
-}: ICountryListRouterViewProps) => {
+export const CountryListRouter = ({ claimLinkData, inputTitle }: ICountryListRouterViewProps) => {
     const {
         setFlowStep: setClaimBankFlowStep,
         setSelectedCountry,
         setClaimToMercadoPago,
         setFlowStep,
     } = useClaimBankFlow()
-    const {
-        setFlowStep: setRequestFulfilmentBankFlowStep,
-        setShowRequestFulfilmentBankFlowManager,
-        setSelectedCountry: setSelectedCountryForRequest,
-        setShowVerificationModal,
-        setFulfillUsingManteca,
-    } = useRequestFulfillmentFlow()
     const savedAccounts = useSavedAccounts()
-    const { chargeDetails } = usePaymentStore()
-    const { requestType } = useDetermineBankRequestType(chargeDetails?.requestLink.recipientAccount.userId ?? '')
-    const { user } = useAuth()
 
     const handleCountryClick = (country: CountryData) => {
         const isMantecaSupportedCountry = Object.keys(MantecaSupportedExchanges).includes(country.id)
-        if (flow === 'claim') {
-            setSelectedCountry(country)
-            if (isMantecaSupportedCountry) {
-                setFlowStep(null) // reset the flow step to initial view first
-                setClaimToMercadoPago(true)
-            } else {
-                setClaimBankFlowStep(ClaimBankFlowStep.BankDetailsForm)
-            }
-        } else if (flow === 'request') {
-            if (isMantecaSupportedCountry) {
-                setShowRequestFulfilmentBankFlowManager(false)
-                setFulfillUsingManteca(true)
-            }
-            setSelectedCountryForRequest(country)
-            if (requestType === BankRequestType.PayerKycNeeded) {
-                if (user && (!user.user.fullName || !user.user.email)) {
-                    setRequestFulfilmentBankFlowStep(RequestFulfillmentBankFlowStep.CollectUserDetails)
-                } else {
-                    setShowVerificationModal(true)
-                }
-            } else {
-                setRequestFulfilmentBankFlowStep(RequestFulfillmentBankFlowStep.OnrampConfirmation)
-            }
+        setSelectedCountry(country)
+        if (isMantecaSupportedCountry) {
+            setFlowStep(null) // reset the flow step to initial view first
+            setClaimToMercadoPago(true)
+        } else {
+            setClaimBankFlowStep(ClaimBankFlowStep.BankDetailsForm)
         }
     }
 
-    const receipientType = useCallback((): PeanutActionDetailsCardRecipientType => {
-        switch (flow) {
-            case 'claim':
-                return 'USERNAME'
-            case 'request': {
-                if (requestLinkData?.recipient?.recipientType === 'USERNAME') {
-                    return 'USERNAME'
-                } else if (requestLinkData?.recipient?.recipientType === 'ADDRESS') {
-                    return 'ADDRESS'
-                } else if (requestLinkData?.recipient?.recipientType === 'ENS') {
-                    return 'ENS'
-                }
-                return 'USERNAME'
-            }
-        }
-    }, [flow, requestLinkData])
+    const recipientName = useMemo(() => {
+        return claimLinkData?.sender?.username ?? printableAddress(claimLinkData?.senderAddress ?? '')
+    }, [claimLinkData])
 
-    const receipientName = useCallback(() => {
-        switch (flow) {
-            case 'claim':
-                return claimLinkData?.sender?.username ?? printableAddress(claimLinkData?.senderAddress ?? '')
-            case 'request':
-                if (chargeDetails?.requestLink.recipientAccount.type === 'peanut-wallet') {
-                    return (
-                        chargeDetails?.requestLink.recipientAccount.user.username ??
-                        printableAddress(chargeDetails?.requestLink.recipientAddress as string)
-                    )
-                } else {
-                    return printableAddress(chargeDetails?.requestLink.recipientAccount.identifier as string)
-                }
-        }
-    }, [flow, claimLinkData, chargeDetails])
-
-    const amount = useCallback(() => {
-        switch (flow) {
-            case 'claim':
-                return formatTokenAmount(
-                    Number(formatUnits(claimLinkData?.amount ?? 0n, claimLinkData?.tokenDecimals ?? 0))
-                )
-            case 'request':
-                return chargeDetails?.tokenAmount ?? '0'
-        }
-    }, [flow, claimLinkData, chargeDetails])
-
-    const tokenSymbol = useCallback(() => {
-        switch (flow) {
-            case 'claim':
-                return claimLinkData?.tokenSymbol ?? requestLinkData?.token?.symbol
-            case 'request':
-                return chargeDetails?.tokenSymbol
-        }
-    }, [flow, claimLinkData, requestLinkData, chargeDetails])
-
-    const peanutActionDetailsCardProps = useMemo(() => {
-        const transactionType: PeanutActionDetailsCardTransactionType =
-            flow === 'claim' ? 'CLAIM_LINK' : 'REQUEST_PAYMENT'
-
-        return {
-            avatarSize: 'small',
-            transactionType,
-            recipientType: receipientType(),
-            recipientName: receipientName(),
-            amount: amount(),
-            tokenSymbol: tokenSymbol(),
-        }
-    }, [flow, claimLinkData, requestLinkData, chargeDetails])
+    const amount = useMemo(() => {
+        return formatTokenAmount(Number(formatUnits(claimLinkData?.amount ?? 0n, claimLinkData?.tokenDecimals ?? 0)))
+    }, [claimLinkData])
 
     const onPrev = useCallback(() => {
-        if (flow === 'claim') {
-            if (savedAccounts.length > 0) {
-                setClaimBankFlowStep(ClaimBankFlowStep.SavedAccountsList)
-            } else {
-                setClaimBankFlowStep(null)
-            }
-        } else if (flow === 'request') {
-            setRequestFulfilmentBankFlowStep(null)
-            setShowRequestFulfilmentBankFlowManager(false)
+        if (savedAccounts.length > 0) {
+            setClaimBankFlowStep(ClaimBankFlowStep.SavedAccountsList)
+        } else {
+            setClaimBankFlowStep(null)
         }
-    }, [
-        flow,
-        savedAccounts,
-        setClaimBankFlowStep,
-        setRequestFulfilmentBankFlowStep,
-        setShowRequestFulfilmentBankFlowManager,
-    ])
+    }, [savedAccounts, setClaimBankFlowStep])
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
-            <NavHeader title={flow === 'claim' ? 'Receive' : 'Send'} onPrev={onPrev} />
+            <NavHeader title="Receive" onPrev={onPrev} />
             <div className="flex h-full w-full flex-1 flex-col justify-start gap-4">
                 <PeanutActionDetailsCard
-                    transactionType={peanutActionDetailsCardProps.transactionType}
-                    recipientType={peanutActionDetailsCardProps.recipientType}
-                    recipientName={peanutActionDetailsCardProps.recipientName}
-                    amount={peanutActionDetailsCardProps.amount ?? '0'}
-                    tokenSymbol={peanutActionDetailsCardProps.tokenSymbol ?? ''}
+                    transactionType="CLAIM_LINK"
+                    recipientType="USERNAME"
+                    recipientName={recipientName}
+                    amount={amount ?? '0'}
+                    tokenSymbol={claimLinkData?.tokenSymbol ?? ''}
                 />
 
                 <CountryList inputTitle={inputTitle} viewMode="claim-request" onCountryClick={handleCountryClick} />

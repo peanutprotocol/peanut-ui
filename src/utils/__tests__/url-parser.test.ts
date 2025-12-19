@@ -263,7 +263,6 @@ describe('URL Parser Tests', () => {
                 chain: expect.objectContaining({ chainId: 42161 }),
                 amount: '0.1',
                 token: expect.objectContaining({ symbol: 'USDC' }),
-                isDevConnectFlow: false,
             })
         })
 
@@ -315,7 +314,6 @@ describe('URL Parser Tests', () => {
                 chain: undefined,
                 token: undefined,
                 amount: undefined,
-                isDevConnectFlow: false,
             })
         })
 
