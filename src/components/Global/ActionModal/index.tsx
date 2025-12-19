@@ -197,7 +197,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
                                                 {children}
                                                 {btnIcon && currentIconPosition === 'left' && (
                                                     <Icon
-                                                        name={btnIcon}
+                                                        name={btnIcon as IconName}
                                                         size={16}
                                                         className={twMerge('mr-2', rest.disabled ? 'opacity-50' : '')}
                                                     />
@@ -205,7 +205,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
                                                 {text}
                                                 {btnIcon && currentIconPosition === 'right' && (
                                                     <Icon
-                                                        name={btnIcon}
+                                                        name={btnIcon as IconName}
                                                         size={16}
                                                         className={twMerge('ml-2', rest.disabled ? 'opacity-50' : '')}
                                                     />

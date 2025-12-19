@@ -7,7 +7,7 @@ import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useOnrampFlow } from '@/context/OnrampFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { formatAmount, saveDevConnectIntent } from '@/utils/general.utils'
+import { formatAmount } from '@/utils/general.utils'
 import { countryData } from '@/components/AddMoney/consts'
 import { type BridgeKycStatus } from '@/utils/bridge-accounts.utils'
 import { useWebSocket } from '@/hooks/useWebSocket'
@@ -26,7 +26,6 @@ import { getCurrencyConfig, getCurrencySymbol, getMinimumAmount } from '@/utils/
 import { OnrampConfirmationModal } from '@/components/AddMoney/components/OnrampConfirmationModal'
 import { InitiateBridgeKYCModal } from '@/components/Kyc/InitiateBridgeKYCModal'
 import InfoCard from '@/components/Global/InfoCard'
-import { usePaymentStore } from '@/redux/hooks'
 
 type AddStep = 'inputAmount' | 'kyc' | 'loading' | 'collectUserDetails' | 'showDetails'
 
@@ -49,7 +48,6 @@ export default function OnrampBankPage() {
     const { balance } = useWallet()
     const { user, fetchUser } = useAuth()
     const { createOnramp, isLoading: isCreatingOnramp, error: onrampError } = useCreateOnramp()
-    const { parsedPaymentData } = usePaymentStore()
 
     const selectedCountryPath = params.country as string
 
@@ -184,14 +182,6 @@ export default function OnrampBankPage() {
             setOnrampData(onrampDataResponse)
 
             if (onrampDataResponse.transferId) {
-                // @dev: save devconnect intent if this is a devconnect flow - to be deleted post devconnect
-                saveDevConnectIntent(
-                    user?.user?.userId,
-                    parsedPaymentData,
-                    cleanedAmount,
-                    onrampDataResponse.transferId
-                )
-
                 setStep('showDetails')
             } else {
                 setError({

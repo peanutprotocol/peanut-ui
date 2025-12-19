@@ -1,4 +1,18 @@
 'use client'
+
+/**
+ * shared success view for all payment flows
+ *
+ * displays:
+ * - success animation with peanut mascot
+ * - amount sent and recipient name
+ * - optional message/attachment
+ * - points earned (with confetti)
+ * - receipt drawer for transaction details
+ *
+ * used by: send, contribute-pot, semantic-request, withdraw flows
+ */
+
 import { Button } from '@/components/0_Bruddle/Button'
 import AddressLink from '@/components/Global/AddressLink'
 import Card from '@/components/Global/Card'
@@ -13,24 +27,29 @@ import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { type RecipientType } from '@/lib/url-parser/types/payment'
-import { usePaymentStore, useUserStore } from '@/redux/hooks'
-import { paymentActions } from '@/redux/slices/payment-slice'
-import { type ApiUser } from '@/services/users'
+import { useUserStore } from '@/redux/hooks'
+import type { TRequestChargeResponse, PaymentCreationResponse, ChargeEntry } from '@/services/services.types'
 import { formatAmount, getInitialsFromName, printableAddress } from '@/utils/general.utils'
 import { useQueryClient } from '@tanstack/react-query'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { type ReactNode, useEffect, useMemo, useRef } from 'react'
-import { useDispatch } from 'react-redux'
 import { usePointsConfetti } from '@/hooks/usePointsConfetti'
 import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
 import { useHaptic } from 'use-haptic'
 import PointsCard from '@/components/Common/PointsCard'
 import { BASE_URL } from '@/constants/general.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
+import type { ParsedURL } from '@/lib/url-parser/types/payment'
+
+// minimal user info needed for display
+type UserDisplayInfo = {
+    username?: string
+    fullName?: string
+}
 
 type DirectSuccessViewProps = {
-    user?: ApiUser
+    user?: UserDisplayInfo
     amount?: string
     message?: string | ReactNode
     recipientType?: RecipientType
@@ -42,9 +61,14 @@ type DirectSuccessViewProps = {
     redirectTo?: string
     onComplete?: () => void
     points?: number
+    // props to receive data directly instead of from redux
+    chargeDetails?: TRequestChargeResponse | ChargeEntry | null
+    paymentDetails?: PaymentCreationResponse | null
+    parsedPaymentData?: ParsedURL | null
+    usdAmount?: string
 }
 
-const DirectSuccessView = ({
+const PaymentSuccessView = ({
     user,
     amount,
     message,
@@ -57,10 +81,12 @@ const DirectSuccessView = ({
     redirectTo = '/home',
     onComplete,
     points,
+    chargeDetails,
+    paymentDetails,
+    parsedPaymentData,
+    usdAmount,
 }: DirectSuccessViewProps) => {
     const router = useRouter()
-    const { chargeDetails, parsedPaymentData, usdAmount, paymentDetails } = usePaymentStore()
-    const dispatch = useDispatch()
     const { isDrawerOpen, selectedTransaction, openTransactionDetails, closeTransactionDetails } =
         useTransactionDetailsDrawer()
     const { user: authUser } = useUserStore()
@@ -176,9 +202,7 @@ const DirectSuccessView = ({
     const handleDone = () => {
         onComplete?.()
         if (!!authUser?.user.userId) {
-            // reset payment state when done
             router.push('/home')
-            dispatch(paymentActions.resetPaymentState())
         } else {
             router.push('/setup')
         }
@@ -289,4 +313,4 @@ const DirectSuccessView = ({
         </div>
     )
 }
-export default DirectSuccessView
+export default PaymentSuccessView

@@ -1,14 +1,7 @@
 'use client'
 
-import { theme } from '@/styles/theme'
-import { ColorModeProvider, ColorModeScript } from '@chakra-ui/color-mode'
-import { ChakraProvider } from '@chakra-ui/react'
+import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material/styles'
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
-    return (
-        <ColorModeProvider>
-            <ColorModeScript initialColorMode="light" key="chakra-ui-no-flash" storageKey="chakra-ui-color-mode" />
-            <ChakraProvider theme={theme}>{children}</ChakraProvider>
-        </ColorModeProvider>
-    )
+    return <MuiThemeProvider theme={createTheme()}>{children}</MuiThemeProvider>
 }

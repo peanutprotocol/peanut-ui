@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import { Stack, Box, Flex, SimpleGrid, GridItem } from '@chakra-ui/react'
+import { SimpleGrid, GridItem } from '@chakra-ui/react'
 import { motion } from 'framer-motion'
 import { useMediaQuery } from '@chakra-ui/react'
 

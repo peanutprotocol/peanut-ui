@@ -10,7 +10,7 @@ export const metadata = generateMetadata({
     keywords: 'crypto transfer, send crypto, cross-chain transfer, offramp, digital dollars',
 })
 
-export default function SendPage() {
+export default function DirectSendPage() {
     return (
         <PageContainer>
             <SendRouterView />

@@ -5,7 +5,7 @@ import {
     PEANUT_WALLET_TOKEN_SYMBOL,
 } from '@/constants/zerodev.consts'
 import { AccountType, type IUserKycVerification } from '@/interfaces'
-import { type IAttachmentOptions } from '@/redux/types/send-flow.types'
+import { type IAttachmentOptions } from '@/interfaces/attachment'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { chargesApi } from './charges'

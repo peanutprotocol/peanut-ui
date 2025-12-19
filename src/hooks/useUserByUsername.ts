@@ -8,7 +8,7 @@ import { type ApiUser, usersApi } from '@/services/users'
  */
 export const useUserByUsername = (username: string | null | undefined) => {
     const [user, setUser] = useState<ApiUser | null>(null)
-    const [isLoading, setIsLoading] = useState(false)
+    const [isLoading, setIsLoading] = useState(!!username)
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {

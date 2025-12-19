@@ -9,8 +9,6 @@ import QRBottomDrawer from '@/components/Global/QRBottomDrawer'
 // 50KB bundle cost is worth it for better UX on primary flow
 import QRScanner from '@/components/Global/QRScanner'
 import { useAuth } from '@/context/authContext'
-import { useAppDispatch } from '@/redux/hooks'
-import { paymentActions } from '@/redux/slices/payment-slice'
 import { hitUserMetric } from '@/utils/metrics.utils'
 import * as Sentry from '@sentry/nextjs'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
@@ -187,7 +185,6 @@ export default function DirectSendQr({
     const router = useRouter()
     const pathname = usePathname()
     const searchParams = useSearchParams()
-    const dispatch = useAppDispatch()
     const toast = useToast()
     const { user } = useAuth()
     const payUserUrl = useMemo(() => {
@@ -237,8 +234,6 @@ export default function DirectSendQr({
 
     const processQRCode = async (data: string): Promise<{ success: boolean; error?: string }> => {
         triggerHaptic()
-        // reset payment state before processing new QR
-        dispatch(paymentActions.resetPaymentState())
 
         let redirectUrl: string | undefined = undefined
         let toConfirmUrl: string | undefined = undefined
@@ -360,8 +355,6 @@ export default function DirectSendQr({
         }
 
         if (redirectUrl) {
-            dispatch(paymentActions.setView('INITIAL'))
-
             const currentSearchParams = searchParams.toString()
             let currentFullPath = pathname
             currentFullPath = currentSearchParams ? `${currentFullPath}?${currentSearchParams}` : currentFullPath
@@ -381,7 +374,6 @@ export default function DirectSendQr({
         }
 
         if (toConfirmUrl) {
-            dispatch(paymentActions.setView('INITIAL'))
             setModalContent(EModalType.DIRECT_SEND)
             setIsModalOpen(true)
             setIsQRScannerOpen(false)

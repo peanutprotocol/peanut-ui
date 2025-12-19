@@ -7,12 +7,12 @@ import NavHeader from '@/components/Global/NavHeader'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import ValidationErrorView, { type ValidationErrorViewProps } from '@/components/Payment/Views/Error.validation.view'
-import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
+import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
 import UserCard from '@/components/User/UserCard'
 import { loadingStateContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useUserStore } from '@/redux/hooks'
-import { type IAttachmentOptions } from '@/redux/types/send-flow.types'
+import { type IAttachmentOptions } from '@/interfaces/attachment'
 import { usersApi } from '@/services/users'
 import { formatAmount } from '@/utils/general.utils'
 import { printableUsdc } from '@/utils/balance.utils'
@@ -190,7 +190,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                 )}
 
                 <div className="my-auto flex h-full flex-col justify-center space-y-4">
-                    <DirectSuccessView
+                    <PaymentSuccessView
                         user={recipientUser}
                         amount={formatAmount(currentInputValue)}
                         message={attachmentOptions.message}
