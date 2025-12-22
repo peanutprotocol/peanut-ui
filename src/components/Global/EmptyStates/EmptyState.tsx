@@ -16,7 +16,7 @@ export default function EmptyState({ title, description, icon, cta, containerCla
     return (
         <Card position="single" className={twMerge('p-0', containerClassName)}>
             <div className={'flex flex-col items-center justify-center gap-2 px-4 py-6'}>
-                <div className="rounded-full bg-primary-1 p-2">
+                <div className="flex size-8 items-center justify-center rounded-full bg-primary-1">
                     <Icon name={icon} size={16} />
                 </div>
                 <div className="text-center">

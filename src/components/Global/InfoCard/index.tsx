@@ -4,7 +4,7 @@ import { twMerge } from 'tailwind-merge'
 import { Icon, type IconProps } from '../Icons/Icon'
 
 interface InfoCardProps {
-    variant?: 'warning' | 'error' | 'info' | 'default'
+    variant?: 'warning' | 'error' | 'info' | 'success' | 'default'
     className?: string
     icon?: IconProps['name']
     iconSize?: number
@@ -26,6 +26,7 @@ const VARIANT_CLASSES = {
     error: 'border-error-5 bg-error-6 text-error',
     info: 'border-secondary-7 bg-secondary-9 text-black',
     default: 'border-grey-1 bg-grey-4 text-black',
+    success: 'border-success-1 bg-success-6 text-success-7',
 } as const
 
 const BASE_TEXT_CLASSES = 'text-start text-xs md:text-sm'
