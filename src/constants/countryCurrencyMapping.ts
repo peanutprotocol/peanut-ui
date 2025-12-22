@@ -7,7 +7,7 @@ export interface CountryCurrencyMapping {
     path?: string
 }
 
-export const countryCurrencyMappings: CountryCurrencyMapping[] = [
+const countryCurrencyMappings: CountryCurrencyMapping[] = [
     // SEPA Countries (Eurozone)
     { currencyCode: 'EUR', currencyName: 'Euro', country: 'Eurozone', flagCode: 'eu' },
 

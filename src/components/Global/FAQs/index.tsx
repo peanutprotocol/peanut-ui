@@ -1,11 +1,10 @@
 'use client'
 
-import { Box, Flex, Stack } from '@chakra-ui/react'
 import { AnimatePresence, motion } from 'framer-motion'
 import dynamic from 'next/dynamic'
 import { useCallback, useState } from 'react'
 
-// Dynamically import Icon for lazy loading
+// dynamically import icon for lazy loading
 const Icon = dynamic(() => import('../Icons/Icon').then((mod) => mod.Icon), {
     loading: () => <span>...</span>,
 })
@@ -13,7 +12,7 @@ const Icon = dynamic(() => import('../Icons/Icon').then((mod) => mod.Icon), {
 export type FAQsProps = {
     heading: string
     questions: Array<{
-        id: string // Added unique identifier
+        id: string
         question: string
         answer: string
         redirectUrl?: string
@@ -30,10 +29,10 @@ export function FAQsPanel({ heading, questions }: FAQsProps) {
     }, [])
 
     return (
-        <Box className="w-full overflow-x-hidden bg-background">
-            <Box className="relative px-6 py-20 md:px-8 md:py-36">
+        <div className="w-full overflow-x-hidden bg-background">
+            <div className="relative px-6 py-20 md:px-8 md:py-36">
                 <motion.div
-                    initial={{ opacity: 0, translateY: 20 }} // Added entry animation
+                    initial={{ opacity: 0, translateY: 20 }}
                     animate={{ opacity: 1, translateY: 0 }}
                     transition={{ type: 'spring', damping: 10 }}
                     className="relative mx-auto max-w-3xl rounded-md border-2 border-n-1 bg-white px-2 py-6 shadow ring-2 ring-white transition-transform duration-300 hover:rotate-0 md:-rotate-2 md:p-14"
@@ -42,19 +41,17 @@ export function FAQsPanel({ heading, questions }: FAQsProps) {
                         {heading}
                     </h2>
 
-                    <Stack spacing={1}>
+                    <div className="space-y-1">
                         {questions.map((faq) => (
                             <motion.div
                                 animate={{ height: 'auto' }}
                                 transition={{ duration: 0.4 }}
-                                key={faq.id} // Use unique id
+                                key={faq.id}
                                 className="px-4 py-4 text-lg font-semibold md:text-xl"
                             >
-                                <Flex
-                                    as="button"
+                                <button
                                     type="button"
-                                    justify="space-between"
-                                    className="w-full cursor-pointer items-start text-left focus:outline-none"
+                                    className="flex w-full cursor-pointer items-start justify-between text-left focus:outline-none"
                                     onClick={() => setFaq(faq.id)}
                                     aria-expanded={openFaq === faq.id}
                                     aria-controls={`faq-answer-${faq.id}`}
@@ -71,7 +68,7 @@ export function FAQsPanel({ heading, questions }: FAQsProps) {
                                             className="h-6 w-6 text-accent md:h-9 md:w-9"
                                         />
                                     </motion.div>
-                                </Flex>
+                                </button>
 
                                 <AnimatePresence initial={false}>
                                     {openFaq === faq.id && (
@@ -108,9 +105,9 @@ export function FAQsPanel({ heading, questions }: FAQsProps) {
                                 </AnimatePresence>
                             </motion.div>
                         ))}
-                    </Stack>
+                    </div>
                 </motion.div>
-            </Box>
-        </Box>
+            </div>
+        </div>
     )
 }

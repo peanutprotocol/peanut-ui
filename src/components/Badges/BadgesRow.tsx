@@ -31,7 +31,7 @@ interface BadgesRowProps {
  * - Tooltips showing badge name and description on hover
  * - Automatic sorting by earned date (newest first)
  */
-export function BadgesRow({ badges, className, isSelfProfile = true }: BadgesRowProps) {
+const BadgesRow = ({ badges, className, isSelfProfile = true }: BadgesRowProps) => {
     const viewportRef = useRef<HTMLDivElement>(null)
     const [visibleCount, setVisibleCount] = useState<number>(4)
     const [startIdx, setStartIdx] = useState<number>(0)
