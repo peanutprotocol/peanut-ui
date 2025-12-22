@@ -37,7 +37,7 @@ export default function BackupPage() {
 
     return (
         <PageContainer>
-            <div className="mb-6 space-y-8">
+            <div className="mb-6 space-y-4">
                 <NavHeader title="Backup" onPrev={() => router.replace('/profile')} />
 
                 <EmptyState
@@ -58,14 +58,13 @@ export default function BackupPage() {
                             ))}
                         </ol>
                     </Card>
+                    <InfoCard
+                        variant="warning"
+                        title="No backup = No recovery"
+                        description="If you lose your phone without backup enabled, your money is gone forever."
+                        icon="alert"
+                    />
                 </div>
-
-                <InfoCard
-                    variant="warning"
-                    title="No backup = No recovery"
-                    description="If you lose your phone without backup enabled, your money is gone forever."
-                    icon="alert"
-                />
 
                 <div>
                     <h1 className="mb-2 font-bold text-black">Common questions</h1>
