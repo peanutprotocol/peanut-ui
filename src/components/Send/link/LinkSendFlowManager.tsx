@@ -1,8 +1,7 @@
 'use client'
 
 import { tokenSelectorContext } from '@/context'
-import { useAppDispatch, useSendFlowStore } from '@/redux/hooks'
-import { sendFlowActions } from '@/redux/slices/send-flow-slice'
+import { LinkSendFlowProvider, useLinkSendFlow } from '@/context/LinkSendFlowContext'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { useContext, useEffect } from 'react'
 import NavHeader from '../../Global/NavHeader'
@@ -15,9 +14,9 @@ interface LinkSendFlowManagerProps {
     onPrev?: () => void
 }
 
-const LinkSendFlowManager = ({ onPrev }: LinkSendFlowManagerProps) => {
-    const dispatch = useAppDispatch()
-    const { view } = useSendFlowStore()
+// inner component that uses the context
+const LinkSendFlowContent = ({ onPrev }: LinkSendFlowManagerProps) => {
+    const { view, setCrossChainDetails } = useLinkSendFlow()
     const { resetTokenContextProvider, setSelectedChainID, setSelectedTokenAddress } = useContext(tokenSelectorContext)
 
     const fetchAndSetCrossChainDetails = async () => {
@@ -31,8 +30,7 @@ const LinkSendFlowManager = ({ onPrev }: LinkSendFlowManagerProps) => {
             throw new Error('Squid: Network response was not ok')
         }
         const data = await response.json()
-
-        dispatch(sendFlowActions.setCrossChainDetails(data.chains))
+        setCrossChainDetails(data.chains)
     }
 
     useEffect(() => {
@@ -59,6 +57,15 @@ const LinkSendFlowManager = ({ onPrev }: LinkSendFlowManagerProps) => {
             )}
             {view === 'SUCCESS' && <LinkSendSuccessView />}
         </>
+    )
+}
+
+// wrapper component that provides the context
+const LinkSendFlowManager = ({ onPrev }: LinkSendFlowManagerProps) => {
+    return (
+        <LinkSendFlowProvider>
+            <LinkSendFlowContent onPrev={onPrev} />
+        </LinkSendFlowProvider>
     )
 }
 

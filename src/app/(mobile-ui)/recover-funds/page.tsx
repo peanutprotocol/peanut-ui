@@ -22,10 +22,10 @@ import { erc20Abi, parseUnits, encodeFunctionData, formatUnits } from 'viem'
 import type { Address, Hash, TransactionReceipt } from 'viem'
 import { useRouter } from 'next/navigation'
 import { loadingStateContext } from '@/context'
-import Icon from '@/components/Global/Icon'
 import { captureException } from '@sentry/nextjs'
 import { mainnet, base, linea } from 'viem/chains'
 import { getPublicClient } from '@/app/actions/clients'
+import { Icon } from '@/components/Global/Icons/Icon'
 
 // Helper function to check if a token is native ETH
 const isNativeToken = (tokenAddress: string): boolean => {
@@ -257,7 +257,7 @@ export default function RecoverFundsPage() {
                                 className="flex items-center gap-2 hover:underline"
                             >
                                 <span>View on explorer</span>
-                                <Icon name="external-link" />
+                                <Icon name="external-link" size={24} />
                             </a>
                         </div>
                     </Card>

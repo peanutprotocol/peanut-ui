@@ -50,7 +50,7 @@ import {
     type TransactionDetailsRowKey,
     transactionDetailsRowKeys,
 } from './transaction-details.utils'
-import { useSupportModalContext } from '@/context/SupportModalContext'
+import { useModalsContext } from '@/context/ModalsContext'
 import { useRouter } from 'next/navigation'
 import { countryData } from '@/components/AddMoney/consts'
 import { useToast } from '@/components/0_Bruddle/Toast'
@@ -100,7 +100,7 @@ export const TransactionDetailsReceipt = ({
     const [showCancelLinkModal, setShowCancelLinkModal] = useState(false)
     const [tokenData, setTokenData] = useState<{ symbol: string; icon: string } | null>(null)
     const [isTokenDataLoading, setIsTokenDataLoading] = useState(true)
-    const { setIsSupportModalOpen } = useSupportModalContext()
+    const { setIsSupportModalOpen } = useModalsContext()
     const toast = useToast()
     const router = useRouter()
     const [cancelLinkText, setCancelLinkText] = useState<'Cancelling' | 'Cancelled' | 'Cancel link'>('Cancel link')
@@ -168,6 +168,7 @@ export const TransactionDetailsReceipt = ({
                 transaction.completedAt &&
                 transaction.extraDataForDrawer?.originalType !== EHistoryEntryType.DIRECT_SEND
             ),
+            refunded: transaction.status === 'refunded',
             fee: transaction.fee !== undefined,
             exchangeRate: !!(
                 (transaction.direction === 'bank_deposit' ||
@@ -640,6 +641,14 @@ export const TransactionDetailsReceipt = ({
                             label={getLabelText(transaction)}
                             value={formatDate(new Date(transaction.completedAt!))}
                             hideBottomBorder={shouldHideBorder('completed')}
+                        />
+                    )}
+
+                    {rowVisibilityConfig.refunded && (
+                        <PaymentInfoRow
+                            label="Refunded"
+                            value={formatDate(new Date(transaction.date))}
+                            hideBottomBorder={shouldHideBorder('refunded')}
                         />
                     )}
 

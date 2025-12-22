@@ -1,7 +1,5 @@
 'use client'
 
-import { useAppDispatch } from '@/redux/hooks'
-import { sendFlowActions } from '@/redux/slices/send-flow-slice'
 import { useRouter, useSearchParams } from 'next/navigation'
 import NavHeader from '@/components/Global/NavHeader'
 import { ActionListCard } from '@/components/ActionListCard'
@@ -17,7 +15,6 @@ import { Button } from '@/components/0_Bruddle/Button'
 
 export default function ContactsView() {
     const router = useRouter()
-    const dispatch = useAppDispatch()
     const searchParams = useSearchParams()
     const isSendingByLink = searchParams.get('view') === 'link' || searchParams.get('createLink') === 'true'
     const isSendingToContacts = searchParams.get('view') === 'contacts'
@@ -52,16 +49,12 @@ export default function ContactsView() {
     }, [contacts, searchQuery])
 
     const redirectToSendByLink = () => {
-        // reset send flow state when entering link creation flow
-        dispatch(sendFlowActions.resetSendFlow())
         router.push(`${window.location.pathname}?view=link`)
     }
 
     const handlePrev = () => {
-        // reset send flow state and navigate deterministically
         // when in sub-views (link or contacts), go back to base send page
         // otherwise, go to home
-        dispatch(sendFlowActions.resetSendFlow())
         if (isSendingByLink || isSendingToContacts) {
             router.push('/send')
         } else {

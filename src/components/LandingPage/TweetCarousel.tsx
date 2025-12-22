@@ -328,7 +328,7 @@ const buildColumns = (tweets: Tweet[]): ColumnType[] => {
  * - Lazy loaded images with fallbacks
  * - Links open in new tab
  */
-export const TweetCarousel = () => {
+const TweetCarousel = () => {
     const columns = useMemo(() => buildColumns(TWEETS), [])
 
     if (columns.length === 0) return null

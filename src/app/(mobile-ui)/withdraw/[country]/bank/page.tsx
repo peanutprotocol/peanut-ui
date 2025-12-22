@@ -19,7 +19,7 @@ import { AccountType, type Account } from '@/interfaces'
 import { formatIban, shortenStringLong, isTxReverted } from '@/utils/general.utils'
 import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
+import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
 import { ErrorHandler } from '@/utils/sdkErrorHandler.utils'
 import { getBridgeChainName } from '@/utils/bridge-accounts.utils'
 import { getOfframpCurrencyConfig } from '@/utils/bridge.utils'
@@ -372,7 +372,7 @@ export default function WithdrawBankPage() {
             )}
 
             {view === 'SUCCESS' && (
-                <DirectSuccessView
+                <PaymentSuccessView
                     isWithdrawFlow
                     currencyAmount={`$${amountToWithdraw}`}
                     message={bankAccount ? shortenStringLong(bankAccount.identifier.toUpperCase()) : ''}

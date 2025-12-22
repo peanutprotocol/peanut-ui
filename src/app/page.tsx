@@ -11,10 +11,10 @@ import {
     SendInSeconds,
     YourMoney,
     RegulatedRails,
-    TweetCarousel,
 } from '@/components/LandingPage'
 import Footer from '@/components/LandingPage/Footer'
 import Manteca from '@/components/LandingPage/Manteca'
+import TweetCarousel from '@/components/LandingPage/TweetCarousel'
 import { useFooterVisibility } from '@/context/footerVisibility'
 import { useEffect, useState, useRef } from 'react'
 

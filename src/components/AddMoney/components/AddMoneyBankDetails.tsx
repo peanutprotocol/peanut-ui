@@ -12,7 +12,6 @@ import { formatCurrencyAmount } from '@/utils/currency'
 import { formatBankAccountDisplay } from '@/utils/format.utils'
 import { getCurrencyConfig, getCurrencySymbol } from '@/utils/bridge.utils'
 import { RequestFulfillmentBankFlowStep, useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
-import { usePaymentStore } from '@/redux/hooks'
 import { formatAmount } from '@/utils/general.utils'
 import InfoCard from '@/components/Global/InfoCard'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
@@ -33,7 +32,6 @@ export default function AddMoneyBankDetails({ flow = 'add-money' }: IAddMoneyBan
         onrampData: requestFulfilmentOnrampData,
         selectedCountry: requestFulfilmentSelectedCountry,
     } = useRequestFulfillmentFlow()
-    const { chargeDetails } = usePaymentStore()
 
     // routing and country context
     const router = useRouter()
@@ -77,7 +75,7 @@ export default function AddMoneyBankDetails({ flow = 'add-money' }: IAddMoneyBan
     // data from contexts based on flow
     const amount = isAddMoneyFlow
         ? onrampContext.amountToOnramp
-        : (requestFulfilmentOnrampData?.depositInstructions?.amount ?? chargeDetails?.tokenAmount)
+        : requestFulfilmentOnrampData?.depositInstructions?.amount
     const onrampData = isAddMoneyFlow ? onrampContext.onrampData : requestFulfilmentOnrampData
 
     const currencySymbolBasedOnCountry = useMemo(() => {

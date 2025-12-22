@@ -6,9 +6,8 @@ import PeanutActionCard from '@/components/Global/PeanutActionCard'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { loadingStateContext } from '@/context'
+import { useLinkSendFlow } from '@/context/LinkSendFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { useAppDispatch, useSendFlowStore } from '@/redux/hooks'
-import { sendFlowActions } from '@/redux/slices/send-flow-slice'
 import { sendLinksApi } from '@/services/sendLinks'
 import { ErrorHandler } from '@/utils/sdkErrorHandler.utils'
 import { printableUsdc } from '@/utils/balance.utils'
@@ -22,12 +21,20 @@ import TokenAmountInput from '../../../Global/TokenAmountInput'
 import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 
 const LinkSendInitialView = () => {
-    const dispatch = useAppDispatch()
-    const { attachmentOptions, errorState, tokenValue } = useSendFlowStore()
+    const {
+        attachmentOptions,
+        setAttachmentOptions,
+        errorState,
+        setErrorState,
+        tokenValue,
+        setTokenValue,
+        setLink,
+        setView,
+    } = useLinkSendFlow()
 
     const { createLink } = useCreateLink()
 
-    const { setLoadingState, loadingState, isLoading } = useContext(loadingStateContext)
+    const { setLoadingState, isLoading } = useContext(loadingStateContext)
 
     const { fetchBalance, balance } = useWallet()
     const queryClient = useQueryClient()
@@ -44,24 +51,19 @@ const LinkSendInitialView = () => {
             setLoadingState('Loading')
 
             // clear any previous errors
-            dispatch(
-                sendFlowActions.setErrorState({
-                    showError: false,
-                    errorMessage: '',
-                })
-            )
+            setErrorState({ showError: false, errorMessage: '' })
 
             const { link, pubKey, chainId, contractVersion, depositIdx, txHash, amount, tokenAddress } =
                 await createLink(parseUnits(tokenValue!, PEANUT_WALLET_TOKEN_DECIMALS))
 
-            dispatch(sendFlowActions.setLink(link))
-            dispatch(sendFlowActions.setView('SUCCESS'))
+            setLink(link)
+            setView('SUCCESS')
             fetchBalance()
             queryClient.invalidateQueries({
                 queryKey: [TRANSACTIONS],
             })
 
-            // We dont need to wait for this to finish in order to proceed
+            // we dont need to wait for this to finish in order to proceed
             setTimeout(async () => {
                 try {
                     await sendLinksApi.create({
@@ -78,7 +80,7 @@ const LinkSendInitialView = () => {
                         mimetype: attachmentOptions?.rawFile?.type,
                     })
                 } catch (error) {
-                    // We want to capture any errors here because we are already in the background
+                    // we want to capture any errors here because we are already in the background
                     console.error(error)
                     captureException(error)
                 }
@@ -86,20 +88,26 @@ const LinkSendInitialView = () => {
         } catch (error) {
             // handle errors
             const errorString = ErrorHandler(error)
-            dispatch(
-                sendFlowActions.setErrorState({
-                    showError: true,
-                    errorMessage: errorString,
-                })
-            )
+            setErrorState({ showError: true, errorMessage: errorString })
             captureException(error)
         } finally {
             setLoadingState('Idle')
         }
-    }, [isLoading, tokenValue, createLink, fetchBalance, dispatch, queryClient, setLoadingState, attachmentOptions])
+    }, [
+        isLoading,
+        tokenValue,
+        createLink,
+        fetchBalance,
+        queryClient,
+        setLoadingState,
+        attachmentOptions,
+        setLink,
+        setView,
+        setErrorState,
+    ])
 
     useEffect(() => {
-        // Skip balance check if transaction is pending
+        // skip balance check if transaction is pending
         // (balance may be optimistically updated during transaction)
         // isLoading covers the createLink operation which directly uses handleSendUserOpEncoded
         if (hasPendingTransactions || isLoading) {
@@ -107,34 +115,19 @@ const LinkSendInitialView = () => {
         }
 
         if (!peanutWalletBalance || !tokenValue) {
-            // Clear error state when no balance or token value
-            dispatch(
-                sendFlowActions.setErrorState({
-                    showError: false,
-                    errorMessage: '',
-                })
-            )
+            // clear error state when no balance or token value
+            setErrorState({ showError: false, errorMessage: '' })
             return
         }
         if (
             parseUnits(peanutWalletBalance, PEANUT_WALLET_TOKEN_DECIMALS) <
             parseUnits(tokenValue, PEANUT_WALLET_TOKEN_DECIMALS)
         ) {
-            dispatch(
-                sendFlowActions.setErrorState({
-                    showError: true,
-                    errorMessage: 'Insufficient balance',
-                })
-            )
+            setErrorState({ showError: true, errorMessage: 'Insufficient balance' })
         } else {
-            dispatch(
-                sendFlowActions.setErrorState({
-                    showError: false,
-                    errorMessage: '',
-                })
-            )
+            setErrorState({ showError: false, errorMessage: '' })
         }
-    }, [peanutWalletBalance, tokenValue, dispatch, hasPendingTransactions, isLoading])
+    }, [peanutWalletBalance, tokenValue, setErrorState, hasPendingTransactions, isLoading])
 
     return (
         <div className="w-full space-y-4">
@@ -143,7 +136,7 @@ const LinkSendInitialView = () => {
             <TokenAmountInput
                 className="w-full"
                 tokenValue={tokenValue}
-                setTokenValue={(value) => dispatch(sendFlowActions.setTokenValue(value))}
+                setTokenValue={setTokenValue}
                 onSubmit={handleOnNext}
                 walletBalance={peanutWalletBalance}
             />
@@ -152,7 +145,7 @@ const LinkSendInitialView = () => {
                 className="h-11"
                 placeholder="Comment"
                 attachmentOptions={attachmentOptions}
-                setAttachmentOptions={(options) => dispatch(sendFlowActions.setAttachmentOptions(options))}
+                setAttachmentOptions={setAttachmentOptions}
             />
 
             <div className="flex flex-col gap-4">

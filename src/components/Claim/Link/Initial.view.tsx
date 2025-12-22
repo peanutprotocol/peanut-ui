@@ -27,7 +27,7 @@ import { useCallback, useContext, useEffect, useMemo, useState, useRef } from 'r
 import { formatUnits, isAddress, zeroAddress } from 'viem'
 import type { Address } from 'viem'
 import { type IClaimScreenProps } from '../Claim.consts'
-import ActionList from '@/components/Common/ActionList'
+import SendLinkActionList from '@/components/Claim/Link/SendLinkActionList'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import useClaimLink from '../useClaimLink'
 import ActionModal from '@/components/Global/ActionModal'
@@ -972,8 +972,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                         </Button>
                     )}
                     {!claimToExternalWallet && (
-                        <ActionList
-                            flow="claim"
+                        <SendLinkActionList
                             claimLinkData={claimLinkData}
                             isLoggedIn={!!user?.user.userId}
                             isInviteLink

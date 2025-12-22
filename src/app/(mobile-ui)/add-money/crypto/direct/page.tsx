@@ -6,7 +6,7 @@ import PeanutLoading from '@/components/Global/PeanutLoading'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import DaimoPayButton from '@/components/Global/DaimoPayButton'
 import { DaimoPayWrapper } from '@/components/Global/DaimoPayWrapper'
-import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
+import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -68,7 +68,7 @@ export default function AddMoneyCryptoDirectPage() {
 
     if (isPaymentSuccess) {
         return (
-            <DirectSuccessView
+            <PaymentSuccessView
                 key={`success-add-money`}
                 headerTitle={'Add Money'}
                 type="SEND"

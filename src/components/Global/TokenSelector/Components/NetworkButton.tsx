@@ -1,3 +1,9 @@
+/**
+ * button component for selecting a network in the token selector
+ *
+ * displays chain icon and name, or a search icon for the "more" button
+ */
+
 import { Button } from '@/components/0_Bruddle/Button'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import Image from 'next/image'
