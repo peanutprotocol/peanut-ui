@@ -280,7 +280,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                         <h1
                             className={twMerge(
                                 'text-3xl font-extrabold md:text-4xl',
-                                status === 'cancelled' && 'text-grey-1 line-through',
+                                ['cancelled', 'refunded'].includes(status ?? '') && 'text-grey-1 line-through',
                                 isNoGoalSet && 'text-xl text-black md:text-3xl'
                             )}
                         >
