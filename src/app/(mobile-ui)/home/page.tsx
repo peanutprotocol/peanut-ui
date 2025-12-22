@@ -5,9 +5,7 @@ import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { Icon } from '@/components/Global/Icons/Icon'
 import Loading from '@/components/Global/Loading'
 import PeanutLoading from '@/components/Global/PeanutLoading'
-//import RewardsModal from '@/components/Global/RewardsModal'
 import HomeHistory from '@/components/Home/HomeHistory'
-//import RewardsCardModal from '@/components/Home/RewardsCardModal'
 import { UserHeader } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -231,14 +229,6 @@ export default function Home() {
                         </Suspense>
                     </LazyLoadErrorBoundary>
                 )}
-
-                {/* Render the new Rewards Modal
-                <RewardsModal />
-                */}
-
-                {/* Render the new Rewards Card Modal
-                <RewardsCardModal visible={isRewardsModalOpen} onClose={() => setIsRewardsModalOpen(false)} />
-                */}
             </div>
             {/* iOS PWA Install Modal */}
             <LazyLoadErrorBoundary>

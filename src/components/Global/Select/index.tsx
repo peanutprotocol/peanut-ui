@@ -1,8 +1,8 @@
-import Icon from '@/components/Global/Icon'
 import { Listbox, Transition } from '@headlessui/react'
 import { useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { twMerge } from 'tailwind-merge'
+import { Icon } from '../Icons/Icon'
 
 type SelectItem = {
     id: string
@@ -66,7 +66,7 @@ const Select = ({
                                         small ? '-mr-2 ml-2' : ''
                                     } ${open ? 'rotate-180' : ''} ${classArrow}`
                                 )}
-                                name="arrow-bottom"
+                                name="chevron-down"
                             />
                         </Listbox.Button>
                         {open &&

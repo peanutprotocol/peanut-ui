@@ -3,7 +3,6 @@
 import { Eyes, PeanutsBG } from '@/assets'
 import { MarqueeComp } from '@/components/Global/MarqueeWrapper'
 import { Box } from '@chakra-ui/react'
-import { useState } from 'react'
 import { FAQsPanel, type FAQsProps } from '../Global/FAQs'
 
 type LocalFAQsProps = FAQsProps & {
@@ -14,12 +13,6 @@ type LocalFAQsProps = FAQsProps & {
 }
 
 export function FAQs({ heading, questions, marquee = { visible: false } }: LocalFAQsProps) {
-    const [openFaq, setOpenFaq] = useState(-1)
-
-    const setFaq = function (index: number) {
-        setOpenFaq(openFaq === index ? -1 : index)
-    }
-
     return (
         <Box
             className="bg-secondary overflow-x-hidden"

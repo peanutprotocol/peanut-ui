@@ -6,7 +6,7 @@ import dynamic from 'next/dynamic'
 import { useCallback, useState } from 'react'
 
 // Dynamically import Icon for lazy loading
-const Icon = dynamic(() => import('@/components/Global/Icon'), {
+const Icon = dynamic(() => import('../Icons/Icon').then((mod) => mod.Icon), {
     loading: () => <span>...</span>,
 })
 
@@ -68,7 +68,7 @@ export function FAQsPanel({ heading, questions }: FAQsProps) {
                                     >
                                         <Icon
                                             name={openFaq === faq.id ? 'minus-circle' : 'plus-circle'}
-                                            className="h-6 w-6 fill-accent md:h-8 md:w-8"
+                                            className="h-6 w-6 text-accent md:h-9 md:w-9"
                                         />
                                     </motion.div>
                                 </Flex>
