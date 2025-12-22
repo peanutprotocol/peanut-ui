@@ -22,7 +22,6 @@ const FlowManager = ({
 }) => {
     const viewComponents: _consts.IFlowManagerClaimComponents = {
         INITIAL: InitialClaimLinkView,
-        // todo: @dev note, handle bank claims in links-v2 project
         CONFIRM: onchainViews.ConfirmClaimLinkView,
         SUCCESS: onchainViews.SuccessClaimLinkView,
     }

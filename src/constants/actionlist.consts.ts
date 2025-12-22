@@ -37,14 +37,13 @@ export const ACTION_METHODS: PaymentMethod[] = [
         icons: [PIX],
         soon: false,
     },
-    // todo: @dev @Zishan-7 to enable during deposit v2 integration is done
-    // {
-    //     id: 'exchange-or-wallet',
-    //     title: 'Exchange or Wallet',
-    //     description: 'Binance, Metamask and more',
-    //     icons: [binanceIcon, TRUST_WALLET_SMALL_LOGO, METAMASK_LOGO],
-    //     soon: false,
-    // },
+    {
+        id: 'exchange-or-wallet',
+        title: 'Exchange or Wallet',
+        description: 'Binance, Metamask and more',
+        icons: [binanceIcon, TRUST_WALLET_SMALL_LOGO, METAMASK_LOGO],
+        soon: false,
+    },
 ]
 
 export const DEVCONNECT_CLAIM_METHODS: PaymentMethod[] = [

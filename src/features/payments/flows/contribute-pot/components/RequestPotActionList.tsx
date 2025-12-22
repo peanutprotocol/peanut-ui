@@ -77,7 +77,7 @@ export function RequestPotActionList({
             method.soon ||
             (method.id === 'bank' && requiresVerification) ||
             (['mercadopago', 'pix'].includes(method.id) && !isUserMantecaKycApproved),
-        methods: ACTION_METHODS,
+        methods: ACTION_METHODS.filter((method) => method.id !== 'exchange-or-wallet'), // todo: @dev note, remove exchange-or-wallet filter from here in deposit project
     })
 
     // handle clicking on a payment method
