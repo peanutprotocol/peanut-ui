@@ -1,6 +1,5 @@
 'use client'
 
-import { Box } from '@chakra-ui/react'
 import Marquee from 'react-fast-marquee'
 
 type directionType = 'left' | 'right' | 'up' | 'down' | undefined
@@ -37,15 +36,15 @@ export function MarqueeComp({
     message,
     imageSrc,
     imageAnimationClass = 'animation-thumbsUp',
-    backgroundColor = 'bg-primary', // Add default value
+    backgroundColor = 'bg-primary',
 }: {
     message?: string | string[]
     imageSrc: string
     imageAnimationClass?: string
-    backgroundColor?: string // Add new prop
+    backgroundColor?: string
 }) {
     return (
-        <Box className="border-y-1 border-white shadow">
+        <div className="border-y-1 border-white shadow">
             <MarqueeWrapper backgroundColor={backgroundColor} direction="left" className="border-y-2 border-n-1">
                 {Array.isArray(message)
                     ? message.map((msg, index) => (
@@ -71,6 +70,6 @@ export function MarqueeComp({
                           </div>
                       )}
             </MarqueeWrapper>
-        </Box>
+        </div>
     )
 }
