@@ -487,7 +487,7 @@ export default function QRPayPage() {
         enabled: paymentProcessor === 'MANTECA' && !!qrCode && isPaymentProcessorQR(qrCode) && !paymentLock,
         retry: (failureCount, error: any) => {
             // Don't retry provider-specific errors
-            if (error?.message?.includes("provider can't decode it")) {
+            if (error?.message?.includes('PAYMENT_DESTINATION_DECODING_ERROR')) {
                 return false
             }
             // Retry network/timeout errors up to 2 times (3 total attempts)
@@ -528,7 +528,7 @@ export default function QRPayPage() {
             // Provider-specific errors: show appropriate message
             if (error.message.includes('PAYMENT_DESTINATION_MISSING_AMOUNT')) {
                 setWaitingForMerchantAmount(true)
-            } else if (error.message.includes("provider can't decode it")) {
+            } else if (error.message.includes('PAYMENT_DESTINATION_DECODING_ERROR')) {
                 setErrorInitiatingPayment(
                     'We could not decode this particular QR code. Please ask the Merchant if they can generate a Mercado Pago QR'
                 )
