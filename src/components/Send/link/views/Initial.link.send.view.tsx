@@ -105,27 +105,38 @@ const LinkSendInitialView = () => {
             return
         }
 
+        // only manage balance related errors here
+        // dont clear non-balance errors (like PasskeyError from transaction signing like biometric timeout errors)
+        const isBalanceError = errorState?.errorMessage === 'Insufficient balance'
+
         if (!peanutWalletBalance || !tokenValue) {
-            // Clear error state when no balance or token value
-            dispatch(
-                sendFlowActions.setErrorState({
-                    showError: false,
-                    errorMessage: '',
-                })
-            )
+            // clear balance error when no balance or token value
+            // but preserve non-balance errors (e.g. PasskeyError)
+            if (isBalanceError) {
+                dispatch(
+                    sendFlowActions.setErrorState({
+                        showError: false,
+                        errorMessage: '',
+                    })
+                )
+            }
             return
         }
+
         if (
             parseUnits(peanutWalletBalance, PEANUT_WALLET_TOKEN_DECIMALS) <
             parseUnits(tokenValue, PEANUT_WALLET_TOKEN_DECIMALS)
         ) {
+            // set insufficient balance error
             dispatch(
                 sendFlowActions.setErrorState({
                     showError: true,
                     errorMessage: 'Insufficient balance',
                 })
             )
-        } else {
+        } else if (isBalanceError) {
+            // clear balance error only if thats the current error
+            // dont clear non-balance errors (e.g. PasskeyError)
             dispatch(
                 sendFlowActions.setErrorState({
                     showError: false,
@@ -133,7 +144,7 @@ const LinkSendInitialView = () => {
                 })
             )
         }
-    }, [peanutWalletBalance, tokenValue, dispatch, hasPendingTransactions, isLoading])
+    }, [peanutWalletBalance, tokenValue, dispatch, hasPendingTransactions, isLoading, errorState])
 
     return (
         <div className="w-full space-y-4">
