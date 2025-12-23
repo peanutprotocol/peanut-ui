@@ -39,7 +39,7 @@ import {
     parseSimpleFiQr,
     EQrType,
     NAME_BY_QR_TYPE,
-    QrType,
+    type QrType,
 } from '@/components/Global/DirectSendQR/utils'
 import type { SimpleFiQrData } from '@/components/Global/DirectSendQR/utils'
 import { QrKycState, useQrKycGate } from '@/hooks/useQrKycGate'
