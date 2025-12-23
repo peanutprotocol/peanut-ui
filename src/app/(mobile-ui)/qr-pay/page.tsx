@@ -34,7 +34,7 @@ import { getCurrencyPrice } from '@/app/actions/currency'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 import { captureException } from '@sentry/nextjs'
-import { isPaymentProcessorQR, parseSimpleFiQr, EQrType } from '@/components/Global/DirectSendQR/utils'
+import { isPaymentProcessorQR, parseSimpleFiQr, EQrType, NAME_BY_QR_TYPE } from '@/components/Global/DirectSendQR/utils'
 import type { SimpleFiQrData } from '@/components/Global/DirectSendQR/utils'
 import { QrKycState, useQrKycGate } from '@/hooks/useQrKycGate'
 import ActionModal from '@/components/Global/ActionModal'
@@ -522,10 +522,15 @@ export default function QRPayPage() {
             // Provider-specific errors: show appropriate message
             if (error.message.includes('PAYMENT_DESTINATION_MISSING_AMOUNT')) {
                 setWaitingForMerchantAmount(true)
+            } else if (error.message.includes("provider can't decode it")) {
+                setErrorInitiatingPayment(
+                    'Our provider could not decode this particular QR code. Please make sure it is a compatible QR code (Mercado Pago, MODO, PIX). If problem persists, contact support.'
+                )
+                setWaitingForMerchantAmount(false)
             } else {
                 // Network/timeout errors after all retries exhausted
                 setErrorInitiatingPayment(
-                    `We are currently experiencing issues with ${qrType} payments due to an external provider. We are working to fix it as soon as possible`
+                    `We are currently experiencing issues with ${NAME_BY_QR_TYPE[qrType]} payments due to an external provider. We are working to fix it as soon as possible`
                 )
                 setWaitingForMerchantAmount(false)
             }
