@@ -323,10 +323,23 @@ export function useSemanticRequestFlow() {
 
     // fetch charge from url if chargeIdFromUrl is present but charge is not loaded
     useEffect(() => {
-        if (chargeIdFromUrl && !charge && currentView === 'CONFIRM' && !isFetchingCharge) {
+        if (
+            chargeIdFromUrl &&
+            !charge &&
+            (currentView === 'CONFIRM' || currentView === 'RECEIPT') &&
+            !isFetchingCharge
+        ) {
             fetchCharge(chargeIdFromUrl)
                 .then((fetchedCharge) => {
                     setCharge(fetchedCharge)
+
+                    // check if charge is already paid - if so, switch to receipt view
+                    const isPaid = fetchedCharge.fulfillmentPayment?.status === 'SUCCESSFUL'
+                    if (isPaid && currentView === 'CONFIRM') {
+                        setCurrentView('RECEIPT')
+                        return
+                    }
+
                     // set amount from charge if not already set
                     if (!amount && fetchedCharge.tokenAmount) {
                         setAmount(fetchedCharge.tokenAmount)
@@ -358,6 +371,7 @@ export function useSemanticRequestFlow() {
         setError,
         setSelectedChainID,
         setSelectedTokenAddress,
+        setCurrentView,
     ])
 
     // call prepareRoute when entering confirm view and charge is ready
