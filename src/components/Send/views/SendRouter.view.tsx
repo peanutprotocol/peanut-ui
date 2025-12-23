@@ -130,7 +130,7 @@ export const SendRouterView = () => {
                         ...method,
                         identifierIcon: (
                             <div className="flex size-8 min-w-8 items-center justify-center rounded-full bg-black">
-                                <Icon name="bank" size={14} color="white" />
+                                <Icon name="bank" size={14} fill="white" />
                             </div>
                         ),
                     }
