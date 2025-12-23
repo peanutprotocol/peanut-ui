@@ -56,7 +56,14 @@ export function useContributePotFlow() {
     const { user } = useAuth()
     const { createCharge, isCreating: isCreatingCharge } = useChargeManager()
     const { recordPayment, isRecording } = usePaymentRecorder()
-    const { isConnected, address: walletAddress, sendMoney, formattedBalance, hasSufficientBalance } = useWallet()
+    const {
+        isConnected,
+        address: walletAddress,
+        sendMoney,
+        formattedBalance,
+        hasSufficientBalance,
+        isFetchingBalance,
+    } = useWallet()
 
     const isLoggedIn = !!user?.user?.userId
 
@@ -89,9 +96,18 @@ export function useContributePotFlow() {
     }, [amount, hasSufficientBalance])
 
     // check if should show insufficient balance error
+    // only show after balance has loaded to avoid flash of error on initial render
     const isInsufficientBalance = useMemo(() => {
-        return isLoggedIn && !!amount && !hasEnoughBalance && !isLoading && !isCreatingCharge && !isRecording
-    }, [isLoggedIn, amount, hasEnoughBalance, isLoading, isCreatingCharge, isRecording])
+        return (
+            isLoggedIn &&
+            !!amount &&
+            !hasEnoughBalance &&
+            !isLoading &&
+            !isCreatingCharge &&
+            !isRecording &&
+            !isFetchingBalance
+        )
+    }, [isLoggedIn, amount, hasEnoughBalance, isLoading, isCreatingCharge, isRecording, isFetchingBalance])
 
     // calculate default slider value and suggested amount
     const sliderDefaults = useMemo(() => {
