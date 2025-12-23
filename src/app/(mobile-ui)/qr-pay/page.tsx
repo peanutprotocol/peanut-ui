@@ -1003,88 +1003,23 @@ export default function QRPayPage() {
         }
     }, [waitingForMerchantAmount, shouldRetry, isLoadingPaymentLock, paymentProcessor])
 
-    // Show maintenance error if provider is disabled
-    if (isProviderDisabled) {
-        // Get user-facing payment method name
-        const paymentMethodName = useMemo(() => {
-            if (paymentProcessor === 'MANTECA') {
-                switch (qrType) {
-                    case EQrType.PIX:
-                        return 'PIX'
-                    case EQrType.MERCADO_PAGO:
-                        return 'Mercado Pago'
-                    case EQrType.ARGENTINA_QR3:
-                        return 'QR'
-                    default:
-                        return 'QR'
-                }
-            }
-            return 'SimpleFi'
-        }, [])
-
-        return (
-            <div className="my-auto flex h-full w-full flex-col justify-center space-y-4">
-                <Card className="flex w-full flex-col items-center gap-2 p-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-1 p-3">
-                        <Icon name="alert" className="h-full" />
-                    </div>
-                    <span className="text-lg font-bold">Service Temporarily Unavailable</span>
-                    <p className="text-center font-normal text-grey-1">
-                        We're experiencing issues with {paymentMethodName} payments due to an external provider outage.
-                        We're working to restore service as soon as possible.
-                    </p>
-                </Card>
-                <Button onClick={() => router.back()} variant="purple" shadowSize="4">
-                    Go Back
-                </Button>
-                <button
-                    onClick={() => setIsSupportModalOpen(true)}
-                    className="flex w-full items-center justify-center gap-2 text-sm font-medium text-grey-1 transition-colors hover:text-black"
-                >
-                    <Icon name="peanut-support" size={16} className="text-grey-1" />
-                    Having trouble?
-                </button>
-            </div>
-        )
-    }
-
-    if (!!errorInitiatingPayment) {
-        return (
-            <div className="my-auto flex h-full flex-col justify-center space-y-4">
-                <Card className="relative z-10 flex w-full flex-col items-center gap-4 p-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-1 p-3">
-                        <Icon name="alert" className="h-full" />
-                    </div>
-                    <p className="font-medium">
-                        {' '}
-                        {errorInitiatingPayment || 'An error occurred while getting the QR details.'}
-                    </p>
-
-                    <Button onClick={() => router.back()} variant="purple">
-                        Go Back
-                    </Button>
-                </Card>
-            </div>
-        )
-    }
-
-    // check if we're still loading payment data or KYC state before showing anything
-    // this prevents KYC modals from flashing on page refresh
-    const isLoadingPaymentData =
-        isFirstLoad ||
-        (paymentProcessor === 'MANTECA' && !paymentLock) ||
-        (paymentProcessor === 'SIMPLEFI' && simpleFiQrData?.type !== 'SIMPLEFI_USER_SPECIFIED' && !simpleFiPayment) ||
-        !currency
-
     const isLoadingKycState = kycGateState === QrKycState.LOADING
 
-    // only show KYC modals after both payment data and KYC state have loaded
+    // only show KYC modals after KYC state has loaded
     // explicitly check for KYC states that require blocking (not PROCEED_TO_PAY)
+    // important: this check must come BEFORE errorInitiatingPayment check
+    // because unverified users should see KYC screen, not error screen
     const needsKycVerification =
         kycGateState === QrKycState.REQUIRES_IDENTITY_VERIFICATION ||
         kycGateState === QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS ||
         kycGateState === QrKycState.REQUIRES_MANTECA_KYC_FOR_ARG_BRIDGE_USER
 
+    // show loading while KYC state is being determined
+    if (isLoadingKycState) {
+        return <PeanutLoading />
+    }
+
+    // show KYC screens before any error screens - user needs to verify first
     if (needsKycVerification) {
         return (
             <div className="flex min-h-[inherit] flex-col gap-8">
@@ -1152,6 +1087,78 @@ export default function QRPayPage() {
         )
     }
 
+    // Show maintenance error if provider is disabled
+    if (isProviderDisabled) {
+        // Get user-facing payment method name
+        const paymentMethodName = useMemo(() => {
+            if (paymentProcessor === 'MANTECA') {
+                switch (qrType) {
+                    case EQrType.PIX:
+                        return 'PIX'
+                    case EQrType.MERCADO_PAGO:
+                        return 'Mercado Pago'
+                    case EQrType.ARGENTINA_QR3:
+                        return 'QR'
+                    default:
+                        return 'QR'
+                }
+            }
+            return 'SimpleFi'
+        }, [])
+
+        return (
+            <div className="my-auto flex h-full w-full flex-col justify-center space-y-4">
+                <Card className="flex w-full flex-col items-center gap-2 p-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-1 p-3">
+                        <Icon name="alert" className="h-full" />
+                    </div>
+                    <span className="text-lg font-bold">Service Temporarily Unavailable</span>
+                    <p className="text-center font-normal text-grey-1">
+                        We're experiencing issues with {paymentMethodName} payments due to an external provider outage.
+                        We're working to restore service as soon as possible.
+                    </p>
+                </Card>
+                <Button onClick={() => router.back()} variant="purple" shadowSize="4">
+                    Go Back
+                </Button>
+                <button
+                    onClick={() => setIsSupportModalOpen(true)}
+                    className="flex w-full items-center justify-center gap-2 text-sm font-medium text-grey-1 transition-colors hover:text-black"
+                >
+                    <Icon name="peanut-support" size={16} className="text-grey-1" />
+                    Having trouble?
+                </button>
+            </div>
+        )
+    }
+
+    if (!!errorInitiatingPayment) {
+        return (
+            <div className="my-auto flex h-full flex-col justify-center space-y-4">
+                <Card className="relative z-10 flex w-full flex-col items-center gap-4 p-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-1 p-3">
+                        <Icon name="alert" className="h-full" />
+                    </div>
+                    <p className="font-medium">
+                        {' '}
+                        {errorInitiatingPayment || 'An error occurred while getting the QR details.'}
+                    </p>
+
+                    <Button onClick={() => router.back()} variant="purple">
+                        Go Back
+                    </Button>
+                </Card>
+            </div>
+        )
+    }
+
+    // check if we're still loading payment data before showing anything
+    const isLoadingPaymentData =
+        isFirstLoad ||
+        (paymentProcessor === 'MANTECA' && !paymentLock) ||
+        (paymentProcessor === 'SIMPLEFI' && simpleFiQrData?.type !== 'SIMPLEFI_USER_SPECIFIED' && !simpleFiPayment) ||
+        !currency
+
     if (waitingForMerchantAmount) {
         return <QrPayPageLoading message="Waiting for the merchant to set the amount" />
     }
@@ -1189,8 +1196,8 @@ export default function QRPayPage() {
         )
     }
 
-    // show loading spinner if we're still loading payment data OR KYC state
-    if (isLoadingPaymentData || isLoadingKycState || loadingState.toLowerCase() === 'paying') {
+    // show loading spinner if we're still loading payment data
+    if (isLoadingPaymentData || loadingState.toLowerCase() === 'paying') {
         return (
             <PeanutLoading
                 message={loadingState.toLowerCase() === 'paying' ? 'Almost there! Processing payment...' : undefined}
