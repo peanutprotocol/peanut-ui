@@ -84,7 +84,7 @@ const MobileNav: React.FC<MobileNavProps> = ({ pathName }) => {
                     { 'text-primary-1': pathName === '/home' }
                 )}
             >
-                <NavIcon name="home" size={25} fill="currentColor" />
+                <NavIcon name="home" size={26} fill="currentColor" />
                 <span className="mx-auto block text-center text-xs font-medium">Home</span>
             </Link>
 

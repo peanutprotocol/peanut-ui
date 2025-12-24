@@ -115,7 +115,7 @@ export default function PeanutActionDetailsCard({
         if (transactionType === 'REGIONAL_METHOD_CLAIM') title = recipientName // Render the string as is for regional method
         return (
             <h1 className="flex items-center gap-2 overflow-hidden text-ellipsis whitespace-nowrap text-base font-normal text-grey-1">
-                {icon && <Icon name={icon} size={10} className="min-w-fit" />} {title}
+                {icon && <Icon name={icon} size={10} />} {title}
             </h1>
         )
     }

@@ -34,6 +34,7 @@ export function SemanticRequestInputView() {
         amount,
         recipient,
         parsedUrl,
+        chargeIdFromUrl,
         isAmountFromUrl,
         error,
         formattedBalance,
@@ -148,7 +149,7 @@ export function SemanticRequestInputView() {
                     walletBalance={isLoggedIn ? formattedBalance : undefined}
                     hideBalance={!isLoggedIn}
                     hideCurrencyToggle={true}
-                    disabled={isAmountFromUrl}
+                    disabled={isAmountFromUrl || !!chargeIdFromUrl}
                 />
 
                 {/* token selector for chain/token selection (not for USERNAME) */}

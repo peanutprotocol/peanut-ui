@@ -301,7 +301,13 @@ export function useSemanticRequestFlow() {
 
         setIsRouteExpired(false)
 
-        if (needsRoute) {
+        // check if charge is for same chain and same token (no route needed)
+        const isChargeSameChainToken =
+            charge.chainId === PEANUT_WALLET_CHAIN.id.toString() &&
+            areEvmAddressesEqual(charge.tokenAddress, PEANUT_WALLET_TOKEN)
+
+        // only calculate route if cross-chain or different token
+        if (needsRoute && !isChargeSameChainToken) {
             await calculateRoute({
                 source: {
                     address: walletAddress as Address,
@@ -326,7 +332,7 @@ export function useSemanticRequestFlow() {
         if (
             chargeIdFromUrl &&
             !charge &&
-            (currentView === 'CONFIRM' || currentView === 'RECEIPT') &&
+            (currentView === 'INITIAL' || currentView === 'CONFIRM' || currentView === 'RECEIPT') &&
             !isFetchingCharge
         ) {
             fetchCharge(chargeIdFromUrl)
@@ -335,7 +341,7 @@ export function useSemanticRequestFlow() {
 
                     // check if charge is already paid - if so, switch to receipt view
                     const isPaid = fetchedCharge.fulfillmentPayment?.status === 'SUCCESSFUL'
-                    if (isPaid && currentView === 'CONFIRM') {
+                    if (isPaid && (currentView === 'CONFIRM' || currentView === 'INITIAL')) {
                         setCurrentView('RECEIPT')
                         return
                     }
@@ -400,7 +406,7 @@ export function useSemanticRequestFlow() {
         }
     }, [isLoading, isCalculatingRoute, prepareRoute])
 
-    // execute cross-chain payment from confirm view
+    // execute payment from confirm view (handles both same-chain and cross-chain)
     const executePayment = useCallback(async () => {
         if (!recipient || !amount || !walletAddress || !charge) {
             setError({ showError: true, errorMessage: 'missing required data' })
@@ -413,7 +419,16 @@ export function useSemanticRequestFlow() {
         try {
             let hash: Hash
 
-            if (needsRoute && routeTransactions && routeTransactions.length > 0) {
+            // check if charge is for same chain and same token (usdc on arbitrum)
+            const isChargeSameChainToken =
+                charge.chainId === PEANUT_WALLET_CHAIN.id.toString() &&
+                areEvmAddressesEqual(charge.tokenAddress, PEANUT_WALLET_TOKEN)
+
+            if (isChargeSameChainToken) {
+                // direct payment for same-chain same-token (e.g. direct requests)
+                const txResult = await sendMoney(charge.requestLink.recipientAddress as Address, charge.tokenAmount)
+                hash = (txResult.receipt?.transactionHash ?? txResult.userOpHash) as Hash
+            } else if (needsRoute && routeTransactions && routeTransactions.length > 0) {
                 // cross-chain or token swap payment via squid route
                 const txResult = await sendTransactions(
                     routeTransactions.map((tx) => ({
@@ -460,6 +475,7 @@ export function useSemanticRequestFlow() {
         selectedChainID,
         selectedTokenAddress,
         selectedTokenData,
+        sendMoney,
         sendTransactions,
         recordPayment,
         setTxHash,
@@ -487,6 +503,7 @@ export function useSemanticRequestFlow() {
         currentView,
         parsedUrl,
         recipient,
+        chargeIdFromUrl,
         isAmountFromUrl,
         isTokenFromUrl,
         isChainFromUrl,
