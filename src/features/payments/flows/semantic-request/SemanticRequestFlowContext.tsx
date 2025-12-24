@@ -21,7 +21,7 @@ import { type TRequestChargeResponse, type PaymentCreationResponse } from '@/ser
 import { type ParsedURL, type RecipientType } from '@/lib/url-parser/types/payment'
 
 // view states for semantic request flow
-export type SemanticRequestFlowView = 'INITIAL' | 'CONFIRM' | 'STATUS'
+export type SemanticRequestFlowView = 'INITIAL' | 'CONFIRM' | 'STATUS' | 'RECEIPT'
 
 // recipient info from parsed url
 export interface SemanticRequestRecipient {

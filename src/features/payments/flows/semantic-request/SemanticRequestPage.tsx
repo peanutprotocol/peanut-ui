@@ -7,6 +7,7 @@
  * - INITIAL: amount/token input
  * - CONFIRM: review cross-chain payment details
  * - STATUS: success view after payment
+ * - RECEIPT: shows receipt for already-paid charges
  *
  * receives pre-parsed url data from wrapper
  */
@@ -15,6 +16,7 @@ import { SemanticRequestFlowProvider, useSemanticRequestFlowContext } from './Se
 import { SemanticRequestInputView } from './views/SemanticRequestInputView'
 import { SemanticRequestConfirmView } from './views/SemanticRequestConfirmView'
 import { SemanticRequestSuccessView } from './views/SemanticRequestSuccessView'
+import { SemanticRequestReceiptView } from './views/SemanticRequestReceiptView'
 import { type ParsedURL } from '@/lib/url-parser/types/payment'
 
 // internal component that switches views
@@ -26,6 +28,8 @@ function SemanticRequestFlowContent() {
             return <SemanticRequestConfirmView />
         case 'STATUS':
             return <SemanticRequestSuccessView />
+        case 'RECEIPT':
+            return <SemanticRequestReceiptView />
         case 'INITIAL':
         default:
             return <SemanticRequestInputView />

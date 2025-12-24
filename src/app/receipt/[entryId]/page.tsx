@@ -13,6 +13,7 @@ import { type Metadata } from 'next'
 import { BASE_URL } from '@/constants/general.consts'
 import { formatAmount, formatCurrency, isStableCoin } from '@/utils/general.utils'
 import getOrigin from '@/lib/hosting/get-origin'
+import PageContainer from '@/components/0_Bruddle/PageContainer'
 
 // Helper function to map transaction card type to OG image type
 function mapTransactionTypeToOGType(transactionType: string): 'send' | 'request' {
@@ -186,13 +187,13 @@ export default async function ReceiptPage({
     }
     const { transactionDetails } = mapTransactionDataForDrawer(entry)
     return (
-        <div className="p-6">
+        <PageContainer className="flex min-h-[100dvh] flex-col items-center justify-center p-6">
             <div className="md:hidden">
                 <NavHeader title="Receipt" />
             </div>
-            <div className="flex min-h-[100dvh] flex-col items-center justify-center">
+            <div className="flex flex-1 flex-col items-center justify-center">
                 <TransactionDetailsReceipt className="w-full" transaction={transactionDetails!} />
             </div>
-        </div>
+        </PageContainer>
     )
 }
