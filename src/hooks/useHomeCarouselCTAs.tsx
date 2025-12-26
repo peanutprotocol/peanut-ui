@@ -11,6 +11,7 @@ import { useModalsContext } from '@/context/ModalsContext'
 import { DeviceType, useDeviceType } from './useGetDeviceType'
 import { usePWAStatus } from './usePWAStatus'
 import { useGeoLocation } from './useGeoLocation'
+import { STAR_STRAIGHT_ICON } from '@/assets'
 
 export type CarouselCTA = {
     id: string
@@ -48,8 +49,6 @@ export const useHomeCarouselCTAs = () => {
         const hasKycApproval = isUserKycApproved || isUserMantecaKycApproved
         const isLatamUser = userCountryCode === 'AR' || userCountryCode === 'BR'
 
-<<<<<<< HEAD
-=======
         // Generic invite CTA for non-LATAM users
         if (!isLatamUser) {
             _carouselCTAs.push({
@@ -64,8 +63,6 @@ export const useHomeCarouselCTAs = () => {
                 },
             })
         }
-
->>>>>>> peanut-wallet
         // show notification cta only in pwa when notifications are not granted
         // clicking it triggers native prompt (or shows reinstall modal if denied)
         if (!isPermissionGranted && isPwa) {
