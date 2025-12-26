@@ -31,7 +31,6 @@ import { PointsAction } from '@/services/services.types'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import { useSearchParams } from 'next/navigation'
 import { parseUnits } from 'viem'
-import { useNonEurSepaRedirect } from '@/hooks/useNonEurSepaRedirect'
 
 type View = 'INITIAL' | 'SUCCESS'
 
@@ -55,13 +54,6 @@ export default function WithdrawBankPage() {
     const [balanceErrorMessage, setBalanceErrorMessage] = useState<string | null>(null)
     const { hasPendingTransactions } = usePendingTransactions()
 
-    // redirect to withdraw if this is a non-eur sepa country (blocked)
-    useNonEurSepaRedirect({
-        countryIdentifier: country,
-        redirectPath: '/withdraw',
-        shouldRedirect: true,
-    })
-
     // check if we came from send flow - using method param to detect (only bank goes through this page)
     const methodParam = searchParams.get('method')
     const fromSendFlow = methodParam === 'bank'
@@ -78,14 +70,6 @@ export default function WithdrawBankPage() {
         amountToWithdraw,
         !!(amountToWithdraw && bankAccount),
         bankAccount?.id
-    )
-
-    // non-eur sepa countries that are currently experiencing issues
-    const isNonEuroSepaCountry = !!(
-        nonEuroCurrency &&
-        nonEuroCurrency !== 'EUR' &&
-        nonEuroCurrency !== 'USD' &&
-        nonEuroCurrency !== 'MXN'
     )
 
     useEffect(() => {
@@ -324,26 +308,9 @@ export default function WithdrawBankPage() {
                         <PaymentInfoRow hideBottomBorder label="Fee" value={`$ 0.00`} />
                     </Card>
 
-                    {isNonEuroSepaCountry && (
-                        <div className="rounded-sm border border-yellow-500 bg-yellow-50 p-4">
-                            <div className="flex items-start gap-3">
-                                <div className="mt-0.5 text-xl">⚠️</div>
-                                <div className="flex-1">
-                                    <p className="text-sm font-semibold text-yellow-800">
-                                        Service Temporarily Unavailable
-                                    </p>
-                                    <p className="mt-1 text-xs text-yellow-700">
-                                        Withdrawals to {nonEuroCurrency} bank accounts are temporarily unavailable.
-                                        Please try again later.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
                     {error.showError ? (
                         <Button
-                            disabled={isLoading || isNonEuroSepaCountry}
+                            disabled={isLoading}
                             onClick={handleCreateAndInitiateOfframp}
                             loading={isLoading}
                             shadowSize="4"
@@ -360,10 +327,10 @@ export default function WithdrawBankPage() {
                             iconSize={12}
                             shadowSize="4"
                             onClick={handleCreateAndInitiateOfframp}
-                            disabled={isLoading || !bankAccount || isNonEuroSepaCountry || !!balanceErrorMessage}
+                            disabled={isLoading || !bankAccount || !!balanceErrorMessage}
                             className="w-full"
                         >
-                            {isNonEuroSepaCountry ? 'Temporarily Unavailable' : 'Withdraw'}
+                            Withdraw
                         </Button>
                     )}
                     {error.showError && <ErrorAlert description={error.errorMessage} />}
