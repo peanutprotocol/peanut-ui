@@ -121,8 +121,6 @@ export const useHomeCarouselCTAs = () => {
         // LATAM Cashback CTA - show to all users in Argentina or Brazil
         // Encourage them to invite friends to earn more cashback (and complete KYC if needed)
         if (isLatamUser) {
-<<<<<<< HEAD
-=======
             _carouselCTAs.push({
                 id: 'latam-cashback-invite',
                 title: (
@@ -143,34 +141,6 @@ export const useHomeCarouselCTAs = () => {
                 iconSize: 16,
             })
         }
-        // ------------------------------------------------------------------------------------------------
-
-        // ------------------------------------------------------------------------------------------------
-        // add devconnect payment cta if there's a pending intent
-        // @dev: note, this code needs to be deleted post devconnect, this is just to temporarily support onramp to devconnect wallet using bank accounts
-        if (pendingDevConnectIntent) {
->>>>>>> peanut-wallet
-            _carouselCTAs.push({
-                id: 'latam-cashback-invite',
-                title: (
-                    <p>
-                        Earn <b>20% cashback</b> on QR payments
-                    </p>
-                ),
-                description: (
-                    <p>
-                        Invite friends to <b>unlock more rewards</b>. The more they use, the more you earn!
-                    </p>
-                ),
-                iconContainerClassName: 'bg-secondary-1',
-                icon: 'gift',
-                onClick: () => {
-                    router.push('/points')
-                },
-                iconSize: 16,
-            })
-        }
-        // ------------------------------------------------------------------------------------------------
 
         if (!hasKycApproval && !isUserBridgeKycUnderReview) {
             _carouselCTAs.push({
