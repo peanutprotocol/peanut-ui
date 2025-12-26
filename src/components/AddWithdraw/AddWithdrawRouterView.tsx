@@ -9,7 +9,7 @@ import { useUserStore } from '@/redux/hooks'
 import { AccountType, type Account } from '@/interfaces/interfaces'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useOnrampFlow } from '@/context/OnrampFlowContext'
-import { isMantecaCountry } from '@/constants/manteca.consts'
+import { isMantecaCountry, MANTECA_COUNTRIES_CONFIG } from '@/constants/manteca.consts'
 import Card from '@/components/Global/Card'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { CountryList } from '../Common/CountryList'
@@ -274,10 +274,19 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
             <CountryList
                 inputTitle={mainHeading}
                 viewMode="add-withdraw"
-                enforceSupportedCountries={isBankFromSend}
                 onCountryClick={(country) => {
                     // from send flow (bank): set method in context and stay on /withdraw?method=bank
                     if (flow === 'withdraw' && isBankFromSend) {
+                        const isMantecaCountry = country.id in MANTECA_COUNTRIES_CONFIG
+
+                        if (isMantecaCountry) {
+                            const route = `withdraw/manteca?method=bank-transfer&country=${country.path}`
+                            startTransition(() => {
+                                router.push(route)
+                            })
+                            return
+                        }
+
                         // set selected method and let withdraw page move to amount input
                         setSelectedMethod({
                             type: 'bridge',
