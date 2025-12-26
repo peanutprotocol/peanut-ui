@@ -254,7 +254,8 @@ export const mantecaApi = {
                     Authorization: `Bearer ${Cookies.get('jwt-token')}`,
                 },
                 body: jsonStringify({
-                    usdAmount: params.usdAmount,
+                    amount: params.amount,
+                    isUsdDenominated: params.isUsdDenominated,
                     currency: params.currency,
                     chargeId: params.chargeId,
                 }),

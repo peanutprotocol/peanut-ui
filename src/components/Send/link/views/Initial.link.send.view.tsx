@@ -17,7 +17,7 @@ import { useCallback, useContext, useEffect, useMemo } from 'react'
 import { parseUnits } from 'viem'
 import { Button } from '@/components/0_Bruddle/Button'
 import FileUploadInput from '../../../Global/FileUploadInput'
-import TokenAmountInput from '../../../Global/TokenAmountInput'
+import AmountInput from '../../../Global/AmountInput'
 import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 
 const LinkSendInitialView = () => {
@@ -133,10 +133,9 @@ const LinkSendInitialView = () => {
         <div className="w-full space-y-4">
             <PeanutActionCard type="send" />
 
-            <TokenAmountInput
-                className="w-full"
-                tokenValue={tokenValue}
-                setTokenValue={setTokenValue}
+            <AmountInput
+                initialAmount={tokenValue}
+                setPrimaryAmount={setTokenValue}
                 onSubmit={handleOnNext}
                 walletBalance={peanutWalletBalance}
             />

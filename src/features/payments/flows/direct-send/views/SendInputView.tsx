@@ -13,7 +13,7 @@
  */
 
 import NavHeader from '@/components/Global/NavHeader'
-import TokenAmountInput from '@/components/Global/TokenAmountInput'
+import AmountInput from '@/components/Global/AmountInput'
 import UserCard from '@/components/User/UserCard'
 import FileUploadInput from '@/components/Global/FileUploadInput'
 import ErrorAlert from '@/components/Global/ErrorAlert'
@@ -80,9 +80,9 @@ export function SendInputView() {
                 )}
 
                 {/* amount input */}
-                <TokenAmountInput
-                    tokenValue={amount}
-                    setTokenValue={(val) => setAmount(val ?? '')}
+                <AmountInput
+                    initialAmount={amount}
+                    setPrimaryAmount={setAmount}
                     onSubmit={handleSubmit}
                     walletBalance={isLoggedIn ? formattedBalance : undefined}
                     hideBalance={!isLoggedIn}

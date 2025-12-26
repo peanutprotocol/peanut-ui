@@ -15,7 +15,7 @@
 
 import { useEffect, useContext } from 'react'
 import NavHeader from '@/components/Global/NavHeader'
-import TokenAmountInput from '@/components/Global/TokenAmountInput'
+import AmountInput from '@/components/Global/AmountInput'
 import UserCard from '@/components/User/UserCard'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import SupportCTA from '@/components/Global/SupportCTA'
@@ -53,6 +53,7 @@ export function SemanticRequestInputView() {
         selectedChainID,
         selectedTokenAddress,
         supportedSquidChainsAndTokens,
+        selectedTokenData,
     } = useContext(tokenSelectorContext)
 
     // initialize token/chain from parsed url
@@ -141,13 +142,17 @@ export function SemanticRequestInputView() {
                 )}
 
                 {/* amount input */}
-                <TokenAmountInput
-                    tokenValue={amount}
-                    setTokenValue={(val) => setAmount(val ?? '')}
+                <AmountInput
+                    initialAmount={amount}
+                    setPrimaryAmount={setAmount}
+                    primaryDenomination={{
+                        symbol: '$',
+                        price: 1,
+                        decimals: 6, // we want USDC decimals to be able to pay exactly
+                    }}
                     onSubmit={handleSubmit}
                     walletBalance={isLoggedIn ? formattedBalance : undefined}
                     hideBalance={!isLoggedIn}
-                    hideCurrencyToggle={true}
                     disabled={isAmountFromUrl}
                 />
 

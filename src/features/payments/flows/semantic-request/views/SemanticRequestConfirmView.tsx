@@ -163,7 +163,7 @@ export function SemanticRequestConfirmView() {
                         recipientType={recipient?.recipientType as PeanutActionDetailsCardRecipientType}
                         recipientName={recipient?.identifier || recipient?.resolvedAddress || ''}
                         amount={displayAmount}
-                        tokenSymbol={selectedTokenData?.symbol || ''}
+                        tokenSymbol={'$'}
                         message={attachment?.message ?? ''}
                         fileUrl={attachment?.fileUrl ?? ''}
                         showTimer={isCrossChainPayment && calculatedRoute?.type === 'rfq'}

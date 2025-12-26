@@ -4,7 +4,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { AddWithdrawRouterView } from '@/components/AddWithdraw/AddWithdrawRouterView'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
-import TokenAmountInput from '@/components/Global/TokenAmountInput'
+import AmountInput from '@/components/Global/AmountInput'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -153,7 +153,7 @@ export default function WithdrawPage() {
     const handleTokenAmountChange = useCallback(
         (value: string | undefined) => {
             let newValue = value || ''
-            // treat leading "0" from initial TokenAmountInput mount as empty
+            // treat leading "0" from initial AmountInput mount as empty
             if (newValue === '0') {
                 newValue = ''
             }
@@ -272,10 +272,14 @@ export default function WithdrawPage() {
                             {isFromSendFlow ? 'Amount to send' : 'Amount to withdraw'}
                         </div>
                     </div>
-                    <TokenAmountInput
-                        key={tokenInputKey} // force re-render to clear any internal state
-                        tokenValue={rawTokenAmount}
-                        setTokenValue={handleTokenAmountChange}
+                    <AmountInput
+                        initialAmount={rawTokenAmount}
+                        setPrimaryAmount={handleTokenAmountChange}
+                        primaryDenomination={{
+                            symbol: '$',
+                            price: 1,
+                            decimals: 6, // we want USDC decimals to be able to pay exactly
+                        }}
                         walletBalance={peanutWalletBalance}
                         hideCurrencyToggle
                     />

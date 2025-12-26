@@ -1,5 +1,5 @@
 'use client'
-import { type FC, useEffect, useMemo, useState } from 'react'
+import { type FC, useEffect, useMemo, useState, useCallback } from 'react'
 import MantecaDepositShareDetails from '@/components/AddMoney/components/MantecaDepositShareDetails'
 import InputAmountStep from '@/components/AddMoney/components/InputAmountStep'
 import { useParams, useRouter } from 'next/navigation'
@@ -29,8 +29,8 @@ const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
     const router = useRouter()
     const [step, setStep] = useState<stepType>('inputAmount')
     const [isCreatingDeposit, setIsCreatingDeposit] = useState(false)
-    const [tokenAmount, setTokenAmount] = useState('')
     const [currencyAmount, setCurrencyAmount] = useState<string | undefined>()
+    const [currentDenomination, setCurrentDenomination] = useState<string>('USD')
     const [usdAmount, setUsdAmount] = useState('')
     const [error, setError] = useState<string | null>(null)
     const [depositDetails, setDepositDetails] = useState<MantecaDepositResponseData>()
@@ -86,7 +86,7 @@ const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
         }
     }
 
-    const handleAmountSubmit = async () => {
+    const handleAmountSubmit = useCallback(async () => {
         if (!selectedCountry?.currency) return
         if (isCreatingDeposit) return
 
@@ -104,8 +104,11 @@ const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
         try {
             setError(null)
             setIsCreatingDeposit(true)
+            const isUsdDenominated = currentDenomination === 'USD'
+            const amount = isUsdDenominated ? usdAmount : currencyAmount
             const depositData = await mantecaApi.deposit({
-                usdAmount: usdAmount.replace(/,/g, ''),
+                amount: amount!.replace(/,/g, ''),
+                isUsdDenominated,
                 currency: selectedCountry.currency,
             })
             if (depositData.error) {
@@ -120,7 +123,7 @@ const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
         } finally {
             setIsCreatingDeposit(false)
         }
-    }
+    }, [currentDenomination, selectedCountry, usdAmount, currencyAmount])
 
     // handle verification modal opening
     useEffect(() => {
@@ -135,14 +138,14 @@ const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
         return (
             <>
                 <InputAmountStep
-                    tokenAmount={tokenAmount}
-                    setTokenAmount={setTokenAmount}
+                    tokenAmount={usdAmount}
+                    setTokenAmount={setUsdAmount}
                     onSubmit={handleAmountSubmit}
                     isLoading={isCreatingDeposit}
                     error={error}
-                    setUsdAmount={setUsdAmount}
                     currencyData={currencyData}
                     setCurrencyAmount={setCurrencyAmount}
+                    setCurrentDenomination={setCurrentDenomination}
                 />
                 {isKycModalOpen && (
                     <MantecaGeoSpecificKycModal

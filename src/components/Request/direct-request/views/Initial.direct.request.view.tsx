@@ -5,7 +5,7 @@ import FileUploadInput from '@/components/Global/FileUploadInput'
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutLoading from '@/components/Global/PeanutLoading'
-import TokenAmountInput from '@/components/Global/TokenAmountInput'
+import AmountInput from '@/components/Global/AmountInput'
 import ValidationErrorView, { type ValidationErrorViewProps } from '@/components/Payment/Views/Error.validation.view'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
 import UserCard from '@/components/User/UserCard'
@@ -221,10 +221,10 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                 />
 
                 <div className="space-y-4">
-                    <TokenAmountInput
+                    <AmountInput
                         className="w-full"
-                        tokenValue={currentInputValue}
-                        setTokenValue={handleTokenValueChange}
+                        initialAmount={currentInputValue}
+                        setPrimaryAmount={handleTokenValueChange}
                         onSubmit={() => setView('confirm')}
                         walletBalance={peanutWalletBalance}
                         hideCurrencyToggle
