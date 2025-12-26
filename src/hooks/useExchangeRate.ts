@@ -42,6 +42,19 @@ export function useExchangeRate({
     // Utility functions
     const isValidAmount = (amount: InputValue): amount is number => typeof amount === 'number' && amount > 0
 
+    // Apply 50 bps (0.5%) markup for EUR/MXN pairs
+    const applyMarkupIfNeeded = (rate: number): number => {
+        const markupCurrencies = ['EUR', 'MXN']
+        const hasMarkup =
+            markupCurrencies.includes(sourceCurrency.toUpperCase()) ||
+            markupCurrencies.includes(destinationCurrency.toUpperCase())
+
+        if (hasMarkup) {
+            return rate * 0.995 // 50 bps = 0.5% less favorable rate
+        }
+        return rate
+    }
+
     const clearDestinationFields = () => {
         setDestinationAmount('')
         setDestinationInputValue('')
@@ -95,7 +108,7 @@ export function useExchangeRate({
         enabled: enabled && !!sourceCurrency && !!destinationCurrency,
     })
 
-    const exchangeRate = rateData?.rate ?? 0
+    const exchangeRate = rateData?.rate ? applyMarkupIfNeeded(rateData.rate) : 0
     const isLoading = isFetching
 
     // Recalculate amounts when debounced inputs or rate changes (no extra loading toggles)
