@@ -58,16 +58,27 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
     )
 
     // Setter functions that update URL
+    // USD must always be one of the two currencies in the pair
     const setSourceCurrency = useCallback(
         (currency: string) => {
-            updateUrlParams({ from: currency })
+            if (currency !== 'USD') {
+                // If source is not USD, destination must become USD
+                updateUrlParams({ from: currency, to: 'USD' })
+            } else {
+                updateUrlParams({ from: currency })
+            }
         },
         [updateUrlParams]
     )
 
     const setDestinationCurrency = useCallback(
         (currency: string) => {
-            updateUrlParams({ to: currency })
+            if (currency !== 'USD') {
+                // If destination is not USD, source must become USD
+                updateUrlParams({ from: 'USD', to: currency })
+            } else {
+                updateUrlParams({ to: currency })
+            }
         },
         [updateUrlParams]
     )
