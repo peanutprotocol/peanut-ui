@@ -63,7 +63,7 @@ const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
             setError(null)
             return
         }
-        const paymentAmount = parseUnits(usdAmount.replace(/,/g, ''), PEANUT_WALLET_TOKEN_DECIMALS)
+        const paymentAmount = parseUnits(usdAmount, PEANUT_WALLET_TOKEN_DECIMALS)
         if (paymentAmount < parseUnits(MIN_MANTECA_DEPOSIT_AMOUNT.toString(), PEANUT_WALLET_TOKEN_DECIMALS)) {
             setError(`Deposit amount must be at least $${MIN_MANTECA_DEPOSIT_AMOUNT}`)
         } else if (paymentAmount > parseUnits(MAX_MANTECA_DEPOSIT_AMOUNT.toString(), PEANUT_WALLET_TOKEN_DECIMALS)) {
@@ -107,7 +107,7 @@ const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
             const isUsdDenominated = currentDenomination === 'USD'
             const amount = isUsdDenominated ? usdAmount : currencyAmount
             const depositData = await mantecaApi.deposit({
-                amount: amount!.replace(/,/g, ''),
+                amount: amount!,
                 isUsdDenominated,
                 currency: selectedCountry.currency,
             })

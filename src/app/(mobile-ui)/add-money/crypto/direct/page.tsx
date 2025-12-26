@@ -27,7 +27,7 @@ export default function AddMoneyCryptoDirectPage() {
     const [showModal, setShowModal] = useState(false)
 
     const validateAmount = () => {
-        const formattedAmount = parseFloat(inputTokenAmount.replace(/,/g, ''))
+        const formattedAmount = parseFloat(inputTokenAmount)
 
         if (formattedAmount < 0.1) {
             setError('Minimum deposit using crypto is $0.1.')

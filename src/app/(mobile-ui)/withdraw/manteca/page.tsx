@@ -288,7 +288,7 @@ export default function MantecaWithdrawFlow() {
             setBalanceErrorMessage(null)
             return
         }
-        const paymentAmount = parseUnits(usdAmount.replace(/,/g, ''), PEANUT_WALLET_TOKEN_DECIMALS)
+        const paymentAmount = parseUnits(usdAmount, PEANUT_WALLET_TOKEN_DECIMALS)
         if (paymentAmount < parseUnits(MIN_WITHDRAW_AMOUNT, PEANUT_WALLET_TOKEN_DECIMALS)) {
             setBalanceErrorMessage(`Withdraw amount must be at least $${MIN_WITHDRAW_AMOUNT}`)
         } else if (paymentAmount > parseUnits(MAX_WITHDRAW_AMOUNT, PEANUT_WALLET_TOKEN_DECIMALS)) {
@@ -467,8 +467,7 @@ export default function MantecaWithdrawFlow() {
                                     <Icon name="arrow-up" size={10} /> You're withdrawing
                                 </p>
                                 <p className="text-2xl font-bold">
-                                    {currencyCode}{' '}
-                                    {formatNumberForDisplay(currencyAmount?.replace(/,/g, ''), { maxDecimals: 2 })}
+                                    {currencyCode} {formatNumberForDisplay(currencyAmount, { maxDecimals: 2 })}
                                 </p>
                                 <div className="text-lg font-bold">
                                     ≈ {formatNumberForDisplay(usdAmount, { maxDecimals: 2 })} USD

@@ -123,8 +123,7 @@ export default function OnrampBankPage() {
                 setError({ showError: false, errorMessage: '' })
                 return true
             }
-            const cleanedAmountStr = amountStr.replace(/,/g, '')
-            const amount = Number(cleanedAmountStr)
+            const amount = Number(amountStr)
             if (!Number.isFinite(amount)) {
                 setError({ showError: true, errorMessage: 'Please enter a valid number.' })
                 return false
@@ -170,13 +169,12 @@ export default function OnrampBankPage() {
             })
             return
         }
-        const cleanedAmount = rawTokenAmount.replace(/,/g, '')
-        setAmountToOnramp(cleanedAmount)
+        setAmountToOnramp(rawTokenAmount)
         setShowWarningModal(false)
         setIsRiskAccepted(false)
         try {
             const onrampDataResponse = await createOnramp({
-                amount: cleanedAmount,
+                amount: rawTokenAmount,
                 country: selectedCountry,
             })
             setOnrampData(onrampDataResponse)
@@ -361,8 +359,8 @@ export default function OnrampBankPage() {
                         shadowSize="4"
                         onClick={handleAmountContinue}
                         disabled={
-                            !parseFloat(rawTokenAmount.replace(/,/g, '')) ||
-                            parseFloat(rawTokenAmount.replace(/,/g, '')) < minimumAmount ||
+                            !parseFloat(rawTokenAmount) ||
+                            parseFloat(rawTokenAmount) < minimumAmount ||
                             error.showError ||
                             isCreatingOnramp
                         }

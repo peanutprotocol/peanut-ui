@@ -885,7 +885,7 @@ export default function QRPayPage() {
             setBalanceErrorMessage(null)
             return
         }
-        const paymentAmount = parseUnits(usdAmount.replace(/,/g, ''), PEANUT_WALLET_TOKEN_DECIMALS)
+        const paymentAmount = parseUnits(usdAmount, PEANUT_WALLET_TOKEN_DECIMALS)
 
         // Manteca-specific validation (PIX, MercadoPago, QR3)
         if (paymentProcessor === 'MANTECA') {

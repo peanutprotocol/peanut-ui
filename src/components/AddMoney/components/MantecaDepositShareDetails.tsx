@@ -108,7 +108,7 @@ const MantecaDepositShareDetails = ({
                                 <Icon name="arrow-down" size={10} /> You're adding
                             </p>
                             <p className="text-2xl font-bold">
-                                {currencySymbol} {formatCurrency(depositAmount.replace(/,/g, ''))}
+                                {currencySymbol} {formatCurrency(depositAmount)}
                             </p>
                             <div className="text-lg font-bold">≈ {formatCurrency(usdAmount)} USD</div>
                         </div>

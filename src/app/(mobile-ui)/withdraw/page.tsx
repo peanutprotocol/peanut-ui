@@ -119,8 +119,7 @@ export default function WithdrawPage() {
                 return true
             }
 
-            const cleanedAmountStr = amountStr.replace(/,/g, '')
-            const amount = Number(cleanedAmountStr)
+            const amount = Number(amountStr)
             if (!Number.isFinite(amount) || amount <= 0) {
                 setError({ showError: true, errorMessage: 'Please enter a valid number.' })
                 return false
@@ -196,9 +195,8 @@ export default function WithdrawPage() {
 
     const handleAmountContinue = () => {
         if (validateAmount(rawTokenAmount) && selectedMethod) {
-            const cleanedAmount = rawTokenAmount.replace(/,/g, '')
-            setAmountToWithdraw(cleanedAmount)
-            const usdVal = (selectedTokenData?.price ?? 1) * parseFloat(cleanedAmount)
+            setAmountToWithdraw(rawTokenAmount)
+            const usdVal = (selectedTokenData?.price ?? 1) * parseFloat(rawTokenAmount)
             setUsdAmount(usdVal.toString())
 
             // Route based on selected method type
@@ -239,8 +237,7 @@ export default function WithdrawPage() {
     const isContinueDisabled = useMemo(() => {
         if (!rawTokenAmount) return true
 
-        const cleanedAmount = rawTokenAmount.replace(/,/g, '')
-        const numericAmount = parseFloat(cleanedAmount)
+        const numericAmount = parseFloat(rawTokenAmount)
         if (!Number.isFinite(numericAmount) || numericAmount <= 0) return true
 
         const usdEq = (selectedTokenData?.price ?? 1) * numericAmount

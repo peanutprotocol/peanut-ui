@@ -76,7 +76,7 @@ const DaimoPayButton = ({
 
     const handleClick = useCallback(async () => {
         // Parse and validate amount
-        const formattedAmount = parseFloat(amount.replace(/,/g, ''))
+        const formattedAmount = parseFloat(amount)
 
         // Validate amount range if specified
         if (minAmount !== undefined && formattedAmount < minAmount) {
@@ -146,7 +146,7 @@ const DaimoPayButton = ({
             appId={daimoAppId}
             intent="Deposit"
             toChain={toChainId ?? arbitrum.id} // use provided chain or default to arbitrum
-            toUnits={amount.replace(/,/g, '')}
+            toUnits={amount}
             toAddress={getAddress(toAddress)}
             toToken={getAddress(toTokenAddress ?? PEANUT_WALLET_TOKEN)} // use provided token or default to usdc on arbitrum
             onPaymentCompleted={onPaymentCompleted}

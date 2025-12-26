@@ -108,12 +108,16 @@ const AmountInput = ({
 
     useEffect(() => {
         const isPrimaryDenomination = displaySymbol === primaryDenomination.symbol
+        // Strip commas before passing to consumers - they expect raw numeric strings
+        const rawDisplayValue = displayValue.replace(/,/g, '')
+        const rawAlternativeValue = alternativeDisplayValue.replace(/,/g, '')
+
         if (isPrimaryDenomination) {
-            setPrimaryAmount(displayValue)
-            setSecondaryAmount?.(alternativeDisplayValue)
+            setPrimaryAmount(rawDisplayValue)
+            setSecondaryAmount?.(rawAlternativeValue)
         } else {
-            setPrimaryAmount(alternativeDisplayValue)
-            setSecondaryAmount?.(displayValue)
+            setPrimaryAmount(rawAlternativeValue)
+            setSecondaryAmount?.(rawDisplayValue)
         }
     }, [displayValue, alternativeDisplayValue, displaySymbol, secondaryDenomination])
 
@@ -176,7 +180,7 @@ const AmountInput = ({
         <form
             className={`relative cursor-text rounded-sm border border-n-1 bg-white p-4 dark:border-white ${className}`}
             action=""
-            //onClick={handleContainerClick}
+            onClick={() => inputRef.current?.focus()}
         >
             <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-2">
                 <div className="flex items-center gap-1 font-bold">
