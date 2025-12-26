@@ -81,7 +81,7 @@
         "wagmi": "2.16.3"
     },
     "devDependencies": {
-        "@next/bundle-analyzer": "^15.2.4",
+        "@serwist/build": "^9.0.10",
         "@size-limit/preset-app": "^11.2.0",
         "@testing-library/jest-dom": "^6.4.2",
         "@testing-library/react": "^16.1.0",
