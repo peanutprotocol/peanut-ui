@@ -63,7 +63,12 @@ export const CryptoDepositQR = ({
                         <p ref={containerRef} className="min-w-0 flex-1 py-3 text-sm font-semibold">
                             {truncatedAddress}
                         </p>
-                        <CopyToClipboard textToCopy={depositAddress} className="text-black" iconSize={'4'} />
+                        <CopyToClipboard
+                            fill="black"
+                            textToCopy={depositAddress}
+                            className="text-black"
+                            iconSize={'4'}
+                        />
                     </Card>
                     <Button
                         variant="purple"

@@ -91,7 +91,7 @@ export function SendInputView() {
 
                 {/* message input */}
                 <FileUploadInput
-                    placeholder="Add reference (optional)"
+                    placeholder="Comment"
                     attachmentOptions={{
                         fileUrl: attachment.fileUrl,
                         rawFile: attachment.file,

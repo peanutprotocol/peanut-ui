@@ -755,7 +755,7 @@ export const TransactionDetailsReceipt = ({
                                 ) : (
                                     <div className="flex items-center gap-2">
                                         <span>{shortenStringLong(transaction.txHash)}</span>
-                                        <CopyToClipboard textToCopy={transaction.txHash} iconSize="4" />
+                                        <CopyToClipboard fill="black" textToCopy={transaction.txHash} iconSize="4" />
                                     </div>
                                 )
                             }
