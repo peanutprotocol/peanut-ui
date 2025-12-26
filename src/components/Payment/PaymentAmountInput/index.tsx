@@ -396,7 +396,7 @@ const PaymentAmountInput = ({
                         router.replace(`?${params.toString()}`, { scroll: false })
                     }}
                 >
-                    <Icon name={'switch'} className="ml-5 rotate-90 cursor-pointer" width={32} height={32} />
+                    <Icon name={'arrow-exchange'} className="ml-5 rotate-90 cursor-pointer" width={32} height={32} />
                 </div>
             )}
             {showInfoText && infoText && (

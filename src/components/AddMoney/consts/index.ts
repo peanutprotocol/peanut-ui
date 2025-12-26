@@ -2740,14 +2740,10 @@ export const NON_EUR_SEPA_ALPHA2 = new Set(
         .map((x) => x.alpha2 as string)
 )
 
-const enabledBankWithdrawCountries = new Set(
-    [...Object.values(BRIDGE_ALPHA3_TO_ALPHA2), 'US', 'MX', 'AR'].filter((code) => !NON_EUR_SEPA_ALPHA2.has(code))
-)
+const enabledBankWithdrawCountries = new Set([...Object.values(BRIDGE_ALPHA3_TO_ALPHA2), 'US', 'MX', 'AR'])
 
 // exclude non-euro sepa countries from bank deposits, same as withdrawals
-const enabledBankDepositCountries = new Set(
-    [...Object.values(BRIDGE_ALPHA3_TO_ALPHA2), 'US', 'MX', 'AR'].filter((code) => !NON_EUR_SEPA_ALPHA2.has(code))
-)
+const enabledBankDepositCountries = new Set([...Object.values(BRIDGE_ALPHA3_TO_ALPHA2), 'US', 'MX', 'AR'])
 
 // Helper function to check if a country code is enabled for bank transfers
 // Handles both 2-letter and 3-letter country codes

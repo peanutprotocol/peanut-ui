@@ -58,7 +58,6 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         recipient,
         tokenPrice,
         setClaimType,
-        setEstimatedPoints,
         attachment,
         setTransactionHash,
         onCustom,

@@ -60,6 +60,7 @@ import {
     ControlPointRounded,
     RemoveCircleOutlineRounded,
     CloudUploadOutlined,
+    CompareArrowsRounded,
 } from '@mui/icons-material'
 import { DocsIcon } from './docs'
 import { PeanutSupportIcon } from './peanut-support'
@@ -75,6 +76,7 @@ export type IconName =
     | 'arrow-down-left'
     | 'arrow-up'
     | 'arrow-up-right'
+    | 'arrow-exchange'
     | 'bank'
     | 'bell'
     | 'camera'
@@ -269,6 +271,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     'globe-lock': (props) => <MaterialIconWrapper Icon={VpnLockOutlined} {...props} />,
     'plus-circle': (props) => <MaterialIconWrapper Icon={ControlPointRounded} {...props} />,
     'minus-circle': (props) => <MaterialIconWrapper Icon={RemoveCircleOutlineRounded} {...props} />,
+    'arrow-exchange': (props) => <MaterialIconWrapper Icon={CompareArrowsRounded} {...props} />,
     // custom icons
     'txn-off': TxnOffIcon,
     docs: DocsIcon,

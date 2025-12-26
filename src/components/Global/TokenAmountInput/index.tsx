@@ -391,7 +391,12 @@ const TokenAmountInput = ({
                         router.replace(`?${params.toString()}`, { scroll: false })
                     }}
                 >
-                    <IconComponent name={'switch'} className="ml-5 rotate-90 cursor-pointer" width={32} height={32} />
+                    <IconComponent
+                        name={'arrow-exchange'}
+                        className="ml-5 rotate-90 cursor-pointer"
+                        width={32}
+                        height={32}
+                    />
                 </div>
             )}
             {showInfoText && infoText && (
