@@ -6,6 +6,7 @@ import PeanutLoading from '@/components/Global/PeanutLoading'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useRouter } from 'next/navigation'
 import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
+import RhinoDepositView from '@/components/AddMoney/views/RhinoDeposit.view'
 
 interface AddMoneyCryptoPageProps {
     headerTitle?: string
@@ -36,16 +37,7 @@ const AddMoneyCryptoPage = ({ headerTitle, onBack, depositAddress }: AddMoneyCry
         return null
     }
 
-    return (
-        <CryptoDepositQR
-            tokenName={selectedToken.symbol}
-            tokenIcon={selectedToken.icon}
-            chainName={selectedNetwork.name}
-            chainIcon={selectedNetwork.iconUrl}
-            depositAddress={finalDepositAddress}
-            onBack={() => router.back()}
-        />
-    )
+    return <RhinoDepositView />
 }
 
 export default AddMoneyCryptoPage

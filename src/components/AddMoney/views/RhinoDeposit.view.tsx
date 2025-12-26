@@ -1,0 +1,133 @@
+'use client'
+import { Button } from '@/components/0_Bruddle/Button'
+import Card from '@/components/Global/Card'
+import CopyToClipboard from '@/components/Global/CopyToClipboard'
+import { Icon } from '@/components/Global/Icons/Icon'
+import NavHeader from '@/components/Global/NavHeader'
+import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
+import ChainChip from '../components/ChainChip'
+import InfoCard from '@/components/Global/InfoCard'
+import { Root, List, Trigger } from '@radix-ui/react-tabs'
+import { useAuth } from '@/context/authContext'
+import PeanutLoading from '@/components/Global/PeanutLoading'
+import { useQuery } from '@tanstack/react-query'
+import { rhinoApi } from '@/services/rhino'
+import { useWallet } from '@/hooks/wallet/useWallet'
+import { useState } from 'react'
+import type { RhinoChainType } from '@/services/services.types'
+import { useAutoTruncatedAddress } from '@/hooks/useAutoTruncatedAddress'
+
+const RhinoDepositView = () => {
+    const { user } = useAuth()
+    const { address: peanutWalletAddress } = useWallet()
+    const [chainType, setChainType] = useState<RhinoChainType>('EVM')
+
+    const { data: depositAddressData, isLoading } = useQuery({
+        queryKey: ['rhino-deposit-address', user?.user.userId, chainType],
+        queryFn: () =>
+            rhinoApi.createDepositAddress(peanutWalletAddress as string, chainType, user?.user.userId as string),
+        enabled: !!user && !!peanutWalletAddress,
+        staleTime: 1000 * 60 * 60 * 24, // 24 hours
+    })
+    const { containerRef, truncatedAddress } = useAutoTruncatedAddress(depositAddressData?.depositAddress ?? '')
+
+    if (!user || isLoading) {
+        return <PeanutLoading />
+    }
+
+    return (
+        <div className="flex w-full flex-col justify-start space-y-8 pb-5 md:pb-0">
+            <NavHeader title={'Add Money'} onPrev={() => {}} />
+            {depositAddressData && (
+                <div className="my-auto flex w-full flex-grow flex-col items-center justify-center gap-4 md:my-0">
+                    <Root
+                        value={chainType}
+                        onValueChange={(e) => setChainType(e as RhinoChainType)}
+                        defaultValue="EVM"
+                        className="w-full"
+                    >
+                        <List
+                            className="flex w-full items-center rounded-xl bg-white p-0"
+                            aria-label="Select network type"
+                        >
+                            <Trigger
+                                value="EVM"
+                                className="flex-1 rounded-xl border border-transparent py-1.5 text-sm font-medium text-grey-1 transition-all data-[state=active]:border-primary-1 data-[state=active]:bg-primary-1/10 data-[state=active]:text-primary-1"
+                            >
+                                EVM
+                            </Trigger>
+                            <Trigger
+                                value="SOL"
+                                className="flex-1 rounded-xl border border-transparent py-1.5 text-sm font-medium text-grey-1 transition-all data-[state=active]:border-primary-1 data-[state=active]:bg-primary-1/10 data-[state=active]:text-primary-1"
+                            >
+                                Solana
+                            </Trigger>
+                            <Trigger
+                                value="TRON"
+                                className="flex-1 rounded-xl border border-transparent py-1.5 text-sm font-medium text-grey-1 transition-all data-[state=active]:border-primary-1 data-[state=active]:bg-primary-1/10 data-[state=active]:text-primary-1"
+                            >
+                                Tron
+                            </Trigger>
+                        </List>
+                    </Root>
+
+                    <div className="flex items-center justify-center">
+                        <QRCodeWrapper url={depositAddressData?.depositAddress} />
+                    </div>
+
+                    <Button
+                        variant="primary-soft"
+                        className="flex h-8 w-2/3 cursor-pointer items-center justify-center gap-1.5 rounded-full px-2.5 md:h-9 md:px-3.5"
+                        shadowSize="3"
+                        size="small"
+                    >
+                        <p className="w-full text-sm" ref={containerRef}>
+                            {truncatedAddress}
+                        </p>
+                        <CopyToClipboard type="icon" textToCopy={depositAddressData.depositAddress} />
+                    </Button>
+
+                    <InfoCard
+                        iconClassName="text-yellow-11"
+                        variant="warning"
+                        icon="alert"
+                        containerClassName="items-center"
+                        customContent={
+                            <div className="flex items-center gap-2">
+                                <p className="text-sm">Supported tokens:</p>
+                                <ChainChip chainName="USDT" />
+                                <ChainChip chainName="USDC" />
+                            </div>
+                        }
+                    />
+
+                    <div className="flex w-full items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <Icon name="info" size={18} className="text-grey-1" />
+                            <p className="text-sm text-grey-1">Min deposit for EVM networks</p>
+                        </div>
+
+                        <p className="text-sm font-medium text-grey-1">{depositAddressData.minDepositLimitUsd} USD</p>
+                    </div>
+
+                    {chainType === 'EVM' && (
+                        <Card className="space-y-2 p-4">
+                            <h3 className="text-sm font-bold text-black">Supported EVM networks</h3>
+                            <div className="flex flex-wrap gap-2">
+                                <ChainChip chainName="ARBITRUM" />
+                                <ChainChip chainName="ETHEREUM" />
+                                <ChainChip chainName="BASE" />
+                                <ChainChip chainName="OPTIMISM" />
+                                <ChainChip chainName="BNB" />
+                                <ChainChip chainName="POLYGON" />
+                                <ChainChip chainName="TRON" />
+                            </div>
+                        </Card>
+                    )}
+                </div>
+            )}
+        </div>
+    )
+}
+
+export default RhinoDepositView

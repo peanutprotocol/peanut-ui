@@ -469,3 +469,11 @@ export interface HistoryEntryPerkReward {
     originatingTxType?: string
     perkName?: string
 }
+
+export type RhinoChainType = 'EVM' | 'SOL' | 'TRON'
+export interface CreateDepositAddressResponse {
+    depositAddress: string
+    minDepositLimitUsd: number
+    maxDepositLimitUsd: number
+    supportedChains: string[]
+}
