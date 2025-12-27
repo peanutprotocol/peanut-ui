@@ -53,7 +53,7 @@ type DirectSuccessViewProps = {
     amount?: string
     message?: string | ReactNode
     recipientType?: RecipientType
-    type?: 'SEND' | 'REQUEST'
+    type?: 'SEND' | 'REQUEST' | 'DEPOSIT'
     headerTitle?: string
     currencyAmount?: string
     isExternalWalletFlow?: boolean
@@ -213,6 +213,7 @@ const PaymentSuccessView = ({
         if (isWithdrawFlow) return 'You just withdrew'
         if (type === 'SEND') return 'You sent '
         if (type === 'REQUEST') return 'You requested '
+        if (type === 'DEPOSIT') return 'You added '
     }
 
     useEffect(() => {

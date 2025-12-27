@@ -13,14 +13,21 @@ import PeanutLoading from '@/components/Global/PeanutLoading'
 import { useQuery } from '@tanstack/react-query'
 import { rhinoApi } from '@/services/rhino'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import type { RhinoChainType } from '@/services/services.types'
 import { useAutoTruncatedAddress } from '@/hooks/useAutoTruncatedAddress'
+import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
 
 const RhinoDepositView = () => {
     const { user } = useAuth()
     const { address: peanutWalletAddress } = useWallet()
     const [chainType, setChainType] = useState<RhinoChainType>('EVM')
+    const [isDelayComplete, setIsDelayComplete] = useState(false)
+
+    useEffect(() => {
+        const timer = setTimeout(() => setIsDelayComplete(true), 15_000)
+        return () => clearTimeout(timer)
+    }, [])
 
     const { data: depositAddressData, isLoading } = useQuery({
         queryKey: ['rhino-deposit-address', user?.user.userId, chainType],
@@ -29,10 +36,38 @@ const RhinoDepositView = () => {
         enabled: !!user && !!peanutWalletAddress,
         staleTime: 1000 * 60 * 60 * 24, // 24 hours
     })
+
+    const { data: depositAddressStatusData } = useQuery({
+        queryKey: ['rhino-deposit-address-status'],
+        queryFn: () => rhinoApi.getDepositAddressStatus(depositAddressData?.depositAddress as string),
+        enabled: !!depositAddressData?.depositAddress && isDelayComplete, // Add some delay to start polling after the deposit address is created
+        refetchInterval: 5000, // 5 seconds
+    })
+
     const { containerRef, truncatedAddress } = useAutoTruncatedAddress(depositAddressData?.depositAddress ?? '')
 
-    if (!user || isLoading) {
-        return <PeanutLoading />
+    const depositAddressStatus = useMemo(() => {
+        if (depositAddressStatusData?.status == 'accepted') {
+            return 'loading'
+        } else if (depositAddressStatusData?.status == 'pending') {
+            return 'loading'
+        } else if (depositAddressStatusData?.status == 'failed') {
+            return 'failed'
+        } else if (depositAddressStatusData?.status == 'completed') {
+            return 'completed'
+        } else {
+            return 'not_started'
+        }
+    }, [depositAddressStatusData])
+
+    if (!user || isLoading || depositAddressStatus === 'loading') {
+        return (
+            <PeanutLoading message={depositAddressStatus === 'loading' ? 'Almost there! Processing...' : undefined} />
+        )
+    }
+
+    if (depositAddressStatus === 'completed' && depositAddressStatusData?.amount) {
+        return <PaymentSuccessView type="DEPOSIT" amount={depositAddressStatusData.amount.toString()} />
     }
 
     return (

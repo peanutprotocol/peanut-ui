@@ -22,4 +22,21 @@ export const rhinoApi = {
         const data = await response.json()
         return data as CreateDepositAddressResponse
     },
+
+    getDepositAddressStatus: async (depositAddress: string): Promise<{ status: string; amount?: number }> => {
+        const response = await fetch(`${PEANUT_API_URL}/rhino/status/${depositAddress}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+            },
+        })
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch rewards: ${response.statusText}`)
+        }
+
+        const data = await response.json()
+        return data
+    },
 }
