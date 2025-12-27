@@ -100,6 +100,8 @@ module.exports = {
                     3: '#29CC6A',
                     4: '#1C6A50',
                     5: '#88D987',
+                    6: '#ECFFE9',
+                    7: '#4B8A17',
                 },
                 white: '#FFFFFF',
                 red: '#FF0000',

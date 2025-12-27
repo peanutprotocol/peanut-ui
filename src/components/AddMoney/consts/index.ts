@@ -1,6 +1,4 @@
 import { MERCADO_PAGO, SOLANA_ICON, TRON_ICON, PIX } from '@/assets'
-import { BINANCE_LOGO, LEMON_LOGO, RIPIO_LOGO } from '@/assets/exchanges'
-import { METAMASK_LOGO, RAINBOW_LOGO, TRUST_WALLET_LOGO } from '@/assets/wallets'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { type StaticImageData } from 'next/image'
 
@@ -18,15 +16,6 @@ export const MantecaSupportedExchanges = {
     // MX: 'MEXICO',
     //PH: 'PHILIPPINES',
     //BO: 'BOLIVIA',
-}
-
-export interface CryptoSource {
-    id: string
-    name: string
-    type: 'exchange' | 'wallet'
-    icon?: StaticImageData
-    isGeneric?: boolean
-    path: string
 }
 
 export interface CryptoToken {
@@ -73,68 +62,6 @@ export const DEPOSIT_CRYPTO_TOKENS: CryptoToken[] = [
         name: 'Tron',
         symbol: 'TRX',
         icon: TRON_ICON,
-    },
-]
-
-export const CRYPTO_EXCHANGES: CryptoSource[] = [
-    {
-        id: 'binance',
-        name: 'Binance',
-        type: 'exchange',
-        icon: BINANCE_LOGO,
-        path: '/add-money/crypto/binance',
-    },
-    {
-        id: 'lemon',
-        name: 'Lemon',
-        type: 'exchange',
-        icon: LEMON_LOGO,
-        path: '/add-money/crypto/lemon',
-    },
-    {
-        id: 'ripio',
-        name: 'Ripio',
-        type: 'exchange',
-        icon: RIPIO_LOGO,
-        path: '/add-money/crypto/ripio',
-    },
-    {
-        id: 'other-exchanges',
-        name: 'Other exchanges',
-        type: 'exchange',
-        isGeneric: true,
-        path: '/add-money/crypto/other-exchanges',
-    },
-]
-
-export const CRYPTO_WALLETS: CryptoSource[] = [
-    {
-        id: 'metamask',
-        name: 'Metamask',
-        type: 'wallet',
-        icon: METAMASK_LOGO,
-        path: '/add-money/crypto/metamask',
-    },
-    {
-        id: 'rainbow',
-        name: 'Rainbow',
-        type: 'wallet',
-        icon: RAINBOW_LOGO,
-        path: '/add-money/crypto/rainbow',
-    },
-    {
-        id: 'trust-wallet',
-        name: 'Trust Wallet',
-        type: 'wallet',
-        icon: TRUST_WALLET_LOGO,
-        path: '/add-money/crypto/rainbow',
-    },
-    {
-        id: 'other-wallets',
-        name: 'Other wallets',
-        type: 'wallet',
-        isGeneric: true,
-        path: '/add-money/crypto/other-wallets',
     },
 ]
 
@@ -2813,14 +2740,10 @@ export const NON_EUR_SEPA_ALPHA2 = new Set(
         .map((x) => x.alpha2 as string)
 )
 
-const enabledBankWithdrawCountries = new Set(
-    [...Object.values(BRIDGE_ALPHA3_TO_ALPHA2), 'US', 'MX', 'AR'].filter((code) => !NON_EUR_SEPA_ALPHA2.has(code))
-)
+const enabledBankWithdrawCountries = new Set([...Object.values(BRIDGE_ALPHA3_TO_ALPHA2), 'US', 'MX', 'AR'])
 
 // exclude non-euro sepa countries from bank deposits, same as withdrawals
-const enabledBankDepositCountries = new Set(
-    [...Object.values(BRIDGE_ALPHA3_TO_ALPHA2), 'US', 'MX', 'AR'].filter((code) => !NON_EUR_SEPA_ALPHA2.has(code))
-)
+const enabledBankDepositCountries = new Set([...Object.values(BRIDGE_ALPHA3_TO_ALPHA2), 'US', 'MX', 'AR'])
 
 // Helper function to check if a country code is enabled for bank transfers
 // Handles both 2-letter and 3-letter country codes

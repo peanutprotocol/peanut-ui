@@ -1,5 +1,5 @@
 import CurrencySelect from '@/components/LandingPage/CurrencySelect'
-import { countryCurrencyMappings } from '@/constants/countryCurrencyMapping'
+import countryCurrencyMappings from '@/constants/countryCurrencyMapping'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
 import Image from 'next/image'

@@ -7,9 +7,7 @@ import { TokenContextProvider } from './tokenSelector.context'
 import { WithdrawFlowContextProvider } from './WithdrawFlowContext'
 import { ClaimBankFlowContextProvider } from './ClaimBankFlowContext'
 import { RequestFulfilmentFlowContextProvider } from './RequestFulfillmentFlowContext'
-import { SupportModalProvider } from './SupportModalContext'
 import { PasskeySupportProvider } from './passkeySupportContext'
-import { QrCodeProvider } from './QrCodeContext'
 import { ModalsProvider } from './ModalsContext'
 
 // note: push notifications are now handled by onesignal via useNotifications hook.
@@ -26,13 +24,9 @@ export const ContextProvider = ({ children }: { children: React.ReactNode }) => 
                                 <RequestFulfilmentFlowContextProvider>
                                     <WithdrawFlowContextProvider>
                                         <OnrampFlowContextProvider>
-                                            <SupportModalProvider>
-                                                <PasskeySupportProvider>
-                                                    <QrCodeProvider>
-                                                        <ModalsProvider>{children}</ModalsProvider>
-                                                    </QrCodeProvider>
-                                                </PasskeySupportProvider>
-                                            </SupportModalProvider>
+                                            <PasskeySupportProvider>
+                                                <ModalsProvider>{children}</ModalsProvider>
+                                            </PasskeySupportProvider>
                                         </OnrampFlowContextProvider>
                                     </WithdrawFlowContextProvider>
                                 </RequestFulfilmentFlowContextProvider>

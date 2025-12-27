@@ -15,6 +15,7 @@ interface CarouselCTAProps {
     title: string | React.ReactNode
     description: string | React.ReactNode
     logo?: StaticImageData
+    logoSize?: number
     onClose: () => void
     onClick?: () => void | Promise<void>
     iconContainerClassName?: string
@@ -35,6 +36,7 @@ const CarouselCTA = ({
     isPermissionDenied,
     secondaryIcon,
     iconSize = 22,
+    logoSize = 36,
 }: CarouselCTAProps) => {
     const [showPermissionDeniedModal, setShowPermissionDeniedModal] = useState(false)
     const { triggerHaptic } = useHaptic()
@@ -102,7 +104,12 @@ const CarouselCTA = ({
                     {/* Show icon only if logo isn't provided. Logo takes precedence over icon. */}
                     {!logo && <Icon name={icon} size={iconSize} />}
                     {logo && (
-                        <Image src={logo} alt={typeof title === 'string' ? title : 'logo'} width={36} height={36} />
+                        <Image
+                            src={logo}
+                            alt={typeof title === 'string' ? title : 'logo'}
+                            width={logoSize}
+                            height={logoSize}
+                        />
                     )}
                     {secondaryIcon && (
                         <Image

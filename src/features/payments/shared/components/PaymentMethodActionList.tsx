@@ -45,7 +45,7 @@ export function PaymentMethodActionList({ isAmountEntered, showDivider = true }:
     const { filteredMethods: sortedMethods, isLoading: isGeoLoading } = useGeoFilteredPaymentOptions({
         sortUnavailable: true,
         isMethodUnavailable: (method) => method.soon,
-        methods: ACTION_METHODS,
+        methods: ACTION_METHODS.filter((method) => method.id !== 'exchange-or-wallet'), // todo: @dev note, remove exchange-or-wallet filter from here in deposit project
     })
 
     const handleMethodClick = (method: PaymentMethod) => {

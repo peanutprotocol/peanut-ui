@@ -1,4 +1,4 @@
-import Icon from '@/components/Global/Icon'
+import { Icon } from '../Global/Icons/Icon'
 
 type CheckboxProps = {
     className?: string
@@ -20,7 +20,7 @@ const Checkbox = ({ className, label, value, onChange }: CheckboxProps) => (
         <span
             className={`relative flex h-5 w-5 shrink-0 items-center justify-center rounded-sm border border-n-1 transition-colors`}
         >
-            <Icon className={`transition-opacity ${value ? 'opacity-100' : 'opacity-0'}`} name="check" />
+            <Icon name="check" size={16} className={`transition-opacity ${value ? 'opacity-100' : 'opacity-0'}`} />
         </span>
         {label && <span className="ml-2.5 pt-0.75 text-xs font-bold text-n-1 dark:text-white">{label}</span>}
     </label>

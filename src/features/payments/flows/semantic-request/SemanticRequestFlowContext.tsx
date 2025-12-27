@@ -21,7 +21,7 @@ import { type TRequestChargeResponse, type PaymentCreationResponse } from '@/ser
 import { type ParsedURL, type RecipientType } from '@/lib/url-parser/types/payment'
 
 // view states for semantic request flow
-export type SemanticRequestFlowView = 'INITIAL' | 'CONFIRM' | 'STATUS'
+export type SemanticRequestFlowView = 'INITIAL' | 'CONFIRM' | 'STATUS' | 'RECEIPT'
 
 // recipient info from parsed url
 export interface SemanticRequestRecipient {
@@ -105,8 +105,14 @@ export function SemanticRequestFlowProvider({
     initialParsedUrl,
     initialChargeId,
 }: SemanticRequestFlowProviderProps) {
-    // view state - start at CONFIRM if chargeId is present in url
-    const [currentView, setCurrentView] = useState<SemanticRequestFlowView>(initialChargeId ? 'CONFIRM' : 'INITIAL')
+    // view state - determine initial view based on chargeId and recipient type
+    // for usernames with chargeId: start at INITIAL (direct request flow)
+    // for address/ens with chargeId: start at CONFIRM (semantic request payment)
+    const [currentView, setCurrentView] = useState<SemanticRequestFlowView>(() => {
+        if (!initialChargeId) return 'INITIAL'
+        const isUsernameRecipient = initialParsedUrl.recipient?.recipientType === 'USERNAME'
+        return isUsernameRecipient ? 'INITIAL' : 'CONFIRM'
+    })
 
     // store the initial charge id for fetching
     const [chargeIdFromUrl] = useState<string | undefined>(initialChargeId)

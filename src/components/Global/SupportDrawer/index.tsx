@@ -1,14 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSupportModalContext } from '@/context/SupportModalContext'
+import { useModalsContext } from '@/context/ModalsContext'
 import { useCrispUserData } from '@/hooks/useCrispUserData'
 import { useCrispProxyUrl } from '@/hooks/useCrispProxyUrl'
 import { Drawer, DrawerContent, DrawerTitle } from '../Drawer'
 import PeanutLoading from '../PeanutLoading'
 
 const SupportDrawer = () => {
-    const { isSupportModalOpen, setIsSupportModalOpen, prefilledMessage } = useSupportModalContext()
+    const { isSupportModalOpen, setIsSupportModalOpen, supportPrefilledMessage: prefilledMessage } = useModalsContext()
     const userData = useCrispUserData()
     const [isLoading, setIsLoading] = useState(true)
 

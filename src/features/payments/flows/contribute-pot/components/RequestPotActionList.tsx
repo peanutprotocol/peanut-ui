@@ -48,7 +48,7 @@ export function RequestPotActionList({
 }: RequestPotActionListProps) {
     const router = useRouter()
     const { user } = useAuth()
-    const { hasSufficientBalance } = useWallet()
+    const { hasSufficientBalance, isFetchingBalance } = useWallet()
     const { isUserMantecaKycApproved } = useKycStatus()
     const { requestType } = useDetermineBankRequestType(recipientUserId ?? '')
 
@@ -65,10 +65,12 @@ export function RequestPotActionList({
     }, [requestType])
 
     // check if user has enough peanut balance for the entered amount
+    // only show insufficient balance after balance has loaded to avoid flash
     const userHasSufficientPeanutBalance = useMemo(() => {
         if (!user || !usdAmount) return false
+        if (isFetchingBalance) return true // assume sufficient while loading to avoid flash
         return hasSufficientBalance(usdAmount)
-    }, [user, usdAmount, hasSufficientBalance])
+    }, [user, usdAmount, hasSufficientBalance, isFetchingBalance])
 
     // filter and sort payment methods
     const { filteredMethods: sortedMethods, isLoading: isGeoLoading } = useGeoFilteredPaymentOptions({
@@ -77,7 +79,7 @@ export function RequestPotActionList({
             method.soon ||
             (method.id === 'bank' && requiresVerification) ||
             (['mercadopago', 'pix'].includes(method.id) && !isUserMantecaKycApproved),
-        methods: ACTION_METHODS,
+        methods: ACTION_METHODS.filter((method) => method.id !== 'exchange-or-wallet'), // todo: @dev note, remove exchange-or-wallet filter from here in deposit project
     })
 
     // handle clicking on a payment method

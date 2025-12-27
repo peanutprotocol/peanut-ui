@@ -50,7 +50,7 @@ import {
     type TransactionDetailsRowKey,
     transactionDetailsRowKeys,
 } from './transaction-details.utils'
-import { useSupportModalContext } from '@/context/SupportModalContext'
+import { useModalsContext } from '@/context/ModalsContext'
 import { useRouter } from 'next/navigation'
 import { countryData } from '@/components/AddMoney/consts'
 import { useToast } from '@/components/0_Bruddle/Toast'
@@ -100,7 +100,7 @@ export const TransactionDetailsReceipt = ({
     const [showCancelLinkModal, setShowCancelLinkModal] = useState(false)
     const [tokenData, setTokenData] = useState<{ symbol: string; icon: string } | null>(null)
     const [isTokenDataLoading, setIsTokenDataLoading] = useState(true)
-    const { setIsSupportModalOpen } = useSupportModalContext()
+    const { setIsSupportModalOpen } = useModalsContext()
     const toast = useToast()
     const router = useRouter()
     const [cancelLinkText, setCancelLinkText] = useState<'Cancelling' | 'Cancelled' | 'Cancel link'>('Cancel link')
@@ -161,25 +161,33 @@ export const TransactionDetailsReceipt = ({
                 )
             ),
             txId: !!transaction.txHash,
-            cancelled: !!(transaction.status === 'cancelled' && transaction.cancelledDate),
+            // show cancelled row if status is cancelled, use cancelledDate or fallback to createdAt
+            cancelled: transaction.status === 'cancelled',
             claimed: !!(transaction.status === 'completed' && transaction.claimedAt),
             completed: !!(
                 transaction.status === 'completed' &&
                 transaction.completedAt &&
                 transaction.extraDataForDrawer?.originalType !== EHistoryEntryType.DIRECT_SEND
             ),
-            fee: transaction.fee !== undefined,
+            refunded: transaction.status === 'refunded',
+            fee: transaction.fee !== undefined && transaction.status !== 'cancelled',
             exchangeRate: !!(
                 (transaction.direction === 'bank_deposit' ||
                     transaction.direction === 'qr_payment' ||
                     transaction.direction === 'bank_withdraw') &&
                 transaction.currency?.code &&
-                transaction.currency.code.toUpperCase() !== 'USD'
+                transaction.currency.code.toUpperCase() !== 'USD' &&
+                transaction.status !== 'cancelled'
             ),
-            bankAccountDetails: !!(transaction.bankAccountDetails && transaction.bankAccountDetails.identifier),
+            bankAccountDetails: !!(
+                transaction.bankAccountDetails &&
+                transaction.bankAccountDetails.identifier &&
+                transaction.status !== 'cancelled'
+            ),
             transferId: !!(
                 transaction.id &&
-                (transaction.direction === 'bank_withdraw' || transaction.direction === 'bank_claim')
+                (transaction.direction === 'bank_withdraw' || transaction.direction === 'bank_claim') &&
+                transaction.status !== 'cancelled'
             ),
             depositInstructions: !!(
                 (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.BRIDGE_ONRAMP ||
@@ -190,10 +198,14 @@ export const TransactionDetailsReceipt = ({
                 transaction.extraDataForDrawer.depositInstructions.bank_name
             ),
             peanutFee: false, // Perk fee logic removed - perks now show as separate transactions
-            points: !!(transaction.points && transaction.points > 0),
-            comment: !!transaction.memo?.trim(),
-            networkFee: !!(transaction.networkFeeDetails && transaction.sourceView === 'status'),
-            attachment: !!transaction.attachmentUrl,
+            points: !!(transaction.points && transaction.points > 0 && transaction.status !== 'cancelled'),
+            comment: !!(transaction.memo?.trim() && transaction.status !== 'cancelled'),
+            networkFee: !!(
+                transaction.networkFeeDetails &&
+                transaction.sourceView === 'status' &&
+                transaction.status !== 'cancelled'
+            ),
+            attachment: !!(transaction.attachmentUrl && transaction.status !== 'cancelled'),
             mantecaDepositInfo:
                 !isPublic &&
                 transaction.extraDataForDrawer?.originalType === EHistoryEntryType.MANTECA_ONRAMP &&
@@ -622,7 +634,9 @@ export const TransactionDetailsReceipt = ({
                     {rowVisibilityConfig.cancelled && (
                         <PaymentInfoRow
                             label="Cancelled"
-                            value={formatDate(new Date(transaction.cancelledDate!))}
+                            value={formatDate(
+                                new Date(transaction.cancelledDate || transaction.createdAt || transaction.date)
+                            )}
                             hideBottomBorder={shouldHideBorder('cancelled')}
                         />
                     )}
@@ -640,6 +654,14 @@ export const TransactionDetailsReceipt = ({
                             label={getLabelText(transaction)}
                             value={formatDate(new Date(transaction.completedAt!))}
                             hideBottomBorder={shouldHideBorder('completed')}
+                        />
+                    )}
+
+                    {rowVisibilityConfig.refunded && (
+                        <PaymentInfoRow
+                            label="Refunded"
+                            value={formatDate(new Date(transaction.date))}
+                            hideBottomBorder={shouldHideBorder('refunded')}
                         />
                     )}
 
@@ -746,7 +768,7 @@ export const TransactionDetailsReceipt = ({
                                 ) : (
                                     <div className="flex items-center gap-2">
                                         <span>{shortenStringLong(transaction.txHash)}</span>
-                                        <CopyToClipboard textToCopy={transaction.txHash} iconSize="4" />
+                                        <CopyToClipboard fill="black" textToCopy={transaction.txHash} iconSize="4" />
                                     </div>
                                 )
                             }

@@ -99,6 +99,13 @@ export const Profile = () => {
                                 </div>
                             </div>
                         </Card>
+                        <ProfileMenuItem
+                            icon="upload-cloud"
+                            label="Backup"
+                            href="/profile/backup"
+                            onClick={() => router.push('/profile/backup')}
+                            position="last"
+                        />
                         {/* Enable with Account Management project. */}
                         {/* <ProfileMenuItem
                             icon="bank"
@@ -141,7 +148,7 @@ export const Profile = () => {
                 visible={isInviteFriendsModalOpen}
                 onClose={() => setIsInviteFriendsModalOpen(false)}
                 title="Invite friends!"
-                description="Earn points when your referrals create an account in Peanut and also pocket 20% of the points they make!"
+                description="Invite friends to Peanut and help them skip ahead on the waitlist. Once they're onboarded and start using the app, you'll earn rewards from their activity too."
                 icon="user-plus"
                 content={
                     <>

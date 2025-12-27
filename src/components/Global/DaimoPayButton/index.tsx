@@ -52,7 +52,7 @@ export interface DaimoPayButtonProps {
     onValidationError?: (error: string | null) => void
 }
 
-export const DaimoPayButton = ({
+const DaimoPayButton = ({
     amount,
     toAddress,
     toChainId,

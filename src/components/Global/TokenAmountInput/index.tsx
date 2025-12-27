@@ -4,7 +4,6 @@ import { tokenSelectorContext } from '@/context'
 import { formatTokenAmount, formatCurrency } from '@/utils/general.utils'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import Icon from '../Icon'
 import { twMerge } from 'tailwind-merge'
 import { Icon as IconComponent } from '@/components/Global/Icons/Icon'
 import { Slider } from '../Slider'
@@ -392,7 +391,12 @@ const TokenAmountInput = ({
                         router.replace(`?${params.toString()}`, { scroll: false })
                     }}
                 >
-                    <Icon name={'switch'} className="ml-5 rotate-90 cursor-pointer" width={32} height={32} />
+                    <IconComponent
+                        name={'arrow-exchange'}
+                        className="ml-5 rotate-90 cursor-pointer"
+                        width={32}
+                        height={32}
+                    />
                 </div>
             )}
             {showInfoText && infoText && (

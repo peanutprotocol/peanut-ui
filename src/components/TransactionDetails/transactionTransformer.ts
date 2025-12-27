@@ -436,6 +436,9 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             case 'EXPIRED':
                 uiStatus = 'cancelled'
                 break
+            case 'REFUNDED':
+                uiStatus = 'refunded'
+                break
             case 'CLOSED':
                 // If the total amount collected is 0, the link is treated as cancelled
                 uiStatus = entry.totalAmountCollected === 0 ? 'cancelled' : 'closed'

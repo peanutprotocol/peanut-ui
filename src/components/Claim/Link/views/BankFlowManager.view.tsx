@@ -31,7 +31,6 @@ import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
 import { useAppDispatch } from '@/redux/hooks'
 import { bankFormActions } from '@/redux/slices/bank-form-slice'
 import { sendLinksApi } from '@/services/sendLinks'
-import { useNonEurSepaRedirect } from '@/hooks/useNonEurSepaRedirect'
 import { InitiateBridgeKYCModal } from '@/components/Kyc/InitiateBridgeKYCModal'
 import { useSearchParams } from 'next/navigation'
 
@@ -88,12 +87,6 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
     const [isProcessingKycSuccess, setIsProcessingKycSuccess] = useState(false)
     const [offrampData, setOfframpData] = useState<TCreateOfframpResponse | null>(null)
 
-    // redirect back to country list if selected country is a non-eur sepa country (blocked)
-    const { isBlocked: isCountryBlocked } = useNonEurSepaRedirect({
-        countryIdentifier: selectedCountry?.id || selectedCountry?.path,
-        shouldRedirect: false, // we handle redirect manually in useEffect
-    })
-
     // websocket for real-time KYC status updates
     useWebSocket({
         username: user?.user.username ?? undefined,
@@ -109,17 +102,6 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
             setLiveKycStatus(user.user.bridgeKycStatus as BridgeKycStatus)
         }
     }, [user?.user.bridgeKycStatus])
-
-    // redirect back to country list if trying to access a blocked non-eur sepa country
-    useEffect(() => {
-        if (
-            isCountryBlocked &&
-            (claimBankFlowStep === ClaimBankFlowStep.BankDetailsForm ||
-                claimBankFlowStep === ClaimBankFlowStep.BankConfirmClaim)
-        ) {
-            setClaimBankFlowStep(ClaimBankFlowStep.BankCountryList)
-        }
-    }, [isCountryBlocked, claimBankFlowStep, setClaimBankFlowStep])
 
     /**
      * @name handleConfirmClaim
