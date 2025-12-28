@@ -17,10 +17,11 @@ import { useState, useEffect, useMemo } from 'react'
 import type { RhinoChainType } from '@/services/services.types'
 import { useAutoTruncatedAddress } from '@/hooks/useAutoTruncatedAddress'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
+import { CHAIN_LOGOS, RHINO_SUPPORTED_TOKENS, SUPPORTED_EVM_CHAINS } from '@/constants/rhino.consts'
 
-const RhinoDepositView = () => {
+const RhinoDepositView = ({ onBack }: { onBack?: () => void }) => {
     const { user } = useAuth()
-    const { address: peanutWalletAddress } = useWallet()
+    const { address: peanutWalletAddress, isConnected } = useWallet()
     const [chainType, setChainType] = useState<RhinoChainType>('EVM')
     const [isDelayComplete, setIsDelayComplete] = useState(false)
 
@@ -60,7 +61,7 @@ const RhinoDepositView = () => {
         }
     }, [depositAddressStatusData])
 
-    if (!user || isLoading || depositAddressStatus === 'loading') {
+    if (!isConnected || !user || isLoading || depositAddressStatus === 'loading') {
         return (
             <PeanutLoading message={depositAddressStatus === 'loading' ? 'Almost there! Processing...' : undefined} />
         )
@@ -72,7 +73,7 @@ const RhinoDepositView = () => {
 
     return (
         <div className="flex w-full flex-col justify-start space-y-8 pb-5 md:pb-0">
-            <NavHeader title={'Add Money'} onPrev={() => {}} />
+            <NavHeader title={'Add Money'} onPrev={onBack} />
             {depositAddressData && (
                 <div className="my-auto flex w-full flex-grow flex-col items-center justify-center gap-4 md:my-0">
                     <Root
@@ -130,8 +131,9 @@ const RhinoDepositView = () => {
                         customContent={
                             <div className="flex items-center gap-2">
                                 <p className="text-sm">Supported tokens:</p>
-                                <ChainChip chainName="USDT" />
-                                <ChainChip chainName="USDC" />
+                                {RHINO_SUPPORTED_TOKENS.map((token) => (
+                                    <ChainChip key={token.name} chainName={token.name} tokenSymbol={token.logoUrl} />
+                                ))}
                             </div>
                         }
                     />
@@ -149,13 +151,9 @@ const RhinoDepositView = () => {
                         <Card className="space-y-2 p-4">
                             <h3 className="text-sm font-bold text-black">Supported EVM networks</h3>
                             <div className="flex flex-wrap gap-2">
-                                <ChainChip chainName="ARBITRUM" />
-                                <ChainChip chainName="ETHEREUM" />
-                                <ChainChip chainName="BASE" />
-                                <ChainChip chainName="OPTIMISM" />
-                                <ChainChip chainName="BNB" />
-                                <ChainChip chainName="POLYGON" />
-                                <ChainChip chainName="TRON" />
+                                {SUPPORTED_EVM_CHAINS.map((chain) => (
+                                    <ChainChip chainName={chain} tokenSymbol={CHAIN_LOGOS[chain]} />
+                                ))}
                             </div>
                         </Card>
                     )}
