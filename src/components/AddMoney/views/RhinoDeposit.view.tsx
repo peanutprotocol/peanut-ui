@@ -37,6 +37,7 @@ const RhinoDepositView = ({
     const { user } = useAuth()
     const { isConnected } = useWallet()
     const [isDelayComplete, setIsDelayComplete] = useState(false)
+    const [isUpdatingDepositAddresStatus, setisUpdatingDepositAddresStatus] = useState(false)
 
     useEffect(() => {
         const timer = setTimeout(() => setIsDelayComplete(true), 15_000)
@@ -44,7 +45,7 @@ const RhinoDepositView = ({
     }, [])
 
     const { data: depositAddressStatusData } = useQuery({
-        queryKey: ['rhino-deposit-address-status'],
+        queryKey: ['rhino-deposit-address-status', depositAddressData?.depositAddress],
         queryFn: () => rhinoApi.getDepositAddressStatus(depositAddressData?.depositAddress as string),
         enabled: !!depositAddressData?.depositAddress && isDelayComplete, // Add some delay to start polling after the deposit address is created
         refetchInterval: 5000, // 5 seconds
@@ -66,6 +67,12 @@ const RhinoDepositView = ({
         }
     }, [depositAddressStatusData])
 
+    const updateDepositAddressStatus = async () => {
+        setisUpdatingDepositAddresStatus(true)
+        await rhinoApi.resetDepositAddressStatus(depositAddressData?.depositAddress as string)
+        setisUpdatingDepositAddresStatus(false)
+    }
+
     if (!isConnected || !user || isDepositAddressDataLoading || depositAddressStatus === 'loading') {
         return (
             <PeanutLoading message={depositAddressStatus === 'loading' ? 'Almost there! Processing...' : undefined} />
@@ -74,6 +81,41 @@ const RhinoDepositView = ({
 
     if (depositAddressStatus === 'completed' && depositAddressStatusData?.amount) {
         return <PaymentSuccessView type="DEPOSIT" amount={depositAddressStatusData.amount.toString()} />
+    }
+
+    if (depositAddressStatus === 'failed') {
+        return (
+            <div className="flex min-h-[inherit] w-full flex-col justify-start space-y-8 pb-5 md:pb-0">
+                <NavHeader title={'Add Money'} onPrev={onBack} />
+
+                <div className="flex h-full min-h-[60vh] flex-col items-center justify-center gap-4">
+                    <Card>
+                        <div className=" flex w-full flex-col items-center justify-center gap-2">
+                            <div className="flex size-9 items-center justify-center rounded-full bg-secondary-1">
+                                <Icon name="alert" size={20} />
+                            </div>
+                            <h1 className="text-base font-bold">Oops! Market moved</h1>
+
+                            <p className="text-center text-sm text-grey-1">
+                                The exchange rate changed too much to complete your deposit.
+                            </p>
+
+                            <p className="text-center text-sm font-bold text-grey-1">
+                                Your money is on its way back to your wallet.
+                            </p>
+                        </div>
+                    </Card>
+                    <Button
+                        onClick={updateDepositAddressStatus}
+                        shadowSize="4"
+                        loading={isUpdatingDepositAddresStatus}
+                        disabled={isUpdatingDepositAddresStatus}
+                    >
+                        Try Again
+                    </Button>
+                </div>
+            </div>
+        )
     }
 
     return (
