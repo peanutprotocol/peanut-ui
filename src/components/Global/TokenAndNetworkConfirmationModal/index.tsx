@@ -31,7 +31,7 @@ export default function TokenAndNetworkConfirmationModal({
 
                         <div className="flex flex-wrap gap-2">
                             {RHINO_SUPPORTED_CHAINS.map((chain) => (
-                                <ChainChip key={chain.name} chainName={chain.name} tokenSymbol={chain.logoUrl} />
+                                <ChainChip key={chain.name} chainName={chain.name} chainSymbol={chain.logoUrl} />
                             ))}
                         </div>
                     </div>
@@ -41,7 +41,7 @@ export default function TokenAndNetworkConfirmationModal({
 
                         <div className="flex flex-wrap gap-2">
                             {RHINO_SUPPORTED_TOKENS.map((token) => (
-                                <ChainChip key={token.name} chainName={token.name} tokenSymbol={token.logoUrl} />
+                                <ChainChip key={token.name} chainName={token.name} chainSymbol={token.logoUrl} />
                             ))}
                         </div>
                     </div>

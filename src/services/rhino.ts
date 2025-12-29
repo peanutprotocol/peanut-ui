@@ -17,7 +17,7 @@ export const rhinoApi = {
             body: JSON.stringify({ destinationAddress, type: chainType, addressNote: identifier }),
         })
         if (!response.ok) {
-            throw new Error(`Failed to fetch rewards: ${response.statusText}`)
+            throw new Error(`Failed to fetch deposit address: ${response.statusText}`)
         }
         const data = await response.json()
         return data as CreateDepositAddressResponse
@@ -33,7 +33,7 @@ export const rhinoApi = {
         })
 
         if (!response.ok) {
-            throw new Error(`Failed to fetch rewards: ${response.statusText}`)
+            throw new Error(`Failed to fetch deposit address status: ${response.statusText}`)
         }
 
         const data = await response.json()

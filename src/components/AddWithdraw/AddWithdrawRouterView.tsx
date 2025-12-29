@@ -248,7 +248,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                 </Button>
                 <TokenAndNetworkConfirmationModal
                     onClose={() => {
-                        setIsSupportedTokensModalOpen(true)
+                        setIsSupportedTokensModalOpen(false)
                     }}
                     onAccept={() => {
                         router.push('/add-money/crypto')
@@ -327,7 +327,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
 
             <TokenAndNetworkConfirmationModal
                 onClose={() => {
-                    setIsSupportedTokensModalOpen(true)
+                    setIsSupportedTokensModalOpen(false)
                 }}
                 onAccept={() => {
                     router.push('/add-money/crypto')

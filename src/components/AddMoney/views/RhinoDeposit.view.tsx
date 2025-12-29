@@ -14,29 +14,34 @@ import { useQuery } from '@tanstack/react-query'
 import { rhinoApi } from '@/services/rhino'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useState, useEffect, useMemo } from 'react'
-import type { RhinoChainType } from '@/services/services.types'
+import type { CreateDepositAddressResponse, RhinoChainType } from '@/services/services.types'
 import { useAutoTruncatedAddress } from '@/hooks/useAutoTruncatedAddress'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
 import { CHAIN_LOGOS, RHINO_SUPPORTED_TOKENS, SUPPORTED_EVM_CHAINS } from '@/constants/rhino.consts'
 
-const RhinoDepositView = ({ onBack }: { onBack?: () => void }) => {
+interface RhinoDepositViewProps {
+    onBack?: () => void
+    chainType: RhinoChainType
+    setChainType: (chainType: RhinoChainType) => void
+    depositAddressData: CreateDepositAddressResponse | undefined
+    isDepositAddressDataLoading: boolean
+}
+
+const RhinoDepositView = ({
+    onBack,
+    chainType,
+    setChainType,
+    depositAddressData,
+    isDepositAddressDataLoading,
+}: RhinoDepositViewProps) => {
     const { user } = useAuth()
-    const { address: peanutWalletAddress, isConnected } = useWallet()
-    const [chainType, setChainType] = useState<RhinoChainType>('EVM')
+    const { isConnected } = useWallet()
     const [isDelayComplete, setIsDelayComplete] = useState(false)
 
     useEffect(() => {
         const timer = setTimeout(() => setIsDelayComplete(true), 15_000)
         return () => clearTimeout(timer)
     }, [])
-
-    const { data: depositAddressData, isLoading } = useQuery({
-        queryKey: ['rhino-deposit-address', user?.user.userId, chainType],
-        queryFn: () =>
-            rhinoApi.createDepositAddress(peanutWalletAddress as string, chainType, user?.user.userId as string),
-        enabled: !!user && !!peanutWalletAddress,
-        staleTime: 1000 * 60 * 60 * 24, // 24 hours
-    })
 
     const { data: depositAddressStatusData } = useQuery({
         queryKey: ['rhino-deposit-address-status'],
@@ -61,7 +66,7 @@ const RhinoDepositView = ({ onBack }: { onBack?: () => void }) => {
         }
     }, [depositAddressStatusData])
 
-    if (!isConnected || !user || isLoading || depositAddressStatus === 'loading') {
+    if (!isConnected || !user || isDepositAddressDataLoading || depositAddressStatus === 'loading') {
         return (
             <PeanutLoading message={depositAddressStatus === 'loading' ? 'Almost there! Processing...' : undefined} />
         )
@@ -132,7 +137,7 @@ const RhinoDepositView = ({ onBack }: { onBack?: () => void }) => {
                             <div className="flex items-center gap-2">
                                 <p className="text-sm">Supported tokens:</p>
                                 {RHINO_SUPPORTED_TOKENS.map((token) => (
-                                    <ChainChip key={token.name} chainName={token.name} tokenSymbol={token.logoUrl} />
+                                    <ChainChip key={token.name} chainName={token.name} chainSymbol={token.logoUrl} />
                                 ))}
                             </div>
                         }
@@ -152,7 +157,7 @@ const RhinoDepositView = ({ onBack }: { onBack?: () => void }) => {
                             <h3 className="text-sm font-bold text-black">Supported EVM networks</h3>
                             <div className="flex flex-wrap gap-2">
                                 {SUPPORTED_EVM_CHAINS.map((chain) => (
-                                    <ChainChip chainName={chain} tokenSymbol={CHAIN_LOGOS[chain]} />
+                                    <ChainChip key={chain} chainName={chain} chainSymbol={CHAIN_LOGOS[chain]} />
                                 ))}
                             </div>
                         </Card>

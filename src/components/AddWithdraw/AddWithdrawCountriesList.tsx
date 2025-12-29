@@ -387,7 +387,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             {flow === 'add' && (
                 <TokenAndNetworkConfirmationModal
                     onClose={() => {
-                        setIsSupportedTokensModalOpen(true)
+                        setIsSupportedTokensModalOpen(false)
                     }}
                     onAccept={() => {
                         router.push('/add-money/crypto')

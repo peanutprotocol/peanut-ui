@@ -12,7 +12,7 @@ export const CHAIN_LOGOS = {
     SCROLL: 'https://assets.coingecko.com/asset_platforms/images/153/standard/scroll.jpeg?1706606782',
     GNOSIS: 'https://assets.coingecko.com/asset_platforms/images/11062/standard/Aatar_green_white.png?1706606458',
     CELO: 'https://assets.coingecko.com/asset_platforms/images/21/standard/celo.jpeg?1711358666',
-    MANTLE: 'http://assets.coingecko.com/asset_platforms/images/140/standard/mantle.jpeg?1706606701',
+    MANTLE: 'https://assets.coingecko.com/asset_platforms/images/140/standard/mantle.jpeg?1706606701',
 } as const
 
 /** Token symbol to logo URL mapping - reusable across the app */
