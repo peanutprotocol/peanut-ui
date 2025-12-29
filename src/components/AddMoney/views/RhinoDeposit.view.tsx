@@ -67,11 +67,22 @@ const RhinoDepositView = ({
         }
     }, [depositAddressStatusData])
 
+    // Optimistic update of the deposit address status
     const updateDepositAddressStatus = async () => {
         setisUpdatingDepositAddresStatus(true)
         await rhinoApi.resetDepositAddressStatus(depositAddressData?.depositAddress as string)
         setisUpdatingDepositAddresStatus(false)
     }
+
+    const amountLimitsTitle = useMemo(() => {
+        if (chainType === 'EVM') {
+            return 'EVM networks'
+        } else if (chainType === 'SOL') {
+            return 'Solana'
+        } else if (chainType === 'TRON') {
+            return 'Tron'
+        }
+    }, [chainType])
 
     if (!isConnected || !user || isDepositAddressDataLoading || depositAddressStatus === 'loading') {
         return (
@@ -185,13 +196,28 @@ const RhinoDepositView = ({
                         }
                     />
 
-                    <div className="flex w-full items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <Icon name="info" size={18} className="text-grey-1" />
-                            <p className="text-sm text-grey-1">Min deposit for EVM networks</p>
+                    <div className="w-full space-y-1">
+                        <div className="flex w-full items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <Icon name="info" size={18} className="text-grey-1" />
+                                <p className="text-sm text-grey-1">Min deposit for {amountLimitsTitle}</p>
+                            </div>
+
+                            <p className="text-sm font-medium text-grey-1">
+                                {depositAddressData.minDepositLimitUsd} USD
+                            </p>
                         </div>
 
-                        <p className="text-sm font-medium text-grey-1">{depositAddressData.minDepositLimitUsd} USD</p>
+                        <div className="flex w-full items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <Icon name="info" size={18} className="text-grey-1" />
+                                <p className="text-sm text-grey-1">Max deposit for {amountLimitsTitle}</p>
+                            </div>
+
+                            <p className="text-sm font-medium text-grey-1">
+                                {depositAddressData.maxDepositLimitUsd} USD
+                            </p>
+                        </div>
                     </div>
 
                     {chainType === 'EVM' && (
