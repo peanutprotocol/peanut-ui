@@ -40,7 +40,7 @@ export default function LandingPage() {
         primaryCta: {
             label: 'SIGN UP',
             href: '/setup',
-            subtext: 'currently in waitlist',
+            subtext: 'takes 10 seconds',
         },
     }
 
