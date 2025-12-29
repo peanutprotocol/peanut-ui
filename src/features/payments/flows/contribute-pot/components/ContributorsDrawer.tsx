@@ -51,11 +51,11 @@ export function ContributorsDrawer({ contributors }: ContributorsDrawerProps) {
                     See all contributors
                 </Button>
             </DrawerTrigger>
-            <DrawerContent>
+            <DrawerContent className="py-6">
                 <DrawerHeader>
                     <DrawerTitle className="text-start">Contributors ({contributors.length})</DrawerTitle>
                 </DrawerHeader>
-                <div className="max-h-[60vh] space-y-0 overflow-auto px-4 pb-6">
+                <div className="max-h-[60vh] space-y-0 overflow-auto px-4">
                     {contributorCards.map((contributor, index) => (
                         <ContributorCard
                             key={contributor.uuid}

@@ -4,7 +4,7 @@ import { AddWithdrawRouterView } from '@/components/AddWithdraw/AddWithdrawRoute
 import { useOnrampFlow } from '@/context/OnrampFlowContext'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
-import { checkIfInternalNavigation } from '@/utils/general.utils'
+import { checkIfInternalNavigation, getRedirectUrl, clearRedirectUrl, getFromLocalStorage } from '@/utils/general.utils'
 
 export default function AddMoneyPage() {
     const router = useRouter()
@@ -15,7 +15,21 @@ export default function AddMoneyPage() {
     }, [])
 
     const handleBack = () => {
-        // Check if the referrer is from the same domain (internal navigation)
+        // check if we have a saved redirect url (from request fulfillment or similar flows)
+        const redirectUrl = getRedirectUrl()
+        const fromRequestFulfillment = getFromLocalStorage('fromRequestFulfillment')
+
+        if (redirectUrl && fromRequestFulfillment) {
+            // clear the flags and navigate to saved url
+            clearRedirectUrl()
+            if (typeof localStorage !== 'undefined') {
+                localStorage.removeItem('fromRequestFulfillment')
+            }
+            router.push(redirectUrl)
+            return
+        }
+
+        // fallback to standard navigation logic
         const isInternalReferrer = checkIfInternalNavigation()
 
         if (isInternalReferrer && window.history.length > 1) {

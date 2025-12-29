@@ -2,7 +2,12 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import { type DepositMethod, DepositMethodList } from '@/components/AddMoney/components/DepositMethodList'
 import NavHeader from '@/components/Global/NavHeader'
-import { type RecentMethod, getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
+import {
+    type RecentMethod,
+    getUserPreferences,
+    updateUserPreferences,
+    getFromLocalStorage,
+} from '@/utils/general.utils'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { type FC, useEffect, useState, useTransition, useCallback } from 'react'
 import { useUserStore } from '@/redux/hooks'
@@ -158,6 +163,9 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
 
     const defaultBackNavigation = () => router.push('/home')
 
+    // check if we're coming from request fulfillment or similar flow
+    const fromRequestFulfillment = typeof window !== 'undefined' && getFromLocalStorage('fromRequestFulfillment')
+
     if (isLoadingPreferences) {
         return (
             <div className="flex min-h-[inherit] flex-col justify-center gap-8">
@@ -261,7 +269,18 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
             <NavHeader
                 title={pageTitle}
                 onPrev={() => {
-                    if (shouldShowAllMethods) {
+                    // if coming from request fulfillment or similar external flow, go back immediately
+                    if (fromRequestFulfillment) {
+                        if (onBackClick) {
+                            onBackClick()
+                        } else {
+                            defaultBackNavigation()
+                        }
+                        return
+                    }
+
+                    // otherwise, use toggle logic for better ux when user manually navigated to "select new method"
+                    if (shouldShowAllMethods && (recentMethodsState.length > 0 || savedAccounts.length > 0)) {
                         setShouldShowAllMethods(false)
                     } else if (onBackClick) {
                         onBackClick()

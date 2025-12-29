@@ -28,7 +28,7 @@ import useKycStatus from '@/hooks/useKycStatus'
 import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermineBankRequestType'
 import { ACTION_METHODS, type PaymentMethod } from '@/constants/actionlist.consts'
 import { MIN_BANK_TRANSFER_AMOUNT, validateMinimumAmount } from '@/constants/payment.consts'
-import { saveRedirectUrl } from '@/utils/general.utils'
+import { saveRedirectUrl, saveToLocalStorage } from '@/utils/general.utils'
 import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPeanutCta'
 
 interface RequestPotActionListProps {
@@ -108,6 +108,10 @@ export function RequestPotActionList({
             case 'mercadopago':
             case 'pix':
                 if (isLoggedIn) {
+                    // save current url so back button works properly
+                    saveRedirectUrl()
+                    // flag that we're coming from request fulfillment
+                    saveToLocalStorage('fromRequestFulfillment', 'true')
                     router.push('/add-money')
                 } else {
                     const redirectUri = encodeURIComponent('/add-money')
