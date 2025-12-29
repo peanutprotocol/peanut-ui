@@ -12,7 +12,14 @@ interface Props {
     buttonSize?: ButtonSize
 }
 
-const CopyToClipboard = ({ textToCopy, fill, className, iconSize = '6', type = 'icon', buttonSize }: Props) => {
+const CopyToClipboard = ({
+    textToCopy,
+    fill = 'black',
+    className,
+    iconSize = '6',
+    type = 'icon',
+    buttonSize,
+}: Props) => {
     const [copied, setCopied] = useState(false)
 
     const handleCopy = (e: React.MouseEvent<SVGElement | HTMLButtonElement, MouseEvent>) => {
