@@ -46,9 +46,14 @@ const RhinoDepositView = ({
 
     const { data: depositAddressStatusData } = useQuery({
         queryKey: ['rhino-deposit-address-status', depositAddressData?.depositAddress],
-        queryFn: () => rhinoApi.getDepositAddressStatus(depositAddressData?.depositAddress as string),
+        queryFn: () => {
+            if (!depositAddressData?.depositAddress) {
+                throw new Error('Deposit address is required')
+            }
+            return rhinoApi.getDepositAddressStatus(depositAddressData.depositAddress as string)
+        },
         enabled: !!depositAddressData?.depositAddress && isDelayComplete, // Add some delay to start polling after the deposit address is created
-        refetchInterval: 5000, // 5 seconds
+        refetchInterval: (query) => (query.state.data?.status === 'completed' ? false : 5000),
     })
 
     const { containerRef, truncatedAddress } = useAutoTruncatedAddress(depositAddressData?.depositAddress ?? '')
@@ -69,6 +74,8 @@ const RhinoDepositView = ({
 
     // Optimistic update of the deposit address status
     const updateDepositAddressStatus = async () => {
+        if (isUpdatingDepositAddresStatus) return // Prevent concurrent calls
+
         setisUpdatingDepositAddresStatus(true)
         await rhinoApi.resetDepositAddressStatus(depositAddressData?.depositAddress as string)
         setisUpdatingDepositAddresStatus(false)
