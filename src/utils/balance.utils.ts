@@ -30,9 +30,10 @@ export function calculateValuePerChain(balances: IUserBalance[]): ChainValue[] {
 }
 
 export const printableUsdc = (balance: bigint): string => {
-    const formatted = formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS)
-    // floor the formatted value
-    const value = Number(formatted)
-    const flooredValue = Math.floor(value * 100) / 100
-    return flooredValue.toFixed(2)
+    // For 6 decimals, we want 2 decimal places in output
+    // So we divide by 10^4 to keep only 2 decimal places, then format
+    const scaleFactor = BigInt(10 ** (PEANUT_WALLET_TOKEN_DECIMALS - 2)) // 10^4 = 10000n
+    const flooredBigint = (balance / scaleFactor) * scaleFactor
+    const formatted = formatUnits(flooredBigint, PEANUT_WALLET_TOKEN_DECIMALS)
+    return Number(formatted).toFixed(2)
 }
