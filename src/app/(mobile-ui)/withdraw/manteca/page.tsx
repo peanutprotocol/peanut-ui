@@ -18,7 +18,7 @@ import Image from 'next/image'
 import { formatAmount, formatNumberForDisplay } from '@/utils/general.utils'
 import { validateCbuCvuAlias, validatePixKey, normalizePixPhoneNumber, isPixPhoneNumber } from '@/utils/withdraw.utils'
 import ValidatedInput from '@/components/Global/ValidatedInput'
-import TokenAmountInput from '@/components/Global/TokenAmountInput'
+import AmountInput from '@/components/Global/AmountInput'
 import { formatUnits, parseUnits } from 'viem'
 import type { TransactionReceipt, Hash } from 'viem'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
@@ -53,7 +53,6 @@ const MIN_WITHDRAW_AMOUNT = '1'
 
 export default function MantecaWithdrawFlow() {
     const flowId = useId() // Unique ID per flow instance to prevent cache collisions
-    const [amount, setAmount] = useState<string | undefined>(undefined)
     const [currencyAmount, setCurrencyAmount] = useState<string | undefined>(undefined)
     const [usdAmount, setUsdAmount] = useState<string | undefined>(undefined)
     const [step, setStep] = useState<MantecaWithdrawStep>('amountInput')
@@ -75,7 +74,6 @@ export default function MantecaWithdrawFlow() {
     const queryClient = useQueryClient()
     const { isUserBridgeKycApproved } = useKycStatus()
     const { hasPendingTransactions } = usePendingTransactions()
-    const swapCurrency = searchParams.get('swap-currency')
     // Get method and country from URL parameters
     const selectedMethodType = searchParams.get('method') // mercadopago, pix, bank-transfer, etc.
     const countryFromUrl = searchParams.get('country') // argentina, brazil, etc.
@@ -88,10 +86,6 @@ export default function MantecaWithdrawFlow() {
         return countryData.find((country) => country.type === 'country' && country.path === countryPath)
     }, [countryPath])
 
-    const isMantecaCountry = useMemo(() => {
-        return selectedCountry?.id && selectedCountry.id in MANTECA_COUNTRIES_CONFIG
-    }, [selectedCountry])
-
     const countryConfig = useMemo(() => {
         if (!selectedCountry) return undefined
         return MANTECA_COUNTRIES_CONFIG[selectedCountry.id]
@@ -103,25 +97,6 @@ export default function MantecaWithdrawFlow() {
         price: currencyPrice,
         isLoading: isCurrencyLoading,
     } = useCurrency(selectedCountry?.currency!)
-
-    // determine if initial input should be in usd or local currency
-    // for manteca countries, default to local currency unless explicitly overridden
-    const isInitialInputUsd = useMemo(() => {
-        // if swap-currency param is explicitly set to 'true' (user toggled to local currency)
-        // then show local currency first
-        if (swapCurrency === 'true') {
-            return false
-        }
-
-        // if it's a manteca country, default to local currency (not usd)
-        // ignore swap-currency=false for manteca countries to ensure local currency default
-        if (isMantecaCountry) {
-            return false
-        }
-
-        // otherwise default to usd (for non-manteca countries)
-        return true
-    }, [swapCurrency, isMantecaCountry])
 
     // Initialize KYC flow hook
     const { isMantecaKycRequired } = useMantecaKycFlow({ country: selectedCountry })
@@ -285,7 +260,6 @@ export default function MantecaWithdrawFlow() {
 
     const resetState = () => {
         setStep('amountInput')
-        setAmount(undefined)
         setCurrencyAmount(undefined)
         setUsdAmount(undefined)
         setDestinationAddress(paramAddress ?? '')
@@ -314,7 +288,7 @@ export default function MantecaWithdrawFlow() {
             setBalanceErrorMessage(null)
             return
         }
-        const paymentAmount = parseUnits(usdAmount.replace(/,/g, ''), PEANUT_WALLET_TOKEN_DECIMALS)
+        const paymentAmount = parseUnits(usdAmount, PEANUT_WALLET_TOKEN_DECIMALS)
         if (paymentAmount < parseUnits(MIN_WITHDRAW_AMOUNT, PEANUT_WALLET_TOKEN_DECIMALS)) {
             setBalanceErrorMessage(`Withdraw amount must be at least $${MIN_WITHDRAW_AMOUNT}`)
         } else if (paymentAmount > parseUnits(MAX_WITHDRAW_AMOUNT, PEANUT_WALLET_TOKEN_DECIMALS)) {
@@ -436,20 +410,23 @@ export default function MantecaWithdrawFlow() {
             {step === 'amountInput' && (
                 <div className="my-auto flex h-full flex-col justify-center space-y-4">
                     <div className="text-xl font-bold">Amount to withdraw</div>
-                    <TokenAmountInput
-                        tokenValue={amount}
-                        setTokenValue={setAmount}
-                        setCurrencyAmount={setCurrencyAmount}
-                        setUsdValue={setUsdAmount}
-                        currency={{
-                            code: currencyCode!,
-                            symbol: currencySymbol!,
+                    <AmountInput
+                        initialAmount={currencyAmount}
+                        setPrimaryAmount={setCurrencyAmount}
+                        setSecondaryAmount={setUsdAmount}
+                        primaryDenomination={{
+                            symbol: currencyCode!,
                             price: currencyPrice!.sell,
+                            decimals: 2,
+                        }}
+                        secondaryDenomination={{
+                            symbol: 'USD',
+                            price: 1,
+                            decimals: 2,
                         }}
                         walletBalance={
                             balance ? formatAmount(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS)) : undefined
                         }
-                        isInitialInputUsd={isInitialInputUsd}
                     />
                     <Button
                         variant="purple"

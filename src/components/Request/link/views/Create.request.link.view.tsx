@@ -8,7 +8,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionCard from '@/components/Global/PeanutActionCard'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import ShareButton from '@/components/Global/ShareButton'
-import TokenAmountInput from '@/components/Global/TokenAmountInput'
+import AmountInput from '@/components/Global/AmountInput'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import * as context from '@/context'
@@ -25,6 +25,7 @@ import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { Icon as IconComponent } from '@/components/Global/Icons/Icon'
 
 export const CreateRequestLinkView = () => {
     const toast = useToast()
@@ -355,15 +356,22 @@ export const CreateRequestLinkView = () => {
                     isLoading={isCreatingLink || isUpdatingRequest}
                 />
 
-                <TokenAmountInput
+                <AmountInput
                     className="w-full"
-                    setTokenValue={handleTokenValueChange}
-                    tokenValue={tokenValue}
+                    initialAmount={tokenValue}
+                    setPrimaryAmount={handleTokenValueChange}
                     onSubmit={handleTokenAmountSubmit}
                     walletBalance={peanutWalletBalance}
                     disabled={!!requestId}
-                    showInfoText
-                    infoText="Leave empty to let payers choose amounts."
+                    infoContent={
+                        <div className="mx-auto flex w-fit items-center gap-2 rounded-full bg-grey-2 p-1.5">
+                            <IconComponent name="info" size={12} className="text-grey-1" />
+                            <p className="text-[10px] font-bold text-grey-1">
+                                {' '}
+                                Leave empty to let payers choose amounts.
+                            </p>
+                        </div>
+                    }
                 />
 
                 <FileUploadInput

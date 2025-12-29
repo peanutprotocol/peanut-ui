@@ -3,7 +3,7 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
-import TokenAmountInput from '@/components/Global/TokenAmountInput'
+import AmountInput from '@/components/Global/AmountInput'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useOnrampFlow } from '@/context/OnrampFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -115,8 +115,7 @@ export default function OnrampBankPage() {
                 setError({ showError: false, errorMessage: '' })
                 return true
             }
-            const cleanedAmountStr = amountStr.replace(/,/g, '')
-            const amount = Number(cleanedAmountStr)
+            const amount = Number(amountStr)
             if (!Number.isFinite(amount)) {
                 setError({ showError: true, errorMessage: 'Please enter a valid number.' })
                 return false
@@ -162,13 +161,12 @@ export default function OnrampBankPage() {
             })
             return
         }
-        const cleanedAmount = rawTokenAmount.replace(/,/g, '')
-        setAmountToOnramp(cleanedAmount)
+        setAmountToOnramp(rawTokenAmount)
         setShowWarningModal(false)
         setIsRiskAccepted(false)
         try {
             const onrampDataResponse = await createOnramp({
-                amount: cleanedAmount,
+                amount: rawTokenAmount,
                 country: selectedCountry,
             })
             setOnrampData(onrampDataResponse)
@@ -325,23 +323,22 @@ export default function OnrampBankPage() {
                 <NavHeader title="Add Money" onPrev={handleBack} />
                 <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
                     <div className="text-sm font-bold">How much do you want to add?</div>
-                    <TokenAmountInput
-                        tokenValue={rawTokenAmount}
-                        setTokenValue={handleTokenAmountChange}
+                    <AmountInput
+                        initialAmount={rawTokenAmount}
+                        setPrimaryAmount={handleTokenAmountChange}
                         walletBalance={peanutWalletBalance}
-                        hideCurrencyToggle
-                        currency={
+                        primaryDenomination={
                             selectedCountry
                                 ? {
-                                      code: getCurrencyConfig(selectedCountry.id, 'onramp').currency,
                                       symbol: getCurrencySymbol(
                                           getCurrencyConfig(selectedCountry.id, 'onramp').currency
                                       ),
                                       price: 1,
+                                      decimals: 2,
                                   }
                                 : undefined
                         }
-                        hideBalance={true}
+                        hideBalance
                     />
 
                     <InfoCard
@@ -354,8 +351,8 @@ export default function OnrampBankPage() {
                         shadowSize="4"
                         onClick={handleAmountContinue}
                         disabled={
-                            !parseFloat(rawTokenAmount.replace(/,/g, '')) ||
-                            parseFloat(rawTokenAmount.replace(/,/g, '')) < minimumAmount ||
+                            !parseFloat(rawTokenAmount) ||
+                            parseFloat(rawTokenAmount) < minimumAmount ||
                             error.showError ||
                             isCreatingOnramp
                         }

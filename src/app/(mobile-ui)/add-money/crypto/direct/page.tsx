@@ -3,7 +3,7 @@
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutLoading from '@/components/Global/PeanutLoading'
-import TokenAmountInput from '@/components/Global/TokenAmountInput'
+import AmountInput from '@/components/Global/AmountInput'
 import DaimoPayButton from '@/components/Global/DaimoPayButton'
 import { DaimoPayWrapper } from '@/components/Global/DaimoPayWrapper'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
@@ -27,7 +27,7 @@ export default function AddMoneyCryptoDirectPage() {
     const [showModal, setShowModal] = useState(false)
 
     const validateAmount = () => {
-        const formattedAmount = parseFloat(inputTokenAmount.replace(/,/g, ''))
+        const formattedAmount = parseFloat(inputTokenAmount)
 
         if (formattedAmount < 0.1) {
             setError('Minimum deposit using crypto is $0.1.')
@@ -95,15 +95,10 @@ export default function AddMoneyCryptoDirectPage() {
                 />
                 <div className="my-auto flex h-full flex-col justify-center space-y-4">
                     <div className="text-sm font-bold">How much do you want to add?</div>
-                    <TokenAmountInput
-                        tokenValue={inputTokenAmount}
-                        setTokenValue={(value: string | undefined) => setInputTokenAmount(value || '')}
+                    <AmountInput
+                        initialAmount={inputTokenAmount}
+                        setPrimaryAmount={setInputTokenAmount}
                         className="w-full"
-                        currency={{
-                            code: 'USD',
-                            symbol: '$',
-                            price: 1,
-                        }}
                         hideCurrencyToggle
                         hideBalance
                     />

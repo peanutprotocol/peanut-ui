@@ -13,7 +13,7 @@
  */
 
 import NavHeader from '@/components/Global/NavHeader'
-import TokenAmountInput from '@/components/Global/TokenAmountInput'
+import AmountInput from '@/components/Global/AmountInput'
 import UserCard from '@/components/User/UserCard'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import SupportCTA from '@/components/Global/SupportCTA'
@@ -85,9 +85,9 @@ export function ContributePotInputView() {
                 )}
 
                 {/* amount input with slider */}
-                <TokenAmountInput
-                    tokenValue={amount}
-                    setTokenValue={(val) => setAmount(val ?? '')}
+                <AmountInput
+                    initialAmount={amount}
+                    setPrimaryAmount={setAmount}
                     onSubmit={handlePayWithPeanut}
                     walletBalance={isLoggedIn ? formattedBalance : undefined}
                     hideBalance={!isLoggedIn}

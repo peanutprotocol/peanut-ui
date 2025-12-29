@@ -14,7 +14,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import { MERCADO_PAGO, PIX, SIMPLEFI } from '@/assets/payment-apps'
 import Image from 'next/image'
 import PeanutLoading from '@/components/Global/PeanutLoading'
-import TokenAmountInput from '@/components/Global/TokenAmountInput'
+import AmountInput from '@/components/Global/AmountInput'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSignUserOp } from '@/hooks/wallet/useSignUserOp'
 import {
@@ -319,7 +319,7 @@ export default function QRPayPage() {
             // For dynamic QR codes with preset amounts:
             // paymentAssetAmount is in local currency (e.g., "92" BRL)
             // paymentAgainstAmount is the USD equivalent (e.g., "18.4" USD)
-            // TokenAmountInput expects tokenValue in USD, so we pass paymentAgainstAmount
+            // AmountInput expects tokenValue in USD, so we pass paymentAgainstAmount
             // It will convert to local currency for display using isInitialInputUsd=false
             setAmount(paymentLock.paymentAgainstAmount)
             setCurrencyAmount(paymentLock.paymentAssetAmount)
@@ -896,7 +896,7 @@ export default function QRPayPage() {
             setBalanceErrorMessage(null)
             return
         }
-        const paymentAmount = parseUnits(usdAmount.replace(/,/g, ''), PEANUT_WALLET_TOKEN_DECIMALS)
+        const paymentAmount = parseUnits(usdAmount, PEANUT_WALLET_TOKEN_DECIMALS)
 
         // Manteca-specific validation (PIX, MercadoPago, QR3)
         if (paymentProcessor === 'MANTECA') {
@@ -1509,10 +1509,20 @@ export default function QRPayPage() {
 
                     {/* Amount Card */}
                     {currency && (
-                        <TokenAmountInput
-                            tokenValue={amount}
-                            setTokenValue={setAmount}
-                            currency={currency}
+                        <AmountInput
+                            initialAmount={currencyAmount}
+                            setPrimaryAmount={setCurrencyAmount}
+                            primaryDenomination={{
+                                symbol: currency.symbol,
+                                price: currency.price,
+                                decimals: 2,
+                            }}
+                            secondaryDenomination={{
+                                symbol: 'USD',
+                                price: 1,
+                                decimals: 2,
+                            }}
+                            setSecondaryAmount={setAmount}
                             disabled={
                                 !!qrPayment ||
                                 isLoading ||
@@ -1522,9 +1532,7 @@ export default function QRPayPage() {
                                     !!simpleFiPayment)
                             }
                             walletBalance={balance ? formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS) : undefined}
-                            setCurrencyAmount={setCurrencyAmount}
                             hideBalance
-                            isInitialInputUsd={false}
                         />
                     )}
                     {balanceErrorMessage && <ErrorAlert description={balanceErrorMessage} />}
