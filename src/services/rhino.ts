@@ -50,7 +50,7 @@ export const rhinoApi = {
         })
 
         if (!response.ok) {
-            throw new Error(`Failed to fetch deposit address status: ${response.statusText}`)
+            throw new Error(`Failed to update deposit address status: ${response.statusText}`)
         }
 
         return true
