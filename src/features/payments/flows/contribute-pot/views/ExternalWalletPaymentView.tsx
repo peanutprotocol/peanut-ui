@@ -19,6 +19,9 @@ const ExternalWalletPaymentView = () => {
             if (!charge?.requestLink.uuid) {
                 throw new Error('Request ID is required')
             }
+            if (!charge.uuid) {
+                throw new Error('Charge ID is required')
+            }
             return rhinoApi.createRequestFulfilmentAddress(
                 charge?.requestLink.uuid,
                 chainType,

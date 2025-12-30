@@ -40,6 +40,7 @@ export function ContributePotInputView() {
         totalCollected,
         contributors,
         sliderDefaults,
+        charge,
         setAmount,
         executeContribution,
         setCurrentView,
@@ -65,7 +66,8 @@ export function ContributePotInputView() {
     const handleOpenExternalWalletFlow = async () => {
         if (canProceed && hasSufficientBalance && !isLoading) {
             await executeContribution(true) // return after creating charge
-            if (!error.showError) {
+            // Proceed only if charge is created successfully
+            if (charge) {
                 setCurrentView('EXTERNAL_WALLET')
             }
         }
