@@ -149,10 +149,10 @@ export function useContributePotFlow() {
 
     // execute the contribution
     const executeContribution = useCallback(
-        async (shouldReturnAfterCreatingCharge: boolean = false) => {
+        async (shouldReturnAfterCreatingCharge: boolean = false): Promise<{ success: boolean }> => {
             if (!recipient || !amount || !walletAddress || !request) {
                 setError({ showError: true, errorMessage: 'missing required data' })
-                return
+                return { success: false }
             }
 
             setIsLoading(true)
@@ -179,7 +179,8 @@ export function useContributePotFlow() {
 
                 // Return early after creating charge if requested, used in external wallet flow.
                 if (shouldReturnAfterCreatingCharge) {
-                    return
+                    setIsLoading(false)
+                    return { success: true }
                 }
 
                 // step 2: send money via peanut wallet
@@ -200,11 +201,13 @@ export function useContributePotFlow() {
                 setPayment(paymentResult)
                 setIsSuccess(true)
                 setCurrentView('STATUS')
+                setIsLoading(false)
+                return { success: true }
             } catch (err) {
                 const errorMessage = ErrorHandler(err)
                 setError({ showError: true, errorMessage })
-            } finally {
                 setIsLoading(false)
+                return { success: false }
             }
         },
         [

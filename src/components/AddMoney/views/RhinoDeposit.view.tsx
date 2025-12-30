@@ -98,7 +98,7 @@ const RhinoDepositView = ({
         if (depositAddressStatus === 'completed' && depositAddressStatusData?.amount) {
             onSuccess(depositAddressStatusData?.amount)
         }
-    }, [depositAddressStatusData, depositAddressStatus])
+    }, [depositAddressStatusData, depositAddressStatus, onSuccess])
 
     if (!isConnected || !user || isDepositAddressDataLoading || depositAddressStatus === 'loading') {
         return (
