@@ -56,7 +56,7 @@ export const rhinoApi = {
             throw new Error('Authentication required')
         }
         const response = await fetch(`${PEANUT_API_URL}/rhino/reset-status/${depositAddress}`, {
-            method: 'GET',
+            method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${token}`,
