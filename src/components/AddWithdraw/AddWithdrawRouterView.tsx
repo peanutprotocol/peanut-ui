@@ -293,10 +293,17 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
             <CountryList
                 inputTitle={mainHeading}
                 viewMode="add-withdraw"
-                enforceSupportedCountries={isBankFromSend}
                 onCountryClick={(country) => {
                     // from send flow (bank): set method in context and stay on /withdraw?method=bank
                     if (flow === 'withdraw' && isBankFromSend) {
+                        if (isMantecaCountry(country.path)) {
+                            const route = `/withdraw/manteca?method=bank-transfer&country=${country.path}`
+                            startTransition(() => {
+                                router.push(route)
+                            })
+                            return
+                        }
+
                         // set selected method and let withdraw page move to amount input
                         setSelectedMethod({
                             type: 'bridge',
