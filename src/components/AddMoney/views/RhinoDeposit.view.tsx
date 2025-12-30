@@ -16,7 +16,6 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { useState, useEffect, useMemo } from 'react'
 import type { CreateDepositAddressResponse, RhinoChainType } from '@/services/services.types'
 import { useAutoTruncatedAddress } from '@/hooks/useAutoTruncatedAddress'
-import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
 import { CHAIN_LOGOS, RHINO_SUPPORTED_TOKENS, SUPPORTED_EVM_CHAINS } from '@/constants/rhino.consts'
 
 interface RhinoDepositViewProps {
@@ -25,6 +24,8 @@ interface RhinoDepositViewProps {
     setChainType: (chainType: RhinoChainType) => void
     depositAddressData: CreateDepositAddressResponse | undefined
     isDepositAddressDataLoading: boolean
+    headerTitle: string
+    onSuccess: (amount: number) => void
 }
 
 const RhinoDepositView = ({
@@ -33,6 +34,8 @@ const RhinoDepositView = ({
     setChainType,
     depositAddressData,
     isDepositAddressDataLoading,
+    headerTitle,
+    onSuccess,
 }: RhinoDepositViewProps) => {
     const { user } = useAuth()
     const { isConnected } = useWallet()
@@ -91,20 +94,22 @@ const RhinoDepositView = ({
         }
     }, [chainType])
 
+    useEffect(() => {
+        if (depositAddressStatus === 'completed' && depositAddressStatusData?.amount) {
+            onSuccess(depositAddressStatusData?.amount)
+        }
+    }, [depositAddressData, depositAddressStatus])
+
     if (!isConnected || !user || isDepositAddressDataLoading || depositAddressStatus === 'loading') {
         return (
             <PeanutLoading message={depositAddressStatus === 'loading' ? 'Almost there! Processing...' : undefined} />
         )
     }
 
-    if (depositAddressStatus === 'completed' && depositAddressStatusData?.amount) {
-        return <PaymentSuccessView type="DEPOSIT" amount={depositAddressStatusData.amount.toString()} />
-    }
-
     if (depositAddressStatus === 'failed') {
         return (
             <div className="flex min-h-[inherit] w-full flex-col justify-start space-y-8 pb-5 md:pb-0">
-                <NavHeader title={'Add Money'} onPrev={onBack} />
+                <NavHeader title={headerTitle} onPrev={onBack} />
 
                 <div className="flex h-full min-h-[60vh] flex-col items-center justify-center gap-4">
                     <Card>
@@ -138,7 +143,7 @@ const RhinoDepositView = ({
 
     return (
         <div className="flex w-full flex-col justify-start space-y-8 pb-5 md:pb-0">
-            <NavHeader title={'Add Money'} onPrev={onBack} />
+            <NavHeader title={headerTitle} onPrev={onBack} />
             {depositAddressData && (
                 <div className="my-auto flex w-full flex-grow flex-col items-center justify-center gap-4 md:my-0">
                     <Root

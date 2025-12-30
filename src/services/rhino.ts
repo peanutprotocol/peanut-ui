@@ -69,4 +69,35 @@ export const rhinoApi = {
 
         return true
     },
+
+    createRequestFulfilmentAddress: async (
+        requestId: string,
+        chainType: RhinoChainType,
+        chargeId: string,
+        peanutWalletAddress?: string
+    ): Promise<CreateDepositAddressResponse> => {
+        const token = Cookies.get('jwt-token')
+        if (!token) {
+            throw new Error('Authentication required')
+        }
+
+        const response = await fetch(`${PEANUT_API_URL}/rhino/request-fulfilment`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+                requestId,
+                type: chainType,
+                chargeId,
+                senderPeanutWalletAddress: peanutWalletAddress,
+            }),
+        })
+        if (!response.ok) {
+            throw new Error(`Failed to fetch Request Fulfilment Address: ${response.statusText}`)
+        }
+        const data = await response.json()
+        return data as CreateDepositAddressResponse
+    },
 }

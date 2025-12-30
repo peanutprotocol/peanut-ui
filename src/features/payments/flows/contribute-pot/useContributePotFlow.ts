@@ -51,6 +51,8 @@ export function useContributePotFlow() {
         totalCollected,
         contributors,
         resetContributePotFlow,
+        isExternalWalletPayment,
+        setIsExternalWalletPayment,
     } = useContributePotFlowContext()
 
     const { user } = useAuth()
@@ -146,77 +148,85 @@ export function useContributePotFlow() {
     }, [totalAmount, totalCollected, contributors])
 
     // execute the contribution
-    const executeContribution = useCallback(async () => {
-        if (!recipient || !amount || !walletAddress || !request) {
-            setError({ showError: true, errorMessage: 'missing required data' })
-            return
-        }
+    const executeContribution = useCallback(
+        async (shouldReturnAfterCreatingCharge: boolean = false) => {
+            if (!recipient || !amount || !walletAddress || !request) {
+                setError({ showError: true, errorMessage: 'missing required data' })
+                return
+            }
 
-        setIsLoading(true)
-        clearError()
+            setIsLoading(true)
+            clearError()
 
-        try {
-            // step 1: create charge for this contribution
-            const chargeResult = await createCharge({
-                tokenAmount: amount,
-                tokenAddress: PEANUT_WALLET_TOKEN as Address,
-                chainId: PEANUT_WALLET_CHAIN.id.toString(),
-                tokenSymbol: 'USDC',
-                tokenDecimals: PEANUT_WALLET_TOKEN_DECIMALS,
-                recipientAddress: recipient.address,
-                transactionType: 'REQUEST',
-                requestId: request.uuid,
-                reference: attachment.message,
-                attachment: attachment.file,
-                currencyAmount: usdAmount,
-                currencyCode: 'USD',
-            })
+            try {
+                // step 1: create charge for this contribution
+                const chargeResult = await createCharge({
+                    tokenAmount: amount,
+                    tokenAddress: PEANUT_WALLET_TOKEN as Address,
+                    chainId: PEANUT_WALLET_CHAIN.id.toString(),
+                    tokenSymbol: 'USDC',
+                    tokenDecimals: PEANUT_WALLET_TOKEN_DECIMALS,
+                    recipientAddress: recipient.address,
+                    transactionType: 'REQUEST',
+                    requestId: request.uuid,
+                    reference: attachment.message,
+                    attachment: attachment.file,
+                    currencyAmount: usdAmount,
+                    currencyCode: 'USD',
+                })
 
-            setCharge(chargeResult)
+                setCharge(chargeResult)
 
-            // step 2: send money via peanut wallet
-            const txResult = await sendMoney(recipient.address, amount)
-            const hash = (txResult.receipt?.transactionHash ?? txResult.userOpHash) as Hash
+                // Return early after creating charge if requested, used in external wallet flow.
+                if (shouldReturnAfterCreatingCharge) {
+                    return
+                }
 
-            setTxHash(hash)
+                // step 2: send money via peanut wallet
+                const txResult = await sendMoney(recipient.address, amount)
+                const hash = (txResult.receipt?.transactionHash ?? txResult.userOpHash) as Hash
 
-            // step 3: record payment to backend
-            const paymentResult = await recordPayment({
-                chargeId: chargeResult.uuid,
-                chainId: PEANUT_WALLET_CHAIN.id.toString(),
-                txHash: hash,
-                tokenAddress: PEANUT_WALLET_TOKEN as Address,
-                payerAddress: walletAddress as Address,
-            })
+                setTxHash(hash)
 
-            setPayment(paymentResult)
-            setIsSuccess(true)
-            setCurrentView('STATUS')
-        } catch (err) {
-            const errorMessage = ErrorHandler(err)
-            setError({ showError: true, errorMessage })
-        } finally {
-            setIsLoading(false)
-        }
-    }, [
-        recipient,
-        amount,
-        usdAmount,
-        attachment,
-        walletAddress,
-        request,
-        createCharge,
-        sendMoney,
-        recordPayment,
-        setCharge,
-        setTxHash,
-        setPayment,
-        setIsSuccess,
-        setCurrentView,
-        setError,
-        setIsLoading,
-        clearError,
-    ])
+                // step 3: record payment to backend
+                const paymentResult = await recordPayment({
+                    chargeId: chargeResult.uuid,
+                    chainId: PEANUT_WALLET_CHAIN.id.toString(),
+                    txHash: hash,
+                    tokenAddress: PEANUT_WALLET_TOKEN as Address,
+                    payerAddress: walletAddress as Address,
+                })
+
+                setPayment(paymentResult)
+                setIsSuccess(true)
+                setCurrentView('STATUS')
+            } catch (err) {
+                const errorMessage = ErrorHandler(err)
+                setError({ showError: true, errorMessage })
+            } finally {
+                setIsLoading(false)
+            }
+        },
+        [
+            recipient,
+            amount,
+            usdAmount,
+            attachment,
+            walletAddress,
+            request,
+            createCharge,
+            sendMoney,
+            recordPayment,
+            setCharge,
+            setTxHash,
+            setPayment,
+            setIsSuccess,
+            setCurrentView,
+            setError,
+            setIsLoading,
+            clearError,
+        ]
+    )
 
     return {
         // state
@@ -232,6 +242,7 @@ export function useContributePotFlow() {
         error,
         isLoading: isLoading || isCreatingCharge || isRecording,
         isSuccess,
+        isExternalWalletPayment,
 
         // derived data
         totalAmount,
@@ -255,5 +266,6 @@ export function useContributePotFlow() {
         executeContribution,
         resetContributePotFlow,
         setCurrentView,
+        setIsExternalWalletPayment,
     }
 }

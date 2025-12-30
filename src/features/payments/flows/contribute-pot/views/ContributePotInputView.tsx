@@ -42,6 +42,7 @@ export function ContributePotInputView() {
         sliderDefaults,
         setAmount,
         executeContribution,
+        setCurrentView,
     } = useContributePotFlow()
 
     // handle submit - directly execute contribution
@@ -57,6 +58,16 @@ export function ContributePotInputView() {
             router.back()
         } else {
             router.push('/')
+        }
+    }
+
+    // handle External Wallet click
+    const handleOpenExternalWalletFlow = async () => {
+        if (canProceed && hasSufficientBalance && !isLoading) {
+            await executeContribution(true) // return after creating charge
+            if (!error.showError) {
+                setCurrentView('EXTERNAL_WALLET')
+            }
         }
     }
 
@@ -112,6 +123,7 @@ export function ContributePotInputView() {
                     recipientUserId={recipient?.userId}
                     onPayWithPeanut={handlePayWithPeanut}
                     isPaymentLoading={isLoading}
+                    onPayWithExternalWallet={handleOpenExternalWalletFlow}
                 />
             </div>
 
