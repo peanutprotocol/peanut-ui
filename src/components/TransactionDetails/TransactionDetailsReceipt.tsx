@@ -768,7 +768,7 @@ export const TransactionDetailsReceipt = ({
                                 ) : (
                                     <div className="flex items-center gap-2">
                                         <span>{shortenStringLong(transaction.txHash)}</span>
-                                        <CopyToClipboard fill="black" textToCopy={transaction.txHash} iconSize="4" />
+                                        <CopyToClipboard textToCopy={transaction.txHash} iconSize="4" />
                                     </div>
                                 )
                             }
@@ -900,8 +900,32 @@ export const TransactionDetailsReceipt = ({
                             </div>
 
                             {/* Collapsible bank details */}
+
                             {showBankDetails && (
                                 <>
+                                    {transaction.extraDataForDrawer.depositInstructions.account_holder_name && (
+                                        <PaymentInfoRow
+                                            label="Account Holder Name"
+                                            value={
+                                                <div className="flex items-center gap-2">
+                                                    <span>
+                                                        {
+                                                            transaction.extraDataForDrawer.depositInstructions
+                                                                .account_holder_name
+                                                        }
+                                                    </span>
+                                                    <CopyToClipboard
+                                                        textToCopy={
+                                                            transaction.extraDataForDrawer.depositInstructions
+                                                                .account_holder_name
+                                                        }
+                                                        iconSize="4"
+                                                    />
+                                                </div>
+                                            }
+                                            hideBottomBorder={false}
+                                        />
+                                    )}
                                     <PaymentInfoRow
                                         label="Bank Name"
                                         value={
@@ -975,31 +999,8 @@ export const TransactionDetailsReceipt = ({
                                                         />
                                                     </div>
                                                 }
-                                                hideBottomBorder={false}
+                                                hideBottomBorder={true}
                                             />
-                                            {transaction.extraDataForDrawer.depositInstructions.account_holder_name && (
-                                                <PaymentInfoRow
-                                                    label="Account Holder Name"
-                                                    value={
-                                                        <div className="flex items-center gap-2">
-                                                            <span>
-                                                                {
-                                                                    transaction.extraDataForDrawer.depositInstructions
-                                                                        .account_holder_name
-                                                                }
-                                                            </span>
-                                                            <CopyToClipboard
-                                                                textToCopy={
-                                                                    transaction.extraDataForDrawer.depositInstructions
-                                                                        .account_holder_name
-                                                                }
-                                                                iconSize="4"
-                                                            />
-                                                        </div>
-                                                    }
-                                                    hideBottomBorder={true}
-                                                />
-                                            )}
                                         </>
                                     ) : (
                                         /* US format (Account Number/Routing Number) */

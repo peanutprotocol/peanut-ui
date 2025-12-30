@@ -229,7 +229,7 @@ Please use these details to complete your bank transfer.`
                             <CopyToClipboard
                                 textToCopy={onrampData.depositInstructions.depositMessage}
                                 fill="black"
-                                iconSize="3"
+                                iconSize="4"
                             />
                         )}
                     </div>
@@ -244,6 +244,15 @@ Please use these details to complete your bank transfer.`
 
                 <Card className="gap-2 rounded-sm">
                     <h1 className="text-xs">Bank Details</h1>
+
+                    {onrampData?.depositInstructions?.accountHolderName && (
+                        <PaymentInfoRow
+                            label={'Account Holder Name'}
+                            value={onrampData?.depositInstructions?.accountHolderName || 'Loading...'}
+                            allowCopy={!!onrampData?.depositInstructions?.accountHolderName}
+                            hideBottomBorder
+                        />
+                    )}
 
                     <PaymentInfoRow
                         label={'Bank Name'}
@@ -265,15 +274,6 @@ Please use these details to complete your bank transfer.`
                             label={'Beneficiary Name'}
                             value={onrampData?.depositInstructions?.bankBeneficiaryName || 'Loading...'}
                             allowCopy={!!onrampData?.depositInstructions?.bankBeneficiaryName}
-                            hideBottomBorder
-                        />
-                    )}
-
-                    {onrampData?.depositInstructions?.accountHolderName && (
-                        <PaymentInfoRow
-                            label={'Account Holder Name'}
-                            value={onrampData?.depositInstructions?.accountHolderName || 'Loading...'}
-                            allowCopy={!!onrampData?.depositInstructions?.accountHolderName}
                             hideBottomBorder
                         />
                     )}

@@ -126,7 +126,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
                         setSelectedCurrency={setSourceCurrency}
                         // excludeCurrencies={[destinationCurrency]}
                         trigger={
-                            <button className="flex w-32 items-center gap-2">
+                            <button className="flex w-20 items-center gap-2">
                                 <Image
                                     src={`https://flagcdn.com/w320/${sourceCurrencyFlag}.png`}
                                     alt={`${sourceCurrencyFlag} flag`}
@@ -170,7 +170,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
                         selectedCurrency={destinationCurrency}
                         setSelectedCurrency={setDestinationCurrency}
                         trigger={
-                            <button className="flex w-32 items-center gap-2">
+                            <button className="flex w-20 items-center gap-2">
                                 <Image
                                     src={`https://flagcdn.com/w320/${destinationCurrencyFlag}.png`}
                                     alt={`${destinationCurrencyFlag} flag`}

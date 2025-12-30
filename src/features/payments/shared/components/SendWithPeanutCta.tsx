@@ -12,7 +12,7 @@ import { PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
 import { Button, type ButtonProps } from '@/components/0_Bruddle/Button'
 import type { IconName } from '@/components/Global/Icons/Icon'
 import { useAuth } from '@/context/authContext'
-import { saveRedirectUrl } from '@/utils/general.utils'
+import { saveRedirectUrl, saveToLocalStorage } from '@/utils/general.utils'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useMemo } from 'react'
@@ -54,6 +54,9 @@ export default function SendWithPeanutCta({
         }
 
         if (isLoggedIn && insufficientBalance) {
+            // save current url so back button works properly
+            saveRedirectUrl()
+            saveToLocalStorage('fromRequestFulfillment', 'true')
             router.push('/add-money')
             return
         }
