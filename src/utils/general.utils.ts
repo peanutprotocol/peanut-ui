@@ -18,6 +18,7 @@ import { NATIVE_TOKEN_ADDRESS, SQUID_ETH_ADDRESS } from './token.utils'
 import { type ChargeEntry } from '@/services/services.types'
 import { toWebAuthnKey } from '@zerodev/passkey-validator'
 import { USER_OPERATION_REVERT_REASON_TOPIC } from '@/constants/zerodev.consts'
+import { CHAIN_LOGOS, type ChainName } from '@/constants/rhino.consts'
 
 export function urlBase64ToUint8Array(base64String: string) {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -651,6 +652,9 @@ export async function fetchTokenSymbol(tokenAddress: string, chainId: string): P
 }
 
 export function getChainName(chainId: string): string | undefined {
+    if (chainId === '0') {
+        return 'Solana'
+    }
     const chain = Object.entries(wagmiChains).find(([, chain]) => chain.id === Number(chainId))?.[1]
     return chain?.name ?? undefined
 }
@@ -777,6 +781,13 @@ export function getChainLogo(chainName: string): string {
         default:
             name = chainName.toLowerCase()
     }
+
+    const chainLogo = CHAIN_LOGOS[name.toUpperCase() as ChainName]
+
+    if (chainLogo) {
+        return chainLogo
+    }
+
     return `https://raw.githubusercontent.com/0xsquid/assets/main/images/webp128/chains/${name}.webp`
 }
 
