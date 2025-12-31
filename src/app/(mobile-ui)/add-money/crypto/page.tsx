@@ -6,15 +6,13 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { rhinoApi } from '@/services/rhino'
 import type { RhinoChainType } from '@/services/services.types'
 import { useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 
 interface AddMoneyCryptoPageProps {
-    headerTitle?: string
     onBack?: () => void
-    depositAddress?: string
 }
 
-const AddMoneyCryptoPage = ({ headerTitle, onBack, depositAddress }: AddMoneyCryptoPageProps) => {
+const AddMoneyCryptoPage = ({ onBack }: AddMoneyCryptoPageProps) => {
     const { user } = useAuth()
     const { address: peanutWalletAddress } = useWallet()
     const [chainType, setChainType] = useState<RhinoChainType>('EVM')
@@ -29,10 +27,10 @@ const AddMoneyCryptoPage = ({ headerTitle, onBack, depositAddress }: AddMoneyCry
         staleTime: 1000 * 60 * 60 * 24, // 24 hours
     })
 
-    const handleSuccess = (amount: number) => {
+    const handleSuccess = useCallback((amount: number) => {
         setDepositedAmount(amount)
         setShowSuccessView(true)
-    }
+    }, [])
 
     if (showSuccessView) {
         return <PaymentSuccessView type="DEPOSIT" amount={depositedAmount.toString()} />

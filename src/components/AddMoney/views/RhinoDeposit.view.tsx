@@ -42,8 +42,10 @@ const RhinoDepositView = ({
     const [isDelayComplete, setIsDelayComplete] = useState(false)
     const [isUpdatingDepositAddresStatus, setisUpdatingDepositAddresStatus] = useState(false)
 
+    const POLLING_DELAY = 15_000
+
     useEffect(() => {
-        const timer = setTimeout(() => setIsDelayComplete(true), 15_000)
+        const timer = setTimeout(() => setIsDelayComplete(true), POLLING_DELAY)
         return () => clearTimeout(timer)
     }, [])
 
@@ -62,13 +64,13 @@ const RhinoDepositView = ({
     const { containerRef, truncatedAddress } = useAutoTruncatedAddress(depositAddressData?.depositAddress ?? '')
 
     const depositAddressStatus = useMemo(() => {
-        if (depositAddressStatusData?.status == 'accepted') {
+        if (depositAddressStatusData?.status === 'accepted') {
             return 'loading'
-        } else if (depositAddressStatusData?.status == 'pending') {
+        } else if (depositAddressStatusData?.status === 'pending') {
             return 'loading'
-        } else if (depositAddressStatusData?.status == 'failed') {
+        } else if (depositAddressStatusData?.status === 'failed') {
             return 'failed'
-        } else if (depositAddressStatusData?.status == 'completed') {
+        } else if (depositAddressStatusData?.status === 'completed') {
             return 'completed'
         } else {
             return 'not_started'
@@ -79,8 +81,12 @@ const RhinoDepositView = ({
     const updateDepositAddressStatus = async () => {
         if (isUpdatingDepositAddresStatus) return // Prevent concurrent calls
 
+        if (!depositAddressData?.depositAddress) {
+            return
+        }
+
         setisUpdatingDepositAddresStatus(true)
-        await rhinoApi.resetDepositAddressStatus(depositAddressData?.depositAddress as string)
+        await rhinoApi.resetDepositAddressStatus(depositAddressData.depositAddress)
         setisUpdatingDepositAddresStatus(false)
     }
 

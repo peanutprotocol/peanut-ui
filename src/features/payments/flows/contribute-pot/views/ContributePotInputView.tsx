@@ -63,7 +63,7 @@ export function ContributePotInputView() {
 
     // handle External Wallet click
     const handleOpenExternalWalletFlow = async () => {
-        if (canProceed && hasSufficientBalance && !isLoading) {
+        if (canProceed && !isLoading) {
             const res = await executeContribution(true) // return after creating charge
             // Proceed only if charge is created successfully
             if (res && res.success) {

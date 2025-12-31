@@ -2,7 +2,7 @@
 
 import RhinoDepositView from '@/components/AddMoney/views/RhinoDeposit.view'
 import { useContributePotFlow } from '../useContributePotFlow'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import type { RhinoChainType } from '@/services/services.types'
 import { useQuery } from '@tanstack/react-query'
 import { rhinoApi } from '@/services/rhino'
@@ -33,6 +33,11 @@ const ExternalWalletPaymentView = () => {
         staleTime: 1000 * 60 * 60 * 24, // 24 hours
     })
 
+    const onSuccess = useCallback((_: number) => {
+        setIsExternalWalletPayment(true)
+        setCurrentView('STATUS')
+    }, [])
+
     return (
         <RhinoDepositView
             headerTitle="Pay"
@@ -40,10 +45,8 @@ const ExternalWalletPaymentView = () => {
             setChainType={setChainType}
             depositAddressData={depositAddressData}
             isDepositAddressDataLoading={isLoading}
-            onSuccess={(_) => {
-                setIsExternalWalletPayment(true)
-                setCurrentView('STATUS')
-            }}
+            onSuccess={onSuccess}
+            onBack={() => setCurrentView('INITIAL')}
         />
     )
 }
