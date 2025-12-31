@@ -185,7 +185,7 @@ ${routingLabel}: ${routingValue}`
         }
 
         bankDetails += `
-Deposit Reference: ${onrampData?.depositInstructions?.depositMessage || 'Loading...'}
+Deposit Reference: ${onrampData?.depositInstructions?.depositMessage?.slice(0, 10) || 'Loading...'}
 
 Please use these details to complete your bank transfer.`
 
@@ -223,11 +223,11 @@ Please use these details to complete your bank transfer.`
                     <p className="text-xs font-normal text-gray-1">Deposit reference</p>
                     <div className="flex items-baseline gap-2">
                         <p className="text-xl font-extrabold text-black md:text-4xl">
-                            {onrampData?.depositInstructions?.depositMessage || 'Loading...'}
+                            {onrampData?.depositInstructions?.depositMessage?.slice(0, 10) || 'Loading...'}
                         </p>
                         {onrampData?.depositInstructions?.depositMessage && (
                             <CopyToClipboard
-                                textToCopy={onrampData.depositInstructions.depositMessage}
+                                textToCopy={onrampData.depositInstructions.depositMessage?.slice(0, 10)}
                                 fill="black"
                                 iconSize="4"
                             />
@@ -351,7 +351,7 @@ Please use these details to complete your bank transfer.`
                     title="Double check in your bank before sending:"
                     items={[
                         `Amount: ${formattedCurrencyAmount} (exact)`,
-                        `Reference: ${onrampData?.depositInstructions?.depositMessage || 'Loading...'} (included)`,
+                        `Reference: ${onrampData?.depositInstructions?.depositMessage?.slice(0, 10) || 'Loading...'} (included)`,
                     ]}
                 />
 

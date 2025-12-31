@@ -59,6 +59,7 @@ export default function MantecaWithdrawFlow() {
     const [balanceErrorMessage, setBalanceErrorMessage] = useState<string | null>(null)
     const searchParams = useSearchParams()
     const paramAddress = searchParams.get('destination')
+    const isSavedAccount = searchParams.get('isSavedAccount') === 'true'
     const [destinationAddress, setDestinationAddress] = useState<string>(paramAddress ?? '')
     const [selectedBank, setSelectedBank] = useState<MantecaBankCode | null>(null)
     const [accountType, setAccountType] = useState<MantecaAccountType | null>(null)
@@ -433,7 +434,12 @@ export default function MantecaWithdrawFlow() {
                         shadowSize="4"
                         onClick={() => {
                             if (usdAmount) {
-                                setStep('bankDetails')
+                                // If coming from saved account flow, skip bank details step and go to review
+                                if (isSavedAccount) {
+                                    handleBankDetailsSubmit()
+                                } else {
+                                    setStep('bankDetails')
+                                }
                             }
                         }}
                         disabled={!Number(usdAmount) || !!balanceErrorMessage}
