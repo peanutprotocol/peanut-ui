@@ -216,7 +216,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                         // preserve method param if coming from send flow
                         const additionalParams = isBankFromSend ? `&method=${methodParam}` : ''
                         router.push(
-                            `/withdraw/manteca?country=${account.details.countryName}&destination=${account.identifier}${additionalParams}`
+                            `/withdraw/manteca?country=${account.details.countryName}&destination=${account.identifier}&isSavedAccount=true${additionalParams}`
                         )
                     }
                 }}
