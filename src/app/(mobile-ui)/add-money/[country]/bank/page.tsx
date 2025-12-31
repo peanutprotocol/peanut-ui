@@ -56,7 +56,7 @@ export default function OnrampBankPage() {
     const [userUpdateError, setUserUpdateError] = useState<string | null>(null)
     const [isUserDetailsFormValid, setIsUserDetailsFormValid] = useState(false)
 
-    const { setError, error, setOnrampData } = useOnrampFlow()
+    const { setError, error, setOnrampData, onrampData } = useOnrampFlow()
     const formRef = useRef<{ handleSubmit: () => void }>(null)
 
     const { balance } = useWallet()
@@ -326,6 +326,11 @@ export default function OnrampBankPage() {
     }
 
     if (urlState.step === 'showDetails') {
+        // Validate we have the required data (protects against deep links and back navigation)
+        if (!onrampData?.transferId) {
+            setUrlState({ step: 'inputAmount' })
+            return <PeanutLoading />
+        }
         return <AddMoneyBankDetails />
     }
 

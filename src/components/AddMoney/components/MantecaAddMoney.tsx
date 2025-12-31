@@ -217,7 +217,12 @@ const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
         )
     }
 
-    if (step === 'depositDetails' && depositDetails) {
+    if (step === 'depositDetails') {
+        // Validate we have the required data (protects against deep links and back navigation)
+        if (!depositDetails) {
+            setUrlState({ step: 'inputAmount' })
+            return null
+        }
         return (
             <MantecaDepositShareDetails
                 source={source}
