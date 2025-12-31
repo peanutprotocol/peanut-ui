@@ -14,6 +14,7 @@ import { ContributePotFlowProvider, useContributePotFlowContext } from './Contri
 import { ContributePotInputView } from './views/ContributePotInputView'
 import { ContributePotSuccessView } from './views/ContributePotSuccessView'
 import { type TRequestResponse } from '@/services/services.types'
+import ExternalWalletPaymentView from './views/ExternalWalletPaymentView'
 
 // internal component that switches views
 function ContributePotFlowContent() {
@@ -22,6 +23,8 @@ function ContributePotFlowContent() {
     switch (currentView) {
         case 'STATUS':
             return <ContributePotSuccessView />
+        case 'EXTERNAL_WALLET':
+            return <ExternalWalletPaymentView />
         case 'INITIAL':
         default:
             return <ContributePotInputView />

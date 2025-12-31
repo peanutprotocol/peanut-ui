@@ -19,7 +19,6 @@ export const PayRequestLink = () => {
                 chainId: charge.chainId,
                 tokenAmount: charge.tokenAmount,
                 tokenSymbol: charge.tokenSymbol,
-                chargeId: charge.uuid,
             })
             router.push(link)
             return

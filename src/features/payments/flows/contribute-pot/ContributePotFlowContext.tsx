@@ -18,7 +18,7 @@ import { type Address, type Hash } from 'viem'
 import { type TRequestResponse, type ChargeEntry, type PaymentCreationResponse } from '@/services/services.types'
 
 // view states for contribute pot flow
-export type ContributePotFlowView = 'INITIAL' | 'STATUS'
+export type ContributePotFlowView = 'INITIAL' | 'STATUS' | 'EXTERNAL_WALLET'
 
 // recipient info derived from request
 export interface PotRecipient {
@@ -80,6 +80,8 @@ interface ContributePotFlowContextValue {
     setPayment: (payment: PaymentCreationResponse | null) => void
     txHash: Hash | null
     setTxHash: (hash: Hash | null) => void
+    isExternalWalletPayment: boolean
+    setIsExternalWalletPayment: (isExternalWalletPayment: boolean) => void
 
     // ui state
     error: ContributePotError
@@ -123,6 +125,7 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
     const [charge, setCharge] = useState<ChargeEntry | null>(null)
     const [payment, setPayment] = useState<PaymentCreationResponse | null>(null)
     const [txHash, setTxHash] = useState<Hash | null>(null)
+    const [isExternalWalletPayment, setIsExternalWalletPayment] = useState(false)
 
     // ui state
     const [error, setError] = useState<ContributePotError>({ showError: false, errorMessage: '' })
@@ -174,6 +177,7 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
         setError({ showError: false, errorMessage: '' })
         setIsLoading(false)
         setIsSuccess(false)
+        setIsExternalWalletPayment(false)
     }, [])
 
     const value = useMemo<ContributePotFlowContextValue>(
@@ -205,6 +209,8 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
             totalCollected,
             contributors,
             resetContributePotFlow,
+            isExternalWalletPayment,
+            setIsExternalWalletPayment,
         }),
         [
             currentView,
@@ -223,6 +229,8 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
             totalCollected,
             contributors,
             resetContributePotFlow,
+            isExternalWalletPayment,
+            setIsExternalWalletPayment,
         ]
     )
 

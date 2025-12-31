@@ -15,13 +15,14 @@ import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import { PointsAction } from '@/services/services.types'
 
 export function ContributePotSuccessView() {
-    const { usdAmount, recipient, attachment, charge, payment, resetContributePotFlow } = useContributePotFlow()
+    const { usdAmount, recipient, attachment, charge, payment, resetContributePotFlow, isExternalWalletPayment } =
+        useContributePotFlow()
 
     // calculate points for the contribution
     const { pointsData } = usePointsCalculation(
         PointsAction.P2P_REQUEST_PAYMENT,
         usdAmount,
-        !!payment,
+        !!payment || isExternalWalletPayment, // For external wallet payments, we dont't have payment info on the FE, its handled by webooks on BE
         payment?.uuid,
         recipient?.userId
     )

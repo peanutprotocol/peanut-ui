@@ -66,6 +66,7 @@ export interface ChargeEntry {
 }
 
 export interface RequestLink {
+    uuid: string
     recipientAddress: string
     reference: string | null
     attachmentUrl: string | null
@@ -190,6 +191,7 @@ export interface TRequestChargeResponse {
         username: string
     }
     requestLink: {
+        uuid: string
         recipientAddress: string
         reference: string | null
         attachmentUrl: string | null
