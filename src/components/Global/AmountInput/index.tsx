@@ -66,6 +66,14 @@ const AmountInput = ({
     const [exactValue, setExactValue] = useState(Number(initialAmount || '') * 10 ** DECIMAL_SCALE)
     const [displaySymbol, setDisplaySymbol] = useState<string>(primaryDenomination.symbol)
 
+    // sync displayValue with initialAmount changes (e.g. when charge is fetched)
+    useEffect(() => {
+        if (initialAmount && initialAmount !== displayValue) {
+            setDisplayValue(initialAmount)
+            setExactValue(Number(initialAmount) * 10 ** DECIMAL_SCALE)
+        }
+    }, [initialAmount])
+
     const denominations = {
         [primaryDenomination.symbol]: primaryDenomination,
     }
@@ -169,10 +177,14 @@ const AmountInput = ({
     }, [defaultSliderSuggestedAmount])
 
     const inputRef = useRef<HTMLInputElement>(null)
-    // Set input width based on display value length
+    // set input width based on display value length
+    // add extra space for decimal numbers to prevent cutoff
     useEffect(() => {
         if (inputRef.current) {
-            inputRef.current.style.width = displayValue?.length ? `${displayValue.length}ch` : '4ch'
+            const length = displayValue?.length || 0
+            // add 0.6ch extra width to prevent cutoff, minimum 4ch
+            const width = length ? `${length + 0.6}ch` : '4ch'
+            inputRef.current.style.width = width
         }
     }, [displayValue])
 
