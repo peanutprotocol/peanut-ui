@@ -263,6 +263,13 @@ export default function OnrampBankPage() {
         }
     }, [urlState.step])
 
+    // Redirect to inputAmount if showDetails is accessed without required data (deep link / back navigation)
+    useEffect(() => {
+        if (urlState.step === 'showDetails' && !onrampData?.transferId) {
+            setUrlState({ step: 'inputAmount' })
+        }
+    }, [urlState.step, onrampData?.transferId, setUrlState])
+
     // Show loading while user is being fetched and no step in URL yet
     if (!urlState.step && user === null) {
         return <PeanutLoading />
@@ -326,9 +333,8 @@ export default function OnrampBankPage() {
     }
 
     if (urlState.step === 'showDetails') {
-        // Validate we have the required data (protects against deep links and back navigation)
+        // Show loading while useEffect redirects if data is missing
         if (!onrampData?.transferId) {
-            setUrlState({ step: 'inputAmount' })
             return <PeanutLoading />
         }
         return <AddMoneyBankDetails />

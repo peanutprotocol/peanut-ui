@@ -183,6 +183,13 @@ const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
         }
     }, [isMantecaKycRequired])
 
+    // Redirect to inputAmount if depositDetails is accessed without required data (deep link / back navigation)
+    useEffect(() => {
+        if (step === 'depositDetails' && !depositDetails) {
+            setUrlState({ step: 'inputAmount' })
+        }
+    }, [step, depositDetails, setUrlState])
+
     if (!selectedCountry) return null
 
     if (step === 'inputAmount') {
@@ -218,9 +225,8 @@ const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
     }
 
     if (step === 'depositDetails') {
-        // Validate we have the required data (protects against deep links and back navigation)
+        // Show nothing while useEffect redirects if data is missing
         if (!depositDetails) {
-            setUrlState({ step: 'inputAmount' })
             return null
         }
         return (
