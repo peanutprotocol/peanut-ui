@@ -872,12 +872,16 @@ export const TransactionDetailsReceipt = ({
                                 value={
                                     <div className="flex items-center gap-2">
                                         <span>
-                                            {transaction.extraDataForDrawer.depositInstructions.deposit_message}
+                                            {transaction.extraDataForDrawer.depositInstructions.deposit_message.slice(
+                                                0,
+                                                10
+                                            )}
                                         </span>
                                         <CopyToClipboard
-                                            textToCopy={
-                                                transaction.extraDataForDrawer.depositInstructions.deposit_message
-                                            }
+                                            textToCopy={transaction.extraDataForDrawer.depositInstructions.deposit_message.slice(
+                                                0,
+                                                10
+                                            )}
                                             iconSize="4"
                                         />
                                     </div>
