@@ -1,26 +1,17 @@
 import ActionModal from '@/components/Global/ActionModal'
 import { Slider } from '@/components/Slider'
-import { ARBITRUM_ICON } from '@/assets'
-import { type NetworkConfig } from '@/components/Global/TokenSelector/TokenSelector.consts'
-import { type CryptoToken } from '@/components/AddMoney/consts'
-import Image from 'next/image'
+import ChainChip from '@/components/AddMoney/components/ChainChip'
+import { RHINO_SUPPORTED_CHAINS, RHINO_SUPPORTED_TOKENS } from '@/constants/rhino.consts'
 
 export default function TokenAndNetworkConfirmationModal({
-    token,
-    network,
     onClose,
     onAccept,
     isVisible = true,
 }: {
-    token?: Pick<CryptoToken, 'symbol' | 'icon'>
-    network?: Pick<NetworkConfig, 'name' | 'iconUrl'>
     onClose: () => void
     onAccept: () => void
     isVisible?: boolean
 }) {
-    token = token ?? { symbol: 'USDC', icon: 'https://assets.coingecko.com/coins/images/6319/small/USD_Coin_icon.png' }
-    network = network ?? { name: 'Arbitrum', iconUrl: ARBITRUM_ICON }
-
     return (
         <ActionModal
             visible={isVisible}
@@ -28,20 +19,32 @@ export default function TokenAndNetworkConfirmationModal({
             icon={'alert'}
             iconContainerClassName="bg-yellow-1"
             modalClassName="z-[9999]"
-            title={`Only send funds using`}
+            title={`Send only supported tokens on supported networks`}
             description={
-                <div className="flex flex-col items-center gap-2">
-                    <div className="flex items-center gap-3">
-                        <Image src={token.icon} alt={token.symbol} width={28} height={28} />
-                        <span className="text-xl font-medium text-black">{token.symbol}</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <Image src={network.iconUrl} alt={network.name} width={28} height={28} />
-                        <span className="text-xl font-medium text-black">{network.name}</span>
-                    </div>
+                <div className="flex flex-col items-center gap-2 px-3">
                     <span className="text-sm">
-                        Sending funds via any other network will result in a <b>permanent loss.</b>
+                        Sending the wrong token or using the wrong network will result in permanent loss.
                     </span>
+
+                    <div className="mt-2 flex w-full flex-col items-start gap-2">
+                        <h2 className="font-bold text-black">Supported Networks</h2>
+
+                        <div className="flex flex-wrap gap-2">
+                            {RHINO_SUPPORTED_CHAINS.map((chain) => (
+                                <ChainChip key={chain.name} chainName={chain.name} chainSymbol={chain.logoUrl} />
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="mt-2 flex w-full flex-col items-start gap-2">
+                        <h2 className="font-bold text-black">Supported Tokens</h2>
+
+                        <div className="flex flex-wrap gap-2">
+                            {RHINO_SUPPORTED_TOKENS.map((token) => (
+                                <ChainChip key={token.name} chainName={token.name} chainSymbol={token.logoUrl} />
+                            ))}
+                        </div>
+                    </div>
                 </div>
             }
             footer={
@@ -50,7 +53,7 @@ export default function TokenAndNetworkConfirmationModal({
                 </div>
             }
             ctas={[]}
-            modalPanelClassName="max-w-xs"
+            modalPanelClassName="max-w-sm"
         />
     )
 }

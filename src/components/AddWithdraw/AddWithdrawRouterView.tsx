@@ -20,7 +20,7 @@ import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { CountryList } from '../Common/CountryList'
 import PeanutLoading from '../Global/PeanutLoading'
 import SavedAccountsView from '../Common/SavedAccountsView'
-import CryptoMethodDrawer from '../AddMoney/components/CryptoMethodDrawer'
+import TokenAndNetworkConfirmationModal from '../Global/TokenAndNetworkConfirmationModal'
 
 interface AddWithdrawRouterViewProps {
     flow: 'add' | 'withdraw'
@@ -68,7 +68,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
     const [savedAccounts, setSavedAccounts] = useState<Account[]>([])
     // local flag only for add flow; for withdraw we derive from context
     const [localShowAllMethods, setLocalShowAllMethods] = useState<boolean>(false)
-    const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+    const [isSupportedTokensModalOpen, setIsSupportedTokensModalOpen] = useState(false)
     const [, startTransition] = useTransition()
     const searchParams = useSearchParams()
     const currencyCode = searchParams.get('currencyCode')
@@ -134,7 +134,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
             }
 
             if (flow === 'add' && method.id === 'crypto') {
-                setIsDrawerOpen(true)
+                setIsSupportedTokensModalOpen(true)
                 return
             }
 
@@ -254,10 +254,14 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                 <Button icon="plus" className="mb-5" onClick={() => setShouldShowAllMethods(true)} shadowSize="4">
                     Select new method
                 </Button>
-                <CryptoMethodDrawer
-                    isDrawerOpen={isDrawerOpen}
-                    setisDrawerOpen={setIsDrawerOpen}
-                    closeDrawer={() => setIsDrawerOpen(false)}
+                <TokenAndNetworkConfirmationModal
+                    onClose={() => {
+                        setIsSupportedTokensModalOpen(false)
+                    }}
+                    onAccept={() => {
+                        router.push('/add-money/crypto')
+                    }}
+                    isVisible={isSupportedTokensModalOpen}
                 />
             </div>
         )
@@ -328,7 +332,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                 }}
                 onCryptoClick={() => {
                     if (flow === 'add') {
-                        setIsDrawerOpen(true)
+                        setIsSupportedTokensModalOpen(true)
                     } else {
                         // preserve method param if coming from send flow (though crypto shouldn't show this screen)
                         const queryParams = methodParam ? `?method=${methodParam}` : ''
@@ -346,10 +350,15 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                 }}
                 flow={flow}
             />
-            <CryptoMethodDrawer
-                isDrawerOpen={isDrawerOpen}
-                setisDrawerOpen={setIsDrawerOpen}
-                closeDrawer={() => setIsDrawerOpen(false)}
+
+            <TokenAndNetworkConfirmationModal
+                onClose={() => {
+                    setIsSupportedTokensModalOpen(false)
+                }}
+                onAccept={() => {
+                    router.push('/add-money/crypto')
+                }}
+                isVisible={isSupportedTokensModalOpen}
             />
         </div>
     )

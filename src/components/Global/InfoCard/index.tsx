@@ -19,6 +19,7 @@ interface InfoCardProps {
     itemIconSize?: number
     itemIconClassName?: string
     containerClassName?: string
+    customContent?: React.ReactNode
 }
 
 const VARIANT_CLASSES = {
@@ -47,9 +48,10 @@ const InfoCard = ({
     itemIconSize = 16,
     itemIconClassName,
     containerClassName,
+    customContent,
 }: InfoCardProps) => {
     const variantClasses = VARIANT_CLASSES[variant]
-    const hasContent = title || description || items
+    const hasContent = title || description || items || customContent
 
     return (
         <Card className={twMerge('flex w-full border', variantClasses, className)}>
@@ -99,6 +101,8 @@ const InfoCard = ({
                         </>
                     )}
                     {!hasContent && <span className={BASE_TEXT_CLASSES}>No content provided</span>}
+
+                    {customContent && customContent}
                 </div>
             </div>
         </Card>

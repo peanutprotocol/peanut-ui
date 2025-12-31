@@ -37,6 +37,7 @@ interface RequestPotActionListProps {
     recipientUserId?: string
     onPayWithPeanut: () => void
     isPaymentLoading?: boolean
+    onPayWithExternalWallet: () => void
 }
 
 export function RequestPotActionList({
@@ -45,6 +46,7 @@ export function RequestPotActionList({
     recipientUserId,
     onPayWithPeanut,
     isPaymentLoading = false,
+    onPayWithExternalWallet,
 }: RequestPotActionListProps) {
     const router = useRouter()
     const { user } = useAuth()
@@ -79,7 +81,7 @@ export function RequestPotActionList({
             method.soon ||
             (method.id === 'bank' && requiresVerification) ||
             (['mercadopago', 'pix'].includes(method.id) && !isUserMantecaKycApproved),
-        methods: ACTION_METHODS.filter((method) => method.id !== 'exchange-or-wallet'), // todo: @dev note, remove exchange-or-wallet filter from here in deposit project
+        methods: ACTION_METHODS,
     })
 
     // handle clicking on a payment method
@@ -99,6 +101,11 @@ export function RequestPotActionList({
         if (!bypassBalanceModal && !isUsePeanutBalanceModalShown && userHasSufficientPeanutBalance) {
             setSelectedPaymentMethod(method)
             setShowUsePeanutBalanceModal(true)
+            return
+        }
+
+        if (method.id === 'exchange-or-wallet') {
+            onPayWithExternalWallet()
             return
         }
 

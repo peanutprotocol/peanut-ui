@@ -1,49 +1,50 @@
 'use client'
-import { ARBITRUM_ICON } from '@/assets'
-import { type CryptoToken, DEPOSIT_CRYPTO_TOKENS } from '@/components/AddMoney/consts'
-import { CryptoDepositQR } from '@/components/AddMoney/views/CryptoDepositQR.view'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import RhinoDepositView from '@/components/AddMoney/views/RhinoDeposit.view'
+import { useAuth } from '@/context/authContext'
+import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { useRouter } from 'next/navigation'
-import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
+import { rhinoApi } from '@/services/rhino'
+import type { RhinoChainType } from '@/services/services.types'
+import { useQuery } from '@tanstack/react-query'
+import { useCallback, useState } from 'react'
 
 interface AddMoneyCryptoPageProps {
-    headerTitle?: string
     onBack?: () => void
-    depositAddress?: string
 }
 
-const AddMoneyCryptoPage = ({ headerTitle, onBack, depositAddress }: AddMoneyCryptoPageProps) => {
-    const router = useRouter()
-    const { address: peanutWalletAddress, isConnected } = useWallet()
+const AddMoneyCryptoPage = ({ onBack }: AddMoneyCryptoPageProps) => {
+    const { user } = useAuth()
+    const { address: peanutWalletAddress } = useWallet()
+    const [chainType, setChainType] = useState<RhinoChainType>('EVM')
+    const [showSuccessView, setShowSuccessView] = useState(false)
+    const [depositedAmount, setDepositedAmount] = useState(0)
 
-    // default to usdc on arbitrum (the recommended option from CryptoMethodDrawer)
-    const selectedToken: CryptoToken = DEPOSIT_CRYPTO_TOKENS[0] // USDC
-    const selectedNetwork = {
-        chainId: PEANUT_WALLET_CHAIN.id.toString(),
-        name: PEANUT_WALLET_CHAIN.name,
-        iconUrl: ARBITRUM_ICON,
-    }
+    const { data: depositAddressData, isLoading } = useQuery({
+        queryKey: ['rhino-deposit-address', user?.user.userId, chainType],
+        queryFn: () =>
+            rhinoApi.createDepositAddress(peanutWalletAddress as string, chainType, user?.user.userId as string),
+        enabled: !!user && !!peanutWalletAddress,
+        staleTime: 1000 * 60 * 60 * 24, // 24 hours
+    })
 
-    if (!isConnected) {
-        return <PeanutLoading />
-    }
+    const handleSuccess = useCallback((amount: number) => {
+        setDepositedAmount(amount)
+        setShowSuccessView(true)
+    }, [])
 
-    // Ensure we have a valid deposit address
-    const finalDepositAddress = depositAddress ?? peanutWalletAddress
-    if (!finalDepositAddress) {
-        router.push('/')
-        return null
+    if (showSuccessView) {
+        return <PaymentSuccessView type="DEPOSIT" amount={depositedAmount.toString()} />
     }
 
     return (
-        <CryptoDepositQR
-            tokenName={selectedToken.symbol}
-            tokenIcon={selectedToken.icon}
-            chainName={selectedNetwork.name}
-            chainIcon={selectedNetwork.iconUrl}
-            depositAddress={finalDepositAddress}
-            onBack={() => router.back()}
+        <RhinoDepositView
+            headerTitle="Add Money"
+            onBack={onBack}
+            chainType={chainType}
+            depositAddressData={depositAddressData}
+            isDepositAddressDataLoading={isLoading}
+            setChainType={setChainType}
+            onSuccess={handleSuccess}
         />
     )
 }

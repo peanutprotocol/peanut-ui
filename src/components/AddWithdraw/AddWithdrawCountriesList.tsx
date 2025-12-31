@@ -20,13 +20,13 @@ import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { type Account } from '@/interfaces'
 import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
-import CryptoMethodDrawer from '../AddMoney/components/CryptoMethodDrawer'
 import { useAppDispatch } from '@/redux/hooks'
 import { bankFormActions } from '@/redux/slices/bank-form-slice'
 import { InitiateBridgeKYCModal } from '../Kyc/InitiateBridgeKYCModal'
 import useKycStatus from '@/hooks/useKycStatus'
 import KycVerifiedOrReviewModal from '../Global/KycVerifiedOrReviewModal'
 import { ActionListCard } from '@/components/ActionListCard'
+import TokenAndNetworkConfirmationModal from '../Global/TokenAndNetworkConfirmationModal'
 
 interface AddWithdrawCountriesListProps {
     flow: 'add' | 'withdraw'
@@ -55,7 +55,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const [liveKycStatus, setLiveKycStatus] = useState<BridgeKycStatus | undefined>(
         user?.user?.bridgeKycStatus as BridgeKycStatus
     )
-    const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+    const [isSupportedTokensModalOpen, setIsSupportedTokensModalOpen] = useState(false)
 
     const { isUserBridgeKycUnderReview } = useKycStatus()
     const [showKycStatusModal, setShowKycStatusModal] = useState(false)
@@ -192,7 +192,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const handleAddMethodClick = (method: SpecificPaymentMethod) => {
         if (method.path) {
             if (method.id === 'crypto-add') {
-                setIsDrawerOpen(true)
+                setIsSupportedTokensModalOpen(true)
                 return
             }
             // show kyc status modal if user is kyc under review
@@ -385,10 +385,14 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                     renderPaymentMethods('Choose withdrawing method', methods.withdraw)}
             </div>
             {flow === 'add' && (
-                <CryptoMethodDrawer
-                    isDrawerOpen={isDrawerOpen}
-                    setisDrawerOpen={setIsDrawerOpen}
-                    closeDrawer={() => setIsDrawerOpen(false)}
+                <TokenAndNetworkConfirmationModal
+                    onClose={() => {
+                        setIsSupportedTokensModalOpen(false)
+                    }}
+                    onAccept={() => {
+                        router.push('/add-money/crypto')
+                    }}
+                    isVisible={isSupportedTokensModalOpen}
                 />
             )}
             <KycVerifiedOrReviewModal
