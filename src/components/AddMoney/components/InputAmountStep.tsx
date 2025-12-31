@@ -14,7 +14,7 @@ interface InputAmountStepProps {
     onSubmit: () => void
     isLoading: boolean
     tokenAmount: string
-    setTokenAmount: React.Dispatch<React.SetStateAction<string>>
+    setTokenAmount: ((value: string) => void) | React.Dispatch<React.SetStateAction<string>>
     error: string | null
     setCurrencyAmount: (amount: string | undefined) => void
     currencyData?: ICurrency

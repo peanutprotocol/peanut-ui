@@ -17,25 +17,45 @@ import useKycStatus from '@/hooks/useKycStatus'
 import { MAX_MANTECA_DEPOSIT_AMOUNT, MIN_MANTECA_DEPOSIT_AMOUNT } from '@/constants/payment.consts'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
+import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
+
+// Step type for URL state
+type MantecaStep = 'inputAmount' | 'depositDetails'
+
+// Currency denomination type for URL state
+type CurrencyDenomination = 'USD' | 'ARS' | 'BRL' | 'MXN' | 'EUR'
 
 interface MantecaAddMoneyProps {
     source: 'bank' | 'regionalMethod'
 }
 
-type stepType = 'inputAmount' | 'depositDetails'
-
 const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
     const params = useParams()
     const router = useRouter()
-    const [step, setStep] = useState<stepType>('inputAmount')
+    const queryClient = useQueryClient()
+
+    // URL state - persisted in query params
+    // Example: /add-money/argentina/manteca?step=inputAmount&amount=100&currency=USD
+    const [urlState, setUrlState] = useQueryStates(
+        {
+            step: parseAsStringEnum<MantecaStep>(['inputAmount', 'depositDetails']),
+            amount: parseAsString,
+            currency: parseAsStringEnum<CurrencyDenomination>(['USD', 'ARS', 'BRL', 'MXN', 'EUR']),
+        },
+        { history: 'push' }
+    )
+
+    // Derive state from URL (with defaults)
+    const step: MantecaStep = urlState.step ?? 'inputAmount'
+    const usdAmount = urlState.amount ?? ''
+    const currentDenomination = urlState.currency ?? 'USD'
+
+    // Local UI state (not URL-appropriate - transient or API responses)
     const [isCreatingDeposit, setIsCreatingDeposit] = useState(false)
     const [currencyAmount, setCurrencyAmount] = useState<string | undefined>()
-    const [currentDenomination, setCurrentDenomination] = useState<string>('USD')
-    const [usdAmount, setUsdAmount] = useState('')
     const [error, setError] = useState<string | null>(null)
     const [depositDetails, setDepositDetails] = useState<MantecaDepositResponseData>()
     const [isKycModalOpen, setIsKycModalOpen] = useState(false)
-    const queryClient = useQueryClient()
 
     const selectedCountryPath = params.country as string
     const selectedCountry = useMemo(() => {
@@ -58,6 +78,7 @@ const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
         },
     })
 
+    // Validate amount when it changes
     useEffect(() => {
         if (!usdAmount || usdAmount === '0.00') {
             setError(null)
@@ -73,11 +94,12 @@ const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
         }
     }, [usdAmount])
 
+    // Invalidate transactions query when entering deposit details step
     useEffect(() => {
         if (step === 'depositDetails') {
             queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
         }
-    }, [step])
+    }, [step, queryClient])
 
     const handleKycCancel = () => {
         setIsKycModalOpen(false)
@@ -85,6 +107,26 @@ const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
             router.push(`/add-money/${selectedCountry.path}`)
         }
     }
+
+    // Handle amount change - sync to URL state
+    const handleAmountChange = useCallback(
+        (value: string) => {
+            setUrlState({ amount: value || null }) // null removes from URL
+        },
+        [setUrlState]
+    )
+
+    // Handle currency denomination change - sync to URL state
+    const handleDenominationChange = useCallback(
+        (value: string) => {
+            // Only persist valid currency denominations to URL
+            const validCurrencies: CurrencyDenomination[] = ['USD', 'ARS', 'BRL', 'MXN', 'EUR']
+            if (validCurrencies.includes(value as CurrencyDenomination)) {
+                setUrlState({ currency: value as CurrencyDenomination })
+            }
+        },
+        [setUrlState]
+    )
 
     const handleAmountSubmit = useCallback(async () => {
         if (!selectedCountry?.currency) return
@@ -116,14 +158,23 @@ const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
                 return
             }
             setDepositDetails(depositData.data)
-            setStep('depositDetails')
+            // Update URL state to show deposit details step
+            setUrlState({ step: 'depositDetails' })
         } catch (error) {
             console.log(error)
             setError(error instanceof Error ? error.message : String(error))
         } finally {
             setIsCreatingDeposit(false)
         }
-    }, [currentDenomination, selectedCountry, usdAmount, currencyAmount])
+    }, [
+        currentDenomination,
+        selectedCountry,
+        usdAmount,
+        currencyAmount,
+        isMantecaKycRequired,
+        isCreatingDeposit,
+        setUrlState,
+    ])
 
     // handle verification modal opening
     useEffect(() => {
@@ -139,13 +190,13 @@ const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
             <>
                 <InputAmountStep
                     tokenAmount={usdAmount}
-                    setTokenAmount={setUsdAmount}
+                    setTokenAmount={handleAmountChange}
                     onSubmit={handleAmountSubmit}
                     isLoading={isCreatingDeposit}
                     error={error}
                     currencyData={currencyData}
                     setCurrencyAmount={setCurrencyAmount}
-                    setCurrentDenomination={setCurrentDenomination}
+                    setCurrentDenomination={handleDenominationChange}
                 />
                 {isKycModalOpen && (
                     <MantecaGeoSpecificKycModal
