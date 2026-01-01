@@ -41,6 +41,10 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className, size = 'sm
     }
 
     const getStatusText = () => {
+        if (customText) {
+            return customText
+        }
+
         switch (status) {
             case 'completed':
                 return 'Completed'
