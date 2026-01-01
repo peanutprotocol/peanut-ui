@@ -8,21 +8,24 @@ export type { Contact }
 
 interface UseContactsOptions {
     limit?: number
+    search?: string
 }
 
 /**
- * hook to fetch all contacts for the current user with infinite scroll
+ * hook to fetch all contacts for the current user with infinite scroll and optional search
  * includes: inviter, invitees, and all transaction counterparties (sent/received money, request pots)
+ * when search is provided, filters contacts by username or full name on the server
  */
 export function useContacts(options: UseContactsOptions = {}) {
-    const { limit = 50 } = options
+    const { limit = 50, search } = options
 
     const { data, isLoading, error, fetchNextPage, hasNextPage, isFetchingNextPage, refetch } = useInfiniteQuery({
-        queryKey: [CONTACTS, limit],
+        queryKey: [CONTACTS, limit, search],
         queryFn: async ({ pageParam = 0 }): Promise<ContactsResponse> => {
             const result = await getContacts({
                 limit,
                 offset: pageParam * limit,
+                search,
             })
 
             if (result.error) {
