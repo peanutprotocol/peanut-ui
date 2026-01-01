@@ -114,7 +114,11 @@ const IdentityVerificationCountryList = ({ region }: { region: string }) => {
                         }}
                         rightContent={() => (
                             <div className="flex items-center gap-2">
-                                <StatusBadge status="failed" customText="Unavailable" />
+                                <StatusBadge
+                                    status="custom"
+                                    className="border border-error-2 bg-error-1 text-error"
+                                    customText="Unavailable"
+                                />
                             </div>
                         )}
                         defaultOpen
