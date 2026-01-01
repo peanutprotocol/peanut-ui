@@ -25,17 +25,14 @@ type MantecaStep = 'inputAmount' | 'depositDetails'
 // Currency denomination type for URL state
 type CurrencyDenomination = 'USD' | 'ARS' | 'BRL' | 'MXN' | 'EUR'
 
-interface MantecaAddMoneyProps {
-    source: 'bank' | 'regionalMethod'
-}
-
-const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
+const MantecaAddMoney: FC = () => {
     const params = useParams()
     const router = useRouter()
     const queryClient = useQueryClient()
 
     // URL state - persisted in query params
-    // Example: /add-money/argentina/manteca?step=inputAmount&amount=100&currency=USD
+    // Example: /add-money/argentina/manteca?step=inputAmount&amount=100&currency=ARS
+    // The `amount` is stored in whatever denomination `currency` specifies
     const [urlState, setUrlState] = useQueryStates(
         {
             step: parseAsStringEnum<MantecaStep>(['inputAmount', 'depositDetails']),
@@ -47,12 +44,16 @@ const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
 
     // Derive state from URL (with defaults)
     const step: MantecaStep = urlState.step ?? 'inputAmount'
-    const usdAmount = urlState.amount ?? ''
+    // Amount from URL - this is in the denomination specified by `currency`
+    const displayedAmount = urlState.amount ?? ''
     const currentDenomination = urlState.currency ?? 'USD'
 
-    // Local UI state (not URL-appropriate - transient or API responses)
+    // Local UI state for tracking both amounts (needed for API call and validation)
+    const [usdAmount, setUsdAmount] = useState<string>('')
+    const [localCurrencyAmount, setLocalCurrencyAmount] = useState<string>('')
+
+    // Other local UI state (not URL-appropriate - transient or API responses)
     const [isCreatingDeposit, setIsCreatingDeposit] = useState(false)
-    const [currencyAmount, setCurrencyAmount] = useState<string | undefined>()
     const [error, setError] = useState<string | null>(null)
     const [depositDetails, setDepositDetails] = useState<MantecaDepositResponseData>()
     const [isKycModalOpen, setIsKycModalOpen] = useState(false)
@@ -78,7 +79,7 @@ const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
         },
     })
 
-    // Validate amount when it changes
+    // Validate USD amount (for min/max checks which are in USD)
     useEffect(() => {
         if (!usdAmount || usdAmount === '0.00') {
             setError(null)
@@ -108,22 +109,29 @@ const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
         }
     }
 
-    // Handle amount change - sync to URL state
-    const handleAmountChange = useCallback(
+    // Handle displayed amount change - save to URL
+    // This is called by AmountInput with the currently DISPLAYED value
+    const handleDisplayedAmountChange = useCallback(
         (value: string) => {
             setUrlState({ amount: value || null }) // null removes from URL
         },
         [setUrlState]
     )
 
+    // Handle local currency amount change (primary in AmountInput)
+    const handleLocalCurrencyAmountChange = useCallback((value: string | undefined) => {
+        setLocalCurrencyAmount(value ?? '')
+    }, [])
+
+    // Handle USD amount change (secondary in AmountInput)
+    const handleUsdAmountChange = useCallback((value: string) => {
+        setUsdAmount(value)
+    }, [])
+
     // Handle currency denomination change - sync to URL state
     const handleDenominationChange = useCallback(
         (value: string) => {
-            // Only persist valid currency denominations to URL
-            const validCurrencies: CurrencyDenomination[] = ['USD', 'ARS', 'BRL', 'MXN', 'EUR']
-            if (validCurrencies.includes(value as CurrencyDenomination)) {
-                setUrlState({ currency: value as CurrencyDenomination })
-            }
+            setUrlState({ currency: value as CurrencyDenomination })
         },
         [setUrlState]
     )
@@ -147,7 +155,8 @@ const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
             setError(null)
             setIsCreatingDeposit(true)
             const isUsdDenominated = currentDenomination === 'USD'
-            const amount = isUsdDenominated ? usdAmount : currencyAmount
+            // Use the displayed amount for the API call
+            const amount = displayedAmount
             const depositData = await mantecaApi.deposit({
                 amount: amount!,
                 isUsdDenominated,
@@ -166,15 +175,7 @@ const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
         } finally {
             setIsCreatingDeposit(false)
         }
-    }, [
-        currentDenomination,
-        selectedCountry,
-        usdAmount,
-        currencyAmount,
-        isMantecaKycRequired,
-        isCreatingDeposit,
-        setUrlState,
-    ])
+    }, [currentDenomination, selectedCountry, displayedAmount, isMantecaKycRequired, isCreatingDeposit, setUrlState])
 
     // handle verification modal opening
     useEffect(() => {
@@ -196,14 +197,16 @@ const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
         return (
             <>
                 <InputAmountStep
-                    tokenAmount={usdAmount}
-                    setTokenAmount={handleAmountChange}
+                    tokenAmount={displayedAmount}
+                    setTokenAmount={handleUsdAmountChange}
                     onSubmit={handleAmountSubmit}
                     isLoading={isCreatingDeposit}
                     error={error}
                     currencyData={currencyData}
-                    setCurrencyAmount={setCurrencyAmount}
+                    setCurrencyAmount={handleLocalCurrencyAmountChange}
                     setCurrentDenomination={handleDenominationChange}
+                    initialDenomination={currentDenomination}
+                    setDisplayedAmount={handleDisplayedAmountChange}
                 />
                 {isKycModalOpen && (
                     <MantecaGeoSpecificKycModal
@@ -229,13 +232,7 @@ const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
         if (!depositDetails) {
             return null
         }
-        return (
-            <MantecaDepositShareDetails
-                source={source}
-                depositDetails={depositDetails}
-                currencyAmount={currencyAmount}
-            />
-        )
+        return <MantecaDepositShareDetails depositDetails={depositDetails} currencyAmount={localCurrencyAmount} />
     }
 
     return null

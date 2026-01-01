@@ -19,14 +19,10 @@ import { shortenStringLong, formatCurrency } from '@/utils/general.utils'
 
 const MantecaDepositShareDetails = ({
     depositDetails,
-    source,
     currencyAmount,
-    onBack,
 }: {
     depositDetails: MantecaDepositResponseData
-    source: 'bank' | 'regionalMethod'
     currencyAmount?: string | undefined
-    onBack?: () => void
 }) => {
     const router = useRouter()
     const params = useParams()
@@ -86,7 +82,7 @@ const MantecaDepositShareDetails = ({
 
     return (
         <div className="flex h-full w-full flex-col justify-start gap-8 self-start">
-            <NavHeader title={'Add Money'} onPrev={onBack || (() => router.back())} />
+            <NavHeader title={'Add Money'} onPrev={router.back} />
             <div className="my-auto flex h-full w-full flex-col justify-center space-y-4">
                 {/* Amount Display Card */}
                 <Card className="p-4">
