@@ -25,6 +25,8 @@ import { tokenSelectorContext } from '@/context'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { ErrorHandler } from '@/utils/sdkErrorHandler.utils'
 import { areEvmAddressesEqual } from '@/utils/general.utils'
+import { useQueryClient } from '@tanstack/react-query'
+import { TRANSACTIONS } from '@/constants/query.consts'
 
 export function useSemanticRequestFlow() {
     const {
@@ -58,6 +60,7 @@ export function useSemanticRequestFlow() {
     } = useSemanticRequestFlowContext()
 
     const { user } = useAuth()
+    const queryClient = useQueryClient()
     const { createCharge, fetchCharge, isCreating: isCreatingCharge, isFetching: isFetchingCharge } = useChargeManager()
     const { recordPayment, isRecording } = usePaymentRecorder()
     const {
@@ -219,22 +222,26 @@ export function useSemanticRequestFlow() {
         clearError()
 
         try {
-            // step 1: create charge
-            const chargeResult = await createCharge({
-                tokenAmount: amount,
-                tokenAddress: selectedTokenAddress as Address,
-                chainId: selectedChainID,
-                tokenSymbol: selectedTokenData.symbol,
-                tokenDecimals: selectedTokenData.decimals,
-                recipientAddress: recipient.resolvedAddress,
-                transactionType: 'REQUEST',
-                reference: attachment.message,
-                attachment: attachment.file,
-                currencyAmount: usdAmount,
-                currencyCode: 'USD',
-            })
+            // step 1: use existing charge if available (from url), otherwise create new one
+            let chargeResult = charge // use existing charge if loaded from chargeIdFromUrl
 
-            setCharge(chargeResult)
+            if (!chargeResult) {
+                // only create new charge if we don't have one already
+                chargeResult = await createCharge({
+                    tokenAmount: amount,
+                    tokenAddress: selectedTokenAddress as Address,
+                    chainId: selectedChainID,
+                    tokenSymbol: selectedTokenData.symbol,
+                    tokenDecimals: selectedTokenData.decimals,
+                    recipientAddress: recipient.resolvedAddress,
+                    transactionType: 'REQUEST',
+                    reference: attachment.message,
+                    attachment: attachment.file,
+                    currencyAmount: usdAmount,
+                    currencyCode: 'USD',
+                })
+                setCharge(chargeResult)
+            }
 
             // step 2: decide flow based on token/chain
             // if same chain and same token (USDC on Arb) → pay directly (skip confirm)
@@ -257,6 +264,15 @@ export function useSemanticRequestFlow() {
                 setPayment(paymentResult)
                 setIsSuccess(true)
                 setCurrentView('STATUS')
+
+                // refetch history and balance to immediately show updated status
+                // invalidate first to mark as stale, then refetch to force immediate update
+                queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+                queryClient.refetchQueries({
+                    queryKey: [TRANSACTIONS],
+                    type: 'active', // force refetch even if data is fresh
+                })
+                queryClient.invalidateQueries({ queryKey: ['balance'] })
             } else {
                 // cross-chain or different token → go to confirm view
                 // update url with chargeId
@@ -278,12 +294,14 @@ export function useSemanticRequestFlow() {
         selectedTokenAddress,
         selectedChainID,
         selectedTokenData,
+        charge,
         isLoggedIn,
         isSameChainSameToken,
         validateUsernameRecipient,
         createCharge,
         sendMoney,
         recordPayment,
+        queryClient,
         updateUrlWithChargeId,
         setCharge,
         setTxHash,
@@ -459,6 +477,15 @@ export function useSemanticRequestFlow() {
             setPayment(paymentResult)
             setIsSuccess(true)
             setCurrentView('STATUS')
+
+            // refetch history and balance to immediately show updated status
+            // invalidate first to mark as stale, then refetch to force immediate update
+            queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+            queryClient.refetchQueries({
+                queryKey: [TRANSACTIONS],
+                type: 'active', // force refetch even if data is fresh
+            })
+            queryClient.invalidateQueries({ queryKey: ['balance'] })
         } catch (err) {
             const errorMessage = ErrorHandler(err)
             setError({ showError: true, errorMessage })
@@ -478,6 +505,7 @@ export function useSemanticRequestFlow() {
         sendMoney,
         sendTransactions,
         recordPayment,
+        queryClient,
         setTxHash,
         setPayment,
         setIsSuccess,
