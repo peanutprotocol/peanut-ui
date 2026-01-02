@@ -1,15 +1,13 @@
-'use client'
-
-import RhinoDepositView from '@/components/AddMoney/views/RhinoDeposit.view'
-import { useContributePotFlow } from '../useContributePotFlow'
 import { useCallback, useState } from 'react'
-import type { RhinoChainType } from '@/services/services.types'
+import { useSemanticRequestFlow } from '../useSemanticRequestFlow'
+import { useWallet } from '@/hooks/wallet/useWallet'
 import { useQuery } from '@tanstack/react-query'
 import { rhinoApi } from '@/services/rhino'
-import { useWallet } from '@/hooks/wallet/useWallet'
+import RhinoDepositView from '@/components/AddMoney/views/RhinoDeposit.view'
+import type { RhinoChainType } from '@/services/services.types'
 
-const ExternalWalletPaymentView = () => {
-    const { charge, setCurrentView, setIsExternalWalletPayment } = useContributePotFlow()
+const SemanticRequestExternalWalletView = () => {
+    const { charge, setCurrentView, setIsExternalWalletPayment } = useSemanticRequestFlow()
     const [chainType, setChainType] = useState<RhinoChainType>('EVM')
     const { address: peanutWalletAddress } = useWallet()
 
@@ -46,4 +44,4 @@ const ExternalWalletPaymentView = () => {
     )
 }
 
-export default ExternalWalletPaymentView
+export default SemanticRequestExternalWalletView

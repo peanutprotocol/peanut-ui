@@ -71,7 +71,6 @@ export const rhinoApi = {
     },
 
     createRequestFulfilmentAddress: async (
-        requestId: string,
         chainType: RhinoChainType,
         chargeId: string,
         peanutWalletAddress?: string
@@ -88,7 +87,6 @@ export const rhinoApi = {
                 Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify({
-                requestId,
                 type: chainType,
                 chargeId,
                 senderPeanutWalletAddress: peanutWalletAddress,

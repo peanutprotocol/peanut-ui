@@ -15,14 +15,27 @@ import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import { PointsAction } from '@/services/services.types'
 
 export function SemanticRequestSuccessView() {
-    const { usdAmount, recipient, parsedUrl, attachment, charge, payment, resetSemanticRequestFlow } =
-        useSemanticRequestFlow()
+    const {
+        usdAmount,
+        recipient,
+        parsedUrl,
+        attachment,
+        charge,
+        payment,
+        resetSemanticRequestFlow,
+        isExternalWalletPayment,
+    } = useSemanticRequestFlow()
 
     // determine recipient type from parsed url
     const recipientType = recipient?.recipientType || 'ADDRESS'
 
     // calculate points for the payment (request fulfillment)
-    const { pointsData } = usePointsCalculation(PointsAction.P2P_REQUEST_PAYMENT, usdAmount, !!payment, payment?.uuid)
+    const { pointsData } = usePointsCalculation(
+        PointsAction.P2P_REQUEST_PAYMENT,
+        usdAmount,
+        !!payment || isExternalWalletPayment, // For external wallet payments, we dont't have payment info on the FE, its handled by webooks on BE
+        payment?.uuid
+    )
 
     return (
         <PaymentSuccessView

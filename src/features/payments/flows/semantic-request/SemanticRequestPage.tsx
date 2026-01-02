@@ -18,6 +18,7 @@ import { SemanticRequestConfirmView } from './views/SemanticRequestConfirmView'
 import { SemanticRequestSuccessView } from './views/SemanticRequestSuccessView'
 import { SemanticRequestReceiptView } from './views/SemanticRequestReceiptView'
 import { type ParsedURL } from '@/lib/url-parser/types/payment'
+import SemanticRequestExternalWalletView from './views/SemanticRequestExternalWalletView'
 
 // internal component that switches views
 function SemanticRequestFlowContent() {
@@ -30,6 +31,8 @@ function SemanticRequestFlowContent() {
             return <SemanticRequestSuccessView />
         case 'RECEIPT':
             return <SemanticRequestReceiptView />
+        case 'EXTERNAL_WALLET':
+            return <SemanticRequestExternalWalletView />
         case 'INITIAL':
         default:
             return <SemanticRequestInputView />

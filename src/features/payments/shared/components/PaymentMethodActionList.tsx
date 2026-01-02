@@ -25,6 +25,7 @@ import { saveRedirectUrl } from '@/utils/general.utils'
 interface PaymentMethodActionListProps {
     isAmountEntered: boolean
     showDivider?: boolean
+    onPayWithExternalWallet: () => void
 }
 
 /**
@@ -36,7 +37,11 @@ interface PaymentMethodActionListProps {
  * @returns the payment options list component
  */
 
-export function PaymentMethodActionList({ isAmountEntered, showDivider = true }: PaymentMethodActionListProps) {
+export function PaymentMethodActionList({
+    isAmountEntered,
+    showDivider = true,
+    onPayWithExternalWallet,
+}: PaymentMethodActionListProps) {
     const router = useRouter()
     const { isUserMantecaKycApproved, isUserBridgeKycApproved } = useKycStatus()
 
@@ -45,12 +50,18 @@ export function PaymentMethodActionList({ isAmountEntered, showDivider = true }:
     const { filteredMethods: sortedMethods, isLoading: isGeoLoading } = useGeoFilteredPaymentOptions({
         sortUnavailable: true,
         isMethodUnavailable: (method) => method.soon,
-        methods: ACTION_METHODS.filter((method) => method.id !== 'exchange-or-wallet'), // todo: @dev note, remove exchange-or-wallet filter from here in deposit project
+        methods: ACTION_METHODS,
     })
 
     const handleMethodClick = (method: PaymentMethod) => {
         // for all methods, save current url and redirect to setup with add-money as final destination
         // verification will be handled in the add-money flow after login
+
+        if (method.id === 'exchange-or-wallet') {
+            onPayWithExternalWallet()
+            return
+        }
+
         if (['bank', 'mercadopago', 'pix'].includes(method.id)) {
             saveRedirectUrl()
             const redirectUri = encodeURIComponent('/add-money')

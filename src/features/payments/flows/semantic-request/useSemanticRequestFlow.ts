@@ -57,6 +57,8 @@ export function useSemanticRequestFlow() {
         isSuccess,
         setIsSuccess,
         resetSemanticRequestFlow,
+        isExternalWalletPayment,
+        setIsExternalWalletPayment,
     } = useSemanticRequestFlowContext()
 
     const { user } = useAuth()
@@ -199,119 +201,129 @@ export function useSemanticRequestFlow() {
     // - if logged in + peanut wallet + same chain/token → create charge and pay directly
     // - if logged in + peanut wallet + cross-chain/diff token → go to confirm view
     // - if not logged in → action list handles it
-    const handlePayment = useCallback(async () => {
-        if (!recipient || !amount || !selectedTokenAddress || !selectedChainID || !selectedTokenData) {
-            setError({ showError: true, errorMessage: 'missing required data' })
-            return
-        }
-
-        // validate username recipient
-        const validationError = validateUsernameRecipient()
-        if (validationError) {
-            setError({ showError: true, errorMessage: validationError })
-            return
-        }
-
-        // if not logged in, don't proceed (action list handles this)
-        if (!isLoggedIn || !walletAddress) {
-            setError({ showError: true, errorMessage: 'please log in to continue' })
-            return
-        }
-
-        setIsLoading(true)
-        clearError()
-
-        try {
-            // step 1: use existing charge if available (from url), otherwise create new one
-            let chargeResult = charge // use existing charge if loaded from chargeIdFromUrl
-
-            if (!chargeResult) {
-                // only create new charge if we don't have one already
-                chargeResult = await createCharge({
-                    tokenAmount: amount,
-                    tokenAddress: selectedTokenAddress as Address,
-                    chainId: selectedChainID,
-                    tokenSymbol: selectedTokenData.symbol,
-                    tokenDecimals: selectedTokenData.decimals,
-                    recipientAddress: recipient.resolvedAddress,
-                    transactionType: 'REQUEST',
-                    reference: attachment.message,
-                    attachment: attachment.file,
-                    currencyAmount: usdAmount,
-                    currencyCode: 'USD',
-                })
-                setCharge(chargeResult)
+    const handlePayment = useCallback(
+        async (shouldReturnAfterCreatingCharge: boolean = false): Promise<{ success: boolean }> => {
+            if (!recipient || !amount || !selectedTokenAddress || !selectedChainID || !selectedTokenData) {
+                setError({ showError: true, errorMessage: 'missing required data' })
+                return { success: false }
             }
 
-            // step 2: decide flow based on token/chain
-            // if same chain and same token (USDC on Arb) → pay directly (skip confirm)
-            // if cross-chain or different token → go to confirm view
-            if (isSameChainSameToken) {
-                // direct payment - same as old flow when isPeanutWallet && same token/chain
-                const txResult = await sendMoney(recipient.resolvedAddress, amount)
-                const hash = (txResult.receipt?.transactionHash ?? txResult.userOpHash) as Hash
-                setTxHash(hash)
-
-                // record payment
-                const paymentResult = await recordPayment({
-                    chargeId: chargeResult.uuid,
-                    chainId: PEANUT_WALLET_CHAIN.id.toString(),
-                    txHash: hash,
-                    tokenAddress: PEANUT_WALLET_TOKEN as Address,
-                    payerAddress: walletAddress as Address,
-                })
-
-                setPayment(paymentResult)
-                setIsSuccess(true)
-                setCurrentView('STATUS')
-
-                // refetch history and balance to immediately show updated status
-                // invalidate first to mark as stale, then refetch to force immediate update
-                queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
-                queryClient.refetchQueries({
-                    queryKey: [TRANSACTIONS],
-                    type: 'active', // force refetch even if data is fresh
-                })
-                queryClient.invalidateQueries({ queryKey: ['balance'] })
-            } else {
-                // cross-chain or different token → go to confirm view
-                // update url with chargeId
-                updateUrlWithChargeId(chargeResult.uuid)
-                setCurrentView('CONFIRM')
+            // validate username recipient
+            const validationError = validateUsernameRecipient()
+            if (validationError) {
+                setError({ showError: true, errorMessage: validationError })
+                return { success: false }
             }
-        } catch (err) {
-            const errorMessage = ErrorHandler(err)
-            setError({ showError: true, errorMessage })
-        } finally {
-            setIsLoading(false)
-        }
-    }, [
-        recipient,
-        amount,
-        usdAmount,
-        attachment,
-        walletAddress,
-        selectedTokenAddress,
-        selectedChainID,
-        selectedTokenData,
-        charge,
-        isLoggedIn,
-        isSameChainSameToken,
-        validateUsernameRecipient,
-        createCharge,
-        sendMoney,
-        recordPayment,
-        queryClient,
-        updateUrlWithChargeId,
-        setCharge,
-        setTxHash,
-        setPayment,
-        setIsSuccess,
-        setCurrentView,
-        setError,
-        setIsLoading,
-        clearError,
-    ])
+
+            // if not logged in, don't proceed (action list handles this)
+            if (!isLoggedIn || !walletAddress) {
+                setError({ showError: true, errorMessage: 'please log in to continue' })
+                return { success: false }
+            }
+
+            setIsLoading(true)
+            clearError()
+
+            try {
+                // step 1: use existing charge if available (from url), otherwise create new one
+                let chargeResult = charge // use existing charge if loaded from chargeIdFromUrl
+
+                if (!chargeResult) {
+                    // only create new charge if we don't have one already
+                    chargeResult = await createCharge({
+                        tokenAmount: amount,
+                        tokenAddress: selectedTokenAddress as Address,
+                        chainId: selectedChainID,
+                        tokenSymbol: selectedTokenData.symbol,
+                        tokenDecimals: selectedTokenData.decimals,
+                        recipientAddress: recipient.resolvedAddress,
+                        transactionType: 'REQUEST',
+                        reference: attachment.message,
+                        attachment: attachment.file,
+                        currencyAmount: usdAmount,
+                        currencyCode: 'USD',
+                    })
+                    setCharge(chargeResult)
+                }
+
+                if (shouldReturnAfterCreatingCharge) {
+                    setIsLoading(false)
+                    return { success: true }
+                }
+
+                // step 2: decide flow based on token/chain
+                // if same chain and same token (USDC on Arb) → pay directly (skip confirm)
+                // if cross-chain or different token → go to confirm view
+                if (isSameChainSameToken) {
+                    // direct payment - same as old flow when isPeanutWallet && same token/chain
+                    const txResult = await sendMoney(recipient.resolvedAddress, amount)
+                    const hash = (txResult.receipt?.transactionHash ?? txResult.userOpHash) as Hash
+                    setTxHash(hash)
+
+                    // record payment
+                    const paymentResult = await recordPayment({
+                        chargeId: chargeResult.uuid,
+                        chainId: PEANUT_WALLET_CHAIN.id.toString(),
+                        txHash: hash,
+                        tokenAddress: PEANUT_WALLET_TOKEN as Address,
+                        payerAddress: walletAddress as Address,
+                    })
+
+                    setPayment(paymentResult)
+                    setIsSuccess(true)
+                    setCurrentView('STATUS')
+
+                    // refetch history and balance to immediately show updated status
+                    // invalidate first to mark as stale, then refetch to force immediate update
+                    queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+                    queryClient.refetchQueries({
+                        queryKey: [TRANSACTIONS],
+                        type: 'active', // force refetch even if data is fresh
+                    })
+                    queryClient.invalidateQueries({ queryKey: ['balance'] })
+                } else {
+                    // cross-chain or different token → go to confirm view
+                    // update url with chargeId
+                    updateUrlWithChargeId(chargeResult.uuid)
+                    setCurrentView('CONFIRM')
+                }
+                setIsLoading(false)
+                return { success: true }
+            } catch (err) {
+                const errorMessage = ErrorHandler(err)
+                setError({ showError: true, errorMessage })
+                setIsLoading(false)
+                return { success: false }
+            }
+        },
+        [
+            recipient,
+            amount,
+            usdAmount,
+            attachment,
+            walletAddress,
+            selectedTokenAddress,
+            selectedChainID,
+            selectedTokenData,
+            charge,
+            isLoggedIn,
+            isSameChainSameToken,
+            validateUsernameRecipient,
+            createCharge,
+            sendMoney,
+            recordPayment,
+            queryClient,
+            updateUrlWithChargeId,
+            setCharge,
+            setTxHash,
+            setPayment,
+            setIsSuccess,
+            setCurrentView,
+            setError,
+            setIsLoading,
+            clearError,
+        ]
+    )
 
     // prepare route when entering confirm view
     const prepareRoute = useCallback(async () => {
@@ -543,6 +555,7 @@ export function useSemanticRequestFlow() {
         isLoading: isLoading || isCreatingCharge || isFetchingCharge || isRecording || isCalculatingRoute,
         isSuccess,
         isFetchingCharge,
+        isExternalWalletPayment,
 
         // route calculation state (for confirm view)
         calculatedRoute,
@@ -585,5 +598,6 @@ export function useSemanticRequestFlow() {
         setCurrentView,
         handleRouteExpired,
         handleRouteNearExpiry,
+        setIsExternalWalletPayment,
     }
 }
