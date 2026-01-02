@@ -114,12 +114,6 @@ const RhinoDepositView = ({
         }
     }, [depositAddressStatusData, depositAddressStatus, onSuccess])
 
-    // if (!isConnected || !user || isDepositAddressDataLoading || depositAddressStatus === 'loading') {
-    //     return (
-    //         <PeanutLoading message={depositAddressStatus === 'loading' ? 'Almost there! Processing...' : undefined} />
-    //     )
-    // }
-
     if (depositAddressStatus === 'failed') {
         return (
             <div className="flex min-h-[inherit] w-full flex-col justify-start space-y-8 pb-5 md:pb-0">
@@ -232,7 +226,12 @@ const RhinoDepositView = ({
                             customContent={
                                 <div className="flex items-center gap-2">
                                     <p className="text-sm">Supported tokens:</p>
-                                    {RHINO_SUPPORTED_TOKENS.map((token) => (
+                                    {RHINO_SUPPORTED_TOKENS.filter((token) => {
+                                        if (chainType === 'TRON') {
+                                            return token.name !== 'USDT'
+                                        }
+                                        return true
+                                    }).map((token) => (
                                         <ChainChip
                                             key={token.name}
                                             chainName={token.name}
