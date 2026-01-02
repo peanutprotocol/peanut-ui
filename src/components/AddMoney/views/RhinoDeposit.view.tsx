@@ -8,11 +8,9 @@ import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import ChainChip from '../components/ChainChip'
 import InfoCard from '@/components/Global/InfoCard'
 import { Root, List, Trigger } from '@radix-ui/react-tabs'
-import { useAuth } from '@/context/authContext'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { useQuery } from '@tanstack/react-query'
 import { rhinoApi } from '@/services/rhino'
-import { useWallet } from '@/hooks/wallet/useWallet'
 import { useState, useEffect, useMemo } from 'react'
 import type { CreateDepositAddressResponse, RhinoChainType } from '@/services/services.types'
 import { useAutoTruncatedAddress } from '@/hooks/useAutoTruncatedAddress'
@@ -45,8 +43,6 @@ const RhinoDepositView = ({
     amount,
     identifier,
 }: RhinoDepositViewProps) => {
-    const { user } = useAuth()
-    const { isConnected } = useWallet()
     const [isDelayComplete, setIsDelayComplete] = useState(false)
     const [isUpdatingDepositAddresStatus, setisUpdatingDepositAddresStatus] = useState(false)
 
@@ -192,7 +188,7 @@ const RhinoDepositView = ({
                     </List>
                 </Root>
 
-                {(!isConnected || !user || isDepositAddressDataLoading || depositAddressStatus === 'loading') && (
+                {(isDepositAddressDataLoading || depositAddressStatus === 'loading') && (
                     <div className="flex h-[60vh] items-center justify-center">
                         <PeanutLoading
                             message={depositAddressStatus === 'loading' ? 'Almost there! Processing...' : undefined}

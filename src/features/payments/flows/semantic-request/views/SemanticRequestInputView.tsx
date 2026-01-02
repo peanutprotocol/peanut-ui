@@ -95,7 +95,7 @@ export function SemanticRequestInputView() {
 
     const handleOpenExternalWalletFlow = async () => {
         if (canProceed && !isLoading) {
-            const res = await handlePayment(true) // return after creating charge
+            const res = await handlePayment(true, true) // return after creating charge
             // Proceed only if charge is created successfully
             if (res && res.success) {
                 setCurrentView('EXTERNAL_WALLET')

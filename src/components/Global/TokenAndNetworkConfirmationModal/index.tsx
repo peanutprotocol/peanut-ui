@@ -42,7 +42,7 @@ export default function TokenAndNetworkConfirmationModal({
                                 <ChainChip key={chain.name} chainName={chain.name} chainSymbol={chain.logoUrl} />
                             ))}
                             <ChainChip
-                                chainName={'+5 EVM'}
+                                chainName={'+4 EVM'}
                                 logo="plus"
                                 logoClassName="bg-black rounded-full text-white"
                             />

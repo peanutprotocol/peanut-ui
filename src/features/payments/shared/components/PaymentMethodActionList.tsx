@@ -25,7 +25,7 @@ import { saveRedirectUrl } from '@/utils/general.utils'
 interface PaymentMethodActionListProps {
     isAmountEntered: boolean
     showDivider?: boolean
-    onPayWithExternalWallet: () => void
+    onPayWithExternalWallet?: () => void
 }
 
 /**
@@ -57,7 +57,7 @@ export function PaymentMethodActionList({
         // for all methods, save current url and redirect to setup with add-money as final destination
         // verification will be handled in the add-money flow after login
 
-        if (method.id === 'exchange-or-wallet') {
+        if (method.id === 'exchange-or-wallet' && onPayWithExternalWallet) {
             onPayWithExternalWallet()
             return
         }

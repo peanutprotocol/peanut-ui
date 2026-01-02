@@ -149,9 +149,17 @@ export function useContributePotFlow() {
 
     // execute the contribution
     const executeContribution = useCallback(
-        async (shouldReturnAfterCreatingCharge: boolean = false): Promise<{ success: boolean }> => {
-            if (!recipient || !amount || !walletAddress || !request) {
+        async (
+            shouldReturnAfterCreatingCharge: boolean = false,
+            bypassLoginCheck: boolean = false
+        ): Promise<{ success: boolean }> => {
+            if (!recipient || !amount || !request) {
                 setError({ showError: true, errorMessage: 'missing required data' })
+                return { success: false }
+            }
+
+            if (!bypassLoginCheck && !walletAddress) {
+                setError({ showError: true, errorMessage: 'Please login to continue' })
                 return { success: false }
             }
 

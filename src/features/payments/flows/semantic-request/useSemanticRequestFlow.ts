@@ -202,7 +202,10 @@ export function useSemanticRequestFlow() {
     // - if logged in + peanut wallet + cross-chain/diff token → go to confirm view
     // - if not logged in → action list handles it
     const handlePayment = useCallback(
-        async (shouldReturnAfterCreatingCharge: boolean = false): Promise<{ success: boolean }> => {
+        async (
+            shouldReturnAfterCreatingCharge: boolean = false,
+            bypassLoginCheck: boolean = false
+        ): Promise<{ success: boolean }> => {
             if (!recipient || !amount || !selectedTokenAddress || !selectedChainID || !selectedTokenData) {
                 setError({ showError: true, errorMessage: 'missing required data' })
                 return { success: false }
@@ -216,7 +219,7 @@ export function useSemanticRequestFlow() {
             }
 
             // if not logged in, don't proceed (action list handles this)
-            if (!isLoggedIn || !walletAddress) {
+            if (!bypassLoginCheck && (!isLoggedIn || !walletAddress)) {
                 setError({ showError: true, errorMessage: 'please log in to continue' })
                 return { success: false }
             }

@@ -14,10 +14,7 @@ const SemanticRequestExternalWalletView = () => {
     const { data: depositAddressData, isLoading } = useQuery({
         queryKey: ['rhino-deposit-address', charge?.uuid, chainType],
         queryFn: () => {
-            if (!charge?.requestLink.uuid) {
-                throw new Error('Request ID is required')
-            }
-            if (!charge.uuid) {
+            if (!charge?.uuid) {
                 throw new Error('Charge ID is required')
             }
             return rhinoApi.createRequestFulfilmentAddress(chainType, charge?.uuid as string, peanutWalletAddress)
