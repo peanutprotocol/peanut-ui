@@ -58,19 +58,45 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
     )
 
     // Setter functions that update URL
+    // USD must always be one of the two currencies in the pair
     const setSourceCurrency = useCallback(
         (currency: string) => {
-            updateUrlParams({ from: currency })
+            if (currency === 'USD') {
+                // If setting source to USD and destination is already USD, switch destination
+                if (destinationCurrency === 'USD') {
+                    updateUrlParams({ from: currency, to: 'EUR' }) // fallback to EUR
+                } else {
+                    updateUrlParams({ from: currency })
+                }
+            } else {
+                updateUrlParams({ from: currency, to: 'USD' })
+            }
         },
-        [updateUrlParams]
+        [updateUrlParams, destinationCurrency]
     )
 
     const setDestinationCurrency = useCallback(
         (currency: string) => {
-            updateUrlParams({ to: currency })
+            if (currency === 'USD') {
+                if (sourceCurrency === 'USD') {
+                    updateUrlParams({ from: 'EUR', to: currency }) // fallback to EUR
+                } else {
+                    updateUrlParams({ to: currency })
+                }
+            } else {
+                updateUrlParams({ from: 'USD', to: currency })
+            }
         },
-        [updateUrlParams]
+        [updateUrlParams, sourceCurrency]
     )
+
+    // Enforce USD rule: at least one currency must be USD
+    useEffect(() => {
+        if (sourceCurrency !== 'USD' && destinationCurrency !== 'USD') {
+            // Neither is USD, set source to USD and keep destination as user specified
+            updateUrlParams({ from: 'USD' })
+        }
+    }, [sourceCurrency, destinationCurrency, updateUrlParams])
 
     // Update URL when source amount changes (only for valid numbers)
     useEffect(() => {
