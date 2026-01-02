@@ -1,4 +1,4 @@
-import { printableAddress } from '@/utils/general.utils'
+import { printableAddress, isCryptoAddress } from '@/utils/general.utils'
 import { usePrimaryName } from '@justaname.id/react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
@@ -14,11 +14,11 @@ interface AddressLinkProps {
 
 const AddressLink = ({ address, className = '', isLink = true }: AddressLinkProps) => {
     const [displayAddress, setDisplayAddress] = useState<string>(
-        isAddress(address) ? printableAddress(address) : address
+        isCryptoAddress(address) ? printableAddress(address) : address
     )
     const [urlAddress, setUrlAddress] = useState<string>(address)
 
-    // Look up ENS name only for Ethereum addresses
+    // Look up ENS name only for Ethereum addresses (ENS doesn't apply to Solana/Tron)
     const { primaryName: ensName } = usePrimaryName({
         address: isAddress(address) ? (address as `0x${string}`) : undefined,
         chainId: 1, // Mainnet for ENS lookups
@@ -26,7 +26,7 @@ const AddressLink = ({ address, className = '', isLink = true }: AddressLinkProp
     })
 
     useEffect(() => {
-        // Update display: prefer ENS name for addresses, otherwise use as-is
+        // Update display: prefer ENS name for EVM addresses, otherwise shorten any crypto address
         if (isAddress(address) && ensName) {
             // for peanut ens names, strip the domain from the displayed string so its just a username (no ens subdomain)
             const peanutEnsDomain = process.env.NEXT_PUBLIC_JUSTANAME_ENS_DOMAIN || ''
@@ -35,7 +35,7 @@ const AddressLink = ({ address, className = '', isLink = true }: AddressLinkProp
             setDisplayAddress(normalizedEnsName)
             setUrlAddress(normalizedEnsName)
         } else {
-            setDisplayAddress(isAddress(address) ? printableAddress(address) : address)
+            setDisplayAddress(isCryptoAddress(address) ? printableAddress(address) : address)
         }
     }, [address, ensName])
 
