@@ -168,6 +168,7 @@ export async function trackDaimoDepositTransactionHash({
 export async function getContacts(params: {
     limit: number
     offset: number
+    search?: string
 }): Promise<{ data?: ContactsResponse; error?: string }> {
     const cookieStore = cookies()
     const jwtToken = (await cookieStore).get('jwt-token')?.value
@@ -181,6 +182,11 @@ export async function getContacts(params: {
             limit: params.limit.toString(),
             offset: params.offset.toString(),
         })
+
+        // add search param if provided
+        if (params.search?.trim()) {
+            queryParams.append('search', params.search.trim())
+        }
 
         const response = await fetchWithSentry(`${PEANUT_API_URL}/users/contacts?${queryParams}`, {
             method: 'GET',

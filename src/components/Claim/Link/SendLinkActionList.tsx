@@ -95,11 +95,7 @@ export default function SendLinkActionList({
     const dispatch = useAppDispatch()
 
     const requiresVerification = useMemo(() => {
-        return (
-            claimType === BankClaimType.GuestKycNeeded ||
-            claimType === BankClaimType.ReceiverKycNeeded ||
-            claimType === BankClaimType.GuestBankClaim
-        )
+        return claimType === BankClaimType.GuestKycNeeded || claimType === BankClaimType.ReceiverKycNeeded
     }, [claimType])
 
     // filter and sort payment methods based on geolocation
