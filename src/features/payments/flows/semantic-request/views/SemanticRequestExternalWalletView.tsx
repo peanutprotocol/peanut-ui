@@ -7,7 +7,7 @@ import RhinoDepositView from '@/components/AddMoney/views/RhinoDeposit.view'
 import type { RhinoChainType } from '@/services/services.types'
 
 const SemanticRequestExternalWalletView = () => {
-    const { charge, setCurrentView, setIsExternalWalletPayment } = useSemanticRequestFlow()
+    const { charge, setCurrentView, setIsExternalWalletPayment, amount } = useSemanticRequestFlow()
     const [chainType, setChainType] = useState<RhinoChainType>('EVM')
     const { address: peanutWalletAddress } = useWallet()
 
@@ -40,6 +40,13 @@ const SemanticRequestExternalWalletView = () => {
             isDepositAddressDataLoading={isLoading}
             onSuccess={onSuccess}
             onBack={() => setCurrentView('INITIAL')}
+            showUserCard
+            amount={Number(amount)}
+            identifier={
+                charge?.requestLink.recipientAccount.type === 'peanut-wallet'
+                    ? charge?.requestLink.recipientAccount.user.username
+                    : charge?.requestLink.recipientAccount.identifier
+            }
         />
     )
 }

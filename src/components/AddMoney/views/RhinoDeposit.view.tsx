@@ -17,6 +17,8 @@ import { useState, useEffect, useMemo } from 'react'
 import type { CreateDepositAddressResponse, RhinoChainType } from '@/services/services.types'
 import { useAutoTruncatedAddress } from '@/hooks/useAutoTruncatedAddress'
 import { CHAIN_LOGOS, RHINO_SUPPORTED_TOKENS, SUPPORTED_EVM_CHAINS } from '@/constants/rhino.consts'
+import UserCard from '@/components/User/UserCard'
+import { isCryptoAddress, printableAddress } from '@/utils/general.utils'
 
 interface RhinoDepositViewProps {
     onBack?: () => void
@@ -26,6 +28,9 @@ interface RhinoDepositViewProps {
     isDepositAddressDataLoading: boolean
     headerTitle: string
     onSuccess: (amount: number) => void
+    showUserCard?: boolean
+    amount?: number
+    identifier?: string
 }
 
 const RhinoDepositView = ({
@@ -36,6 +41,9 @@ const RhinoDepositView = ({
     isDepositAddressDataLoading,
     headerTitle,
     onSuccess,
+    showUserCard = false,
+    amount,
+    identifier,
 }: RhinoDepositViewProps) => {
     const { user } = useAuth()
     const { isConnected } = useWallet()
@@ -106,11 +114,11 @@ const RhinoDepositView = ({
         }
     }, [depositAddressStatusData, depositAddressStatus, onSuccess])
 
-    if (!isConnected || !user || isDepositAddressDataLoading || depositAddressStatus === 'loading') {
-        return (
-            <PeanutLoading message={depositAddressStatus === 'loading' ? 'Almost there! Processing...' : undefined} />
-        )
-    }
+    // if (!isConnected || !user || isDepositAddressDataLoading || depositAddressStatus === 'loading') {
+    //     return (
+    //         <PeanutLoading message={depositAddressStatus === 'loading' ? 'Almost there! Processing...' : undefined} />
+    //     )
+    // }
 
     if (depositAddressStatus === 'failed') {
         return (
@@ -150,106 +158,128 @@ const RhinoDepositView = ({
     return (
         <div className="flex w-full flex-col justify-start space-y-8 pb-5 md:pb-0">
             <NavHeader title={headerTitle} onPrev={onBack} />
-            {depositAddressData && (
-                <div className="my-auto flex w-full flex-grow flex-col items-center justify-center gap-4 md:my-0">
-                    <Root
-                        value={chainType}
-                        onValueChange={(e) => setChainType(e as RhinoChainType)}
-                        defaultValue="EVM"
-                        className="w-full"
-                    >
-                        <List
-                            className="flex w-full items-center rounded-xl bg-white p-0"
-                            aria-label="Select network type"
-                        >
-                            <Trigger
-                                value="EVM"
-                                className="flex-1 rounded-xl border border-transparent py-1.5 text-sm font-medium text-grey-1 transition-all data-[state=active]:border-primary-1 data-[state=active]:bg-primary-1/10 data-[state=active]:text-primary-1"
-                            >
-                                EVM
-                            </Trigger>
-                            <Trigger
-                                value="SOL"
-                                className="flex-1 rounded-xl border border-transparent py-1.5 text-sm font-medium text-grey-1 transition-all data-[state=active]:border-primary-1 data-[state=active]:bg-primary-1/10 data-[state=active]:text-primary-1"
-                            >
-                                Solana
-                            </Trigger>
-                            <Trigger
-                                value="TRON"
-                                className="flex-1 rounded-xl border border-transparent py-1.5 text-sm font-medium text-grey-1 transition-all data-[state=active]:border-primary-1 data-[state=active]:bg-primary-1/10 data-[state=active]:text-primary-1"
-                            >
-                                Tron
-                            </Trigger>
-                        </List>
-                    </Root>
 
-                    <div className="flex items-center justify-center">
-                        <QRCodeWrapper url={depositAddressData?.depositAddress} />
-                    </div>
-
-                    <Button
-                        variant="primary-soft"
-                        className="flex h-8 w-2/3 cursor-pointer items-center justify-center gap-1.5 rounded-full px-2.5 md:h-9 md:px-3.5"
-                        shadowSize="3"
-                        size="small"
-                    >
-                        <p className="w-full text-sm" ref={containerRef}>
-                            {truncatedAddress}
-                        </p>
-                        <CopyToClipboard type="icon" textToCopy={depositAddressData.depositAddress} />
-                    </Button>
-
-                    <InfoCard
-                        iconClassName="text-yellow-11"
-                        variant="warning"
-                        icon="alert"
-                        containerClassName="items-center"
-                        customContent={
-                            <div className="flex items-center gap-2">
-                                <p className="text-sm">Supported tokens:</p>
-                                {RHINO_SUPPORTED_TOKENS.map((token) => (
-                                    <ChainChip key={token.name} chainName={token.name} chainSymbol={token.logoUrl} />
-                                ))}
-                            </div>
+            <div className="my-auto flex w-full flex-grow flex-col items-center justify-center gap-4 md:my-0">
+                {showUserCard && (
+                    <UserCard
+                        recipientType={isCryptoAddress(identifier ?? '') ? 'ADDRESS' : 'USERNAME'}
+                        type="request_fulfilment"
+                        username={
+                            isCryptoAddress(identifier ?? '') ? printableAddress(identifier ?? '') : (identifier ?? '')
                         }
+                        amount={amount}
                     />
+                )}
+                <Root
+                    value={chainType}
+                    onValueChange={(e) => setChainType(e as RhinoChainType)}
+                    defaultValue="EVM"
+                    className="w-full"
+                >
+                    <List className="flex w-full items-center rounded-xl bg-white p-0" aria-label="Select network type">
+                        <Trigger
+                            value="EVM"
+                            className="flex-1 rounded-xl border border-transparent py-1.5 text-sm font-medium text-grey-1 transition-all data-[state=active]:border-primary-1 data-[state=active]:bg-primary-1/10 data-[state=active]:text-primary-1"
+                        >
+                            EVM
+                        </Trigger>
+                        <Trigger
+                            value="SOL"
+                            className="flex-1 rounded-xl border border-transparent py-1.5 text-sm font-medium text-grey-1 transition-all data-[state=active]:border-primary-1 data-[state=active]:bg-primary-1/10 data-[state=active]:text-primary-1"
+                        >
+                            Solana
+                        </Trigger>
+                        <Trigger
+                            value="TRON"
+                            className="flex-1 rounded-xl border border-transparent py-1.5 text-sm font-medium text-grey-1 transition-all data-[state=active]:border-primary-1 data-[state=active]:bg-primary-1/10 data-[state=active]:text-primary-1"
+                        >
+                            Tron
+                        </Trigger>
+                    </List>
+                </Root>
 
-                    <div className="w-full space-y-1">
-                        <div className="flex w-full items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <Icon name="info" size={18} className="text-grey-1" />
-                                <p className="text-sm text-grey-1">Min deposit for {amountLimitsTitle}</p>
-                            </div>
-
-                            <p className="text-sm font-medium text-grey-1">
-                                {depositAddressData.minDepositLimitUsd} USD
-                            </p>
-                        </div>
-
-                        <div className="flex w-full items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <Icon name="info" size={18} className="text-grey-1" />
-                                <p className="text-sm text-grey-1">Max deposit for {amountLimitsTitle}</p>
-                            </div>
-
-                            <p className="text-sm font-medium text-grey-1">
-                                {depositAddressData.maxDepositLimitUsd} USD
-                            </p>
-                        </div>
+                {(!isConnected || !user || isDepositAddressDataLoading || depositAddressStatus === 'loading') && (
+                    <div className="flex h-[60vh] items-center justify-center">
+                        <PeanutLoading
+                            message={depositAddressStatus === 'loading' ? 'Almost there! Processing...' : undefined}
+                        />
                     </div>
+                )}
 
-                    {chainType === 'EVM' && (
-                        <Card className="space-y-2 p-4">
-                            <h3 className="text-sm font-bold text-black">Supported EVM networks</h3>
-                            <div className="flex flex-wrap gap-2">
-                                {SUPPORTED_EVM_CHAINS.map((chain) => (
-                                    <ChainChip key={chain} chainName={chain} chainSymbol={CHAIN_LOGOS[chain]} />
-                                ))}
+                {depositAddressData && !isDepositAddressDataLoading && (
+                    <>
+                        <div className="flex items-center justify-center">
+                            <QRCodeWrapper url={depositAddressData?.depositAddress} />
+                        </div>
+
+                        <Button
+                            variant="primary-soft"
+                            className="flex h-8 w-2/3 cursor-pointer items-center justify-center gap-1.5 rounded-full px-2.5 md:h-9 md:px-3.5"
+                            shadowSize="3"
+                            size="small"
+                        >
+                            <p className="w-full text-sm" ref={containerRef}>
+                                {truncatedAddress}
+                            </p>
+                            <CopyToClipboard type="icon" textToCopy={depositAddressData.depositAddress} />
+                        </Button>
+
+                        <InfoCard
+                            iconClassName="text-yellow-11"
+                            variant="warning"
+                            icon="alert"
+                            containerClassName="items-center"
+                            customContent={
+                                <div className="flex items-center gap-2">
+                                    <p className="text-sm">Supported tokens:</p>
+                                    {RHINO_SUPPORTED_TOKENS.map((token) => (
+                                        <ChainChip
+                                            key={token.name}
+                                            chainName={token.name}
+                                            chainSymbol={token.logoUrl}
+                                        />
+                                    ))}
+                                </div>
+                            }
+                        />
+
+                        <div className="w-full space-y-1">
+                            <div className="flex w-full items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <Icon name="info" size={18} className="text-grey-1" />
+                                    <p className="text-sm text-grey-1">Min deposit for {amountLimitsTitle}</p>
+                                </div>
+
+                                <p className="text-sm font-medium text-grey-1">
+                                    {depositAddressData.minDepositLimitUsd} USD
+                                </p>
                             </div>
-                        </Card>
-                    )}
-                </div>
-            )}
+
+                            <div className="flex w-full items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <Icon name="info" size={18} className="text-grey-1" />
+                                    <p className="text-sm text-grey-1">Max deposit for {amountLimitsTitle}</p>
+                                </div>
+
+                                <p className="text-sm font-medium text-grey-1">
+                                    {depositAddressData.maxDepositLimitUsd} USD
+                                </p>
+                            </div>
+                        </div>
+
+                        {chainType === 'EVM' && (
+                            <Card className="space-y-2 p-4">
+                                <h3 className="text-sm font-bold text-black">Supported EVM networks</h3>
+                                <div className="flex flex-wrap gap-2">
+                                    {SUPPORTED_EVM_CHAINS.map((chain) => (
+                                        <ChainChip key={chain} chainName={chain} chainSymbol={CHAIN_LOGOS[chain]} />
+                                    ))}
+                                </div>
+                            </Card>
+                        )}
+                    </>
+                )}
+            </div>
         </div>
     )
 }

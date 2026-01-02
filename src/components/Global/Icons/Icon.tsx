@@ -61,6 +61,7 @@ import {
     RemoveCircleOutlineRounded,
     CloudUploadOutlined,
     CompareArrowsRounded,
+    WarningRounded,
 } from '@mui/icons-material'
 import { DocsIcon } from './docs'
 import { PeanutSupportIcon } from './peanut-support'
@@ -142,6 +143,7 @@ export type IconName =
     | 'globe-lock'
     | 'bulb'
     | 'upload-cloud'
+    | 'alert-filled'
 export interface IconProps extends SVGProps<SVGSVGElement> {
     name: IconName
     size?: number | string
@@ -278,6 +280,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     bulb: BulbIcon,
     'upload-cloud': (props) => <MaterialIconWrapper Icon={CloudUploadOutlined} {...props} />,
     'invite-heart': InviteHeartIcon,
+    'alert-filled': (props) => <MaterialIconWrapper Icon={WarningRounded} {...props} />,
 }
 
 export const Icon: FC<IconProps> = ({ name, size = 24, width, height, ...props }) => {
