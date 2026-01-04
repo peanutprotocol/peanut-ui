@@ -183,7 +183,7 @@ export default function Home() {
 
                 <div className="space-y-2">
                     <HomeCarouselCTA />
-                    <HomeHistory username={username ?? undefined} />
+                    <HomeHistory username={username ?? undefined} hideTxnAmount={isBalanceHidden} />
                 </div>
 
                 {showPermissionModal && !showBalanceWarningModal && (
