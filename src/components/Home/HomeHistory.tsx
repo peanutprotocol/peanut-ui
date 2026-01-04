@@ -333,6 +333,7 @@ const HomeHistory = ({ username, hideTxnAmount = false }: { username?: string; h
                                     position={position}
                                     isPending={true}
                                     haveSentMoneyToUser={transactionDetails.haveSentMoneyToUser}
+                                    hideTxnAmount={hideTxnAmount}
                                 />
                             )
                         })}
