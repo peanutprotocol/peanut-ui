@@ -182,7 +182,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                             <div className="flex items-center gap-1 text-xs font-medium text-gray-1">
                                 {!isTestTransaction && getActionIcon(type, transaction.direction)}
                                 <span className="capitalize">
-                                    {isTestTransaction ? 'Setup' : isPerkReward ? 'Refund' : getActionText(type)}
+                                    {isTestTransaction ? 'Setup' : isPerkReward ? 'Cashback' : getActionText(type)}
                                 </span>
                                 {status && <StatusPill status={status} />}
                             </div>
