@@ -11,7 +11,7 @@ interface ErrorAlertProps {
 const ErrorAlert = ({ className, iconSize = 16, description, iconClassName }: ErrorAlertProps) => {
     return (
         <div className={twMerge('flex items-start justify-center gap-3 text-[12px] font-medium text-error', className)}>
-            <Icon name="error" size={iconSize} className={twMerge('mt-0.5 min-w-fit text-error', iconClassName)} />
+            <Icon name="error" size={iconSize} className={twMerge('mt-0.5 text-error', iconClassName)} />
             <div>{description}</div>
         </div>
     )
