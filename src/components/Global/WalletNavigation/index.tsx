@@ -20,13 +20,13 @@ type NavPathProps = {
 
 // todo: update icons based on new the design
 const desktopPaths: NavPathProps[] = [
-    { name: 'Send', href: '/send', icon: 'arrow-up-right', size: 10 },
-    { name: 'Request', href: '/request', icon: 'arrow-down-left', size: 10 },
-    { name: 'Add', href: '/add-money', icon: 'arrow-down', size: 14 },
-    { name: 'Withdraw', href: '/withdraw', icon: 'arrow-up', size: 14 },
-    { name: 'History', href: '/history', icon: 'history', size: 16 },
-    { name: 'Docs', href: 'https://docs.peanut.me/', icon: 'docs', size: 16 },
-    { name: 'Support', href: '/support', icon: 'peanut-support', size: 16 },
+    { name: 'Send', href: '/send', icon: 'arrow-up-right', size: 14 },
+    { name: 'Request', href: '/request', icon: 'arrow-down-left', size: 14 },
+    { name: 'Add', href: '/add-money', icon: 'arrow-down', size: 15 },
+    { name: 'Withdraw', href: '/withdraw', icon: 'arrow-up', size: 15 },
+    { name: 'History', href: '/history', icon: 'history', size: 15 },
+    { name: 'Docs', href: 'https://docs.peanut.me/', icon: 'docs', size: 14 },
+    { name: 'Support', href: '/support', icon: 'peanut-support', size: 14 },
 ]
 
 type NavSectionProps = {
