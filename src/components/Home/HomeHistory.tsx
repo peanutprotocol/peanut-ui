@@ -26,7 +26,7 @@ import { Icon } from '../Global/Icons/Icon'
 /**
  * component to display a preview of the most recent transactions on the home page.
  */
-const HomeHistory = ({ username }: { username?: string }) => {
+const HomeHistory = ({ username, hideTxnAmount = false }: { username?: string; hideTxnAmount?: boolean }) => {
     const { user } = useUserStore()
     const isLoggedIn = !!user?.user.userId || false
     // Only filter when user is requesting for some different user's history
@@ -333,6 +333,7 @@ const HomeHistory = ({ username }: { username?: string }) => {
                                     position={position}
                                     isPending={true}
                                     haveSentMoneyToUser={transactionDetails.haveSentMoneyToUser}
+                                    hideTxnAmount={hideTxnAmount}
                                 />
                             )
                         })}
@@ -402,6 +403,7 @@ const HomeHistory = ({ username }: { username?: string }) => {
                                 transaction={transactionDetails}
                                 position={position}
                                 haveSentMoneyToUser={haveSentMoneyToUser}
+                                hideTxnAmount={hideTxnAmount}
                             />
                         )
                     })}
