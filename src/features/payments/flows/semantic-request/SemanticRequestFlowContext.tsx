@@ -21,7 +21,7 @@ import { type TRequestChargeResponse, type PaymentCreationResponse } from '@/ser
 import { type ParsedURL, type RecipientType } from '@/lib/url-parser/types/payment'
 
 // view states for semantic request flow
-export type SemanticRequestFlowView = 'INITIAL' | 'CONFIRM' | 'STATUS' | 'RECEIPT'
+export type SemanticRequestFlowView = 'INITIAL' | 'CONFIRM' | 'STATUS' | 'RECEIPT' | 'EXTERNAL_WALLET'
 
 // recipient info from parsed url
 export interface SemanticRequestRecipient {
@@ -87,6 +87,8 @@ interface SemanticRequestFlowContextValue {
     setIsLoading: (loading: boolean) => void
     isSuccess: boolean
     setIsSuccess: (success: boolean) => void
+    isExternalWalletPayment: boolean
+    setIsExternalWalletPayment: (isExternalWalletPayment: boolean) => void
 
     // actions
     resetSemanticRequestFlow: () => void
@@ -141,6 +143,7 @@ export function SemanticRequestFlowProvider({
     const [error, setError] = useState<SemanticRequestError>({ showError: false, errorMessage: '' })
     const [isLoading, setIsLoading] = useState(false)
     const [isSuccess, setIsSuccess] = useState(false)
+    const [isExternalWalletPayment, setIsExternalWalletPayment] = useState(false)
 
     // derive recipient from parsed url
     const recipient = useMemo<SemanticRequestRecipient | null>(() => {
@@ -164,6 +167,7 @@ export function SemanticRequestFlowProvider({
         setError({ showError: false, errorMessage: '' })
         setIsLoading(false)
         setIsSuccess(false)
+        setIsExternalWalletPayment(false)
     }, [initialParsedUrl.amount])
 
     const value = useMemo<SemanticRequestFlowContextValue>(
@@ -196,6 +200,8 @@ export function SemanticRequestFlowProvider({
             isSuccess,
             setIsSuccess,
             resetSemanticRequestFlow,
+            isExternalWalletPayment,
+            setIsExternalWalletPayment,
         }),
         [
             currentView,
@@ -215,6 +221,7 @@ export function SemanticRequestFlowProvider({
             isLoading,
             isSuccess,
             resetSemanticRequestFlow,
+            isExternalWalletPayment,
         ]
     )
 

@@ -29,16 +29,10 @@ export const rhinoApi = {
     },
 
     getDepositAddressStatus: async (depositAddress: string): Promise<{ status: string; amount?: number }> => {
-        const token = Cookies.get('jwt-token')
-        if (!token) {
-            throw new Error('Authentication required')
-        }
-
         const response = await fetch(`${PEANUT_API_URL}/rhino/status/${depositAddress}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
             },
         })
 
@@ -71,24 +65,16 @@ export const rhinoApi = {
     },
 
     createRequestFulfilmentAddress: async (
-        requestId: string,
         chainType: RhinoChainType,
         chargeId: string,
         peanutWalletAddress?: string
     ): Promise<CreateDepositAddressResponse> => {
-        const token = Cookies.get('jwt-token')
-        if (!token) {
-            throw new Error('Authentication required')
-        }
-
         const response = await fetch(`${PEANUT_API_URL}/rhino/request-fulfilment`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify({
-                requestId,
                 type: chainType,
                 chargeId,
                 senderPeanutWalletAddress: peanutWalletAddress,

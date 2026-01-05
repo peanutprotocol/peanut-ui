@@ -45,6 +45,7 @@ export function SemanticRequestInputView() {
         isConnected,
         setAmount,
         handlePayment,
+        setCurrentView,
     } = useSemanticRequestFlow()
 
     // token selector context for setting initial values from url
@@ -89,6 +90,16 @@ export function SemanticRequestInputView() {
     const handleSubmit = () => {
         if (canProceed && !isLoading) {
             handlePayment()
+        }
+    }
+
+    const handleOpenExternalWalletFlow = async () => {
+        if (canProceed && !isLoading) {
+            const res = await handlePayment(true, true) // return after creating charge
+            // Proceed only if charge is created successfully
+            if (res && res.success) {
+                setCurrentView('EXTERNAL_WALLET')
+            }
         }
     }
 
@@ -183,7 +194,10 @@ export function SemanticRequestInputView() {
                 </div>
 
                 {/* action list for non-logged in users */}
-                <PaymentMethodActionList isAmountEntered={isAmountEntered} />
+                <PaymentMethodActionList
+                    onPayWithExternalWallet={handleOpenExternalWalletFlow}
+                    isAmountEntered={isAmountEntered}
+                />
             </div>
 
             {/* support cta */}

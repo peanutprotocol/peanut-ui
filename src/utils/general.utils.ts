@@ -62,8 +62,36 @@ export const shortenStringLong = (s?: string, chars?: number, firstChars?: numbe
     return firstBit + '...' + endingBit
 }
 
+// Address detection patterns (permissive to handle lowercase-stored addresses)
+// These are for display purposes, not cryptographic validation
+const SOLANA_ADDRESS_REGEX = /^[1-9a-zA-Z]{32,44}$/
+const TRON_ADDRESS_REGEX = /^[Tt][0-9a-zA-Z]{33}$/
+
+/**
+ * Checks if a string looks like a Solana address (32-44 alphanumeric characters, no 0)
+ * Permissive to handle lowercase-stored addresses
+ */
+export const isSolanaAddress = (address: string): boolean => {
+    return SOLANA_ADDRESS_REGEX.test(address)
+}
+
+/**
+ * Checks if a string looks like a Tron address (starts with T/t, 34 alphanumeric characters)
+ * Permissive to handle lowercase-stored addresses
+ */
+export const isTronAddress = (address: string): boolean => {
+    return TRON_ADDRESS_REGEX.test(address)
+}
+
+/**
+ * Checks if a string is any valid blockchain address (EVM, Solana, or Tron)
+ */
+export const isCryptoAddress = (address: string): boolean => {
+    return isAddress(address) || isSolanaAddress(address) || isTronAddress(address)
+}
+
 export const printableAddress = (address: string, firstCharsLen?: number, lastCharsLen?: number): string => {
-    if (!isAddress(address)) return address
+    if (!isCryptoAddress(address)) return address
     return shortenStringLong(address, undefined, firstCharsLen, lastCharsLen)
 }
 

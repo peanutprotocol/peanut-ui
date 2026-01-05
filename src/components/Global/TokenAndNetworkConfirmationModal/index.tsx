@@ -1,7 +1,12 @@
 import ActionModal from '@/components/Global/ActionModal'
 import { Slider } from '@/components/Slider'
 import ChainChip from '@/components/AddMoney/components/ChainChip'
-import { RHINO_SUPPORTED_CHAINS, RHINO_SUPPORTED_TOKENS } from '@/constants/rhino.consts'
+import {
+    RHINO_SUPPORTED_CHAINS,
+    RHINO_SUPPORTED_EVM_CHAINS,
+    RHINO_SUPPORTED_OTHER_CHAINS,
+    RHINO_SUPPORTED_TOKENS,
+} from '@/constants/rhino.consts'
 
 export default function TokenAndNetworkConfirmationModal({
     onClose,
@@ -21,7 +26,7 @@ export default function TokenAndNetworkConfirmationModal({
             modalClassName="z-[9999]"
             title={`Send only supported tokens on supported networks`}
             description={
-                <div className="flex flex-col items-center gap-2 px-3">
+                <div className="flex flex-col items-center gap-2">
                     <span className="text-sm">
                         Sending the wrong token or using the wrong network will result in permanent loss.
                     </span>
@@ -30,9 +35,17 @@ export default function TokenAndNetworkConfirmationModal({
                         <h2 className="font-bold text-black">Supported Networks</h2>
 
                         <div className="flex flex-wrap gap-2">
-                            {RHINO_SUPPORTED_CHAINS.map((chain) => (
+                            {RHINO_SUPPORTED_OTHER_CHAINS.map((chain) => (
                                 <ChainChip key={chain.name} chainName={chain.name} chainSymbol={chain.logoUrl} />
                             ))}
+                            {RHINO_SUPPORTED_EVM_CHAINS.slice(0, 6).map((chain) => (
+                                <ChainChip key={chain.name} chainName={chain.name} chainSymbol={chain.logoUrl} />
+                            ))}
+                            <ChainChip
+                                chainName={'+4 EVM'}
+                                logo="plus"
+                                logoClassName="bg-black rounded-full text-white"
+                            />
                         </div>
                     </div>
 
