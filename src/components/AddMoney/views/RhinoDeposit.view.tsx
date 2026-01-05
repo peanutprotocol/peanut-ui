@@ -1,7 +1,7 @@
 'use client'
 import { Button } from '@/components/0_Bruddle/Button'
 import Card from '@/components/Global/Card'
-import CopyToClipboard from '@/components/Global/CopyToClipboard'
+import CopyToClipboard, { type CopyToClipboardRef } from '@/components/Global/CopyToClipboard'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
@@ -11,7 +11,7 @@ import { Root, List, Trigger } from '@radix-ui/react-tabs'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { useQuery } from '@tanstack/react-query'
 import { rhinoApi } from '@/services/rhino'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import type { CreateDepositAddressResponse, RhinoChainType } from '@/services/services.types'
 import { useAutoTruncatedAddress } from '@/hooks/useAutoTruncatedAddress'
 import { CHAIN_LOGOS, RHINO_SUPPORTED_TOKENS, SUPPORTED_EVM_CHAINS } from '@/constants/rhino.consts'
@@ -45,6 +45,7 @@ const RhinoDepositView = ({
 }: RhinoDepositViewProps) => {
     const [isDelayComplete, setIsDelayComplete] = useState(false)
     const [isUpdatingDepositAddresStatus, setisUpdatingDepositAddresStatus] = useState(false)
+    const copyRef = useRef<CopyToClipboardRef>(null)
 
     const POLLING_DELAY = 15_000
 
@@ -207,11 +208,12 @@ const RhinoDepositView = ({
                             className="flex h-8 w-2/3 cursor-pointer items-center justify-center gap-1.5 rounded-full px-2.5 md:h-9 md:px-3.5"
                             shadowSize="3"
                             size="small"
+                            onClick={() => copyRef.current?.copy()}
                         >
                             <p className="w-full text-sm" ref={containerRef}>
                                 {truncatedAddress}
                             </p>
-                            <CopyToClipboard type="icon" textToCopy={depositAddressData.depositAddress} />
+                            <CopyToClipboard ref={copyRef} type="icon" textToCopy={depositAddressData.depositAddress} />
                         </Button>
 
                         <InfoCard
