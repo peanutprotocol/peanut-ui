@@ -1,22 +1,22 @@
 'use client'
 
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, SQUID_API_URL, SQUID_INTEGRATOR_ID } from '@/constants'
 import { tokenSelectorContext } from '@/context'
-import { useAppDispatch, useSendFlowStore } from '@/redux/hooks'
-import { sendFlowActions } from '@/redux/slices/send-flow-slice'
-import { fetchWithSentry } from '@/utils'
+import { LinkSendFlowProvider, useLinkSendFlow } from '@/context/LinkSendFlowContext'
+import { fetchWithSentry } from '@/utils/sentry.utils'
 import { useContext, useEffect } from 'react'
 import NavHeader from '../../Global/NavHeader'
 import LinkSendInitialView from './views/Initial.link.send.view'
 import LinkSendSuccessView from './views/Success.link.send.view'
+import { SQUID_INTEGRATOR_ID, SQUID_API_URL } from '@/constants/general.consts'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 
 interface LinkSendFlowManagerProps {
     onPrev?: () => void
 }
 
-const LinkSendFlowManager = ({ onPrev }: LinkSendFlowManagerProps) => {
-    const dispatch = useAppDispatch()
-    const { view } = useSendFlowStore()
+// inner component that uses the context
+const LinkSendFlowContent = ({ onPrev }: LinkSendFlowManagerProps) => {
+    const { view, setCrossChainDetails } = useLinkSendFlow()
     const { resetTokenContextProvider, setSelectedChainID, setSelectedTokenAddress } = useContext(tokenSelectorContext)
 
     const fetchAndSetCrossChainDetails = async () => {
@@ -30,8 +30,7 @@ const LinkSendFlowManager = ({ onPrev }: LinkSendFlowManagerProps) => {
             throw new Error('Squid: Network response was not ok')
         }
         const data = await response.json()
-
-        dispatch(sendFlowActions.setCrossChainDetails(data.chains))
+        setCrossChainDetails(data.chains)
     }
 
     useEffect(() => {
@@ -58,6 +57,15 @@ const LinkSendFlowManager = ({ onPrev }: LinkSendFlowManagerProps) => {
             )}
             {view === 'SUCCESS' && <LinkSendSuccessView />}
         </>
+    )
+}
+
+// wrapper component that provides the context
+const LinkSendFlowManager = ({ onPrev }: LinkSendFlowManagerProps) => {
+    return (
+        <LinkSendFlowProvider>
+            <LinkSendFlowContent onPrev={onPrev} />
+        </LinkSendFlowProvider>
     )
 }
 

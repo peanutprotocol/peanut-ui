@@ -27,7 +27,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
     shadowSize?: ShadowSize
     shadowType?: ShadowType
     loading?: boolean
-    icon?: IconName
+    icon?: IconName | React.ReactNode
     iconPosition?: 'left' | 'right'
     iconClassName?: string
     iconSize?: number
@@ -233,11 +233,15 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             if (!icon || loading) return null
             return (
                 <div className={twMerge('flex size-6 items-center justify-center', iconContainerClassName)}>
-                    <Icon
-                        size={iconSize}
-                        name={icon}
-                        className={twMerge(!iconSize && 'min-h-4 min-w-4', iconClassName)}
-                    />
+                    {typeof icon === 'string' ? (
+                        <Icon
+                            size={iconSize}
+                            name={icon as IconName}
+                            className={twMerge(!iconSize && 'min-h-4 min-w-4', iconClassName)}
+                        />
+                    ) : (
+                        icon
+                    )}
                 </div>
             )
         }

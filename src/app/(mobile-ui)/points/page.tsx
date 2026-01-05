@@ -12,16 +12,16 @@ import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionA
 import { VerifiedUserLabel } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
 import { invitesApi } from '@/services/invites'
-import { generateInviteCodeLink, generateInvitesShareText } from '@/utils'
+import { generateInviteCodeLink, generateInvitesShareText, getInitialsFromName } from '@/utils/general.utils'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { STAR_STRAIGHT_ICON, TIER_0_BADGE, TIER_1_BADGE, TIER_2_BADGE, TIER_3_BADGE } from '@/assets'
 import Image from 'next/image'
 import { pointsApi } from '@/services/points'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
-import { getInitialsFromName } from '@/utils'
 import { type PointsInvite } from '@/services/services.types'
 import { useEffect } from 'react'
+import InvitesGraph from '@/components/Global/InvitesGraph'
 
 const PointsPage = () => {
     const router = useRouter()
@@ -51,6 +51,13 @@ const PointsPage = () => {
         queryKey: ['tierInfo', user?.user.userId],
         queryFn: () => pointsApi.getTierInfo(),
         enabled: !!user?.user.userId,
+    })
+
+    const { data: myGraphResult } = useQuery({
+        queryKey: ['myInviteGraph', user?.user.userId],
+        queryFn: () => pointsApi.getUserInvitesGraph(),
+        enabled:
+            !!user?.user.userId && user?.user?.badges?.some((badge) => badge.code === 'SEEDLING_DEVCONNECT_BA_2025'),
     })
     const username = user?.user.username
     const { inviteCode, inviteLink } = generateInviteCodeLink(username ?? '')
@@ -179,12 +186,36 @@ const PointsPage = () => {
                             <h2 className="font-bold">People you invited</h2>
                             <NavigationArrow className="text-black" />
                         </div>
+
+                        {/* Invite Graph */}
+                        {myGraphResult?.data && (
+                            <>
+                                <Card className="overflow-hidden p-0">
+                                    <InvitesGraph
+                                        minimal
+                                        data={myGraphResult.data}
+                                        height={250}
+                                        backgroundColor="#ffffff"
+                                        showUsernames
+                                    />
+                                </Card>
+                                <div className="flex items-center gap-2">
+                                    <Icon name="info" className="size-4 flex-shrink-0 text-black" />
+                                    <p className="text-sm text-black">
+                                        Experimental. Only available for Seedlings badge holders.
+                                    </p>
+                                </div>
+                            </>
+                        )}
+
                         <div>
                             {invites.invitees?.map((invite: PointsInvite, i: number) => {
                                 const username = invite.username
                                 const fullName = invite.fullName
                                 const isVerified = invite.kycStatus === 'approved'
                                 const pointsEarned = Math.floor(invite.totalPoints * 0.2)
+                                // respect user's showFullName preference for avatar and display name
+                                const displayName = invite.showFullName && fullName ? fullName : username
                                 return (
                                     <Card
                                         key={invite.inviteeId}
@@ -195,8 +226,8 @@ const PointsPage = () => {
                                         <div className="flex items-center justify-between gap-4">
                                             <div className="flex items-center gap-3">
                                                 <TransactionAvatarBadge
-                                                    initials={getInitialsFromName(fullName ?? username)}
-                                                    userName={username}
+                                                    initials={getInitialsFromName(displayName)}
+                                                    userName={displayName}
                                                     isLinkTransaction={false}
                                                     transactionType={'send'}
                                                     context="card"
@@ -205,7 +236,7 @@ const PointsPage = () => {
                                             </div>
                                             <div className="min-w-0 flex-1 truncate font-roboto text-[16px] font-medium">
                                                 <VerifiedUserLabel
-                                                    name={username}
+                                                    name={displayName}
                                                     username={username}
                                                     isVerified={isVerified}
                                                 />

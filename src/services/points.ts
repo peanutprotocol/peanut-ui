@@ -1,7 +1,89 @@
 import Cookies from 'js-cookie'
 import { type CalculatePointsRequest, PointsAction, type TierInfo } from './services.types'
-import { fetchWithSentry } from '@/utils'
-import { PEANUT_API_URL } from '@/constants'
+import { fetchWithSentry } from '@/utils/sentry.utils'
+import { PEANUT_API_URL } from '@/constants/general.consts'
+
+type InvitesGraphResponse = {
+    success: boolean
+    data: {
+        nodes: Array<{
+            id: string
+            username: string
+            hasAppAccess: boolean
+            directPoints: number
+            transitivePoints: number
+            totalPoints: number
+        }>
+        edges: Array<{
+            id: string
+            source: string
+            target: string
+            type: 'DIRECT' | 'PAYMENT_LINK'
+            createdAt: string
+        }>
+        stats: {
+            totalNodes: number
+            totalEdges: number
+            usersWithAccess: number
+            orphans: number
+        }
+    } | null
+    error?: string
+}
+
+async function fetchInvitesGraph(
+    endpoint: string,
+    extraHeaders?: Record<string, string>,
+    handleStatusError?: (status: number) => string | null
+): Promise<InvitesGraphResponse> {
+    try {
+        // Get JWT token for user authentication
+        const jwtToken = Cookies.get('jwt-token')
+        if (!jwtToken) {
+            console.error('getInvitesGraph: No JWT token found')
+            return { success: false, data: null, error: 'Not authenticated. Please log in.' }
+        }
+
+        // Add 30s timeout for large graph data
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 30000)
+
+        const response = await fetchWithSentry(`${PEANUT_API_URL}${endpoint}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${jwtToken}`,
+                ...extraHeaders,
+            },
+            signal: controller.signal,
+        })
+
+        clearTimeout(timeoutId)
+
+        if (!response.ok) {
+            console.error('getInvitesGraph: API request failed', response.status, response.statusText)
+
+            // Handle custom status errors if provided
+            const customError = handleStatusError?.(response.status)
+            if (customError) {
+                return { success: false, data: null, error: customError }
+            }
+
+            return { success: false, data: null, error: 'Failed to load invite graph. Please try again.' }
+        }
+
+        const data = await response.json()
+        return { success: true, data }
+    } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
+            console.error('getInvitesGraph: Request timeout after 30s')
+            return { success: false, data: null, error: 'Request timeout. The graph is too large.' }
+        } else {
+            console.error('getInvitesGraph: Unexpected error', error)
+            return { success: false, data: null, error: 'Unexpected error loading graph.' }
+        }
+    }
+}
 
 export const pointsApi = {
     getTierInfo: async (): Promise<{ success: boolean; data: TierInfo | null }> => {
@@ -129,86 +211,18 @@ export const pointsApi = {
         }
     },
 
-    getInvitesGraph: async (
-        apiKey: string
-    ): Promise<{
-        success: boolean
-        data: {
-            nodes: Array<{
-                id: string
-                username: string
-                hasAppAccess: boolean
-                directPoints: number
-                transitivePoints: number
-                totalPoints: number
-            }>
-            edges: Array<{
-                id: string
-                source: string
-                target: string
-                type: 'DIRECT' | 'PAYMENT_LINK'
-                createdAt: string
-            }>
-            stats: {
-                totalNodes: number
-                totalEdges: number
-                usersWithAccess: number
-                orphans: number
+    getInvitesGraph: async (apiKey: string): Promise<InvitesGraphResponse> => {
+        return fetchInvitesGraph('/invites/graph', { 'api-key': apiKey }, (status) => {
+            if (status === 403) {
+                return 'Access denied. Only authorized users can access this tool.'
+            } else if (status === 401) {
+                return 'Invalid API key or authentication token.'
             }
-        } | null
-        error?: string
-    }> => {
-        try {
-            // Get JWT token for user authentication
-            const jwtToken = Cookies.get('jwt-token')
-            if (!jwtToken) {
-                console.error('getInvitesGraph: No JWT token found')
-                return { success: false, data: null, error: 'Not authenticated. Please log in.' }
-            }
+            return null
+        })
+    },
 
-            // Add 30s timeout for large graph data
-            const controller = new AbortController()
-            const timeoutId = setTimeout(() => controller.abort(), 30000)
-
-            const response = await fetchWithSentry(`${PEANUT_API_URL}/invites/graph`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'api-key': apiKey,
-                    Authorization: `Bearer ${jwtToken}`,
-                },
-                signal: controller.signal,
-            })
-
-            clearTimeout(timeoutId)
-
-            if (!response.ok) {
-                console.error('getInvitesGraph: API request failed', response.status, response.statusText)
-
-                // Handle different error codes
-                if (response.status === 403) {
-                    return {
-                        success: false,
-                        data: null,
-                        error: 'Access denied. Only authorized users can access this tool.',
-                    }
-                } else if (response.status === 401) {
-                    return { success: false, data: null, error: 'Invalid API key or authentication token.' }
-                }
-
-                return { success: false, data: null, error: 'Failed to load invite graph. Please try again.' }
-            }
-
-            const data = await response.json()
-            return { success: true, data }
-        } catch (error) {
-            if (error instanceof Error && error.name === 'AbortError') {
-                console.error('getInvitesGraph: Request timeout after 30s')
-                return { success: false, data: null, error: 'Request timeout. The graph is too large.' }
-            } else {
-                console.error('getInvitesGraph: Unexpected error', error)
-                return { success: false, data: null, error: 'Unexpected error loading graph.' }
-            }
-        }
+    getUserInvitesGraph: async (): Promise<InvitesGraphResponse> => {
+        return fetchInvitesGraph('/invites/user-graph')
     },
 }

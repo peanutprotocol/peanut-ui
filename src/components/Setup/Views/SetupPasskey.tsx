@@ -1,139 +1,129 @@
-import { Button } from '@/components/0_Bruddle'
-import { setupActions } from '@/redux/slices/setup-slice'
-import { useAppDispatch, useSetupStore } from '@/redux/hooks'
+import { Button } from '@/components/0_Bruddle/Button'
+import { useSetupStore } from '@/redux/hooks'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
-import { useAuth } from '@/context/authContext'
 import { useDeviceType } from '@/hooks/useGetDeviceType'
 import { useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import * as Sentry from '@sentry/nextjs'
-import { WalletProviderType, AccountType } from '@/interfaces'
-import { WebAuthnError } from '@simplewebauthn/browser'
 import Link from 'next/link'
-import {
-    getFromCookie,
-    getRedirectUrl,
-    getValidRedirectUrl,
-    clearRedirectUrl,
-    clearAuthState,
-    withWebAuthnRetry,
-    getWebAuthnErrorMessage,
-} from '@/utils'
-import { POST_SIGNUP_ACTIONS } from '@/components/Global/PostSignupActionManager/post-signup-action.consts'
+import { capturePasskeyDebugInfo } from '@/utils/passkeyDebug'
+import { checkPasskeySupport } from '@/utils/passkeyPreflight'
+import { WebAuthnErrorName, withWebAuthnRetry } from '@/utils/webauthn.utils'
+import { PasskeySetupHelpModal } from './PasskeySetupHelpModal'
+import ErrorAlert from '@/components/Global/ErrorAlert'
+import * as Sentry from '@sentry/nextjs'
 
 const SetupPasskey = () => {
-    const dispatch = useAppDispatch()
-    const { username, telegramHandle, inviteCode } = useSetupStore()
+    const { username } = useSetupStore()
     const { isLoading, handleNext } = useSetupFlow()
-    const { handleRegister, address } = useZeroDev()
-    const { user, isFetchingUser } = useAuth()
-    const { addAccount } = useAuth()
+    const { handleRegister, address, isRegistering } = useZeroDev()
     const { deviceType } = useDeviceType()
-    const [error, setError] = useState<string | null>(null)
-    const router = useRouter()
-    const searchParams = useSearchParams()
+    const [errorName, setErrorName] = useState<string | null>(null)
+    const [showErrorModal, setShowErrorModal] = useState(false)
+    const [preflightWarning, setPreflightWarning] = useState<string | null>(null)
+    const [inlineError, setInlineError] = useState<string | null>(null)
 
+    // preflight check for common passkey issues
     useEffect(() => {
-        // Dont try to double add the account
-        if (isFetchingUser || user?.accounts.some((a) => a.type === AccountType.PEANUT_WALLET)) return
-        if (address && user) {
-            addAccount({
-                accountIdentifier: address,
-                accountType: WalletProviderType.PEANUT,
-                userId: user?.user.userId as string,
-                telegramHandle: telegramHandle.length > 0 ? telegramHandle : undefined,
-            })
-                .then(() => {
-                    const inviteCodeFromCookie = getFromCookie('inviteCode')
-
-                    const userInviteCode = inviteCode || inviteCodeFromCookie
-
-                    // if no invite code, go to collect email step
-                    if (!userInviteCode) {
-                        handleNext()
-                        return
-                    }
-
-                    const redirect_uri = searchParams.get('redirect_uri')
-                    if (redirect_uri) {
-                        const validRedirectUrl = getValidRedirectUrl(redirect_uri, '/home')
-                        // Only redirect if the URL is safe (same-origin)
-                        router.push(validRedirectUrl)
-                        return
-                        // If redirect_uri was invalid, fall through to other redirect logic
-                    }
-
-                    const localStorageRedirect = getRedirectUrl()
-                    // redirect based on post signup action config
-                    if (localStorageRedirect) {
-                        const matchedAction = POST_SIGNUP_ACTIONS.find((action) =>
-                            action.pathPattern.test(localStorageRedirect)
-                        )
-                        if (matchedAction) {
-                            router.push('/home')
-                        } else {
-                            clearRedirectUrl()
-                            const validRedirectUrl = getValidRedirectUrl(localStorageRedirect, '/home')
-                            router.push(validRedirectUrl)
-                        }
-                    } else {
-                        router.push('/home')
-                    }
-                })
-                .catch((e) => {
-                    Sentry.captureException(e)
-                    console.error('Error adding account', e)
-                    setError('Error adding account. Please try refreshing the page.')
-
-                    // CRITICAL FIX: Clear auth state if account creation fails
-                    // This prevents the user from getting stuck in an unrecoverable state
-                    clearAuthState(user?.user.userId)
-                })
-                .finally(() => {
-                    dispatch(setupActions.setLoading(false))
-                })
+        const runPreflightCheck = async () => {
+            const result = await checkPasskeySupport()
+            if (!result.isSupported && result.warning) {
+                setPreflightWarning(result.warning)
+            }
         }
-    }, [address, user, isFetchingUser])
+
+        runPreflightCheck()
+    }, [])
+
+    // handle passkey registration with retry logic
+    const handlePasskeySetup = async () => {
+        // clear any previous inline errors
+        setInlineError(null)
+        setErrorName(null)
+        capturePasskeyDebugInfo('passkey-registration-started')
+
+        try {
+            await withWebAuthnRetry(() => handleRegister(username), 'passkey-registration')
+            // success - useEffect below will handle navigation
+        } catch (error) {
+            const err = error as Error
+            console.error('Passkey registration failed:', err)
+
+            // capture debug info for all failures
+            await capturePasskeyDebugInfo('passkey-registration-failed')
+
+            // notallowederror can mean two things:
+            // 1. user actually cancelled (most common)
+            // 2. browser blocked it (incognito, privacy settings, etc)
+            if (err.name === WebAuthnErrorName.NotAllowed) {
+                // check if this might be a browser block vs user cancellation
+                // if localStorage is blocked or cookies disabled, likely in private mode
+                const isProbablyPrivateMode = (() => {
+                    try {
+                        localStorage.setItem('test', 'test')
+                        localStorage.removeItem('test')
+                        return false // localStorage works, probably not private mode
+                    } catch {
+                        return true // localStorage blocked, likely private mode
+                    }
+                })()
+
+                if (isProbablyPrivateMode) {
+                    // browser blocking - show help modal with troubleshooting
+                    console.log('[SetupPasskey] Private mode detected, showing help modal')
+                    setErrorName(WebAuthnErrorName.NotAllowed)
+                    setShowErrorModal(true)
+                } else {
+                    // likely user cancellation - show simple inline error
+                    console.log('[SetupPasskey] User likely cancelled, showing inline error')
+                    setInlineError('Passkey setup was cancelled. Please try again when ready.')
+                }
+                return
+            }
+
+            // device/system issues - show detailed help modal with troubleshooting steps
+            if (
+                [
+                    WebAuthnErrorName.NotReadable,
+                    WebAuthnErrorName.InvalidState,
+                    WebAuthnErrorName.NotSupported,
+                ].includes(err.name as WebAuthnErrorName)
+            ) {
+                setErrorName(err.name)
+                setShowErrorModal(true)
+            } else {
+                // unexpected error - show generic message and log to sentry
+                Sentry.captureException(error, {
+                    tags: { error_type: 'passkey_setup_error' },
+                    extra: { errorName: err.name, deviceType },
+                })
+                setErrorName('UnknownError')
+                setShowErrorModal(true)
+            }
+        }
+    }
+
+    // once passkey is registered successfully, move to test transaction step
+    useEffect(() => {
+        if (address) {
+            handleNext()
+        }
+    }, [address, handleNext])
 
     return (
         <div>
             <div className="flex h-full flex-col justify-between gap-11 p-0 md:min-h-32">
                 <div className="flex h-full flex-col justify-end gap-2 text-center">
                     <Button
-                        loading={isLoading || isFetchingUser}
-                        disabled={isLoading || isFetchingUser}
-                        onClick={async () => {
-                            dispatch(setupActions.setLoading(true))
-                            try {
-                                // Use retry wrapper for transient errors (NotReadableError, etc.)
-                                await withWebAuthnRetry(() => handleRegister(username), 'passkey-registration')
-                            } catch (e) {
-                                if (e instanceof WebAuthnError) {
-                                    // WebAuthn errors: NO state was saved yet (state only saved AFTER success)
-                                    // User can safely retry without losing username/setup progress
-                                    setError(getWebAuthnErrorMessage(e, deviceType))
-                                } else {
-                                    // Network/backend errors: might have partial state, clear it
-                                    clearAuthState(user?.user.userId)
-                                    const error = e as Error
-                                    setError(
-                                        error.name
-                                            ? getWebAuthnErrorMessage(error, deviceType)
-                                            : 'Error registering passkey. Please try again.'
-                                    )
-                                }
-                                console.error('Error registering passkey:', e)
-                                Sentry.captureException(e)
-                                dispatch(setupActions.setLoading(false))
-                            }
-                        }}
+                        loading={isRegistering || isLoading}
+                        disabled={isRegistering || isLoading || !!preflightWarning}
+                        onClick={handlePasskeySetup}
                         className="text-nowrap"
                         shadowSize="4"
                     >
                         Set it up
                     </Button>
-                    {error && <p className="text-sm font-bold text-error">{error}</p>}
+                    {preflightWarning && <p className="text-sm font-bold text-orange-1">{preflightWarning}</p>}
+                    {inlineError && <ErrorAlert description={inlineError} />}
                 </div>
                 <div>
                     <p className="border-t border-grey-1 pt-2 text-center text-xs text-grey-1">
@@ -148,6 +138,20 @@ const SetupPasskey = () => {
                     </p>
                 </div>
             </div>
+
+            {/* help modal for passkey setup issues */}
+            {errorName && (
+                <PasskeySetupHelpModal
+                    visible={showErrorModal}
+                    onClose={() => setShowErrorModal(false)}
+                    onRetry={() => {
+                        setShowErrorModal(false)
+                        handlePasskeySetup()
+                    }}
+                    errorName={errorName}
+                    platform={deviceType}
+                />
+            )}
         </div>
     )
 }

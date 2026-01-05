@@ -1,6 +1,6 @@
 'use server'
 
-import { fetchWithSentry } from '@/utils'
+import { fetchWithSentry } from '@/utils/sentry.utils'
 import { AccountType } from '@/interfaces'
 
 const API_KEY = process.env.PEANUT_API_KEY!

@@ -13,11 +13,11 @@ jest.mock('@/app/actions/ens', () => ({
     },
 }))
 
-jest.mock('@/utils', () => ({
+jest.mock('@/utils/sentry.utils', () => ({
     fetchWithSentry: jest.fn(),
 }))
 
-jest.mock('@/constants', () => ({
+jest.mock('@/constants/general.consts', () => ({
     JUSTANAME_ENS: 'testvc.eth',
     PEANUT_API_URL: process.env.NEXT_PUBLIC_PEANUT_API_URL,
 }))
@@ -78,7 +78,7 @@ describe('Recipient Validation', () => {
 
         it('should throw for invalid Peanut usernames', async () => {
             // Mock failed API response
-            const fetchWithSentry = require('@/utils').fetchWithSentry
+            const { fetchWithSentry } = require('@/utils/sentry.utils')
             fetchWithSentry.mockResolvedValueOnce({ status: 404 })
 
             await expect(validateAndResolveRecipient('lmaoo')).rejects.toThrow('Invalid Peanut username')
@@ -92,7 +92,7 @@ describe('Recipient Validation', () => {
 
     describe('verifyPeanutUsername', () => {
         it('should return true for valid usernames', async () => {
-            const fetchWithSentry = require('@/utils').fetchWithSentry
+            const { fetchWithSentry } = require('@/utils/sentry.utils')
             fetchWithSentry.mockResolvedValueOnce({ status: 200 })
 
             const result = await verifyPeanutUsername('kusharc')
@@ -100,7 +100,7 @@ describe('Recipient Validation', () => {
         })
 
         it('should return false for invalid usernames', async () => {
-            const fetchWithSentry = require('@/utils').fetchWithSentry
+            const { fetchWithSentry } = require('@/utils/sentry.utils')
             fetchWithSentry.mockResolvedValueOnce({ status: 404 })
 
             const result = await verifyPeanutUsername('invaliduser')
@@ -108,7 +108,7 @@ describe('Recipient Validation', () => {
         })
 
         it('should handle API errors gracefully', async () => {
-            const fetchWithSentry = require('@/utils').fetchWithSentry
+            const { fetchWithSentry } = require('@/utils/sentry.utils')
             fetchWithSentry.mockRejectedValueOnce(new Error('API Error'))
 
             const result = await verifyPeanutUsername('someuser')

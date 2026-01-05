@@ -1,12 +1,17 @@
 'use client'
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import { type DepositMethod, DepositMethodList } from '@/components/AddMoney/components/DepositMethodList'
 import NavHeader from '@/components/Global/NavHeader'
-import { type RecentMethod, getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
+import {
+    type RecentMethod,
+    getUserPreferences,
+    updateUserPreferences,
+    getFromLocalStorage,
+} from '@/utils/general.utils'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { type FC, useEffect, useState, useTransition, useCallback } from 'react'
 import { useUserStore } from '@/redux/hooks'
-import { AccountType, type Account } from '@/interfaces'
+import { AccountType, type Account } from '@/interfaces/interfaces'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useOnrampFlow } from '@/context/OnrampFlowContext'
 import { isMantecaCountry } from '@/constants/manteca.consts'
@@ -15,7 +20,7 @@ import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { CountryList } from '../Common/CountryList'
 import PeanutLoading from '../Global/PeanutLoading'
 import SavedAccountsView from '../Common/SavedAccountsView'
-import CryptoMethodDrawer from '../AddMoney/components/CryptoMethodDrawer'
+import TokenAndNetworkConfirmationModal from '../Global/TokenAndNetworkConfirmationModal'
 
 interface AddWithdrawRouterViewProps {
     flow: 'add' | 'withdraw'
@@ -63,7 +68,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
     const [savedAccounts, setSavedAccounts] = useState<Account[]>([])
     // local flag only for add flow; for withdraw we derive from context
     const [localShowAllMethods, setLocalShowAllMethods] = useState<boolean>(false)
-    const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+    const [isSupportedTokensModalOpen, setIsSupportedTokensModalOpen] = useState(false)
     const [, startTransition] = useTransition()
     const searchParams = useSearchParams()
     const currencyCode = searchParams.get('currencyCode')
@@ -129,7 +134,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
             }
 
             if (flow === 'add' && method.id === 'crypto') {
-                setIsDrawerOpen(true)
+                setIsSupportedTokensModalOpen(true)
                 return
             }
 
@@ -157,6 +162,9 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
     )
 
     const defaultBackNavigation = () => router.push('/home')
+
+    // check if we're coming from request fulfillment or similar flow
+    const fromRequestFulfillment = typeof window !== 'undefined' && getFromLocalStorage('fromRequestFulfillment')
 
     if (isLoadingPreferences) {
         return (
@@ -208,7 +216,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                         // preserve method param if coming from send flow
                         const additionalParams = isBankFromSend ? `&method=${methodParam}` : ''
                         router.push(
-                            `/withdraw/manteca?country=${account.details.countryName}&destination=${account.identifier}${additionalParams}`
+                            `/withdraw/manteca?country=${account.details.countryName}&destination=${account.identifier}&isSavedAccount=true${additionalParams}`
                         )
                     }
                 }}
@@ -246,10 +254,14 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                 <Button icon="plus" className="mb-5" onClick={() => setShouldShowAllMethods(true)} shadowSize="4">
                     Select new method
                 </Button>
-                <CryptoMethodDrawer
-                    isDrawerOpen={isDrawerOpen}
-                    setisDrawerOpen={setIsDrawerOpen}
-                    closeDrawer={() => setIsDrawerOpen(false)}
+                <TokenAndNetworkConfirmationModal
+                    onClose={() => {
+                        setIsSupportedTokensModalOpen(false)
+                    }}
+                    onAccept={() => {
+                        router.push('/add-money/crypto')
+                    }}
+                    isVisible={isSupportedTokensModalOpen}
                 />
             </div>
         )
@@ -261,7 +273,18 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
             <NavHeader
                 title={pageTitle}
                 onPrev={() => {
-                    if (shouldShowAllMethods) {
+                    // if coming from request fulfillment or similar external flow, go back immediately
+                    if (fromRequestFulfillment) {
+                        if (onBackClick) {
+                            onBackClick()
+                        } else {
+                            defaultBackNavigation()
+                        }
+                        return
+                    }
+
+                    // otherwise, use toggle logic for better ux when user manually navigated to "select new method"
+                    if (shouldShowAllMethods && (recentMethodsState.length > 0 || savedAccounts.length > 0)) {
                         setShouldShowAllMethods(false)
                     } else if (onBackClick) {
                         onBackClick()
@@ -274,10 +297,17 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
             <CountryList
                 inputTitle={mainHeading}
                 viewMode="add-withdraw"
-                enforceSupportedCountries={isBankFromSend}
                 onCountryClick={(country) => {
                     // from send flow (bank): set method in context and stay on /withdraw?method=bank
                     if (flow === 'withdraw' && isBankFromSend) {
+                        if (isMantecaCountry(country.path)) {
+                            const route = `/withdraw/manteca?method=bank-transfer&country=${country.path}`
+                            startTransition(() => {
+                                router.push(route)
+                            })
+                            return
+                        }
+
                         // set selected method and let withdraw page move to amount input
                         setSelectedMethod({
                             type: 'bridge',
@@ -302,7 +332,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                 }}
                 onCryptoClick={() => {
                     if (flow === 'add') {
-                        setIsDrawerOpen(true)
+                        setIsSupportedTokensModalOpen(true)
                     } else {
                         // preserve method param if coming from send flow (though crypto shouldn't show this screen)
                         const queryParams = methodParam ? `?method=${methodParam}` : ''
@@ -320,10 +350,15 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                 }}
                 flow={flow}
             />
-            <CryptoMethodDrawer
-                isDrawerOpen={isDrawerOpen}
-                setisDrawerOpen={setIsDrawerOpen}
-                closeDrawer={() => setIsDrawerOpen(false)}
+
+            <TokenAndNetworkConfirmationModal
+                onClose={() => {
+                    setIsSupportedTokensModalOpen(false)
+                }}
+                onAccept={() => {
+                    router.push('/add-money/crypto')
+                }}
+                isVisible={isSupportedTokensModalOpen}
             />
         </div>
     )

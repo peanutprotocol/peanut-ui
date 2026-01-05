@@ -1,7 +1,9 @@
-import { type BridgeKycStatus } from '@/utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 
 export type RecipientType = 'address' | 'ens' | 'iban' | 'us' | 'username'
+
+// Moved here from bridge-accounts.utils.ts to avoid circular dependency
+export type BridgeKycStatus = 'not_started' | 'under_review' | 'approved' | 'rejected' | 'incomplete'
 
 export interface IResponse {
     success: boolean
@@ -249,6 +251,7 @@ export interface User {
     bridgeKycApprovedAt?: string
     bridgeKycRejectedAt?: string
     kycVerifications?: IUserKycVerification[] // currently only used for Manteca, can be extended to other providers in the future, bridge is not migrated as it might affect existing users
+    bridgeKycRejectionReasonString?: string | null
     tosStatus?: string
     tosAcceptedAt?: string
     bridgeCustomerId: string | null

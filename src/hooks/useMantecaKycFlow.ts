@@ -3,9 +3,9 @@ import type { IFrameWrapperProps } from '@/components/Global/IframeWrapper'
 import { mantecaApi } from '@/services/manteca'
 import { useAuth } from '@/context/authContext'
 import { type CountryData, MantecaSupportedExchanges } from '@/components/AddMoney/consts'
-import { BASE_URL } from '@/constants'
 import { MantecaKycStatus } from '@/interfaces'
 import { useWebSocket } from './useWebSocket'
+import { BASE_URL } from '@/constants/general.consts'
 
 type UseMantecaKycFlowOptions = {
     onClose?: () => void

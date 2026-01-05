@@ -1,13 +1,14 @@
 import starImage from '@/assets/icons/star.png'
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import CloudsBackground from '@/components/0_Bruddle/CloudsBackground'
-import Icon from '@/components/Global/Icon'
+import { Icon } from '@/components/Global/Icons/Icon'
 import { type BeforeInstallPromptEvent, type LayoutType, type ScreenId } from '@/components/Setup/Setup.types'
 import InstallPWA from '@/components/Setup/Views/InstallPWA'
+import { useBravePWAInstallState } from '@/hooks/useBravePWAInstallState'
 import { DeviceType } from '@/hooks/useGetDeviceType'
 import classNames from 'classnames'
 import Image from 'next/image'
-import { Children, type ReactNode, cloneElement, memo, type ReactElement } from 'react'
+import { Children, type ReactNode, cloneElement, memo, type ReactElement, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 
 /**
@@ -26,8 +27,11 @@ interface SetupWrapperProps {
     titleClassName?: HTMLDivElement['className']
     showBackButton?: boolean
     showSkipButton?: boolean
+    showLogoutButton?: boolean
     onBack?: () => void
     onSkip?: () => void
+    onLogout?: () => void
+    isLoggingOut?: boolean
     step?: number
     direction?: number
     deferredPrompt?: BeforeInstallPromptEvent | null
@@ -52,31 +56,49 @@ const STAR_POSITIONS = [
 ] as const
 
 /**
- * navigation component for back and skip buttons
- * rendered at the top of the layout when either button is enabled
+ * navigation component for back, skip, and logout buttons
+ * rendered at the top of the layout when any button is enabled
  */
 const Navigation = memo(
     ({
         showBackButton,
         showSkipButton,
+        showLogoutButton,
         onBack,
         onSkip,
-    }: Pick<SetupWrapperProps, 'showBackButton' | 'showSkipButton' | 'onBack' | 'onSkip'>) => {
-        if (!showBackButton && !showSkipButton) return null
+        onLogout,
+        isLoggingOut,
+    }: Pick<
+        SetupWrapperProps,
+        'showBackButton' | 'showSkipButton' | 'showLogoutButton' | 'onBack' | 'onSkip' | 'onLogout' | 'isLoggingOut'
+    >) => {
+        if (!showBackButton && !showSkipButton && !showLogoutButton) return null
 
         return (
             <div className="absolute top-8 z-20 flex w-full items-center justify-between px-6">
                 <div>
                     {showBackButton && (
                         <Button variant="stroke" onClick={onBack} className="h-8 w-8 p-0" aria-label="Go back">
-                            <Icon name="arrow-prev" className="h-7 w-7" />
+                            <Icon name="chevron-up" fill="black" size={32} className="-rotate-90" />
                         </Button>
                     )}
                 </div>
-                <div>
+                <div className="flex items-center gap-3">
                     {showSkipButton && (
                         <Button onClick={onSkip} variant="transparent-dark" className="h-auto w-fit p-0">
                             <span className="text-grey-1">Skip</span>
+                        </Button>
+                    )}
+                    {showLogoutButton && (
+                        <Button
+                            onClick={onLogout}
+                            loading={isLoggingOut}
+                            variant="stroke"
+                            className={twMerge('h-7 w-7 p-0', isLoggingOut && 'pl-3')}
+                            aria-label="Logout"
+                            disabled={isLoggingOut}
+                        >
+                            <Icon name="logout" fill="black" size={24} />
                         </Button>
                     )}
                 </div>
@@ -175,8 +197,11 @@ export const SetupWrapper = memo(
         contentClassName,
         showBackButton,
         showSkipButton,
+        showLogoutButton,
         onBack,
         onSkip,
+        onLogout,
+        isLoggingOut,
         screenId,
         imageClassName,
         deferredPrompt,
@@ -184,6 +209,19 @@ export const SetupWrapper = memo(
         deviceType,
         titleClassName,
     }: SetupWrapperProps) => {
+        const { isBrave } = useBravePWAInstallState()
+        const [showBraveSuccessMessage, setShowBraveSuccessMessage] = useState(false)
+
+        const shouldShowBraveInstalledHeaderOnly =
+            (screenId === 'pwa-install' || screenId === 'android-initial-pwa-install') &&
+            isBrave &&
+            showBraveSuccessMessage
+
+        const headingTitle = shouldShowBraveInstalledHeaderOnly ? 'Success!' : title
+        const headingDescription = shouldShowBraveInstalledHeaderOnly
+            ? 'Please open the Peanut app from your home screen to continue setup.'
+            : description
+
         return (
             <div className="flex min-h-[100dvh] flex-col">
                 {/* navigation buttons */}
@@ -192,8 +230,11 @@ export const SetupWrapper = memo(
                     showSkipButton={
                         showSkipButton || (screenId === 'pwa-install' && (!canInstall || deviceType === DeviceType.WEB))
                     }
+                    showLogoutButton={showLogoutButton}
                     onBack={onBack}
                     onSkip={onSkip}
+                    onLogout={onLogout}
+                    isLoggingOut={isLoggingOut}
                 />
 
                 {/* content container */}
@@ -221,17 +262,19 @@ export const SetupWrapper = memo(
                                 (screenId === 'signup' || screenId == 'join-beta') && 'md:max-h-12'
                             )}
                         >
-                            {title && (
+                            {headingTitle && (
                                 <h1
                                     className={twMerge(
                                         'w-full text-left text-xl font-extrabold leading-tight',
                                         titleClassName
                                     )}
                                 >
-                                    {title}
+                                    {headingTitle}
                                 </h1>
                             )}
-                            {description && <p className="text-base font-medium text-black">{description}</p>}
+                            {headingDescription && (
+                                <p className="text-base font-medium text-black">{headingDescription}</p>
+                            )}
                         </div>
                         {/* main content area */}
                         <div className="mx-auto w-full md:max-w-xs">
@@ -242,6 +285,7 @@ export const SetupWrapper = memo(
                                         canInstall,
                                         deviceType,
                                         screenId,
+                                        setShowBraveSuccessMessage,
                                     })
                                 }
                                 return child

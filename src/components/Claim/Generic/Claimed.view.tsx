@@ -1,9 +1,10 @@
 'use client'
-import { Button, Card } from '@/components/0_Bruddle'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { useAuth } from '@/context/authContext'
 import { useRouter } from 'next/navigation'
 import { type FC } from 'react'
+import { Button } from '@/components/0_Bruddle/Button'
+import { Card } from '@/components/0_Bruddle/Card'
 
 interface ClaimedViewProps {
     amount: number | bigint

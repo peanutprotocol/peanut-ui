@@ -13,7 +13,7 @@ import { useRouter } from 'next/navigation'
 import { STAR_STRAIGHT_ICON } from '@/assets'
 import Image from 'next/image'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
-import { getInitialsFromName } from '@/utils'
+import { getInitialsFromName } from '@/utils/general.utils'
 import { type PointsInvite } from '@/services/services.types'
 
 const InvitesPage = () => {
@@ -75,6 +75,8 @@ const InvitesPage = () => {
                         const fullName = invite.fullName
                         const isVerified = invite.kycStatus === 'approved'
                         const pointsEarned = Math.floor(invite.totalPoints * 0.2)
+                        // respect user's showFullName preference for avatar and display name
+                        const displayName = invite.showFullName && fullName ? fullName : username
                         return (
                             <Card
                                 key={invite.inviteeId}
@@ -85,8 +87,8 @@ const InvitesPage = () => {
                                 <div className="flex items-center justify-between gap-4">
                                     <div className="flex items-center gap-3">
                                         <TransactionAvatarBadge
-                                            initials={getInitialsFromName(fullName ?? username)}
-                                            userName={username}
+                                            initials={getInitialsFromName(displayName)}
+                                            userName={displayName}
                                             isLinkTransaction={false}
                                             transactionType={'send'}
                                             context="card"
@@ -95,7 +97,7 @@ const InvitesPage = () => {
                                     </div>
                                     <div className="min-w-0 flex-1 truncate font-roboto text-[16px] font-medium">
                                         <VerifiedUserLabel
-                                            name={username}
+                                            name={displayName}
                                             username={username}
                                             isVerified={isVerified}
                                         />

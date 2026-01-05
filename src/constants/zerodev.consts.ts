@@ -1,7 +1,4 @@
 import { getEntryPoint, KERNEL_V3_1 } from '@zerodev/sdk/constants'
-import type { Chain, PublicClient } from 'viem'
-import { createPublicClient } from 'viem'
-import { getTransportWithFallback } from '@/app/actions/clients'
 import { arbitrum } from 'viem/chains'
 
 // consts needed to define low level SDK kernel
@@ -38,31 +35,3 @@ export const PEANUT_WALLET_SUPPORTED_TOKENS: Record<string, string[]> = {
 export const USER_OP_ENTRY_POINT = getEntryPoint('0.7')
 export const ZERODEV_KERNEL_VERSION = KERNEL_V3_1
 export const USER_OPERATION_REVERT_REASON_TOPIC = '0x1c4fada7374c0a9ee8841fc38afe82932dc0f8e69012e927f061a8bae611a201'
-
-/**
- * This is a mapping of chain ID to the public client and chain details
- * This is for the standard chains supported in the app. For now Arbitrum, but
- * for example if we have rewards on other chains, we can add them here.
- */
-export const PUBLIC_CLIENTS_BY_CHAIN: Record<
-    string,
-    {
-        client: PublicClient
-        chain: Chain
-        bundlerUrl: string
-        paymasterUrl: string
-    }
-> = {
-    [arbitrum.id]: {
-        client: createPublicClient({
-            transport: getTransportWithFallback(arbitrum.id),
-            chain: arbitrum,
-            pollingInterval: 500,
-        }),
-        chain: PEANUT_WALLET_CHAIN,
-        bundlerUrl: BUNDLER_URL,
-        paymasterUrl: PAYMASTER_URL,
-    },
-}
-
-export const peanutPublicClient = PUBLIC_CLIENTS_BY_CHAIN[PEANUT_WALLET_CHAIN.id].client

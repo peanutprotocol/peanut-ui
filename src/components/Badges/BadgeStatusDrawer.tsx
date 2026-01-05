@@ -1,10 +1,12 @@
 import { Drawer, DrawerContent } from '@/components/Global/Drawer'
 import Image from 'next/image'
-import { formatDate } from '@/utils'
+import { formatDate } from '@/utils/general.utils'
 import Card from '../Global/Card'
 import { PaymentInfoRow } from '../Payment/PaymentInfoRow'
 import ShareButton from '../Global/ShareButton'
 import { getBadgeIcon } from './badge.utils'
+import { BASE_URL } from '@/constants/general.consts'
+import { useAuth } from '@/context/authContext'
 
 export type BadgeStatusDrawerProps = {
     isOpen: boolean
@@ -20,8 +22,13 @@ export type BadgeStatusDrawerProps = {
 
 // shows a drawer for a newly unlocked badge
 export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerProps) => {
+    const { user: authUser } = useAuth()
+    const username = authUser?.user.username
     const earnedAt = badge.earnedAt ? new Date(badge.earnedAt) : undefined
     const dateStr = earnedAt ? formatDate(earnedAt) : undefined
+
+    // generate profile link for sharing
+    const profileLink = username ? `${BASE_URL}/${username}` : BASE_URL
 
     return (
         <Drawer open={isOpen} onOpenChange={onClose}>
@@ -58,7 +65,7 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
                             title=""
                             generateText={() =>
                                 Promise.resolve(
-                                    `${badge.description}\nI just unlocked a ${badge.name} badge on Peanut!`
+                                    `I earned ${badge.name} badge on Peanut!\n\nJoin Peanut now and start earning points, unlocking achievements and moving money worldwide\n\n${profileLink}`
                                 )
                             }
                         >

@@ -5,7 +5,6 @@ import ErrorAlert from '@/components/Global/ErrorAlert'
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { type ITokenPriceData } from '@/interfaces'
@@ -14,6 +13,7 @@ import { interfaces } from '@squirrel-labs/peanut-sdk'
 import { useRouter } from 'next/navigation'
 import { useContext, useEffect } from 'react'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 
 interface InitialWithdrawViewProps {
     amount: string

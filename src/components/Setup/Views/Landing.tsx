@@ -1,11 +1,12 @@
 'use client'
 
-import { Button, Card } from '@/components/0_Bruddle'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useLogin } from '@/hooks/useLogin'
 import * as Sentry from '@sentry/nextjs'
 import Link from 'next/link'
+import { Button } from '@/components/0_Bruddle/Button'
+import { Card } from '@/components/0_Bruddle/Card'
 
 const LandingStep = () => {
     const { handleNext } = useSetupFlow()

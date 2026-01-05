@@ -18,6 +18,13 @@ const WEBAUTHN_RETRY_CONFIG = {
     retriableErrors: ['NotReadableError'], // ONLY NotReadableError (transient Android issue)
 }
 
+export enum WebAuthnErrorName {
+    NotAllowed = 'NotAllowedError',
+    NotReadable = 'NotReadableError',
+    InvalidState = 'InvalidStateError',
+    NotSupported = 'NotSupportedError',
+}
+
 /**
  * Delays execution for specified milliseconds
  */
@@ -100,9 +107,22 @@ export async function withWebAuthnRetry<T>(
  * Sources:
  * - W3C WebAuthn spec error definitions: https://www.w3.org/TR/webauthn-3/#sctn-op-make-cred
  * - MDN WebAuthn errors: https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API
+ *
+ * NotAllowedError can occur even with screen lock enabled due to:
+ * 1. User explicitly cancelled the passkey prompt
+ * 2. Browser timeout (user didn't respond within ~60s)
+ * 3. Private/Incognito mode restrictions (some browsers)
+ * 4. iCloud Keychain disabled on iOS (even with Face ID enabled)
+ * 5. Credential manager disabled in browser settings
+ * 6. Cross-origin iframe context issues
+ * 7. Invalid RP ID (domain mismatch)
+ * 8. Browser treating rapid attempts as spam/duplicate
+ * 9. Platform authenticator locked or unavailable (despite screen lock)
+ * 10. Browser extension interference (password managers, etc.)
  */
 const WEBAUTHN_ERROR_MESSAGES: Record<string, string> = {
-    NotAllowedError: 'Registration cancelled. Please try again.',
+    NotAllowedError:
+        'Passkey setup was blocked. Make sure your device is up to date and has the latest security updates.',
     NotReadableError: 'Credential manager is busy. Please try again.',
     UnknownError: 'Unable to create passkey. Please try again.',
     InvalidStateError: 'A passkey already exists for this device.',
@@ -113,27 +133,70 @@ const WEBAUTHN_ERROR_MESSAGES: Record<string, string> = {
 }
 
 /**
- * Platform-specific help text for common issues
+ * Platform-specific troubleshooting steps for common issues
  *
  * IMPORTANT: These are suggestions based on community reports, not official fixes
  * Sources:
  * - Android NotReadableError: https://github.com/w3c/webauthn/issues/1879
  * - Community discussions: Stack Overflow, GitHub issues from major implementations
  *
+ * ANDROID SECURITY PATCHES ISSUE:
+ * - Budget Android devices (Redmi, Realme, etc.) often stop receiving security updates after 1-2 years
+ * - Google Play Services (which handles WebAuthn) requires recent security patches for full passkey support
+ * - Devices with security patches >6 months old may have outdated Play Services with WebAuthn bugs
+ * - This is especially common on devices <$200 where OEMs abandon update support quickly
+ * - User will see NotAllowedError even with screen lock enabled if Play Services is outdated
+ *
  * RISK: If Android/iOS change their credential manager behavior, these may become outdated
  */
-const PLATFORM_SPECIFIC_HELP = {
+export const PASSKEY_TROUBLESHOOTING_STEPS = {
     android: {
-        NotReadableError: `If this persists, try:
-• Restart your device
-• Update Google Play Services
-• Ensure screen lock is enabled`,
+        NotReadableError: [
+            'Restart your device',
+            'Update Google Play Services',
+            'Enable screen lock in Settings > Security',
+        ],
+        NotAllowedError: [
+            'Exit Incognito/Private mode - use regular Chrome',
+            "Make sure you're signed into Google account in Chrome",
+            'Enable screen lock (Settings > Security)',
+            'Turn off VPN or privacy apps temporarily',
+            'Update Google Play Services and Chrome',
+        ],
     },
     ios: {
-        NotAllowedError: `If this persists, try:
-• Enable Face ID/Touch ID in Settings
-• Check iCloud Keychain is enabled`,
+        NotAllowedError: [
+            'Exit Private Browsing - use regular Safari',
+            'Enable Face ID/Touch ID in Settings',
+            'Enable iCloud Keychain in Settings',
+            'Turn off VPN temporarily',
+        ],
     },
+    web: {
+        // generic fallback for desktop/unsupported platforms
+        default: [
+            'Exit Incognito/Private mode',
+            'Check your device security settings',
+            'Restart your device',
+            'Update your browser and OS',
+        ],
+    },
+} as const
+
+/**
+ * Platform-specific warnings for common issues
+ */
+export const PASSKEY_WARNINGS = {
+    android: {
+        NotAllowedError: 'Lower end Android devices may require recent security updates for passkeys to work properly.',
+    },
+} as const
+
+/**
+ * Helper to format steps as text (for inline error messages)
+ */
+const formatStepsAsText = (steps: readonly string[]): string => {
+    return `Try these fixes:\n${steps.map((step) => `• ${step}`).join('\n')}`
 }
 
 /**
@@ -149,7 +212,7 @@ const PLATFORM_SPECIFIC_HELP = {
 export function getWebAuthnErrorMessage(error: Error, deviceType?: 'ios' | 'android' | 'web'): string {
     const baseMessage = WEBAUTHN_ERROR_MESSAGES[error.name] || error.message
 
-    // If no deviceType provided, do basic detection (fallback)
+    // if no deviceType provided, do basic detection (fallback)
     let platform: 'android' | 'ios' | 'web' = 'web'
     if (deviceType) {
         platform = deviceType
@@ -159,13 +222,25 @@ export function getWebAuthnErrorMessage(error: Error, deviceType?: 'ios' | 'andr
         else if (/iPhone|iPad|iPod/i.test(ua)) platform = 'ios'
     }
 
-    // Add platform-specific help for known issues
-    if (platform === 'android' && error.name in PLATFORM_SPECIFIC_HELP.android) {
-        return `${baseMessage}\n\n${PLATFORM_SPECIFIC_HELP.android[error.name as keyof typeof PLATFORM_SPECIFIC_HELP.android]}`
-    }
+    // add platform-specific help for known issues
+    const steps =
+        platform === 'android' && error.name in PASSKEY_TROUBLESHOOTING_STEPS.android
+            ? PASSKEY_TROUBLESHOOTING_STEPS.android[error.name as keyof typeof PASSKEY_TROUBLESHOOTING_STEPS.android]
+            : platform === 'ios' && error.name in PASSKEY_TROUBLESHOOTING_STEPS.ios
+              ? PASSKEY_TROUBLESHOOTING_STEPS.ios[error.name as keyof typeof PASSKEY_TROUBLESHOOTING_STEPS.ios]
+              : null
 
-    if (platform === 'ios' && error.name in PLATFORM_SPECIFIC_HELP.ios) {
-        return `${baseMessage}\n\n${PLATFORM_SPECIFIC_HELP.ios[error.name as keyof typeof PLATFORM_SPECIFIC_HELP.ios]}`
+    if (steps) {
+        const formattedSteps = formatStepsAsText(steps)
+        // add warning if exists
+        const warning =
+            platform === 'android' &&
+            error.name in PASSKEY_WARNINGS.android &&
+            PASSKEY_WARNINGS.android[error.name as keyof typeof PASSKEY_WARNINGS.android]
+
+        return warning
+            ? `${baseMessage}\n\n${formattedSteps}\n\nNote: ${warning}`
+            : `${baseMessage}\n\n${formattedSteps}`
     }
 
     return baseMessage

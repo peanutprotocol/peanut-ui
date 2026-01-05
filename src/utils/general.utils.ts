@@ -1,6 +1,13 @@
-import * as consts from '@/constants'
-import { STABLE_COINS, USER_OPERATION_REVERT_REASON_TOPIC, ENS_NAME_REGEX } from '@/constants'
-import { AccountType } from '@/interfaces'
+import {
+    nativeCurrencyAddresses,
+    supportedPeanutChains,
+    peanutTokenDetails,
+    pathTitles,
+    BASE_URL,
+} from '@/constants/general.consts'
+import { type LoadingStates } from '@/constants/loadingStates.consts'
+import { STABLE_COINS, ENS_NAME_REGEX } from '@/constants/general.consts'
+import { AccountType } from '@/interfaces/interfaces'
 import * as Sentry from '@sentry/nextjs'
 import peanut, { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import type { Address, TransactionReceipt } from 'viem'
@@ -10,7 +17,8 @@ import { getPublicClient, type ChainId } from '@/app/actions/clients'
 import { NATIVE_TOKEN_ADDRESS, SQUID_ETH_ADDRESS } from './token.utils'
 import { type ChargeEntry } from '@/services/services.types'
 import { toWebAuthnKey } from '@zerodev/passkey-validator'
-import type { ParsedURL } from '@/lib/url-parser/types/payment'
+import { USER_OPERATION_REVERT_REASON_TOPIC } from '@/constants/zerodev.consts'
+import { CHAIN_LOGOS, type ChainName } from '@/constants/rhino.consts'
 
 export function urlBase64ToUint8Array(base64String: string) {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -54,8 +62,36 @@ export const shortenStringLong = (s?: string, chars?: number, firstChars?: numbe
     return firstBit + '...' + endingBit
 }
 
+// Address detection patterns (permissive to handle lowercase-stored addresses)
+// These are for display purposes, not cryptographic validation
+const SOLANA_ADDRESS_REGEX = /^[1-9a-zA-Z]{32,44}$/
+const TRON_ADDRESS_REGEX = /^[Tt][0-9a-zA-Z]{33}$/
+
+/**
+ * Checks if a string looks like a Solana address (32-44 alphanumeric characters, no 0)
+ * Permissive to handle lowercase-stored addresses
+ */
+export const isSolanaAddress = (address: string): boolean => {
+    return SOLANA_ADDRESS_REGEX.test(address)
+}
+
+/**
+ * Checks if a string looks like a Tron address (starts with T/t, 34 alphanumeric characters)
+ * Permissive to handle lowercase-stored addresses
+ */
+export const isTronAddress = (address: string): boolean => {
+    return TRON_ADDRESS_REGEX.test(address)
+}
+
+/**
+ * Checks if a string is any valid blockchain address (EVM, Solana, or Tron)
+ */
+export const isCryptoAddress = (address: string): boolean => {
+    return isAddress(address) || isSolanaAddress(address) || isTronAddress(address)
+}
+
 export const printableAddress = (address: string, firstCharsLen?: number, lastCharsLen?: number): string => {
-    if (!isAddress(address)) return address
+    if (!isCryptoAddress(address)) return address
     return shortenStringLong(address, undefined, firstCharsLen, lastCharsLen)
 }
 
@@ -434,7 +470,7 @@ export const isAddressZero = (address: string): boolean => {
 }
 
 export const isNativeCurrency = (address: string) => {
-    if (consts.nativeCurrencyAddresses.includes(address.toLowerCase())) {
+    if (nativeCurrencyAddresses.includes(address.toLowerCase())) {
         return true
     } else return false
 }
@@ -456,16 +492,6 @@ export type UserPreferences = {
     notifBannerShowAt?: number
     notifModalClosed?: boolean
     hasSeenBalanceWarning?: { value: boolean; expiry: number }
-    // @dev: note, this needs to be deleted post devconnect
-    devConnectIntents?: Array<{
-        id: string
-        recipientAddress: string
-        chain: string
-        amount: string
-        onrampId?: string
-        createdAt: number
-        status: 'pending' | 'completed'
-    }>
 }
 
 export const updateUserPreferences = (
@@ -511,7 +537,7 @@ export const estimateIfIsStableCoinFromPrice = (tokenPrice: number) => {
 }
 
 export const getExplorerUrl = (chainId: string) => {
-    const explorers = consts.supportedPeanutChains.find((detail) => detail.chainId === chainId)?.explorers
+    const explorers = supportedPeanutChains.find((detail) => detail.chainId === chainId)?.explorers
     // if the explorers array has blockscout, return the blockscout url, else return the first one
     if (explorers?.find((explorer) => explorer.url.includes('blockscout'))) {
         return explorers?.find((explorer) => explorer.url.includes('blockscout'))?.url
@@ -565,7 +591,7 @@ export const switchNetwork = async ({
 }: {
     chainId: string
     currentChainId: string | undefined
-    setLoadingState: (state: consts.LoadingStates) => void
+    setLoadingState: (state: LoadingStates) => void
     switchChainAsync: ({ chainId }: { chainId: number }) => Promise<void>
 }) => {
     if (currentChainId !== chainId) {
@@ -585,7 +611,7 @@ export const switchNetwork = async ({
 
 /** Gets the token decimals for a given token address and chain ID. */
 export function getTokenDecimals(tokenAddress: string, chainId: string): number | undefined {
-    return consts.peanutTokenDetails
+    return peanutTokenDetails
         .find((chain) => chain.chainId === chainId)
         ?.tokens.find((token) => areEvmAddressesEqual(token.address, tokenAddress))?.decimals
 }
@@ -597,7 +623,7 @@ export function getTokenDetails({ tokenAddress, chainId }: { tokenAddress: Addre
           decimals: number
       }
     | undefined {
-    const chainTokens = consts.peanutTokenDetails.find((c) => c.chainId === chainId)?.tokens
+    const chainTokens = peanutTokenDetails.find((c) => c.chainId === chainId)?.tokens
     if (!chainTokens) return undefined
     const tokenDetails = chainTokens.find((token) => areEvmAddressesEqual(token.address, tokenAddress))
     if (!tokenDetails) return undefined
@@ -615,7 +641,7 @@ export function getTokenDetails({ tokenAddress, chainId }: { tokenAddress: Addre
 export function getTokenSymbol(tokenAddress: string | undefined, chainId: string | undefined): string | undefined {
     if (!tokenAddress || !chainId) return undefined
 
-    const chainTokens = consts.peanutTokenDetails.find((chain) => chain.chainId === chainId)?.tokens
+    const chainTokens = peanutTokenDetails.find((chain) => chain.chainId === chainId)?.tokens
     if (!chainTokens) return undefined
 
     return chainTokens.find((token) => areEvmAddressesEqual(token.address, tokenAddress))?.symbol
@@ -654,12 +680,15 @@ export async function fetchTokenSymbol(tokenAddress: string, chainId: string): P
 }
 
 export function getChainName(chainId: string): string | undefined {
+    if (chainId === '0') {
+        return 'Solana'
+    }
     const chain = Object.entries(wagmiChains).find(([, chain]) => chain.id === Number(chainId))?.[1]
     return chain?.name ?? undefined
 }
 
 export const getHeaderTitle = (pathname: string) => {
-    return consts.pathTitles[pathname] || 'Peanut' // default title if path not found
+    return pathTitles[pathname] || 'Peanut' // default title if path not found
 }
 
 /**
@@ -780,6 +809,13 @@ export function getChainLogo(chainName: string): string {
         default:
             name = chainName.toLowerCase()
     }
+
+    const chainLogo = CHAIN_LOGOS[name.toUpperCase() as ChainName]
+
+    if (chainLogo) {
+        return chainLogo
+    }
+
     return `https://raw.githubusercontent.com/0xsquid/assets/main/images/webp128/chains/${name}.webp`
 }
 
@@ -896,7 +932,7 @@ export const generateInviteCodeSuffix = (username: string): string => {
 export const generateInviteCodeLink = (username: string) => {
     const suffix = generateInviteCodeSuffix(username)
     const inviteCode = `${username.toUpperCase()}INVITESYOU${suffix}`
-    const inviteLink = `${consts.BASE_URL}/invite?code=${inviteCode}`
+    const inviteLink = `${BASE_URL}/invite?code=${inviteCode}`
     return { inviteLink, inviteCode }
 }
 
@@ -938,110 +974,4 @@ export const getContributorsFromCharge = (charges: ChargeEntry[]) => {
             isPeanutUser,
         }
     })
-}
-
-/**
- * helper function to save devconnect intent to user preferences
- * @dev: note, this needs to be deleted post devconnect
- */
-/**
- * create deterministic id for devconnect intent based on recipient + chain only
- * amount is not included as it can change during the flow
- * @dev: to be deleted post devconnect
- */
-const createDevConnectIntentId = (recipientAddress: string, chain: string): string => {
-    const str = `${recipientAddress.toLowerCase()}-${chain.toLowerCase()}`
-    let hash = 0
-    for (let i = 0; i < str.length; i++) {
-        const char = str.charCodeAt(i)
-        hash = (hash << 5) - hash + char
-        hash = hash & hash // convert to 32bit integer
-    }
-    return Math.abs(hash).toString(36)
-}
-
-export const saveDevConnectIntent = (
-    userId: string | undefined,
-    parsedPaymentData: ParsedURL | null,
-    amount: string,
-    onrampId?: string
-): void => {
-    if (!userId) return
-
-    // check both redux state and user preferences (fallback if state was reset)
-    const devconnectFlowData =
-        parsedPaymentData?.isDevConnectFlow && parsedPaymentData.recipient && parsedPaymentData.chain
-            ? {
-                  recipientAddress: parsedPaymentData.recipient.resolvedAddress,
-                  chain: parsedPaymentData.chain.chainId,
-              }
-            : (() => {
-                  try {
-                      const prefs = getUserPreferences(userId)
-                      const intents = prefs?.devConnectIntents ?? []
-                      // get the most recent pending intent
-                      return intents.find((i) => i.status === 'pending') ?? null
-                  } catch (e) {
-                      console.error('Failed to read devconnect intent from user preferences:', e)
-                  }
-                  return null
-              })()
-
-    if (devconnectFlowData) {
-        // validate required fields
-        const recipientAddress = devconnectFlowData.recipientAddress
-        const chain = devconnectFlowData.chain
-        const cleanedAmount = amount.replace(/,/g, '')
-
-        if (!recipientAddress || !chain || !cleanedAmount) {
-            console.warn('Skipping DevConnect intent: missing required fields')
-            return
-        }
-
-        try {
-            // create deterministic id based on address + chain only
-            const intentId = createDevConnectIntentId(recipientAddress, chain)
-
-            const prefs = getUserPreferences(userId)
-            const existingIntents = prefs?.devConnectIntents ?? []
-
-            // check if intent with same id already exists
-            const existingIntent = existingIntents.find((intent) => intent.id === intentId)
-
-            if (!existingIntent) {
-                // create new intent
-                const { MAX_DEVCONNECT_INTENTS } = require('@/constants/payment.consts')
-                const sortedIntents = existingIntents.sort((a, b) => b.createdAt - a.createdAt)
-                const prunedIntents = sortedIntents.slice(0, MAX_DEVCONNECT_INTENTS - 1)
-
-                updateUserPreferences(userId, {
-                    devConnectIntents: [
-                        {
-                            id: intentId,
-                            recipientAddress,
-                            chain,
-                            amount: cleanedAmount,
-                            onrampId,
-                            createdAt: Date.now(),
-                            status: 'pending',
-                        },
-                        ...prunedIntents,
-                    ],
-                })
-            } else {
-                // update existing intent with new amount and onrampId
-                const updatedIntents = existingIntents.map((intent) =>
-                    intent.id === intentId
-                        ? { ...intent, amount: cleanedAmount, onrampId, createdAt: Date.now() }
-                        : intent
-                )
-                updateUserPreferences(userId, {
-                    devConnectIntents: updatedIntents,
-                })
-            }
-        } catch (intentError) {
-            console.error('Failed to save DevConnect intent:', intentError)
-            // don't block the flow if intent storage fails
-        }
-    }
 }

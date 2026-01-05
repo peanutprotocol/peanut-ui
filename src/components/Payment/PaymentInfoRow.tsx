@@ -36,6 +36,7 @@ export const PaymentInfoRow = ({
                 onClick && 'cursor-pointer transition-colors hover:bg-grey-2/30 active:bg-grey-2/50'
             )}
             onClick={onClick}
+            translate="no"
         >
             <div className="relative flex items-center">
                 <label className={twMerge('text-xs font-semibold')}>{label}</label>
@@ -50,7 +51,8 @@ export const PaymentInfoRow = ({
                     >
                         <Icon
                             name="info"
-                            className="size-3 cursor-pointer"
+                            size={12}
+                            className="cursor-pointer"
                             onClick={() => setShowMoreInfo(!showMoreInfo)}
                         />
                         {showMoreInfo && (

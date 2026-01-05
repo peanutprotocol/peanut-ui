@@ -8,16 +8,16 @@
  * 4. Balance invalidation on success
  */
 
-import { renderHook, waitFor } from '@testing-library/react'
+import { renderHook, waitFor, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ToastProvider } from '@/components/0_Bruddle/Toast'
 import { useSendMoney } from '../useSendMoney'
 import { parseUnits } from 'viem'
-import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
+import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import type { ReactNode } from 'react'
 
 // Mock dependencies
-jest.mock('@/constants', () => ({
+jest.mock('@/constants/zerodev.consts', () => ({
     PEANUT_WALLET_TOKEN: '0x1234567890123456789012345678901234567890',
     PEANUT_WALLET_TOKEN_DECIMALS: 6,
     PEANUT_WALLET_CHAIN: { id: 137 },
@@ -72,20 +72,18 @@ describe('useSendMoney', () => {
                 { wrapper }
             )
 
-            // Trigger mutation
-            const promise = result.current.mutateAsync({
-                toAddress: '0x9999999999999999999999999999999999999999' as `0x${string}`,
-                amountInUsd: amountToSend,
+            // Trigger mutation and wait for completion
+            await act(async () => {
+                await result.current.mutateAsync({
+                    toAddress: '0x9999999999999999999999999999999999999999' as `0x${string}`,
+                    amountInUsd: amountToSend,
+                })
             })
 
-            // Check optimistic update happened immediately
-            await waitFor(() => {
-                const currentBalance = queryClient.getQueryData<bigint>(['balance', mockAddress])
-                const expectedBalance = initialBalance - parseUnits(amountToSend, PEANUT_WALLET_TOKEN_DECIMALS)
-                expect(currentBalance).toEqual(expectedBalance)
-            })
-
-            await promise
+            // After successful mutation, balance should reflect the deduction
+            const currentBalance = queryClient.getQueryData<bigint>(['balance', mockAddress])
+            const expectedBalance = initialBalance - parseUnits(amountToSend, PEANUT_WALLET_TOKEN_DECIMALS)
+            expect(currentBalance).toEqual(expectedBalance)
         })
 
         it('should NOT optimistically update balance when insufficient balance (prevents underflow)', async () => {

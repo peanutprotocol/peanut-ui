@@ -1,4 +1,4 @@
-import { areEvmAddressesEqual } from '@/utils/'
+import { areEvmAddressesEqual } from './general.utils'
 
 export const checkTokenSupportsXChain = (
     tokenAddress: string,

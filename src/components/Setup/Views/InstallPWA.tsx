@@ -1,4 +1,4 @@
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { Icon } from '@/components/Global/Icons/Icon'
@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import { captureException } from '@sentry/nextjs'
 import { DeviceType } from '@/hooks/useGetDeviceType'
+import { useBravePWAInstallState } from '@/hooks/useBravePWAInstallState'
 
 const StepTitle = ({ text }: { text: string }) => <h3 className="text-xl font-extrabold leading-6">{text}</h3>
 
@@ -19,11 +20,13 @@ const InstallPWA = ({
     deferredPrompt,
     deviceType,
     screenId,
+    setShowBraveSuccessMessage,
 }: {
     canInstall?: boolean
     deferredPrompt?: BeforeInstallPromptEvent | null
     deviceType?: DeviceType
     screenId?: ScreenId
+    setShowBraveSuccessMessage?: (show: boolean) => void
 }) => {
     const toast = useToast()
     const { handleNext, isLoading: isSetupFlowLoading } = useSetupFlow()
@@ -32,6 +35,8 @@ const InstallPWA = ({
     const [installCancelled, setInstallCancelled] = useState(false)
     const [isInstallInProgress, setIsInstallInProgress] = useState(false)
     const [isPWAInstalled, setIsPWAInstalled] = useState(false)
+    const { isBrave } = useBravePWAInstallState()
+
     const { user } = useAuth()
     const { push } = useRouter()
 
@@ -66,7 +71,7 @@ const InstallPWA = ({
 
     useEffect(() => {
         if (!!user) push('/home')
-    }, [user])
+    }, [user, push])
 
     useEffect(() => {
         const handleAppInstalled = () => {
@@ -86,6 +91,23 @@ const InstallPWA = ({
             }
         }
     }, [])
+
+    // notify parent when installation is complete on brave
+    useEffect(() => {
+        if (
+            isBrave &&
+            (isPWAInstalled || installComplete) &&
+            !window.matchMedia('(display-mode: standalone)').matches
+        ) {
+            setShowBraveSuccessMessage?.(true)
+        } else {
+            setShowBraveSuccessMessage?.(false)
+        }
+
+        return () => {
+            setShowBraveSuccessMessage?.(false)
+        }
+    }, [isBrave, isPWAInstalled, installComplete, setShowBraveSuccessMessage])
 
     useEffect(() => {
         if (screenId === 'pwa-install' && (deviceType === DeviceType.WEB || deviceType === DeviceType.IOS)) {
@@ -118,20 +140,39 @@ const InstallPWA = ({
     const AndroidPWASpecificInstallFlow = () => {
         // Scenario 1: Install finished (either PWA already there, or 'appinstalled' event fired)
         if (isPWAInstalled || installComplete) {
+            // if already in standalone mode (pwa is open), proceed to next step
+            if (window.matchMedia('(display-mode: standalone)').matches) {
+                return (
+                    <div className="flex w-full flex-col gap-4">
+                        <Button
+                            onClick={() => handleNext()}
+                            className="w-full"
+                            shadowSize="4"
+                            loading={isSetupFlowLoading}
+                        >
+                            Continue
+                        </Button>
+                    </div>
+                )
+            }
+
+            // if on brave browser, show instructions instead of trying to auto-open
+            // because brave doesn't support auto-opening pwa from browser
+            if (isBrave) {
+                return null
+            }
+
+            // for other browsers, try to open the pwa in a new tab
             return (
                 <div className="flex flex-col gap-4">
                     <Button
                         onClick={() => {
-                            if (window.matchMedia('(display-mode: standalone)').matches) {
-                                handleNext()
-                            } else {
-                                const link = document.createElement('a')
-                                link.href = '/setup'
-                                link.target = '_blank'
-                                document.body.appendChild(link)
-                                link.click()
-                                document.body.removeChild(link)
-                            }
+                            const link = document.createElement('a')
+                            link.href = '/setup'
+                            link.target = '_blank'
+                            document.body.appendChild(link)
+                            link.click()
+                            document.body.removeChild(link)
                         }}
                         className="w-full"
                         shadowSize="4"

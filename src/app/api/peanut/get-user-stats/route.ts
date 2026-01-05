@@ -1,14 +1,14 @@
 // pages/api/get-user-stats.ts
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
-import * as consts from '@/constants'
-import { fetchWithSentry } from '@/utils'
+import { fetchWithSentry } from '@/utils/sentry.utils'
+import { PEANUT_API_URL } from '@/constants/general.consts'
 
 export async function POST(request: NextRequest) {
     try {
         const { address } = await request.json()
 
-        const response = await fetchWithSentry(`${consts.PEANUT_API_URL}/get-user-stats`, {
+        const response = await fetchWithSentry(`${PEANUT_API_URL}/get-user-stats`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

@@ -22,6 +22,7 @@ import ForceIOSPWAInstall from '@/components/ForceIOSPWAInstall'
 import { PUBLIC_ROUTES_REGEX } from '@/constants/routes'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
+import { useAccountSetupRedirect } from '@/hooks/useAccountSetupRedirect'
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     const pathName = usePathname()
@@ -56,6 +57,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     // memoizing shouldPullToRefresh callback to prevent re-initialization on every render
     // lazy-load element ref to ensure DOM is ready
     const shouldPullToRefresh = useCallback(() => {
+        // window must be at the top first
+        if (window.scrollY > 0) {
+            return false
+        }
+
         // lazy-load the element reference if not cached yet
         if (!scrollableContentRef.current) {
             scrollableContentRef.current = document.querySelector('#scrollable-content')
@@ -63,11 +69,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
         const scrollableContent = scrollableContentRef.current
         if (!scrollableContent) {
-            // fallback to window scroll check if element not found
-            return window.scrollY === 0
+            // if element not found, window check already passed above
+            return true
         }
 
-        // only allow pull-to-refresh when at the very top
+        // scrollable content must also be at the top
         return scrollableContent.scrollTop === 0
     }, [])
 
@@ -79,6 +85,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             router.push('/setup')
         }
     }, [user, isFetchingUser, isReady, isPublicPath, router])
+
+    // redirect logged-in users without peanut wallet account to complete setup
+    const { needsRedirect, isCheckingAccount } = useAccountSetupRedirect()
 
     // show full-page offline screen when user is offline
     // only show after initialization to prevent flash on initial load
@@ -97,8 +106,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             )
         }
     } else {
-        // For protected paths, wait for user auth
-        if (!isReady || isFetchingUser || !hasToken || !user) {
+        // for protected paths, wait for user auth and account setup check
+        if (!isReady || isFetchingUser || !hasToken || !user || needsRedirect || isCheckingAccount) {
             return (
                 <div className="flex h-[100dvh] w-full flex-col items-center justify-center">
                     <PeanutLoading />
@@ -148,7 +157,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                                 'relative flex-1 overflow-y-auto bg-background p-6 pb-24 md:pb-6',
                                 !!isSupport && 'p-0 pb-20 md:p-6',
                                 !!isHome && 'p-0 md:p-6 md:pr-0',
-                                isUserLoggedIn ? 'pb-24' : 'pb-6'
+                                isUserLoggedIn ? 'pb-24' : 'pb-4'
                             )
                         )}
                     >

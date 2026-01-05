@@ -8,7 +8,8 @@ import { loadingStateContext } from '@/context'
 import { createBridgeExternalAccountForGuest } from '@/app/actions/external-accounts'
 import { confirmOfframp, createOfframp, createOfframpForGuest } from '@/app/actions/offramp'
 import { type Address, formatUnits } from 'viem'
-import { ErrorHandler, formatTokenAmount } from '@/utils'
+import { ErrorHandler } from '@/utils/sdkErrorHandler.utils'
+import { formatTokenAmount } from '@/utils/general.utils'
 import * as Sentry from '@sentry/nextjs'
 import useClaimLink from '../../useClaimLink'
 import { type AddBankAccountPayload } from '@/app/actions/types/users.types'
@@ -410,11 +411,9 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                     onPrev={() => setClaimBankFlowStep(null)}
                     savedAccounts={savedAccounts}
                     onAccountClick={async (account) => {
-                        const [firstName, ...lastNameParts] = (
-                            account.details.accountOwnerName ||
-                            user?.user.fullName ||
-                            ''
-                        ).split(' ')
+                        // for saved accounts, use the user's full name (these are assumed to be user's own accounts)
+                        const fullNameToUse = user?.user.fullName || ''
+                        const [firstName, ...lastNameParts] = fullNameToUse.split(' ')
                         const lastName = lastNameParts.join(' ')
 
                         const bankDetails = {
@@ -455,13 +454,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                 />
             )
         case ClaimBankFlowStep.BankCountryList:
-            return (
-                <CountryListRouter
-                    flow="claim"
-                    claimLinkData={claimLinkData}
-                    inputTitle="Select your bank account's country"
-                />
-            )
+            return <CountryListRouter claimLinkData={claimLinkData} inputTitle="Select your bank account's country" />
         case ClaimBankFlowStep.BankDetailsForm:
             return (
                 <div className="flex min-h-[inherit] flex-col justify-between gap-8 md:min-h-fit">

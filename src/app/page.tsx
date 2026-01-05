@@ -14,6 +14,7 @@ import {
 } from '@/components/LandingPage'
 import Footer from '@/components/LandingPage/Footer'
 import Manteca from '@/components/LandingPage/Manteca'
+import TweetCarousel from '@/components/LandingPage/TweetCarousel'
 import { useFooterVisibility } from '@/context/footerVisibility'
 import { useEffect, useState, useRef } from 'react'
 
@@ -39,7 +40,7 @@ export default function LandingPage() {
         primaryCta: {
             label: 'SIGN UP',
             href: '/setup',
-            subtext: 'takes 10 seconds',
+            subtext: 'currently in waitlist',
         },
     }
 
@@ -188,13 +189,15 @@ export default function LandingPage() {
         <Layout className="enable-select !m-0 w-full !p-0">
             <Hero primaryCta={hero.primaryCta} buttonVisible={buttonVisible} buttonScale={buttonScale} />
             <Marquee {...marqueeProps} />
-            <DropLink />
+            <Manteca />
+            <Marquee {...marqueeProps} />
+            <TweetCarousel />
             <Marquee {...marqueeProps} />
             <RegulatedRails />
             <Marquee {...marqueeProps} />
             <YourMoney />
             <Marquee {...marqueeProps} />
-            <Manteca />
+            <DropLink />
             <Marquee {...marqueeProps} />
             <SecurityBuiltIn />
             <Marquee {...marqueeProps} />

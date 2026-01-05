@@ -67,7 +67,7 @@ const Manteca = () => {
                 </h2>
 
                 <h3 className="font-roboto-flex mt-6 text-center text-xl md:text-xl">
-                    <b>~5% cheaper</b> than Visa & Mastercard.
+                    up to <b>~15% cheaper</b> than Visa & Mastercard.
                 </h3>
             </div>
 

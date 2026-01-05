@@ -1,11 +1,11 @@
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import { getCardPosition } from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
-import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
 import Image from 'next/image'
 import React from 'react'
 import { type CryptoToken, DEPOSIT_CRYPTO_TOKENS } from '../consts'
 import { ActionListCard } from '@/components/ActionListCard'
+import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
 
 interface TokenSelectionViewProps {
     headerTitle?: string

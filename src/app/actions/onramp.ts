@@ -1,7 +1,7 @@
 'use server'
 
 import { cookies } from 'next/headers'
-import { fetchWithSentry } from '@/utils'
+import { fetchWithSentry } from '@/utils/sentry.utils'
 import { type CountryData } from '@/components/AddMoney/consts'
 import { getCurrencyConfig } from '@/utils/bridge.utils'
 import { getCurrencyPrice } from '@/app/actions/currency'

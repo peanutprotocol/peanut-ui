@@ -9,9 +9,11 @@ import AvatarWithBadge, { type AvatarSize } from '../Profile/AvatarWithBadge'
 import { VerifiedUserLabel } from '../UserHeader'
 import { twMerge } from 'tailwind-merge'
 import ProgressBar from '../Global/ProgressBar'
+import { ContributorsDrawer } from '@/features/payments/flows/contribute-pot/components/ContributorsDrawer'
+import type { PotContributor } from '@/features/payments/flows/contribute-pot/ContributePotFlowContext'
 
 interface UserCardProps {
-    type: 'send' | 'request' | 'received_link' | 'request_pay'
+    type: 'send' | 'request' | 'received_link' | 'request_pay' | 'request_fulfilment'
     username: string
     fullName?: string
     recipientType?: RecipientType
@@ -23,6 +25,7 @@ interface UserCardProps {
     amount?: number
     amountCollected?: number
     isRequestPot?: boolean
+    contributors?: PotContributor[]
 }
 
 const UserCard = ({
@@ -38,11 +41,13 @@ const UserCard = ({
     amount,
     amountCollected,
     isRequestPot,
+    contributors,
 }: UserCardProps) => {
     const getIcon = (): IconName | undefined => {
         if (type === 'send') return 'arrow-up-right'
         if (type === 'request') return 'arrow-down-left'
         if (type === 'received_link') return 'arrow-down-left'
+        if (type === 'request_fulfilment') return 'arrow-up-right'
     }
 
     const getTitle = useCallback(() => {
@@ -52,7 +57,7 @@ const UserCard = ({
         if (type === 'request') title = `Requesting money from`
         if (type === 'received_link') title = `You received`
         if (type === 'request_pay') title = `${fullName ?? username} is requesting`
-
+        if (type === 'request_fulfilment') title = `Sending ${fullName ?? username}`
         return (
             <div className="flex items-center gap-2 text-xs font-normal text-grey-1">
                 {icon && <Icon name={icon} size={8} />} {title}
@@ -87,16 +92,30 @@ const UserCard = ({
                 />
                 <div>
                     {getTitle()}
-                    {recipientType !== 'USERNAME' || type === 'request_pay' ? (
-                        <AddressLink
-                            // address={amount ? `$${amount}` : username}
-                            address={getAddressLinkTitle()}
-                            className={twMerge(
-                                'text-base font-medium',
-                                type === 'request_pay' && 'text-2xl font-extrabold text-black md:text-3xl'
+                    {recipientType !== 'USERNAME' || type === 'request_pay' || type === 'request_fulfilment' ? (
+                        <>
+                            {type === 'request_fulfilment' && (
+                                <div>
+                                    <p className="text-2xl font-extrabold">${amount}</p>
+                                    <div className="flex items-center gap-2">
+                                        <Icon name="alert-filled" size={16} className="text-yellow-11" />
+                                        <p className="text-sm text-yellow-11">Send the exact amount!</p>
+                                    </div>
+                                </div>
                             )}
-                            isLink={type !== 'request_pay'}
-                        />
+
+                            {type !== 'request_fulfilment' && (
+                                <AddressLink
+                                    // address={amount ? `$${amount}` : username}
+                                    address={getAddressLinkTitle()}
+                                    className={twMerge(
+                                        'text-base font-medium',
+                                        type === 'request_pay' && 'text-2xl font-extrabold text-black md:text-3xl'
+                                    )}
+                                    isLink={type !== 'request_pay'}
+                                />
+                            )}
+                        </>
                     ) : (
                         <VerifiedUserLabel
                             name={fullName ?? username}
@@ -112,6 +131,9 @@ const UserCard = ({
             {amount !== undefined && amountCollected !== undefined && type === 'request_pay' && amount > 0 && (
                 <ProgressBar goal={amount} progress={amountCollected} isClosed={amountCollected >= amount} />
             )}
+
+            {/* request pot contributors drawer */}
+            {isRequestPot && contributors && <ContributorsDrawer contributors={contributors} />}
         </Card>
     )
 }

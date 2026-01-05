@@ -1,4 +1,4 @@
-import { BASE_URL } from '@/constants'
+import { BASE_URL } from '@/constants/general.consts'
 import { type Metadata } from 'next'
 
 export function generateMetadata({

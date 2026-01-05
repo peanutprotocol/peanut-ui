@@ -3,7 +3,7 @@ import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { KYCStatusDrawerItem } from '../KycStatusItem'
 import Card from '@/components/Global/Card'
 import { useMemo } from 'react'
-import { formatDate } from '@/utils'
+import { formatDate } from '@/utils/general.utils'
 import { CountryRegionRow } from '../CountryRegionRow'
 
 // this component shows the kyc status when it's failed/rejected.
@@ -33,6 +33,24 @@ export const KycFailed = ({
         }
     }, [bridgeKycRejectedAt])
 
+    const formattedReason = useMemo(() => {
+        const reasonText = reason || 'There was an issue. Contact Support.'
+        // Split by actual newline characters (\n) or the escaped sequence (\\n)
+        const lines = reasonText.split(/\\n|\n/).filter((line) => line.trim() !== '')
+
+        if (lines.length === 1) {
+            return reasonText
+        }
+
+        return (
+            <ul className="list-disc space-y-1 pl-4">
+                {lines.map((line, index) => (
+                    <li key={index}>{line}</li>
+                ))}
+            </ul>
+        )
+    }, [reason])
+
     return (
         <div className="space-y-4">
             <KYCStatusDrawerItem status="failed" />
@@ -41,11 +59,7 @@ export const KycFailed = ({
 
                 <CountryRegionRow countryCode={countryCode} isBridge={isBridge} />
 
-                <PaymentInfoRow
-                    label="Reason"
-                    value={reason || 'There was an issue. Contact Support.'}
-                    hideBottomBorder
-                />
+                <PaymentInfoRow label="Reason" value={formattedReason} hideBottomBorder />
             </Card>
             <Button
                 icon="retry"

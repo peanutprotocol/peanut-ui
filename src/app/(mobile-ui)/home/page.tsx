@@ -1,18 +1,17 @@
 'use client'
 
-import { Button, type ButtonSize, type ButtonVariant } from '@/components/0_Bruddle'
+import { Button, type ButtonSize, type ButtonVariant } from '@/components/0_Bruddle/Button'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { Icon } from '@/components/Global/Icons/Icon'
 import Loading from '@/components/Global/Loading'
 import PeanutLoading from '@/components/Global/PeanutLoading'
-//import RewardsModal from '@/components/Global/RewardsModal'
 import HomeHistory from '@/components/Home/HomeHistory'
-//import RewardsCardModal from '@/components/Home/RewardsCardModal'
 import { UserHeader } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useUserStore } from '@/redux/hooks'
-import { formatExtendedNumber, getUserPreferences, printableUsdc, updateUserPreferences, getRedirectUrl } from '@/utils'
+import { formatExtendedNumber, getUserPreferences, updateUserPreferences, getRedirectUrl } from '@/utils/general.utils'
+import { printableUsdc } from '@/utils/balance.utils'
 import { useDisconnect } from '@reown/appkit/react'
 import Link from 'next/link'
 import { useEffect, useMemo, useState, useCallback, lazy, Suspense } from 'react'
@@ -20,9 +19,8 @@ import { twMerge } from 'tailwind-merge'
 import { useAccount } from 'wagmi'
 // import ReferralCampaignModal from '@/components/Home/ReferralCampaignModal'
 // import FloatingReferralButton from '@/components/Home/FloatingReferralButton'
-import { AccountType } from '@/interfaces'
 import { formatUnits } from 'viem'
-import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
+import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { PostSignupActionManager } from '@/components/Global/PostSignupActionManager'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
@@ -39,19 +37,19 @@ import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
 // Lazy load heavy modal components (~20-30KB each) to reduce initial bundle size
 // Components are only loaded when user triggers them
 // Wrapped in error boundaries to gracefully handle chunk load failures
-const IOSInstallPWAModal = lazy(() => import('@/components/Global/IOSInstallPWAModal'))
 const BalanceWarningModal = lazy(() => import('@/components/Global/BalanceWarningModal'))
 const SetupNotificationsModal = lazy(() => import('@/components/Notifications/SetupNotificationsModal'))
 const NoMoreJailModal = lazy(() => import('@/components/Global/NoMoreJailModal'))
 const EarlyUserModal = lazy(() => import('@/components/Global/EarlyUserModal'))
 const KycCompletedModal = lazy(() => import('@/components/Home/KycCompletedModal'))
+const IosPwaInstallModal = lazy(() => import('@/components/Global/IosPwaInstallModal'))
 
 const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
 const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_EXPIRY ?? '1814400') // 21 days in seconds
 
 export default function Home() {
     const { showPermissionModal } = useNotifications()
-    const { balance, address, isFetchingBalance } = useWallet()
+    const { balance, isFetchingBalance } = useWallet()
     const { resetFlow: resetClaimBankFlow } = useClaimBankFlow()
     const { resetWithdrawFlow } = useWithdrawFlow()
     const { deviceType } = useDeviceType()
@@ -64,11 +62,10 @@ export default function Home() {
     const { disconnect: disconnectWagmi } = useDisconnect()
     const { triggerHaptic } = useHaptic()
 
-    const { isFetchingUser, addAccount, fetchUser } = useAuth()
+    const { isFetchingUser, fetchUser } = useAuth()
     const { isUserKycApproved } = useKycStatus()
     const username = user?.user.username
 
-    const [showIOSPWAInstallModal, setShowIOSPWAInstallModal] = useState(false)
     const [showBalanceWarningModal, setShowBalanceWarningModal] = useState(false)
     // const [showReferralCampaignModal, setShowReferralCampaignModal] = useState(false)
     const [isPostSignupActionModalVisible, setIsPostSignupActionModalVisible] = useState(false)
@@ -107,50 +104,12 @@ export default function Home() {
         resetWithdrawFlow()
     }, [resetClaimBankFlow, resetWithdrawFlow])
 
-    useEffect(() => {
-        if (isFetchingUser) return
-        // We have some users that didn't have the peanut wallet created
-        // correctly, so we need to create it
-        if (address && user && !user.accounts.some((a) => a.type === AccountType.PEANUT_WALLET)) {
-            addAccount({
-                accountIdentifier: address,
-                accountType: 'peanut-wallet',
-                userId: user.user.userId,
-            })
-        }
-    }, [user, address, isFetchingUser])
-
     // always reset external wallet connection on home page
     useEffect(() => {
         if (isWagmiConnected) {
             disconnectWagmi()
         }
     }, [isWagmiConnected, disconnectWagmi])
-
-    // effect for showing iOS PWA Install modal
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const isIOS = deviceType === DeviceType.IOS
-            const isStandalone = window.matchMedia('(display-mode: standalone)').matches
-            const hasSeenModalThisSession = sessionStorage.getItem('hasSeenIOSPWAPromptThisSession')
-            const redirectUrl = getRedirectUrl()
-
-            if (
-                isIOS &&
-                !isStandalone &&
-                !hasSeenModalThisSession &&
-                !user?.hasPwaInstalled &&
-                !isPostSignupActionModalVisible &&
-                !redirectUrl &&
-                !showBalanceWarningModal
-            ) {
-                setShowIOSPWAInstallModal(true)
-                sessionStorage.setItem('hasSeenIOSPWAPromptThisSession', 'true')
-            } else {
-                setShowIOSPWAInstallModal(false)
-            }
-        }
-    }, [user?.hasPwaInstalled, isPostSignupActionModalVisible, deviceType, showBalanceWarningModal])
 
     // effect for showing balance warning modal
     // modal priority order: notifications -> kyc -> post signup -> ios pwa -> balance warning
@@ -174,21 +133,12 @@ export default function Home() {
                 !hasSeenBalanceWarning &&
                 !showPermissionModal && // highest priority
                 !showKycModal &&
-                !isPostSignupActionModalVisible &&
-                !showIOSPWAInstallModal
+                !isPostSignupActionModalVisible
             ) {
                 setShowBalanceWarningModal(true)
             }
         }
-    }, [
-        balance,
-        isFetchingBalance,
-        showPermissionModal,
-        showKycModal,
-        isPostSignupActionModalVisible,
-        showIOSPWAInstallModal,
-        user,
-    ])
+    }, [balance, isFetchingBalance, showPermissionModal, showKycModal, isPostSignupActionModalVisible, user])
 
     if (isLoading) {
         return <PeanutLoading coverFullScreen />
@@ -243,25 +193,7 @@ export default function Home() {
                         </Suspense>
                     </LazyLoadErrorBoundary>
                 )}
-
-                {/* Render the new Rewards Modal
-                <RewardsModal />
-                */}
-
-                {/* Render the new Rewards Card Modal
-                <RewardsCardModal visible={isRewardsModalOpen} onClose={() => setIsRewardsModalOpen(false)} />
-                */}
             </div>
-            {/* iOS PWA Install Modal */}
-            <LazyLoadErrorBoundary>
-                <Suspense fallback={null}>
-                    <IOSInstallPWAModal
-                        visible={showIOSPWAInstallModal}
-                        onClose={() => setShowIOSPWAInstallModal(false)}
-                    />
-                </Suspense>
-            </LazyLoadErrorBoundary>
-
             {/* Add Money Prompt Modal */}
             {/* TODO @dev Disabling this, re-enable after properly fixing */}
             {/* <AddMoneyPromptModal visible={showAddMoneyPromptModal} onClose={() => setShowAddMoneyPromptModal(false)} /> */}
@@ -319,6 +251,12 @@ export default function Home() {
                             })
                         }}
                     />
+                </Suspense>
+            </LazyLoadErrorBoundary>
+
+            <LazyLoadErrorBoundary>
+                <Suspense fallback={null}>
+                    <IosPwaInstallModal />
                 </Suspense>
             </LazyLoadErrorBoundary>
 

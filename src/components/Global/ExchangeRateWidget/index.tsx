@@ -1,12 +1,12 @@
 import CurrencySelect from '@/components/LandingPage/CurrencySelect'
-import { countryCurrencyMappings } from '@/constants/countryCurrencyMapping'
+import countryCurrencyMappings from '@/constants/countryCurrencyMapping'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { type FC, useCallback, useEffect, useMemo } from 'react'
 import { Icon, type IconName } from '../Icons/Icon'
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 
 interface IExchangeRateWidgetProps {
     ctaLabel: string
@@ -126,7 +126,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
                         setSelectedCurrency={setSourceCurrency}
                         // excludeCurrencies={[destinationCurrency]}
                         trigger={
-                            <button className="flex w-32 items-center gap-2">
+                            <button className="flex w-20 items-center gap-2">
                                 <Image
                                     src={`https://flagcdn.com/w320/${sourceCurrencyFlag}.png`}
                                     alt={`${sourceCurrencyFlag} flag`}
@@ -170,7 +170,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
                         selectedCurrency={destinationCurrency}
                         setSelectedCurrency={setDestinationCurrency}
                         trigger={
-                            <button className="flex w-32 items-center gap-2">
+                            <button className="flex w-20 items-center gap-2">
                                 <Image
                                     src={`https://flagcdn.com/w320/${destinationCurrencyFlag}.png`}
                                     alt={`${destinationCurrencyFlag} flag`}

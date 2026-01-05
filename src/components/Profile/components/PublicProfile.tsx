@@ -1,19 +1,17 @@
 'use client'
 
 import { HandThumbsUpV2, PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import HomeHistory from '@/components/Home/HomeHistory'
-import { useAppDispatch } from '@/redux/hooks'
-import { paymentActions } from '@/redux/slices/payment-slice'
 import Image from 'next/image'
 import ProfileHeader from './ProfileHeader'
 import { useState, useEffect, useMemo } from 'react'
 import { usersApi } from '@/services/users'
 import { useRouter } from 'next/navigation'
 import Card from '@/components/Global/Card'
-import { checkIfInternalNavigation } from '@/utils'
+import { checkIfInternalNavigation } from '@/utils/general.utils'
 import { useAuth } from '@/context/authContext'
 import ShareButton from '@/components/Global/ShareButton'
 import ActionModal from '@/components/Global/ActionModal'
@@ -27,9 +25,9 @@ interface PublicProfileProps {
 }
 
 const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = false, onSendClick }) => {
-    const dispatch = useAppDispatch()
     const [totalSentByLoggedInUser, setTotalSentByLoggedInUser] = useState<string>('0')
     const [fullName, setFullName] = useState<string>(username)
+    const [showFullName, setShowFullName] = useState<boolean>(false)
     const [isKycVerified, setIsKycVerified] = useState<boolean>(false)
     const router = useRouter()
     const { user } = useAuth()
@@ -44,18 +42,18 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
             earnedAt?: string | Date
         }>
     >([])
-    // Handle send button click
+    // handle send button click
     const handleSend = () => {
         if (onSendClick) {
             onSendClick()
-        } else {
-            dispatch(paymentActions.setView('INITIAL'))
         }
     }
 
     useEffect(() => {
         usersApi.getByUsername(username).then((apiUser) => {
             if (apiUser?.fullName) setFullName(apiUser.fullName)
+            // get the profile owner's showFullName preference
+            setShowFullName(apiUser?.showFullName ?? false)
             if (
                 apiUser?.bridgeKycStatus === 'approved' ||
                 apiUser?.kycVerifications?.some((v) => v.status === MantecaKycStatus.ACTIVE)
@@ -75,6 +73,9 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
 
     // this flag is true if the current user has sent money to the profile user before.
     const haveSentMoneyToUser = useMemo(() => Number(totalSentByLoggedInUser) > 0, [totalSentByLoggedInUser])
+
+    // respect profile owner's showFullName preference: use fullName only if showFullName is true, otherwise use username
+    const displayName = showFullName && fullName ? fullName : username
 
     return (
         <div className="flex h-full w-full flex-col space-y-4 bg-background">
@@ -106,7 +107,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                 {/* Profile Header - Using the reusable component */}
                 <ProfileHeader
                     showShareButton={false}
-                    name={fullName}
+                    name={displayName}
                     username={username}
                     isVerified={isKycVerified}
                     className="mb-6"

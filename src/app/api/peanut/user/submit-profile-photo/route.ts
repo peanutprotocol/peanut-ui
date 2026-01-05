@@ -1,7 +1,7 @@
-import * as consts from '@/constants'
-import { fetchWithSentry } from '@/utils'
+import { fetchWithSentry } from '@/utils/sentry.utils'
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
+import { PEANUT_API_URL } from '@/constants/general.consts'
 
 export async function POST(request: NextRequest) {
     const formData = await request.formData()
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
         const apiFormData = new FormData()
         apiFormData.append('file', file)
 
-        const response = await fetchWithSentry(`${consts.PEANUT_API_URL}/submit-profile-photo`, {
+        const response = await fetchWithSentry(`${PEANUT_API_URL}/submit-profile-photo`, {
             method: 'POST',
             headers: {
                 Authorization: `Bearer ${token.value}`,

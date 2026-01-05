@@ -1,6 +1,6 @@
-import * as consts from '@/constants'
 import * as interfaces from '@/interfaces'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import type { IOfframpForm } from '@/constants/cashout.consts'
 
 export interface CrossChainDetails {
     chainId: string
@@ -34,8 +34,8 @@ export interface IOfframpConfirmScreenProps {
     // available in all offramp types
     onPrev: () => void
     onNext: () => void
-    offrampForm: consts.IOfframpForm
-    setOfframpForm: (form: consts.IOfframpForm) => void
+    offrampForm: IOfframpForm
+    setOfframpForm: (form: IOfframpForm) => void
     initialKYCStep: number
     setTransactionHash: (hash: string) => void
     offrampType: OfframpType
@@ -68,7 +68,7 @@ export interface IOfframpConfirmScreenProps {
 
 export interface IOfframpSuccessScreenProps {
     // available in all offramp types
-    offrampForm: consts.IOfframpForm
+    offrampForm: IOfframpForm
     offrampType: OfframpType
 
     // available in cashout offramps

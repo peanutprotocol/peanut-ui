@@ -2,22 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import OneSignal from 'react-onesignal'
-import { getUserPreferences, updateUserPreferences } from '@/utils'
+import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { useUserStore } from '@/redux/hooks'
-
-const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
-const TEN_SECONDS_MS = 10000
-
-// helper to determine if we should use short delays for testing
-// uses explicit env var so it can be enabled on vercel preview/staging
-const useShortDelays = () => {
-    // explicitly enable short delays via env var (useful for vercel preview)
-    if (process.env.NEXT_PUBLIC_ENABLE_SHORT_NOTIFICATION_DELAYS === 'true') {
-        return true
-    }
-    // default to short delays in local development
-    return process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test'
-}
 
 export function useNotifications() {
     const { user } = useUserStore()
@@ -26,12 +12,11 @@ export function useNotifications() {
     // refs to track current state without causing re-renders
     const externalIdRef = useRef<string | null>(null)
     const lastLinkedExternalIdRef = useRef<string | null>(null)
-    const bannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     const disableExternalIdLoginRef = useRef<boolean>(false)
 
-    // ui state for permission modal and reminder banner
+    // ui state for permission modal (shown once on login)
     const [showPermissionModal, setShowPermissionModal] = useState(false)
-    const [showReminderBanner, setShowReminderBanner] = useState(false)
+    const [isRequestingPermission, setIsRequestingPermission] = useState(false)
 
     // track notification permission state
     const [permissionState, setPermissionState] = useState<'default' | 'granted' | 'denied'>(() => {
@@ -85,7 +70,7 @@ export function useNotifications() {
         })
     }, [oneSignalInitialized])
 
-    // determine which ui elements to show based on permission/opt-in status
+    // determine if permission modal should be shown (once per user)
     const evaluateVisibility = useCallback(async () => {
         // wait for sdk to be ready before checking permissions
         if (!sdkReady || !oneSignalInitialized) return
@@ -93,62 +78,32 @@ export function useNotifications() {
         const granted = await getPermissionGranted()
         const optedIn = await isPushSubscriptionOptedIn()
 
-        // if permission is granted, hide all prompts regardless of subscription state
+        // if permission is granted, hide modal
         if (granted) {
             setShowPermissionModal(false)
-            setShowReminderBanner(false)
             return
         }
 
         const userPreferences = getUserPreferences(user?.user.userId)
-
         const modalClosed = userPreferences?.notifModalClosed ?? false
-        const bannerShowAtVal = userPreferences?.notifBannerShowAt
 
-        // if permission is denied, do not show the modal, rely on the reminder banner schedule
-        // the banner copy guides user to enable notifications from device settings
+        // don't show modal if permission is denied (carousel cta will handle it)
         if (permissionState === 'denied') {
             setShowPermissionModal(false)
-
-            // schedule banner if not already scheduled
-            if (!bannerShowAtVal && modalClosed) {
-                const showAt = Date.now() + (useShortDelays() ? TEN_SECONDS_MS : SEVEN_DAYS_MS)
-                updateUserPreferences(user?.user.userId, { notifBannerShowAt: showAt })
-            }
-        } else {
-            // if permission is default and user already opted in at onesignal level, hide prompts
-            if (optedIn) {
-                setShowPermissionModal(false)
-                setShowReminderBanner(false)
-                return
-            }
-        }
-
-        // show modal if user hasn't closed it yet
-        if (!modalClosed) {
-            setShowPermissionModal(true)
-            setShowReminderBanner(false)
             return
         }
 
-        // handle scheduled banner display
-        const now = Date.now()
-        const bannerShowAt =
-            typeof bannerShowAtVal === 'number' ? bannerShowAtVal : parseInt(bannerShowAtVal || '0', 10)
-        if (bannerShowAt > 0) {
-            if (now >= bannerShowAt) {
-                setShowReminderBanner(true)
-            } else {
-                setShowReminderBanner(false)
-                // schedule banner to show at the right time
-                if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current)
-                const delay = Math.max(0, bannerShowAt - now)
-                bannerTimerRef.current = setTimeout(() => {
-                    evaluateVisibility()
-                }, delay)
-            }
+        // if permission is default and user already opted in at onesignal level, hide modal
+        if (optedIn) {
+            setShowPermissionModal(false)
+            return
+        }
+
+        // show modal only if user hasn't closed it yet
+        if (!modalClosed) {
+            setShowPermissionModal(true)
         } else {
-            setShowReminderBanner(false)
+            setShowPermissionModal(false)
         }
     }, [
         getPermissionGranted,
@@ -257,10 +212,9 @@ export function useNotifications() {
                                 }
                             }
 
-                            // hide prompts when user opts in
+                            // hide modal when user opts in
                             if (event.current?.optedIn) {
                                 setShowPermissionModal(false)
-                                setShowReminderBanner(false)
                             }
                         }
                     )
@@ -282,6 +236,8 @@ export function useNotifications() {
     const requestPermission = useCallback(async (): Promise<'granted' | 'denied' | 'default'> => {
         if (typeof window === 'undefined' || !oneSignalInitialized) return 'default'
 
+        setIsRequestingPermission(true)
+
         try {
             // always use the native browser permission dialog, avoid onesignal slidedown ui
             // optIn may trigger the native prompt on supported browsers, but we explicitly request permission
@@ -290,6 +246,8 @@ export function useNotifications() {
             }
         } catch (error) {
             console.warn('Error requesting permission:', error)
+        } finally {
+            setIsRequestingPermission(false)
         }
 
         // update permission state after request
@@ -353,72 +311,29 @@ export function useNotifications() {
         }
     }, [externalId, oneSignalInitialized])
 
-    // close modal and schedule banner (10s for staging, 7 days for prod)
+    // close modal when user dismisses it
     const closePermissionModal = useCallback(() => {
         setShowPermissionModal(false)
-        // schedule banner based on environment
-        const showAt = Date.now() + (useShortDelays() ? TEN_SECONDS_MS : SEVEN_DAYS_MS)
-        updateUserPreferences(user?.user.userId, { notifModalClosed: true, notifBannerShowAt: showAt })
+        updateUserPreferences(user?.user.userId, { notifModalClosed: true })
+    }, [user?.user.userId])
 
-        // schedule banner to show at exact time
-        if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current)
-        const delay = Math.max(0, showAt - Date.now())
-        bannerTimerRef.current = setTimeout(() => {
-            evaluateVisibility()
-        }, delay)
-    }, [evaluateVisibility])
-    // hide modal immediately without scheduling banner
-    const hidePermissionModalImmediate = useCallback(() => {
-        setShowPermissionModal(false)
-    }, [])
-
-    // re-evaluate ui state after permission request
+    // update permission state after user interacts with permission prompt
     const afterPermissionAttempt = useCallback(async () => {
         // mark modal as closed to prevent it from showing again
         updateUserPreferences(user?.user.userId, { notifModalClosed: true })
-
-        // if permission was denied, schedule the banner
-        if (permissionState === 'denied') {
-            const showAt = Date.now() + (useShortDelays() ? TEN_SECONDS_MS : SEVEN_DAYS_MS)
-            updateUserPreferences(user?.user.userId, { notifBannerShowAt: showAt })
-        }
-
-        // immediately re-evaluate ui visibility after requesting permission
-        evaluateVisibility()
-    }, [evaluateVisibility, permissionState])
-
-    // snooze banner and reschedule (10s for testing, 7 days for prod)
-    const snoozeReminderBanner = useCallback(() => {
-        // schedule next banner based on environment
-        const showAt = Date.now() + (useShortDelays() ? TEN_SECONDS_MS : SEVEN_DAYS_MS)
-        updateUserPreferences(user?.user.userId, { notifBannerShowAt: showAt })
-        setShowReminderBanner(false)
-
-        // schedule next banner appearance
-        if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current)
-        const delay = Math.max(0, showAt - Date.now())
-        bannerTimerRef.current = setTimeout(() => {
-            evaluateVisibility()
-        }, delay)
-    }, [evaluateVisibility])
-
-    // cleanup timer on unmount
-    useEffect(() => {
-        return () => {
-            if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current)
-        }
-    }, [])
+        // refresh permission state
+        refreshPermissionState()
+    }, [user?.user.userId, refreshPermissionState])
 
     return {
         showPermissionModal,
-        showReminderBanner,
         requestPermission,
         closePermissionModal,
-        hidePermissionModalImmediate,
-        snoozeReminderBanner,
         afterPermissionAttempt,
         permissionState,
         isPermissionDenied: permissionState === 'denied',
+        isPermissionGranted: permissionState === 'granted',
+        isRequestingPermission,
         refreshPermissionState,
     }
 }

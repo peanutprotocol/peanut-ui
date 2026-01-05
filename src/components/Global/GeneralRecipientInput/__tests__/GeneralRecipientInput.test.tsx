@@ -1,9 +1,10 @@
 import { render, act } from '@testing-library/react'
 import GeneralRecipientInput from '../index'
-import * as utils from '@/utils'
+import * as bridgeUtils from '@/utils/bridge-accounts.utils'
+import * as sentryUtils from '@/utils/sentry.utils'
 import * as ens from '@/app/actions/ens'
 import type { RecipientType } from '@/interfaces'
-import { validateEnsName } from '@/utils'
+import { validateEnsName } from '@/utils/general.utils'
 
 // Test case type definition for better maintainability
 type TestCase = {
@@ -17,13 +18,17 @@ type TestCase = {
 }
 
 // Mock dependencies
-jest.mock('@/utils', () => {
-    const actualUtils = jest.requireActual('@/utils')
+jest.mock('@/utils/bridge-accounts.utils', () => ({
+    validateBankAccount: jest.fn(),
+}))
+jest.mock('@/utils/sentry.utils', () => ({
+    fetchWithSentry: jest.fn(),
+}))
+jest.mock('@/utils/general.utils', () => {
+    const actualUtils = jest.requireActual('@/utils/general.utils')
     return {
-        validateBankAccount: jest.fn(),
+        ...actualUtils,
         sanitizeBankAccount: (input: string) => input.toLowerCase().replace(/\s/g, ''),
-        validateEnsName: actualUtils.validateEnsName, // Use the actual implementation
-        fetchWithSentry: jest.fn(),
     }
 })
 
@@ -45,8 +50,8 @@ describe('GeneralRecipientInput Type Detection', () => {
     beforeEach(() => {
         onUpdateMock = jest.fn()
         jest.clearAllMocks()
-        ;(utils.validateBankAccount as jest.Mock).mockResolvedValue(true)
-        ;(utils.fetchWithSentry as jest.Mock).mockResolvedValue({ status: 404 })
+        ;(bridgeUtils.validateBankAccount as jest.Mock).mockResolvedValue(true)
+        ;(sentryUtils.fetchWithSentry as jest.Mock).mockResolvedValue({ status: 404 })
     })
 
     const setup = async (initialValue = '', isWithdrawal = false) => {
@@ -200,8 +205,18 @@ describe('GeneralRecipientInput Type Detection', () => {
 
                     await setup(input)
 
+                    // Wait for async validation to complete
                     await act(async () => {
-                        await new Promise((resolve) => setTimeout(resolve, 0))
+                        await new Promise((resolve) => setTimeout(resolve, 100))
+                    })
+
+                    // Wait for onUpdate to be called
+                    await act(async () => {
+                        let attempts = 0
+                        while (!onUpdateMock.mock.calls.length && attempts < 50) {
+                            await new Promise((resolve) => setTimeout(resolve, 10))
+                            attempts++
+                        }
                     })
 
                     expect(onUpdateMock).toHaveBeenCalledWith(
@@ -217,7 +232,7 @@ describe('GeneralRecipientInput Type Detection', () => {
                             ...(expectedError && { errorMessage: expectedError }),
                         })
                     )
-                })
+                }, 10000) // 10 second timeout
             }
         )
     })

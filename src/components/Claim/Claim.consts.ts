@@ -1,8 +1,8 @@
-import * as consts from '@/constants'
 import * as interfaces from '@/interfaces'
 import { type IOfframpSuccessScreenProps, type IOfframpConfirmScreenProps } from '../Offramp/Offramp.consts'
 import { type ClaimLinkData } from '@/services/sendLinks'
 import { type PeanutCrossChainRoute } from '@/services/swap'
+import type { IOfframpForm } from '@/constants/cashout.consts'
 export type ClaimType = 'claim' | 'claimxchain'
 
 export type ClaimScreens = 'INITIAL' | 'CONFIRM' | 'SUCCESS'
@@ -48,8 +48,8 @@ export interface IClaimScreenProps {
     setHasFetchedRoute: (fetched: boolean) => void
     recipientType: interfaces.RecipientType
     setRecipientType: (type: interfaces.RecipientType) => void
-    offrampForm: consts.IOfframpForm
-    setOfframpForm: (form: consts.IOfframpForm) => void
+    offrampForm: IOfframpForm
+    setOfframpForm: (form: IOfframpForm) => void
     isOfframpPossible: boolean
     userType: 'NEW' | 'EXISTING' | undefined
     setUserType: (type: 'NEW' | 'EXISTING' | undefined) => void

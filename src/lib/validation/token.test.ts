@@ -95,7 +95,7 @@ const mockSquidChains: Record<
     },
 }
 
-jest.mock('@/constants', () => ({
+jest.mock('@/constants/zerodev.consts', () => ({
     PEANUT_WALLET_CHAIN: {
         id: '1',
         name: 'Ethereum',

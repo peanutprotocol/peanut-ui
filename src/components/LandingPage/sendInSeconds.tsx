@@ -6,7 +6,7 @@ import exclamations from '@/assets/illustrations/exclamations.svg'
 import payZeroFees from '@/assets/illustrations/pay-zero-fees.svg'
 import mobileSendInSeconds from '@/assets/illustrations/mobile-send-in-seconds.svg'
 import { Star, Sparkle } from '@/assets'
-import { Button } from '../0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 
 export function SendInSeconds() {
     const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200)

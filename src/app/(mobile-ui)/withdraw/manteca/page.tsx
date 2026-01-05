@@ -15,10 +15,10 @@ import { isTxReverted } from '@/utils/general.utils'
 import { loadingStateContext } from '@/context'
 import { countryData } from '@/components/AddMoney/consts'
 import Image from 'next/image'
-import { formatAmount, formatNumberForDisplay } from '@/utils'
+import { formatAmount, formatNumberForDisplay } from '@/utils/general.utils'
 import { validateCbuCvuAlias, validatePixKey, normalizePixPhoneNumber, isPixPhoneNumber } from '@/utils/withdraw.utils'
 import ValidatedInput from '@/components/Global/ValidatedInput'
-import TokenAmountInput from '@/components/Global/TokenAmountInput'
+import AmountInput from '@/components/Global/AmountInput'
 import { formatUnits, parseUnits } from 'viem'
 import type { TransactionReceipt, Hash } from 'viem'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
@@ -26,15 +26,7 @@ import { useMantecaKycFlow } from '@/hooks/useMantecaKycFlow'
 import { MantecaGeoSpecificKycModal } from '@/components/Kyc/InitiateMantecaKYCModal'
 import { useAuth } from '@/context/authContext'
 import { useWebSocket } from '@/hooks/useWebSocket'
-import { useSupportModalContext } from '@/context/SupportModalContext'
-import {
-    MantecaAccountType,
-    MANTECA_COUNTRIES_CONFIG,
-    type MantecaBankCode,
-    MANTECA_DEPOSIT_ADDRESS,
-    TRANSACTIONS,
-    PEANUT_WALLET_TOKEN_DECIMALS,
-} from '@/constants'
+import { useModalsContext } from '@/context/ModalsContext'
 import Select from '@/components/Global/Select'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { useQueryClient } from '@tanstack/react-query'
@@ -44,7 +36,15 @@ import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 import { PointsAction } from '@/services/services.types'
 import { usePointsConfetti } from '@/hooks/usePointsConfetti'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
-import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
+import PointsCard from '@/components/Common/PointsCard'
+import {
+    MANTECA_COUNTRIES_CONFIG,
+    MANTECA_DEPOSIT_ADDRESS,
+    MantecaAccountType,
+    type MantecaBankCode,
+} from '@/constants/manteca.consts'
+import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
+import { TRANSACTIONS } from '@/constants/query.consts'
 
 type MantecaWithdrawStep = 'amountInput' | 'bankDetails' | 'review' | 'success' | 'failure'
 
@@ -53,13 +53,13 @@ const MIN_WITHDRAW_AMOUNT = '1'
 
 export default function MantecaWithdrawFlow() {
     const flowId = useId() // Unique ID per flow instance to prevent cache collisions
-    const [amount, setAmount] = useState<string | undefined>(undefined)
     const [currencyAmount, setCurrencyAmount] = useState<string | undefined>(undefined)
     const [usdAmount, setUsdAmount] = useState<string | undefined>(undefined)
     const [step, setStep] = useState<MantecaWithdrawStep>('amountInput')
     const [balanceErrorMessage, setBalanceErrorMessage] = useState<string | null>(null)
     const searchParams = useSearchParams()
     const paramAddress = searchParams.get('destination')
+    const isSavedAccount = searchParams.get('isSavedAccount') === 'true'
     const [destinationAddress, setDestinationAddress] = useState<string>(paramAddress ?? '')
     const [selectedBank, setSelectedBank] = useState<MantecaBankCode | null>(null)
     const [accountType, setAccountType] = useState<MantecaAccountType | null>(null)
@@ -71,11 +71,10 @@ export default function MantecaWithdrawFlow() {
     const { sendMoney, balance } = useWallet()
     const { isLoading, loadingState, setLoadingState } = useContext(loadingStateContext)
     const { user, fetchUser } = useAuth()
-    const { setIsSupportModalOpen } = useSupportModalContext()
+    const { setIsSupportModalOpen } = useModalsContext()
     const queryClient = useQueryClient()
     const { isUserBridgeKycApproved } = useKycStatus()
     const { hasPendingTransactions } = usePendingTransactions()
-    const swapCurrency = searchParams.get('swap-currency')
     // Get method and country from URL parameters
     const selectedMethodType = searchParams.get('method') // mercadopago, pix, bank-transfer, etc.
     const countryFromUrl = searchParams.get('country') // argentina, brazil, etc.
@@ -88,10 +87,6 @@ export default function MantecaWithdrawFlow() {
         return countryData.find((country) => country.type === 'country' && country.path === countryPath)
     }, [countryPath])
 
-    const isMantecaCountry = useMemo(() => {
-        return selectedCountry?.id && selectedCountry.id in MANTECA_COUNTRIES_CONFIG
-    }, [selectedCountry])
-
     const countryConfig = useMemo(() => {
         if (!selectedCountry) return undefined
         return MANTECA_COUNTRIES_CONFIG[selectedCountry.id]
@@ -103,25 +98,6 @@ export default function MantecaWithdrawFlow() {
         price: currencyPrice,
         isLoading: isCurrencyLoading,
     } = useCurrency(selectedCountry?.currency!)
-
-    // determine if initial input should be in usd or local currency
-    // for manteca countries, default to local currency unless explicitly overridden
-    const isInitialInputUsd = useMemo(() => {
-        // if swap-currency param is explicitly set to 'true' (user toggled to local currency)
-        // then show local currency first
-        if (swapCurrency === 'true') {
-            return false
-        }
-
-        // if it's a manteca country, default to local currency (not usd)
-        // ignore swap-currency=false for manteca countries to ensure local currency default
-        if (isMantecaCountry) {
-            return false
-        }
-
-        // otherwise default to usd (for non-manteca countries)
-        return true
-    }, [swapCurrency, isMantecaCountry])
 
     // Initialize KYC flow hook
     const { isMantecaKycRequired } = useMantecaKycFlow({ country: selectedCountry })
@@ -285,7 +261,6 @@ export default function MantecaWithdrawFlow() {
 
     const resetState = () => {
         setStep('amountInput')
-        setAmount(undefined)
         setCurrencyAmount(undefined)
         setUsdAmount(undefined)
         setDestinationAddress(paramAddress ?? '')
@@ -314,7 +289,7 @@ export default function MantecaWithdrawFlow() {
             setBalanceErrorMessage(null)
             return
         }
-        const paymentAmount = parseUnits(usdAmount.replace(/,/g, ''), PEANUT_WALLET_TOKEN_DECIMALS)
+        const paymentAmount = parseUnits(usdAmount, PEANUT_WALLET_TOKEN_DECIMALS)
         if (paymentAmount < parseUnits(MIN_WITHDRAW_AMOUNT, PEANUT_WALLET_TOKEN_DECIMALS)) {
             setBalanceErrorMessage(`Withdraw amount must be at least $${MIN_WITHDRAW_AMOUNT}`)
         } else if (paymentAmount > parseUnits(MAX_WITHDRAW_AMOUNT, PEANUT_WALLET_TOKEN_DECIMALS)) {
@@ -369,13 +344,7 @@ export default function MantecaWithdrawFlow() {
 
                     {/* Points Display - ref used for confetti origin point */}
                     {pointsData?.estimatedPoints && (
-                        <div ref={pointsDivRef} className="flex justify-center gap-2">
-                            <Image src={STAR_STRAIGHT_ICON} alt="star" width={20} height={20} />
-                            <p className="text-sm font-medium text-black">
-                                You&apos;ve earned {pointsData.estimatedPoints}{' '}
-                                {pointsData.estimatedPoints === 1 ? 'point' : 'points'}!
-                            </p>
-                        </div>
+                        <PointsCard points={pointsData.estimatedPoints} pointsDivRef={pointsDivRef} />
                     )}
 
                     <div className="w-full space-y-5">
@@ -442,27 +411,35 @@ export default function MantecaWithdrawFlow() {
             {step === 'amountInput' && (
                 <div className="my-auto flex h-full flex-col justify-center space-y-4">
                     <div className="text-xl font-bold">Amount to withdraw</div>
-                    <TokenAmountInput
-                        tokenValue={amount}
-                        setTokenValue={setAmount}
-                        setCurrencyAmount={setCurrencyAmount}
-                        setUsdValue={setUsdAmount}
-                        currency={{
-                            code: currencyCode!,
-                            symbol: currencySymbol!,
+                    <AmountInput
+                        initialAmount={currencyAmount}
+                        setPrimaryAmount={setCurrencyAmount}
+                        setSecondaryAmount={setUsdAmount}
+                        primaryDenomination={{
+                            symbol: currencyCode!,
                             price: currencyPrice!.sell,
+                            decimals: 2,
+                        }}
+                        secondaryDenomination={{
+                            symbol: 'USD',
+                            price: 1,
+                            decimals: 2,
                         }}
                         walletBalance={
                             balance ? formatAmount(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS)) : undefined
                         }
-                        isInitialInputUsd={isInitialInputUsd}
                     />
                     <Button
                         variant="purple"
                         shadowSize="4"
                         onClick={() => {
                             if (usdAmount) {
-                                setStep('bankDetails')
+                                // If coming from saved account flow, skip bank details step and go to review
+                                if (isSavedAccount) {
+                                    handleBankDetailsSubmit()
+                                } else {
+                                    setStep('bankDetails')
+                                }
                             }
                         }}
                         disabled={!Number(usdAmount) || !!balanceErrorMessage}

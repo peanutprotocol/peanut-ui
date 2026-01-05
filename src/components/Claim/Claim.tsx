@@ -1,13 +1,11 @@
 'use client'
 import { generateKeysFromString } from '@squirrel-labs/peanut-sdk'
-import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { useContext, useEffect, useMemo, useState } from 'react'
 
 import { fetchTokenDetails, fetchTokenPrice } from '@/app/actions/tokens'
-import { Button } from '@/components/0_Bruddle'
 import { type StatusType } from '@/components/Global/Badges/StatusBadge'
 import { TransactionDetailsReceipt } from '@/components/TransactionDetails/TransactionDetailsReceipt'
 import { type TransactionDetails, REWARD_TOKENS } from '@/components/TransactionDetails/transactionTransformer'
-import * as consts from '@/constants'
 import { tokenSelectorContext } from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
@@ -16,7 +14,14 @@ import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import * as interfaces from '@/interfaces'
 import { ESendLinkStatus, getParamsFromLink, sendLinksApi, type ClaimLinkData } from '@/services/sendLinks'
-import { getInitialsFromName, getTokenDetails, isStableCoin } from '@/utils'
+import {
+    getInitialsFromName,
+    getTokenDetails,
+    isStableCoin,
+    getChainName,
+    getTokenLogo,
+    getChainLogo,
+} from '@/utils/general.utils'
 import * as Sentry from '@sentry/nextjs'
 import { useQuery } from '@tanstack/react-query'
 import type { Hash } from 'viem'
@@ -31,6 +36,7 @@ import { twMerge } from 'tailwind-merge'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useSearchParams } from 'next/navigation'
 import { useHaptic } from 'use-haptic'
+import type { IOfframpForm } from '@/constants/cashout.consts'
 
 export const Claim = ({}) => {
     const [linkUrl, setLinkUrl] = useState<string>('')
@@ -53,7 +59,7 @@ export const Claim = ({}) => {
     const [hasFetchedRoute, setHasFetchedRoute] = useState<boolean>(false)
 
     const [recipientType, setRecipientType] = useState<interfaces.RecipientType>('address')
-    const [offrampForm, setOfframpForm] = useState<consts.IOfframpForm>({
+    const [offrampForm, setOfframpForm] = useState<IOfframpForm>({
         name: '',
         email: '',
         password: '',
@@ -130,26 +136,56 @@ export const Claim = ({}) => {
 
         const rewardData = REWARD_TOKENS[claimLinkData.tokenAddress.toLowerCase()]
 
+        // determine direction based on user role and status
+        let direction: TransactionDetails['direction'] = 'send'
+        if (status === 'completed') {
+            // if link is claimed, show as send from sender's perspective
+            direction = 'send'
+        }
+
+        // determine recipient name
+        const recipientName =
+            claimLinkData.claim?.recipient?.username ?? claimLinkData.claim?.recipientAddress ?? 'Send via Link'
+
+        // find the claimed event for timestamp
+        const claimedEvent = claimLinkData.events?.find((e) => e.status === 'CLAIMED')
+
         let details: Partial<TransactionDetails> = {
             id: claimLinkData.pubKey,
+            direction,
             status,
             amount: Number(formatUnits(claimLinkData.amount, tokenDetails?.decimals ?? 6)),
             date: new Date(claimLinkData.createdAt),
+            createdAt: new Date(claimLinkData.createdAt),
+            claimedAt: claimedEvent ? new Date(claimedEvent.timestamp) : undefined,
             tokenSymbol: tokenDetails?.symbol,
-            initials: getInitialsFromName(claimLinkData.claim?.recipient?.username ?? ''),
+            tokenAddress: claimLinkData.tokenAddress,
+            initials: getInitialsFromName(recipientName),
             memo: claimLinkData.textContent,
             attachmentUrl: claimLinkData.fileUrl,
-            cancelledDate: status === 'cancelled' ? new Date(claimLinkData.events[0].timestamp) : undefined,
+            cancelledDate: status === 'cancelled' ? new Date(claimLinkData.events[0]?.timestamp) : undefined,
+            txHash: claimLinkData.claim?.txHash,
             extraDataForDrawer: {
                 isLinkTransaction: true,
                 originalType: EHistoryEntryType.SEND_LINK,
                 originalUserRole: EHistoryUserRole.SENDER,
                 link: claimLinkData.link,
                 rewardData,
+                transactionCardType: 'send',
             },
-            userName:
-                claimLinkData.claim?.recipient?.username ?? claimLinkData.claim?.recipientAddress ?? 'Send via Link',
+            userName: recipientName,
+            fullName: claimLinkData.claim?.recipient?.username ?? recipientName,
             sourceView: 'history',
+            tokenDisplayDetails: tokenDetails
+                ? {
+                      tokenSymbol: tokenDetails.symbol,
+                      chainName: getChainName(claimLinkData.chainId),
+                      tokenIconUrl: getTokenLogo(tokenDetails.symbol),
+                      chainIconUrl: getChainName(claimLinkData.chainId)
+                          ? getChainLogo(getChainName(claimLinkData.chainId)!)
+                          : undefined,
+                  }
+                : undefined,
             peanutFeeDetails: {
                 amountDisplay: '$ 0.00',
             },

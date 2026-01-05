@@ -2,7 +2,7 @@ import Image from 'next/image'
 import React, { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import Card from '@/components/Global/Card'
 import NavigationArrow from '@/components/Global/NavigationArrow'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'

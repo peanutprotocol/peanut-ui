@@ -1,8 +1,7 @@
 'use client'
 import { getLinkFromTx, getNextDepositIndex } from '@/app/actions/claimLinks'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, next_proxy_url } from '@/constants'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
-import { isNativeCurrency, saveToLocalStorage } from '@/utils'
+import { isNativeCurrency, saveToLocalStorage } from '@/utils/general.utils'
 import peanut, {
     generateKeysFromString,
     getLatestContractVersion,
@@ -17,6 +16,8 @@ import { useSignTypedData } from 'wagmi'
 
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { next_proxy_url } from '@/constants/general.consts'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 
 export const useCreateLink = () => {
     const { setLoadingState } = useContext(loadingStateContext)

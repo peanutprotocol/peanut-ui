@@ -1,6 +1,5 @@
 'use client'
 
-import Icon from '@/components/Global/Icon'
 import TransactionCard from '@/components/TransactionDetails/TransactionCard'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
 import { EHistoryEntryType, type HistoryEntry, useTransactionHistory } from '@/hooks/useTransactionHistory'
@@ -20,8 +19,9 @@ import { BadgeStatusItem, isBadgeHistoryItem } from '@/components/Badges/BadgeSt
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { completeHistoryEntry } from '@/utils/history.utils'
 import { formatUnits } from 'viem'
-import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { useHaptic } from 'use-haptic'
+import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
+import { Icon } from '../Global/Icons/Icon'
 
 /**
  * component to display a preview of the most recent transactions on the home page.
@@ -109,8 +109,6 @@ const HomeHistory = ({ username }: { username?: string }) => {
                     const badges = user?.user?.badges ?? []
                     badges.forEach((b) => {
                         if (!b.earnedAt) return
-                        // dev-note: dev-connect badge to be shown in ui after post devconnect marketing campaign
-                        if (b.code.toLowerCase() === 'devconnect_ba_2025') return
                         entries.push({
                             isBadge: true,
                             uuid: b.id,
@@ -346,7 +344,7 @@ const HomeHistory = ({ username }: { username?: string }) => {
             ) : (
                 <Link href="/history" className="flex items-center justify-between" onClick={() => triggerHaptic()}>
                     <h2 className="text-base font-bold">Activity</h2>
-                    <Icon width={30} height={30} name="arrow-next" />
+                    <Icon name="chevron-up" size={30} className="rotate-90" />
                 </Link>
             )}
             {/* container for the transaction cards */}

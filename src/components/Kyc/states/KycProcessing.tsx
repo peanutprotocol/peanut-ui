@@ -2,7 +2,7 @@ import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { KYCStatusDrawerItem } from '../KycStatusItem'
 import Card from '@/components/Global/Card'
 import { useMemo } from 'react'
-import { formatDate } from '@/utils'
+import { formatDate } from '@/utils/general.utils'
 import { CountryRegionRow } from '../CountryRegionRow'
 
 // this component shows the kyc status while it's being processed.

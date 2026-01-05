@@ -1,18 +1,14 @@
 'use client'
 import { resolveEns } from '@/app/actions/ens'
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import Checkbox from '@/components/0_Bruddle/Checkbox'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import Modal from '@/components/Global/Modal'
 import QRBottomDrawer from '@/components/Global/QRBottomDrawer'
-import PeanutLoading from '@/components/Global/PeanutLoading'
 // QRScanner is NOT lazy-loaded - critical path for payments, needs instant response
 // 50KB bundle cost is worth it for better UX on primary flow
 import QRScanner from '@/components/Global/QRScanner'
 import { useAuth } from '@/context/authContext'
-import { usePush } from '@/context/pushProvider'
-import { useAppDispatch } from '@/redux/hooks'
-import { paymentActions } from '@/redux/slices/payment-slice'
 import { hitUserMetric } from '@/utils/metrics.utils'
 import * as Sentry from '@sentry/nextjs'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
@@ -22,7 +18,7 @@ import ActionModal from '../ActionModal'
 import { Icon, type IconName } from '../Icons/Icon'
 import { EQrType, NAME_BY_QR_TYPE, parseEip681, recognizeQr } from './utils'
 import { useHaptic } from 'use-haptic'
-import { useQrCodeContext } from '@/context/QrCodeContext'
+import { useModalsContext } from '@/context/ModalsContext'
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL!
 
@@ -51,8 +47,9 @@ const MODAL_CONTENTS: Record<ModalType, React.ComponentType<ModalContentProps>> 
     [EModalType.UNRECOGNIZED]: UnrecognizedContent,
 }
 
+// note: push notifications are now handled by onesignal via useNotifications hook.
+// this component just tracks the metric and shows confirmation.
 function NotSupportedContent({ setModalContent, qrType }: ModalContentProps) {
-    const pushNotifications = usePush()
     const { user } = useAuth()
     return (
         <div className="flex flex-col justify-center p-6">
@@ -60,15 +57,10 @@ function NotSupportedContent({ setModalContent, qrType }: ModalContentProps) {
             <span className="text-sm">Get notified when it goes live!</span>
             <Button
                 onClick={() => {
-                    if (pushNotifications.isSupported && !pushNotifications.isSubscribed) {
-                        pushNotifications.subscribe().then(() => {
-                            setModalContent(EModalType.WILL_BE_NOTIFIED)
-                            return
-                        })
-                    } else {
-                        setModalContent(EModalType.WILL_BE_NOTIFIED)
+                    setModalContent(EModalType.WILL_BE_NOTIFIED)
+                    if (user?.user.userId) {
+                        hitUserMetric(user.user.userId, 'qr-notify-me', { qrType })
                     }
-                    hitUserMetric(user!.user.userId, 'qr-notify-me', { qrType })
                 }}
                 className="mt-4 w-full"
                 shadowType="primary"
@@ -193,7 +185,6 @@ export default function DirectSendQr({
     const router = useRouter()
     const pathname = usePathname()
     const searchParams = useSearchParams()
-    const dispatch = useAppDispatch()
     const toast = useToast()
     const { user } = useAuth()
     const payUserUrl = useMemo(() => {
@@ -201,7 +192,7 @@ export default function DirectSendQr({
         return `${BASE_URL}/pay/${user.user.username}`
     }, [user?.user.username])
     const { triggerHaptic } = useHaptic()
-    const { isQRScannerOpen, setIsQRScannerOpen } = useQrCodeContext()
+    const { isQRScannerOpen, setIsQRScannerOpen } = useModalsContext()
 
     const startScanner = () => {
         setIsQRScannerOpen(true)
@@ -243,8 +234,6 @@ export default function DirectSendQr({
 
     const processQRCode = async (data: string): Promise<{ success: boolean; error?: string }> => {
         triggerHaptic()
-        // reset payment state before processing new QR
-        dispatch(paymentActions.resetPaymentState())
 
         let redirectUrl: string | undefined = undefined
         let toConfirmUrl: string | undefined = undefined
@@ -366,8 +355,6 @@ export default function DirectSendQr({
         }
 
         if (redirectUrl) {
-            dispatch(paymentActions.setView('INITIAL'))
-
             const currentSearchParams = searchParams.toString()
             let currentFullPath = pathname
             currentFullPath = currentSearchParams ? `${currentFullPath}?${currentSearchParams}` : currentFullPath
@@ -387,7 +374,6 @@ export default function DirectSendQr({
         }
 
         if (toConfirmUrl) {
-            dispatch(paymentActions.setView('INITIAL'))
             setModalContent(EModalType.DIRECT_SEND)
             setIsModalOpen(true)
             setIsQRScannerOpen(false)
@@ -448,9 +434,8 @@ export default function DirectSendQr({
                     className
                 )}
                 disabled={disabled}
-            >
-                <Icon name={icon} className="custom-size h-20 h-full w-20" />
-            </Button>
+                icon={<Icon name={icon} size={40} className="custom-size" />}
+            />
 
             <Modal
                 title={modalTitle}

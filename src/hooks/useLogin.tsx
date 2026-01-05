@@ -1,7 +1,7 @@
 import { useAuth } from '@/context/authContext'
 import { useZeroDev } from './useZeroDev'
 import { useEffect, useState } from 'react'
-import { getRedirectUrl, getValidRedirectUrl, clearRedirectUrl } from '@/utils'
+import { getRedirectUrl, getValidRedirectUrl, clearRedirectUrl } from '@/utils/general.utils'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 /**
@@ -12,6 +12,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
  * 1. `redirect_uri` query parameter (if present and safe)
  * 2. Saved redirect URL from localStorage (if present and safe)
  * 3. '/home' as fallback
+ *
+ * Note: The mobile-ui layout handles redirecting users without PEANUT_WALLET accounts to /setup/finish
  *
  * All redirects are sanitized to prevent external URL redirection attacks.
  *
@@ -27,10 +29,11 @@ export const useLogin = () => {
     const router = useRouter()
     const [isloginClicked, setIsloginClicked] = useState(false)
 
-    // Wait for user to be fetched, then redirect
+    // wait for user to be fetched, then redirect
     useEffect(() => {
-        // Run only if login button is clicked to provide un-intentional redirects.
+        // run only if login button is clicked to prevent un-intentional redirects
         if (isloginClicked && user) {
+            // redirect based on query params or saved redirect url
             const localStorageRedirect = getRedirectUrl()
             const redirect_uri = searchParams.get('redirect_uri')
             if (redirect_uri) {

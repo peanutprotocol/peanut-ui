@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import ActionModal from '../ActionModal'
 import ShareButton from '../ShareButton'
-import { generateInviteCodeLink, generateInvitesShareText } from '@/utils'
+import { generateInviteCodeLink, generateInvitesShareText } from '@/utils/general.utils'
 import { useAuth } from '@/context/authContext'
 import { updateUserById } from '@/app/actions/users'
 

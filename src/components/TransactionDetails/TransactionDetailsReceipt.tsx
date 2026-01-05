@@ -16,7 +16,8 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { useUserStore } from '@/redux/hooks'
 import { chargesApi } from '@/services/charges'
 import useClaimLink from '@/components/Claim/useClaimLink'
-import { formatAmount, formatDate, getInitialsFromName, isStableCoin, formatCurrency, getAvatarUrl } from '@/utils'
+import { formatAmount, formatDate, isStableCoin, formatCurrency } from '@/utils/general.utils'
+import { getAvatarUrl } from '@/utils/history.utils'
 import {
     formatIban,
     getContributorsFromCharge,
@@ -31,7 +32,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
 import Image from 'next/image'
 import React, { useMemo, useState, useEffect } from 'react'
-import { Button } from '../0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import DisplayIcon from '../Global/DisplayIcon'
 import { Icon } from '../Global/Icons/Icon'
 import { PerkIcon } from './PerkIcon'
@@ -49,7 +50,7 @@ import {
     type TransactionDetailsRowKey,
     transactionDetailsRowKeys,
 } from './transaction-details.utils'
-import { useSupportModalContext } from '@/context/SupportModalContext'
+import { useModalsContext } from '@/context/ModalsContext'
 import { useRouter } from 'next/navigation'
 import { countryData } from '@/components/AddMoney/consts'
 import { useToast } from '@/components/0_Bruddle/Toast'
@@ -60,10 +61,10 @@ import {
 } from '@/constants/manteca.consts'
 import { mantecaApi } from '@/services/manteca'
 import { getReceiptUrl } from '@/utils/history.utils'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
-import TransactionCard from './TransactionCard'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
 import ContributorCard from '../Global/Contributors/ContributorCard'
 import { requestsApi } from '@/services/requests'
+import { PasskeyDocsLink } from '../Setup/Views/SignTestTransaction'
 
 export const TransactionDetailsReceipt = ({
     transaction,
@@ -99,7 +100,7 @@ export const TransactionDetailsReceipt = ({
     const [showCancelLinkModal, setShowCancelLinkModal] = useState(false)
     const [tokenData, setTokenData] = useState<{ symbol: string; icon: string } | null>(null)
     const [isTokenDataLoading, setIsTokenDataLoading] = useState(true)
-    const { setIsSupportModalOpen } = useSupportModalContext()
+    const { setIsSupportModalOpen } = useModalsContext()
     const toast = useToast()
     const router = useRouter()
     const [cancelLinkText, setCancelLinkText] = useState<'Cancelling' | 'Cancelled' | 'Cancel link'>('Cancel link')
@@ -160,25 +161,33 @@ export const TransactionDetailsReceipt = ({
                 )
             ),
             txId: !!transaction.txHash,
-            cancelled: !!(transaction.status === 'cancelled' && transaction.cancelledDate),
+            // show cancelled row if status is cancelled, use cancelledDate or fallback to createdAt
+            cancelled: transaction.status === 'cancelled',
             claimed: !!(transaction.status === 'completed' && transaction.claimedAt),
             completed: !!(
                 transaction.status === 'completed' &&
                 transaction.completedAt &&
                 transaction.extraDataForDrawer?.originalType !== EHistoryEntryType.DIRECT_SEND
             ),
-            fee: transaction.fee !== undefined,
+            refunded: transaction.status === 'refunded',
+            fee: transaction.fee !== undefined && transaction.status !== 'cancelled',
             exchangeRate: !!(
                 (transaction.direction === 'bank_deposit' ||
                     transaction.direction === 'qr_payment' ||
                     transaction.direction === 'bank_withdraw') &&
                 transaction.currency?.code &&
-                transaction.currency.code.toUpperCase() !== 'USD'
+                transaction.currency.code.toUpperCase() !== 'USD' &&
+                transaction.status !== 'cancelled'
             ),
-            bankAccountDetails: !!(transaction.bankAccountDetails && transaction.bankAccountDetails.identifier),
+            bankAccountDetails: !!(
+                transaction.bankAccountDetails &&
+                transaction.bankAccountDetails.identifier &&
+                transaction.status !== 'cancelled'
+            ),
             transferId: !!(
                 transaction.id &&
-                (transaction.direction === 'bank_withdraw' || transaction.direction === 'bank_claim')
+                (transaction.direction === 'bank_withdraw' || transaction.direction === 'bank_claim') &&
+                transaction.status !== 'cancelled'
             ),
             depositInstructions: !!(
                 (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.BRIDGE_ONRAMP ||
@@ -189,10 +198,14 @@ export const TransactionDetailsReceipt = ({
                 transaction.extraDataForDrawer.depositInstructions.bank_name
             ),
             peanutFee: false, // Perk fee logic removed - perks now show as separate transactions
-            points: !!(transaction.points && transaction.points > 0),
-            comment: !!transaction.memo?.trim(),
-            networkFee: !!(transaction.networkFeeDetails && transaction.sourceView === 'status'),
-            attachment: !!transaction.attachmentUrl,
+            points: !!(transaction.points && transaction.points > 0 && transaction.status !== 'cancelled'),
+            comment: !!(transaction.memo?.trim() && transaction.status !== 'cancelled'),
+            networkFee: !!(
+                transaction.networkFeeDetails &&
+                transaction.sourceView === 'status' &&
+                transaction.status !== 'cancelled'
+            ),
+            attachment: !!(transaction.attachmentUrl && transaction.status !== 'cancelled'),
             mantecaDepositInfo:
                 !isPublic &&
                 transaction.extraDataForDrawer?.originalType === EHistoryEntryType.MANTECA_ONRAMP &&
@@ -548,7 +561,7 @@ export const TransactionDetailsReceipt = ({
                 direction={transaction.direction}
                 userName={transaction.userName}
                 amountDisplay={amountDisplay}
-                initials={getInitialsFromName(transaction.userName)}
+                initials={transaction.initials}
                 status={transaction.status}
                 isVerified={transaction.isVerified}
                 isLinkTransaction={transaction.extraDataForDrawer?.isLinkTransaction}
@@ -562,6 +575,8 @@ export const TransactionDetailsReceipt = ({
                 isRequestPotTransaction={transaction.isRequestPotLink}
                 isTransactionClosed={transaction.status === 'closed'}
                 convertedAmount={convertedAmount ?? undefined}
+                showFullName={transaction.showFullName}
+                fullName={transaction.fullName}
             />
 
             {/* Perk eligibility banner */}
@@ -619,7 +634,9 @@ export const TransactionDetailsReceipt = ({
                     {rowVisibilityConfig.cancelled && (
                         <PaymentInfoRow
                             label="Cancelled"
-                            value={formatDate(new Date(transaction.cancelledDate!))}
+                            value={formatDate(
+                                new Date(transaction.cancelledDate || transaction.createdAt || transaction.date)
+                            )}
                             hideBottomBorder={shouldHideBorder('cancelled')}
                         />
                     )}
@@ -637,6 +654,14 @@ export const TransactionDetailsReceipt = ({
                             label={getLabelText(transaction)}
                             value={formatDate(new Date(transaction.completedAt!))}
                             hideBottomBorder={shouldHideBorder('completed')}
+                        />
+                    )}
+
+                    {rowVisibilityConfig.refunded && (
+                        <PaymentInfoRow
+                            label="Refunded"
+                            value={formatDate(new Date(transaction.date))}
+                            hideBottomBorder={shouldHideBorder('refunded')}
                         />
                     )}
 
@@ -847,12 +872,16 @@ export const TransactionDetailsReceipt = ({
                                 value={
                                     <div className="flex items-center gap-2">
                                         <span>
-                                            {transaction.extraDataForDrawer.depositInstructions.deposit_message}
+                                            {transaction.extraDataForDrawer.depositInstructions.deposit_message.slice(
+                                                0,
+                                                10
+                                            )}
                                         </span>
                                         <CopyToClipboard
-                                            textToCopy={
-                                                transaction.extraDataForDrawer.depositInstructions.deposit_message
-                                            }
+                                            textToCopy={transaction.extraDataForDrawer.depositInstructions.deposit_message.slice(
+                                                0,
+                                                10
+                                            )}
                                             iconSize="4"
                                         />
                                     </div>
@@ -875,8 +904,32 @@ export const TransactionDetailsReceipt = ({
                             </div>
 
                             {/* Collapsible bank details */}
+
                             {showBankDetails && (
                                 <>
+                                    {transaction.extraDataForDrawer.depositInstructions.account_holder_name && (
+                                        <PaymentInfoRow
+                                            label="Account Holder Name"
+                                            value={
+                                                <div className="flex items-center gap-2">
+                                                    <span>
+                                                        {
+                                                            transaction.extraDataForDrawer.depositInstructions
+                                                                .account_holder_name
+                                                        }
+                                                    </span>
+                                                    <CopyToClipboard
+                                                        textToCopy={
+                                                            transaction.extraDataForDrawer.depositInstructions
+                                                                .account_holder_name
+                                                        }
+                                                        iconSize="4"
+                                                    />
+                                                </div>
+                                            }
+                                            hideBottomBorder={false}
+                                        />
+                                    )}
                                     <PaymentInfoRow
                                         label="Bank Name"
                                         value={
@@ -950,31 +1003,8 @@ export const TransactionDetailsReceipt = ({
                                                         />
                                                     </div>
                                                 }
-                                                hideBottomBorder={false}
+                                                hideBottomBorder={true}
                                             />
-                                            {transaction.extraDataForDrawer.depositInstructions.account_holder_name && (
-                                                <PaymentInfoRow
-                                                    label="Account Holder Name"
-                                                    value={
-                                                        <div className="flex items-center gap-2">
-                                                            <span>
-                                                                {
-                                                                    transaction.extraDataForDrawer.depositInstructions
-                                                                        .account_holder_name
-                                                                }
-                                                            </span>
-                                                            <CopyToClipboard
-                                                                textToCopy={
-                                                                    transaction.extraDataForDrawer.depositInstructions
-                                                                        .account_holder_name
-                                                                }
-                                                                iconSize="4"
-                                                            />
-                                                        </div>
-                                                    }
-                                                    hideBottomBorder={true}
-                                                />
-                                            )}
                                         </>
                                     ) : (
                                         /* US format (Account Number/Routing Number) */
@@ -1385,14 +1415,18 @@ export const TransactionDetailsReceipt = ({
                     </div>
                 )}
 
-            {/* support link section */}
-            <button
-                onClick={() => setIsSupportModalOpen(true)}
-                className="flex w-full items-center justify-center gap-2 text-sm font-medium text-grey-1 underline transition-colors hover:text-black"
-            >
-                <Icon name="peanut-support" size={16} className="text-grey-1" />
-                Issues with this transaction?
-            </button>
+            {/* support link section or passkey docs for test transactions */}
+            {transaction.userName === 'Enjoy Peanut!' ? (
+                <PasskeyDocsLink className="border-t-0 pt-0" />
+            ) : (
+                <button
+                    onClick={() => setIsSupportModalOpen(true)}
+                    className="flex w-full items-center justify-center gap-2 text-sm font-medium text-grey-1 underline transition-colors hover:text-black"
+                >
+                    <Icon name="peanut-support" size={16} className="text-grey-1" />
+                    Issues with this transaction?
+                </button>
+            )}
 
             {/* Cancel Link Modal  */}
 

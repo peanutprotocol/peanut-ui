@@ -3,9 +3,8 @@
 import NavHeader from '@/components/Global/NavHeader'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useRouter } from 'next/navigation'
-import React from 'react'
 import IdentityVerificationCountryList from '../components/IdentityVerificationCountryList'
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 
 const RegionsPage = ({ path }: { path: string }) => {
     const router = useRouter()

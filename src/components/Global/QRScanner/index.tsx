@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useToast } from '@/components/0_Bruddle/Toast'
-import { Button } from '@/components/0_Bruddle'
-import Icon from '@/components/Global/Icon'
+import { Button } from '@/components/0_Bruddle/Button'
 import { createPortal } from 'react-dom'
 import QrScannerLib from 'qr-scanner'
 import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
@@ -9,6 +8,7 @@ import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
 import { PEANUTMAN_LOGO } from '@/assets/peanut'
 import { ETHEREUM_ICON } from '@/assets/icons'
 import Image from 'next/image'
+import { Icon } from '../Icons/Icon'
 
 // QR Scanner Configuration
 const CAMERA_RETRY_DELAY_MS = 1000
@@ -313,7 +313,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                             className="border-1 mx-auto flex h-8 w-8 items-center justify-center border-white p-0"
                             onClick={closeScanner}
                         >
-                            <Icon name="close" fill="white" />
+                            <Icon name="cancel" fill="white" />
                         </Button>
                         <span className="text-3xl font-extrabold">Scan to pay</span>
                         <Button
@@ -321,7 +321,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                             className="border-1 mx-auto flex h-8 w-8 items-center justify-center border-white p-0"
                             onClick={toggleCamera}
                         >
-                            <Icon name="flip-camera" fill="white" height={24} width={24} />
+                            <Icon name="camera-flip" fill="white" height={24} width={24} />
                         </Button>
                     </div>
                     <div className="fixed left-1/2 flex h-64 w-64 -translate-x-1/2 translate-y-1/2 justify-center">

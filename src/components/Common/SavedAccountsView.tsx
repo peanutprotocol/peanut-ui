@@ -7,7 +7,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 
 import NavHeader from '../Global/NavHeader'
 import Divider from '../0_Bruddle/Divider'
-import { Button } from '../0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import { ActionListCard } from '../ActionListCard'
 
 interface SavedAccountListProps {
@@ -119,7 +119,7 @@ export function SavedAccountsMapping({
                                     />
                                 )}
                                 <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-yellow-400 p-1">
-                                    <Icon name="bank" className="h-full w-full text-black" />
+                                    <Icon size={12} name="bank" className="text-black" />
                                 </div>
                             </div>
                         }

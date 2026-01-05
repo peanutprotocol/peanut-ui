@@ -20,11 +20,11 @@ import { useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
 import { TRANSACTIONS } from '@/constants/query.consts'
-import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import type { HistoryResponse } from '@/hooks/useTransactionHistory'
 import { AccountType } from '@/interfaces'
 import { completeHistoryEntry } from '@/utils/history.utils'
 import { formatUnits } from 'viem'
+import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 
 /**
  * displays the user's transaction history with infinite scrolling and date grouping.
@@ -153,8 +153,6 @@ const HistoryPage = () => {
         const badges = user?.user?.badges ?? []
         badges.forEach((b) => {
             if (!b.earnedAt) return
-            // dev-note: dev-connect badge to be shown in ui after post devconnect marketing campaign
-            if (b.code.toLowerCase() === 'devconnect_ba_2025') return
             entries.push({
                 isBadge: true,
                 uuid: b.id,

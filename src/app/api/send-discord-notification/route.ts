@@ -1,5 +1,5 @@
 import type { NextRequest } from 'next/server'
-import { fetchWithSentry } from '@/utils'
+import { fetchWithSentry } from '@/utils/sentry.utils'
 
 export async function POST(request: NextRequest) {
     try {

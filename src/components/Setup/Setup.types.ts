@@ -11,7 +11,7 @@ export type ScreenId =
     | 'success'
     | 'unsupported-browser'
     | 'join-beta'
-    | 'collect-email'
+    | 'sign-test-transaction'
 
 export type LayoutType = 'signup' | 'standard' | 'android-initial-pwa-install'
 
@@ -31,7 +31,7 @@ export type ScreenProps = {
     'android-initial-pwa-install': undefined
     'unsupported-browser': undefined
     'join-beta': undefined
-    'collect-email': undefined
+    'sign-test-transaction': undefined
 }
 
 export interface StepComponentProps {

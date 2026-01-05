@@ -4,7 +4,7 @@ import { twMerge } from 'tailwind-merge'
 import { Icon, type IconProps } from '../Icons/Icon'
 
 interface InfoCardProps {
-    variant?: 'warning' | 'error' | 'info' | 'default'
+    variant?: 'warning' | 'error' | 'info' | 'success' | 'default'
     className?: string
     icon?: IconProps['name']
     iconSize?: number
@@ -19,6 +19,7 @@ interface InfoCardProps {
     itemIconSize?: number
     itemIconClassName?: string
     containerClassName?: string
+    customContent?: React.ReactNode
 }
 
 const VARIANT_CLASSES = {
@@ -26,6 +27,7 @@ const VARIANT_CLASSES = {
     error: 'border-error-5 bg-error-6 text-error',
     info: 'border-secondary-7 bg-secondary-9 text-black',
     default: 'border-grey-1 bg-grey-4 text-black',
+    success: 'border-success-1 bg-success-6 text-success-7',
 } as const
 
 const BASE_TEXT_CLASSES = 'text-start text-xs md:text-sm'
@@ -46,9 +48,10 @@ const InfoCard = ({
     itemIconSize = 16,
     itemIconClassName,
     containerClassName,
+    customContent,
 }: InfoCardProps) => {
     const variantClasses = VARIANT_CLASSES[variant]
-    const hasContent = title || description || items
+    const hasContent = title || description || items || customContent
 
     return (
         <Card className={twMerge('flex w-full border', variantClasses, className)}>
@@ -98,6 +101,8 @@ const InfoCard = ({
                         </>
                     )}
                     {!hasContent && <span className={BASE_TEXT_CLASSES}>No content provided</span>}
+
+                    {customContent && customContent}
                 </div>
             </div>
         </Card>

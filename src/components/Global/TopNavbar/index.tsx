@@ -1,5 +1,5 @@
 'use client'
-import { getHeaderTitle } from '@/utils'
+import { getHeaderTitle } from '@/utils/general.utils'
 import { usePathname } from 'next/navigation'
 import LogoutButton from '../LogoutButton'
 

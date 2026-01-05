@@ -1,13 +1,13 @@
 'use client'
 
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { MercadoPagoStep } from '@/types/manteca.types'
 import { type Dispatch, type FC, type SetStateAction, useState } from 'react'
-import { MANTECA_COUNTRIES_CONFIG } from '@/constants'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import { validateCbuCvuAlias } from '@/utils/withdraw.utils'
 import ErrorAlert from '@/components/Global/ErrorAlert'
+import { MANTECA_COUNTRIES_CONFIG } from '@/constants/manteca.consts'
 
 interface MantecaDetailsStepProps {
     setCurrentStep: Dispatch<SetStateAction<MercadoPagoStep>>

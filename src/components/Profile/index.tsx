@@ -1,13 +1,13 @@
 'use client'
 
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { useAuth } from '@/context/authContext'
 import NavHeader from '../Global/NavHeader'
 import ProfileHeader from './components/ProfileHeader'
 import ProfileMenuItem from './components/ProfileMenuItem'
 import { useRouter } from 'next/navigation'
-import { checkIfInternalNavigation, generateInviteCodeLink, generateInvitesShareText } from '@/utils'
+import { checkIfInternalNavigation, generateInviteCodeLink, generateInvitesShareText } from '@/utils/general.utils'
 import ActionModal from '../Global/ActionModal'
 import { useState } from 'react'
 import useKycStatus from '@/hooks/useKycStatus'
@@ -34,6 +34,8 @@ export const Profile = () => {
 
     const fullName = user?.user.fullName || user?.user?.username || 'Anonymous User'
     const username = user?.user.username || 'anonymous'
+    // respect user's showFullName preference: use fullName only if showFullName is true, otherwise use username
+    const displayName = user?.user.showFullName && user?.user.fullName ? user.user.fullName : username
 
     const inviteData = generateInviteCodeLink(user?.user.username ?? '')
 
@@ -54,7 +56,7 @@ export const Profile = () => {
                 }}
             />
             <div className="space-y-8">
-                <ProfileHeader name={fullName || username} username={username} isVerified={isUserKycApproved} />
+                <ProfileHeader name={displayName} username={username} isVerified={isUserKycApproved} />
                 <div className="space-y-4">
                     <ProfileMenuItem
                         icon="smile"
@@ -97,6 +99,13 @@ export const Profile = () => {
                                 </div>
                             </div>
                         </Card>
+                        <ProfileMenuItem
+                            icon="upload-cloud"
+                            label="Backup"
+                            href="/profile/backup"
+                            onClick={() => router.push('/profile/backup')}
+                            position="last"
+                        />
                         {/* Enable with Account Management project. */}
                         {/* <ProfileMenuItem
                             icon="bank"
@@ -139,7 +148,7 @@ export const Profile = () => {
                 visible={isInviteFriendsModalOpen}
                 onClose={() => setIsInviteFriendsModalOpen(false)}
                 title="Invite friends!"
-                description="Earn points when your referrals create an account in Peanut and also pocket 20% of the points they make!"
+                description="Invite friends to Peanut and help them skip ahead on the waitlist. Once they're onboarded and start using the app, you'll earn rewards from their activity too."
                 icon="user-plus"
                 content={
                     <>

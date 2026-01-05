@@ -6,7 +6,7 @@ import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
 import { shootDoubleStarConfetti } from '@/utils/confetti'
 import { getShakeClass, type ShakeIntensity } from '@/utils/perk.utils'
-import { PERK_HOLD_DURATION_MS } from '@/constants'
+import { PERK_HOLD_DURATION_MS } from '@/constants/general.consts'
 
 export default function DevShakeTestPage() {
     const [isShaking, setIsShaking] = useState(false)

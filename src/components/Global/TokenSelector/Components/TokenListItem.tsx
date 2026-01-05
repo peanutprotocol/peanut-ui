@@ -1,8 +1,15 @@
+/**
+ * token list item component for the token selector
+ *
+ * displays token icon, symbol, chain, and optionally balance/price
+ * handles selection state and disabled state for unsupported tokens
+ */
+
 import Card, { type CardPosition } from '@/components/Global/Card'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { type IUserBalance } from '@/interfaces'
-import { formatAmountWithSignificantDigits, formatAmount } from '@/utils'
+import { formatAmountWithSignificantDigits, formatAmount } from '@/utils/general.utils'
 import Image from 'next/image'
 import React, { useContext, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'

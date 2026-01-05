@@ -4,20 +4,27 @@ import { SearchInput } from '@/components/SearchInput'
 import { getCountriesForRegion } from '@/utils/identityVerification'
 import { MantecaSupportedExchanges } from '@/components/AddMoney/consts'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import * as Accordion from '@radix-ui/react-accordion'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import CountryListSection from './CountryListSection'
+import ActionModal from '@/components/Global/ActionModal'
 
 const IdentityVerificationCountryList = ({ region }: { region: string }) => {
     const [searchTerm, setSearchTerm] = useState('')
     const router = useRouter()
+    const [isUnavailableModalOpen, setIsUnavailableModalOpen] = useState(false)
+    const [selectedUnavailableCountry, setSelectedUnavailableCountry] = useState<string | null>(null)
 
-    const { supportedCountries, unsupportedCountries } = getCountriesForRegion(region)
+    const { supportedCountries, limitedAccessCountries, unsupportedCountries } = getCountriesForRegion(region)
 
     // Filter both arrays based on search term
     const filteredSupportedCountries = supportedCountries.filter((country) =>
+        country.title.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+
+    const filteredLimitedAccessCountries = limitedAccessCountries.filter((country) =>
         country.title.toLowerCase().includes(searchTerm.toLowerCase())
     )
 
@@ -63,7 +70,7 @@ const IdentityVerificationCountryList = ({ region }: { region: string }) => {
                     value="limited-access"
                     title="Limited access"
                     description="These countries support verification, but don't have full payment support yet."
-                    countries={filteredUnsupportedCountries}
+                    countries={filteredLimitedAccessCountries}
                     onCountryClick={(country) => {
                         // Check if country is in MantecaSupportedExchanges
                         const countryCode = country.iso2?.toUpperCase()
@@ -94,7 +101,52 @@ const IdentityVerificationCountryList = ({ region }: { region: string }) => {
                     )}
                     defaultOpen
                 />
+
+                {filteredUnsupportedCountries.length > 0 && (
+                    <CountryListSection
+                        value="unsupported-countries"
+                        title="Not available"
+                        description="Verification not supported in these countries yet."
+                        countries={filteredUnsupportedCountries}
+                        onCountryClick={(country) => {
+                            setSelectedUnavailableCountry(country.title)
+                            setIsUnavailableModalOpen(true)
+                        }}
+                        rightContent={() => (
+                            <div className="flex items-center gap-2">
+                                <StatusBadge
+                                    status="custom"
+                                    className="border border-error-2 bg-error-1 text-error"
+                                    customText="Unavailable"
+                                />
+                            </div>
+                        )}
+                        defaultOpen
+                    />
+                )}
             </Accordion.Root>
+
+            <ActionModal
+                icon="alert"
+                iconContainerClassName="bg-secondary-1"
+                title={`Verification not available in ${selectedUnavailableCountry}`}
+                description="We're unable to verify users from this region at this time. If you have legal residence in another country, please select that instead."
+                visible={isUnavailableModalOpen}
+                onClose={() => {
+                    setSelectedUnavailableCountry(null)
+                    setIsUnavailableModalOpen(false)
+                }}
+                ctas={[
+                    {
+                        text: 'I Understand',
+                        shadowSize: '4',
+                        onClick: () => {
+                            setSelectedUnavailableCountry(null)
+                            setIsUnavailableModalOpen(false)
+                        },
+                    },
+                ]}
+            />
         </div>
     )
 }

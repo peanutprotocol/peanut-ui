@@ -12,7 +12,7 @@ import EmptyState from '../Global/EmptyStates/EmptyState'
 import { useAuth } from '@/context/authContext'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { DynamicBankAccountForm, type IBankAccountDetails } from './DynamicBankAccountForm'
-import { addBankAccount, updateUserById } from '@/app/actions/users'
+import { addBankAccount } from '@/app/actions/users'
 import { type BridgeKycStatus } from '@/utils/bridge-accounts.utils'
 import { type AddBankAccountPayload } from '@/app/actions/types/users.types'
 import { useWebSocket } from '@/hooks/useWebSocket'
@@ -20,13 +20,13 @@ import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { type Account } from '@/interfaces'
 import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
-import CryptoMethodDrawer from '../AddMoney/components/CryptoMethodDrawer'
 import { useAppDispatch } from '@/redux/hooks'
 import { bankFormActions } from '@/redux/slices/bank-form-slice'
 import { InitiateBridgeKYCModal } from '../Kyc/InitiateBridgeKYCModal'
 import useKycStatus from '@/hooks/useKycStatus'
 import KycVerifiedOrReviewModal from '../Global/KycVerifiedOrReviewModal'
 import { ActionListCard } from '@/components/ActionListCard'
+import TokenAndNetworkConfirmationModal from '../Global/TokenAndNetworkConfirmationModal'
 
 interface AddWithdrawCountriesListProps {
     flow: 'add' | 'withdraw'
@@ -55,7 +55,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const [liveKycStatus, setLiveKycStatus] = useState<BridgeKycStatus | undefined>(
         user?.user?.bridgeKycStatus as BridgeKycStatus
     )
-    const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+    const [isSupportedTokensModalOpen, setIsSupportedTokensModalOpen] = useState(false)
 
     const { isUserBridgeKycUnderReview } = useKycStatus()
     const [showKycStatusModal, setShowKycStatusModal] = useState(false)
@@ -89,12 +89,11 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         const currentKycStatus = liveKycStatus || user?.user.bridgeKycStatus
         const isUserKycVerified = currentKycStatus === 'approved'
 
-        const hasNameOnLoad = !!user?.user.fullName
         const hasEmailOnLoad = !!user?.user.email
 
-        // scenario (1): happy path: if the user has already completed kyc and we have their name and email,
-        // we can add the bank account directly.
-        if (isUserKycVerified && (hasNameOnLoad || rawData.firstName) && (hasEmailOnLoad || rawData.email)) {
+        // scenario (1): happy path: if the user has already completed kyc, we can add the bank account directly
+        // note: we no longer check for fullName as account owner name is now always collected from the form
+        if (isUserKycVerified && (hasEmailOnLoad || rawData.email)) {
             const currentAccountIds = new Set(user?.accounts.map((acc) => acc.id) ?? [])
 
             const result = await addBankAccount(payload)
@@ -117,13 +116,13 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 // fallback to the previous method if we can't find the new account
                 // this can happen if the user object is not updated immediately
                 const newAccountFromResponse = result.data as Account
-                if (!newAccountFromResponse.details) {
-                    newAccountFromResponse.details = {
-                        countryCode: payload.countryCode,
-                        countryName: payload.countryName,
-                        bankName: null,
-                        accountOwnerName: `${payload.accountOwnerName.firstName} ${payload.accountOwnerName.lastName}`,
-                    }
+                // ensure details has accountOwnerName for confirmation page display
+                newAccountFromResponse.details = {
+                    ...(newAccountFromResponse.details || {}),
+                    countryCode: payload.countryCode,
+                    countryName: payload.countryName,
+                    bankName: newAccountFromResponse.details?.bankName || null,
+                    accountOwnerName: `${payload.accountOwnerName.firstName} ${payload.accountOwnerName.lastName}`,
                 }
                 setSelectedBankAccount(newAccountFromResponse)
             }
@@ -133,22 +132,6 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 router.push(`/withdraw/${currentCountry.path}/bank${queryParams}`)
             }
             return {}
-        }
-
-        // if the user's profile is missing their full name or email,
-        // we update it with the data they just provided in the form.
-        if (!hasNameOnLoad || !hasEmailOnLoad) {
-            if (user?.user.userId && rawData.firstName && rawData.lastName && rawData.email) {
-                const result = await updateUserById({
-                    userId: user.user.userId,
-                    fullName: `${rawData.firstName} ${rawData.lastName}`.trim(),
-                    email: rawData.email,
-                })
-                if (result.error) {
-                    return { error: result.error }
-                }
-                await fetchUser() // refetch user data to get updated name/email
-            }
         }
 
         // scenario (2): if the user hasn't completed kyc yet
@@ -209,7 +192,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const handleAddMethodClick = (method: SpecificPaymentMethod) => {
         if (method.path) {
             if (method.id === 'crypto-add') {
-                setIsDrawerOpen(true)
+                setIsSupportedTokensModalOpen(true)
                 return
             }
             // show kyc status modal if user is kyc under review
@@ -402,10 +385,14 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                     renderPaymentMethods('Choose withdrawing method', methods.withdraw)}
             </div>
             {flow === 'add' && (
-                <CryptoMethodDrawer
-                    isDrawerOpen={isDrawerOpen}
-                    setisDrawerOpen={setIsDrawerOpen}
-                    closeDrawer={() => setIsDrawerOpen(false)}
+                <TokenAndNetworkConfirmationModal
+                    onClose={() => {
+                        setIsSupportedTokensModalOpen(false)
+                    }}
+                    onAccept={() => {
+                        router.push('/add-money/crypto')
+                    }}
+                    isVisible={isSupportedTokensModalOpen}
                 />
             )}
             <KycVerifiedOrReviewModal

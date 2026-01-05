@@ -1,13 +1,17 @@
 'use client'
 
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import { ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
 import Card from '@/components/Global/Card'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_SYMBOL, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
+import {
+    PEANUT_WALLET_CHAIN,
+    PEANUT_WALLET_TOKEN_SYMBOL,
+    PEANUT_WALLET_TOKEN_DECIMALS,
+} from '@/constants/zerodev.consts'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
@@ -15,8 +19,9 @@ import { AccountType, type Account } from '@/interfaces'
 import { formatIban, shortenStringLong, isTxReverted } from '@/utils/general.utils'
 import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
-import { ErrorHandler, getBridgeChainName } from '@/utils'
+import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
+import { ErrorHandler } from '@/utils/sdkErrorHandler.utils'
+import { getBridgeChainName } from '@/utils/bridge-accounts.utils'
 import { getOfframpCurrencyConfig } from '@/utils/bridge.utils'
 import { createOfframp, confirmOfframp } from '@/app/actions/offramp'
 import { useAuth } from '@/context/authContext'
@@ -65,14 +70,6 @@ export default function WithdrawBankPage() {
         amountToWithdraw,
         !!(amountToWithdraw && bankAccount),
         bankAccount?.id
-    )
-
-    // non-eur sepa countries that are currently experiencing issues
-    const isNonEuroSepaCountry = !!(
-        nonEuroCurrency &&
-        nonEuroCurrency !== 'EUR' &&
-        nonEuroCurrency !== 'USD' &&
-        nonEuroCurrency !== 'MXN'
     )
 
     useEffect(() => {
@@ -281,7 +278,10 @@ export default function WithdrawBankPage() {
                     />
 
                     <Card className="rounded-sm">
-                        <PaymentInfoRow label={'Full name'} value={user?.user.fullName} />
+                        <PaymentInfoRow
+                            label={'Account Owner'}
+                            value={bankAccount?.details?.accountOwnerName || user?.user.fullName || 'N/A'}
+                        />
                         {bankAccount?.type === AccountType.IBAN ? (
                             <>
                                 <PaymentInfoRow
@@ -308,26 +308,9 @@ export default function WithdrawBankPage() {
                         <PaymentInfoRow hideBottomBorder label="Fee" value={`$ 0.00`} />
                     </Card>
 
-                    {isNonEuroSepaCountry && (
-                        <div className="rounded-sm border border-yellow-500 bg-yellow-50 p-4">
-                            <div className="flex items-start gap-3">
-                                <div className="mt-0.5 text-xl">⚠️</div>
-                                <div className="flex-1">
-                                    <p className="text-sm font-semibold text-yellow-800">
-                                        Service Temporarily Unavailable
-                                    </p>
-                                    <p className="mt-1 text-xs text-yellow-700">
-                                        Withdrawals to {nonEuroCurrency} bank accounts are temporarily unavailable.
-                                        Please try again later.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
                     {error.showError ? (
                         <Button
-                            disabled={isLoading || isNonEuroSepaCountry}
+                            disabled={isLoading}
                             onClick={handleCreateAndInitiateOfframp}
                             loading={isLoading}
                             shadowSize="4"
@@ -344,10 +327,10 @@ export default function WithdrawBankPage() {
                             iconSize={12}
                             shadowSize="4"
                             onClick={handleCreateAndInitiateOfframp}
-                            disabled={isLoading || !bankAccount || isNonEuroSepaCountry || !!balanceErrorMessage}
+                            disabled={isLoading || !bankAccount || !!balanceErrorMessage}
                             className="w-full"
                         >
-                            {isNonEuroSepaCountry ? 'Temporarily Unavailable' : 'Withdraw'}
+                            Withdraw
                         </Button>
                     )}
                     {error.showError && <ErrorAlert description={error.errorMessage} />}
@@ -356,7 +339,7 @@ export default function WithdrawBankPage() {
             )}
 
             {view === 'SUCCESS' && (
-                <DirectSuccessView
+                <PaymentSuccessView
                     isWithdrawFlow
                     currencyAmount={`$${amountToWithdraw}`}
                     message={bankAccount ? shortenStringLong(bankAccount.identifier.toUpperCase()) : ''}

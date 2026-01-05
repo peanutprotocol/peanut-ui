@@ -3,7 +3,7 @@
 import { getSquidChains, getSquidTokens } from '@squirrel-labs/peanut-sdk'
 import { unstable_cache } from 'next/cache'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
-import { supportedPeanutChains } from '@/constants'
+import { supportedPeanutChains } from '@/constants/general.consts'
 
 const supportedByPeanut = (chain: interfaces.ISquidChain): boolean =>
     'evm' === chain.chainType &&
@@ -47,7 +47,7 @@ export const getSquidChainsAndTokens = unstable_cache(
         }, {})
 
         tokens.forEach((token) => {
-            if (token.active && token.chainId in chainsById) {
+            if (token.chainId in chainsById) {
                 chainsById[token.chainId].tokens.push(token)
             }
         })

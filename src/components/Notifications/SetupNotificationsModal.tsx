@@ -8,7 +8,7 @@ export default function SetupNotificationsModal() {
         requestPermission,
         closePermissionModal,
         afterPermissionAttempt,
-        hidePermissionModalImmediate,
+        isRequestingPermission,
     } = useNotifications()
 
     const handleAllowClick = async (e?: React.MouseEvent) => {
@@ -18,17 +18,11 @@ export default function SetupNotificationsModal() {
 
         try {
             // request permission - this shows the native dialog
-            // keep our modal open while native dialog is shown
             await requestPermission()
-
             // after user interacts with native dialog, handle the result
-            // this will close our modal and schedule banner if needed
-            hidePermissionModalImmediate()
             await afterPermissionAttempt()
         } catch (error) {
             console.error('Error requesting permission:', error)
-            // ensure modal is closed even on error
-            hidePermissionModalImmediate()
         }
     }
 
@@ -52,11 +46,13 @@ export default function SetupNotificationsModal() {
                 ctaClassName="md:flex-col gap-4"
                 ctas={[
                     {
-                        text: 'Enable notifications',
+                        text: isRequestingPermission ? 'Requesting...' : 'Enable notifications',
                         onClick: handleAllowClick,
                         variant: 'purple',
                         shadowSize: '4',
                         className: 'py-2.5',
+                        loading: isRequestingPermission,
+                        disabled: isRequestingPermission,
                     },
                     {
                         text: 'Not now',

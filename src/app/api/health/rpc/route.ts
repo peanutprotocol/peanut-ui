@@ -1,4 +1,4 @@
-import { fetchWithSentry } from '@/utils'
+import { fetchWithSentry } from '@/utils/sentry.utils'
 import { NextResponse } from 'next/server'
 import { rpcUrls } from '@/constants/general.consts'
 

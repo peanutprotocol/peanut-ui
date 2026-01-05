@@ -15,7 +15,7 @@ import {
     MANTECA_ARG_DEPOSIT_NAME,
     MANTECA_COUNTRIES_CONFIG,
 } from '@/constants/manteca.consts'
-import { shortenStringLong, formatCurrency } from '@/utils'
+import { shortenStringLong, formatCurrency } from '@/utils/general.utils'
 
 const MantecaDepositShareDetails = ({
     depositDetails,

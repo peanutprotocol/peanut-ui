@@ -1,13 +1,11 @@
 'use client'
-import { useAppDispatch } from '@/redux/hooks'
-import { sendFlowActions } from '@/redux/slices/send-flow-slice'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { MERCADO_PAGO, PIX } from '@/assets'
 import LinkSendFlowManager from '../link/LinkSendFlowManager'
 import NavHeader from '@/components/Global/NavHeader'
 import Card from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import Divider from '@/components/0_Bruddle/Divider'
 import { ActionListCard } from '@/components/ActionListCard'
 import IconStack from '@/components/Global/IconStack'
@@ -23,7 +21,6 @@ import ContactsView from './Contacts.view'
 
 export const SendRouterView = () => {
     const router = useRouter()
-    const dispatch = useAppDispatch()
     const searchParams = useSearchParams()
     const isSendingByLink = searchParams.get('view') === 'link' || searchParams.get('createLink') === 'true'
     const isSendingToContacts = searchParams.get('view') === 'contacts'
@@ -77,16 +74,12 @@ export const SendRouterView = () => {
     }, [isFetchingContacts, recentContactsAvatarInitials])
 
     const redirectToSendByLink = () => {
-        // reset send flow state when entering link creation flow
-        dispatch(sendFlowActions.resetSendFlow())
         router.push(`${window.location.pathname}?view=link`)
     }
 
     const handlePrev = () => {
-        // reset send flow state and navigate deterministically
         // when in sub-views (link or contacts), go back to base send page
         // otherwise, go to home
-        dispatch(sendFlowActions.resetSendFlow())
         if (isSendingByLink || isSendingToContacts) {
             router.push('/send')
         } else {
@@ -137,7 +130,7 @@ export const SendRouterView = () => {
                         ...method,
                         identifierIcon: (
                             <div className="flex size-8 min-w-8 items-center justify-center rounded-full bg-black">
-                                <Icon name="bank" size={14} color="white" />
+                                <Icon name="bank" size={14} fill="white" />
                             </div>
                         ),
                     }
