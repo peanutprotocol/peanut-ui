@@ -6,10 +6,10 @@ import { Icon } from '../Global/Icons/Icon'
 import { twMerge } from 'tailwind-merge'
 import { Tooltip } from '../Tooltip'
 import { useMemo } from 'react'
-import { isAddress } from 'viem'
 import { useAuth } from '@/context/authContext'
 import AddressLink from '../Global/AddressLink'
 import { Button } from '@/components/0_Bruddle/Button'
+import { isCryptoAddress } from '@/utils/general.utils'
 
 interface UserHeaderProps {
     username: string
@@ -79,8 +79,8 @@ export const VerifiedUserLabel = ({
         tooltipContent = "This is a verified user and you've sent them money before."
     }
 
-    const isCryptoAddress = useMemo(() => {
-        return isAddress(username)
+    const isCryptoAddressComputed = useMemo(() => {
+        return isCryptoAddress(username)
     }, [username])
 
     // O(1) lookup in pre-computed Set
@@ -90,7 +90,7 @@ export const VerifiedUserLabel = ({
 
     return (
         <div className="flex items-center gap-1.5">
-            {isCryptoAddress ? (
+            {isCryptoAddressComputed ? (
                 <AddressLink
                     isLink={false}
                     className={twMerge('font-semibold md:text-base', className)}
