@@ -5,7 +5,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import { ActionListCard } from '@/components/ActionListCard'
 import { useContacts } from '@/hooks/useContacts'
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { VerifiedUserLabel } from '@/components/UserHeader'
 import { SearchInput } from '@/components/SearchInput'
@@ -49,9 +49,11 @@ export default function ContactsView() {
     })
 
     // track when we've loaded data at least once
-    if (!hasLoadedOnce && !isFetchingContacts) {
-        setHasLoadedOnce(true)
-    }
+    useEffect(() => {
+        if (!hasLoadedOnce && !isFetchingContacts) {
+            setHasLoadedOnce(true)
+        }
+    }, [isFetchingContacts, hasLoadedOnce])
 
     const redirectToSendByLink = () => {
         router.push(`${window.location.pathname}?view=link`)
