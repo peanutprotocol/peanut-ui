@@ -66,9 +66,14 @@ const AmountInput = ({
     const [exactValue, setExactValue] = useState(Number(initialAmount || '') * 10 ** DECIMAL_SCALE)
     const [displaySymbol, setDisplaySymbol] = useState<string>(primaryDenomination.symbol)
 
+    // Track the last secondary amount we output to detect feedback loops
+    // When initialAmount matches this, it's our own output being fed back - ignore it
+    const lastOutputSecondaryRef = useRef<string>('')
+
     // sync displayValue with initialAmount changes (e.g. when charge is fetched)
+    // Skip sync if initialAmount matches what we just output (feedback loop prevention)
     useEffect(() => {
-        if (initialAmount && initialAmount !== displayValue) {
+        if (initialAmount && initialAmount !== displayValue && initialAmount !== lastOutputSecondaryRef.current) {
             setDisplayValue(initialAmount)
             setExactValue(Number(initialAmount) * 10 ** DECIMAL_SCALE)
         }
@@ -123,9 +128,13 @@ const AmountInput = ({
         if (isPrimaryDenomination) {
             setPrimaryAmount(rawDisplayValue)
             setSecondaryAmount?.(rawAlternativeValue)
+            // Track what we output as secondary to detect feedback loops
+            lastOutputSecondaryRef.current = rawAlternativeValue
         } else {
             setPrimaryAmount(rawAlternativeValue)
             setSecondaryAmount?.(rawDisplayValue)
+            // Track what we output as secondary to detect feedback loops
+            lastOutputSecondaryRef.current = rawDisplayValue
         }
     }, [displayValue, alternativeDisplayValue, displaySymbol, secondaryDenomination])
 
@@ -216,10 +225,8 @@ const AmountInput = ({
                             }}
                             ref={inputRef}
                             inputMode="decimal"
-                            type="number"
+                            type="text"
                             value={displayValue}
-                            step="any"
-                            min="0"
                             autoComplete="off"
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
