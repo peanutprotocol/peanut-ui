@@ -6,7 +6,14 @@ import { useAuth } from '@/context/authContext'
 import { useKernelClient } from '@/context/kernelClient.context'
 import { useAppDispatch, useSetupStore, useZerodevStore } from '@/redux/hooks'
 import { zerodevActions } from '@/redux/slices/zerodev-slice'
-import { getFromCookie, removeFromCookie, saveToCookie, clearAuthState } from '@/utils'
+import {
+    getFromCookie,
+    removeFromCookie,
+    saveToCookie,
+    clearAuthState,
+    capturePasskeyDebugInfo,
+    WebAuthnErrorName,
+} from '@/utils'
 import { toWebAuthnKey, WebAuthnMode } from '@zerodev/passkey-validator'
 import { useCallback, useContext } from 'react'
 import type { TransactionReceipt, Hex, Hash } from 'viem'
@@ -169,8 +176,36 @@ export const useZeroDev = () => {
             } catch (error) {
                 console.error('Error sending UserOp:', error)
 
-                // Detect stale webAuthnKey errors (AA24, wapk) and provide user feedback
-                // NOTE: Don't auto-clear here - user is mid-transaction, avoid data loss
+                // handle NotAllowedError (user canceled, timeout, or biometric failure)
+                // this commonly occurs when:
+                // - windows biometric reader takes too long (exceeds webauthn timeout)
+                // - user cancels the authentication prompt
+                // - biometric authentication fails
+                if ((error as Error).name === WebAuthnErrorName.NotAllowed) {
+                    // capture device debug info to help diagnose device-specific issues
+                    const debugInfo = await capturePasskeyDebugInfo('transaction_signing_not_allowed')
+
+                    captureException(error, {
+                        tags: { error_type: 'transaction_signing_not_allowed' },
+                        extra: {
+                            errorMessage: String(error),
+                            context: 'transaction_signing',
+                            userId: user?.user.userId,
+                            // device debug info for troubleshooting
+                            debugInfo,
+                        },
+                    })
+
+                    dispatch(zerodevActions.setIsSendingUserOp(false))
+
+                    throw new PasskeyError(
+                        'Biometric verification timed out. Please try again and complete the verification.',
+                        'SIGNING_CANCELED'
+                    )
+                }
+
+                // detect stale webAuthnKey errors (AA24, wapk) and provide user feedback
+                // NOTE: don't auto-clear here - user is mid-transaction, avoid data loss
                 if (isStaleKeyError(error)) {
                     console.error('Detected stale webAuthnKey error - session is invalid')
                     captureException(error, {
