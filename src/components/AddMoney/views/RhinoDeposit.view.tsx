@@ -226,7 +226,7 @@ const RhinoDepositView = ({
                                     <p className="text-sm">Supported tokens:</p>
                                     {RHINO_SUPPORTED_TOKENS.filter((token) => {
                                         if (chainType === 'TRON') {
-                                            return token.name !== 'USDT'
+                                            return token.name !== 'USDC'
                                         }
                                         return true
                                     }).map((token) => (
