@@ -66,14 +66,16 @@ const AmountInput = ({
     const [exactValue, setExactValue] = useState(Number(initialAmount || '') * 10 ** DECIMAL_SCALE)
     const [displaySymbol, setDisplaySymbol] = useState<string>(primaryDenomination.symbol)
 
-    // Track the last secondary amount we output to detect feedback loops
-    // When initialAmount matches this, it's our own output being fed back - ignore it
-    const lastOutputSecondaryRef = useRef<string>('')
+    // Track when user is actively editing to prevent feedback loops from initialAmount sync
+    const isEditingRef = useRef(false)
 
-    // sync displayValue with initialAmount changes (e.g. when charge is fetched)
-    // Skip sync if initialAmount matches what we just output (feedback loop prevention)
+    // Check if displayValue has a meaningful numeric value (not empty, "0", "0.00", etc.)
+    const hasValue = Boolean(Number(displayValue))
+
+    // Sync displayValue with initialAmount changes (e.g. when charge is fetched)
+    // Skip sync if user is actively editing to prevent overwriting their input
     useEffect(() => {
-        if (initialAmount && initialAmount !== displayValue && initialAmount !== lastOutputSecondaryRef.current) {
+        if (initialAmount && initialAmount !== displayValue && !isEditingRef.current) {
             setDisplayValue(initialAmount)
             setExactValue(Number(initialAmount) * 10 ** DECIMAL_SCALE)
         }
@@ -123,24 +125,22 @@ const AmountInput = ({
         const isPrimaryDenomination = displaySymbol === primaryDenomination.symbol
         // Strip commas before passing to consumers - they expect raw numeric strings
         const rawDisplayValue = displayValue.replace(/,/g, '')
-        const rawAlternativeValue = alternativeDisplayValue.replace(/,/g, '')
+        // Don't output "0.00" when there's no actual value - keep it empty to avoid feedback loops
+        const rawAlternativeValue = hasValue ? alternativeDisplayValue.replace(/,/g, '') : ''
 
         if (isPrimaryDenomination) {
             setPrimaryAmount(rawDisplayValue)
             setSecondaryAmount?.(rawAlternativeValue)
-            // Track what we output as secondary to detect feedback loops
-            lastOutputSecondaryRef.current = rawAlternativeValue
         } else {
             setPrimaryAmount(rawAlternativeValue)
             setSecondaryAmount?.(rawDisplayValue)
-            // Track what we output as secondary to detect feedback loops
-            lastOutputSecondaryRef.current = rawDisplayValue
         }
-    }, [displayValue, alternativeDisplayValue, displaySymbol, secondaryDenomination])
+    }, [displayValue, alternativeDisplayValue, displaySymbol, secondaryDenomination, hasValue])
 
     const onSliderValueChange = useCallback(
         (value: number[]) => {
             if (maxAmount) {
+                isEditingRef.current = true
                 const selectedPercentage = value[0]
                 let selectedAmount = (selectedPercentage / 100) * maxAmount
 
@@ -214,6 +214,7 @@ const AmountInput = ({
                             className={`h-12 max-w-80 bg-transparent text-6xl font-black text-black caret-primary-1 outline-none transition-colors placeholder:text-h1 placeholder:text-gray-1 focus:border-primary-1 disabled:opacity-100 disabled:[-webkit-text-fill-color:black] dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1 dark:disabled:[-webkit-text-fill-color:white]`}
                             placeholder={'0.00'}
                             onChange={(e) => {
+                                isEditingRef.current = true
                                 let value = e.target.value
                                 const maxDecimals = denominations[displaySymbol].decimals
                                 const formattedAmount = formatTokenAmount(value, maxDecimals, true)
@@ -269,6 +270,15 @@ const AmountInput = ({
                     className="absolute right-0 top-1/2 -translate-x-1/2 -translate-y-1/2 transform cursor-pointer"
                     onClick={(e) => {
                         e.preventDefault()
+                        // Reset editing state - user is switching currency, allow sync with converted value
+                        isEditingRef.current = false
+                        // If no meaningful value entered, just switch symbol and keep empty
+                        if (!hasValue) {
+                            setDisplayValue('')
+                            setExactValue(0)
+                            setDisplaySymbol(alternativeDisplaySymbol)
+                            return
+                        }
                         setExactValue(alternativeValue)
                         setDisplayValue(alternativeDisplayValue.replace(/,/g, ''))
                         setDisplaySymbol(alternativeDisplaySymbol)
