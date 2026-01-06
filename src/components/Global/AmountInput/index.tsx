@@ -225,10 +225,8 @@ const AmountInput = ({
                             }}
                             ref={inputRef}
                             inputMode="decimal"
-                            type="number"
+                            type="text"
                             value={displayValue}
-                            step="any"
-                            min="0"
                             autoComplete="off"
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
