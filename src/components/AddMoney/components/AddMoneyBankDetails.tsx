@@ -213,7 +213,7 @@ Please use these details to complete your bank transfer.`
                     <p className="text-xs font-normal text-gray-1">Amount to send</p>
                     <div className="flex items-baseline gap-2">
                         <p className="text-2xl font-extrabold text-black md:text-4xl">{formattedCurrencyAmount}</p>
-                        <CopyToClipboard textToCopy={formattedCurrencyAmount} fill="black" iconSize="3" />
+                        <CopyToClipboard textToCopy={formattedCurrencyAmount} fill="black" iconSize="4" />
                     </div>
 
                     <InfoCard variant="warning" className="mt-4" icon="alert" description="Send exactly this amount!" />

@@ -5,7 +5,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import { ActionListCard } from '@/components/ActionListCard'
 import { useContacts } from '@/hooks/useContacts'
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { VerifiedUserLabel } from '@/components/UserHeader'
 import { SearchInput } from '@/components/SearchInput'
@@ -13,6 +13,7 @@ import PeanutLoading from '@/components/Global/PeanutLoading'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { Button } from '@/components/0_Bruddle/Button'
 import { useDebounce } from '@/hooks/useDebounce'
+import { ContactsListSkeleton } from '@/components/Common/ContactsListSkeleton'
 
 export default function ContactsView() {
     const router = useRouter()
@@ -20,6 +21,7 @@ export default function ContactsView() {
     const isSendingByLink = searchParams.get('view') === 'link' || searchParams.get('createLink') === 'true'
     const isSendingToContacts = searchParams.get('view') === 'contacts'
     const [searchQuery, setSearchQuery] = useState('')
+    const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
 
     // debounce search query to avoid excessive API calls
     const debouncedSearchQuery = useDebounce(searchQuery, 300)
@@ -46,6 +48,13 @@ export default function ContactsView() {
         enabled: true,
     })
 
+    // track when we've loaded data at least once
+    useEffect(() => {
+        if (!hasLoadedOnce && !isFetchingContacts) {
+            setHasLoadedOnce(true)
+        }
+    }, [isFetchingContacts, hasLoadedOnce])
+
     const redirectToSendByLink = () => {
         router.push(`${window.location.pathname}?view=link`)
     }
@@ -69,7 +78,8 @@ export default function ContactsView() {
         router.push(`/send/${username}`)
     }
 
-    if (isFetchingContacts) {
+    // only show full loading on initial load (before any data has been fetched)
+    if (isFetchingContacts && !hasLoadedOnce) {
         return <PeanutLoading />
     }
 
@@ -120,7 +130,10 @@ export default function ContactsView() {
                     />
 
                     {/* contacts list or search results */}
-                    {contacts.length > 0 ? (
+                    {isFetchingContacts ? (
+                        // show skeleton when searching/refetching
+                        <ContactsListSkeleton count={5} />
+                    ) : contacts.length > 0 ? (
                         <div className="space-y-2">
                             <h2 className="text-base font-bold">Your contacts</h2>
                             <div className="flex-1 space-y-0 overflow-y-auto">

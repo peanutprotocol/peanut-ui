@@ -36,7 +36,7 @@ const InfoCard = ({
     variant = 'default',
     className,
     icon,
-    iconSize = 16,
+    iconSize = 14,
     iconClassName,
     title,
     titleClassName,
