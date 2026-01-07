@@ -200,12 +200,14 @@ const PaymentSuccessView = ({
     }, [queryClient])
 
     const handleDone = () => {
-        onComplete?.()
+        // Navigate first, then call onComplete - otherwise onComplete may reset state
+        // causing this component to unmount before router.push executes
         if (!!authUser?.user.userId) {
             router.push('/home')
         } else {
             router.push('/setup')
         }
+        onComplete?.()
     }
 
     const getTitle = () => {
