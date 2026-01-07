@@ -1,5 +1,4 @@
 'use client'
-import '@/utils/crypto-polyfill' // Polyfill crypto.randomUUID for DaimoPayProvider
 import { JustaNameContext } from '@/config/justaname.config'
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
 import {
