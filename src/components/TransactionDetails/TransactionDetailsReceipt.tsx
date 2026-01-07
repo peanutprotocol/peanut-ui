@@ -818,7 +818,7 @@ export const TransactionDetailsReceipt = ({
                             {transaction.extraDataForDrawer?.receipt?.exchange_rate && (
                                 <PaymentInfoRow
                                     label="Exchange rate"
-                                    value={`1 USD = ${transaction.currency!.code?.toUpperCase()} ${formatCurrency(transaction.extraDataForDrawer.receipt.exchange_rate)}`}
+                                    value={`1 USD = ${transaction.currency!.code?.toUpperCase()} ${formatCurrency(transaction.extraDataForDrawer.receipt.exchange_rate, 4)}`}
                                     hideBottomBorder={shouldHideBorder('exchangeRate')}
                                 />
                             )}
