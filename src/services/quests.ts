@@ -4,9 +4,9 @@
  */
 
 import Cookies from 'js-cookie'
-import { fetchWithSentry } from '@/utils'
-import { PEANUT_API_URL } from '@/constants'
+import { fetchWithSentry } from '@/utils/sentry.utils'
 import type { QuestLeaderboardData, AllQuestsLeaderboardData } from '@/app/quests/types'
+import { PEANUT_API_URL } from '@/constants/general.consts'
 
 export const questsApi = {
     /**

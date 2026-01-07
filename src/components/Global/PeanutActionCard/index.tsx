@@ -24,7 +24,7 @@ const PeanutActionCard = ({ type }: PeanutActionCardProps) => {
                 </div>
                 <div className="flex items-center gap-1">
                     <Image src={SOCIALS_ICON} alt="Socials" width={32} height={13} />
-                    <p className="text-xs text-grey-1">Perfect for group chats!</p>
+                    <p className="text-xs text-grey-1">Perfect to DM friends!</p>
                 </div>
             </div>
         </Card>

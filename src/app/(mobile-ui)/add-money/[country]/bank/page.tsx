@@ -1,13 +1,13 @@
 'use client'
 
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
-import TokenAmountInput from '@/components/Global/TokenAmountInput'
-import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
+import AmountInput from '@/components/Global/AmountInput'
+import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useOnrampFlow } from '@/context/OnrampFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { formatAmount } from '@/utils'
+import { formatAmount } from '@/utils/general.utils'
 import { countryData } from '@/components/AddMoney/consts'
 import { type BridgeKycStatus } from '@/utils/bridge-accounts.utils'
 import { useWebSocket } from '@/hooks/useWebSocket'
@@ -15,7 +15,6 @@ import { useAuth } from '@/context/authContext'
 import { useCreateOnramp } from '@/hooks/useCreateOnramp'
 import { useRouter, useParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useNonEurSepaRedirect } from '@/hooks/useNonEurSepaRedirect'
 import { formatUnits } from 'viem'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
@@ -26,8 +25,6 @@ import { getCurrencyConfig, getCurrencySymbol, getMinimumAmount } from '@/utils/
 import { OnrampConfirmationModal } from '@/components/AddMoney/components/OnrampConfirmationModal'
 import { InitiateBridgeKYCModal } from '@/components/Kyc/InitiateBridgeKYCModal'
 import InfoCard from '@/components/Global/InfoCard'
-import { usePaymentStore } from '@/redux/hooks'
-import { saveDevConnectIntent } from '@/utils'
 
 type AddStep = 'inputAmount' | 'kyc' | 'loading' | 'collectUserDetails' | 'showDetails'
 
@@ -50,16 +47,8 @@ export default function OnrampBankPage() {
     const { balance } = useWallet()
     const { user, fetchUser } = useAuth()
     const { createOnramp, isLoading: isCreatingOnramp, error: onrampError } = useCreateOnramp()
-    const { parsedPaymentData } = usePaymentStore()
 
     const selectedCountryPath = params.country as string
-
-    // redirect to add-money if this is a non-eur sepa country (blocked)
-    useNonEurSepaRedirect({
-        countryIdentifier: selectedCountryPath,
-        redirectPath: '/add-money',
-        shouldRedirect: true,
-    })
 
     const selectedCountry = useMemo(() => {
         if (!selectedCountryPath) return null
@@ -126,8 +115,7 @@ export default function OnrampBankPage() {
                 setError({ showError: false, errorMessage: '' })
                 return true
             }
-            const cleanedAmountStr = amountStr.replace(/,/g, '')
-            const amount = Number(cleanedAmountStr)
+            const amount = Number(amountStr)
             if (!Number.isFinite(amount)) {
                 setError({ showError: true, errorMessage: 'Please enter a valid number.' })
                 return false
@@ -173,26 +161,17 @@ export default function OnrampBankPage() {
             })
             return
         }
-        const cleanedAmount = rawTokenAmount.replace(/,/g, '')
-        setAmountToOnramp(cleanedAmount)
+        setAmountToOnramp(rawTokenAmount)
         setShowWarningModal(false)
         setIsRiskAccepted(false)
         try {
             const onrampDataResponse = await createOnramp({
-                amount: cleanedAmount,
+                amount: rawTokenAmount,
                 country: selectedCountry,
             })
             setOnrampData(onrampDataResponse)
 
             if (onrampDataResponse.transferId) {
-                // @dev: save devconnect intent if this is a devconnect flow - to be deleted post devconnect
-                saveDevConnectIntent(
-                    user?.user?.userId,
-                    parsedPaymentData,
-                    cleanedAmount,
-                    onrampDataResponse.transferId
-                )
-
                 setStep('showDetails')
             } else {
                 setError({
@@ -344,23 +323,22 @@ export default function OnrampBankPage() {
                 <NavHeader title="Add Money" onPrev={handleBack} />
                 <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
                     <div className="text-sm font-bold">How much do you want to add?</div>
-                    <TokenAmountInput
-                        tokenValue={rawTokenAmount}
-                        setTokenValue={handleTokenAmountChange}
+                    <AmountInput
+                        initialAmount={rawTokenAmount}
+                        setPrimaryAmount={handleTokenAmountChange}
                         walletBalance={peanutWalletBalance}
-                        hideCurrencyToggle
-                        currency={
+                        primaryDenomination={
                             selectedCountry
                                 ? {
-                                      code: getCurrencyConfig(selectedCountry.id, 'onramp').currency,
                                       symbol: getCurrencySymbol(
                                           getCurrencyConfig(selectedCountry.id, 'onramp').currency
                                       ),
                                       price: 1,
+                                      decimals: 2,
                                   }
                                 : undefined
                         }
-                        hideBalance={true}
+                        hideBalance
                     />
 
                     <InfoCard
@@ -373,8 +351,8 @@ export default function OnrampBankPage() {
                         shadowSize="4"
                         onClick={handleAmountContinue}
                         disabled={
-                            !parseFloat(rawTokenAmount.replace(/,/g, '')) ||
-                            parseFloat(rawTokenAmount.replace(/,/g, '')) < minimumAmount ||
+                            !parseFloat(rawTokenAmount) ||
+                            parseFloat(rawTokenAmount) < minimumAmount ||
                             error.showError ||
                             isCreatingOnramp
                         }

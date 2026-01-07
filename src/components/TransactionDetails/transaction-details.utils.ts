@@ -7,6 +7,7 @@ export type TransactionDetailsRowKey =
     | 'txId'
     | 'cancelled'
     | 'completed'
+    | 'refunded'
     | 'exchangeRate'
     | 'bankAccountDetails'
     | 'transferId'
@@ -26,6 +27,7 @@ export const transactionDetailsRowKeys: TransactionDetailsRowKey[] = [
     'cancelled',
     'claimed',
     'completed',
+    'refunded',
     'closed',
     'to',
     'tokenAndNetwork',

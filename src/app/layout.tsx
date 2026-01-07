@@ -1,16 +1,42 @@
-import { ConsoleGreeting } from '@/components/Global/ConsoleGreeting'
-import { ScreenOrientationLocker } from '@/components/Global/ScreenOrientationLocker'
-import { TranslationSafeWrapper } from '@/components/Global/TranslationSafeWrapper'
-import { PeanutProvider } from '@/config'
-import { ContextProvider } from '@/context'
-import { FooterVisibilityProvider } from '@/context/footerVisibility'
+import { ClientProviders } from './ClientProviders'
 import { type Viewport } from 'next'
 import { Londrina_Solid, Roboto_Flex, Sniglet } from 'next/font/google'
 import localFont from 'next/font/local'
 import Script from 'next/script'
 import '../styles/globals.css'
-import { generateMetadata } from './metadata'
-import { PEANUT_API_URL } from '@/constants/general.consts'
+import { PEANUT_API_URL, BASE_URL } from '@/constants/general.consts'
+import { type Metadata } from 'next'
+
+const baseUrl = BASE_URL || 'https://peanut.me'
+
+export const metadata: Metadata = {
+    title: 'Peanut - Instant Global P2P Payments in Digital Dollars',
+    description:
+        'Send and receive money instantly with Peanut - a fast, peer-to-peer payments app powered by digital dollars. Easily transfer funds across borders. Enjoy cheap, instant remittances and cash out to local banks without technical hassle.',
+    metadataBase: new URL(baseUrl),
+    icons: { icon: '/favicon.ico' },
+    keywords:
+        'peer-to-peer payments, send money instantly, request money, fast global transfers, remittances, digital dollar transfers, Latin America, Argentina, Brazil, P2P payments, crypto payments, stablecoin, digital dollars',
+    openGraph: {
+        type: 'website',
+        title: 'Peanut - Instant Global P2P Payments in Digital Dollars',
+        description:
+            'Send and receive money instantly with Peanut - a fast, peer-to-peer payments app powered by digital dollars.',
+        url: baseUrl,
+        siteName: 'Peanut',
+        images: [{ url: '/metadata-img.png', width: 1200, height: 630, alt: 'Peanut' }],
+    },
+    twitter: {
+        card: 'summary_large_image',
+        title: 'Peanut - Instant Global P2P Payments in Digital Dollars',
+        description:
+            'Send and receive money instantly with Peanut - a fast, peer-to-peer payments app powered by digital dollars.',
+        images: ['/metadata-img.png'],
+        creator: '@PeanutProtocol',
+        site: '@PeanutProtocol',
+    },
+    applicationName: process.env.NODE_ENV === 'development' ? 'Peanut Dev' : 'Peanut',
+}
 
 const roboto = Roboto_Flex({
     subsets: ['latin'],
@@ -48,15 +74,6 @@ const robotoFlexBold = localFont({
     variable: '--font-roboto-flex-bold',
 })
 
-export const metadata = generateMetadata({
-    title: 'Peanut - Instant Global P2P Payments in Digital Dollars',
-    description:
-        'Send and receive money instantly with Peanut - a fast, peer-to-peer payments app powered by digital dollars. Easily transfer funds across borders. Enjoy cheap, instant remittances and cash out to local banks without technical hassle.',
-    image: '/metadata-img.png',
-    keywords:
-        'peer-to-peer payments, send money instantly, request money, fast global transfers, remittances, digital dollar transfers, Latin America, Argentina, Brazil, P2P payments, crypto payments, stablecoin, digital dollars',
-})
-
 export const viewport: Viewport = {
     width: 'device-width',
     initialScale: 1,
@@ -74,11 +91,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <head>
                 <meta name="color-scheme" content="light" />
 
-                {/* CRITICAL PATH: Optimize QR payment flow loading */}
-                {/* Prefetch /qr-pay route + DNS for Manteca API */}
-                <link rel="prefetch" href="/qr-pay" />
+                {/* DNS prefetch for API */}
                 <link rel="dns-prefetch" href={apiHostname} />
                 <link rel="preconnect" href={apiHostname} crossOrigin="anonymous" />
+
+                {/* Prefetch /qr-pay route - disabled in dev to avoid 9s+ compile time */}
+                {process.env.NODE_ENV !== 'development' && <link rel="prefetch" href="/qr-pay" />}
 
                 {/* Service Worker Registration: Register early for offline support and caching */}
                 {/* CRITICAL: Must run before React hydration to enable offline-first PWA */}
@@ -138,15 +156,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <body
                 className={`${roboto.variable} ${londrina.variable} ${knerdOutline.variable} ${knerdFilled.variable} ${sniglet.variable} ${robotoFlexBold.variable} chakra-ui-light font-sans`}
             >
-                <ConsoleGreeting />
-                <ScreenOrientationLocker />
-                <PeanutProvider>
-                    <ContextProvider>
-                        <FooterVisibilityProvider>
-                            <TranslationSafeWrapper>{children}</TranslationSafeWrapper>
-                        </FooterVisibilityProvider>
-                    </ContextProvider>
-                </PeanutProvider>
+                <ClientProviders>{children}</ClientProviders>
             </body>
         </html>
     )

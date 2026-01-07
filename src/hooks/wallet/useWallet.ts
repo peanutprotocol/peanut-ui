@@ -1,16 +1,17 @@
 'use client'
 
-import { PEANUT_WALLET_CHAIN } from '@/constants'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useAppDispatch, useWalletStore } from '@/redux/hooks'
 import { walletActions } from '@/redux/slices/wallet-slice'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
-import { useCallback, useEffect } from 'react'
-import type { Hex, Address } from 'viem'
+import { useCallback, useEffect, useMemo } from 'react'
+import { formatUnits, type Hex, type Address } from 'viem'
 import { useZeroDev } from '../useZeroDev'
 import { useAuth } from '@/context/authContext'
 import { AccountType } from '@/interfaces'
 import { useBalance } from './useBalance'
 import { useSendMoney as useSendMoneyMutation } from './useSendMoney'
+import { formatCurrency } from '@/utils/general.utils'
 
 export const useWallet = () => {
     const dispatch = useAppDispatch()
@@ -89,9 +90,29 @@ export const useWallet = () => {
     // consider balance as fetching until: address is validated and query has resolved
     const isBalanceLoading = !isAddressReady || isFetchingBalance
 
+    // formatted balance for display (e.g. "1,234.56")
+    const formattedBalance = useMemo(() => {
+        if (balance === undefined) return '0.00'
+        return formatCurrency(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS))
+    }, [balance])
+
+    // check if wallet has sufficient balance for a given usd amount
+    const hasSufficientBalance = useCallback(
+        (amountUsd: string | number): boolean => {
+            if (balance === undefined) return false
+            const amount = typeof amountUsd === 'string' ? parseFloat(amountUsd) : amountUsd
+            if (isNaN(amount) || amount < 0) return false
+            const amountInWei = BigInt(Math.floor(amount * 10 ** PEANUT_WALLET_TOKEN_DECIMALS))
+            return balance >= amountInWei
+        },
+        [balance]
+    )
+
     return {
         address: isAddressReady ? address : undefined, // populate address only if it is validated and matches the user's wallet address
         balance,
+        formattedBalance,
+        hasSufficientBalance,
         isConnected: isKernelClientReady,
         sendTransactions,
         sendMoney,

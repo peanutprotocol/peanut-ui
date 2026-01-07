@@ -1,13 +1,13 @@
 'use client'
 
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { useAuth } from '@/context/authContext'
 import NavHeader from '../Global/NavHeader'
 import ProfileHeader from './components/ProfileHeader'
 import ProfileMenuItem from './components/ProfileMenuItem'
 import { useRouter } from 'next/navigation'
-import { checkIfInternalNavigation, generateInviteCodeLink, generateInvitesShareText } from '@/utils'
+import { checkIfInternalNavigation, generateInviteCodeLink, generateInvitesShareText } from '@/utils/general.utils'
 import ActionModal from '../Global/ActionModal'
 import { useState } from 'react'
 import useKycStatus from '@/hooks/useKycStatus'
@@ -99,6 +99,13 @@ export const Profile = () => {
                                 </div>
                             </div>
                         </Card>
+                        <ProfileMenuItem
+                            icon="upload-cloud"
+                            label="Backup"
+                            href="/profile/backup"
+                            onClick={() => router.push('/profile/backup')}
+                            position="last"
+                        />
                         {/* Enable with Account Management project. */}
                         {/* <ProfileMenuItem
                             icon="bank"

@@ -1,9 +1,9 @@
 'use client'
 
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
-import TokenAmountInput from '@/components/Global/TokenAmountInput'
+import AmountInput from '@/components/Global/AmountInput'
 import { useRouter } from 'next/navigation'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { useCurrency } from '@/hooks/useCurrency'
@@ -15,10 +15,10 @@ interface InputAmountStepProps {
     isLoading: boolean
     tokenAmount: string
     setTokenAmount: React.Dispatch<React.SetStateAction<string>>
-    setUsdAmount: React.Dispatch<React.SetStateAction<string>>
     error: string | null
     setCurrencyAmount: (amount: string | undefined) => void
     currencyData?: ICurrency
+    setCurrentDenomination?: (denomination: string) => void
 }
 
 const InputAmountStep = ({
@@ -27,9 +27,9 @@ const InputAmountStep = ({
     onSubmit,
     isLoading,
     error,
-    setUsdAmount,
     currencyData,
     setCurrencyAmount,
+    setCurrentDenomination,
 }: InputAmountStepProps) => {
     const router = useRouter()
 
@@ -43,20 +43,21 @@ const InputAmountStep = ({
             <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
                 <div className="text-sm font-bold">How much do you want to add?</div>
 
-                <TokenAmountInput
-                    tokenValue={tokenAmount}
-                    setTokenValue={(e) => setTokenAmount(e ?? '')}
-                    setUsdValue={setUsdAmount}
-                    currency={
+                <AmountInput
+                    initialAmount={tokenAmount}
+                    setPrimaryAmount={setCurrencyAmount}
+                    setSecondaryAmount={setTokenAmount}
+                    secondaryDenomination={{ symbol: 'USD', price: 1, decimals: 2 }}
+                    primaryDenomination={
                         currencyData
                             ? {
-                                  code: currencyData.code!,
                                   symbol: currencyData.symbol!,
                                   price: currencyData.price!.buy,
+                                  decimals: 2,
                               }
                             : undefined
                     }
-                    setCurrencyAmount={setCurrencyAmount}
+                    setCurrentDenomination={setCurrentDenomination}
                     hideBalance
                 />
                 <div className="flex items-center gap-2 text-xs text-grey-1">
@@ -67,7 +68,7 @@ const InputAmountStep = ({
                     variant="purple"
                     shadowSize="4"
                     onClick={onSubmit}
-                    disabled={!!error || isLoading || !parseFloat(tokenAmount.replace(/,/g, ''))}
+                    disabled={!!error || isLoading || !parseFloat(tokenAmount)}
                     className="w-full"
                     loading={isLoading}
                 >

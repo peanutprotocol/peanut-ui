@@ -21,6 +21,13 @@
 - **Performance is important** - cache where possible, make sure to not make unnecessary re-renders or data fetching.
 - **Flag breaking changes** - always flag if changes done in Frontend are breaking and require action on Backend (or viceversa)
 
+## 🚫 Import Rules (critical for build performance)
+
+- **No barrel imports** - never use `import * as X from '@/constants'` or create index.ts barrel files. always import from specific files (e.g. `import { PEANUT_API_URL } from '@/constants/general.consts'`). barrel imports slow down builds and cause bundling issues.
+- **No circular dependencies** - before adding imports, check if the target file imports from the current file. circular deps cause `Cannot access X before initialization` errors. move shared types to `interfaces.ts` if needed.
+- **No node.js packages in client components** - packages like `web-push`, `fs`, `crypto` (node) can't be used in `'use client'` files. use server actions or api routes instead.
+- **Check for legacy code** - before importing from a file, check if it has TODO comments marking it as legacy/deprecated. prefer newer implementations.
+
 ## 🧪 Testing
 
 - **Test new code** - where tests make sense, test new code. Especially with fast unit tests.
@@ -43,6 +50,7 @@
 - **Cache where possible** - avoid unnecessary re-renders and data fetching
 - **Fire simultaneous requests** - if you're doing multiple sequential awaits and they're not interdependent, fire them simultaneously
 - **Service Worker cache version** - only bump `NEXT_PUBLIC_API_VERSION` for breaking API changes (see JSDoc in `src/app/sw.ts`). Users auto-migrate.
+- **Gate heavy features in dev** - prefetching, precompiling, or eager loading of routes can add 5-10s to dev cold starts. wrap with `process.env.NODE_ENV !== 'development'` (e.g. `<link rel="prefetch" href="/qr-pay" />` in layout.tsx).
 
 ## 📝 Commits
 

@@ -1,5 +1,5 @@
 import classNames from 'classnames'
-import { Card } from '../0_Bruddle'
+import { Card } from '@/components/0_Bruddle/Card'
 import Link from 'next/link'
 
 export const HomeLink = ({

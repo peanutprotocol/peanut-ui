@@ -1,13 +1,14 @@
 import { isAddress } from 'viem'
 
 import { resolveEns } from '@/app/actions/ens'
-import { PEANUT_API_URL } from '@/constants'
+
 import { AccountType } from '@/interfaces'
 import { usersApi } from '@/services/users'
-import { fetchWithSentry } from '@/utils'
+import { fetchWithSentry } from '@/utils/sentry.utils'
 import * as Sentry from '@sentry/nextjs'
 import { RecipientValidationError } from '../url-parser/errors'
 import { type RecipientType } from '../url-parser/types/payment'
+import { PEANUT_API_URL } from '@/constants/general.consts'
 
 export async function validateAndResolveRecipient(
     recipient: string,

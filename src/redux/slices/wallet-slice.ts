@@ -4,7 +4,6 @@ import { type WalletUIState } from '../types/wallet.types'
 import { type PayloadAction } from '@reduxjs/toolkit'
 
 const initialState: WalletUIState = {
-    signInModalVisible: false,
     balance: undefined,
 }
 
@@ -12,9 +11,6 @@ const walletSlice = createSlice({
     name: WALLET_SLICE,
     initialState,
     reducers: {
-        setSignInModalVisible: (state, action) => {
-            state.signInModalVisible = action.payload
-        },
         setBalance: (state, action: PayloadAction<bigint>) => {
             state.balance = action.payload.toString()
         },

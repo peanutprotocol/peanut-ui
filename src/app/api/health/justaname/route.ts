@@ -1,4 +1,4 @@
-import { fetchWithSentry } from '@/utils'
+import { fetchWithSentry } from '@/utils/sentry.utils'
 import { NextResponse } from 'next/server'
 
 const JUSTANAME_API_URL = 'https://api.justaname.id'

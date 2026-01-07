@@ -1,10 +1,11 @@
-import * as interfaces from '@/interfaces'
-
 // based on API AccountType
+
+import { AccountType, type IUserBalance } from './interfaces'
+
 // https://github.com/peanutprotocol/peanut-api-ts/blob/b32570b7bd366efed7879f607040c511fa036a57/src/db/interfaces/account.ts
 export enum WalletProviderType {
-    PEANUT = interfaces.AccountType.PEANUT_WALLET,
-    BYOW = interfaces.AccountType.EVM_ADDRESS,
+    PEANUT = AccountType.PEANUT_WALLET,
+    BYOW = AccountType.EVM_ADDRESS,
     REWARDS = 'rewards',
 }
 
@@ -34,7 +35,7 @@ export interface IWallet extends IDBWallet {
     id: string
     connected: boolean
     balance: bigint
-    balances?: interfaces.IUserBalance[]
+    balances?: IUserBalance[]
 }
 
 export enum WalletErrorType {

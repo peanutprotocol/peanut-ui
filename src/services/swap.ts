@@ -4,8 +4,10 @@ import { parseUnits, formatUnits, encodeFunctionData, erc20Abi } from 'viem'
 
 import { fetchTokenPrice, estimateTransactionCostUsd } from '@/app/actions/tokens'
 import { getPublicClient, type ChainId } from '@/app/actions/clients'
-import { fetchWithSentry, isNativeCurrency, areEvmAddressesEqual } from '@/utils'
-import { SQUID_API_URL, USDT_IN_MAINNET, SQUID_INTEGRATOR_ID, SQUID_INTEGRATOR_ID_WITHOUT_CORAL } from '@/constants'
+import { fetchWithSentry } from '@/utils/sentry.utils'
+import { isNativeCurrency, areEvmAddressesEqual } from '@/utils/general.utils'
+import { SQUID_API_URL, SQUID_INTEGRATOR_ID, SQUID_INTEGRATOR_ID_WITHOUT_CORAL } from '@/constants/general.consts'
+import { USDT_IN_MAINNET } from '@/constants/zerodev.consts'
 
 type TokenInfo = {
     address: Address

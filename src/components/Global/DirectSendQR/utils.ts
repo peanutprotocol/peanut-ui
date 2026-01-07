@@ -1,6 +1,6 @@
-import { getTokenSymbol, getTokenDecimals } from '@/utils'
+import { ENS_NAME_REGEX } from '@/constants/general.consts'
+import { getTokenSymbol, getTokenDecimals } from '@/utils/general.utils'
 import { isAddress, formatUnits } from 'viem'
-import { ENS_NAME_REGEX } from '@/constants'
 
 export enum EQrType {
     PEANUT_URL = 'PEANUT_URL',

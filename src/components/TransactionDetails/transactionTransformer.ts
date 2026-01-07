@@ -12,7 +12,7 @@ import {
 } from '@/utils/general.utils'
 import { type StatusPillType } from '../Global/StatusPill'
 import type { Address } from 'viem'
-import { PEANUT_WALLET_CHAIN } from '@/constants'
+import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import { type HistoryEntryPerkReward, type ChargeEntry } from '@/services/services.types'
 
 /**
@@ -435,6 +435,9 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             case 'CANCELLED':
             case 'EXPIRED':
                 uiStatus = 'cancelled'
+                break
+            case 'REFUNDED':
+                uiStatus = 'refunded'
                 break
             case 'CLOSED':
                 // If the total amount collected is 0, the link is treated as cancelled

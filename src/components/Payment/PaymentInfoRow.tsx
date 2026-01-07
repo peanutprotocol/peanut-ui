@@ -51,7 +51,8 @@ export const PaymentInfoRow = ({
                     >
                         <Icon
                             name="info"
-                            className="size-3 cursor-pointer"
+                            size={12}
+                            className="cursor-pointer"
                             onClick={() => setShowMoreInfo(!showMoreInfo)}
                         />
                         {showMoreInfo && (

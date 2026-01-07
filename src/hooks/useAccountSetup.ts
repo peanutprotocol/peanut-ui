@@ -3,7 +3,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import * as Sentry from '@sentry/nextjs'
 import { useAuth } from '@/context/authContext'
 import { WalletProviderType } from '@/interfaces'
-import { getRedirectUrl, getValidRedirectUrl, clearRedirectUrl, clearAuthState } from '@/utils'
+import { getRedirectUrl, getValidRedirectUrl, clearRedirectUrl } from '@/utils/general.utils'
+import { clearAuthState } from '@/utils/auth.utils'
 import { POST_SIGNUP_ACTIONS } from '@/components/Global/PostSignupActionManager/post-signup-action.consts'
 import { useSetupStore } from '@/redux/hooks'
 
@@ -19,6 +20,33 @@ export const useAccountSetup = () => {
     const searchParams = useSearchParams()
     const [error, setError] = useState<string | null>(null)
     const [isProcessing, setIsProcessing] = useState(false)
+
+    const handleRedirect = () => {
+        const redirect_uri = searchParams.get('redirect_uri')
+        if (redirect_uri) {
+            const validRedirectUrl = getValidRedirectUrl(redirect_uri, '/home')
+            console.log('[useAccountSetup] Redirecting to redirect_uri:', validRedirectUrl)
+            router.push(validRedirectUrl)
+            return true
+        }
+
+        const localStorageRedirect = getRedirectUrl()
+        if (localStorageRedirect) {
+            const matchedAction = POST_SIGNUP_ACTIONS.find((action) => action.pathPattern.test(localStorageRedirect))
+            if (matchedAction) {
+                console.log('[useAccountSetup] Matched post-signup action, redirecting to /home')
+                router.push('/home')
+            } else {
+                clearRedirectUrl()
+                const validRedirectUrl = getValidRedirectUrl(localStorageRedirect, '/home')
+                console.log('[useAccountSetup] Redirecting to localStorage redirect:', validRedirectUrl)
+                router.push(validRedirectUrl)
+            }
+        } else {
+            console.log('[useAccountSetup] No redirect found, going to /home')
+            router.push('/home')
+        }
+    }
 
     /**
      * finalize account setup by adding account to db and navigating
@@ -76,32 +104,7 @@ export const useAccountSetup = () => {
                 }
             }
 
-            const redirect_uri = searchParams.get('redirect_uri')
-            if (redirect_uri) {
-                const validRedirectUrl = getValidRedirectUrl(redirect_uri, '/home')
-                console.log('[useAccountSetup] Redirecting to redirect_uri:', validRedirectUrl)
-                router.push(validRedirectUrl)
-                return true
-            }
-
-            const localStorageRedirect = getRedirectUrl()
-            if (localStorageRedirect) {
-                const matchedAction = POST_SIGNUP_ACTIONS.find((action) =>
-                    action.pathPattern.test(localStorageRedirect)
-                )
-                if (matchedAction) {
-                    console.log('[useAccountSetup] Matched post-signup action, redirecting to /home')
-                    router.push('/home')
-                } else {
-                    clearRedirectUrl()
-                    const validRedirectUrl = getValidRedirectUrl(localStorageRedirect, '/home')
-                    console.log('[useAccountSetup] Redirecting to localStorage redirect:', validRedirectUrl)
-                    router.push(validRedirectUrl)
-                }
-            } else {
-                console.log('[useAccountSetup] No redirect found, going to /home')
-                router.push('/home')
-            }
+            handleRedirect()
 
             return true
         } catch (e) {
@@ -122,5 +125,6 @@ export const useAccountSetup = () => {
         isProcessing,
         error,
         setError,
+        handleRedirect,
     }
 }

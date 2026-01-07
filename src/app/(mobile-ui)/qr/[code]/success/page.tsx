@@ -1,9 +1,8 @@
 'use client'
 
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
-import { BASE_URL } from '@/constants'
 import { useRouter, useParams } from 'next/navigation'
 import { useEffect } from 'react'
 import PeanutLoading from '@/components/Global/PeanutLoading'
@@ -12,6 +11,7 @@ import { confettiPresets } from '@/utils/confetti'
 import { useRedirectQrStatus } from '@/hooks/useRedirectQrStatus'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import { useToast } from '@/components/0_Bruddle/Toast'
+import { BASE_URL } from '@/constants/general.consts'
 
 export default function RedirectQrSuccessPage() {
     const router = useRouter()

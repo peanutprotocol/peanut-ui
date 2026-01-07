@@ -1,13 +1,15 @@
 import { MERCADO_PAGO, PIX, SIMPLEFI } from '@/assets/payment-apps'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
-import { getFromLocalStorage } from '@/utils'
-import { PEANUT_WALLET_TOKEN_DECIMALS, BASE_URL } from '@/constants'
+import { getFromLocalStorage } from '@/utils/general.utils'
 import { formatUnits } from 'viem'
 import { type Hash } from 'viem'
-import { getTokenDetails } from '@/utils'
+import { getTokenDetails } from '@/utils/general.utils'
 import { getCurrencyPrice } from '@/app/actions/currency'
 import { type ChargeEntry } from '@/services/services.types'
+import { BASE_URL } from '@/constants/general.consts'
+import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 
+// NOTE: do not change the order, add new entries at the end, keep synced with backend
 export enum EHistoryEntryType {
     REQUEST = 'REQUEST',
     CASHOUT = 'CASHOUT',
@@ -19,10 +21,10 @@ export enum EHistoryEntryType {
     BRIDGE_ONRAMP = 'BRIDGE_ONRAMP',
     BANK_SEND_LINK_CLAIM = 'BANK_SEND_LINK_CLAIM',
     MANTECA_QR_PAYMENT = 'MANTECA_QR_PAYMENT',
-    SIMPLEFI_QR_PAYMENT = 'SIMPLEFI_QR_PAYMENT',
     MANTECA_OFFRAMP = 'MANTECA_OFFRAMP',
     MANTECA_ONRAMP = 'MANTECA_ONRAMP',
     BRIDGE_GUEST_OFFRAMP = 'BRIDGE_GUEST_OFFRAMP',
+    SIMPLEFI_QR_PAYMENT = 'SIMPLEFI_QR_PAYMENT',
     PERK_REWARD = 'PERK_REWARD',
 }
 export function historyTypeToNumber(type: EHistoryEntryType): number {

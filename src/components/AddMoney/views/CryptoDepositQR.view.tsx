@@ -5,6 +5,7 @@ import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import NavHeader from '@/components/Global/NavHeader'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
+import { useAutoTruncatedAddress } from '@/hooks/useAutoTruncatedAddress'
 import Image, { type StaticImageData } from 'next/image'
 import { useRouter } from 'next/navigation'
 
@@ -26,6 +27,7 @@ export const CryptoDepositQR = ({
     chainIcon,
 }: CryptoDepositQRProps) => {
     const router = useRouter()
+    const { containerRef, truncatedAddress } = useAutoTruncatedAddress(depositAddress)
 
     return (
         <div className="flex w-full flex-col justify-start space-y-8 pb-5 md:pb-0">
@@ -57,12 +59,16 @@ export const CryptoDepositQR = ({
                     <label htmlFor="deposit-address" className="text-sm font-bold text-black">
                         Your deposit address
                     </label>
-                    <Card className="flex items-center justify-between px-4 py-0 text-xs text-grey-1">
-                        <p className="max-w-[90%] overflow-hidden overflow-x-auto whitespace-nowrap py-3 text-xs md:text-sm md:font-semibold">
-                            {depositAddress}
+                    <Card className="flex items-center gap-2 px-4 py-0 text-grey-1">
+                        <p ref={containerRef} className="min-w-0 flex-1 py-3 text-sm font-semibold">
+                            {truncatedAddress}
                         </p>
-
-                        <CopyToClipboard textToCopy={depositAddress} className="text-black" iconSize={'4'} />
+                        <CopyToClipboard
+                            fill="black"
+                            textToCopy={depositAddress}
+                            className="text-black"
+                            iconSize={'4'}
+                        />
                     </Card>
                     <Button
                         variant="purple"

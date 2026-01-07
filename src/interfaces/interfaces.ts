@@ -1,7 +1,9 @@
-import { type BridgeKycStatus } from '@/utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 
 export type RecipientType = 'address' | 'ens' | 'iban' | 'us' | 'username'
+
+// Moved here from bridge-accounts.utils.ts to avoid circular dependency
+export type BridgeKycStatus = 'not_started' | 'under_review' | 'approved' | 'rejected' | 'incomplete'
 
 export interface IResponse {
     success: boolean

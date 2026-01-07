@@ -10,21 +10,15 @@ import {
     optimismChainId,
     usdcAddressOptimism,
 } from '@/components/Offramp/Offramp.consts'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, ROUTE_NOT_FOUND_ERROR } from '@/constants'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { sendLinksApi } from '@/services/sendLinks'
-import {
-    areEvmAddressesEqual,
-    ErrorHandler,
-    fetchWithSentry,
-    formatTokenAmount,
-    getBridgeChainName,
-    getBridgeTokenName,
-    printableAddress,
-} from '@/utils'
+import { areEvmAddressesEqual, formatTokenAmount, printableAddress } from '@/utils/general.utils'
+import { ErrorHandler } from '@/utils/sdkErrorHandler.utils'
+import { fetchWithSentry } from '@/utils/sentry.utils'
+import { getBridgeChainName, getBridgeTokenName } from '@/utils/bridge-accounts.utils'
 import { NATIVE_TOKEN_ADDRESS, SQUID_ETH_ADDRESS, checkTokenSupportsXChain } from '@/utils/token.utils'
 import * as Sentry from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
@@ -33,14 +27,14 @@ import { useCallback, useContext, useEffect, useMemo, useState, useRef } from 'r
 import { formatUnits, isAddress, zeroAddress } from 'viem'
 import type { Address } from 'viem'
 import { type IClaimScreenProps } from '../Claim.consts'
-import ActionList from '@/components/Common/ActionList'
+import SendLinkActionList from '@/components/Claim/Link/SendLinkActionList'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import useClaimLink from '../useClaimLink'
 import ActionModal from '@/components/Global/ActionModal'
 import { Slider } from '@/components/Slider'
 import { BankFlowManager } from './views/BankFlowManager.view'
 import { type PeanutCrossChainRoute, getRoute } from '@/services/swap'
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import Image from 'next/image'
 import { PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
 import { GuestVerificationModal } from '@/components/Global/GuestVerificationModal'
@@ -49,6 +43,8 @@ import MantecaFlowManager from './MantecaFlowManager'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { invitesApi } from '@/services/invites'
 import { EInviteType } from '@/services/services.types'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
+import { ROUTE_NOT_FOUND_ERROR } from '@/constants/general.consts'
 
 export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     // get campaign tag from claim link url
@@ -62,7 +58,6 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         recipient,
         tokenPrice,
         setClaimType,
-        setEstimatedPoints,
         attachment,
         setTransactionHash,
         onCustom,
@@ -976,8 +971,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                         </Button>
                     )}
                     {!claimToExternalWallet && (
-                        <ActionList
-                            flow="claim"
+                        <SendLinkActionList
                             claimLinkData={claimLinkData}
                             isLoggedIn={!!user?.user.userId}
                             isInviteLink

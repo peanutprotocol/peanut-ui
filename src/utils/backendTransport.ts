@@ -1,7 +1,7 @@
 import { custom, type Transport } from 'viem'
-import { PEANUT_API_URL } from '@/constants'
 import { jsonStringify } from './general.utils'
 import Cookies from 'js-cookie'
+import { PEANUT_API_URL } from '@/constants/general.consts'
 
 export function createBackendRpcTransport(chainId: number): Transport {
     return custom({

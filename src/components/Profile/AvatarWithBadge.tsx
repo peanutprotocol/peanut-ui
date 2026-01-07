@@ -1,9 +1,8 @@
-import { getInitialsFromName } from '@/utils'
+import { getInitialsFromName } from '@/utils/general.utils'
 import { getColorForUsername } from '@/utils/color.utils'
 import React, { useMemo } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Icon, type IconName } from '../Global/Icons/Icon'
-import StatusPill, { type StatusPillType } from '../Global/StatusPill'
 import Image, { type StaticImageData } from 'next/image'
 
 export type AvatarSize = 'tiny' | 'extra-small' | 'small' | 'medium' | 'large'

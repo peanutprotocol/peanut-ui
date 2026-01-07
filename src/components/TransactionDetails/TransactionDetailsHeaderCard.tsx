@@ -3,7 +3,7 @@
 import StatusBadge, { type StatusType } from '@/components/Global/Badges/StatusBadge'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
 import { type TransactionType } from '@/components/TransactionDetails/TransactionCard'
-import { printableAddress } from '@/utils'
+import { printableAddress } from '@/utils/general.utils'
 import Image from 'next/image'
 import React from 'react'
 import { isAddress as isWalletAddress } from 'viem'
@@ -280,7 +280,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                         <h1
                             className={twMerge(
                                 'text-3xl font-extrabold md:text-4xl',
-                                status === 'cancelled' && 'text-grey-1 line-through',
+                                ['cancelled', 'refunded'].includes(status ?? '') && 'text-grey-1 line-through',
                                 isNoGoalSet && 'text-xl text-black md:text-3xl'
                             )}
                         >

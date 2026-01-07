@@ -1,6 +1,6 @@
 'use client'
 
-import { useSupportModalContext } from '@/context/SupportModalContext'
+import { useModalsContext } from '@/context/ModalsContext'
 
 /**
  * Button component that opens the support drawer
@@ -10,7 +10,7 @@ import { useSupportModalContext } from '@/context/SupportModalContext'
  * page layout interference.
  */
 export const CrispButton = ({ children, ...rest }: React.HTMLAttributes<HTMLButtonElement>) => {
-    const { setIsSupportModalOpen } = useSupportModalContext()
+    const { setIsSupportModalOpen } = useModalsContext()
 
     const handleClick = () => {
         setIsSupportModalOpen(true)

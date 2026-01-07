@@ -11,7 +11,7 @@ import Image from 'next/image'
 import { PEANUTMAN_LOGO } from '@/assets'
 import Link from 'next/link'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 
 export default function NotificationsPage() {
     const loadingRef = useRef<HTMLDivElement>(null)

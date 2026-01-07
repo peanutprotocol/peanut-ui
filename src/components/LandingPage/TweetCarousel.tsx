@@ -1,8 +1,8 @@
 'use client'
 
+import { TWEETS, type Tweet } from '@/constants/tweets.consts'
 import { useMemo, useState } from 'react'
 import Marquee from 'react-fast-marquee'
-import { TWEETS, type Tweet } from '@/constants'
 
 // =============================================================================
 // Constants
@@ -328,7 +328,7 @@ const buildColumns = (tweets: Tweet[]): ColumnType[] => {
  * - Lazy loaded images with fallbacks
  * - Links open in new tab
  */
-export const TweetCarousel = () => {
+const TweetCarousel = () => {
     const columns = useMemo(() => buildColumns(TWEETS), [])
 
     if (columns.length === 0) return null

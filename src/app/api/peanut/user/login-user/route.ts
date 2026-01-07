@@ -1,5 +1,5 @@
-import * as consts from '@/constants'
-import { fetchWithSentry } from '@/utils'
+import { PEANUT_API_URL } from '@/constants/general.consts'
+import { fetchWithSentry } from '@/utils/sentry.utils'
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-        const response = await fetchWithSentry(`${consts.PEANUT_API_URL}/login-user`, {
+        const response = await fetchWithSentry(`${PEANUT_API_URL}/login-user`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

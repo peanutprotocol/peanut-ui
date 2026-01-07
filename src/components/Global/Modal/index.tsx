@@ -1,7 +1,7 @@
-import Icon from '@/components/Global/Icon'
 import { Dialog, Transition } from '@headlessui/react'
 import { Fragment, useRef } from 'react'
 import { twMerge } from 'tailwind-merge'
+import { Icon } from '../Icons/Icon'
 
 type ModalProps = {
     className?: string
@@ -16,8 +16,6 @@ type ModalProps = {
     video?: boolean
     hideOverlay?: boolean
     classNameWrapperDiv?: string
-    showPrev?: boolean
-    onPrev?: () => void
     preventClose?: boolean
 }
 
@@ -34,8 +32,6 @@ const Modal = ({
     video,
     hideOverlay,
     classNameWrapperDiv,
-    showPrev,
-    onPrev,
     preventClose = false,
 }: ModalProps) => {
     let dialogRef = useRef(null)
@@ -86,20 +82,12 @@ const Modal = ({
                     >
                         {!hideOverlay ? (
                             <>
-                                {showPrev && (
-                                    <button
-                                        className={twMerge(
-                                            ` absolute left-5 top-4.5 text-0 outline-none hover:fill-primary-1 dark:fill-white dark:hover:fill-primary-1 `
-                                        )}
-                                        onClick={onPrev}
-                                    >
-                                        <Icon className="fill-inherit transition-colors" name="arrow-prev" />
-                                    </button>
-                                )}
                                 {title ? (
                                     <>
                                         <div
-                                            className={`border-b border-n-1 px-5 py-4 text-h6 dark:border-white ${showPrev ? 'text-center' : 'text-start'}`}
+                                            className={
+                                                'border-b border-n-1 px-5 py-4 text-start text-h6 dark:border-white'
+                                            }
                                         >
                                             {title}
                                         </div>
@@ -117,7 +105,7 @@ const Modal = ({
                                     )}
                                     onClick={onClose}
                                 >
-                                    <Icon className="h-6 w-6 fill-inherit transition-colors" name="close" />
+                                    <Icon name="cancel" size={24} fill="inherit" className="transition-colors" />
                                 </button>
                             </>
                         ) : (

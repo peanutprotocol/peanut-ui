@@ -1,19 +1,17 @@
 'use client'
 
 import { HandThumbsUpV2, PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import HomeHistory from '@/components/Home/HomeHistory'
-import { useAppDispatch } from '@/redux/hooks'
-import { paymentActions } from '@/redux/slices/payment-slice'
 import Image from 'next/image'
 import ProfileHeader from './ProfileHeader'
 import { useState, useEffect, useMemo } from 'react'
 import { usersApi } from '@/services/users'
 import { useRouter } from 'next/navigation'
 import Card from '@/components/Global/Card'
-import { checkIfInternalNavigation } from '@/utils'
+import { checkIfInternalNavigation } from '@/utils/general.utils'
 import { useAuth } from '@/context/authContext'
 import ShareButton from '@/components/Global/ShareButton'
 import ActionModal from '@/components/Global/ActionModal'
@@ -27,7 +25,6 @@ interface PublicProfileProps {
 }
 
 const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = false, onSendClick }) => {
-    const dispatch = useAppDispatch()
     const [totalSentByLoggedInUser, setTotalSentByLoggedInUser] = useState<string>('0')
     const [fullName, setFullName] = useState<string>(username)
     const [showFullName, setShowFullName] = useState<boolean>(false)
@@ -45,12 +42,10 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
             earnedAt?: string | Date
         }>
     >([])
-    // Handle send button click
+    // handle send button click
     const handleSend = () => {
         if (onSendClick) {
             onSendClick()
-        } else {
-            dispatch(paymentActions.setView('INITIAL'))
         }
     }
 

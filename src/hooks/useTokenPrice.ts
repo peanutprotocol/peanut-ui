@@ -1,18 +1,17 @@
 import { useQuery } from '@tanstack/react-query'
 import { fetchTokenPrice } from '@/app/actions/tokens'
 import {
+    PEANUT_WALLET_CHAIN,
     PEANUT_WALLET_TOKEN,
     PEANUT_WALLET_TOKEN_DECIMALS,
     PEANUT_WALLET_TOKEN_SYMBOL,
     PEANUT_WALLET_TOKEN_NAME,
-    PEANUT_WALLET_CHAIN,
     PEANUT_WALLET_TOKEN_IMG_URL,
-    STABLE_COINS,
-    supportedMobulaChains,
-} from '@/constants'
+} from '@/constants/zerodev.consts'
 import { type ITokenPriceData } from '@/interfaces'
 import * as Sentry from '@sentry/nextjs'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
+import { STABLE_COINS, supportedMobulaChains } from '@/constants/general.consts'
 
 interface UseTokenPriceParams {
     tokenAddress: string | undefined

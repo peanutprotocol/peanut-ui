@@ -1,7 +1,7 @@
-import { PEANUT_API_URL } from '@/constants'
-import { fetchWithSentry } from '@/utils'
+import { fetchWithSentry } from '@/utils/sentry.utils'
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
+import { PEANUT_API_URL } from '@/constants/general.consts'
 export const dynamic = 'force-dynamic'
 
 export async function GET(_request: NextRequest) {

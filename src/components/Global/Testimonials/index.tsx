@@ -1,7 +1,6 @@
 import { useRef } from 'react'
-import { Stack, Box, Flex, SimpleGrid, GridItem } from '@chakra-ui/react'
 import { motion } from 'framer-motion'
-import { useMediaQuery } from '@chakra-ui/react'
+import useMediaQuery from '@mui/material/useMediaQuery'
 
 interface Testimonial {
     name: string
@@ -18,9 +17,9 @@ type TestimonialsProps = {
 
 export function Testimonials({ testimonials }: TestimonialsProps) {
     const ref = useRef(null)
-    const [isLargerThan768] = useMediaQuery('(min-width: 768px)')
+    const isLargerThan768 = useMediaQuery('(min-width: 768px)')
 
-    // Animation variants
+    // animation variants
     const gridItemVariants = [
         {
             hidden: { opacity: 0, translateY: 20, translateX: 0, rotate: 0 },
@@ -164,10 +163,10 @@ export function Testimonials({ testimonials }: TestimonialsProps) {
     ]
 
     return (
-        <div className={``}>
-            <SimpleGrid spacing={8} columns={{ sm: 1, md: 2, lg: testimonials.length }} className="items-start px-8">
+        <div>
+            <div className="grid grid-cols-1 items-start gap-8 px-8 md:grid-cols-2 lg:grid-cols-4">
                 {testimonials.map((testimonial, index) => (
-                    <GridItem key={index}>
+                    <div key={index}>
                         {isLargerThan768 ? (
                             <motion.div
                                 ref={ref}
@@ -192,9 +191,9 @@ export function Testimonials({ testimonials }: TestimonialsProps) {
                                 <TestimonialBody testimonial={testimonial} />
                             </div>
                         )}
-                    </GridItem>
+                    </div>
                 ))}
-            </SimpleGrid>
+            </div>
         </div>
     )
 }

@@ -1,10 +1,10 @@
 'use client'
 
-import { Button, type ButtonVariant } from '@/components/0_Bruddle'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import * as Sentry from '@sentry/nextjs'
 import { useCallback } from 'react'
 import { Icon } from '../Icons/Icon'
+import { Button, type ButtonVariant } from '@/components/0_Bruddle/Button'
 
 type ShareButtonProps = {
     title?: string

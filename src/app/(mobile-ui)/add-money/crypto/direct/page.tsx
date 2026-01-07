@@ -3,10 +3,10 @@
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutLoading from '@/components/Global/PeanutLoading'
-import TokenAmountInput from '@/components/Global/TokenAmountInput'
+import AmountInput from '@/components/Global/AmountInput'
 import DaimoPayButton from '@/components/Global/DaimoPayButton'
 import { DaimoPayWrapper } from '@/components/Global/DaimoPayWrapper'
-import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
+import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -14,7 +14,7 @@ import { trackDaimoDepositTransactionHash } from '@/app/actions/users'
 import InfoCard from '@/components/Global/InfoCard'
 import Link from 'next/link'
 import ActionModal from '@/components/Global/ActionModal'
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import { Slider } from '@/components/Slider'
 
 export default function AddMoneyCryptoDirectPage() {
@@ -27,7 +27,7 @@ export default function AddMoneyCryptoDirectPage() {
     const [showModal, setShowModal] = useState(false)
 
     const validateAmount = () => {
-        const formattedAmount = parseFloat(inputTokenAmount.replace(/,/g, ''))
+        const formattedAmount = parseFloat(inputTokenAmount)
 
         if (formattedAmount < 0.1) {
             setError('Minimum deposit using crypto is $0.1.')
@@ -68,7 +68,7 @@ export default function AddMoneyCryptoDirectPage() {
 
     if (isPaymentSuccess) {
         return (
-            <DirectSuccessView
+            <PaymentSuccessView
                 key={`success-add-money`}
                 headerTitle={'Add Money'}
                 type="SEND"
@@ -95,15 +95,10 @@ export default function AddMoneyCryptoDirectPage() {
                 />
                 <div className="my-auto flex h-full flex-col justify-center space-y-4">
                     <div className="text-sm font-bold">How much do you want to add?</div>
-                    <TokenAmountInput
-                        tokenValue={inputTokenAmount}
-                        setTokenValue={(value: string | undefined) => setInputTokenAmount(value || '')}
+                    <AmountInput
+                        initialAmount={inputTokenAmount}
+                        setPrimaryAmount={setInputTokenAmount}
                         className="w-full"
-                        currency={{
-                            code: 'USD',
-                            symbol: '$',
-                            price: 1,
-                        }}
                         hideCurrencyToggle
                         hideBalance
                     />

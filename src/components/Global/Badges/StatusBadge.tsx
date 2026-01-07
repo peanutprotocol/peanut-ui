@@ -1,7 +1,16 @@
 import React from 'react'
 import { twMerge } from 'tailwind-merge'
 
-export type StatusType = 'completed' | 'pending' | 'failed' | 'cancelled' | 'soon' | 'processing' | 'custom' | 'closed'
+export type StatusType =
+    | 'completed'
+    | 'pending'
+    | 'failed'
+    | 'cancelled'
+    | 'soon'
+    | 'processing'
+    | 'custom'
+    | 'closed'
+    | 'refunded'
 
 interface StatusBadgeProps {
     status: StatusType
@@ -21,6 +30,7 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className, size = 'sm
                 return 'bg-secondary-4 text-yellow-6 border border-yellow-7'
             case 'failed':
             case 'cancelled':
+            case 'refunded':
                 return 'bg-error-1 text-error border border-error-2'
             case 'soon':
             case 'custom':
@@ -42,6 +52,8 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className, size = 'sm
                 return 'Failed'
             case 'cancelled':
                 return 'Cancelled'
+            case 'refunded':
+                return 'Refunded'
             case 'soon':
                 return 'Soon!'
             case 'closed':

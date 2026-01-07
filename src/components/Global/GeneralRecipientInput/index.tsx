@@ -1,13 +1,13 @@
 'use client'
 import ValidatedInput, { type InputUpdate } from '@/components/Global/ValidatedInput'
 import * as interfaces from '@/interfaces'
-import { validateBankAccount } from '@/utils'
+import { validateBankAccount } from '@/utils/bridge-accounts.utils'
 import { formatBankAccountDisplay, sanitizeBankAccount } from '@/utils/format.utils'
 import * as Senty from '@sentry/nextjs'
 import { useCallback, useRef } from 'react'
 import { isIBAN } from 'validator'
 import { validateAndResolveRecipient } from '@/lib/validation/recipient'
-import { BASE_URL } from '@/constants'
+import { BASE_URL } from '@/constants/general.consts'
 
 type GeneralRecipientInputProps = {
     className?: string
@@ -40,56 +40,50 @@ const GeneralRecipientInput = ({
     const errorMessage = useRef('')
     const resolvedAddress = useRef('')
 
-    const checkAddress = useCallback(async (recipient: string): Promise<boolean> => {
-        try {
-            let isValid = false
-            let type: interfaces.RecipientType = 'address'
+    const checkAddress = useCallback(
+        async (recipient: string): Promise<boolean> => {
+            try {
+                let isValid = false
+                let type: interfaces.RecipientType = 'address'
 
-            // First trim the input, then strip off the Peanut ENS domain from the end if it exists
-            let processedInput = recipient.trim().replace(`${BASE_URL}/`, '')
+                // trim the input and remove URL prefix if present
+                const trimmedInput = recipient.trim().replace(`${BASE_URL}/`, '')
+                const sanitizedInput = sanitizeBankAccount(trimmedInput)
 
-            if (process.env.NEXT_PUBLIC_JUSTANAME_ENS_DOMAIN) {
-                const domainSuffix = `.${process.env.NEXT_PUBLIC_JUSTANAME_ENS_DOMAIN}`
-                //regex to safely remove domain from end only (e.g., ".testvc.eth" from "user.testvc.eth")
-                const domainRegex = new RegExp(domainSuffix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i')
-                processedInput = processedInput.replace(domainRegex, '')
-            }
-
-            const trimmedInput = processedInput
-            const sanitizedInput = sanitizeBankAccount(trimmedInput)
-
-            if (isIBAN(sanitizedInput)) {
-                type = 'iban'
-                isValid = await validateBankAccount(sanitizedInput)
-                if (!isValid) errorMessage.current = 'Invalid IBAN, country not supported'
-            } else if (/^[0-9]{1,17}$/.test(sanitizedInput)) {
-                type = 'us'
-                isValid = true
-            } else {
-                try {
-                    const validation = await validateAndResolveRecipient(trimmedInput, isWithdrawal)
-
+                if (isIBAN(sanitizedInput)) {
+                    type = 'iban'
+                    isValid = await validateBankAccount(sanitizedInput)
+                    if (!isValid) errorMessage.current = 'Invalid IBAN, country not supported'
+                } else if (/^[0-9]{1,17}$/.test(sanitizedInput)) {
+                    type = 'us'
                     isValid = true
-                    resolvedAddress.current = validation.resolvedAddress
-                    type = validation.recipientType.toLowerCase() as interfaces.RecipientType
-                } catch (error: unknown) {
-                    errorMessage.current = (error as Error).message
-                    // For withdrawal context, failed non-address inputs should be treated as ENS
-                    if (isWithdrawal && !trimmedInput.startsWith('0x')) {
-                        type = 'ens'
+                } else {
+                    try {
+                        const validation = await validateAndResolveRecipient(trimmedInput, isWithdrawal)
+
+                        isValid = true
+                        resolvedAddress.current = validation.resolvedAddress
+                        type = validation.recipientType.toLowerCase() as interfaces.RecipientType
+                    } catch (error: unknown) {
+                        errorMessage.current = (error as Error).message
+                        // For withdrawal context, failed non-address inputs should be treated as ENS
+                        if (isWithdrawal && !trimmedInput.startsWith('0x')) {
+                            type = 'ens'
+                        }
+                        recipientType.current = type
+                        return false
                     }
-                    recipientType.current = type
-                    return false
                 }
+                recipientType.current = type
+                return isValid
+            } catch (error) {
+                console.error('Error while validating recipient input field:', error)
+                Senty.captureException(error)
+                return false
             }
-            recipientType.current = type
-            return isValid
-        } catch (error) {
-            console.error('Error while validating recipient input field:', error)
-            Senty.captureException(error)
-            return false
-        }
-    }, [])
+        },
+        [isWithdrawal]
+    )
 
     const onInputUpdate = useCallback(
         (update: InputUpdate) => {

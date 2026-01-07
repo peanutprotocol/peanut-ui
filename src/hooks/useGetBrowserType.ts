@@ -53,15 +53,15 @@ export const useGetBrowserType = () => {
                 return BrowserType.SAMSUNG
             }
 
+            // Check for Brave browser BEFORE Chrome (Brave uses Chrome UA so must check first)
+            if ((navigator as any).brave && (await (navigator as any).brave.isBrave?.()) === true) {
+                return BrowserType.BRAVE
+            }
+
             // Check for Chrome (desktop and mobile)
             // CriOS = Chrome on iOS
             if (userAgent.includes('chrome') || userAgent.includes('crios')) {
                 return BrowserType.CHROME
-            }
-
-            // Check for Brave browser (uses Chrome UA)
-            if ((navigator as any).brave && (await (navigator as any).brave.isBrave?.()) === true) {
-                return BrowserType.BRAVE
             }
 
             // Check for Safari (desktop and mobile - must be last since all iOS browsers include "safari" in UA)

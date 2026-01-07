@@ -1,5 +1,5 @@
 import { getSquidChainsAndTokens } from '@/app/actions/squid'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
 import { validateAmount } from '../validation/amount'
 import { validateAndResolveRecipient } from '../validation/recipient'
@@ -159,23 +159,13 @@ export async function parsePaymentURL(
         tokenDetails = chainDetails.tokens.find((t) => t.symbol.toLowerCase() === 'USDC'.toLowerCase())
     }
 
-    // 6. Determine if this is a DevConnect flow
-    // @dev: note, this needs to be deleted post devconnect
-    // devconnect flow: external address + base chain specified in URL
-    const isDevConnectFlow =
-        recipientDetails.recipientType === 'ADDRESS' &&
-        chainId !== undefined &&
-        chainId.toLowerCase() === 'base' &&
-        chainDetails !== undefined
-
-    // 7. Construct and return the final result
+    // 6. Construct and return the final result
     return {
         parsedUrl: {
             recipient: recipientDetails,
             amount: parsedAmount?.amount,
             token: tokenDetails,
             chain: chainDetails,
-            isDevConnectFlow,
         },
         error: null,
     }

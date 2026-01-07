@@ -1,26 +1,32 @@
 'use client'
 
-import { useAppDispatch } from '@/redux/hooks'
-import { sendFlowActions } from '@/redux/slices/send-flow-slice'
 import { useRouter, useSearchParams } from 'next/navigation'
 import NavHeader from '@/components/Global/NavHeader'
 import { ActionListCard } from '@/components/ActionListCard'
 import { useContacts } from '@/hooks/useContacts'
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
-import { useMemo, useState } from 'react'
+import { useState, useEffect } from 'react'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { VerifiedUserLabel } from '@/components/UserHeader'
 import { SearchInput } from '@/components/SearchInput'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
+import { useDebounce } from '@/hooks/useDebounce'
+import { ContactsListSkeleton } from '@/components/Common/ContactsListSkeleton'
 
 export default function ContactsView() {
     const router = useRouter()
-    const dispatch = useAppDispatch()
     const searchParams = useSearchParams()
     const isSendingByLink = searchParams.get('view') === 'link' || searchParams.get('createLink') === 'true'
     const isSendingToContacts = searchParams.get('view') === 'contacts'
+    const [searchQuery, setSearchQuery] = useState('')
+    const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
+
+    // debounce search query to avoid excessive API calls
+    const debouncedSearchQuery = useDebounce(searchQuery, 300)
+
+    // fetch contacts with server-side search
     const {
         contacts,
         isLoading: isFetchingContacts,
@@ -29,39 +35,33 @@ export default function ContactsView() {
         hasNextPage,
         isFetchingNextPage,
         refetch,
-    } = useContacts({ limit: 50 })
-    const [searchQuery, setSearchQuery] = useState('')
+    } = useContacts({
+        limit: 50,
+        search: debouncedSearchQuery || undefined,
+    })
 
-    // infinite scroll hook - disabled when searching (search is client-side)
+    // infinite scroll hook - always enabled for server-side pagination
     const { loaderRef } = useInfiniteScroll({
         hasNextPage,
         isFetchingNextPage,
         fetchNextPage,
-        enabled: !searchQuery, // disable when user is searching
+        enabled: true,
     })
 
-    // client-side search filtering
-    const filteredContacts = useMemo(() => {
-        if (!searchQuery.trim()) return contacts
-
-        const query = searchQuery.trim().toLowerCase()
-        return contacts.filter((contact) => {
-            const fullName = contact.fullName?.toLowerCase() ?? ''
-            return contact.username.toLowerCase().includes(query) || fullName.includes(query)
-        })
-    }, [contacts, searchQuery])
+    // track when we've loaded data at least once
+    useEffect(() => {
+        if (!hasLoadedOnce && !isFetchingContacts) {
+            setHasLoadedOnce(true)
+        }
+    }, [isFetchingContacts, hasLoadedOnce])
 
     const redirectToSendByLink = () => {
-        // reset send flow state when entering link creation flow
-        dispatch(sendFlowActions.resetSendFlow())
         router.push(`${window.location.pathname}?view=link`)
     }
 
     const handlePrev = () => {
-        // reset send flow state and navigate deterministically
         // when in sub-views (link or contacts), go back to base send page
         // otherwise, go to home
-        dispatch(sendFlowActions.resetSendFlow())
         if (isSendingByLink || isSendingToContacts) {
             router.push('/send')
         } else {
@@ -78,7 +78,8 @@ export default function ContactsView() {
         router.push(`/send/${username}`)
     }
 
-    if (isFetchingContacts) {
+    // only show full loading on initial load (before any data has been fetched)
+    if (isFetchingContacts && !hasLoadedOnce) {
         return <PeanutLoading />
     }
 
@@ -109,13 +110,18 @@ export default function ContactsView() {
         )
     }
 
+    // determine if we have any contacts (initial load without search)
+    const hasContacts = contacts.length > 0 || !!debouncedSearchQuery
+    const isSearching = !!debouncedSearchQuery
+    const hasNoSearchResults = isSearching && contacts.length === 0
+
     return (
         <div className="flex min-h-[inherit] flex-col space-y-8">
             <NavHeader title="Send" onPrev={handlePrev} />
 
-            {contacts.length > 0 ? (
+            {hasContacts ? (
                 <div className="space-y-4">
-                    {/* search input */}
+                    {/* search input - always show when there are contacts or when searching */}
                     <SearchInput
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -123,12 +129,15 @@ export default function ContactsView() {
                         placeholder="Search contacts..."
                     />
 
-                    {/* contacts list */}
-                    {filteredContacts.length > 0 ? (
+                    {/* contacts list or search results */}
+                    {isFetchingContacts ? (
+                        // show skeleton when searching/refetching
+                        <ContactsListSkeleton count={5} />
+                    ) : contacts.length > 0 ? (
                         <div className="space-y-2">
                             <h2 className="text-base font-bold">Your contacts</h2>
                             <div className="flex-1 space-y-0 overflow-y-auto">
-                                {filteredContacts.map((contact, index) => {
+                                {contacts.map((contact, index) => {
                                     const isVerified = contact.bridgeKycStatus === 'approved'
                                     const displayName = contact.showFullName
                                         ? contact.fullName || contact.username
@@ -136,11 +145,11 @@ export default function ContactsView() {
                                     return (
                                         <ActionListCard
                                             position={
-                                                filteredContacts.length === 1
+                                                contacts.length === 1
                                                     ? 'single'
                                                     : index === 0
                                                       ? 'first'
-                                                      : index === filteredContacts.length - 1
+                                                      : index === contacts.length - 1
                                                         ? 'last'
                                                         : 'middle'
                                             }
@@ -163,26 +172,24 @@ export default function ContactsView() {
                                 })}
                             </div>
 
-                            {/* infinite scroll loader - only active when not searching */}
-                            {!searchQuery && (
-                                <div ref={loaderRef} className="w-full py-4">
-                                    {isFetchingNextPage && (
-                                        <div className="w-full text-center text-sm text-gray-500">Loading more...</div>
-                                    )}
-                                </div>
-                            )}
+                            {/* infinite scroll loader */}
+                            <div ref={loaderRef} className="w-full py-4">
+                                {isFetchingNextPage && (
+                                    <div className="w-full text-center text-sm text-gray-500">Loading more...</div>
+                                )}
+                            </div>
                         </div>
-                    ) : (
-                        // no search results
+                    ) : hasNoSearchResults ? (
+                        // no search results - keep search input visible
                         <EmptyState
                             title="No contacts found"
                             icon="search"
                             description={`Try searching for a different contact.`}
                         />
-                    )}
+                    ) : null}
                 </div>
             ) : (
-                // empty state - no contacts at all
+                // empty state - no contacts at all (initial load with no contacts)
                 <div className="flex flex-1 items-center justify-center">
                     <EmptyState
                         title="No contacts yet"

@@ -8,11 +8,10 @@ import {
     formatNumberForDisplay,
     formatCurrency,
     printableAddress,
-    getAvatarUrl,
-    getTransactionSign,
     isStableCoin,
     shortenStringLong,
-} from '@/utils'
+} from '@/utils/general.utils'
+import { getAvatarUrl, getTransactionSign } from '@/utils/history.utils'
 import React, { lazy, Suspense } from 'react'
 import Image from 'next/image'
 import StatusPill, { type StatusPillType } from '../Global/StatusPill'
@@ -58,6 +57,7 @@ interface TransactionCardProps {
     transaction: TransactionDetails
     isPending?: boolean
     haveSentMoneyToUser?: boolean
+    hideTxnAmount?: boolean
 }
 
 /**
@@ -75,6 +75,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     transaction,
     isPending = false,
     haveSentMoneyToUser = false,
+    hideTxnAmount = false,
 }) => {
     // hook to manage the state of the details drawer (open/closed, selected transaction)
     const { isDrawerOpen, selectedTransaction, openTransactionDetails, closeTransactionDetails } =
@@ -195,9 +196,17 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                     ) : (
                         <div className="flex items-center gap-2">
                             <div className="flex flex-col items-end gap-1">
-                                <span className="font-semibold">{displayAmount}</span>
-                                {currencyDisplayAmount && (
-                                    <span className="text-sm font-medium text-gray-1">{currencyDisplayAmount}</span>
+                                {hideTxnAmount ? (
+                                    <span className="text-2xl font-bold">****</span>
+                                ) : (
+                                    <>
+                                        <span className="font-semibold">{displayAmount}</span>
+                                        {currencyDisplayAmount && (
+                                            <span className="text-sm font-medium text-gray-1">
+                                                {currencyDisplayAmount}
+                                            </span>
+                                        )}
+                                    </>
                                 )}
                             </div>
                         </div>

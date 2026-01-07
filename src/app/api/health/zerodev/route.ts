@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { fetchWithSentry } from '@/utils'
+import { fetchWithSentry } from '@/utils/sentry.utils'
 
 /**
  * ZeroDev health check endpoint

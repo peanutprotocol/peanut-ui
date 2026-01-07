@@ -1,6 +1,4 @@
 import { MERCADO_PAGO, SOLANA_ICON, TRON_ICON, PIX } from '@/assets'
-import { BINANCE_LOGO, LEMON_LOGO, RIPIO_LOGO } from '@/assets/exchanges'
-import { METAMASK_LOGO, RAINBOW_LOGO, TRUST_WALLET_LOGO } from '@/assets/wallets'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { type StaticImageData } from 'next/image'
 
@@ -18,15 +16,6 @@ export const MantecaSupportedExchanges = {
     // MX: 'MEXICO',
     //PH: 'PHILIPPINES',
     //BO: 'BOLIVIA',
-}
-
-export interface CryptoSource {
-    id: string
-    name: string
-    type: 'exchange' | 'wallet'
-    icon?: StaticImageData
-    isGeneric?: boolean
-    path: string
 }
 
 export interface CryptoToken {
@@ -73,68 +62,6 @@ export const DEPOSIT_CRYPTO_TOKENS: CryptoToken[] = [
         name: 'Tron',
         symbol: 'TRX',
         icon: TRON_ICON,
-    },
-]
-
-export const CRYPTO_EXCHANGES: CryptoSource[] = [
-    {
-        id: 'binance',
-        name: 'Binance',
-        type: 'exchange',
-        icon: BINANCE_LOGO,
-        path: '/add-money/crypto/binance',
-    },
-    {
-        id: 'lemon',
-        name: 'Lemon',
-        type: 'exchange',
-        icon: LEMON_LOGO,
-        path: '/add-money/crypto/lemon',
-    },
-    {
-        id: 'ripio',
-        name: 'Ripio',
-        type: 'exchange',
-        icon: RIPIO_LOGO,
-        path: '/add-money/crypto/ripio',
-    },
-    {
-        id: 'other-exchanges',
-        name: 'Other exchanges',
-        type: 'exchange',
-        isGeneric: true,
-        path: '/add-money/crypto/other-exchanges',
-    },
-]
-
-export const CRYPTO_WALLETS: CryptoSource[] = [
-    {
-        id: 'metamask',
-        name: 'Metamask',
-        type: 'wallet',
-        icon: METAMASK_LOGO,
-        path: '/add-money/crypto/metamask',
-    },
-    {
-        id: 'rainbow',
-        name: 'Rainbow',
-        type: 'wallet',
-        icon: RAINBOW_LOGO,
-        path: '/add-money/crypto/rainbow',
-    },
-    {
-        id: 'trust-wallet',
-        name: 'Trust Wallet',
-        type: 'wallet',
-        icon: TRUST_WALLET_LOGO,
-        path: '/add-money/crypto/rainbow',
-    },
-    {
-        id: 'other-wallets',
-        name: 'Other wallets',
-        type: 'wallet',
-        isGeneric: true,
-        path: '/add-money/crypto/other-wallets',
     },
 ]
 
@@ -315,6 +242,16 @@ export const countryData: CountryData[] = [
         path: 'united-arab-emirates',
         iso2: 'AE',
         iso3: 'ARE',
+        region: 'rest-of-the-world',
+    },
+    {
+        id: 'AF',
+        type: 'country',
+        title: 'Afghanistan',
+        currency: 'AFN',
+        path: 'afghanistan',
+        iso2: 'AF',
+        iso3: 'AFG',
         region: 'rest-of-the-world',
     },
     {
@@ -638,6 +575,16 @@ export const countryData: CountryData[] = [
         region: 'rest-of-the-world',
     },
     {
+        id: 'BY',
+        type: 'country',
+        title: 'Belarus',
+        currency: 'BYN',
+        path: 'belarus',
+        iso2: 'BY',
+        iso3: 'BLR',
+        region: 'europe',
+    },
+    {
         id: 'BZ',
         type: 'country',
         title: 'Belize',
@@ -776,6 +723,16 @@ export const countryData: CountryData[] = [
         iso2: 'CR',
         iso3: 'CRI',
         region: 'latam',
+    },
+    {
+        id: 'CU',
+        type: 'country',
+        title: 'Cuba',
+        currency: 'CUP',
+        path: 'cuba',
+        iso2: 'CU',
+        iso3: 'CUB',
+        region: 'north-america',
     },
     {
         id: 'CV',
@@ -1328,6 +1285,26 @@ export const countryData: CountryData[] = [
         region: 'rest-of-the-world',
     },
     {
+        id: 'IQ',
+        type: 'country',
+        title: 'Iraq',
+        currency: 'IQD',
+        path: 'iraq',
+        iso2: 'IQ',
+        iso3: 'IRQ',
+        region: 'rest-of-the-world',
+    },
+    {
+        id: 'IR',
+        type: 'country',
+        title: 'Iran',
+        currency: 'IRR',
+        path: 'iran',
+        iso2: 'IR',
+        iso3: 'IRN',
+        region: 'rest-of-the-world',
+    },
+    {
         id: 'ISL',
         type: 'country',
         title: 'Iceland',
@@ -1446,6 +1423,16 @@ export const countryData: CountryData[] = [
         iso2: 'KN',
         iso3: 'KNA',
         region: 'latam',
+    },
+    {
+        id: 'KP',
+        type: 'country',
+        title: 'North Korea',
+        currency: 'KPW',
+        path: 'north-korea',
+        iso2: 'KP',
+        iso3: 'PRK',
+        region: 'rest-of-the-world',
     },
     {
         id: 'KR',
@@ -1685,6 +1672,16 @@ export const countryData: CountryData[] = [
         path: 'mali',
         iso2: 'ML',
         iso3: 'MLI',
+        region: 'rest-of-the-world',
+    },
+    {
+        id: 'MM',
+        type: 'country',
+        title: 'Myanmar',
+        currency: 'MMK',
+        path: 'myanmar',
+        iso2: 'MM',
+        iso3: 'MMR',
         region: 'rest-of-the-world',
     },
     {
@@ -2128,6 +2125,16 @@ export const countryData: CountryData[] = [
         region: 'europe',
     },
     {
+        id: 'RU',
+        type: 'country',
+        title: 'Russia',
+        currency: 'RUB',
+        path: 'russia',
+        iso2: 'RU',
+        iso3: 'RUS',
+        region: 'europe',
+    },
+    {
         id: 'RW',
         type: 'country',
         title: 'Rwanda',
@@ -2326,6 +2333,16 @@ export const countryData: CountryData[] = [
         iso2: 'SX',
         iso3: 'SXM',
         region: 'north-america',
+    },
+    {
+        id: 'SY',
+        type: 'country',
+        title: 'Syria',
+        currency: 'SYP',
+        path: 'syria',
+        iso2: 'SY',
+        iso3: 'SYR',
+        region: 'rest-of-the-world',
     },
     {
         id: 'SZ',
@@ -2791,6 +2808,26 @@ export const MANTECA_ALPHA3_TO_ALPHA2: { [key: string]: string } = {
     BRA: 'BR',
 }
 
+export const UNSUPPORTED_ALPHA3_TO_ALPHA2: { [key: string]: string } = {
+    AFG: 'AF',
+    BLR: 'BY',
+    COD: 'CD',
+    CUB: 'CU',
+    PSE: 'PS',
+    IRN: 'IR',
+    IRQ: 'IQ',
+    LBN: 'LB',
+    LBY: 'LY',
+    MMR: 'MM',
+    PRK: 'KP',
+    RUS: 'RU',
+    SOM: 'SO',
+    SSD: 'SS',
+    SDN: 'SD',
+    SYR: 'SY',
+    YEM: 'YE',
+}
+
 export const ALL_COUNTRIES_ALPHA3_TO_ALPHA2: { [key: string]: string } = {
     ...BRIDGE_ALPHA3_TO_ALPHA2,
     ...MANTECA_ALPHA3_TO_ALPHA2,
@@ -2813,14 +2850,10 @@ export const NON_EUR_SEPA_ALPHA2 = new Set(
         .map((x) => x.alpha2 as string)
 )
 
-const enabledBankWithdrawCountries = new Set(
-    [...Object.values(BRIDGE_ALPHA3_TO_ALPHA2), 'US', 'MX', 'AR'].filter((code) => !NON_EUR_SEPA_ALPHA2.has(code))
-)
+const enabledBankWithdrawCountries = new Set([...Object.values(BRIDGE_ALPHA3_TO_ALPHA2), 'US', 'MX', 'AR'])
 
 // exclude non-euro sepa countries from bank deposits, same as withdrawals
-const enabledBankDepositCountries = new Set(
-    [...Object.values(BRIDGE_ALPHA3_TO_ALPHA2), 'US', 'MX', 'AR'].filter((code) => !NON_EUR_SEPA_ALPHA2.has(code))
-)
+const enabledBankDepositCountries = new Set([...Object.values(BRIDGE_ALPHA3_TO_ALPHA2), 'US', 'MX', 'AR'])
 
 // Helper function to check if a country code is enabled for bank transfers
 // Handles both 2-letter and 3-letter country codes

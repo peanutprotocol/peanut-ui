@@ -1,11 +1,11 @@
 'use client'
 
 import PEANUTMAN_CRY from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_05.gif'
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { useSupportModalContext } from '@/context/SupportModalContext'
+import { useModalsContext } from '@/context/ModalsContext'
 import { useEffect, useState } from 'react'
 
 export type ValidationErrorViewProps = {
@@ -28,7 +28,7 @@ function ValidationErrorView({
     supportButtonText = 'Talk to support',
 }: ValidationErrorViewProps) {
     const router = useRouter()
-    const { openSupportWithMessage } = useSupportModalContext()
+    const { openSupportWithMessage } = useModalsContext()
     const [currentUrl, setCurrentUrl] = useState('')
 
     useEffect(() => {

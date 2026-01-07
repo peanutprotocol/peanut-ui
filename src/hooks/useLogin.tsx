@@ -1,7 +1,7 @@
 import { useAuth } from '@/context/authContext'
 import { useZeroDev } from './useZeroDev'
 import { useEffect, useState } from 'react'
-import { getRedirectUrl, getValidRedirectUrl, clearRedirectUrl } from '@/utils'
+import { getRedirectUrl, getValidRedirectUrl, clearRedirectUrl } from '@/utils/general.utils'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 /**

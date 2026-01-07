@@ -1,11 +1,11 @@
 'use client'
-import { Popover, PopoverTrigger, PopoverContent, Portal } from '@chakra-ui/react'
+import { Popover, PopoverButton, PopoverPanel } from '@headlessui/react'
 import React, { useState, useMemo } from 'react'
 import BaseInput from '../0_Bruddle/BaseInput'
 import { Icon } from '../Global/Icons/Icon'
 import { twMerge } from 'tailwind-merge'
 import Image from 'next/image'
-import { countryCurrencyMappings } from '../../constants/countryCurrencyMapping'
+import countryCurrencyMappings from '@/constants/countryCurrencyMapping'
 import StatusBadge from '../Global/Badges/StatusBadge'
 
 interface CurrencySelectProps {
@@ -52,86 +52,77 @@ const CurrencySelect = ({
     }, [searchTerm, excludeCurrencies])
 
     return (
-        <Popover placement="bottom-end">
-            {({ onClose }) => (
+        <Popover className="relative">
+            {({ close }) => (
                 <>
-                    <PopoverTrigger>{trigger}</PopoverTrigger>
-                    <Portal>
-                        <PopoverContent
-                            width={{ base: '72', sm: '80', md: '96' }}
-                            height={72}
-                            marginTop="16px"
-                            borderRadius="2px"
-                            border="1px"
-                            borderColor="black"
-                            overflow="scroll"
-                        >
-                            <div className="flex max-h-full w-full flex-col gap-4 overflow-hidden p-4">
-                                <div className="relative w-full">
-                                    <div className="absolute left-2 top-1/2 -translate-y-1/2">
-                                        <Icon name="search" size={15} />
-                                    </div>
-                                    <BaseInput
-                                        type="text"
-                                        placeholder="Currency or country"
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="h-10 w-full rounded-sm border-[1.15px] border-black pl-10 pr-10 font-normal caret-[#FF90E8] focus:border-black focus:outline-none focus:ring-0"
-                                    />
+                    <PopoverButton as={React.Fragment}>{trigger}</PopoverButton>
+                    <PopoverPanel
+                        anchor="bottom end"
+                        className="mt-4 h-72 w-72 overflow-scroll rounded-sm border border-black bg-white shadow-lg sm:w-80 md:w-96"
+                    >
+                        <div className="flex max-h-full w-full flex-col gap-4 overflow-hidden p-4">
+                            <div className="relative w-full">
+                                <div className="absolute left-2 top-1/2 -translate-y-1/2">
+                                    <Icon name="search" size={15} />
                                 </div>
-
-                                <div className="flex max-h-full w-full flex-col items-start overflow-y-scroll">
-                                    {!searchTerm && (
-                                        <h2 className="text-left text-xs font-normal text-gray-1">
-                                            Popular currencies
-                                        </h2>
-                                    )}
-                                    {filteredCurrencies
-                                        .filter((currency) => popularCurrencies.includes(currency.currency))
-                                        .map((currency, index) => (
-                                            <CurrencyBox
-                                                key={`${currency.countryCode}-${currency.country}-${index}`}
-                                                countryCode={currency.countryCode}
-                                                country={currency.country}
-                                                currency={currency.currency}
-                                                currencyName={currency.currencyName}
-                                                comingSoon={currency.comingSoon}
-                                                selected={currency.currency === selectedCurrency}
-                                                onSelect={() => {
-                                                    if (!currency.comingSoon) {
-                                                        onClose()
-                                                        setSelectedCurrency(currency.currency)
-                                                    }
-                                                }}
-                                            />
-                                        ))}
-
-                                    {!searchTerm && (
-                                        <h2 className="text-left text-xs font-normal text-gray-1">All currencies</h2>
-                                    )}
-                                    {filteredCurrencies
-                                        .filter((currency) => !popularCurrencies.includes(currency.currency))
-                                        .map((currency, index) => (
-                                            <CurrencyBox
-                                                key={`${currency.countryCode}-${currency.country}-${index}`}
-                                                countryCode={currency.countryCode}
-                                                country={currency.country}
-                                                currency={currency.currency}
-                                                currencyName={currency.currencyName}
-                                                comingSoon={currency.comingSoon}
-                                                selected={currency.currency === selectedCurrency}
-                                                onSelect={() => {
-                                                    if (!currency.comingSoon) {
-                                                        onClose()
-                                                        setSelectedCurrency(currency.currency)
-                                                    }
-                                                }}
-                                            />
-                                        ))}
-                                </div>
+                                <BaseInput
+                                    type="text"
+                                    placeholder="Currency or country"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="h-10 w-full rounded-sm border-[1.15px] border-black pl-10 pr-10 font-normal caret-[#FF90E8] focus:border-black focus:outline-none focus:ring-0"
+                                />
                             </div>
-                        </PopoverContent>
-                    </Portal>
+
+                            <div className="flex max-h-full w-full flex-col items-start overflow-y-scroll">
+                                {!searchTerm && (
+                                    <h2 className="text-left text-xs font-normal text-gray-1">Popular currencies</h2>
+                                )}
+                                {filteredCurrencies
+                                    .filter((currency) => popularCurrencies.includes(currency.currency))
+                                    .map((currency, index) => (
+                                        <CurrencyBox
+                                            key={`${currency.countryCode}-${currency.country}-${index}`}
+                                            countryCode={currency.countryCode}
+                                            country={currency.country}
+                                            currency={currency.currency}
+                                            currencyName={currency.currencyName}
+                                            comingSoon={currency.comingSoon}
+                                            selected={currency.currency === selectedCurrency}
+                                            onSelect={() => {
+                                                if (!currency.comingSoon) {
+                                                    close()
+                                                    setSelectedCurrency(currency.currency)
+                                                }
+                                            }}
+                                        />
+                                    ))}
+
+                                {!searchTerm && (
+                                    <h2 className="text-left text-xs font-normal text-gray-1">All currencies</h2>
+                                )}
+                                {filteredCurrencies
+                                    .filter((currency) => !popularCurrencies.includes(currency.currency))
+                                    .map((currency, index) => (
+                                        <CurrencyBox
+                                            key={`${currency.countryCode}-${currency.country}-${index}`}
+                                            countryCode={currency.countryCode}
+                                            country={currency.country}
+                                            currency={currency.currency}
+                                            currencyName={currency.currencyName}
+                                            comingSoon={currency.comingSoon}
+                                            selected={currency.currency === selectedCurrency}
+                                            onSelect={() => {
+                                                if (!currency.comingSoon) {
+                                                    close()
+                                                    setSelectedCurrency(currency.currency)
+                                                }
+                                            }}
+                                        />
+                                    ))}
+                            </div>
+                        </div>
+                    </PopoverPanel>
                 </>
             )}
         </Popover>

@@ -1,6 +1,5 @@
 'use client'
 
-import Icon from '@/components/Global/Icon'
 import TransactionCard from '@/components/TransactionDetails/TransactionCard'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
 import { EHistoryEntryType, type HistoryEntry, useTransactionHistory } from '@/hooks/useTransactionHistory'
@@ -20,13 +19,14 @@ import { BadgeStatusItem, isBadgeHistoryItem } from '@/components/Badges/BadgeSt
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { completeHistoryEntry } from '@/utils/history.utils'
 import { formatUnits } from 'viem'
-import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { useHaptic } from 'use-haptic'
+import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
+import { Icon } from '../Global/Icons/Icon'
 
 /**
  * component to display a preview of the most recent transactions on the home page.
  */
-const HomeHistory = ({ username }: { username?: string }) => {
+const HomeHistory = ({ username, hideTxnAmount = false }: { username?: string; hideTxnAmount?: boolean }) => {
     const { user } = useUserStore()
     const isLoggedIn = !!user?.user.userId || false
     // Only filter when user is requesting for some different user's history
@@ -333,6 +333,7 @@ const HomeHistory = ({ username }: { username?: string }) => {
                                     position={position}
                                     isPending={true}
                                     haveSentMoneyToUser={transactionDetails.haveSentMoneyToUser}
+                                    hideTxnAmount={hideTxnAmount}
                                 />
                             )
                         })}
@@ -344,7 +345,7 @@ const HomeHistory = ({ username }: { username?: string }) => {
             ) : (
                 <Link href="/history" className="flex items-center justify-between" onClick={() => triggerHaptic()}>
                     <h2 className="text-base font-bold">Activity</h2>
-                    <Icon width={30} height={30} name="arrow-next" />
+                    <Icon name="chevron-up" size={30} className="rotate-90" />
                 </Link>
             )}
             {/* container for the transaction cards */}
@@ -402,6 +403,7 @@ const HomeHistory = ({ username }: { username?: string }) => {
                                 transaction={transactionDetails}
                                 position={position}
                                 haveSentMoneyToUser={haveSentMoneyToUser}
+                                hideTxnAmount={hideTxnAmount}
                             />
                         )
                     })}

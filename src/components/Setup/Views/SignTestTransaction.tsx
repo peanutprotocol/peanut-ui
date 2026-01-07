@@ -1,4 +1,4 @@
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { useAppDispatch } from '@/redux/hooks'
 import { useZeroDev } from '@/hooks/useZeroDev'
@@ -7,18 +7,16 @@ import { useAuth } from '@/context/authContext'
 import { AccountType } from '@/interfaces'
 import { useState, useEffect } from 'react'
 import { encodeFunctionData, erc20Abi, type Address, type Hex } from 'viem'
-import { PEANUT_WALLET_TOKEN, PEANUT_WALLET_CHAIN } from '@/constants'
-import { capturePasskeyDebugInfo } from '@/utils'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
+import { capturePasskeyDebugInfo } from '@/utils/passkeyDebug'
 import * as Sentry from '@sentry/nextjs'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { twMerge } from 'tailwind-merge'
 
 const SignTestTransaction = () => {
-    const router = useRouter()
     const dispatch = useAppDispatch()
     const { address, handleSendUserOpEncoded } = useZeroDev()
-    const { finalizeAccountSetup, isProcessing, error: setupError } = useAccountSetup()
+    const { finalizeAccountSetup, isProcessing, error: setupError, handleRedirect } = useAccountSetup()
     const { user, isFetchingUser, fetchUser } = useAuth()
     const [error, setError] = useState<string | null>(null)
     const [isSigning, setIsSigning] = useState(false)
@@ -57,10 +55,10 @@ const SignTestTransaction = () => {
 
     useEffect(() => {
         if (accountExists) {
-            console.log('[SignTestTransaction] Account exists, redirecting to home')
-            router.push('/home')
+            console.log('[SignTestTransaction] Account exists, redirecting to the app')
+            handleRedirect()
         }
-    }, [accountExists, router])
+    }, [accountExists])
 
     const handleTestTransaction = async () => {
         if (!address) {
@@ -129,13 +127,12 @@ const SignTestTransaction = () => {
                 }
 
                 // account setup complete - addAccount() already fetched and verified user data
-                console.log('[SignTestTransaction] Account setup complete, redirecting to home')
-                router.push('/home')
+                console.log('[SignTestTransaction] Account setup complete, redirecting to the app')
+
                 // keep loading state active until redirect completes
             } else {
                 // if account already exists, just navigate home (login flow)
-                console.log('[SignTestTransaction] Account exists, redirecting to home')
-                router.push('/home')
+                console.log('[SignTestTransaction] Account exists, redirecting to the app')
                 // keep loading state active until redirect completes
             }
         } catch (e) {

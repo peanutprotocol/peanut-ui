@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { fetchWithSentry } from '@/utils'
-import { SELF_URL } from '@/constants'
+import { fetchWithSentry } from '@/utils/sentry.utils'
+import { SELF_URL } from '@/constants/general.consts'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0

@@ -1,11 +1,12 @@
-import { PEANUT_API_URL, PEANUT_API_KEY } from '@/constants'
+import { PEANUT_API_URL, PEANUT_API_KEY } from '@/constants/general.consts'
 import {
     type MantecaDepositResponseData,
     type MantecaWithdrawData,
     type MantecaWithdrawResponse,
     type CreateMantecaOnrampParams,
 } from '@/types/manteca.types'
-import { fetchWithSentry, jsonStringify } from '@/utils'
+import { fetchWithSentry } from '@/utils/sentry.utils'
+import { jsonStringify } from '@/utils/general.utils'
 import Cookies from 'js-cookie'
 import type { Address } from 'viem'
 import type { SignUserOperationReturnType } from '@zerodev/sdk/actions'
@@ -253,7 +254,8 @@ export const mantecaApi = {
                     Authorization: `Bearer ${Cookies.get('jwt-token')}`,
                 },
                 body: jsonStringify({
-                    usdAmount: params.usdAmount,
+                    amount: params.amount,
+                    isUsdDenominated: params.isUsdDenominated,
                     currency: params.currency,
                     chargeId: params.chargeId,
                 }),

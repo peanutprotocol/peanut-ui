@@ -7,11 +7,12 @@ import { type IUserBalance } from '@/interfaces'
 import { useState, useEffect, useCallback, useContext } from 'react'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { fetchWalletBalances } from '@/app/actions/tokens'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, nativeCurrencyAddresses } from '@/constants'
-import { areEvmAddressesEqual, isTxReverted, getExplorerUrl, getChainName, getTokenLogo } from '@/utils'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
+import { nativeCurrencyAddresses } from '@/constants/general.consts'
+import { areEvmAddressesEqual, isTxReverted, getExplorerUrl, getChainName, getTokenLogo } from '@/utils/general.utils'
 import { type RecipientState } from '@/context/WithdrawFlowContext'
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import Card from '@/components/Global/Card'
 import Image from 'next/image'
@@ -21,10 +22,10 @@ import { erc20Abi, parseUnits, encodeFunctionData, formatUnits } from 'viem'
 import type { Address, Hash, TransactionReceipt } from 'viem'
 import { useRouter } from 'next/navigation'
 import { loadingStateContext } from '@/context'
-import Icon from '@/components/Global/Icon'
 import { captureException } from '@sentry/nextjs'
 import { mainnet, base, linea } from 'viem/chains'
 import { getPublicClient } from '@/app/actions/clients'
+import { Icon } from '@/components/Global/Icons/Icon'
 
 // Helper function to check if a token is native ETH
 const isNativeToken = (tokenAddress: string): boolean => {
@@ -256,7 +257,7 @@ export default function RecoverFundsPage() {
                                 className="flex items-center gap-2 hover:underline"
                             >
                                 <span>View on explorer</span>
-                                <Icon name="external-link" />
+                                <Icon name="external-link" size={24} />
                             </a>
                         </div>
                     </Card>

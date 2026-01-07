@@ -12,11 +12,10 @@ import { formatCurrencyAmount } from '@/utils/currency'
 import { formatBankAccountDisplay } from '@/utils/format.utils'
 import { getCurrencyConfig, getCurrencySymbol } from '@/utils/bridge.utils'
 import { RequestFulfillmentBankFlowStep, useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
-import { usePaymentStore } from '@/redux/hooks'
-import { formatAmount } from '@/utils'
+import { formatAmount } from '@/utils/general.utils'
 import InfoCard from '@/components/Global/InfoCard'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
 
 interface IAddMoneyBankDetails {
@@ -33,7 +32,6 @@ export default function AddMoneyBankDetails({ flow = 'add-money' }: IAddMoneyBan
         onrampData: requestFulfilmentOnrampData,
         selectedCountry: requestFulfilmentSelectedCountry,
     } = useRequestFulfillmentFlow()
-    const { chargeDetails } = usePaymentStore()
 
     // routing and country context
     const router = useRouter()
@@ -77,7 +75,7 @@ export default function AddMoneyBankDetails({ flow = 'add-money' }: IAddMoneyBan
     // data from contexts based on flow
     const amount = isAddMoneyFlow
         ? onrampContext.amountToOnramp
-        : (requestFulfilmentOnrampData?.depositInstructions?.amount ?? chargeDetails?.tokenAmount)
+        : requestFulfilmentOnrampData?.depositInstructions?.amount
     const onrampData = isAddMoneyFlow ? onrampContext.onrampData : requestFulfilmentOnrampData
 
     const currencySymbolBasedOnCountry = useMemo(() => {
@@ -187,7 +185,7 @@ ${routingLabel}: ${routingValue}`
         }
 
         bankDetails += `
-Deposit Reference: ${onrampData?.depositInstructions?.depositMessage || 'Loading...'}
+Deposit Reference: ${onrampData?.depositInstructions?.depositMessage?.slice(0, 10) || 'Loading...'}
 
 Please use these details to complete your bank transfer.`
 
@@ -215,7 +213,7 @@ Please use these details to complete your bank transfer.`
                     <p className="text-xs font-normal text-gray-1">Amount to send</p>
                     <div className="flex items-baseline gap-2">
                         <p className="text-2xl font-extrabold text-black md:text-4xl">{formattedCurrencyAmount}</p>
-                        <CopyToClipboard textToCopy={formattedCurrencyAmount} fill="black" iconSize="3" />
+                        <CopyToClipboard textToCopy={formattedCurrencyAmount} fill="black" iconSize="4" />
                     </div>
 
                     <InfoCard variant="warning" className="mt-4" icon="alert" description="Send exactly this amount!" />
@@ -225,13 +223,13 @@ Please use these details to complete your bank transfer.`
                     <p className="text-xs font-normal text-gray-1">Deposit reference</p>
                     <div className="flex items-baseline gap-2">
                         <p className="text-xl font-extrabold text-black md:text-4xl">
-                            {onrampData?.depositInstructions?.depositMessage || 'Loading...'}
+                            {onrampData?.depositInstructions?.depositMessage?.slice(0, 10) || 'Loading...'}
                         </p>
                         {onrampData?.depositInstructions?.depositMessage && (
                             <CopyToClipboard
-                                textToCopy={onrampData.depositInstructions.depositMessage}
+                                textToCopy={onrampData.depositInstructions.depositMessage?.slice(0, 10)}
                                 fill="black"
-                                iconSize="3"
+                                iconSize="4"
                             />
                         )}
                     </div>
@@ -246,6 +244,15 @@ Please use these details to complete your bank transfer.`
 
                 <Card className="gap-2 rounded-sm">
                     <h1 className="text-xs">Bank Details</h1>
+
+                    {onrampData?.depositInstructions?.accountHolderName && (
+                        <PaymentInfoRow
+                            label={'Account Holder Name'}
+                            value={onrampData?.depositInstructions?.accountHolderName || 'Loading...'}
+                            allowCopy={!!onrampData?.depositInstructions?.accountHolderName}
+                            hideBottomBorder
+                        />
+                    )}
 
                     <PaymentInfoRow
                         label={'Bank Name'}
@@ -267,15 +274,6 @@ Please use these details to complete your bank transfer.`
                             label={'Beneficiary Name'}
                             value={onrampData?.depositInstructions?.bankBeneficiaryName || 'Loading...'}
                             allowCopy={!!onrampData?.depositInstructions?.bankBeneficiaryName}
-                            hideBottomBorder
-                        />
-                    )}
-
-                    {onrampData?.depositInstructions?.accountHolderName && (
-                        <PaymentInfoRow
-                            label={'Account Holder Name'}
-                            value={onrampData?.depositInstructions?.accountHolderName || 'Loading...'}
-                            allowCopy={!!onrampData?.depositInstructions?.accountHolderName}
                             hideBottomBorder
                         />
                     )}
@@ -353,7 +351,7 @@ Please use these details to complete your bank transfer.`
                     title="Double check in your bank before sending:"
                     items={[
                         `Amount: ${formattedCurrencyAmount} (exact)`,
-                        `Reference: ${onrampData?.depositInstructions?.depositMessage || 'Loading...'} (included)`,
+                        `Reference: ${onrampData?.depositInstructions?.depositMessage?.slice(0, 10) || 'Loading...'} (included)`,
                     ]}
                 />
 

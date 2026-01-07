@@ -8,7 +8,8 @@ import { loadingStateContext } from '@/context'
 import { createBridgeExternalAccountForGuest } from '@/app/actions/external-accounts'
 import { confirmOfframp, createOfframp, createOfframpForGuest } from '@/app/actions/offramp'
 import { type Address, formatUnits } from 'viem'
-import { ErrorHandler, formatTokenAmount } from '@/utils'
+import { ErrorHandler } from '@/utils/sdkErrorHandler.utils'
+import { formatTokenAmount } from '@/utils/general.utils'
 import * as Sentry from '@sentry/nextjs'
 import useClaimLink from '../../useClaimLink'
 import { type AddBankAccountPayload } from '@/app/actions/types/users.types'
@@ -30,7 +31,6 @@ import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
 import { useAppDispatch } from '@/redux/hooks'
 import { bankFormActions } from '@/redux/slices/bank-form-slice'
 import { sendLinksApi } from '@/services/sendLinks'
-import { useNonEurSepaRedirect } from '@/hooks/useNonEurSepaRedirect'
 import { InitiateBridgeKYCModal } from '@/components/Kyc/InitiateBridgeKYCModal'
 import { useSearchParams } from 'next/navigation'
 
@@ -87,12 +87,6 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
     const [isProcessingKycSuccess, setIsProcessingKycSuccess] = useState(false)
     const [offrampData, setOfframpData] = useState<TCreateOfframpResponse | null>(null)
 
-    // redirect back to country list if selected country is a non-eur sepa country (blocked)
-    const { isBlocked: isCountryBlocked } = useNonEurSepaRedirect({
-        countryIdentifier: selectedCountry?.id || selectedCountry?.path,
-        shouldRedirect: false, // we handle redirect manually in useEffect
-    })
-
     // websocket for real-time KYC status updates
     useWebSocket({
         username: user?.user.username ?? undefined,
@@ -108,17 +102,6 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
             setLiveKycStatus(user.user.bridgeKycStatus as BridgeKycStatus)
         }
     }, [user?.user.bridgeKycStatus])
-
-    // redirect back to country list if trying to access a blocked non-eur sepa country
-    useEffect(() => {
-        if (
-            isCountryBlocked &&
-            (claimBankFlowStep === ClaimBankFlowStep.BankDetailsForm ||
-                claimBankFlowStep === ClaimBankFlowStep.BankConfirmClaim)
-        ) {
-            setClaimBankFlowStep(ClaimBankFlowStep.BankCountryList)
-        }
-    }, [isCountryBlocked, claimBankFlowStep, setClaimBankFlowStep])
 
     /**
      * @name handleConfirmClaim
@@ -428,11 +411,9 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                     onPrev={() => setClaimBankFlowStep(null)}
                     savedAccounts={savedAccounts}
                     onAccountClick={async (account) => {
-                        const [firstName, ...lastNameParts] = (
-                            account.details.accountOwnerName ||
-                            user?.user.fullName ||
-                            ''
-                        ).split(' ')
+                        // for saved accounts, use the user's full name (these are assumed to be user's own accounts)
+                        const fullNameToUse = user?.user.fullName || ''
+                        const [firstName, ...lastNameParts] = fullNameToUse.split(' ')
                         const lastName = lastNameParts.join(' ')
 
                         const bankDetails = {
@@ -473,13 +454,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                 />
             )
         case ClaimBankFlowStep.BankCountryList:
-            return (
-                <CountryListRouter
-                    flow="claim"
-                    claimLinkData={claimLinkData}
-                    inputTitle="Select your bank account's country"
-                />
-            )
+            return <CountryListRouter claimLinkData={claimLinkData} inputTitle="Select your bank account's country" />
         case ClaimBankFlowStep.BankDetailsForm:
             return (
                 <div className="flex min-h-[inherit] flex-col justify-between gap-8 md:min-h-fit">

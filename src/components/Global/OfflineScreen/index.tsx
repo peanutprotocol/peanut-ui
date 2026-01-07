@@ -1,6 +1,6 @@
 'use client'
 
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 
 // inline peanut icon svg to ensure it works offline without needing to fetch external assets
 const PeanutIcon = ({ className }: { className?: string }) => (

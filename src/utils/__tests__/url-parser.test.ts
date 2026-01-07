@@ -84,16 +84,12 @@ jest.mock('@/app/actions/squid', () => ({
     }),
 }))
 
-jest.mock('@/constants', () => ({
+jest.mock('@/constants/zerodev.consts', () => ({
     PEANUT_WALLET_CHAIN: {
         id: '42161',
         name: 'Arbitrum',
     },
     PEANUT_WALLET_TOKEN: '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8',
-    chains: [
-        { id: 1, name: 'Ethereum' },
-        { id: 42161, name: 'Arbitrum' },
-    ],
 }))
 
 jest.mock('@/lib/url-parser/parser.consts', () => ({
@@ -267,7 +263,6 @@ describe('URL Parser Tests', () => {
                 chain: expect.objectContaining({ chainId: 42161 }),
                 amount: '0.1',
                 token: expect.objectContaining({ symbol: 'USDC' }),
-                isDevConnectFlow: false,
             })
         })
 
@@ -319,7 +314,6 @@ describe('URL Parser Tests', () => {
                 chain: undefined,
                 token: undefined,
                 amount: undefined,
-                isDevConnectFlow: false,
             })
         })
 

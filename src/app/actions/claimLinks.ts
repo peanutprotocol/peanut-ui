@@ -6,8 +6,8 @@ import { getContract } from 'viem'
 
 import { getPublicClient, type ChainId } from '@/app/actions/clients'
 import { fetchTokenDetails } from '@/app/actions/tokens'
-import { getLinkFromReceipt } from '@/utils'
-import { PEANUT_WALLET_CHAIN } from '@/constants'
+import { getLinkFromReceipt } from '@/utils/general.utils'
+import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 
 export const getLinkDetails = unstable_cache(
     async (link: string): Promise<any> => {

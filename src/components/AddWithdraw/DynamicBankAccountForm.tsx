@@ -12,16 +12,15 @@ import { validateIban, validateBic, isValidRoutingNumber } from '@/utils/bridge-
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { getBicFromIban } from '@/app/actions/ibanToBic'
 import PeanutActionDetailsCard, { type PeanutActionDetailsCardProps } from '../Global/PeanutActionDetailsCard'
-import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { getCountryFromIban, validateMXCLabeAccount, validateUSBankAccount } from '@/utils/withdraw.utils'
 import useSavedAccounts from '@/hooks/useSavedAccounts'
 import { useAppDispatch, useAppSelector } from '@/redux/hooks'
 import { bankFormActions } from '@/redux/slices/bank-form-slice'
 import { useDebounce } from '@/hooks/useDebounce'
-import { Icon } from '../Global/Icons/Icon'
 import { twMerge } from 'tailwind-merge'
 import { MX_STATES, US_STATES } from '@/constants/stateCodes.consts'
+import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
 
 const isIBANCountry = (country: string) => {
     return BRIDGE_ALPHA3_TO_ALPHA2[country.toUpperCase()] !== undefined
@@ -31,6 +30,7 @@ export type IBankAccountDetails = {
     name?: string
     firstName: string
     lastName: string
+    accountOwnerName?: string // single field for withdraw flow
     email: string
     accountNumber: string
     bic: string
@@ -78,8 +78,6 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         const [submissionError, setSubmissionError] = useState<string | null>(null)
         const { country: countryNameParams } = useParams()
         const { amountToWithdraw, setSelectedBankAccount } = useWithdrawFlow()
-        const [firstName, ...lastNameParts] = (user?.user.fullName ?? '').split(' ')
-        const lastName = lastNameParts.join(' ')
         const router = useRouter()
         const savedAccounts = useSavedAccounts()
         const [isCheckingBICValid, setisCheckingBICValid] = useState(false)
@@ -90,6 +88,9 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         // Get persisted form data from Redux
         const persistedFormData = useAppSelector((state) => state.bankForm.formData)
 
+        // for claim flow: pre-fill accountOwnerName from user if logged in, for withdraw flow: keep empty
+        const defaultAccountOwnerName = flow === 'claim' && user?.user.fullName ? user.user.fullName : ''
+
         const {
             control,
             handleSubmit,
@@ -99,9 +100,10 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             formState: { errors, isValid, isValidating, touchedFields },
         } = useForm<IBankAccountDetails>({
             defaultValues: {
-                firstName: firstName ?? '',
-                lastName: lastName ?? '',
-                email: user?.user.email ?? '',
+                firstName: '', // kept for backwards compatibility but not used in UI
+                lastName: '', // kept for backwards compatibility but not used in UI
+                accountOwnerName: defaultAccountOwnerName,
+                email: flow === 'claim' ? (user?.user.email ?? '') : '', // only pre-fill email in claim flow
                 accountNumber: '',
                 bic: '',
                 routingNumber: '',
@@ -170,7 +172,24 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
 
                 const accountNumber = isMx ? data.clabe : data.accountNumber
 
-                const { firstName, lastName } = data
+                // split accountOwnerName into first and last name for all flows
+                // note: bridge api requires both first_name and last_name for individual accounts,
+                // so we validate that accountOwnerName contains at least 2 words in the form
+                let firstName: string
+                let lastName: string
+
+                if (data.accountOwnerName) {
+                    // split the trimmed name into parts using one or more whitespace characters as the separator
+                    // this allows to handle cases where the name has multiple parts like "Peanut Guy" or "Happy Peanut Guy"
+                    const nameParts = data.accountOwnerName.trim().split(/\s+/)
+                    firstName = nameParts[0] || ''
+                    lastName = nameParts.slice(1).join(' ') || ''
+                } else {
+                    // fallback to firstName/lastName if accountOwnerName is not set (backwards compatibility)
+                    firstName = data.firstName || ''
+                    lastName = data.lastName || ''
+                }
+
                 let bic = data.bic || getValues('bic')
                 const iban = data.iban || getValues('iban')
 
@@ -204,8 +223,8 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                     accountNumber: isIban ? '' : data.accountNumber,
                     bic: bic,
                     country,
-                    firstName: data.firstName.trim(),
-                    lastName: data.lastName.trim(),
+                    firstName: firstName.trim(),
+                    lastName: lastName.trim(),
                     name: data.name,
                 })
                 if (result.error) {
@@ -216,8 +235,8 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                     const formDataToSave = {
                         ...data,
                         country,
-                        firstName: data.firstName.trim(),
-                        lastName: data.lastName.trim(),
+                        firstName: firstName.trim(),
+                        lastName: lastName.trim(),
                     }
                     dispatch(bankFormActions.setFormData(formDataToSave))
                     setIsSubmitting(false)
@@ -335,16 +354,35 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                         }}
                         className="space-y-4"
                     >
+                        {/* CLAIM FLOW: show name field for guest users or logged-in users without fullName */}
                         {flow === 'claim' && !user?.user.userId && (
                             <div className="w-full space-y-4">
-                                {renderInput('firstName', 'First Name', { required: 'First name is required' })}
-                                {renderInput('lastName', 'Last Name', { required: 'Last name is required' })}
+                                {renderInput('accountOwnerName', 'Account Owner Name', {
+                                    required: 'Account owner name is required',
+                                    validate: (value: string) => {
+                                        const trimmed = value.trim()
+                                        const parts = trimmed.split(/\s+/)
+                                        if (parts.length < 2) {
+                                            return 'Please enter both first and last name'
+                                        }
+                                        return true
+                                    },
+                                })}
                             </div>
                         )}
                         {flow === 'claim' && user?.user.userId && !user.user.fullName && (
                             <div className="w-full space-y-4">
-                                {renderInput('firstName', 'First Name', { required: 'First name is required' })}
-                                {renderInput('lastName', 'Last Name', { required: 'Last name is required' })}
+                                {renderInput('accountOwnerName', 'Account Owner Name', {
+                                    required: 'Account owner name is required',
+                                    validate: (value: string) => {
+                                        const trimmed = value.trim()
+                                        const parts = trimmed.split(/\s+/)
+                                        if (parts.length < 2) {
+                                            return 'Please enter both first and last name'
+                                        }
+                                        return true
+                                    },
+                                })}
                             </div>
                         )}
                         {flow === 'claim' &&
@@ -354,10 +392,21 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                             renderInput('email', 'E-mail', {
                                 required: 'Email is required',
                             })}
-                        {flow !== 'claim' && !user?.user?.fullName && (
+
+                        {/* WITHDRAW FLOW: always show account owner's name field (empty by default) */}
+                        {flow !== 'claim' && (
                             <div className="w-full space-y-4">
-                                {renderInput('firstName', 'First Name', { required: 'First name is required' })}
-                                {renderInput('lastName', 'Last Name', { required: 'Last name is required' })}
+                                {renderInput('accountOwnerName', 'Account Owner Name', {
+                                    required: 'Account owner name is required',
+                                    validate: (value: string) => {
+                                        const trimmed = value.trim()
+                                        const parts = trimmed.split(/\s+/)
+                                        if (parts.length < 2) {
+                                            return 'Please enter both first and last name'
+                                        }
+                                        return true
+                                    },
+                                })}
                             </div>
                         )}
                         {flow !== 'claim' &&

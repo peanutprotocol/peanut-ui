@@ -1,8 +1,8 @@
 import peanut from '@squirrel-labs/peanut-sdk'
 
-import { peanutTokenDetails } from '@/constants'
 import { type IUserBalance } from '@/interfaces'
-import { areEvmAddressesEqual, isNativeCurrency } from '@/utils'
+import { areEvmAddressesEqual, isNativeCurrency } from '@/utils/general.utils'
+import { peanutTokenDetails } from '@/constants/general.consts'
 
 export const isGaslessDepositPossible = ({
     tokenAddress,

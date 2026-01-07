@@ -1,6 +1,6 @@
 import { PayRequestLink } from '@/components/Request/Pay/Pay'
 import { chargesApi } from '@/services/charges'
-import { formatAmount, printableAddress } from '@/utils'
+import { formatAmount, printableAddress } from '@/utils/general.utils'
 import { type Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'

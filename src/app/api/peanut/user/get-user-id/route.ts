@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import * as consts from '@/constants'
-import { fetchWithSentry } from '@/utils'
+import { fetchWithSentry } from '@/utils/sentry.utils'
+import { PEANUT_API_URL } from '@/constants/general.consts'
 
 export async function POST(request: NextRequest) {
     const { accountIdentifier } = await request.json()
@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-        const response = await fetchWithSentry(`${consts.PEANUT_API_URL}/get-user-id`, {
+        const response = await fetchWithSentry(`${PEANUT_API_URL}/get-user-id`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

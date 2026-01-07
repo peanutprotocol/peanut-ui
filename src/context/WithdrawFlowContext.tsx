@@ -1,6 +1,7 @@
 'use client'
 
 import { type ITokenPriceData, type Account } from '@/interfaces'
+import { type TRequestChargeResponse, type PaymentCreationResponse } from '@/services/services.types'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import React, { createContext, type ReactNode, useContext, useMemo, useState, useCallback } from 'react'
 
@@ -61,6 +62,13 @@ interface WithdrawFlowContextType {
     setShowAllWithdrawMethods: (show: boolean) => void
     selectedMethod: WithdrawMethod | null
     setSelectedMethod: (method: WithdrawMethod | null) => void
+    // charge and payment state (local to withdraw flow)
+    chargeDetails: TRequestChargeResponse | null
+    setChargeDetails: (charge: TRequestChargeResponse | null) => void
+    transactionHash: string | null
+    setTransactionHash: (hash: string | null) => void
+    paymentDetails: PaymentCreationResponse | null
+    setPaymentDetails: (payment: PaymentCreationResponse | null) => void
     resetWithdrawFlow: () => void
 }
 
@@ -86,6 +94,11 @@ export const WithdrawFlowContextProvider: React.FC<{ children: ReactNode }> = ({
     const [showAllWithdrawMethods, setShowAllWithdrawMethods] = useState<boolean>(false)
     const [selectedMethod, setSelectedMethod] = useState<WithdrawMethod | null>(null)
 
+    // charge and payment state (local to withdraw flow)
+    const [chargeDetails, setChargeDetails] = useState<TRequestChargeResponse | null>(null)
+    const [transactionHash, setTransactionHash] = useState<string | null>(null)
+    const [paymentDetails, setPaymentDetails] = useState<PaymentCreationResponse | null>(null)
+
     const resetWithdrawFlow = useCallback(() => {
         setAmountToWithdraw('')
         setCurrentView('INITIAL')
@@ -97,6 +110,10 @@ export const WithdrawFlowContextProvider: React.FC<{ children: ReactNode }> = ({
         setShowAllWithdrawMethods(false)
         setUsdAmount('')
         setSelectedMethod(null)
+        // reset charge and payment state
+        setChargeDetails(null)
+        setTransactionHash(null)
+        setPaymentDetails(null)
     }, [])
 
     const value = useMemo(
@@ -129,6 +146,12 @@ export const WithdrawFlowContextProvider: React.FC<{ children: ReactNode }> = ({
             setShowAllWithdrawMethods,
             selectedMethod,
             setSelectedMethod,
+            chargeDetails,
+            setChargeDetails,
+            transactionHash,
+            setTransactionHash,
+            paymentDetails,
+            setPaymentDetails,
             resetWithdrawFlow,
         }),
         [
@@ -146,7 +169,9 @@ export const WithdrawFlowContextProvider: React.FC<{ children: ReactNode }> = ({
             selectedBankAccount,
             showAllWithdrawMethods,
             selectedMethod,
-            setShowAllWithdrawMethods,
+            chargeDetails,
+            transactionHash,
+            paymentDetails,
             resetWithdrawFlow,
         ]
     )

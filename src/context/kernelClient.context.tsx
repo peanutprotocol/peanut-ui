@@ -1,15 +1,10 @@
 'use client'
-import {
-    PEANUT_WALLET_CHAIN,
-    PUBLIC_CLIENTS_BY_CHAIN,
-    USER_OP_ENTRY_POINT,
-    ZERODEV_KERNEL_VERSION,
-} from '@/constants/zerodev.consts'
+import { PEANUT_WALLET_CHAIN, USER_OP_ENTRY_POINT, ZERODEV_KERNEL_VERSION } from '@/constants/zerodev.consts'
 import { useAuth } from '@/context/authContext'
 import { createKernelMigrationAccount } from '@zerodev/sdk/accounts'
 import { useAppDispatch } from '@/redux/hooks'
 import { zerodevActions } from '@/redux/slices/zerodev-slice'
-import { getFromCookie, updateUserPreferences, getUserPreferences } from '@/utils'
+import { getFromCookie, updateUserPreferences, getUserPreferences } from '@/utils/general.utils'
 import { PasskeyValidatorContractVersion, toPasskeyValidator, toWebAuthnKey } from '@zerodev/passkey-validator'
 import {
     createKernelAccount,
@@ -21,6 +16,7 @@ import { createContext, type ReactNode, useCallback, useContext, useEffect, useS
 import { type Chain, http, type PublicClient, type Transport } from 'viem'
 import type { Address } from 'viem'
 import { captureException } from '@sentry/nextjs'
+import { PUBLIC_CLIENTS_BY_CHAIN } from '@/app/actions/clients'
 
 interface KernelClientContextType {
     setWebAuthnKey: (webAuthnKey: WebAuthnKey) => void

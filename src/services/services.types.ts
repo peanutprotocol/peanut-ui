@@ -1,4 +1,4 @@
-import { type BridgeKycStatus } from '@/utils'
+import { type BridgeKycStatus } from '@/utils/bridge-accounts.utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 
 export type TStatus = 'NEW' | 'PENDING' | 'COMPLETED' | 'EXPIRED' | 'FAILED' | 'SIGNED' | 'SUCCESSFUL' | 'CANCELLED'
@@ -66,6 +66,7 @@ export interface ChargeEntry {
 }
 
 export interface RequestLink {
+    uuid: string
     recipientAddress: string
     reference: string | null
     attachmentUrl: string | null
@@ -190,6 +191,7 @@ export interface TRequestChargeResponse {
         username: string
     }
     requestLink: {
+        uuid: string
         recipientAddress: string
         reference: string | null
         attachmentUrl: string | null
@@ -468,4 +470,12 @@ export interface HistoryEntryPerkReward {
     originatingTxId?: string
     originatingTxType?: string
     perkName?: string
+}
+
+export type RhinoChainType = 'EVM' | 'SOL' | 'TRON'
+export interface CreateDepositAddressResponse {
+    depositAddress: string
+    minDepositLimitUsd: number
+    maxDepositLimitUsd: number
+    supportedChains: string[]
 }

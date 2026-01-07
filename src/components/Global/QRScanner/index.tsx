@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useToast } from '@/components/0_Bruddle/Toast'
-import { Button } from '@/components/0_Bruddle'
-import Icon from '@/components/Global/Icon'
+import { Button } from '@/components/0_Bruddle/Button'
 import { createPortal } from 'react-dom'
 import jsQR from 'jsqr'
 import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
-import { MERCADO_PAGO, PIX, SIMPLEFI } from '@/assets/payment-apps'
+import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
 import { PEANUTMAN_LOGO } from '@/assets/peanut'
 import { ETHEREUM_ICON } from '@/assets/icons'
 import Image from 'next/image'
+import { Icon } from '../Icons/Icon'
 
 // QR Scanner Configuration
 const QR_SCAN_INTERVAL_MS = 100 // Scan every 100ms (10 times per second)
@@ -85,28 +85,24 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
             console.error('Error closing QR scanner:', error)
         }
     }, [onClose, stopCamera])
-    const handleQRScan = useCallback(
-        async (data: string) => {
-            if (processingQR) return
-            try {
-                setProcessingQR(true)
-                const result = await onScan(data)
-                if (result.success) {
-                    toast.info('QR code recognized')
-                } else {
-                    toast.error(result.error || 'QR code processing failed')
-                    // Resume scanning
-                    setProcessingQR(false)
-                }
-            } catch (error) {
-                console.error('Error processing QR code:', error)
-                toast.error('Error processing QR code')
+    const handleQRScan = async (data: string) => {
+        try {
+            setProcessingQR(true)
+            const result = await onScan(data)
+            if (result.success) {
+                toast.info('QR code recognized')
+            } else {
+                toast.error(result.error || 'QR code processing failed')
+                // Resume scanning
                 setProcessingQR(false)
             }
-        },
-        [processingQR]
-    )
-    const setupQRScanning = useCallback(() => {
+        } catch (error) {
+            console.error('Error processing QR code:', error)
+            toast.error('Error processing QR code')
+            setProcessingQR(false)
+        }
+    }
+    const setupQRScanning = () => {
         if (!videoRef.current || !canvasRef.current) return
         const video = videoRef.current
         const canvas = canvasRef.current
@@ -132,7 +128,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                         inversionAttempts: 'attemptBoth',
                     })
 
-                    if (code && !processingQR) {
+                    if (code) {
                         handleQRScan(code.data)
                     }
                 } catch (err) {
@@ -140,7 +136,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                 }
             }
         }, QR_SCAN_INTERVAL_MS)
-    }, [handleQRScan, processingQR])
+    }
     const startCamera = useCallback(async () => {
         setError(null)
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
@@ -214,7 +210,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
         } else {
             setError('Your browser does not support camera access')
         }
-    }, [facingMode, setupQRScanning, isScanning, deviceType])
+    }, [facingMode, isScanning, deviceType])
     // Handle visibility change - pause camera when app goes to background
     useEffect(() => {
         const handleVisibilityChange = () => {
@@ -297,7 +293,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                             className="border-1 mx-auto flex h-8 w-8 items-center justify-center border-white p-0"
                             onClick={closeScanner}
                         >
-                            <Icon name="close" fill="white" />
+                            <Icon name="cancel" fill="white" />
                         </Button>
                         <span className="text-3xl font-extrabold">Scan to pay</span>
                         <Button
@@ -305,7 +301,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                             className="border-1 mx-auto flex h-8 w-8 items-center justify-center border-white p-0"
                             onClick={toggleCamera}
                         >
-                            <Icon name="flip-camera" fill="white" height={24} width={24} />
+                            <Icon name="camera-flip" fill="white" height={24} width={24} />
                         </Button>
                     </div>
                     <div className="fixed left-1/2 flex h-64 w-64 -translate-x-1/2 translate-y-1/2 justify-center">

@@ -1,8 +1,8 @@
 'use client'
 
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import { type IconName } from '@/components/Global/Icons/Icon'
-import { PEANUT_WALLET_TOKEN } from '@/constants'
+import { PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { DaimoPayButton as DaimoPayButtonSDK, useDaimoPayUI } from '@daimo/pay'
 import { useCallback, useEffect } from 'react'
 import { getAddress } from 'viem'
@@ -52,7 +52,7 @@ export interface DaimoPayButtonProps {
     onValidationError?: (error: string | null) => void
 }
 
-export const DaimoPayButton = ({
+const DaimoPayButton = ({
     amount,
     toAddress,
     toChainId,
@@ -76,7 +76,7 @@ export const DaimoPayButton = ({
 
     const handleClick = useCallback(async () => {
         // Parse and validate amount
-        const formattedAmount = parseFloat(amount.replace(/,/g, ''))
+        const formattedAmount = parseFloat(amount)
 
         // Validate amount range if specified
         if (minAmount !== undefined && formattedAmount < minAmount) {
@@ -146,7 +146,7 @@ export const DaimoPayButton = ({
             appId={daimoAppId}
             intent="Deposit"
             toChain={toChainId ?? arbitrum.id} // use provided chain or default to arbitrum
-            toUnits={amount.replace(/,/g, '')}
+            toUnits={amount}
             toAddress={getAddress(toAddress)}
             toToken={getAddress(toTokenAddress ?? PEANUT_WALLET_TOKEN)} // use provided token or default to usdc on arbitrum
             onPaymentCompleted={onPaymentCompleted}

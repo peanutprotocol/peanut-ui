@@ -10,6 +10,10 @@ const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), {
     ssr: false,
 }) as any
 
+// Constants for drag vs click detection
+const CLICK_MAX_DURATION_MS = 200
+const CLICK_MAX_DISTANCE_PX = 5
+
 // Types
 export interface GraphNode {
     id: string
@@ -255,7 +259,12 @@ export default function InvitesGraph(props: InvitesGraphProps) {
     const graphRef = useRef<any>(null)
     const containerRef = useRef<HTMLDivElement>(null)
     const forcesConfiguredRef = useRef(false)
+    const initialZoomDoneRef = useRef(false)
     const [containerWidth, setContainerWidth] = useState<number | null>(null)
+
+    // Drag vs click detection
+    const dragStartRef = useRef<{ x: number; y: number; time: number } | null>(null)
+    const isDraggingRef = useRef(false)
 
     // Measure container width for minimal mode
     useEffect(() => {
@@ -359,7 +368,41 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         return link.type === 'DIRECT' ? 1.5 : 1
     }, [])
 
+    // Handle drag start to track for click vs drag detection
+    const handleNodeDragStart = useCallback((node: any, _translate: any) => {
+        dragStartRef.current = { x: node.x, y: node.y, time: Date.now() }
+        isDraggingRef.current = false
+    }, [])
+
+    // Handle drag to detect actual dragging
+    const handleNodeDrag = useCallback((node: any) => {
+        if (!dragStartRef.current) return
+        const dx = node.x - dragStartRef.current.x
+        const dy = node.y - dragStartRef.current.y
+        const distance = Math.sqrt(dx * dx + dy * dy)
+        if (distance > CLICK_MAX_DISTANCE_PX) {
+            isDraggingRef.current = true
+        }
+    }, [])
+
+    // Handle drag end
+    const handleNodeDragEnd = useCallback(() => {
+        // Small delay to let the click handler check the drag state
+        setTimeout(() => {
+            dragStartRef.current = null
+            isDraggingRef.current = false
+        }, 50)
+    }, [])
+
     const handleNodeClick = useCallback((node: any) => {
+        // Skip click if we were dragging
+        if (isDraggingRef.current) {
+            return
+        }
+        // Also check time-based threshold
+        if (dragStartRef.current && Date.now() - dragStartRef.current.time > CLICK_MAX_DURATION_MS) {
+            return
+        }
         setSelectedUserId((prev) => (prev === node.id ? null : node.id))
     }, [])
 
@@ -393,15 +436,20 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         setSearchResults([])
     }, [])
 
-    // Configure D3 forces
+    // Configure D3 forces - called as soon as graph ref is available
     const configureForces = useCallback(async () => {
         if (!graphRef.current || forcesConfiguredRef.current) return
 
         const graph = graphRef.current
+        const nodeCount = filteredGraphData?.nodes?.length ?? 0
 
-        graph.d3Force('charge')?.strength(-150)
-        graph.d3Force('charge')?.distanceMax(300)
-        graph.d3Force('link')?.distance(60)
+        // Scale force parameters based on node count
+        const chargeStrength = nodeCount > 50 ? -300 : nodeCount > 20 ? -200 : -150
+        const linkDistance = nodeCount > 50 ? 100 : nodeCount > 20 ? 80 : 60
+
+        graph.d3Force('charge')?.strength(chargeStrength)
+        graph.d3Force('charge')?.distanceMax(400)
+        graph.d3Force('link')?.distance(linkDistance)
         graph.d3Force('link')?.strength(0.7)
 
         const d3 = await import('d3-force')
@@ -412,14 +460,55 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                     const hasAccess = node.hasAppAccess
                     const baseSize = hasAccess ? 6 : 3
                     const pointsMultiplier = Math.sqrt(node.totalPoints) / 10
-                    return baseSize + Math.min(pointsMultiplier, 25) + 15
+                    return baseSize + Math.min(pointsMultiplier, 25) + 20
                 })
-                .strength(0.9)
+                .strength(1)
         )
 
         graph.d3Force('center', d3.forceCenter())
         forcesConfiguredRef.current = true
+
+        // Reheat the simulation to apply forces properly
+        graph.d3ReheatSimulation()
+    }, [filteredGraphData?.nodes?.length])
+
+    // Initial zoom to fit after graph stabilizes
+    const handleEngineStop = useCallback(() => {
+        if (!graphRef.current || initialZoomDoneRef.current) return
+        // Zoom to fit with padding after initial simulation
+        setTimeout(() => {
+            graphRef.current?.zoomToFit(400, 40)
+            initialZoomDoneRef.current = true
+        }, 100)
     }, [])
+
+    // Configure forces early - poll until graphRef is available
+    useEffect(() => {
+        if (forcesConfiguredRef.current) return
+
+        const checkAndConfigure = () => {
+            if (graphRef.current && !forcesConfiguredRef.current) {
+                configureForces()
+            }
+        }
+
+        // Try immediately
+        checkAndConfigure()
+
+        // Also poll a few times in case ref isn't ready yet
+        const intervals = [50, 100, 200, 500].map((delay) => setTimeout(checkAndConfigure, delay))
+
+        return () => intervals.forEach(clearTimeout)
+    }, [configureForces, filteredGraphData])
+
+    // Reset force config and zoom when filtered data changes (e.g., user selected)
+    useEffect(() => {
+        if (selectedUserId !== null) {
+            // Reset zoom done flag when viewing a subset
+            initialZoomDoneRef.current = false
+            forcesConfiguredRef.current = false
+        }
+    }, [selectedUserId])
 
     // Center on selected node
     useEffect(() => {
@@ -479,7 +568,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
     if (isMinimal) {
         const minimalWidth = containerWidth ?? width ?? 350
         return (
-            <div ref={containerRef} className="relative w-full" style={{ height: graphHeight }}>
+            <div ref={containerRef} className="relative w-full" style={{ height: graphHeight, touchAction: 'none' }}>
                 {containerWidth !== null && (
                     <ForceGraph2D
                         ref={graphRef}
@@ -508,16 +597,31 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                             link.type === 'DIRECT' ? 'rgba(139, 92, 246, 0.8)' : 'rgba(236, 72, 153, 0.8)'
                         }
                         onNodeClick={handleNodeClick}
+                        onNodeDragStart={handleNodeDragStart}
+                        onNodeDrag={handleNodeDrag}
+                        onNodeDragEnd={handleNodeDragEnd}
                         enableNodeDrag={true}
-                        cooldownTicks={100}
-                        warmupTicks={20}
-                        d3VelocityDecay={0.5}
-                        d3AlphaDecay={0.03}
-                        onEngineStop={configureForces}
+                        enablePanInteraction={true}
+                        enableZoomInteraction={true}
+                        cooldownTicks={150}
+                        warmupTicks={100}
+                        d3VelocityDecay={0.4}
+                        d3AlphaDecay={0.02}
+                        onEngineStop={handleEngineStop}
                         backgroundColor={backgroundColor}
                         width={minimalWidth}
                         height={graphHeight}
                     />
+                )}
+                {/* Back button when viewing filtered tree */}
+                {selectedUserId && (
+                    <button
+                        onClick={handleReset}
+                        className="absolute left-2 top-2 z-10 flex items-center gap-1 rounded-full bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-md transition-colors hover:bg-gray-50"
+                    >
+                        <span>←</span>
+                        <span>Back</span>
+                    </button>
                 )}
                 {renderOverlays?.({ showUsernames, setShowUsernames, showPoints, setShowPoints })}
             </div>
@@ -653,7 +757,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             </div>
 
             {/* Graph Canvas */}
-            <div className="relative flex-1">
+            <div className="relative flex-1" style={{ touchAction: 'none' }}>
                 <ForceGraph2D
                     ref={graphRef}
                     graphData={{
@@ -697,12 +801,17 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                         link.type === 'DIRECT' ? 'rgba(139, 92, 246, 0.8)' : 'rgba(236, 72, 153, 0.8)'
                     }
                     onNodeClick={handleNodeClick}
+                    onNodeDragStart={handleNodeDragStart}
+                    onNodeDrag={handleNodeDrag}
+                    onNodeDragEnd={handleNodeDragEnd}
                     enableNodeDrag={true}
-                    cooldownTicks={100}
-                    warmupTicks={20}
-                    d3VelocityDecay={0.5}
-                    d3AlphaDecay={0.03}
-                    onEngineStop={configureForces}
+                    enablePanInteraction={true}
+                    enableZoomInteraction={true}
+                    cooldownTicks={150}
+                    warmupTicks={100}
+                    d3VelocityDecay={0.4}
+                    d3AlphaDecay={0.02}
+                    onEngineStop={handleEngineStop}
                     backgroundColor="#f9fafb"
                     width={graphWidth}
                     height={graphHeight}
