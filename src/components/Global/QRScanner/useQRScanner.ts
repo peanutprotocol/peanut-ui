@@ -41,12 +41,6 @@ export type QRScanHandler = (data: string) => Promise<{ success: boolean; error?
 
 type FacingMode = 'user' | 'environment'
 
-interface ScannerRefs {
-    video: React.RefObject<HTMLVideoElement>
-    scanner: React.MutableRefObject<QrScannerLib | null>
-    retryCount: React.MutableRefObject<number>
-}
-
 // ============================================================================
 // Hook
 // ============================================================================
@@ -62,27 +56,26 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
     // Use ref for processingQR to avoid stale closure issues in scanner callback
     const processingQRRef = useRef(false)
 
-    const refs: ScannerRefs = {
-        video: useRef<HTMLVideoElement>(null),
-        scanner: useRef<QrScannerLib | null>(null),
-        retryCount: useRef<number>(0),
-    }
+    // Refs declared individually (not in an object) to maintain stable references across renders
+    const videoRef = useRef<HTMLVideoElement>(null)
+    const scannerRef = useRef<QrScannerLib | null>(null)
+    const retryCountRef = useRef<number>(0)
 
     // -------------------------------------------------------------------------
     // Scanner Lifecycle
     // -------------------------------------------------------------------------
 
     const cleanup = useCallback(() => {
-        if (refs.scanner.current) {
-            refs.scanner.current.stop()
-            refs.scanner.current.destroy()
-            refs.scanner.current = null
+        if (scannerRef.current) {
+            scannerRef.current.stop()
+            scannerRef.current.destroy()
+            scannerRef.current = null
         }
-        if (refs.video.current) {
+        if (videoRef.current) {
             // Critical for iOS to stop camera recording
-            refs.video.current.pause()
-            refs.video.current.srcObject = null
-            refs.video.current.load()
+            videoRef.current.pause()
+            videoRef.current.srcObject = null
+            videoRef.current.load()
         }
     }, [])
 
@@ -117,7 +110,7 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
             processingQRRef.current = true
 
             // Stop scanner immediately to prevent additional callbacks being queued
-            refs.scanner.current?.stop()
+            scannerRef.current?.stop()
 
             try {
                 const result = await onScan(data)
@@ -128,14 +121,14 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                     toast.error(result.error || 'QR code processing failed')
                     processingQRRef.current = false
                     // Resume scanner on failure so user can try again
-                    refs.scanner.current?.start()
+                    scannerRef.current?.start()
                 }
             } catch (err) {
                 console.error('Error processing QR code:', err)
                 toast.error('Error processing QR code')
                 processingQRRef.current = false
                 // Resume scanner on error so user can try again
-                refs.scanner.current?.start()
+                scannerRef.current?.start()
             }
         },
         [onScan, toast]
@@ -165,7 +158,7 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
         async (preferredCamera: FacingMode = facingMode) => {
             setError(null)
 
-            if (!refs.video.current) {
+            if (!videoRef.current) {
                 setError('Video element not available')
                 return
             }
@@ -178,29 +171,29 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                     await new Promise((resolve) => setTimeout(resolve, CONFIG.IOS_CAMERA_DELAY_MS))
                 }
 
-                const scanner = new QrScannerLib(refs.video.current, (result) => handleQRScan(result.data), {
+                const scanner = new QrScannerLib(videoRef.current, (result) => handleQRScan(result.data), {
                     ...SCANNER_OPTIONS,
                     preferredCamera,
                 })
 
-                refs.scanner.current = scanner
+                scannerRef.current = scanner
                 await scanner.start()
-                refs.retryCount.current = 0
+                retryCountRef.current = 0
             } catch (err: any) {
                 console.error('Error accessing camera:', err)
 
                 const shouldRetry =
-                    err.name === CAMERA_ERRORS.NOT_READABLE && refs.retryCount.current < CONFIG.MAX_CAMERA_RETRIES
+                    err.name === CAMERA_ERRORS.NOT_READABLE && retryCountRef.current < CONFIG.MAX_CAMERA_RETRIES
 
-                setError(getErrorMessage(err.name, refs.retryCount.current))
+                setError(getErrorMessage(err.name, retryCountRef.current))
 
                 if (shouldRetry) {
-                    refs.retryCount.current++
+                    retryCountRef.current++
                     setTimeout(() => {
                         if (isScanning) startCamera(preferredCamera)
                     }, CONFIG.CAMERA_RETRY_DELAY_MS)
                 } else {
-                    refs.retryCount.current = 0
+                    retryCountRef.current = 0
                 }
             }
         },
@@ -208,12 +201,12 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
     )
 
     const toggleCamera = useCallback(async () => {
-        if (!refs.scanner.current || !isScanning) return
+        if (!scannerRef.current || !isScanning) return
 
         const newFacingMode: FacingMode = facingMode === 'user' ? 'environment' : 'user'
 
         try {
-            await refs.scanner.current.setCamera(newFacingMode)
+            await scannerRef.current.setCamera(newFacingMode)
             setFacingMode(newFacingMode)
         } catch (err) {
             console.error('Error switching camera:', err)
@@ -229,9 +222,9 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (document.hidden) {
-                refs.scanner.current?.stop()
-            } else if (isScanning && refs.scanner.current) {
-                refs.scanner.current.start()
+                scannerRef.current?.stop()
+            } else if (isScanning && scannerRef.current) {
+                scannerRef.current.start()
             }
         }
 
@@ -266,7 +259,7 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
     return {
         error,
         isScanning,
-        videoRef: refs.video,
+        videoRef,
         close,
         toggleCamera,
     }
