@@ -21,7 +21,6 @@
         "script": "NODE_OPTIONS=\"--experimental-json-modules\" tsx"
     },
     "dependencies": {
-        "@daimo/pay": "^1.16.5",
         "@dicebear/collection": "^9.2.2",
         "@dicebear/core": "^9.2.2",
         "@emotion/react": "^11.14.0",
@@ -154,8 +153,7 @@
     "resolutions": {
         "@wagmi/core": "2.19.0",
         "viem": "^2.22.0",
-        "wagmi": "2.16.3",
-        "ox": "0.6.5"
+        "wagmi": "2.16.3"
     },
     "size-limit": [
         {
