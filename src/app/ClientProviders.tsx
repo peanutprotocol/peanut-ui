@@ -12,19 +12,22 @@ import { TranslationSafeWrapper } from '@/components/Global/TranslationSafeWrapp
 import { PeanutProvider } from '@/config'
 import { ContextProvider } from '@/context'
 import { FooterVisibilityProvider } from '@/context/footerVisibility'
+import { NuqsAdapter } from 'nuqs/adapters/next/app'
 
 export function ClientProviders({ children }: { children: React.ReactNode }) {
     return (
-        <PeanutProvider>
-            <ContextProvider>
-                <FooterVisibilityProvider>
-                    <TranslationSafeWrapper>
-                        <ConsoleGreeting />
-                        <ScreenOrientationLocker />
-                        {children}
-                    </TranslationSafeWrapper>
-                </FooterVisibilityProvider>
-            </ContextProvider>
-        </PeanutProvider>
+        <NuqsAdapter>
+            <PeanutProvider>
+                <ContextProvider>
+                    <FooterVisibilityProvider>
+                        <TranslationSafeWrapper>
+                            <ConsoleGreeting />
+                            <ScreenOrientationLocker />
+                            {children}
+                        </TranslationSafeWrapper>
+                    </FooterVisibilityProvider>
+                </ContextProvider>
+            </PeanutProvider>
+        </NuqsAdapter>
     )
 }
