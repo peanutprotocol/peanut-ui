@@ -63,7 +63,8 @@ const RhinoDepositView = ({
             return rhinoApi.getDepositAddressStatus(depositAddressData.depositAddress as string)
         },
         enabled: !!depositAddressData?.depositAddress && isDelayComplete, // Add some delay to start polling after the deposit address is created
-        refetchInterval: (query) => (query.state.data?.status === 'completed' ? false : 5000),
+        refetchInterval: (query: { state: { data?: { status?: string } } }) =>
+            query.state.data?.status === 'completed' ? false : 5000,
     })
 
     const { containerRef, truncatedAddress } = useAutoTruncatedAddress(depositAddressData?.depositAddress ?? '')

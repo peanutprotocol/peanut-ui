@@ -14,11 +14,13 @@ interface InputAmountStepProps {
     onSubmit: () => void
     isLoading: boolean
     tokenAmount: string
-    setTokenAmount: React.Dispatch<React.SetStateAction<string>>
+    setTokenAmount: ((value: string) => void) | React.Dispatch<React.SetStateAction<string>>
     error: string | null
     setCurrencyAmount: (amount: string | undefined) => void
     currencyData?: ICurrency
     setCurrentDenomination?: (denomination: string) => void
+    initialDenomination?: string
+    setDisplayedAmount?: (value: string) => void
 }
 
 const InputAmountStep = ({
@@ -30,6 +32,8 @@ const InputAmountStep = ({
     currencyData,
     setCurrencyAmount,
     setCurrentDenomination,
+    initialDenomination,
+    setDisplayedAmount,
 }: InputAmountStepProps) => {
     const router = useRouter()
 
@@ -45,8 +49,10 @@ const InputAmountStep = ({
 
                 <AmountInput
                     initialAmount={tokenAmount}
+                    initialDenomination={initialDenomination}
                     setPrimaryAmount={setCurrencyAmount}
                     setSecondaryAmount={setTokenAmount}
+                    setDisplayedAmount={setDisplayedAmount}
                     secondaryDenomination={{ symbol: 'USD', price: 1, decimals: 2 }}
                     primaryDenomination={
                         currencyData

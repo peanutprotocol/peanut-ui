@@ -15,7 +15,7 @@ export default function AddMoneyRegionalMethodPage() {
         MantecaSupportedExchanges[countryDetails?.id as keyof typeof MantecaSupportedExchanges] &&
         method === 'manteca'
     ) {
-        return <MantecaAddMoney source="regionalMethod" />
+        return <MantecaAddMoney />
     }
     return null
 }

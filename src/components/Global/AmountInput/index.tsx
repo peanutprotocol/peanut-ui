@@ -13,9 +13,11 @@ const DECIMAL_SCALE = 18 // Max expected decimal places for any denomination
 interface AmountInputProps {
     className?: string
     initialAmount?: string
+    initialDenomination?: string
     onSubmit?: () => void
     setPrimaryAmount: (value: string) => void
     setSecondaryAmount?: (value: string) => void
+    setDisplayedAmount?: (value: string) => void
     onBlur?: () => void
     disabled?: boolean
     primaryDenomination?: { symbol: string; price: number; decimals: number }
@@ -36,9 +38,11 @@ interface AmountInputProps {
 const AmountInput = ({
     className,
     initialAmount,
+    initialDenomination,
     onSubmit,
     setPrimaryAmount,
     setSecondaryAmount,
+    setDisplayedAmount,
     onBlur,
     disabled,
     primaryDenomination = { symbol: '$', price: 1, decimals: 2 },
@@ -64,7 +68,19 @@ const AmountInput = ({
     // Store display value for input field (what user sees when typing)
     const [displayValue, setDisplayValue] = useState<string>(initialAmount || '')
     const [exactValue, setExactValue] = useState(Number(initialAmount || '') * 10 ** DECIMAL_SCALE)
-    const [displaySymbol, setDisplaySymbol] = useState<string>(primaryDenomination.symbol)
+    // Use initialDenomination if provided and valid, otherwise default to primaryDenomination
+    const [displaySymbol, setDisplaySymbol] = useState<string>(() => {
+        if (initialDenomination) {
+            // Check if initialDenomination matches primary or secondary
+            if (initialDenomination === primaryDenomination.symbol) {
+                return primaryDenomination.symbol
+            }
+            if (secondaryDenomination && initialDenomination === secondaryDenomination.symbol) {
+                return secondaryDenomination.symbol
+            }
+        }
+        return primaryDenomination.symbol
+    })
 
     // Track when user is actively editing to prevent feedback loops from initialAmount sync
     const isEditingRef = useRef(false)
@@ -127,6 +143,9 @@ const AmountInput = ({
         const rawDisplayValue = displayValue.replace(/,/g, '')
         // Don't output "0.00" when there's no actual value - keep it empty to avoid feedback loops
         const rawAlternativeValue = hasValue ? alternativeDisplayValue.replace(/,/g, '') : ''
+
+        // Always call setDisplayedAmount with the currently displayed value
+        setDisplayedAmount?.(rawDisplayValue)
 
         if (isPrimaryDenomination) {
             setPrimaryAmount(rawDisplayValue)

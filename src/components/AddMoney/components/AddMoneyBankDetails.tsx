@@ -17,6 +17,7 @@ import InfoCard from '@/components/Global/InfoCard'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import { Button } from '@/components/0_Bruddle/Button'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
+import { useQueryState, parseAsString } from 'nuqs'
 
 interface IAddMoneyBankDetails {
     flow?: 'add-money' | 'request-fulfillment'
@@ -24,6 +25,9 @@ interface IAddMoneyBankDetails {
 
 export default function AddMoneyBankDetails({ flow = 'add-money' }: IAddMoneyBankDetails) {
     const isAddMoneyFlow = flow === 'add-money'
+
+    // URL state - read amount from URL query params
+    const [amountFromUrl] = useQueryState('amount', parseAsString)
 
     // contexts
     const onrampContext = useOnrampFlow()
@@ -72,10 +76,9 @@ export default function AddMoneyBankDetails({ flow = 'add-money' }: IAddMoneyBan
         enabled: true,
     })
 
-    // data from contexts based on flow
-    const amount = isAddMoneyFlow
-        ? onrampContext.amountToOnramp
-        : requestFulfilmentOnrampData?.depositInstructions?.amount
+    // data from URL state (add-money flow) or context (request-fulfillment flow)
+    // For add-money flow, amount is now in URL state via nuqs
+    const amount = isAddMoneyFlow ? (amountFromUrl ?? '') : requestFulfilmentOnrampData?.depositInstructions?.amount
     const onrampData = isAddMoneyFlow ? onrampContext.onrampData : requestFulfilmentOnrampData
 
     const currencySymbolBasedOnCountry = useMemo(() => {
