@@ -252,7 +252,6 @@ export default function MantecaWithdrawFlow() {
                     setStep('failure')
                 } else {
                     setErrorMessage(result.message ?? result.error)
-                    setStep('failure')
                 }
                 return
             }
