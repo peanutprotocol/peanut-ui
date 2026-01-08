@@ -155,6 +155,10 @@ let nextConfig = {
                         key: 'Permissions-Policy',
                         value: 'camera=(self "*"), microphone=(self "*"), clipboard-read=(self), clipboard-write=(self)',
                     },
+                    // Security headers - prevents clickjacking and other attacks
+                    { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+                    { key: 'X-Content-Type-Options', value: 'nosniff' },
+                    { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
                 ],
             },
         ]
