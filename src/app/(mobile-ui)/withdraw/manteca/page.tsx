@@ -240,11 +240,19 @@ export default function MantecaWithdrawFlow() {
             })
 
             if (result.error) {
-                if (result.error === 'Unexpected error') {
+                // Handle specific error types with user-friendly messages
+                if (result.error === 'CUIT_MISMATCH') {
+                    setErrorMessage(
+                        result.message ??
+                            'The bank account you entered is not registered under your name. In Argentina, you can only withdraw to accounts linked to your identity. Please contact support to request a refund.'
+                    )
+                    setStep('failure')
+                } else if (result.error === 'Unexpected error') {
                     setErrorMessage('Withdraw failed unexpectedly. If problem persists contact support')
                     setStep('failure')
                 } else {
                     setErrorMessage(result.message ?? result.error)
+                    setStep('failure')
                 }
                 return
             }
