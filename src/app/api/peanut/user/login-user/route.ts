@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
         const cookieStore = await cookies()
         cookieStore.set('jwt-token', token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            secure: process.env.NODE_ENV === 'production', // in production, only send cookies over HTTPS
             path: '/',
             sameSite: 'strict',
         })
