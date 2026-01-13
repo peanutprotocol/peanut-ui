@@ -365,18 +365,13 @@ export interface BridgeLimits {
 }
 
 export interface MantecaLimit {
+    exchangeCountry: string // 'ARG', 'BRA', etc.
     type: 'EXCHANGE' | 'REMITTANCE'
-    currency: string
-    monthly?: {
-        limit: number
-        used: number
-        remaining: number
-    }
-    yearly?: {
-        limit: number
-        used: number
-        remaining: number
-    }
+    asset: string // 'ARS', 'BRL', etc.
+    yearlyLimit: string
+    availableYearlyLimit: string
+    monthlyLimit: string
+    availableMonthlyLimit: string
 }
 
 export interface UserLimitsResponse {

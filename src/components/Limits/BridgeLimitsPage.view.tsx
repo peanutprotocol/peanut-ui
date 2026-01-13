@@ -12,7 +12,7 @@ import * as Accordion from '@radix-ui/react-accordion'
 import { useQueryState, parseAsStringEnum } from 'nuqs'
 import { useState } from 'react'
 import PeanutLoading from '../Global/PeanutLoading'
-import { BANK_TRANSFER_REGIONS, QR_COUNTRIES, type BridgeRegion, type QrCountryId } from './limits.consts'
+import { BANK_TRANSFER_REGIONS, QR_COUNTRIES, type BridgeRegion, type QrCountryId } from './consts.limits'
 
 /**
  * displays bridge limits for na/europe/mx users

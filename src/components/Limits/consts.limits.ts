@@ -27,3 +27,20 @@ export type QrCountryId = (typeof QR_COUNTRIES)[number]['id']
 
 export const LIMITS_PROVIDERS = ['bridge', 'manteca'] as const
 export type LimitsProvider = (typeof LIMITS_PROVIDERS)[number]
+
+// currency/country to flag mapping
+export const LIMITS_CURRENCY_FLAGS: Record<string, string> = {
+    ARS: 'https://flagcdn.com/w160/ar.png',
+    BRL: 'https://flagcdn.com/w160/br.png',
+    ARG: 'https://flagcdn.com/w160/ar.png',
+    BRA: 'https://flagcdn.com/w160/br.png',
+}
+
+// currency to symbol mapping
+export const LIMITS_CURRENCY_SYMBOLS: Record<string, string> = {
+    ARS: '$',
+    BRL: 'R$',
+    USD: '$',
+}
+
+export type LimitsPeriod = 'monthly' | 'yearly'

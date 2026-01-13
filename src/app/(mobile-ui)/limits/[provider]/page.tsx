@@ -2,7 +2,8 @@
 
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import BridgeLimitsPage from '@/components/Limits/BridgeLimitsPage.view'
-import { LIMITS_PROVIDERS, type LimitsProvider } from '@/components/Limits/limits.consts'
+import { LIMITS_PROVIDERS, type LimitsProvider } from '@/components/Limits/consts.limits'
+import MantecaLimitsPage from '@/components/Limits/MantecaLimitsPage.view'
 import { useParams, notFound } from 'next/navigation'
 
 export default function ProviderLimitsPage() {
@@ -14,5 +15,10 @@ export default function ProviderLimitsPage() {
         notFound()
     }
 
-    return <PageContainer>{provider === 'bridge' && <BridgeLimitsPage />}</PageContainer>
+    return (
+        <PageContainer>
+            {provider === 'bridge' && <BridgeLimitsPage />}
+            {provider === 'manteca' && <MantecaLimitsPage />}
+        </PageContainer>
+    )
 }

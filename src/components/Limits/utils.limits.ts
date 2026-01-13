@@ -1,4 +1,5 @@
-import { BRIDGE_REGIONS, MANTECA_REGIONS, REGION_TO_BRIDGE_PARAM } from './limits.consts'
+import type { MantecaLimit } from '@/interfaces'
+import { BRIDGE_REGIONS, MANTECA_REGIONS, REGION_TO_BRIDGE_PARAM, type LimitsPeriod } from './consts.limits'
 
 /**
  * determines which provider route to navigate to based on region path
@@ -16,4 +17,20 @@ export function getProviderRoute(regionPath: string, hasMantecaKyc: boolean): st
     }
     // default to bridge for any other unlocked region
     return '/limits/bridge?region=us'
+}
+
+/**
+ * get limit and remaining values for the selected period
+ */
+export function getLimitData(limit: MantecaLimit, period: LimitsPeriod) {
+    if (period === 'monthly') {
+        return {
+            limit: parseFloat(limit.monthlyLimit),
+            remaining: parseFloat(limit.availableMonthlyLimit),
+        }
+    }
+    return {
+        limit: parseFloat(limit.yearlyLimit),
+        remaining: parseFloat(limit.availableYearlyLimit),
+    }
 }

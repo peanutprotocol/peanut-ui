@@ -13,7 +13,7 @@ import { useMemo } from 'react'
 import CryptoLimitsSection from './components/CryptoLimitsSection'
 import FiatLimitsLockedCard from './components/FiatLimitsLockedCard'
 import { REST_OF_WORLD_GLOBE_ICON } from '@/assets'
-import { getProviderRoute } from './limits.utils'
+import { getProviderRoute } from './utils.limits'
 
 const LimitsPage = () => {
     const router = useRouter()
