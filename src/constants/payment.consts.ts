@@ -9,6 +9,7 @@ export const MIN_MANTECA_DEPOSIT_AMOUNT = 1
 
 // QR payment limits for manteca (PIX, MercadoPago, QR3)
 export const MIN_MANTECA_QR_PAYMENT_AMOUNT = 0.1 // Manteca provider minimum
+export const MAX_QR_PAYMENT_AMOUNT_FOREIGN = 2000 // max per transaction for foreign users
 
 /**
  * validate if amount meets minimum requirement for a payment method

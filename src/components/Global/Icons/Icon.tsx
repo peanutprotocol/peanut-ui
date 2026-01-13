@@ -62,6 +62,7 @@ import {
     CloudUploadOutlined,
     CompareArrowsRounded,
     WarningRounded,
+    SpeedRounded,
 } from '@mui/icons-material'
 import { DocsIcon } from './docs'
 import { PeanutSupportIcon } from './peanut-support'
@@ -88,6 +89,7 @@ export type IconName =
     | 'check-circle'
     | 'plus-circle'
     | 'minus-circle'
+    | 'meter'
     | 'cancel'
     | 'download'
     | 'double-check'
@@ -274,6 +276,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     'plus-circle': (props) => <MaterialIconWrapper Icon={ControlPointRounded} {...props} />,
     'minus-circle': (props) => <MaterialIconWrapper Icon={RemoveCircleOutlineRounded} {...props} />,
     'arrow-exchange': (props) => <MaterialIconWrapper Icon={CompareArrowsRounded} {...props} />,
+    meter: (props) => <MaterialIconWrapper Icon={SpeedRounded} {...props} />,
     // custom icons
     'txn-off': TxnOffIcon,
     docs: DocsIcon,
