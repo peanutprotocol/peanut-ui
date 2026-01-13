@@ -356,3 +356,30 @@ export interface ContactsResponse {
     total: number
     hasMore: boolean
 }
+
+// limits types for fiat transactions
+export interface BridgeLimits {
+    onRampPerTransaction: string
+    offRampPerTransaction: string
+    asset: string
+}
+
+export interface MantecaLimit {
+    type: 'EXCHANGE' | 'REMITTANCE'
+    currency: string
+    monthly?: {
+        limit: number
+        used: number
+        remaining: number
+    }
+    yearly?: {
+        limit: number
+        used: number
+        remaining: number
+    }
+}
+
+export interface UserLimitsResponse {
+    manteca: MantecaLimit[] | null
+    bridge: BridgeLimits | null
+}
