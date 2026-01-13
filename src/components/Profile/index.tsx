@@ -87,6 +87,8 @@ export const Profile = () => {
                             position="middle"
                         />
 
+                        <ProfileMenuItem icon="meter" label="Limits" href="/limits" position="middle" />
+
                         <Card className="p-4" position="middle">
                             <div className="flex items-center justify-between py-1">
                                 <div className="flex items-center gap-2">
