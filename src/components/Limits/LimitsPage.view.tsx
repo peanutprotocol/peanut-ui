@@ -1,0 +1,208 @@
+'use client'
+
+import { ActionListCard } from '@/components/ActionListCard'
+import { getCardPosition } from '@/components/Global/Card'
+import NavHeader from '@/components/Global/NavHeader'
+import StatusBadge from '@/components/Global/Badges/StatusBadge'
+import { Button } from '@/components/0_Bruddle/Button'
+import { useIdentityVerification, type Region } from '@/hooks/useIdentityVerification'
+import useKycStatus from '@/hooks/useKycStatus'
+import Image from 'next/image'
+import { useRouter } from 'next/navigation'
+import { useMemo } from 'react'
+import CryptoLimitsSection from './components/CryptoLimitsSection'
+import FiatLimitsLockedCard from './components/FiatLimitsLockedCard'
+import { REST_OF_WORLD_GLOBE_ICON } from '@/assets'
+import { getProviderRoute } from './limits.utils'
+
+const LimitsPage = () => {
+    const router = useRouter()
+    const { unlockedRegions, lockedRegions } = useIdentityVerification()
+    const { isUserKycApproved, isUserBridgeKycUnderReview, isUserMantecaKycApproved } = useKycStatus()
+
+    // check if user has any kyc at all
+    const hasAnyKyc = isUserKycApproved
+
+    // rest of the world region (always locked with "coming soon")
+    const restOfWorldRegion: Region = useMemo(
+        () => ({
+            path: 'rest-of-the-world',
+            name: 'Rest of the world',
+            icon: REST_OF_WORLD_GLOBE_ICON,
+        }),
+        []
+    )
+
+    // filter out rest of world from locked regions (we handle it separately)
+    const filteredLockedRegions = useMemo(
+        () => lockedRegions.filter((r) => r.path !== 'rest-of-the-world'),
+        [lockedRegions]
+    )
+
+    // check if rest of world is in locked regions
+    const hasRestOfWorld = useMemo(() => lockedRegions.some((r) => r.path === 'rest-of-the-world'), [lockedRegions])
+
+    return (
+        <div className="flex min-h-[inherit] flex-col space-y-6">
+            <NavHeader title="Limits" onPrev={() => router.replace('/profile')} titleClassName="text-xl md:text-2xl" />
+
+            {/* fiat limits section */}
+            {!hasAnyKyc && <FiatLimitsLockedCard />}
+
+            {/* unlocked regions */}
+            {unlockedRegions.length > 0 && (
+                <div className="space-y-2">
+                    <h2 className="font-bold">Unlocked regions limits</h2>
+                    <UnlockedRegionsList regions={unlockedRegions} hasMantecaKyc={isUserMantecaKycApproved} />
+                </div>
+            )}
+
+            {/* locked regions */}
+            {(filteredLockedRegions.length > 0 || hasRestOfWorld) && (
+                <div className="mt-4 space-y-2">
+                    <div className="space-y-2">
+                        <h2 className="font-bold">Locked regions</h2>
+                        <LockedRegionsList
+                            regions={filteredLockedRegions}
+                            isBridgeKycPending={isUserBridgeKycUnderReview}
+                        />
+                    </div>
+                </div>
+            )}
+
+            <div className="space-y-2">
+                <h2 className="font-bold">Other regions</h2>
+                {/* rest of world - always shown with coming soon */}
+                {hasRestOfWorld && (
+                    <ActionListCard
+                        leftIcon={
+                            <Image
+                                src={restOfWorldRegion.icon}
+                                alt={restOfWorldRegion.name}
+                                width={36}
+                                height={36}
+                                className="size-8 rounded-full object-cover"
+                            />
+                        }
+                        position="single"
+                        title={restOfWorldRegion.name}
+                        onClick={() => {}}
+                        isDisabled={true}
+                        rightContent={<StatusBadge status="custom" customText="Coming soon" />}
+                    />
+                )}
+            </div>
+
+            {/* crypto limits section */}
+            <CryptoLimitsSection />
+        </div>
+    )
+}
+
+export default LimitsPage
+
+interface UnlockedRegionsListProps {
+    regions: Region[]
+    hasMantecaKyc: boolean
+}
+
+const UnlockedRegionsList = ({ regions, hasMantecaKyc }: UnlockedRegionsListProps) => {
+    const router = useRouter()
+
+    return (
+        <div>
+            {regions.map((region, index) => (
+                <ActionListCard
+                    key={region.path}
+                    leftIcon={
+                        <Image
+                            src={region.icon}
+                            alt={region.name}
+                            width={36}
+                            height={36}
+                            className="size-8 rounded-full object-cover"
+                        />
+                    }
+                    position={getCardPosition(index, regions.length)}
+                    title={region.name}
+                    onClick={() => {
+                        const route = getProviderRoute(region.path, hasMantecaKyc)
+                        router.push(route)
+                    }}
+                    description={region.description}
+                    descriptionClassName="text-xs"
+                    rightContent={
+                        <StatusBadge
+                            status="custom"
+                            customText="Unlocked"
+                            className="border border-success-5 bg-success-2 text-success-4"
+                        />
+                    }
+                />
+            ))}
+        </div>
+    )
+}
+
+interface LockedRegionsListProps {
+    regions: Region[]
+    isBridgeKycPending: boolean
+}
+
+const LockedRegionsList = ({ regions, isBridgeKycPending }: LockedRegionsListProps) => {
+    const router = useRouter()
+
+    // check if a region should show pending status
+    // bridge kyc pending affects europe and north-america regions
+    const isPendingRegion = (regionPath: string) => {
+        if (!isBridgeKycPending) return false
+        return regionPath === 'europe' || regionPath === 'north-america'
+    }
+
+    return (
+        <div>
+            {regions.map((region, index) => {
+                const isPending = isPendingRegion(region.path)
+                return (
+                    <ActionListCard
+                        key={region.path}
+                        leftIcon={
+                            <Image
+                                src={region.icon}
+                                alt={region.name}
+                                width={36}
+                                height={36}
+                                className="size-8 rounded-full object-cover"
+                            />
+                        }
+                        position={getCardPosition(index, regions.length)}
+                        title={region.name}
+                        onClick={() => {
+                            if (!isPending) {
+                                router.push(`/profile/identity-verification/${region.path}`)
+                            }
+                        }}
+                        isDisabled={isPending}
+                        description={region.description}
+                        descriptionClassName="text-xs"
+                        rightContent={
+                            isPending ? (
+                                <StatusBadge status="pending" />
+                            ) : (
+                                <Button
+                                    shadowSize="4"
+                                    size="small"
+                                    className="h-6 w-6 rounded-full p-0 shadow-[0.12rem_0.12rem_0_#000000]"
+                                >
+                                    <div className="flex size-7 items-center justify-center">
+                                        <span className="text-xs">›</span>
+                                    </div>
+                                </Button>
+                            )
+                        }
+                    />
+                )
+            })}
+        </div>
+    )
+}
