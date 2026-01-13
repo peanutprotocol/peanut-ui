@@ -10,18 +10,9 @@ import PeriodToggle from './components/PeriodToggle'
 import LimitsProgressBar from './components/LimitsProgressBar'
 import Image from 'next/image'
 import PeanutLoading from '../Global/PeanutLoading'
-import { Button } from '../0_Bruddle/Button'
 import { LIMITS_CURRENCY_FLAGS, LIMITS_CURRENCY_SYMBOLS, type LimitsPeriod } from './consts.limits'
-import { getLimitData } from './utils.limits'
-
-/**
- * get remaining text color based on remaining percentage
- */
-function getRemainingTextColor(remainingPercent: number): string {
-    if (remainingPercent > 50) return 'text-success-1'
-    if (remainingPercent > 20) return 'text-yellow-1'
-    return 'text-error-4'
-}
+import { getLimitData, getLimitColorClass } from './utils.limits'
+import { Button } from '../0_Bruddle/Button'
 
 /**
  * displays manteca limits for latam users
@@ -63,7 +54,6 @@ const MantecaLimitsPage = () => {
                             // calculate remaining percentage for text color
                             const remainingPercent =
                                 limitData.limit > 0 ? (limitData.remaining / limitData.limit) * 100 : 0
-                            const remainingTextColor = getRemainingTextColor(remainingPercent)
 
                             return (
                                 <Card key={limit.asset} position="single" className="space-y-3">
@@ -93,7 +83,7 @@ const MantecaLimitsPage = () => {
                                         <span className="text-grey-1">
                                             Remaining this {period === 'monthly' ? 'month' : 'year'}
                                         </span>
-                                        <span className={`font-medium ${remainingTextColor}`}>
+                                        <span className={`font-medium ${getLimitColorClass(remainingPercent, 'text')}`}>
                                             {formatAmount(limitData.remaining, limit.asset)}
                                         </span>
                                     </div>

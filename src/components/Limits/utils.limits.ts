@@ -34,3 +34,21 @@ export function getLimitData(limit: MantecaLimit, period: LimitsPeriod) {
         remaining: parseFloat(limit.availableYearlyLimit),
     }
 }
+
+// thresholds for limit usage coloring
+const LIMIT_HEALTHY_THRESHOLD = 70 // >70% remaining = green
+const LIMIT_WARNING_THRESHOLD = 20 // 20-70% remaining = yellow, <30% = red
+
+/**
+ * get color class for remaining percentage
+ * used by both progress bar and text coloring
+ */
+export function getLimitColorClass(remainingPercent: number, type: 'bg' | 'text'): string {
+    if (remainingPercent > LIMIT_HEALTHY_THRESHOLD) {
+        return type === 'bg' ? 'bg-success-3' : 'text-success-1'
+    }
+    if (remainingPercent > LIMIT_WARNING_THRESHOLD) {
+        return type === 'bg' ? 'bg-yellow-1' : 'text-yellow-1'
+    }
+    return type === 'bg' ? 'bg-error-4' : 'text-error-4'
+}

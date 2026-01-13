@@ -23,24 +23,26 @@ const LimitsPage = () => {
     // check if user has any kyc at all
     const hasAnyKyc = isUserKycApproved
 
-    // rest of the world region (always locked with "coming soon")
-    const restOfWorldRegion: Region = useMemo(
-        () => ({
-            path: 'rest-of-the-world',
-            name: 'Rest of the world',
-            icon: REST_OF_WORLD_GLOBE_ICON,
-        }),
-        []
-    )
+    // rest of world region config (static)
+    const restOfWorldRegion: Region = {
+        path: 'rest-of-the-world',
+        name: 'Rest of the world',
+        icon: REST_OF_WORLD_GLOBE_ICON,
+    }
 
-    // filter out rest of world from locked regions (we handle it separately)
-    const filteredLockedRegions = useMemo(
-        () => lockedRegions.filter((r) => r.path !== 'rest-of-the-world'),
-        [lockedRegions]
-    )
-
-    // check if rest of world is in locked regions
-    const hasRestOfWorld = useMemo(() => lockedRegions.some((r) => r.path === 'rest-of-the-world'), [lockedRegions])
+    // filter locked regions and check for rest of world
+    const { filteredLockedRegions, hasRestOfWorld } = useMemo(() => {
+        const filtered: Region[] = []
+        let hasRoW = false
+        for (const r of lockedRegions) {
+            if (r.path === 'rest-of-the-world') {
+                hasRoW = true
+            } else {
+                filtered.push(r)
+            }
+        }
+        return { filteredLockedRegions: filtered, hasRestOfWorld: hasRoW }
+    }, [lockedRegions])
 
     return (
         <div className="flex min-h-[inherit] flex-col space-y-6">
