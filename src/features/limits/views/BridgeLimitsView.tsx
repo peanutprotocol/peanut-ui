@@ -13,6 +13,10 @@ import { useQueryState, parseAsStringEnum } from 'nuqs'
 import { useState } from 'react'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { BANK_TRANSFER_REGIONS, QR_COUNTRIES, type BridgeRegion, type QrCountryId } from '../consts'
+import { formatExtendedNumber } from '@/utils/general.utils'
+import LimitsError from '../components/LimitsError'
+import LimitsDocsLink from '../components/LimitsDocsLink'
+import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 
 /**
  * displays bridge limits for na/europe/mx users
@@ -36,10 +40,10 @@ const BridgeLimitsView = () => {
     // determine what to show based on source region
     const showBankTransferLimits = BANK_TRANSFER_REGIONS.includes(region)
 
-    // format limit amount with currency symbol
+    // format limit amount with currency symbol using shared util
     const formatLimit = (amount: string, asset: string) => {
         const symbol = asset === 'USD' ? '$' : asset
-        return `${symbol}${Number(amount).toLocaleString()}`
+        return `${symbol}${formatExtendedNumber(amount)}`
     }
 
     return (
@@ -48,11 +52,7 @@ const BridgeLimitsView = () => {
 
             {isLoading && <PeanutLoading coverFullScreen />}
 
-            {error && (
-                <Card position="single" className="bg-error-1 text-error">
-                    <p className="text-sm">Failed to load limits. Please try again.</p>
-                </Card>
-            )}
+            {error && <LimitsError />}
 
             {!isLoading && !error && bridgeLimits && (
                 <>
@@ -135,23 +135,11 @@ const BridgeLimitsView = () => {
                         </div>
                     )}
 
-                    <a
-                        // TODO: add link to docs
-                        href=""
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-center text-sm underline"
-                    >
-                        See more about limits
-                    </a>
+                    <LimitsDocsLink />
                 </>
             )}
 
-            {!isLoading && !error && !bridgeLimits && (
-                <Card position="single">
-                    <p className="text-sm text-grey-1">No limits data available.</p>
-                </Card>
-            )}
+            {!isLoading && !error && !bridgeLimits && <EmptyState title="Limits data not available" icon="meter" />}
         </div>
     )
 }

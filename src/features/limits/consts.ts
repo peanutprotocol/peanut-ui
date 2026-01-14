@@ -38,7 +38,7 @@ export const LIMITS_CURRENCY_FLAGS: Record<string, string> = {
 
 // currency to symbol mapping
 export const LIMITS_CURRENCY_SYMBOLS: Record<string, string> = {
-    ARS: '$',
+    ARS: 'ARS',
     BRL: 'R$',
     USD: '$',
 }

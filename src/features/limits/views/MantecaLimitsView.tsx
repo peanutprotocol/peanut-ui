@@ -13,6 +13,10 @@ import PeanutLoading from '@/components/Global/PeanutLoading'
 import { LIMITS_CURRENCY_FLAGS, LIMITS_CURRENCY_SYMBOLS, type LimitsPeriod } from '../consts'
 import { getLimitData, getLimitColorClass } from '../utils/limits.utils'
 import IncreaseLimitsButton from '../components/IncreaseLimitsButton'
+import { formatExtendedNumber } from '@/utils/general.utils'
+import LimitsError from '../components/LimitsError'
+import LimitsDocsLink from '../components/LimitsDocsLink'
+import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 
 /**
  * displays manteca limits for latam users
@@ -23,11 +27,12 @@ const MantecaLimitsView = () => {
     const { mantecaLimits, isLoading, error } = useLimits()
     const [period, setPeriod] = useState<LimitsPeriod>('monthly')
 
-    // format amount with currency symbol
-    const formatAmount = (amount: number, currency: string) => {
+    // format amount with currency symbol using shared util
+    const formatLimitAmount = (amount: number, currency: string) => {
         const symbol = LIMITS_CURRENCY_SYMBOLS[currency] || currency
-        // round to 2 decimal places for display
-        return `${symbol}${amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
+        // add space for currency codes (length > 1), not for symbols like $ or €
+        const separator = symbol.length > 1 && symbol === symbol.toUpperCase() ? ' ' : ''
+        return `${symbol}${separator}${formatExtendedNumber(amount)}`
     }
 
     return (
@@ -36,11 +41,7 @@ const MantecaLimitsView = () => {
 
             {isLoading && <PeanutLoading coverFullScreen />}
 
-            {error && (
-                <Card position="single" className="bg-error-1 text-error">
-                    <p className="text-sm">Failed to load limits. Please try again.</p>
-                </Card>
-            )}
+            {error && <LimitsError />}
 
             {!isLoading && !error && mantecaLimits && mantecaLimits.length > 0 && (
                 <>
@@ -74,7 +75,7 @@ const MantecaLimitsView = () => {
                                     </div>
 
                                     <div className="text-2xl font-bold">
-                                        {formatAmount(limitData.limit, limit.asset)}
+                                        {formatLimitAmount(limitData.limit, limit.asset)}
                                     </div>
 
                                     <LimitsProgressBar total={limitData.limit} remaining={limitData.remaining} />
@@ -84,7 +85,7 @@ const MantecaLimitsView = () => {
                                             Remaining this {period === 'monthly' ? 'month' : 'year'}
                                         </span>
                                         <span className={`font-medium ${getLimitColorClass(remainingPercent, 'text')}`}>
-                                            {formatAmount(limitData.remaining, limit.asset)}
+                                            {formatLimitAmount(limitData.remaining, limit.asset)}
                                         </span>
                                     </div>
                                 </Card>
@@ -99,22 +100,12 @@ const MantecaLimitsView = () => {
 
                     <IncreaseLimitsButton />
 
-                    <a
-                        // TODO: add link to docs
-                        href="#"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-center text-sm underline"
-                    >
-                        See more about limits
-                    </a>
+                    <LimitsDocsLink />
                 </>
             )}
 
             {!isLoading && !error && (!mantecaLimits || mantecaLimits.length === 0) && (
-                <Card position="single">
-                    <p className="text-sm text-grey-1">No limits data available.</p>
-                </Card>
+                <EmptyState title="Limits data not available" icon="meter" />
             )}
         </div>
     )
