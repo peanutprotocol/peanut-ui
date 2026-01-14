@@ -1,5 +1,5 @@
 import type { MantecaLimit } from '@/interfaces'
-import { BRIDGE_REGIONS, MANTECA_REGIONS, REGION_TO_BRIDGE_PARAM, type LimitsPeriod } from './consts.limits'
+import { BRIDGE_REGIONS, MANTECA_REGIONS, REGION_TO_BRIDGE_PARAM, type LimitsPeriod } from '../consts'
 
 /**
  * determines which provider route to navigate to based on region path

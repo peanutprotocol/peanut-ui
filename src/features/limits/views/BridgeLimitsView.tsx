@@ -11,15 +11,15 @@ import Image from 'next/image'
 import * as Accordion from '@radix-ui/react-accordion'
 import { useQueryState, parseAsStringEnum } from 'nuqs'
 import { useState } from 'react'
-import PeanutLoading from '../Global/PeanutLoading'
-import { BANK_TRANSFER_REGIONS, QR_COUNTRIES, type BridgeRegion, type QrCountryId } from './consts.limits'
+import PeanutLoading from '@/components/Global/PeanutLoading'
+import { BANK_TRANSFER_REGIONS, QR_COUNTRIES, type BridgeRegion, type QrCountryId } from '../consts'
 
 /**
  * displays bridge limits for na/europe/mx users
  * shows per-transaction limits and qr payment limits for foreign users
  * url state: ?region=us|mexico|europe|argentina|brazil (persists source region)
  */
-const BridgeLimitsPage = () => {
+const BridgeLimitsView = () => {
     const router = useRouter()
     const { bridgeLimits, isLoading, error } = useLimits()
     const { isUserMantecaKycApproved } = useKycStatus()
@@ -156,4 +156,4 @@ const BridgeLimitsPage = () => {
     )
 }
 
-export default BridgeLimitsPage
+export default BridgeLimitsView

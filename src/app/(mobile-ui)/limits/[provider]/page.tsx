@@ -1,7 +1,7 @@
 import PageContainer from '@/components/0_Bruddle/PageContainer'
-import BridgeLimitsPage from '@/components/Limits/BridgeLimitsPage.view'
-import { LIMITS_PROVIDERS, type LimitsProvider } from '@/components/Limits/consts.limits'
-import MantecaLimitsPage from '@/components/Limits/MantecaLimitsPage.view'
+import BridgeLimitsView from '@/features/limits/views/BridgeLimitsView'
+import MantecaLimitsView from '@/features/limits/views/MantecaLimitsView'
+import { LIMITS_PROVIDERS, type LimitsProvider } from '@/features/limits/consts'
 import { notFound } from 'next/navigation'
 
 interface ProviderLimitsPageProps {
@@ -18,8 +18,8 @@ export default async function ProviderLimitsPage({ params }: ProviderLimitsPageP
 
     return (
         <PageContainer>
-            {provider === 'bridge' && <BridgeLimitsPage />}
-            {provider === 'manteca' && <MantecaLimitsPage />}
+            {provider === 'bridge' && <BridgeLimitsView />}
+            {provider === 'manteca' && <MantecaLimitsView />}
         </PageContainer>
     )
 }

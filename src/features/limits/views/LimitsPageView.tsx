@@ -10,13 +10,13 @@ import useKycStatus from '@/hooks/useKycStatus'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useMemo } from 'react'
-import CryptoLimitsSection from './components/CryptoLimitsSection'
-import FiatLimitsLockedCard from './components/FiatLimitsLockedCard'
+import CryptoLimitsSection from '../components/CryptoLimitsSection'
+import FiatLimitsLockedCard from '../components/FiatLimitsLockedCard'
 import { REST_OF_WORLD_GLOBE_ICON } from '@/assets'
-import { getProviderRoute } from './utils.limits'
-import InfoCard from '../Global/InfoCard'
+import { getProviderRoute } from '../utils/limits.utils'
+import InfoCard from '@/components/Global/InfoCard'
 
-const LimitsPage = () => {
+const LimitsPageView = () => {
     const router = useRouter()
     const { unlockedRegions, lockedRegions } = useIdentityVerification()
     const { isUserKycApproved, isUserBridgeKycUnderReview, isUserMantecaKycApproved } = useKycStatus()
@@ -101,7 +101,7 @@ const LimitsPage = () => {
     )
 }
 
-export default LimitsPage
+export default LimitsPageView
 
 interface UnlockedRegionsListProps {
     regions: Region[]

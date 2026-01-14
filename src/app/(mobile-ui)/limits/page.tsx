@@ -1,10 +1,10 @@
 import PageContainer from '@/components/0_Bruddle/PageContainer'
-import LimitsPage from '@/components/Limits/LimitsPage.view'
+import LimitsPageView from '@/features/limits/views/LimitsPageView'
 
 export default function LimitsPageRoute() {
     return (
         <PageContainer>
-            <LimitsPage />
+            <LimitsPageView />
         </PageContainer>
     )
 }

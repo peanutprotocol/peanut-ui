@@ -6,19 +6,19 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import { useLimits } from '@/hooks/useLimits'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import PeriodToggle from './components/PeriodToggle'
-import LimitsProgressBar from './components/LimitsProgressBar'
+import PeriodToggle from '../components/PeriodToggle'
+import LimitsProgressBar from '../components/LimitsProgressBar'
 import Image from 'next/image'
-import PeanutLoading from '../Global/PeanutLoading'
-import { LIMITS_CURRENCY_FLAGS, LIMITS_CURRENCY_SYMBOLS, type LimitsPeriod } from './consts.limits'
-import { getLimitData, getLimitColorClass } from './utils.limits'
-import IncreaseLimitsButton from './components/IncreaseLimitsButton'
+import PeanutLoading from '@/components/Global/PeanutLoading'
+import { LIMITS_CURRENCY_FLAGS, LIMITS_CURRENCY_SYMBOLS, type LimitsPeriod } from '../consts'
+import { getLimitData, getLimitColorClass } from '../utils/limits.utils'
+import IncreaseLimitsButton from '../components/IncreaseLimitsButton'
 
 /**
  * displays manteca limits for latam users
  * shows monthly/yearly limits per currency with remaining amounts
  */
-const MantecaLimitsPage = () => {
+const MantecaLimitsView = () => {
     const router = useRouter()
     const { mantecaLimits, isLoading, error } = useLimits()
     const [period, setPeriod] = useState<LimitsPeriod>('monthly')
@@ -120,4 +120,4 @@ const MantecaLimitsPage = () => {
     )
 }
 
-export default MantecaLimitsPage
+export default MantecaLimitsView
