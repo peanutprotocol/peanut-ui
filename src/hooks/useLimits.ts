@@ -20,11 +20,15 @@ export function useLimits(options: UseLimitsOptions = {}) {
     const { enabled = true } = options
 
     const fetchLimits = async (): Promise<UserLimitsResponse> => {
-        const url = `${PEANUT_API_URL}/users/limits`
+        const token = Cookies.get('jwt-token')
+        if (!token) {
+            return { manteca: null, bridge: null }
+        }
 
+        const url = `${PEANUT_API_URL}/users/limits`
         const headers: Record<string, string> = {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+            Authorization: `Bearer ${token}`,
         }
 
         const response = await fetchWithSentry(url, { method: 'GET', headers })
@@ -38,7 +42,7 @@ export function useLimits(options: UseLimitsOptions = {}) {
             throw new Error(`Failed to fetch limits: ${response.statusText}`)
         }
 
-        return response.json()
+        return await response.json()
     }
 
     const { data, isLoading, error, refetch } = useQuery({

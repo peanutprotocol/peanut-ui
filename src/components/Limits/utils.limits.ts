@@ -37,7 +37,7 @@ export function getLimitData(limit: MantecaLimit, period: LimitsPeriod) {
 
 // thresholds for limit usage coloring
 const LIMIT_HEALTHY_THRESHOLD = 70 // >70% remaining = green
-const LIMIT_WARNING_THRESHOLD = 20 // 20-70% remaining = yellow, <30% = red
+const LIMIT_WARNING_THRESHOLD = 20 // 20-70% remaining = yellow, <20% = red
 
 /**
  * get color class for remaining percentage
