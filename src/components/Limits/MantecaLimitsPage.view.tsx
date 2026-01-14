@@ -12,7 +12,7 @@ import Image from 'next/image'
 import PeanutLoading from '../Global/PeanutLoading'
 import { LIMITS_CURRENCY_FLAGS, LIMITS_CURRENCY_SYMBOLS, type LimitsPeriod } from './consts.limits'
 import { getLimitData, getLimitColorClass } from './utils.limits'
-import { Button } from '../0_Bruddle/Button'
+import IncreaseLimitsButton from './components/IncreaseLimitsButton'
 
 /**
  * displays manteca limits for latam users
@@ -97,10 +97,7 @@ const MantecaLimitsPage = () => {
                         </div>
                     </div>
 
-                    {/* todo: handle increase limits button click */}
-                    <Button className="w-full" shadowSize="4">
-                        Increase my limits
-                    </Button>
+                    <IncreaseLimitsButton />
 
                     <a
                         // TODO: add link to docs

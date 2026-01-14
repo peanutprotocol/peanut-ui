@@ -87,7 +87,7 @@ export const Profile = () => {
                             position="middle"
                         />
 
-                        <ProfileMenuItem icon="meter" label="Limits" href="/limits" position="middle" />
+                        <ProfileMenuItem icon="meter" label="Payment limits" href="/limits" position="middle" />
 
                         <Card className="p-4" position="middle">
                             <div className="flex items-center justify-between py-1">

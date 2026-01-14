@@ -14,6 +14,7 @@ import CryptoLimitsSection from './components/CryptoLimitsSection'
 import FiatLimitsLockedCard from './components/FiatLimitsLockedCard'
 import { REST_OF_WORLD_GLOBE_ICON } from '@/assets'
 import { getProviderRoute } from './utils.limits'
+import InfoCard from '../Global/InfoCard'
 
 const LimitsPage = () => {
     const router = useRouter()
@@ -46,36 +47,35 @@ const LimitsPage = () => {
 
     return (
         <div className="flex min-h-[inherit] flex-col space-y-6">
-            <NavHeader title="Limits" onPrev={() => router.replace('/profile')} titleClassName="text-xl md:text-2xl" />
+            <NavHeader
+                title="Payment limits"
+                onPrev={() => router.replace('/profile')}
+                titleClassName="text-xl md:text-2xl"
+            />
+
+            {/* page description */}
+            <InfoCard
+                variant="info"
+                description="Payment limits control how much you can send and receive. Limits vary by region and reset monthly or yearly."
+            />
 
             {/* fiat limits section */}
             {!hasAnyKyc && <FiatLimitsLockedCard />}
 
             {/* unlocked regions */}
             {unlockedRegions.length > 0 && (
+                <UnlockedRegionsList regions={unlockedRegions} hasMantecaKyc={isUserMantecaKycApproved} />
+            )}
+
+            {/* locked regions - only render if there are actual locked regions */}
+            {filteredLockedRegions.length > 0 && (
+                <LockedRegionsList regions={filteredLockedRegions} isBridgeKycPending={isUserBridgeKycUnderReview} />
+            )}
+
+            {/* rest of world - always shown with coming soon */}
+            {hasRestOfWorld && (
                 <div className="space-y-2">
-                    <h2 className="font-bold">Unlocked regions limits</h2>
-                    <UnlockedRegionsList regions={unlockedRegions} hasMantecaKyc={isUserMantecaKycApproved} />
-                </div>
-            )}
-
-            {/* locked regions */}
-            {(filteredLockedRegions.length > 0 || hasRestOfWorld) && (
-                <div className="mt-4 space-y-2">
-                    <div className="space-y-2">
-                        <h2 className="font-bold">Locked regions</h2>
-                        <LockedRegionsList
-                            regions={filteredLockedRegions}
-                            isBridgeKycPending={isUserBridgeKycUnderReview}
-                        />
-                    </div>
-                </div>
-            )}
-
-            <div className="space-y-2">
-                <h2 className="font-bold">Other regions</h2>
-                {/* rest of world - always shown with coming soon */}
-                {hasRestOfWorld && (
+                    <h2 className="font-bold">Other regions</h2>
                     <ActionListCard
                         leftIcon={
                             <Image
@@ -92,8 +92,8 @@ const LimitsPage = () => {
                         isDisabled={true}
                         rightContent={<StatusBadge status="custom" customText="Coming soon" />}
                     />
-                )}
-            </div>
+                </div>
+            )}
 
             {/* crypto limits section */}
             <CryptoLimitsSection />
@@ -113,6 +113,7 @@ const UnlockedRegionsList = ({ regions, hasMantecaKyc }: UnlockedRegionsListProp
 
     return (
         <div>
+            {regions.length > 0 && <h2 className="mb-2 font-bold">Unlocked regions</h2>}
             {regions.map((region, index) => (
                 <ActionListCard
                     key={region.path}
@@ -163,6 +164,7 @@ const LockedRegionsList = ({ regions, isBridgeKycPending }: LockedRegionsListPro
 
     return (
         <div>
+            {regions.length > 0 && <h2 className="mb-2 font-bold">Locked regions</h2>}
             {regions.map((region, index) => {
                 const isPending = isPendingRegion(region.path)
                 return (
