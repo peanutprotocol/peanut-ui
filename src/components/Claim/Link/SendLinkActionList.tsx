@@ -44,7 +44,12 @@ import { useGeoFilteredPaymentOptions } from '@/hooks/useGeoFilteredPaymentOptio
 import SupportCTA from '../../Global/SupportCTA'
 import { DEVCONNECT_LOGO } from '@/assets'
 import useKycStatus from '@/hooks/useKycStatus'
-import { MIN_BANK_TRANSFER_AMOUNT, validateMinimumAmount } from '@/constants/payment.consts'
+import {
+    MIN_BANK_TRANSFER_AMOUNT,
+    MIN_MERCADOPAGO_AMOUNT,
+    MIN_PIX_AMOUNT,
+    validateMinimumAmount,
+} from '@/constants/payment.consts'
 import { useAppDispatch } from '@/redux/hooks'
 
 const SHOW_INVITE_MODAL_FOR_DEVCONNECT = false
@@ -78,6 +83,7 @@ export default function SendLinkActionList({
         setHideTokenSelector,
     } = useClaimBankFlow()
     const [showMinAmountError, setShowMinAmountError] = useState(false)
+    const [minAmountErrorInfo, setMinAmountErrorInfo] = useState<{ title: string; amount: number } | null>(null)
     const { claimType } = useDetermineBankClaimType(claimLinkData?.sender?.userId ?? '')
     const savedAccounts = useSavedAccounts()
     const { addParamStep } = useClaimLink()
@@ -112,7 +118,14 @@ export default function SendLinkActionList({
 
     const handleMethodClick = async (method: PaymentMethod) => {
         const amountInUsd = parseFloat(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals))
-        if (method.id === 'bank' && !validateMinimumAmount(amountInUsd, method.id)) {
+        if (['bank', 'mercadopago', 'pix'].includes(method.id) && !validateMinimumAmount(amountInUsd, method.id)) {
+            const minAmount =
+                method.id === 'bank'
+                    ? MIN_BANK_TRANSFER_AMOUNT
+                    : method.id === 'mercadopago'
+                      ? MIN_MERCADOPAGO_AMOUNT
+                      : MIN_PIX_AMOUNT
+            setMinAmountErrorInfo({ title: method.title, amount: minAmount })
             setShowMinAmountError(true)
             return
         }
@@ -265,9 +278,15 @@ export default function SendLinkActionList({
                 visible={showMinAmountError}
                 onClose={() => setShowMinAmountError(false)}
                 title="Minimum Amount"
-                description={`The minimum amount for this payment method is $${MIN_BANK_TRANSFER_AMOUNT}. Please enter a higher amount or try a different method.`}
+                description={`The minimum amount for ${minAmountErrorInfo?.title ?? 'this payment method'} is $${minAmountErrorInfo?.amount ?? 0}. Please try a different method.`}
                 icon="alert"
-                ctas={[{ text: 'Close', shadowSize: '4', onClick: () => setShowMinAmountError(false) }]}
+                ctas={[
+                    {
+                        text: 'Close',
+                        shadowSize: '4',
+                        onClick: () => setShowMinAmountError(false),
+                    },
+                ]}
                 iconContainerClassName="bg-yellow-400"
                 preventClose={false}
                 modalPanelClassName="max-w-md mx-8"
