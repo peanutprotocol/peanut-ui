@@ -71,6 +71,7 @@ import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
 import useKycStatus from '@/hooks/useKycStatus'
 import { MAX_QR_PAYMENT_AMOUNT_FOREIGN } from '@/constants/payment.consts'
 import { formatExtendedNumber } from '@/utils/general.utils'
+import { LIMITS_COPY } from '@/features/limits/utils/limits.utils'
 
 const MAX_QR_PAYMENT_AMOUNT = '2000'
 const MIN_QR_PAYMENT_AMOUNT = '0.1'
@@ -1561,8 +1562,8 @@ export default function QRPayPage() {
                             hideBalance
                         />
                     )}
-                    {/* only show balance error if limits card is not displayed */}
-                    {balanceErrorMessage && !limitsValidation.isBlocking && !limitsValidation.isWarning && (
+                    {/* only show balance error if limits blocking card is not displayed (warnings can coexist) */}
+                    {balanceErrorMessage && !limitsValidation.isBlocking && (
                         <ErrorAlert description={balanceErrorMessage} />
                     )}
 
@@ -1570,11 +1571,7 @@ export default function QRPayPage() {
                     {(limitsValidation.isBlocking || limitsValidation.isWarning) && (
                         <LimitsWarningCard
                             type={limitsValidation.isBlocking ? 'error' : 'warning'}
-                            title={
-                                limitsValidation.isBlocking
-                                    ? 'Amount too high, try a smaller amount.'
-                                    : "You're close to your limit."
-                            }
+                            title={limitsValidation.isBlocking ? LIMITS_COPY.BLOCKING_TITLE : LIMITS_COPY.WARNING_TITLE}
                             items={[
                                 {
                                     text: isLocalUser
@@ -1584,7 +1581,12 @@ export default function QRPayPage() {
                                 ...(limitsValidation.daysUntilReset
                                     ? [{ text: `Limit resets in ${limitsValidation.daysUntilReset} days.` }]
                                     : []),
-                                { text: 'Check my limits.', isLink: true, href: '/limits', icon: 'external-link' },
+                                {
+                                    text: LIMITS_COPY.CHECK_LIMITS,
+                                    isLink: true,
+                                    href: '/limits',
+                                    icon: 'external-link',
+                                },
                             ]}
                             showSupportLink={limitsValidation.isMantecaUser}
                         />

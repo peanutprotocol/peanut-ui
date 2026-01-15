@@ -1,5 +1,24 @@
 import type { MantecaLimit } from '@/interfaces'
 import { BRIDGE_REGIONS, MANTECA_REGIONS, REGION_TO_BRIDGE_PARAM, type LimitsPeriod } from '../consts'
+import type { LimitCurrency } from '../hooks/useLimitsValidation'
+
+// warning card copy - centralized for consistency
+export const LIMITS_COPY = {
+    BLOCKING_TITLE: 'Amount too high, try a smaller amount.',
+    WARNING_TITLE: "You're close to your limit.",
+    CHECK_LIMITS: 'Check my limits.',
+    SUPPORT_MESSAGE: 'Hi, I would like to increase my payment limits.',
+} as const
+
+/**
+ * maps a currency string to a valid LimitCurrency type
+ * defaults to USD for unsupported currencies
+ */
+export function mapToLimitCurrency(currency?: string): LimitCurrency {
+    const upper = currency?.toUpperCase()
+    if (upper === 'ARS' || upper === 'BRL') return upper as LimitCurrency
+    return 'USD'
+}
 
 /**
  * determines which provider route to navigate to based on region path

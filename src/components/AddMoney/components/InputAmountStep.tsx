@@ -10,6 +10,7 @@ import { useCurrency } from '@/hooks/useCurrency'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
 import { formatExtendedNumber } from '@/utils/general.utils'
+import { LIMITS_COPY } from '@/features/limits/utils/limits.utils'
 
 type ICurrency = ReturnType<typeof useCurrency>
 
@@ -87,11 +88,7 @@ const InputAmountStep = ({
                 {showLimitsCard && (
                     <LimitsWarningCard
                         type={limitsValidation.isBlocking ? 'error' : 'warning'}
-                        title={
-                            limitsValidation.isBlocking
-                                ? 'Amount too high, try a smaller amount.'
-                                : "You're close to your limit."
-                        }
+                        title={limitsValidation.isBlocking ? LIMITS_COPY.BLOCKING_TITLE : LIMITS_COPY.WARNING_TITLE}
                         items={[
                             {
                                 text: `You can add up to ${formatExtendedNumber(limitsValidation.remainingLimit ?? 0)} ${limitsCurrency}`,
@@ -99,7 +96,7 @@ const InputAmountStep = ({
                             ...(limitsValidation.daysUntilReset
                                 ? [{ text: `Limit resets in ${limitsValidation.daysUntilReset} days.` }]
                                 : []),
-                            { text: 'Check my limits.', isLink: true, href: '/limits', icon: 'external-link' },
+                            { text: LIMITS_COPY.CHECK_LIMITS, isLink: true, href: '/limits', icon: 'external-link' },
                         ]}
                     />
                 )}
@@ -118,8 +115,8 @@ const InputAmountStep = ({
                 >
                     Continue
                 </Button>
-                {/* only show error if limits card is not displayed */}
-                {error && !showLimitsCard && <ErrorAlert description={error} />}
+                {/* only show error if limits blocking card is not displayed (warnings can coexist) */}
+                {error && !limitsValidation?.isBlocking && <ErrorAlert description={error} />}
             </div>
         </div>
     )

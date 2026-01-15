@@ -29,6 +29,7 @@ import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
 import { formatExtendedNumber } from '@/utils/general.utils'
+import { LIMITS_COPY } from '@/features/limits/utils/limits.utils'
 
 // Step type for URL state
 type BridgeBankStep = 'inputAmount' | 'kyc' | 'collectUserDetails' | 'showDetails'
@@ -381,16 +382,17 @@ export default function OnrampBankPage() {
                     {showLimitsCard && (
                         <LimitsWarningCard
                             type={limitsValidation.isBlocking ? 'error' : 'warning'}
-                            title={
-                                limitsValidation.isBlocking
-                                    ? 'Amount too high, try a smaller amount.'
-                                    : "You're close to your limit."
-                            }
+                            title={limitsValidation.isBlocking ? LIMITS_COPY.BLOCKING_TITLE : LIMITS_COPY.WARNING_TITLE}
                             items={[
                                 {
                                     text: `You can add up to $${formatExtendedNumber(limitsValidation.remainingLimit ?? 0)} per transaction`,
                                 },
-                                { text: 'Check my limits.', isLink: true, href: '/limits', icon: 'external-link' },
+                                {
+                                    text: LIMITS_COPY.CHECK_LIMITS,
+                                    isLink: true,
+                                    href: '/limits',
+                                    icon: 'external-link',
+                                },
                             ]}
                             showSupportLink={false}
                         />
@@ -417,8 +419,8 @@ export default function OnrampBankPage() {
                     >
                         Continue
                     </Button>
-                    {/* only show error if limits card is not displayed */}
-                    {error.showError && !!error.errorMessage && !showLimitsCard && (
+                    {/* only show error if limits blocking card is not displayed (warnings can coexist) */}
+                    {error.showError && !!error.errorMessage && !limitsValidation.isBlocking && (
                         <ErrorAlert description={error.errorMessage} />
                     )}
                 </div>

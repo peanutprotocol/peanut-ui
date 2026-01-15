@@ -45,10 +45,11 @@ import {
 } from '@/constants/manteca.consts'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
-import { useLimitsValidation, type LimitCurrency } from '@/features/limits/hooks/useLimitsValidation'
+import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import { MIN_MANTECA_WITHDRAW_AMOUNT } from '@/constants/payment.consts'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
 import { formatExtendedNumber } from '@/utils/general.utils'
+import { mapToLimitCurrency, LIMITS_COPY } from '@/features/limits/utils/limits.utils'
 
 type MantecaWithdrawStep = 'amountInput' | 'bankDetails' | 'review' | 'success' | 'failure'
 
@@ -104,10 +105,8 @@ export default function MantecaWithdrawFlow() {
     const { isMantecaKycRequired } = useMantecaKycFlow({ country: selectedCountry })
 
     // determine currency for limits validation
-    const limitsCurrency = useMemo<LimitCurrency>(() => {
-        const currency = selectedCountry?.currency?.toUpperCase()
-        if (currency === 'ARS' || currency === 'BRL') return currency as LimitCurrency
-        return 'USD'
+    const limitsCurrency = useMemo(() => {
+        return mapToLimitCurrency(selectedCountry?.currency)
     }, [selectedCountry?.currency])
 
     // validate against user's limits
@@ -449,11 +448,7 @@ export default function MantecaWithdrawFlow() {
                     {(limitsValidation.isBlocking || limitsValidation.isWarning) && (
                         <LimitsWarningCard
                             type={limitsValidation.isBlocking ? 'error' : 'warning'}
-                            title={
-                                limitsValidation.isBlocking
-                                    ? 'Amount too high, try a smaller amount.'
-                                    : "You're close to your limit."
-                            }
+                            title={limitsValidation.isBlocking ? LIMITS_COPY.BLOCKING_TITLE : LIMITS_COPY.WARNING_TITLE}
                             items={[
                                 {
                                     text: `You can withdraw up to ${formatExtendedNumber(limitsValidation.remainingLimit ?? 0)} ${limitsCurrency}`,
@@ -461,7 +456,12 @@ export default function MantecaWithdrawFlow() {
                                 ...(limitsValidation.daysUntilReset
                                     ? [{ text: `Limit resets in ${limitsValidation.daysUntilReset} days.` }]
                                     : []),
-                                { text: 'Check my limits.', isLink: true, href: '/limits', icon: 'external-link' },
+                                {
+                                    text: LIMITS_COPY.CHECK_LIMITS,
+                                    isLink: true,
+                                    href: '/limits',
+                                    icon: 'external-link',
+                                },
                             ]}
                             showSupportLink={limitsValidation.isMantecaUser}
                         />
@@ -485,8 +485,8 @@ export default function MantecaWithdrawFlow() {
                     >
                         Continue
                     </Button>
-                    {/* only show balance error if limits card is not displayed */}
-                    {balanceErrorMessage && !limitsValidation.isBlocking && !limitsValidation.isWarning && (
+                    {/* only show balance error if limits blocking card is not displayed (warnings can coexist) */}
+                    {balanceErrorMessage && !limitsValidation.isBlocking && (
                         <ErrorAlert description={balanceErrorMessage} />
                     )}
                 </div>

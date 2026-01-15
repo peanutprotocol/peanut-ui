@@ -5,6 +5,7 @@ import { Icon, type IconProps } from '@/components/Global/Icons/Icon'
 import Link from 'next/link'
 import { useModalsContext } from '@/context/ModalsContext'
 import { twMerge } from 'tailwind-merge'
+import { LIMITS_COPY } from '../utils/limits.utils'
 
 export type LimitsWarningType = 'warning' | 'error'
 
@@ -22,8 +23,6 @@ interface LimitsWarningCardProps {
     showSupportLink?: boolean
     className?: string
 }
-
-const SUPPORT_MESSAGE = 'Hi, I would like to increase my payment limits.'
 
 /**
  * reusable card for displaying limit warnings (yellow) or blocking errors (red)
@@ -68,7 +67,7 @@ export default function LimitsWarningCard({
                         <>
                             <div className="my-1 border-t border-yellow-9" />
                             <button
-                                onClick={() => openSupportWithMessage(SUPPORT_MESSAGE)}
+                                onClick={() => openSupportWithMessage(LIMITS_COPY.SUPPORT_MESSAGE)}
                                 className="flex items-center gap-1 text-xs md:text-sm"
                             >
                                 <Icon name="plus-circle" className="text-yellow-11" size={12} />

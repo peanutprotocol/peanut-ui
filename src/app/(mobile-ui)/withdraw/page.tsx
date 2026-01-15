@@ -16,6 +16,7 @@ import { useCallback, useEffect, useMemo, useState, useRef, useContext } from 'r
 import { formatUnits } from 'viem'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
+import { LIMITS_COPY } from '@/features/limits/utils/limits.utils'
 
 type WithdrawStep = 'inputAmount' | 'selectMethod'
 
@@ -300,11 +301,7 @@ export default function WithdrawPage() {
                     {showLimitsCard && (
                         <LimitsWarningCard
                             type={limitsValidation.isBlocking ? 'error' : 'warning'}
-                            title={
-                                limitsValidation.isBlocking
-                                    ? 'Amount too high, try a smaller amount.'
-                                    : "You're close to your limit."
-                            }
+                            title={limitsValidation.isBlocking ? LIMITS_COPY.BLOCKING_TITLE : LIMITS_COPY.WARNING_TITLE}
                             items={[
                                 {
                                     text: `You can withdraw up to $${formatExtendedNumber(limitsValidation.remainingLimit ?? 0)}${limitsValidation.daysUntilReset ? '' : ' per transaction'}`,
@@ -312,7 +309,12 @@ export default function WithdrawPage() {
                                 ...(limitsValidation.daysUntilReset
                                     ? [{ text: `Limit resets in ${limitsValidation.daysUntilReset} days.` }]
                                     : []),
-                                { text: 'Check my limits.', isLink: true, href: '/limits', icon: 'external-link' },
+                                {
+                                    text: LIMITS_COPY.CHECK_LIMITS,
+                                    isLink: true,
+                                    href: '/limits',
+                                    icon: 'external-link',
+                                },
                             ]}
                             showSupportLink={false}
                         />
@@ -329,8 +331,8 @@ export default function WithdrawPage() {
                     >
                         Continue
                     </Button>
-                    {/* only show error if limits card is not displayed */}
-                    {error.showError && !!error.errorMessage && !showLimitsCard && (
+                    {/* only show error if limits blocking card is not displayed (warnings can coexist) */}
+                    {error.showError && !!error.errorMessage && !limitsValidation.isBlocking && (
                         <ErrorAlert description={error.errorMessage} />
                     )}
                 </div>

@@ -18,7 +18,8 @@ import { MIN_MANTECA_DEPOSIT_AMOUNT } from '@/constants/payment.consts'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
-import { useLimitsValidation, type LimitCurrency } from '@/features/limits/hooks/useLimitsValidation'
+import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
+import { mapToLimitCurrency } from '@/features/limits/utils/limits.utils'
 
 // Step type for URL state
 type MantecaStep = 'inputAmount' | 'depositDetails'
@@ -69,10 +70,8 @@ const MantecaAddMoney: FC = () => {
     const { user, fetchUser } = useAuth()
 
     // determine currency for limits validation
-    const limitsCurrency = useMemo<LimitCurrency>(() => {
-        const currency = selectedCountry?.currency?.toUpperCase()
-        if (currency === 'ARS' || currency === 'BRL') return currency as LimitCurrency
-        return 'USD'
+    const limitsCurrency = useMemo(() => {
+        return mapToLimitCurrency(selectedCountry?.currency)
     }, [selectedCountry?.currency])
 
     // validate against user's limits
