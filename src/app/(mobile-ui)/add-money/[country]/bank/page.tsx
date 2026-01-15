@@ -26,6 +26,9 @@ import { OnrampConfirmationModal } from '@/components/AddMoney/components/Onramp
 import { InitiateBridgeKYCModal } from '@/components/Kyc/InitiateBridgeKYCModal'
 import InfoCard from '@/components/Global/InfoCard'
 import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
+import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
+import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
+import { formatExtendedNumber } from '@/utils/general.utils'
 
 // Step type for URL state
 type BridgeBankStep = 'inputAmount' | 'kyc' | 'collectUserDetails' | 'showDetails'
@@ -96,6 +99,14 @@ export default function OnrampBankPage() {
         if (!selectedCountry?.id) return 1
         return getMinimumAmount(selectedCountry.id)
     }, [selectedCountry?.id])
+
+    // validate against user's bridge limits
+    const limitsValidation = useLimitsValidation({
+        flowType: 'onramp',
+        amount: rawTokenAmount,
+        currency: 'USD',
+        isLocalUser: false, // bridge is for non-local users
+    })
 
     // Determine initial step based on KYC status (only when URL has no step)
     useEffect(() => {
@@ -341,6 +352,8 @@ export default function OnrampBankPage() {
     }
 
     if (urlState.step === 'inputAmount') {
+        const showLimitsCard = limitsValidation.isBlocking || limitsValidation.isWarning
+
         return (
             <div className="flex flex-col justify-start space-y-8">
                 <NavHeader title="Add Money" onPrev={handleBack} />
@@ -364,6 +377,25 @@ export default function OnrampBankPage() {
                         hideBalance
                     />
 
+                    {/* limits warning/error card */}
+                    {showLimitsCard && (
+                        <LimitsWarningCard
+                            type={limitsValidation.isBlocking ? 'error' : 'warning'}
+                            title={
+                                limitsValidation.isBlocking
+                                    ? 'Amount too high, try a smaller amount.'
+                                    : "You're close to your limit."
+                            }
+                            items={[
+                                {
+                                    text: `You can add up to $${formatExtendedNumber(limitsValidation.remainingLimit ?? 0)} per transaction`,
+                                },
+                                { text: 'Check my limits.', isLink: true, href: '/limits', icon: 'external-link' },
+                            ]}
+                            showSupportLink={false}
+                        />
+                    )}
+
                     <InfoCard
                         variant="warning"
                         icon="alert"
@@ -377,14 +409,18 @@ export default function OnrampBankPage() {
                             !parseFloat(rawTokenAmount) ||
                             parseFloat(rawTokenAmount) < minimumAmount ||
                             error.showError ||
-                            isCreatingOnramp
+                            isCreatingOnramp ||
+                            limitsValidation.isBlocking
                         }
                         className="w-full"
                         loading={isCreatingOnramp}
                     >
                         Continue
                     </Button>
-                    {error.showError && !!error.errorMessage && <ErrorAlert description={error.errorMessage} />}
+                    {/* only show error if limits card is not displayed */}
+                    {error.showError && !!error.errorMessage && !showLimitsCard && (
+                        <ErrorAlert description={error.errorMessage} />
+                    )}
                 </div>
 
                 <OnrampConfirmationModal

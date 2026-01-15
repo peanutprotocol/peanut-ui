@@ -66,6 +66,11 @@ import { useModalsContext } from '@/context/ModalsContext'
 import maintenanceConfig from '@/config/underMaintenance.config'
 import PointsCard from '@/components/Common/PointsCard'
 import { TRANSACTIONS } from '@/constants/query.consts'
+import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
+import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
+import useKycStatus from '@/hooks/useKycStatus'
+import { MAX_QR_PAYMENT_AMOUNT_FOREIGN } from '@/constants/payment.consts'
+import { formatExtendedNumber } from '@/utils/general.utils'
 
 const MAX_QR_PAYMENT_AMOUNT = '2000'
 const MIN_QR_PAYMENT_AMOUNT = '0.1'
@@ -118,6 +123,7 @@ export default function QRPayPage() {
     }, [paymentProcessor])
 
     const { shouldBlockPay, kycGateState } = useQrKycGate(paymentProcessor)
+    const { isUserMantecaKycApproved } = useKycStatus()
     const queryClient = useQueryClient()
     const [isShaking, setIsShaking] = useState(false)
     const [shakeIntensity, setShakeIntensity] = useState<ShakeIntensity>('none')
@@ -382,6 +388,26 @@ export default function QRPayPage() {
             return paymentLock.paymentAgainstAmount
         }
     }, [paymentProcessor, simpleFiPayment, paymentLock?.code, paymentLock?.paymentAgainstAmount, amount])
+
+    // determine if user is local (manteca kyc) for limits validation
+    const isLocalUser = useMemo(() => {
+        return isUserMantecaKycApproved && paymentProcessor === 'MANTECA'
+    }, [isUserMantecaKycApproved, paymentProcessor])
+
+    // determine currency for limits validation based on qr type
+    const limitsCurrency = useMemo(() => {
+        if (qrType === EQrType.PIX) return 'BRL' as const
+        if (qrType === EQrType.MERCADO_PAGO || qrType === EQrType.ARGENTINA_QR3) return 'ARS' as const
+        return 'USD' as const
+    }, [qrType])
+
+    // validate payment against user's limits
+    const limitsValidation = useLimitsValidation({
+        flowType: 'qr-payment',
+        amount: usdAmount,
+        currency: limitsCurrency,
+        isLocalUser,
+    })
 
     // Fetch points early to avoid latency penalty - fetch as soon as we have usdAmount
     // This way points are cached by the time success view shows
@@ -1535,7 +1561,34 @@ export default function QRPayPage() {
                             hideBalance
                         />
                     )}
-                    {balanceErrorMessage && <ErrorAlert description={balanceErrorMessage} />}
+                    {/* only show balance error if limits card is not displayed */}
+                    {balanceErrorMessage && !limitsValidation.isBlocking && !limitsValidation.isWarning && (
+                        <ErrorAlert description={balanceErrorMessage} />
+                    )}
+
+                    {/* Limits Warning/Error Card */}
+                    {(limitsValidation.isBlocking || limitsValidation.isWarning) && (
+                        <LimitsWarningCard
+                            type={limitsValidation.isBlocking ? 'error' : 'warning'}
+                            title={
+                                limitsValidation.isBlocking
+                                    ? 'Amount too high, try a smaller amount.'
+                                    : "You're close to your limit."
+                            }
+                            items={[
+                                {
+                                    text: isLocalUser
+                                        ? `You can pay up to ${formatExtendedNumber(limitsValidation.remainingLimit ?? 0)} ${limitsCurrency}`
+                                        : `You can pay up to $${MAX_QR_PAYMENT_AMOUNT_FOREIGN.toLocaleString()} per transaction`,
+                                },
+                                ...(limitsValidation.daysUntilReset
+                                    ? [{ text: `Limit resets in ${limitsValidation.daysUntilReset} days.` }]
+                                    : []),
+                                { text: 'Check my limits.', isLink: true, href: '/limits', icon: 'external-link' },
+                            ]}
+                            showSupportLink={limitsValidation.isMantecaUser}
+                        />
+                    )}
 
                     {/* Information Card */}
                     <Card className="space-y-0 px-4">
@@ -1560,7 +1613,8 @@ export default function QRPayPage() {
                             shouldBlockPay ||
                             !usdAmount ||
                             usdAmount === '0.00' ||
-                            isWaitingForWebSocket
+                            isWaitingForWebSocket ||
+                            limitsValidation.isBlocking
                         }
                     >
                         {isLoading || isWaitingForWebSocket

@@ -45,11 +45,12 @@ import {
 } from '@/constants/manteca.consts'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
+import { useLimitsValidation, type LimitCurrency } from '@/features/limits/hooks/useLimitsValidation'
+import { MIN_MANTECA_WITHDRAW_AMOUNT } from '@/constants/payment.consts'
+import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
+import { formatExtendedNumber } from '@/utils/general.utils'
 
 type MantecaWithdrawStep = 'amountInput' | 'bankDetails' | 'review' | 'success' | 'failure'
-
-const MAX_WITHDRAW_AMOUNT = '2000'
-const MIN_WITHDRAW_AMOUNT = '1'
 
 export default function MantecaWithdrawFlow() {
     const flowId = useId() // Unique ID per flow instance to prevent cache collisions
@@ -101,6 +102,21 @@ export default function MantecaWithdrawFlow() {
 
     // Initialize KYC flow hook
     const { isMantecaKycRequired } = useMantecaKycFlow({ country: selectedCountry })
+
+    // determine currency for limits validation
+    const limitsCurrency = useMemo<LimitCurrency>(() => {
+        const currency = selectedCountry?.currency?.toUpperCase()
+        if (currency === 'ARS' || currency === 'BRL') return currency as LimitCurrency
+        return 'USD'
+    }, [selectedCountry?.currency])
+
+    // validate against user's limits
+    const limitsValidation = useLimitsValidation({
+        flowType: 'offramp',
+        amount: usdAmount,
+        currency: limitsCurrency,
+        isLocalUser: true, // manteca is for local users
+    })
 
     // WebSocket listener for KYC status updates
     useWebSocket({
@@ -290,10 +306,9 @@ export default function MantecaWithdrawFlow() {
             return
         }
         const paymentAmount = parseUnits(usdAmount, PEANUT_WALLET_TOKEN_DECIMALS)
-        if (paymentAmount < parseUnits(MIN_WITHDRAW_AMOUNT, PEANUT_WALLET_TOKEN_DECIMALS)) {
-            setBalanceErrorMessage(`Withdraw amount must be at least $${MIN_WITHDRAW_AMOUNT}`)
-        } else if (paymentAmount > parseUnits(MAX_WITHDRAW_AMOUNT, PEANUT_WALLET_TOKEN_DECIMALS)) {
-            setBalanceErrorMessage(`Withdraw amount exceeds maximum limit of $${MAX_WITHDRAW_AMOUNT}`)
+        // only check min amount and balance here - max amount is handled by limits validation
+        if (paymentAmount < parseUnits(MIN_MANTECA_WITHDRAW_AMOUNT.toString(), PEANUT_WALLET_TOKEN_DECIMALS)) {
+            setBalanceErrorMessage(`Withdraw amount must be at least $${MIN_MANTECA_WITHDRAW_AMOUNT}`)
         } else if (paymentAmount > balance) {
             setBalanceErrorMessage('Not enough balance to complete withdrawal.')
         } else {
@@ -429,6 +444,29 @@ export default function MantecaWithdrawFlow() {
                             balance ? formatAmount(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS)) : undefined
                         }
                     />
+
+                    {/* limits warning/error card */}
+                    {(limitsValidation.isBlocking || limitsValidation.isWarning) && (
+                        <LimitsWarningCard
+                            type={limitsValidation.isBlocking ? 'error' : 'warning'}
+                            title={
+                                limitsValidation.isBlocking
+                                    ? 'Amount too high, try a smaller amount.'
+                                    : "You're close to your limit."
+                            }
+                            items={[
+                                {
+                                    text: `You can withdraw up to ${formatExtendedNumber(limitsValidation.remainingLimit ?? 0)} ${limitsCurrency}`,
+                                },
+                                ...(limitsValidation.daysUntilReset
+                                    ? [{ text: `Limit resets in ${limitsValidation.daysUntilReset} days.` }]
+                                    : []),
+                                { text: 'Check my limits.', isLink: true, href: '/limits', icon: 'external-link' },
+                            ]}
+                            showSupportLink={limitsValidation.isMantecaUser}
+                        />
+                    )}
+
                     <Button
                         variant="purple"
                         shadowSize="4"
@@ -442,12 +480,15 @@ export default function MantecaWithdrawFlow() {
                                 }
                             }
                         }}
-                        disabled={!Number(usdAmount) || !!balanceErrorMessage}
+                        disabled={!Number(usdAmount) || !!balanceErrorMessage || limitsValidation.isBlocking}
                         className="w-full"
                     >
                         Continue
                     </Button>
-                    {balanceErrorMessage && <ErrorAlert description={balanceErrorMessage} />}
+                    {/* only show balance error if limits card is not displayed */}
+                    {balanceErrorMessage && !limitsValidation.isBlocking && !limitsValidation.isWarning && (
+                        <ErrorAlert description={balanceErrorMessage} />
+                    )}
                 </div>
             )}
 

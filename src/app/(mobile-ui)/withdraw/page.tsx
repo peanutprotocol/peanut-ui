@@ -9,11 +9,13 @@ import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
-import { formatAmount } from '@/utils/general.utils'
+import { formatAmount, formatExtendedNumber } from '@/utils/general.utils'
 import { getCountryFromAccount } from '@/utils/bridge.utils'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState, useRef, useContext } from 'react'
 import { formatUnits } from 'viem'
+import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
+import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
 
 type WithdrawStep = 'inputAmount' | 'selectMethod'
 
@@ -78,6 +80,15 @@ export default function WithdrawPage() {
     const peanutWalletBalance = useMemo(() => {
         return balance !== undefined ? formatAmount(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS)) : ''
     }, [balance])
+
+    // validate against user's limits for bank withdrawals
+    // note: crypto withdrawals don't have fiat limits
+    const limitsValidation = useLimitsValidation({
+        flowType: 'offramp',
+        amount: rawTokenAmount,
+        currency: 'USD',
+        isLocalUser: selectedMethod?.type === 'manteca',
+    })
 
     // clear errors and reset any persisted state when component mounts to ensure clean state
     useEffect(() => {
@@ -247,6 +258,10 @@ export default function WithdrawPage() {
     }, [rawTokenAmount, maxDecimalAmount, error.showError, selectedTokenData?.price])
 
     if (step === 'inputAmount') {
+        // only show limits card for bank/manteca withdrawals, not crypto
+        const showLimitsCard =
+            selectedMethod?.type !== 'crypto' && (limitsValidation.isBlocking || limitsValidation.isWarning)
+
         return (
             <div className="flex min-h-[inherit] flex-col justify-start space-y-8">
                 <NavHeader
@@ -280,16 +295,44 @@ export default function WithdrawPage() {
                         walletBalance={peanutWalletBalance}
                         hideCurrencyToggle
                     />
+
+                    {/* limits warning/error card for bank withdrawals */}
+                    {showLimitsCard && (
+                        <LimitsWarningCard
+                            type={limitsValidation.isBlocking ? 'error' : 'warning'}
+                            title={
+                                limitsValidation.isBlocking
+                                    ? 'Amount too high, try a smaller amount.'
+                                    : "You're close to your limit."
+                            }
+                            items={[
+                                {
+                                    text: `You can withdraw up to $${formatExtendedNumber(limitsValidation.remainingLimit ?? 0)}${limitsValidation.daysUntilReset ? '' : ' per transaction'}`,
+                                },
+                                ...(limitsValidation.daysUntilReset
+                                    ? [{ text: `Limit resets in ${limitsValidation.daysUntilReset} days.` }]
+                                    : []),
+                                { text: 'Check my limits.', isLink: true, href: '/limits', icon: 'external-link' },
+                            ]}
+                            showSupportLink={false}
+                        />
+                    )}
+
                     <Button
                         variant="purple"
                         shadowSize="4"
                         onClick={handleAmountContinue}
-                        disabled={isContinueDisabled}
+                        disabled={
+                            isContinueDisabled || (selectedMethod?.type !== 'crypto' && limitsValidation.isBlocking)
+                        }
                         className="w-full"
                     >
                         Continue
                     </Button>
-                    {error.showError && !!error.errorMessage && <ErrorAlert description={error.errorMessage} />}
+                    {/* only show error if limits card is not displayed */}
+                    {error.showError && !!error.errorMessage && !showLimitsCard && (
+                        <ErrorAlert description={error.errorMessage} />
+                    )}
                 </div>
             </div>
         )
