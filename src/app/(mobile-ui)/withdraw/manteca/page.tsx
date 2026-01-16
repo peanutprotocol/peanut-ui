@@ -175,6 +175,9 @@ export default function MantecaWithdrawFlow() {
     }, [selectedBank, accountType, countryConfig, destinationAddress])
 
     const handleBankDetailsSubmit = useCallback(async () => {
+        // prevent duplicate requests from rapid clicks
+        if (isLockingPrice) return
+
         if (!destinationAddress.trim()) {
             setErrorMessage('Please enter your account address')
             return
@@ -233,6 +236,7 @@ export default function MantecaWithdrawFlow() {
         usdAmount,
         currencyCode,
         isMantecaKycRequired,
+        isLockingPrice,
     ])
 
     const handleWithdraw = async () => {
@@ -439,6 +443,8 @@ export default function MantecaWithdrawFlow() {
                 title="Withdraw"
                 onPrev={() => {
                     if (step === 'review') {
+                        // clear price lock when going back - user will get a fresh lock when they return
+                        setPriceLock(null)
                         setStep('bankDetails')
                     } else if (step === 'bankDetails') {
                         setStep('amountInput')
