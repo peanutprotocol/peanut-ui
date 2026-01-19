@@ -77,6 +77,11 @@ export default function LandingPage() {
                 question: 'How does Peanut make money?',
                 answer: 'We plan to charge merchants for accepting Peanut as a payment method, whilst still being much cheaper than VISA and Mastercard. For users, we only charge minimal amounts!',
             },
+            {
+                id: '6',
+                question: 'My question is not here',
+                answer: 'Check out our full FAQ page at https://peanutprotocol.notion.site/FAQ-2a4838117579805dad62ff47c9d2eb7a or visit our support page at https://peanut.me/support for more help.',
+            },
         ],
         marquee: {
             visible: false,

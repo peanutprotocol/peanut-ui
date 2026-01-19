@@ -71,6 +71,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     useEffect(() => {
         if (user) {
             syncLocalStorageToCookie(WEB_AUTHN_COOKIE_KEY)
+            if (typeof window !== 'undefined' && window.gtag) {
+                window.gtag('set', { user_id: user.user.userId })
+            }
         }
     }, [user])
 
