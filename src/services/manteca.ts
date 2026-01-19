@@ -319,7 +319,10 @@ export const mantecaApi = {
 
             const result = await response.json()
             if (!response.ok) {
-                return { error: result.error || 'Failed to create manteca withdraw.' }
+                return {
+                    error: result.error || 'Failed to create manteca withdraw.',
+                    message: result.message,
+                }
             }
 
             return { data: result }

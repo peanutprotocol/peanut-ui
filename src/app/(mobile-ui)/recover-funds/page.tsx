@@ -24,12 +24,19 @@ import { useRouter } from 'next/navigation'
 import { loadingStateContext } from '@/context'
 import { captureException } from '@sentry/nextjs'
 import { mainnet, base, linea } from 'viem/chains'
-import { getPublicClient } from '@/app/actions/clients'
+import { getPublicClient, type ChainId } from '@/app/actions/clients'
 import { Icon } from '@/components/Global/Icons/Icon'
 
 // Helper function to check if a token is native ETH
 const isNativeToken = (tokenAddress: string): boolean => {
     return nativeCurrencyAddresses.some((nativeAddr) => areEvmAddressesEqual(nativeAddr, tokenAddress))
+}
+
+// helper to fetch exact native balance from chain to avoid floating-point precision issues
+// mobula returns balance as a float which causes precision loss with 18 decimals
+const fetchExactNativeBalance = async (chainId: string, address: Address): Promise<bigint> => {
+    const client = getPublicClient(Number(chainId) as ChainId)
+    return await client.getBalance({ address })
 }
 
 // Mobula does not returns Linea balance, we have one user balance with USDC in Linea so we will manually fetch it
@@ -101,11 +108,9 @@ export default function RecoverFundsPage() {
     }, [])
 
     const recoverFunds = useCallback(async () => {
-        if (!selectedBalance || !recipient.address) return
+        if (!selectedBalance || !recipient.address || !peanutAddress) return
         setIsSigning(true)
         setErrorMessage('')
-        const amountStr = selectedBalance.amount.toFixed(selectedBalance.decimals)
-        const amount = parseUnits(amountStr, selectedBalance.decimals)
 
         let receipt: TransactionReceipt | null
         let userOpHash: Hash
@@ -113,12 +118,16 @@ export default function RecoverFundsPage() {
         try {
             // Check if the token is native ETH
             if (isNativeToken(selectedBalance.address)) {
-                // For native ETH, send a simple value transfer
+                // for native eth, fetch the exact balance from chain to avoid floating-point precision issues
+                // mobula returns balance as a float which can cause precision loss with 18 decimals
+                // e.g. 0.049917499999999997 ETH might become 0.049917500000000003 after toFixed(18)
+                // resulting in trying to send more wei than the account has
+                const exactBalance = await fetchExactNativeBalance(selectedBalance.chainId, peanutAddress as Address)
                 const result = await sendTransactions(
                     [
                         {
                             to: recipient.address as Address,
-                            value: amount,
+                            value: exactBalance,
                         },
                     ],
                     selectedBalance.chainId
@@ -126,6 +135,9 @@ export default function RecoverFundsPage() {
                 receipt = result.receipt
                 userOpHash = result.userOpHash
             } else {
+                // for erc20 tokens, use the float-based amount (less precision sensitive with 6-8 decimals)
+                const amountStr = selectedBalance.amount.toFixed(selectedBalance.decimals)
+                const amount = parseUnits(amountStr, selectedBalance.decimals)
                 // For ERC20 tokens, encode the transfer function
                 const data = encodeFunctionData({
                     abi: erc20Abi,
