@@ -155,6 +155,11 @@ let nextConfig = {
                         key: 'Permissions-Policy',
                         value: 'camera=(self "*"), microphone=(self "*"), clipboard-read=(self), clipboard-write=(self)',
                     },
+                    // Security headers - prevents clickjacking and other attacks
+                    // Using frame-ancestors instead of X-Frame-Options to allow specific domains
+                    { key: 'Content-Security-Policy', value: "frame-ancestors 'self' https://hugo0.com" },
+                    { key: 'X-Content-Type-Options', value: 'nosniff' },
+                    { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
                 ],
             },
         ]
