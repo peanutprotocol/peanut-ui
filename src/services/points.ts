@@ -13,6 +13,9 @@ type InvitesGraphResponse = {
             directPoints: number
             transitivePoints: number
             totalPoints: number
+            createdAt: string
+            lastActiveAt: string | null
+            kycRegions: string[] | null
         }>
         edges: Array<{
             id: string
@@ -21,11 +24,52 @@ type InvitesGraphResponse = {
             type: 'DIRECT' | 'PAYMENT_LINK'
             createdAt: string
         }>
+        p2pEdges: Array<{
+            source: string
+            target: string
+            type: 'SEND_LINK' | 'REQUEST_PAYMENT' | 'DIRECT_TRANSFER'
+            count: number
+            totalUsd: number
+            bidirectional: boolean
+        }>
         stats: {
             totalNodes: number
             totalEdges: number
+            totalP2PEdges: number
             usersWithAccess: number
             orphans: number
+        }
+    } | null
+    error?: string
+}
+
+/** External node types for payment destinations outside our user base */
+export type ExternalNodeType = 'WALLET' | 'BANK' | 'MERCHANT'
+
+/** External payment destination node */
+export type ExternalNode = {
+    id: string
+    type: ExternalNodeType
+    userIds: string[]
+    uniqueUsers: number
+    txCount: number
+    totalUsd: number
+    label: string
+}
+
+type ExternalNodesResponse = {
+    success: boolean
+    data: {
+        nodes: ExternalNode[]
+        stats: {
+            total: number
+            byType: {
+                WALLET: number
+                BANK: number
+                MERCHANT: number
+            }
+            totalTxCount: number
+            totalVolumeUsd: number
         }
     } | null
     error?: string
@@ -224,5 +268,53 @@ export const pointsApi = {
 
     getUserInvitesGraph: async (): Promise<InvitesGraphResponse> => {
         return fetchInvitesGraph('/invites/user-graph')
+    },
+
+    getExternalNodes: async (
+        apiKey: string,
+        options?: { minConnections?: number; types?: ExternalNodeType[]; limit?: number }
+    ): Promise<ExternalNodesResponse> => {
+        try {
+            const jwtToken = Cookies.get('jwt-token')
+            if (!jwtToken) {
+                return { success: false, data: null, error: 'Not authenticated. Please log in.' }
+            }
+
+            // Build query params
+            const params = new URLSearchParams()
+            if (options?.minConnections) {
+                params.set('minConnections', options.minConnections.toString())
+            }
+            if (options?.types?.length) {
+                params.set('types', options.types.join(','))
+            }
+            if (options?.limit) {
+                params.set('limit', options.limit.toString())
+            }
+
+            const url = `${PEANUT_API_URL}/invites/graph/external${params.toString() ? `?${params}` : ''}`
+
+            const response = await fetchWithSentry(url, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${jwtToken}`,
+                    'api-key': apiKey,
+                },
+            })
+
+            if (!response.ok) {
+                if (response.status === 403) {
+                    return { success: false, data: null, error: 'Access denied.' }
+                }
+                return { success: false, data: null, error: 'Failed to load external nodes.' }
+            }
+
+            const data = await response.json()
+            return { success: true, data }
+        } catch (error) {
+            console.error('getExternalNodes: Unexpected error', error)
+            return { success: false, data: null, error: 'Unexpected error loading external nodes.' }
+        }
     },
 }
