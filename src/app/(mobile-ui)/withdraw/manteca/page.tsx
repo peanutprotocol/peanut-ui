@@ -48,7 +48,7 @@ import { TRANSACTIONS } from '@/constants/query.consts'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import { MIN_MANTECA_WITHDRAW_AMOUNT } from '@/constants/payment.consts'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
-import { mapToLimitCurrency, getLimitsWarningCardProps } from '@/features/limits/utils'
+import { getLimitsWarningCardProps } from '@/features/limits/utils'
 
 type MantecaWithdrawStep = 'amountInput' | 'bankDetails' | 'review' | 'success' | 'failure'
 
@@ -95,7 +95,6 @@ export default function MantecaWithdrawFlow() {
 
     const {
         code: currencyCode,
-        symbol: currencySymbol,
         price: currencyPrice,
         isLoading: isCurrencyLoading,
     } = useCurrency(selectedCountry?.currency!)
@@ -103,16 +102,12 @@ export default function MantecaWithdrawFlow() {
     // Initialize KYC flow hook
     const { isMantecaKycRequired } = useMantecaKycFlow({ country: selectedCountry })
 
-    // determine currency for limits validation
-    const limitsCurrency = useMemo(() => {
-        return mapToLimitCurrency(selectedCountry?.currency)
-    }, [selectedCountry?.currency])
-
     // validates withdrawal against user's limits
+    // currency comes from country config - hook normalizes it internally
     const limitsValidation = useLimitsValidation({
         flowType: 'offramp',
         amount: usdAmount,
-        currency: limitsCurrency,
+        currency: selectedCountry?.currency,
     })
 
     // WebSocket listener for KYC status updates
@@ -447,7 +442,7 @@ export default function MantecaWithdrawFlow() {
                         const limitsCardProps = getLimitsWarningCardProps({
                             validation: limitsValidation,
                             flowType: 'offramp',
-                            currency: limitsCurrency,
+                            currency: limitsValidation.currency,
                         })
                         return limitsCardProps ? <LimitsWarningCard {...limitsCardProps} /> : null
                     })()}

@@ -19,7 +19,6 @@ import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
-import { mapToLimitCurrency } from '@/features/limits/utils'
 
 // Step type for URL state
 type MantecaStep = 'inputAmount' | 'depositDetails'
@@ -69,16 +68,12 @@ const MantecaAddMoney: FC = () => {
     const currencyData = useCurrency(selectedCountry?.currency ?? 'ARS')
     const { user, fetchUser } = useAuth()
 
-    // determine currency for limits validation
-    const limitsCurrency = useMemo(() => {
-        return mapToLimitCurrency(selectedCountry?.currency)
-    }, [selectedCountry?.currency])
-
     // validates deposit amount against user's limits
+    // currency comes from country config - hook normalizes it internally
     const limitsValidation = useLimitsValidation({
         flowType: 'onramp',
         amount: usdAmount,
-        currency: limitsCurrency,
+        currency: selectedCountry?.currency,
     })
 
     useWebSocket({
@@ -220,7 +215,7 @@ const MantecaAddMoney: FC = () => {
                     initialDenomination={currentDenomination}
                     setDisplayedAmount={handleDisplayedAmountChange}
                     limitsValidation={limitsValidation}
-                    limitsCurrency={limitsCurrency}
+                    limitsCurrency={limitsValidation.currency}
                 />
                 {isKycModalOpen && (
                     <MantecaGeoSpecificKycModal

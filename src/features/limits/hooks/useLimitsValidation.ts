@@ -22,6 +22,9 @@ export type LimitValidationResult = {
     totalLimit: number | null
     message: string | null
     daysUntilReset: number | null
+    // currency the limit is denominated in (may differ from transaction currency)
+    // e.g. foreign qr users have USD limits even when paying in ARS
+    limitCurrency: LimitCurrency | null
 }
 
 export type LimitFlowType = 'onramp' | 'offramp' | 'qr-payment'
@@ -54,10 +57,11 @@ export function useLimitsValidation({ flowType, amount, currency: currencyInput 
     // this replaces the external isLocalUser parameter
     const isLocalUser = isUserMantecaKycApproved
 
-    // parse amount to number
+    // parse amount to number - strip commas to handle "1,200" format
     const numericAmount = useMemo(() => {
         if (!amount) return 0
-        const parsed = typeof amount === 'string' ? parseFloat(amount) : amount
+        const sanitized = typeof amount === 'string' ? amount.replace(/,/g, '') : amount
+        const parsed = typeof sanitized === 'string' ? parseFloat(sanitized) : sanitized
         return isNaN(parsed) ? 0 : parsed
     }, [amount])
 
@@ -85,6 +89,7 @@ export function useLimitsValidation({ flowType, amount, currency: currencyInput 
                 totalLimit: null,
                 message: null,
                 daysUntilReset: null,
+                limitCurrency: null,
             }
         }
 
@@ -98,6 +103,7 @@ export function useLimitsValidation({ flowType, amount, currency: currencyInput 
         const effectiveLimit = Math.min(perTxMax, availableMonthly)
 
         // check if amount exceeds per-transaction max first (more restrictive)
+        // per-tx limits are in USD
         if (numericAmount > perTxMax) {
             return {
                 isBlocking: true,
@@ -106,10 +112,12 @@ export function useLimitsValidation({ flowType, amount, currency: currencyInput 
                 totalLimit: perTxMax,
                 message: `Maximum ${flowType === 'onramp' ? 'deposit' : 'withdrawal'} is $${formatExtendedNumber(perTxMax)} per transaction`,
                 daysUntilReset: null, // per-tx limit doesn't reset
+                limitCurrency: 'USD',
             }
         }
 
         // check if amount exceeds remaining monthly limit
+        // monthly limits are in local currency
         if (numericAmount > availableMonthly) {
             return {
                 isBlocking: true,
@@ -118,6 +126,7 @@ export function useLimitsValidation({ flowType, amount, currency: currencyInput 
                 totalLimit: monthlyLimit,
                 message: `Amount exceeds your remaining limit of ${formatExtendedNumber(availableMonthly)} ${currency}`,
                 daysUntilReset: daysUntilMonthlyReset,
+                limitCurrency: currency,
             }
         }
 
@@ -133,6 +142,7 @@ export function useLimitsValidation({ flowType, amount, currency: currencyInput 
                 totalLimit: monthlyLimit,
                 message: `This transaction will use most of your remaining limit`,
                 daysUntilReset: daysUntilMonthlyReset,
+                limitCurrency: currency,
             }
         }
 
@@ -143,10 +153,12 @@ export function useLimitsValidation({ flowType, amount, currency: currencyInput 
             totalLimit: monthlyLimit,
             message: null,
             daysUntilReset: daysUntilMonthlyReset,
+            limitCurrency: currency,
         }
     }, [isUserMantecaKycApproved, relevantMantecaLimit, numericAmount, currency, daysUntilMonthlyReset, flowType])
 
     // validate for bridge users (us/europe/mexico) - per transaction limits
+    // bridge limits are always in USD
     const bridgeValidation = useMemo<LimitValidationResult>(() => {
         if (!isUserBridgeKycApproved || !bridgeLimits) {
             return {
@@ -156,6 +168,7 @@ export function useLimitsValidation({ flowType, amount, currency: currencyInput 
                 totalLimit: null,
                 message: null,
                 daysUntilReset: null,
+                limitCurrency: null,
             }
         }
 
@@ -173,6 +186,7 @@ export function useLimitsValidation({ flowType, amount, currency: currencyInput 
                 totalLimit: perTxLimit,
                 message: `Amount exceeds per-transaction limit of $${formatExtendedNumber(perTxLimit)}`,
                 daysUntilReset: null,
+                limitCurrency: 'USD',
             }
         }
 
@@ -186,6 +200,7 @@ export function useLimitsValidation({ flowType, amount, currency: currencyInput 
                 totalLimit: perTxLimit,
                 message: `This amount is close to your per-transaction limit`,
                 daysUntilReset: null,
+                limitCurrency: 'USD',
             }
         }
 
@@ -196,10 +211,12 @@ export function useLimitsValidation({ flowType, amount, currency: currencyInput 
             totalLimit: perTxLimit,
             message: null,
             daysUntilReset: null,
+            limitCurrency: 'USD',
         }
     }, [isUserBridgeKycApproved, bridgeLimits, flowType, numericAmount])
 
     // qr payment validation for foreign users (non-manteca kyc)
+    // foreign qr limits are always in USD
     const foreignQrValidation = useMemo<LimitValidationResult>(() => {
         if (flowType !== 'qr-payment' || isLocalUser) {
             return {
@@ -209,6 +226,7 @@ export function useLimitsValidation({ flowType, amount, currency: currencyInput 
                 totalLimit: null,
                 message: null,
                 daysUntilReset: null,
+                limitCurrency: null,
             }
         }
 
@@ -221,6 +239,7 @@ export function useLimitsValidation({ flowType, amount, currency: currencyInput 
                 totalLimit: MAX_QR_PAYMENT_AMOUNT_FOREIGN,
                 message: `QR payment limit is $${MAX_QR_PAYMENT_AMOUNT_FOREIGN.toLocaleString()} per transaction`,
                 daysUntilReset: null,
+                limitCurrency: 'USD',
             }
         }
 
@@ -231,6 +250,7 @@ export function useLimitsValidation({ flowType, amount, currency: currencyInput 
             totalLimit: MAX_QR_PAYMENT_AMOUNT_FOREIGN,
             message: null,
             daysUntilReset: null,
+            limitCurrency: 'USD',
         }
     }, [flowType, isLocalUser, numericAmount])
 
@@ -263,6 +283,7 @@ export function useLimitsValidation({ flowType, amount, currency: currencyInput 
             totalLimit: null,
             message: null,
             daysUntilReset: null,
+            limitCurrency: null,
         }
     }, [
         flowType,

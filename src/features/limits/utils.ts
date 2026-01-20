@@ -150,12 +150,13 @@ interface LimitsWarningCardPropsResult {
 interface GetLimitsWarningCardPropsOptions {
     validation: LimitValidationResult & { isMantecaUser?: boolean }
     flowType: LimitFlowType
-    currency: string
+    currency?: string
 }
 
 /**
  * generates LimitsWarningCard props from validation result
  * centralizes the logic that was duplicated across 4+ files
+ * uses validation.limitCurrency to show correct currency (e.g. USD for foreign qr limits)
  */
 export function getLimitsWarningCardProps({
     validation,
@@ -168,7 +169,9 @@ export function getLimitsWarningCardProps({
     }
 
     const items: LimitsWarningItem[] = []
-    const currencySymbol = getCurrencySymbol(currency)
+    // use limitCurrency from validation (correct currency for the limit) or fallback to transaction currency
+    const limitCurrency = validation.limitCurrency ?? currency ?? 'USD'
+    const currencySymbol = getCurrencySymbol(limitCurrency)
     const formattedLimit = formatExtendedNumber(validation.remainingLimit ?? 0)
 
     // build the limit message based on flow type

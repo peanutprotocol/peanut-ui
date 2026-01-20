@@ -68,7 +68,7 @@ import PointsCard from '@/components/Common/PointsCard'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
-import { getLimitsWarningCardProps, mapToLimitCurrency } from '@/features/limits/utils'
+import { getLimitsWarningCardProps } from '@/features/limits/utils'
 import useKycStatus from '@/hooks/useKycStatus'
 
 const MAX_QR_PAYMENT_AMOUNT = '2000'
@@ -388,16 +388,12 @@ export default function QRPayPage() {
         }
     }, [paymentProcessor, simpleFiPayment, paymentLock?.code, paymentLock?.paymentAgainstAmount, amount])
 
-    // determine currency for limits validation - uses currency from payment lock/simplefi
-    const limitsCurrency = useMemo(() => {
-        return mapToLimitCurrency(currency?.code)
-    }, [currency?.code])
-
     // validate payment against user's limits
+    // currency comes from payment lock/simplefi - hook normalizes it internally
     const limitsValidation = useLimitsValidation({
         flowType: 'qr-payment',
         amount: usdAmount,
-        currency: limitsCurrency,
+        currency: currency?.code,
     })
 
     // Fetch points early to avoid latency penalty - fetch as soon as we have usdAmount
@@ -1562,7 +1558,7 @@ export default function QRPayPage() {
                         const limitsCardProps = getLimitsWarningCardProps({
                             validation: limitsValidation,
                             flowType: 'qr-payment',
-                            currency: limitsCurrency,
+                            currency: limitsValidation.currency,
                         })
                         return limitsCardProps ? <LimitsWarningCard {...limitsCardProps} /> : null
                     })()}
