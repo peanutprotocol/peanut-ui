@@ -1,6 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { getFromLocalStorage, saveToLocalStorage } from '@/utils/general.utils'
-import type { ActivityFilter, ForceConfig, VisibilityConfig, ExternalNodesConfig } from '@/components/Global/InvitesGraph'
+import type {
+    ActivityFilter,
+    ForceConfig,
+    VisibilityConfig,
+    ExternalNodesConfig,
+} from '@/components/Global/InvitesGraph'
 
 const GRAPH_PREFS_KEY = 'invite-graph-preferences'
 
@@ -17,7 +22,7 @@ export interface GraphPreferences {
  * Hook to persist and restore graph preferences to localStorage
  * Saves: force config, visibility, activity filter, external nodes config, display settings
  * Does NOT save: camera position (too heavy, changes frequently)
- * 
+ *
  * IMPORTANT: savePreferences does NOT update state to avoid infinite loops
  * It only writes to localStorage. preferences state is only set on initial load.
  */
