@@ -724,28 +724,29 @@ export default function InvitesGraph(props: InvitesGraphProps) {
     }, [showUsernames, selectedUserId, isMinimal, activityFilter, visibilityConfig, externalNodesConfig])
 
     // Helper to determine user activity status
-    const getUserActivityStatus = useCallback((node: GraphNode, filter: ActivityFilter): 'active' | 'inactive' => {
-        if (!filter.enabled) return 'active' // No filtering, show all as active
+    const getUserActivityStatus = useCallback(
+        (node: GraphNode, filter: ActivityFilter): 'new' | 'active' | 'inactive' => {
+            if (!filter.enabled) return 'active' // No filtering, show all as active
 
-        const now = Date.now()
-        const activityCutoff = now - filter.activityDays * 24 * 60 * 60 * 1000
+            const now = Date.now()
+            const activityCutoff = now - filter.activityDays * 24 * 60 * 60 * 1000
 
-        // Check if signed up within activity window
-        const createdAtMs = node.createdAt ? new Date(node.createdAt).getTime() : 0
-        if (createdAtMs >= activityCutoff) {
-            return 'active' // New signup counts as active
-        }
+            // Check if signed up within activity window (NEW user)
+            const createdAtMs = node.createdAt ? new Date(node.createdAt).getTime() : 0
+            const isNewSignup = createdAtMs >= activityCutoff
 
-        // Check if had tx within activity window
-        if (node.lastActiveAt) {
-            const lastActiveMs = new Date(node.lastActiveAt).getTime()
-            if (lastActiveMs >= activityCutoff) {
-                return 'active'
-            }
-        }
+            // Check if had tx within activity window
+            const hasRecentActivity = node.lastActiveAt
+                ? new Date(node.lastActiveAt).getTime() >= activityCutoff
+                : false
 
-        return 'inactive'
-    }, [])
+            // Priority: New signup > Active > Inactive
+            if (isNewSignup) return 'new'
+            if (hasRecentActivity) return 'active'
+            return 'inactive'
+        },
+        []
+    )
 
     // Node styling
     const nodeCanvasObject = useCallback(
@@ -854,25 +855,47 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             // ===========================================
 
             let fillColor: string
-            let fillAlpha = 0.85 // Slight transparency on all nodes to see behind
 
             if (!filter.enabled) {
                 // No filter - simple active/inactive by access
-                fillColor = hasAccess ? '#8b5cf6' : '#9ca3af'
+                fillColor = hasAccess ? 'rgba(139, 92, 246, 0.85)' : 'rgba(156, 163, 175, 0.85)'
             } else {
-                // Activity filter enabled
-                if (activityStatus === 'active') {
-                    fillColor = '#8b5cf6' // Purple for active
+                // Activity filter enabled - three states
+                if (activityStatus === 'new') {
+                    fillColor = 'rgba(16, 185, 129, 0.85)' // Green for new signups
+                } else if (activityStatus === 'active') {
+                    fillColor = 'rgba(139, 92, 246, 0.85)' // Purple for active
                 } else {
-                    fillColor = '#9ca3af' // Gray for inactive
-                    if (!filter.hideInactive) {
-                        fillAlpha = 0.25 // More transparent for inactive (when showing them)
+                    // Inactive - exponential time bands with distinct shades
+                    const now = Date.now()
+                    const createdAtMs = node.createdAt ? new Date(node.createdAt).getTime() : 0
+                    const lastActiveMs = node.lastActiveAt ? new Date(node.lastActiveAt).getTime() : 0
+                    const lastActivityMs = Math.max(createdAtMs, lastActiveMs)
+                    const daysSinceActivity = (now - lastActivityMs) / (24 * 60 * 60 * 1000)
+                    
+                    // Exponential time bands: 1w, 2w, 4w, 8w, 16w, 32w, 64w+
+                    // Each band gets progressively lighter gray
+                    if (daysSinceActivity < 7) {
+                        fillColor = 'rgba(80, 80, 80, 0.9)'    // Very dark gray - <1 week
+                    } else if (daysSinceActivity < 14) {
+                        fillColor = 'rgba(100, 100, 100, 0.85)' // Dark gray - 1-2 weeks
+                    } else if (daysSinceActivity < 28) {
+                        fillColor = 'rgba(120, 120, 120, 0.8)'  // Medium-dark - 2-4 weeks
+                    } else if (daysSinceActivity < 56) {
+                        fillColor = 'rgba(145, 145, 145, 0.7)'  // Medium gray - 4-8 weeks
+                    } else if (daysSinceActivity < 112) {
+                        fillColor = 'rgba(170, 170, 170, 0.6)'  // Medium-light - 8-16 weeks
+                    } else if (daysSinceActivity < 224) {
+                        fillColor = 'rgba(195, 195, 195, 0.5)'  // Light gray - 16-32 weeks
+                    } else if (daysSinceActivity < 448) {
+                        fillColor = 'rgba(215, 215, 215, 0.4)'  // Very light - 32-64 weeks
+                    } else {
+                        fillColor = 'rgba(235, 235, 235, 0.3)'  // Almost invisible - 64+ weeks
                     }
                 }
             }
 
             // Draw fill
-            ctx.globalAlpha = fillAlpha
             ctx.beginPath()
             ctx.arc(node.x, node.y, size, 0, 2 * Math.PI)
             ctx.fillStyle = fillColor

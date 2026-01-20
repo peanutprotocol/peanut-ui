@@ -681,6 +681,10 @@ export default function InviteGraphPage() {
                                     {/* Nodes */}
                                     <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-gray-500">
                                         <span className="flex items-center gap-0.5">
+                                            <span className="inline-block h-2 w-2 rounded-full bg-green-500"></span>
+                                            New
+                                        </span>
+                                        <span className="flex items-center gap-0.5">
                                             <span className="inline-block h-2 w-2 rounded-full bg-purple-500"></span>
                                             Active
                                         </span>
