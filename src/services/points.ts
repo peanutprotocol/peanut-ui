@@ -56,6 +56,7 @@ export type ExternalNode = {
     totalUsd: number
     label: string
     userTxData: Record<string, { txCount: number; totalUsd: number }> // Per-user breakdown for edge weights
+    lastTxDate: string // ISO date of most recent transaction (for activity filtering)
 }
 
 type ExternalNodesResponse = {

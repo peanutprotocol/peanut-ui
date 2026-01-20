@@ -416,7 +416,6 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                         sizeBias: sizeBasedCenter?.enabled ? 0.5 : 0, // If old sizeBased was on, keep some bias
                     },
                 }
-                console.log('Migrated old center forces to unified center')
             }
 
             // Merge with defaults to fill in any missing fields
@@ -434,7 +433,6 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         if (preferences.showUsernames !== undefined) setShowUsernames(preferences.showUsernames)
         if (preferences.showAllNodes !== undefined) setShowAllNodes(preferences.showAllNodes)
 
-        console.log('Restored graph preferences (migrated):', preferences)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [preferencesLoaded, isMinimal]) // Only depend on preferencesLoaded, not preferences
 
@@ -474,8 +472,10 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         // Start with all nodes
         let filteredNodes = prunedGraphData.nodes
 
-        // Filter by Active/Inactive visibility checkboxes
-        // Uses activityDays (default 30) to determine what's "active"
+        // Filter by activity time window AND active/inactive checkboxes
+        // activityDays defines the time window (e.g., 30 days)
+        // Nodes are classified as active (within window) or inactive (outside window)
+        // Then visibilityConfig checkboxes control which category to show
         if (!visibilityConfig.activeNodes || !visibilityConfig.inactiveNodes) {
             filteredNodes = filteredNodes.filter((node) => {
                 const isActive = isNodeActive(node, activityFilter)
@@ -572,14 +572,20 @@ export default function InvitesGraph(props: InvitesGraphProps) {
     const filteredExternalNodes = useMemo(() => {
         if (!externalNodesConfig.enabled) return []
 
+        const now = Date.now()
+        const activityCutoff = now - activityFilter.activityDays * 24 * 60 * 60 * 1000
+
         return externalNodesData.filter((node) => {
             // Filter by minConnections
             if (node.uniqueUsers < externalNodesConfig.minConnections) return false
             // Filter by type
             if (!externalNodesConfig.types[node.type]) return false
+            // Filter by activity window (only show nodes with recent transactions)
+            const lastTxMs = new Date(node.lastTxDate).getTime()
+            if (lastTxMs < activityCutoff) return false
             return true
         })
-    }, [externalNodesData, externalNodesConfig])
+    }, [externalNodesData, externalNodesConfig, activityFilter.activityDays])
 
     // Build combined graph nodes including external nodes
     // External nodes are marked with isExternal: true for different rendering
@@ -690,7 +696,6 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                 if (result.success && result.data) {
                     setExternalNodesData(result.data.nodes)
                     externalNodesFetchedRef.current = true
-                    console.log(`Fetched ${result.data.nodes.length} external nodes`)
                 } else {
                     const errorMsg = result.error || 'Unknown error'
                     setExternalNodesError(errorMsg)
@@ -997,7 +1002,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             const uy = dy / len // Unit vector y
 
             // ============================================
-            // EXTERNAL LINK RENDERING (with animated particles)
+            // EXTERNAL LINK RENDERING (with animated particles scaling by volume/count)
             // ============================================
             if (link.isExternal) {
                 // Get target node type for color
@@ -1013,37 +1018,54 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                     MERCHANT: 'rgba(16, 185, 129, 0.8)', // Green
                 }
 
+                // Scale line width by transaction count (same formula as P2P)
+                const lineWidth = Math.min(0.4 + (link.txCount || 1) * 0.25, 3.0)
+
                 // Draw base line
                 ctx.strokeStyle = lineColors[extType] || 'rgba(107, 114, 128, 0.25)'
-                ctx.lineWidth = 0.6
+                ctx.lineWidth = lineWidth
                 ctx.beginPath()
                 ctx.moveTo(source.x, source.y)
                 ctx.lineTo(target.x, target.y)
                 ctx.stroke()
 
-                // Animated particles flowing user → external
+                // Animated particles flowing user → external (scaled by activity, slightly slower than P2P)
                 const time = performance.now()
-                const speed = 0.0003 // Slower than P2P for visual distinction
-                const particleSize = 1.5
+                // Logarithmic scaling for better visual distinction (1 tx vs 10 tx vs 100 tx)
+                const logTxCount = Math.log10(Math.max(link.txCount || 1, 1) + 1) // log10(2) to log10(101) = 0.3 to 2.0
+                const logUsd = Math.log10(Math.max(link.totalUsd || 1, 1) + 1) // Similar range
+                
+                // Speed: 0.0002 (1tx) → 0.0008 (100tx) using log scale
+                const baseSpeed = 0.0002 + logTxCount * 0.0003
+                // Only normalize by length when simulation is stable (avoid jitter)
+                const speed = baseSpeed
+                
+                // Particle count: 1 → 4 particles, log-scaled
+                const particleCount = Math.min(1 + Math.floor(logTxCount * 1.5), 4)
+                // Size: 1.5 (small) → 6.0 (large), log-scaled by USD volume
+                const particleSize = 1.5 + logUsd * 2.25
 
                 ctx.fillStyle = particleColors[extType] || 'rgba(107, 114, 128, 0.8)'
 
-                // Single particle per link (less visual clutter)
-                const t = (time * speed) % 1
-                const px = source.x + dx * t
-                const py = source.y + dy * t
-                ctx.beginPath()
-                ctx.arc(px, py, particleSize, 0, 2 * Math.PI)
-                ctx.fill()
+                // Draw particles along the edge
+                for (let i = 0; i < particleCount; i++) {
+                    const t = (time * speed + i / particleCount) % 1
+                    const px = source.x + dx * t
+                    const py = source.y + dy * t
+                    ctx.beginPath()
+                    ctx.arc(px, py, particleSize, 0, 2 * Math.PI)
+                    ctx.fill()
+                }
 
                 return
             }
 
             if (link.isP2P) {
-                // P2P: Draw line with animated particles
+                // P2P: Draw line with animated particles (scaled by activity & volume)
                 const baseAlpha = inactive ? 0.08 : 0.25
                 ctx.strokeStyle = `rgba(6, 182, 212, ${baseAlpha})`
-                ctx.lineWidth = Math.min(0.5 + (link.count || 1) * 0.2, 2.5)
+                // Line width: 0.4 (min) → 3.0 (max) based on tx count
+                ctx.lineWidth = Math.min(0.4 + (link.count || 1) * 0.25, 3.0)
                 ctx.beginPath()
                 ctx.moveTo(source.x, source.y)
                 ctx.lineTo(target.x, target.y)
@@ -1051,10 +1073,19 @@ export default function InvitesGraph(props: InvitesGraphProps) {
 
                 // Animated particles for P2P
                 if (!inactive) {
-                    const time = performance.now() // More precise than Date.now()
-                    const particleCount = Math.min(1 + Math.floor((link.count || 1) / 2), 4)
-                    const speed = 0.0004 + Math.min((link.count || 1) * 0.0001, 0.0003)
-                    const particleSize = 2 + Math.min((link.totalUsd || 0) / 300, 3)
+                    const time = performance.now()
+                    // Logarithmic scaling for better visual distinction (1 tx vs 10 tx vs 100 tx)
+                    const logTxCount = Math.log10(Math.max(link.count || 1, 1) + 1) // log10(2) to log10(101) = 0.3 to 2.0
+                    const logUsd = Math.log10(Math.max(link.totalUsd || 1, 1) + 1)
+                    
+                    // Particle count: 1 → 5 particles, log-scaled
+                    const particleCount = Math.min(1 + Math.floor(logTxCount * 2), 5)
+                    // Speed: 0.0003 (1tx) → 0.001 (100tx) using log scale
+                    const baseSpeed = 0.0003 + logTxCount * 0.00035
+                    const speed = baseSpeed
+                    
+                    // Size: 1.5 (small) → 6.0 (large), log-scaled by USD volume
+                    const particleSize = 1.5 + logUsd * 2.25
                     const isBidirectional = link.bidirectional === true
 
                     ctx.fillStyle = 'rgba(6, 182, 212, 0.85)'
@@ -1380,9 +1411,6 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             const inviteStr = fc.inviteLinks.enabled ? Math.min(fc.inviteLinks.strength, 1.0) : 0
             const p2pStr = fc.p2pLinks.enabled ? Math.min(fc.p2pLinks.strength, 1.0) : 0
             const extStr = extConfig.enabled ? Math.min(extConfig.strength, 1.0) : 0
-            console.log(
-                `[FORCES] Links: invite=${inviteStr.toFixed(2)}, p2p=${p2pStr.toFixed(2)}, ext=${extStr.toFixed(2)}`
-            )
         }
 
         // CENTER: Pulls nodes toward origin. sizeBias controls how much bigger nodes are pulled more
@@ -1423,17 +1451,10 @@ export default function InvitesGraph(props: InvitesGraphProps) {
     // Manual recalculation button - resets positions and reconfigures forces
     const handleRecalculate = useCallback(() => {
         if (!graphRef.current) {
-            console.log('[RECALC] No graphRef')
             return
         }
 
         const graph = graphRef.current as any
-
-        // Debug: find where simulation lives
-        console.log(
-            '[RECALC] Graph keys:',
-            Object.keys(graph).filter((k) => !k.startsWith('_'))
-        )
 
         // Try different ways to access simulation
         const simulation =
@@ -1464,7 +1485,6 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                     delete node.fy
                 }
             })
-            console.log('[RECALC] Reset positions for', uniqueNodes.length, 'nodes')
         }
 
         // Reheat simulation
@@ -1495,7 +1515,6 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                 const internalGraph = graphRef.current as any
                 if (internalGraph._simulation) {
                     internalGraph._simulation.alpha(1).restart()
-                    console.log('[FORCES] Reheated')
                 } else {
                     graphRef.current.d3ReheatSimulation()
                 }
@@ -1957,12 +1976,14 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                                     : node.externalType === 'BANK'
                                       ? `🏦 ${inferBankAccountType(fullId)}`
                                       : '🏪 Merchant'
-                            // Show full ID for bank accounts (CLABE/IBAN) for investigation, masked label for others
-                            const displayId = node.externalType === 'BANK' ? fullId : node.label
+                            
+                            // Show only masked labels for all types
+                            const displayLabel = node.externalType === 'BANK' ? 'Account' : 'ID'
+
                             return `<div style="background: white; border-radius: 8px; border: 1px solid #e5e7eb; font-family: Inter, system-ui, sans-serif; max-width: 280px; padding: 12px 14px;">
                                 <div style="font-weight: 700; margin-bottom: 8px; font-size: 14px; color: #1f2937;">${typeLabel}</div>
                                 <div style="font-size: 12px; line-height: 1.6; color: #6b7280;">
-                                    <div style="margin-bottom: 4px; word-break: break-all;">🏷️ ID: <span style="color: #374151; font-family: monospace;">${displayId}</span></div>
+                                    <div style="margin-bottom: 4px; word-break: break-all;">🏷️ ${displayLabel}: <span style="color: #374151; font-weight: 600;">${node.label}</span></div>
                                     <div style="margin-bottom: 4px;">👥 Users: <span style="color: #374151;">${node.uniqueUsers}</span></div>
                                     <div style="margin-bottom: 4px;">📊 Transactions: <span style="color: #374151;">${node.txCount}</span></div>
                                     <div>💵 Volume: <span style="color: #374151;">$${(node.totalUsd || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span></div>
