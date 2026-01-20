@@ -3,6 +3,7 @@ import type { BridgeKycStatus } from '@/utils/bridge-accounts.utils'
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
 import { PEANUT_API_URL } from '@/constants/general.consts'
+import { refreshJWTCookieIfNeeded } from '@/utils/cookie-migration.utils'
 
 type UserPayload = {
     userId: string
@@ -26,6 +27,9 @@ export async function POST(request: NextRequest) {
     if (!userId || !apiKey || !token) {
         return new NextResponse('Bad Request: missing required parameters', { status: 400 })
     }
+
+    // Auto-migrate cookie from sameSite='strict' to 'lax'
+    await refreshJWTCookieIfNeeded(token.value)
 
     try {
         const payload: UserPayload = {

@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import { refreshJWTCookieIfNeeded } from '@/utils/cookie-migration.utils'
 
 export async function GET() {
     try {
@@ -9,6 +10,9 @@ export async function GET() {
         if (!token) {
             return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
         }
+
+        // Auto-migrate cookie from sameSite='strict' to 'lax'
+        await refreshJWTCookieIfNeeded(token.value)
 
         const decodedToken = parseJwt(token.value)
         return new NextResponse(JSON.stringify(decodedToken), {

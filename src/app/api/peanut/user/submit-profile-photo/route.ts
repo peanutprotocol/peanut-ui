@@ -2,6 +2,7 @@ import { fetchWithSentry } from '@/utils/sentry.utils'
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
 import { PEANUT_API_URL } from '@/constants/general.consts'
+import { refreshJWTCookieIfNeeded } from '@/utils/cookie-migration.utils'
 
 export async function POST(request: NextRequest) {
     const formData = await request.formData()
@@ -18,6 +19,9 @@ export async function POST(request: NextRequest) {
     if (!apiKey || !token) {
         return new NextResponse('Bad Request: missing required parameters', { status: 400 })
     }
+
+    // Auto-migrate cookie from sameSite='strict' to 'lax'
+    await refreshJWTCookieIfNeeded(token.value)
 
     try {
         const apiFormData = new FormData()
