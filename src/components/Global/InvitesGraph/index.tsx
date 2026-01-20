@@ -1196,10 +1196,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
 
     // Right-click selects the node (camera follows)
     const handleNodeRightClick = useCallback((node: any) => {
-        // Don't select external nodes
-        if (node.isExternal) {
-            return
-        }
+        // External nodes can be selected for camera zoom but don't open Grafana
         setSelectedUserId((prev) => (prev === node.id ? null : node.id))
     }, [])
 
@@ -1241,10 +1238,37 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             // Debounce the actual search by 150ms
             searchTimeoutRef.current = setTimeout(() => {
                 const lowerQuery = query.toLowerCase()
-                // Search ALL nodes (not just active/visible ones)
-                const results = prunedGraphData.nodes.filter(
-                    (node) => node.username && node.username.toLowerCase().includes(lowerQuery)
-                )
+                const results: any[] = []
+
+                // Search user nodes
+                if (prunedGraphData) {
+                    const userResults = prunedGraphData.nodes.filter(
+                        (node) => node.username && node.username.toLowerCase().includes(lowerQuery)
+                    )
+                    results.push(
+                        ...userResults.map((n) => ({ ...n, isExternal: false, displayName: n.username }))
+                    )
+                }
+
+                // Search external nodes (by label and ID)
+                if (externalNodesConfig.enabled && filteredExternalNodes.length > 0) {
+                    const externalResults = filteredExternalNodes.filter(
+                        (node) =>
+                            node.label.toLowerCase().includes(lowerQuery) ||
+                            node.id.toLowerCase().includes(lowerQuery)
+                    )
+                    results.push(
+                        ...externalResults.map((n) => ({
+                            id: `ext_${n.id}`,
+                            isExternal: true,
+                            displayName: n.label,
+                            externalType: n.type,
+                            uniqueUsers: n.uniqueUsers,
+                            totalUsd: n.totalUsd,
+                        }))
+                    )
+                }
+
                 setSearchResults(results)
 
                 if (results.length === 1) {
@@ -1252,7 +1276,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                 }
             }, 150)
         },
-        [prunedGraphData]
+        [prunedGraphData, filteredExternalNodes, externalNodesConfig.enabled]
     )
 
     const handleClearSearch = useCallback(() => {
@@ -1814,18 +1838,33 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                     {/* Search Results Dropdown */}
                     {searchQuery && searchResults.length > 1 && (
                         <div className="mt-2 max-h-48 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
-                            {searchResults.map((node) => (
+                            {searchResults.map((node: any) => (
                                 <button
                                     key={node.id}
                                     onClick={() => {
                                         setSelectedUserId(node.id)
                                         handleClearSearch()
                                     }}
-                                    className="flex w-full items-center justify-between px-3 py-2 text-sm transition-colors hover:bg-purple-50"
+                                    className={`flex w-full items-center justify-between px-3 py-2 text-sm transition-colors ${
+                                        node.isExternal ? 'hover:bg-orange-50' : 'hover:bg-purple-50'
+                                    }`}
                                 >
-                                    <span className="font-medium text-gray-900">{node.username}</span>
+                                    <div className="flex items-center gap-2">
+                                        {node.isExternal && (
+                                            <span className="text-xs">
+                                                {node.externalType === 'WALLET'
+                                                    ? '💳'
+                                                    : node.externalType === 'BANK'
+                                                      ? '🏦'
+                                                      : '🏪'}
+                                            </span>
+                                        )}
+                                        <span className="font-medium text-gray-900">{node.displayName}</span>
+                                    </div>
                                     <span className="text-xs text-gray-500">
-                                        {node.totalPoints.toLocaleString()} pts
+                                        {node.isExternal
+                                            ? `${node.uniqueUsers} users, $${node.totalUsd.toFixed(0)}`
+                                            : `${node.totalPoints?.toLocaleString() || 0} pts`}
                                     </span>
                                 </button>
                             ))}
@@ -1833,14 +1872,25 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                     )}
                 </div>
 
-                {/* Selected User Banner */}
+                {/* Selected User/Node Banner */}
                 {selectedUserId && (
-                    <div className="border-t border-purple-100 bg-purple-50 px-4 py-2 text-sm">
-                        <span className="text-purple-700">
+                    <div
+                        className={`border-t px-4 py-2 text-sm ${
+                            selectedUserId.startsWith('ext_')
+                                ? 'border-orange-100 bg-orange-50'
+                                : 'border-purple-100 bg-purple-50'
+                        }`}
+                    >
+                        <span
+                            className={selectedUserId.startsWith('ext_') ? 'text-orange-700' : 'text-purple-700'}
+                        >
                             Focused on:{' '}
                             <span className="font-bold">
-                                {filteredGraphData.nodes.find((n) => n.id === selectedUserId)?.username ||
-                                    selectedUserId}
+                                {selectedUserId.startsWith('ext_')
+                                    ? filteredExternalNodes.find((n) => `ext_${n.id}` === selectedUserId)?.label ||
+                                      selectedUserId.replace('ext_', '')
+                                    : filteredGraphData.nodes.find((n) => n.id === selectedUserId)?.username ||
+                                      selectedUserId}
                             </span>
                         </span>
                         <button onClick={handleResetView} className="ml-2 font-semibold text-purple-900 underline">
