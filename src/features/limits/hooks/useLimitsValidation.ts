@@ -247,7 +247,8 @@ export function useLimitsValidation({ flowType, amount, currency: currencyInput 
         }
 
         // for onramp/offramp - check which provider applies
-        if (isUserMantecaKycApproved && hasMantecaLimits) {
+        // only use manteca if there's a relevant limit for the currency (prevents skipping bridge validation)
+        if (isUserMantecaKycApproved && hasMantecaLimits && relevantMantecaLimit) {
             return mantecaValidation
         }
         if (isUserBridgeKycApproved && hasBridgeLimits) {
@@ -270,6 +271,7 @@ export function useLimitsValidation({ flowType, amount, currency: currencyInput 
         isUserBridgeKycApproved,
         hasMantecaLimits,
         hasBridgeLimits,
+        relevantMantecaLimit,
         mantecaValidation,
         bridgeValidation,
         foreignQrValidation,

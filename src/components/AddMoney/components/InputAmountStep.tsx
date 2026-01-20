@@ -54,10 +54,10 @@ const InputAmountStep = ({
 
     const limitsCardProps = limitsValidation
         ? getLimitsWarningCardProps({
-            validation: limitsValidation,
-            flowType: 'onramp',
-            currency: limitsCurrency,
-        })
+              validation: limitsValidation,
+              flowType: 'onramp',
+              currency: limitsCurrency,
+          })
         : null
 
     return (
@@ -76,10 +76,10 @@ const InputAmountStep = ({
                     primaryDenomination={
                         currencyData
                             ? {
-                                symbol: currencyData.symbol!,
-                                price: currencyData.price!.buy,
-                                decimals: 2,
-                            }
+                                  symbol: currencyData.symbol!,
+                                  price: currencyData.price!.buy,
+                                  decimals: 2,
+                              }
                             : undefined
                     }
                     setCurrentDenomination={setCurrentDenomination}
