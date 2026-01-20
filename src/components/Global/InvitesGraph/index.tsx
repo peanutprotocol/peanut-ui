@@ -1154,7 +1154,8 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             // User node → Select (camera follows) - click again to open Grafana
             if (selectedUserId === node.id) {
                 // Already selected - open Grafana
-                window.open(`https://peanut.grafana.net/d/user-details/user-details?var-user_id=${node.id}`, '_blank')
+                const username = node.username || node.id
+                window.open(`https://teampeanut.grafana.net/d/ad31f645-81ca-4779-bfb2-bff8e03d9057/explore-peanut-wallet-user?orgId=1&var-GRAFANA_VAR_Username=${encodeURIComponent(username)}`, '_blank')
             } else {
                 // Select node
                 setSelectedUserId(node.id)
