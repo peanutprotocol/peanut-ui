@@ -1,5 +1,5 @@
 import { PEANUT_API_URL } from '@/constants/general.consts'
-<parameter name="fetchWithSentry } from '@/utils/sentry.utils'
+import { fetchWithSentry } from '@/utils/sentry.utils'
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
 import { refreshJWTCookieIfNeeded } from '@/utils/cookie-migration.utils'
