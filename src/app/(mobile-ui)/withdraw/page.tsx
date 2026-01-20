@@ -312,7 +312,9 @@ export default function WithdrawPage() {
                         shadowSize="4"
                         onClick={handleAmountContinue}
                         disabled={
-                            isContinueDisabled || (selectedMethod?.type !== 'crypto' && limitsValidation.isBlocking)
+                            isContinueDisabled ||
+                            (selectedMethod?.type !== 'crypto' &&
+                                (limitsValidation.isLoading || limitsValidation.isBlocking))
                         }
                         className="w-full"
                     >
