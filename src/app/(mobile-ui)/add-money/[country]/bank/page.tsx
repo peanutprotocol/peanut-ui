@@ -29,6 +29,7 @@ import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
 import { getLimitsWarningCardProps } from '@/features/limits/utils'
+import { useExchangeRate } from '@/hooks/useExchangeRate'
 
 // Step type for URL state
 type BridgeBankStep = 'inputAmount' | 'kyc' | 'collectUserDetails' | 'showDetails'
@@ -100,11 +101,39 @@ export default function OnrampBankPage() {
         return getMinimumAmount(selectedCountry.id)
     }, [selectedCountry?.id])
 
+    // get local currency for the selected country (EUR, MXN, USD)
+    const localCurrency = useMemo(() => {
+        if (!selectedCountry?.id) return 'USD'
+        return getCurrencyConfig(selectedCountry.id, 'onramp').currency.toUpperCase()
+    }, [selectedCountry?.id])
+
+    // get exchange rate: local currency → USD (for limits validation)
+    // skip for USD since it's 1:1
+    const { exchangeRate, isLoading: isRateLoading } = useExchangeRate({
+        sourceCurrency: localCurrency,
+        destinationCurrency: 'USD',
+        enabled: localCurrency !== 'USD',
+    })
+
+    // convert input amount to USD for limits validation
+    // bridge limits are always in USD, but user inputs in local currency
+    const usdEquivalent = useMemo(() => {
+        if (!rawTokenAmount) return 0
+        const numericAmount = parseFloat(rawTokenAmount.replace(/,/g, ''))
+        if (isNaN(numericAmount)) return 0
+
+        // for USD, no conversion needed
+        if (localCurrency === 'USD') return numericAmount
+
+        // convert local currency to USD
+        return exchangeRate > 0 ? numericAmount * exchangeRate : 0
+    }, [rawTokenAmount, localCurrency, exchangeRate])
+
     // validate against user's bridge limits
-    // validates deposit amount against user's limits - hook determines user type internally
+    // uses USD equivalent to correctly compare against USD-denominated limits
     const limitsValidation = useLimitsValidation({
         flowType: 'onramp',
-        amount: rawTokenAmount,
+        amount: usdEquivalent,
         currency: 'USD',
     })
 
@@ -404,7 +433,8 @@ export default function OnrampBankPage() {
                             parseFloat(rawTokenAmount) < minimumAmount ||
                             error.showError ||
                             isCreatingOnramp ||
-                            limitsValidation.isBlocking
+                            limitsValidation.isBlocking ||
+                            (localCurrency !== 'USD' && isRateLoading)
                         }
                         className="w-full"
                         loading={isCreatingOnramp}
