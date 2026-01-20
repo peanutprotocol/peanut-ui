@@ -164,6 +164,8 @@ export type ExternalNodesConfig = {
     enabled: boolean
     /** Minimum number of unique users to show an external node */
     minConnections: number
+    /** Maximum number of external nodes to fetch from API (default: 5000, max: 10000) */
+    limit: number
     /** Which types to show */
     types: {
         WALLET: boolean
@@ -175,6 +177,7 @@ export type ExternalNodesConfig = {
 export const DEFAULT_EXTERNAL_NODES_CONFIG: ExternalNodesConfig = {
     enabled: false,
     minConnections: 2,
+    limit: 5000, // Default limit for API query (can increase up to 10k)
     types: {
         WALLET: false, // Disabled by default (too many, less useful for analysis)
         BANK: true,
@@ -674,6 +677,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             try {
                 const result = await pointsApi.getExternalNodes(props.apiKey, {
                     minConnections: 1, // Fetch all, filter client-side for flexibility
+                    limit: externalNodesConfig.limit, // User-configurable limit
                 })
 
                 if (result.success && result.data) {

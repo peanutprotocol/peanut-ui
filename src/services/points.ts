@@ -272,7 +272,7 @@ export const pointsApi = {
 
     getExternalNodes: async (
         apiKey: string,
-        options?: { minConnections?: number; types?: ExternalNodeType[] }
+        options?: { minConnections?: number; types?: ExternalNodeType[]; limit?: number }
     ): Promise<ExternalNodesResponse> => {
         try {
             const jwtToken = Cookies.get('jwt-token')
@@ -287,6 +287,9 @@ export const pointsApi = {
             }
             if (options?.types?.length) {
                 params.set('types', options.types.join(','))
+            }
+            if (options?.limit) {
+                params.set('limit', options.limit.toString())
             }
 
             const url = `${PEANUT_API_URL}/invites/graph/external${params.toString() ? `?${params}` : ''}`
