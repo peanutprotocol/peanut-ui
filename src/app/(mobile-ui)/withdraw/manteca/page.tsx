@@ -55,6 +55,8 @@ export default function MantecaWithdrawFlow() {
     const flowId = useId() // Unique ID per flow instance to prevent cache collisions
     const [currencyAmount, setCurrencyAmount] = useState<string | undefined>(undefined)
     const [usdAmount, setUsdAmount] = useState<string | undefined>(undefined)
+    // store original currency amount before price lock to restore on back navigation
+    const [originalCurrencyAmount, setOriginalCurrencyAmount] = useState<string | undefined>(undefined)
     const [step, setStep] = useState<MantecaWithdrawStep>('amountInput')
     const [balanceErrorMessage, setBalanceErrorMessage] = useState<string | null>(null)
     const searchParams = useSearchParams()
@@ -216,6 +218,8 @@ export default function MantecaWithdrawFlow() {
             }
 
             if (result.data) {
+                // store original amount before overwriting so we can restore on back navigation
+                setOriginalCurrencyAmount(currencyAmount)
                 setPriceLock(result.data)
                 // update the displayed fiat amount to the locked amount
                 setCurrencyAmount(result.data.fiatAmount)
@@ -308,6 +312,7 @@ export default function MantecaWithdrawFlow() {
         setStep('amountInput')
         setCurrencyAmount(undefined)
         setUsdAmount(undefined)
+        setOriginalCurrencyAmount(undefined)
         setDestinationAddress(paramAddress ?? '')
         setSelectedBank(null)
         setAccountType(null)
@@ -443,8 +448,12 @@ export default function MantecaWithdrawFlow() {
                 title="Withdraw"
                 onPrev={() => {
                     if (step === 'review') {
-                        // clear price lock when going back - user will get a fresh lock when they return
+                        // clear price lock and restore original amount when going back
                         setPriceLock(null)
+                        if (originalCurrencyAmount) {
+                            setCurrencyAmount(originalCurrencyAmount)
+                            setOriginalCurrencyAmount(undefined)
+                        }
                         setStep('bankDetails')
                     } else if (step === 'bankDetails') {
                         setStep('amountInput')
