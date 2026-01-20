@@ -10,10 +10,14 @@ import PeriodToggle from '../components/PeriodToggle'
 import LimitsProgressBar from '../components/LimitsProgressBar'
 import Image from 'next/image'
 import PeanutLoading from '@/components/Global/PeanutLoading'
-import { LIMITS_CURRENCY_FLAGS, LIMITS_CURRENCY_SYMBOLS, type LimitsPeriod } from '../consts'
-import { getLimitData, getLimitColorClass } from '../utils/limits.utils'
+import {
+    getLimitData,
+    getLimitColorClass,
+    formatAmountWithCurrency,
+    getFlagUrlForCurrency,
+    type LimitsPeriod,
+} from '../utils'
 import IncreaseLimitsButton from '../components/IncreaseLimitsButton'
-import { formatExtendedNumber } from '@/utils/general.utils'
 import LimitsError from '../components/LimitsError'
 import LimitsDocsLink from '../components/LimitsDocsLink'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
@@ -26,14 +30,6 @@ const MantecaLimitsView = () => {
     const router = useRouter()
     const { mantecaLimits, isLoading, error } = useLimits()
     const [period, setPeriod] = useState<LimitsPeriod>('monthly')
-
-    // format amount with currency symbol using shared util
-    const formatLimitAmount = (amount: number, currency: string) => {
-        const symbol = LIMITS_CURRENCY_SYMBOLS[currency] || currency
-        // add space for currency codes (length > 1), not for symbols like $ or €
-        const separator = symbol.length > 1 && symbol === symbol.toUpperCase() ? ' ' : ''
-        return `${symbol}${separator}${formatExtendedNumber(amount)}`
-    }
 
     return (
         <div className="flex min-h-[inherit] flex-col space-y-6">
@@ -49,8 +45,8 @@ const MantecaLimitsView = () => {
                     <div className="space-y-4">
                         {mantecaLimits.map((limit) => {
                             const limitData = getLimitData(limit, period)
-                            const flagUrl =
-                                LIMITS_CURRENCY_FLAGS[limit.asset] || LIMITS_CURRENCY_FLAGS[limit.exchangeCountry]
+                            // use centralized flag url utility
+                            const flagUrl = getFlagUrlForCurrency(limit.asset)
 
                             // calculate remaining percentage for text color
                             const remainingPercent =
@@ -75,7 +71,7 @@ const MantecaLimitsView = () => {
                                     </div>
 
                                     <div className="text-2xl font-bold">
-                                        {formatLimitAmount(limitData.limit, limit.asset)}
+                                        {formatAmountWithCurrency(limitData.limit, limit.asset)}
                                     </div>
 
                                     <LimitsProgressBar total={limitData.limit} remaining={limitData.remaining} />
@@ -85,7 +81,7 @@ const MantecaLimitsView = () => {
                                             Remaining this {period === 'monthly' ? 'month' : 'year'}
                                         </span>
                                         <span className={`font-medium ${getLimitColorClass(remainingPercent, 'text')}`}>
-                                            {formatLimitAmount(limitData.remaining, limit.asset)}
+                                            {formatAmountWithCurrency(limitData.remaining, limit.asset)}
                                         </span>
                                     </div>
                                 </Card>

@@ -1,7 +1,7 @@
 'use client'
 
 import { twMerge } from 'tailwind-merge'
-import { getLimitColorClass } from '../utils/limits.utils'
+import { getLimitColorClass } from '../utils'
 
 interface LimitsProgressBarProps {
     total: number

@@ -1,46 +1,45 @@
-// region path to provider mapping for navigation
-export const BRIDGE_REGIONS = ['europe', 'north-america', 'mexico', 'argentina', 'brazil']
-export const MANTECA_REGIONS = ['latam']
-
-// map region paths to bridge page region query param
-export const REGION_TO_BRIDGE_PARAM: Record<string, string> = {
-    europe: 'europe',
-    'north-america': 'us',
-    mexico: 'mexico',
-    argentina: 'argentina',
-    brazil: 'brazil',
-}
-
-// region types for url state (source region from limits page)
-export type BridgeRegion = 'us' | 'mexico' | 'europe' | 'argentina' | 'brazil'
-
-// regions that show main limits (bank transfers)
-export const BANK_TRANSFER_REGIONS: BridgeRegion[] = ['us', 'mexico', 'europe']
-
-// qr-only countries config
-export const QR_COUNTRIES = [
-    { id: 'argentina', name: 'Argentina', flag: 'https://flagcdn.com/w160/ar.png' },
-    { id: 'brazil', name: 'Brazil', flag: 'https://flagcdn.com/w160/br.png' },
-] as const
-
-export type QrCountryId = (typeof QR_COUNTRIES)[number]['id']
+import { getFlagUrl } from '@/constants/countryCurrencyMapping'
+import { MANTECA_ALPHA3_TO_ALPHA2, countryData } from '@/components/AddMoney/consts'
 
 export const LIMITS_PROVIDERS = ['bridge', 'manteca'] as const
 export type LimitsProvider = (typeof LIMITS_PROVIDERS)[number]
 
-// currency/country to flag mapping
-export const LIMITS_CURRENCY_FLAGS: Record<string, string> = {
-    ARS: 'https://flagcdn.com/w160/ar.png',
-    BRL: 'https://flagcdn.com/w160/br.png',
-    ARG: 'https://flagcdn.com/w160/ar.png',
-    BRA: 'https://flagcdn.com/w160/br.png',
+// qr-only countries - derived from manteca supported countries
+// these are countries where bridge users can make qr payments
+
+// manteca countries are qr-payment enabled countries (argentina, brazil)
+const MANTECA_COUNTRY_ISO2 = Object.values(MANTECA_ALPHA3_TO_ALPHA2) // ['AR', 'BR']
+
+// derive qr country data from centralized countryData
+const derivedQrCountries = countryData
+    .filter((c) => c.type === 'country' && c.iso2 && MANTECA_COUNTRY_ISO2.includes(c.iso2))
+    .map((c) => ({
+        id: c.path, // 'argentina', 'brazil'
+        name: c.title, // 'Argentina', 'Brazil'
+        flagCode: c.iso2!.toLowerCase(), // 'ar', 'br'
+    }))
+
+export type QrCountryId = 'argentina' | 'brazil'
+
+/**
+ * get qr-only country with resolved flag url
+ * avoids hardcoding flag urls - uses centralized getFlagUrl
+ */
+export function getQrCountryWithFlag(id: QrCountryId) {
+    const country = derivedQrCountries.find((c) => c.id === id)
+    if (!country) return null
+    return {
+        ...country,
+        flag: getFlagUrl(country.flagCode),
+    }
 }
 
-// currency to symbol mapping
-export const LIMITS_CURRENCY_SYMBOLS: Record<string, string> = {
-    ARS: 'ARS',
-    BRL: 'R$',
-    USD: '$',
+/**
+ * get all qr-only countries with resolved flag urls
+ */
+export function getQrCountriesWithFlags() {
+    return derivedQrCountries.map((country) => ({
+        ...country,
+        flag: getFlagUrl(country.flagCode),
+    }))
 }
-
-export type LimitsPeriod = 'monthly' | 'yearly'

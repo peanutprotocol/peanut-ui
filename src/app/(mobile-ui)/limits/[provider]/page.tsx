@@ -1,7 +1,7 @@
 import PageContainer from '@/components/0_Bruddle/PageContainer'
+import { LIMITS_PROVIDERS, type LimitsProvider } from '@/features/limits/consts'
 import BridgeLimitsView from '@/features/limits/views/BridgeLimitsView'
 import MantecaLimitsView from '@/features/limits/views/MantecaLimitsView'
-import { LIMITS_PROVIDERS, type LimitsProvider } from '@/features/limits/consts'
 import { notFound } from 'next/navigation'
 
 interface ProviderLimitsPageProps {

@@ -63,6 +63,7 @@ import {
     CompareArrowsRounded,
     WarningRounded,
     SpeedRounded,
+    InfoRounded,
 } from '@mui/icons-material'
 import { DocsIcon } from './docs'
 import { PeanutSupportIcon } from './peanut-support'
@@ -122,6 +123,7 @@ export type IconName =
     | 'error'
     | 'clip'
     | 'info'
+    | 'info-filled'
     | 'external-link'
     | 'plus'
     | 'switch'
@@ -254,6 +256,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     clip: (props) => <MaterialIconWrapper Icon={AttachmentRounded} {...props} transformClassName="rotate-[-45deg]" />,
     info: (props) => <MaterialIconWrapper Icon={InfoOutlined} {...props} />,
     'external-link': (props) => <MaterialIconWrapper Icon={OpenInNewOutlined} {...props} />,
+    'info-filled': (props) => <MaterialIconWrapper Icon={InfoRounded} {...props} fill="currentColor" />,
     plus: (props) => <MaterialIconWrapper Icon={AddRounded} {...props} />,
     alert: (props) => <MaterialIconWrapper Icon={WarningAmberRounded} {...props} />,
     switch: (props) => <MaterialIconWrapper Icon={PowerSettingsNewRounded} {...props} />,
