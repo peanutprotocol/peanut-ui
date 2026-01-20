@@ -10,10 +10,10 @@ import { MAX_QR_PAYMENT_AMOUNT_FOREIGN } from '@/constants/payment.consts'
 import Image from 'next/image'
 import * as Accordion from '@radix-ui/react-accordion'
 import { useQueryState, parseAsStringEnum } from 'nuqs'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import PeanutLoading from '@/components/Global/PeanutLoading'
-import { BANK_TRANSFER_REGIONS, QR_COUNTRIES, type BridgeRegion, type QrCountryId } from '../consts'
-import { formatExtendedNumber } from '@/utils/general.utils'
+import { getQrCountriesWithFlags, type QrCountryId } from '../consts'
+import { BANK_TRANSFER_REGIONS, type BridgeRegion, formatAmountWithCurrency } from '../utils'
 import LimitsError from '../components/LimitsError'
 import LimitsDocsLink from '../components/LimitsDocsLink'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
@@ -34,17 +34,17 @@ const BridgeLimitsView = () => {
         parseAsStringEnum<BridgeRegion>(['us', 'mexico', 'europe', 'argentina', 'brazil']).withDefault('us')
     )
 
-    // local state for qr accordion (doesn't affect url)
-    const [expandedCountry, setExpandedCountry] = useState<QrCountryId | undefined>(undefined)
+    // local state for qr accordion - auto-expand if region is a qr country
+    const [expandedCountry, setExpandedCountry] = useState<QrCountryId | undefined>(
+        region === 'argentina' || region === 'brazil' ? region : undefined
+    )
+
+    // get qr countries with resolved flag urls (uses centralized flag utility)
+    const qrCountries = useMemo(() => getQrCountriesWithFlags(), [])
 
     // determine what to show based on source region
-    const showBankTransferLimits = BANK_TRANSFER_REGIONS.includes(region)
-
-    // format limit amount with currency symbol using shared util
-    const formatLimit = (amount: string, asset: string) => {
-        const symbol = asset === 'USD' ? '$' : asset
-        return `${symbol}${formatExtendedNumber(amount)}`
-    }
+    // cast needed because region type is wider than BANK_TRANSFER_REGIONS tuple
+    const showBankTransferLimits = (BANK_TRANSFER_REGIONS as readonly string[]).includes(region)
 
     return (
         <div className="flex min-h-[inherit] flex-col space-y-6">
@@ -66,16 +66,22 @@ const BridgeLimitsView = () => {
                                         <Icon name="check" className="text-success-1" size={16} />
                                         <span className="text-sm">
                                             <span className="font-medium">Add money:</span> up to{' '}
-                                            {formatLimit(bridgeLimits.onRampPerTransaction, bridgeLimits.asset)} per
-                                            transaction
+                                            {formatAmountWithCurrency(
+                                                parseFloat(bridgeLimits.onRampPerTransaction),
+                                                bridgeLimits.asset
+                                            )}{' '}
+                                            per transaction
                                         </span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <Icon name="check" className="text-success-1" size={16} />
                                         <span className="text-sm">
                                             <span className="font-medium">Withdrawing:</span> up to{' '}
-                                            {formatLimit(bridgeLimits.offRampPerTransaction, bridgeLimits.asset)} per
-                                            transaction
+                                            {formatAmountWithCurrency(
+                                                parseFloat(bridgeLimits.offRampPerTransaction),
+                                                bridgeLimits.asset
+                                            )}{' '}
+                                            per transaction
                                         </span>
                                     </div>
                                 </div>
@@ -94,11 +100,11 @@ const BridgeLimitsView = () => {
                                     value={expandedCountry}
                                     onValueChange={(value) => setExpandedCountry(value as QrCountryId | undefined)}
                                 >
-                                    {QR_COUNTRIES.map((country, index) => (
+                                    {qrCountries.map((country, index) => (
                                         <Accordion.Item
                                             key={country.id}
                                             value={country.id}
-                                            className={index < QR_COUNTRIES.length - 1 ? 'border-b border-gray-2' : ''}
+                                            className={index < qrCountries.length - 1 ? 'border-b border-gray-2' : ''}
                                         >
                                             <Accordion.Header>
                                                 <Accordion.Trigger className="group flex w-full items-center justify-between px-4 py-3">

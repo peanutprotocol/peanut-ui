@@ -68,10 +68,8 @@ import PointsCard from '@/components/Common/PointsCard'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
+import { getLimitsWarningCardProps } from '@/features/limits/utils'
 import useKycStatus from '@/hooks/useKycStatus'
-import { MAX_QR_PAYMENT_AMOUNT_FOREIGN } from '@/constants/payment.consts'
-import { formatExtendedNumber } from '@/utils/general.utils'
-import { LIMITS_COPY } from '@/features/limits/utils/limits.utils'
 
 const MAX_QR_PAYMENT_AMOUNT = '2000'
 const MIN_QR_PAYMENT_AMOUNT = '0.1'
@@ -390,11 +388,6 @@ export default function QRPayPage() {
         }
     }, [paymentProcessor, simpleFiPayment, paymentLock?.code, paymentLock?.paymentAgainstAmount, amount])
 
-    // determine if user is local (manteca kyc) for limits validation
-    const isLocalUser = useMemo(() => {
-        return isUserMantecaKycApproved && paymentProcessor === 'MANTECA'
-    }, [isUserMantecaKycApproved, paymentProcessor])
-
     // determine currency for limits validation based on qr type
     const limitsCurrency = useMemo(() => {
         if (qrType === EQrType.PIX) return 'BRL' as const
@@ -407,7 +400,6 @@ export default function QRPayPage() {
         flowType: 'qr-payment',
         amount: usdAmount,
         currency: limitsCurrency,
-        isLocalUser,
     })
 
     // Fetch points early to avoid latency penalty - fetch as soon as we have usdAmount
@@ -1568,29 +1560,14 @@ export default function QRPayPage() {
                     )}
 
                     {/* Limits Warning/Error Card */}
-                    {(limitsValidation.isBlocking || limitsValidation.isWarning) && (
-                        <LimitsWarningCard
-                            type={limitsValidation.isBlocking ? 'error' : 'warning'}
-                            title={limitsValidation.isBlocking ? LIMITS_COPY.BLOCKING_TITLE : LIMITS_COPY.WARNING_TITLE}
-                            items={[
-                                {
-                                    text: isLocalUser
-                                        ? `You can pay up to ${formatExtendedNumber(limitsValidation.remainingLimit ?? 0)} ${limitsCurrency}`
-                                        : `You can pay up to $${MAX_QR_PAYMENT_AMOUNT_FOREIGN.toLocaleString()} per transaction`,
-                                },
-                                ...(limitsValidation.daysUntilReset
-                                    ? [{ text: `Limit resets in ${limitsValidation.daysUntilReset} days.` }]
-                                    : []),
-                                {
-                                    text: LIMITS_COPY.CHECK_LIMITS,
-                                    isLink: true,
-                                    href: '/limits',
-                                    icon: 'external-link',
-                                },
-                            ]}
-                            showSupportLink={limitsValidation.isMantecaUser}
-                        />
-                    )}
+                    {(() => {
+                        const limitsCardProps = getLimitsWarningCardProps({
+                            validation: limitsValidation,
+                            flowType: 'qr-payment',
+                            currency: limitsCurrency,
+                        })
+                        return limitsCardProps ? <LimitsWarningCard {...limitsCardProps} /> : null
+                    })()}
 
                     {/* Information Card */}
                     <Card className="space-y-0 px-4">

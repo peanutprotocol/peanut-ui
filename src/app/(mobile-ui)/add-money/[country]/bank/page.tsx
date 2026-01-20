@@ -28,8 +28,7 @@ import InfoCard from '@/components/Global/InfoCard'
 import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
-import { formatExtendedNumber } from '@/utils/general.utils'
-import { LIMITS_COPY } from '@/features/limits/utils/limits.utils'
+import { getLimitsWarningCardProps } from '@/features/limits/utils'
 
 // Step type for URL state
 type BridgeBankStep = 'inputAmount' | 'kyc' | 'collectUserDetails' | 'showDetails'
@@ -102,11 +101,11 @@ export default function OnrampBankPage() {
     }, [selectedCountry?.id])
 
     // validate against user's bridge limits
+    // validates deposit amount against user's limits - hook determines user type internally
     const limitsValidation = useLimitsValidation({
         flowType: 'onramp',
         amount: rawTokenAmount,
         currency: 'USD',
-        isLocalUser: false, // bridge is for non-local users
     })
 
     // Determine initial step based on KYC status (only when URL has no step)
@@ -379,30 +378,23 @@ export default function OnrampBankPage() {
                     />
 
                     {/* limits warning/error card */}
-                    {showLimitsCard && (
-                        <LimitsWarningCard
-                            type={limitsValidation.isBlocking ? 'error' : 'warning'}
-                            title={limitsValidation.isBlocking ? LIMITS_COPY.BLOCKING_TITLE : LIMITS_COPY.WARNING_TITLE}
-                            items={[
-                                {
-                                    text: `You can add up to $${formatExtendedNumber(limitsValidation.remainingLimit ?? 0)} per transaction`,
-                                },
-                                {
-                                    text: LIMITS_COPY.CHECK_LIMITS,
-                                    isLink: true,
-                                    href: '/limits',
-                                    icon: 'external-link',
-                                },
-                            ]}
-                            showSupportLink={false}
+                    {showLimitsCard &&
+                        (() => {
+                            const limitsCardProps = getLimitsWarningCardProps({
+                                validation: limitsValidation,
+                                flowType: 'onramp',
+                                currency: 'USD',
+                            })
+                            return limitsCardProps ? <LimitsWarningCard {...limitsCardProps} /> : null
+                        })()}
+
+                    {!limitsValidation.isBlocking && (
+                        <InfoCard
+                            variant="warning"
+                            icon="alert"
+                            description="This must match what you send from your bank!"
                         />
                     )}
-
-                    <InfoCard
-                        variant="warning"
-                        icon="alert"
-                        description="This must match what you send from your bank!"
-                    />
                     <Button
                         variant="purple"
                         shadowSize="4"

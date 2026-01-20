@@ -9,14 +9,14 @@ import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
-import { formatAmount, formatExtendedNumber } from '@/utils/general.utils'
+import { formatAmount } from '@/utils/general.utils'
 import { getCountryFromAccount } from '@/utils/bridge.utils'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState, useRef, useContext } from 'react'
 import { formatUnits } from 'viem'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
-import { LIMITS_COPY } from '@/features/limits/utils/limits.utils'
+import { getLimitsWarningCardProps } from '@/features/limits/utils'
 
 type WithdrawStep = 'inputAmount' | 'selectMethod'
 
@@ -88,7 +88,6 @@ export default function WithdrawPage() {
         flowType: 'offramp',
         amount: rawTokenAmount,
         currency: 'USD',
-        isLocalUser: selectedMethod?.type === 'manteca',
     })
 
     // clear errors and reset any persisted state when component mounts to ensure clean state
@@ -298,27 +297,15 @@ export default function WithdrawPage() {
                     />
 
                     {/* limits warning/error card for bank withdrawals */}
-                    {showLimitsCard && (
-                        <LimitsWarningCard
-                            type={limitsValidation.isBlocking ? 'error' : 'warning'}
-                            title={limitsValidation.isBlocking ? LIMITS_COPY.BLOCKING_TITLE : LIMITS_COPY.WARNING_TITLE}
-                            items={[
-                                {
-                                    text: `You can withdraw up to $${formatExtendedNumber(limitsValidation.remainingLimit ?? 0)}${limitsValidation.daysUntilReset ? '' : ' per transaction'}`,
-                                },
-                                ...(limitsValidation.daysUntilReset
-                                    ? [{ text: `Limit resets in ${limitsValidation.daysUntilReset} days.` }]
-                                    : []),
-                                {
-                                    text: LIMITS_COPY.CHECK_LIMITS,
-                                    isLink: true,
-                                    href: '/limits',
-                                    icon: 'external-link',
-                                },
-                            ]}
-                            showSupportLink={false}
-                        />
-                    )}
+                    {showLimitsCard &&
+                        (() => {
+                            const limitsCardProps = getLimitsWarningCardProps({
+                                validation: limitsValidation,
+                                flowType: 'offramp',
+                                currency: 'USD',
+                            })
+                            return limitsCardProps ? <LimitsWarningCard {...limitsCardProps} /> : null
+                        })()}
 
                     <Button
                         variant="purple"

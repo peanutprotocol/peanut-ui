@@ -1,22 +1,15 @@
 'use client'
 
 import InfoCard from '@/components/Global/InfoCard'
-import { Icon, type IconProps } from '@/components/Global/Icons/Icon'
+import { Icon } from '@/components/Global/Icons/Icon'
 import Link from 'next/link'
 import { useModalsContext } from '@/context/ModalsContext'
 import { twMerge } from 'tailwind-merge'
-import { LIMITS_COPY } from '../utils/limits.utils'
+import { LIMITS_COPY, type LimitsWarningItem } from '../utils'
 
 export type LimitsWarningType = 'warning' | 'error'
 
-interface LimitsWarningItem {
-    text: string
-    isLink?: boolean
-    href?: string
-    icon?: IconProps['name']
-}
-
-interface LimitsWarningCardProps {
+export interface LimitsWarningCardProps {
     type: LimitsWarningType
     title: string
     items: LimitsWarningItem[]

@@ -10,6 +10,7 @@ import {
     MAX_MANTECA_WITHDRAW_AMOUNT,
 } from '@/constants/payment.consts'
 import { formatExtendedNumber } from '@/utils/general.utils'
+import { mapToLimitCurrency, type LimitCurrency } from '../utils'
 
 // threshold for showing warning (percentage of limit remaining after transaction)
 const WARNING_THRESHOLD_PERCENT = 30
@@ -24,28 +25,34 @@ export type LimitValidationResult = {
 }
 
 export type LimitFlowType = 'onramp' | 'offramp' | 'qr-payment'
-export type LimitCurrency = 'ARS' | 'BRL' | 'USD'
+export { type LimitCurrency } from '../utils'
 
 interface UseLimitsValidationOptions {
     flowType: LimitFlowType
     amount: number | string | null | undefined
-    currency?: LimitCurrency
-    // for qr payments, whether user is local (arg/brazil) or foreign
-    isLocalUser?: boolean
+    /**
+     * currency code for the transaction (ARS, BRL, USD)
+     * for qr payments this determines which manteca limit to check
+     * defaults to USD
+     */
+    currency?: LimitCurrency | string
 }
 
 /**
  * hook to validate amounts against user's transaction limits
+ * automatically determines if user is local (manteca) or foreign (bridge) based on their kyc status
  * returns warning/blocking state based on remaining limits
  */
-export function useLimitsValidation({
-    flowType,
-    amount,
-    currency = 'USD',
-    isLocalUser = false,
-}: UseLimitsValidationOptions) {
+export function useLimitsValidation({ flowType, amount, currency: currencyInput }: UseLimitsValidationOptions) {
     const { mantecaLimits, bridgeLimits, isLoading, hasMantecaLimits, hasBridgeLimits } = useLimits()
     const { isUserMantecaKycApproved, isUserBridgeKycApproved } = useKycStatus()
+
+    // normalize currency to valid LimitCurrency type
+    const currency = mapToLimitCurrency(currencyInput)
+
+    // determine if user is "local" (has manteca kyc for latam operations)
+    // this replaces the external isLocalUser parameter
+    const isLocalUser = isUserMantecaKycApproved
 
     // parse amount to number
     const numericAmount = useMemo(() => {
@@ -271,6 +278,8 @@ export function useLimitsValidation({
     return {
         ...validation,
         isLoading,
+        // the effective currency being used for validation
+        currency,
         // convenience getters
         hasLimits: hasMantecaLimits || hasBridgeLimits,
         isMantecaUser: isUserMantecaKycApproved,

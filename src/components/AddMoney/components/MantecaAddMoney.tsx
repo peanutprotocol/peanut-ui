@@ -19,7 +19,7 @@ import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
-import { mapToLimitCurrency } from '@/features/limits/utils/limits.utils'
+import { mapToLimitCurrency } from '@/features/limits/utils'
 
 // Step type for URL state
 type MantecaStep = 'inputAmount' | 'depositDetails'
@@ -74,12 +74,11 @@ const MantecaAddMoney: FC = () => {
         return mapToLimitCurrency(selectedCountry?.currency)
     }, [selectedCountry?.currency])
 
-    // validate against user's limits
+    // validates deposit amount against user's limits
     const limitsValidation = useLimitsValidation({
         flowType: 'onramp',
         amount: usdAmount,
         currency: limitsCurrency,
-        isLocalUser: true, // manteca is for local users
     })
 
     useWebSocket({

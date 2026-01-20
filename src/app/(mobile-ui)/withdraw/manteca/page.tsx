@@ -48,8 +48,7 @@ import { TRANSACTIONS } from '@/constants/query.consts'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import { MIN_MANTECA_WITHDRAW_AMOUNT } from '@/constants/payment.consts'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
-import { formatExtendedNumber } from '@/utils/general.utils'
-import { mapToLimitCurrency, LIMITS_COPY } from '@/features/limits/utils/limits.utils'
+import { mapToLimitCurrency, getLimitsWarningCardProps } from '@/features/limits/utils'
 
 type MantecaWithdrawStep = 'amountInput' | 'bankDetails' | 'review' | 'success' | 'failure'
 
@@ -109,12 +108,11 @@ export default function MantecaWithdrawFlow() {
         return mapToLimitCurrency(selectedCountry?.currency)
     }, [selectedCountry?.currency])
 
-    // validate against user's limits
+    // validates withdrawal against user's limits
     const limitsValidation = useLimitsValidation({
         flowType: 'offramp',
         amount: usdAmount,
         currency: limitsCurrency,
-        isLocalUser: true, // manteca is for local users
     })
 
     // WebSocket listener for KYC status updates
@@ -444,28 +442,15 @@ export default function MantecaWithdrawFlow() {
                         }
                     />
 
-                    {/* limits warning/error card */}
-                    {(limitsValidation.isBlocking || limitsValidation.isWarning) && (
-                        <LimitsWarningCard
-                            type={limitsValidation.isBlocking ? 'error' : 'warning'}
-                            title={limitsValidation.isBlocking ? LIMITS_COPY.BLOCKING_TITLE : LIMITS_COPY.WARNING_TITLE}
-                            items={[
-                                {
-                                    text: `You can withdraw up to ${formatExtendedNumber(limitsValidation.remainingLimit ?? 0)} ${limitsCurrency}`,
-                                },
-                                ...(limitsValidation.daysUntilReset
-                                    ? [{ text: `Limit resets in ${limitsValidation.daysUntilReset} days.` }]
-                                    : []),
-                                {
-                                    text: LIMITS_COPY.CHECK_LIMITS,
-                                    isLink: true,
-                                    href: '/limits',
-                                    icon: 'external-link',
-                                },
-                            ]}
-                            showSupportLink={limitsValidation.isMantecaUser}
-                        />
-                    )}
+                    {/* limits warning/error card - uses centralized helper for props */}
+                    {(() => {
+                        const limitsCardProps = getLimitsWarningCardProps({
+                            validation: limitsValidation,
+                            flowType: 'offramp',
+                            currency: limitsCurrency,
+                        })
+                        return limitsCardProps ? <LimitsWarningCard {...limitsCardProps} /> : null
+                    })()}
 
                     <Button
                         variant="purple"

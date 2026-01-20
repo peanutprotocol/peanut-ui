@@ -9,17 +9,12 @@ import ErrorAlert from '@/components/Global/ErrorAlert'
 import { useCurrency } from '@/hooks/useCurrency'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
-import { formatExtendedNumber } from '@/utils/general.utils'
-import { LIMITS_COPY } from '@/features/limits/utils/limits.utils'
+import { getLimitsWarningCardProps, type LimitCurrency } from '@/features/limits/utils'
+import type { LimitValidationResult } from '@/features/limits/hooks/useLimitsValidation'
 
 type ICurrency = ReturnType<typeof useCurrency>
 
-interface LimitsValidationProps {
-    isBlocking: boolean
-    isWarning: boolean
-    remainingLimit: number | null
-    daysUntilReset: number | null
-}
+type LimitsValidationWithUser = LimitValidationResult & { isMantecaUser?: boolean }
 
 interface InputAmountStepProps {
     onSubmit: () => void
@@ -32,8 +27,8 @@ interface InputAmountStepProps {
     setCurrentDenomination?: (denomination: string) => void
     initialDenomination?: string
     setDisplayedAmount?: (value: string) => void
-    limitsValidation?: LimitsValidationProps
-    limitsCurrency?: string
+    limitsValidation?: LimitsValidationWithUser
+    limitsCurrency?: LimitCurrency
 }
 
 const InputAmountStep = ({
@@ -56,7 +51,13 @@ const InputAmountStep = ({
         return <PeanutLoading />
     }
 
-    const showLimitsCard = limitsValidation?.isBlocking || limitsValidation?.isWarning
+    const limitsCardProps = limitsValidation
+        ? getLimitsWarningCardProps({
+              validation: limitsValidation,
+              flowType: 'onramp',
+              currency: limitsCurrency,
+          })
+        : null
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-start space-y-8">
@@ -85,21 +86,7 @@ const InputAmountStep = ({
                 />
 
                 {/* limits warning/error card */}
-                {showLimitsCard && (
-                    <LimitsWarningCard
-                        type={limitsValidation.isBlocking ? 'error' : 'warning'}
-                        title={limitsValidation.isBlocking ? LIMITS_COPY.BLOCKING_TITLE : LIMITS_COPY.WARNING_TITLE}
-                        items={[
-                            {
-                                text: `You can add up to ${formatExtendedNumber(limitsValidation.remainingLimit ?? 0)} ${limitsCurrency}`,
-                            },
-                            ...(limitsValidation.daysUntilReset
-                                ? [{ text: `Limit resets in ${limitsValidation.daysUntilReset} days.` }]
-                                : []),
-                            { text: LIMITS_COPY.CHECK_LIMITS, isLink: true, href: '/limits', icon: 'external-link' },
-                        ]}
-                    />
-                )}
+                {limitsCardProps && <LimitsWarningCard {...limitsCardProps} />}
 
                 <div className="flex items-center gap-2 text-xs text-grey-1">
                     <Icon name="info" width={16} height={16} />
