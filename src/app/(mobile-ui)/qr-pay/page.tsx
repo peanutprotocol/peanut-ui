@@ -66,6 +66,10 @@ import { useModalsContext } from '@/context/ModalsContext'
 import maintenanceConfig from '@/config/underMaintenance.config'
 import PointsCard from '@/components/Common/PointsCard'
 import { TRANSACTIONS } from '@/constants/query.consts'
+import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
+import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
+import { getLimitsWarningCardProps } from '@/features/limits/utils'
+import useKycStatus from '@/hooks/useKycStatus'
 
 const MAX_QR_PAYMENT_AMOUNT = '2000'
 const MIN_QR_PAYMENT_AMOUNT = '0.1'
@@ -118,6 +122,7 @@ export default function QRPayPage() {
     }, [paymentProcessor])
 
     const { shouldBlockPay, kycGateState } = useQrKycGate(paymentProcessor)
+    const { isUserMantecaKycApproved } = useKycStatus()
     const queryClient = useQueryClient()
     const [isShaking, setIsShaking] = useState(false)
     const [shakeIntensity, setShakeIntensity] = useState<ShakeIntensity>('none')
@@ -382,6 +387,14 @@ export default function QRPayPage() {
             return paymentLock.paymentAgainstAmount
         }
     }, [paymentProcessor, simpleFiPayment, paymentLock?.code, paymentLock?.paymentAgainstAmount, amount])
+
+    // validate payment against user's limits
+    // currency comes from payment lock/simplefi - hook normalizes it internally
+    const limitsValidation = useLimitsValidation({
+        flowType: 'qr-payment',
+        amount: usdAmount,
+        currency: currency?.code,
+    })
 
     // Fetch points early to avoid latency penalty - fetch as soon as we have usdAmount
     // This way points are cached by the time success view shows
@@ -1535,7 +1548,20 @@ export default function QRPayPage() {
                             hideBalance
                         />
                     )}
-                    {balanceErrorMessage && <ErrorAlert description={balanceErrorMessage} />}
+                    {/* only show balance error if limits blocking card is not displayed (warnings can coexist) */}
+                    {balanceErrorMessage && !limitsValidation.isBlocking && (
+                        <ErrorAlert description={balanceErrorMessage} />
+                    )}
+
+                    {/* Limits Warning/Error Card */}
+                    {(() => {
+                        const limitsCardProps = getLimitsWarningCardProps({
+                            validation: limitsValidation,
+                            flowType: 'qr-payment',
+                            currency: limitsValidation.currency,
+                        })
+                        return limitsCardProps ? <LimitsWarningCard {...limitsCardProps} /> : null
+                    })()}
 
                     {/* Information Card */}
                     <Card className="space-y-0 px-4">
@@ -1560,7 +1586,8 @@ export default function QRPayPage() {
                             shouldBlockPay ||
                             !usdAmount ||
                             usdAmount === '0.00' ||
-                            isWaitingForWebSocket
+                            isWaitingForWebSocket ||
+                            limitsValidation.isBlocking
                         }
                     >
                         {isLoading || isWaitingForWebSocket

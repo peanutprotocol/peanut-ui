@@ -14,10 +14,11 @@ import { mantecaApi } from '@/services/manteca'
 import { parseUnits } from 'viem'
 import { useQueryClient } from '@tanstack/react-query'
 import useKycStatus from '@/hooks/useKycStatus'
-import { MAX_MANTECA_DEPOSIT_AMOUNT, MIN_MANTECA_DEPOSIT_AMOUNT } from '@/constants/payment.consts'
+import { MIN_MANTECA_DEPOSIT_AMOUNT } from '@/constants/payment.consts'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
+import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 
 // Step type for URL state
 type MantecaStep = 'inputAmount' | 'depositDetails'
@@ -67,6 +68,14 @@ const MantecaAddMoney: FC = () => {
     const currencyData = useCurrency(selectedCountry?.currency ?? 'ARS')
     const { user, fetchUser } = useAuth()
 
+    // validates deposit amount against user's limits
+    // currency comes from country config - hook normalizes it internally
+    const limitsValidation = useLimitsValidation({
+        flowType: 'onramp',
+        amount: usdAmount,
+        currency: selectedCountry?.currency,
+    })
+
     useWebSocket({
         username: user?.user.username ?? undefined,
         autoConnect: !!user?.user.username,
@@ -79,7 +88,7 @@ const MantecaAddMoney: FC = () => {
         },
     })
 
-    // Validate USD amount (for min/max checks which are in USD)
+    // Validate USD amount (min check only - max is handled by limits validation)
     useEffect(() => {
         if (!usdAmount || usdAmount === '0.00') {
             setError(null)
@@ -88,8 +97,6 @@ const MantecaAddMoney: FC = () => {
         const paymentAmount = parseUnits(usdAmount, PEANUT_WALLET_TOKEN_DECIMALS)
         if (paymentAmount < parseUnits(MIN_MANTECA_DEPOSIT_AMOUNT.toString(), PEANUT_WALLET_TOKEN_DECIMALS)) {
             setError(`Deposit amount must be at least $${MIN_MANTECA_DEPOSIT_AMOUNT}`)
-        } else if (paymentAmount > parseUnits(MAX_MANTECA_DEPOSIT_AMOUNT.toString(), PEANUT_WALLET_TOKEN_DECIMALS)) {
-            setError(`Deposit amount exceeds maximum limit of $${MAX_MANTECA_DEPOSIT_AMOUNT}`)
         } else {
             setError(null)
         }
@@ -207,6 +214,8 @@ const MantecaAddMoney: FC = () => {
                     setCurrentDenomination={handleDenominationChange}
                     initialDenomination={currentDenomination}
                     setDisplayedAmount={handleDisplayedAmountChange}
+                    limitsValidation={limitsValidation}
+                    limitsCurrency={limitsValidation.currency}
                 />
                 {isKycModalOpen && (
                     <MantecaGeoSpecificKycModal

@@ -26,6 +26,10 @@ import { OnrampConfirmationModal } from '@/components/AddMoney/components/Onramp
 import { InitiateBridgeKYCModal } from '@/components/Kyc/InitiateBridgeKYCModal'
 import InfoCard from '@/components/Global/InfoCard'
 import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
+import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
+import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
+import { getLimitsWarningCardProps } from '@/features/limits/utils'
+import { useExchangeRate } from '@/hooks/useExchangeRate'
 
 // Step type for URL state
 type BridgeBankStep = 'inputAmount' | 'kyc' | 'collectUserDetails' | 'showDetails'
@@ -96,6 +100,42 @@ export default function OnrampBankPage() {
         if (!selectedCountry?.id) return 1
         return getMinimumAmount(selectedCountry.id)
     }, [selectedCountry?.id])
+
+    // get local currency for the selected country (EUR, MXN, USD)
+    const localCurrency = useMemo(() => {
+        if (!selectedCountry?.id) return 'USD'
+        return getCurrencyConfig(selectedCountry.id, 'onramp').currency.toUpperCase()
+    }, [selectedCountry?.id])
+
+    // get exchange rate: local currency → USD (for limits validation)
+    // skip for USD since it's 1:1
+    const { exchangeRate, isLoading: isRateLoading } = useExchangeRate({
+        sourceCurrency: localCurrency,
+        destinationCurrency: 'USD',
+        enabled: localCurrency !== 'USD',
+    })
+
+    // convert input amount to USD for limits validation
+    // bridge limits are always in USD, but user inputs in local currency
+    const usdEquivalent = useMemo(() => {
+        if (!rawTokenAmount) return 0
+        const numericAmount = parseFloat(rawTokenAmount.replace(/,/g, ''))
+        if (isNaN(numericAmount)) return 0
+
+        // for USD, no conversion needed
+        if (localCurrency === 'USD') return numericAmount
+
+        // convert local currency to USD
+        return exchangeRate > 0 ? numericAmount * exchangeRate : 0
+    }, [rawTokenAmount, localCurrency, exchangeRate])
+
+    // validate against user's bridge limits
+    // uses USD equivalent to correctly compare against USD-denominated limits
+    const limitsValidation = useLimitsValidation({
+        flowType: 'onramp',
+        amount: usdEquivalent,
+        currency: 'USD',
+    })
 
     // Determine initial step based on KYC status (only when URL has no step)
     useEffect(() => {
@@ -341,6 +381,8 @@ export default function OnrampBankPage() {
     }
 
     if (urlState.step === 'inputAmount') {
+        const showLimitsCard = limitsValidation.isBlocking || limitsValidation.isWarning
+
         return (
             <div className="flex flex-col justify-start space-y-8">
                 <NavHeader title="Add Money" onPrev={handleBack} />
@@ -364,11 +406,24 @@ export default function OnrampBankPage() {
                         hideBalance
                     />
 
-                    <InfoCard
-                        variant="warning"
-                        icon="alert"
-                        description="This must match what you send from your bank!"
-                    />
+                    {/* limits warning/error card */}
+                    {showLimitsCard &&
+                        (() => {
+                            const limitsCardProps = getLimitsWarningCardProps({
+                                validation: limitsValidation,
+                                flowType: 'onramp',
+                                currency: 'USD',
+                            })
+                            return limitsCardProps ? <LimitsWarningCard {...limitsCardProps} /> : null
+                        })()}
+
+                    {!limitsValidation.isBlocking && (
+                        <InfoCard
+                            variant="warning"
+                            icon="alert"
+                            description="This must match what you send from your bank!"
+                        />
+                    )}
                     <Button
                         variant="purple"
                         shadowSize="4"
@@ -377,14 +432,19 @@ export default function OnrampBankPage() {
                             !parseFloat(rawTokenAmount) ||
                             parseFloat(rawTokenAmount) < minimumAmount ||
                             error.showError ||
-                            isCreatingOnramp
+                            isCreatingOnramp ||
+                            limitsValidation.isBlocking ||
+                            (localCurrency !== 'USD' && isRateLoading)
                         }
                         className="w-full"
                         loading={isCreatingOnramp}
                     >
                         Continue
                     </Button>
-                    {error.showError && !!error.errorMessage && <ErrorAlert description={error.errorMessage} />}
+                    {/* only show error if limits blocking card is not displayed (warnings can coexist) */}
+                    {error.showError && !!error.errorMessage && !limitsValidation.isBlocking && (
+                        <ErrorAlert description={error.errorMessage} />
+                    )}
                 </div>
 
                 <OnrampConfirmationModal

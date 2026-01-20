@@ -45,11 +45,12 @@ import {
 } from '@/constants/manteca.consts'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
+import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
+import { MIN_MANTECA_WITHDRAW_AMOUNT } from '@/constants/payment.consts'
+import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
+import { getLimitsWarningCardProps } from '@/features/limits/utils'
 
 type MantecaWithdrawStep = 'amountInput' | 'bankDetails' | 'review' | 'success' | 'failure'
-
-const MAX_WITHDRAW_AMOUNT = '2000'
-const MIN_WITHDRAW_AMOUNT = '1'
 
 export default function MantecaWithdrawFlow() {
     const flowId = useId() // Unique ID per flow instance to prevent cache collisions
@@ -94,13 +95,20 @@ export default function MantecaWithdrawFlow() {
 
     const {
         code: currencyCode,
-        symbol: currencySymbol,
         price: currencyPrice,
         isLoading: isCurrencyLoading,
     } = useCurrency(selectedCountry?.currency!)
 
     // Initialize KYC flow hook
     const { isMantecaKycRequired } = useMantecaKycFlow({ country: selectedCountry })
+
+    // validates withdrawal against user's limits
+    // currency comes from country config - hook normalizes it internally
+    const limitsValidation = useLimitsValidation({
+        flowType: 'offramp',
+        amount: usdAmount,
+        currency: selectedCountry?.currency,
+    })
 
     // WebSocket listener for KYC status updates
     useWebSocket({
@@ -304,10 +312,9 @@ export default function MantecaWithdrawFlow() {
             return
         }
         const paymentAmount = parseUnits(usdAmount, PEANUT_WALLET_TOKEN_DECIMALS)
-        if (paymentAmount < parseUnits(MIN_WITHDRAW_AMOUNT, PEANUT_WALLET_TOKEN_DECIMALS)) {
-            setBalanceErrorMessage(`Withdraw amount must be at least $${MIN_WITHDRAW_AMOUNT}`)
-        } else if (paymentAmount > parseUnits(MAX_WITHDRAW_AMOUNT, PEANUT_WALLET_TOKEN_DECIMALS)) {
-            setBalanceErrorMessage(`Withdraw amount exceeds maximum limit of $${MAX_WITHDRAW_AMOUNT}`)
+        // only check min amount and balance here - max amount is handled by limits validation
+        if (paymentAmount < parseUnits(MIN_MANTECA_WITHDRAW_AMOUNT.toString(), PEANUT_WALLET_TOKEN_DECIMALS)) {
+            setBalanceErrorMessage(`Withdraw amount must be at least $${MIN_MANTECA_WITHDRAW_AMOUNT}`)
         } else if (paymentAmount > balance) {
             setBalanceErrorMessage('Not enough balance to complete withdrawal.')
         } else {
@@ -443,6 +450,17 @@ export default function MantecaWithdrawFlow() {
                             balance ? formatAmount(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS)) : undefined
                         }
                     />
+
+                    {/* limits warning/error card - uses centralized helper for props */}
+                    {(() => {
+                        const limitsCardProps = getLimitsWarningCardProps({
+                            validation: limitsValidation,
+                            flowType: 'offramp',
+                            currency: limitsValidation.currency,
+                        })
+                        return limitsCardProps ? <LimitsWarningCard {...limitsCardProps} /> : null
+                    })()}
+
                     <Button
                         variant="purple"
                         shadowSize="4"
@@ -456,12 +474,15 @@ export default function MantecaWithdrawFlow() {
                                 }
                             }
                         }}
-                        disabled={!Number(usdAmount) || !!balanceErrorMessage}
+                        disabled={!Number(usdAmount) || !!balanceErrorMessage || limitsValidation.isBlocking}
                         className="w-full"
                     >
                         Continue
                     </Button>
-                    {balanceErrorMessage && <ErrorAlert description={balanceErrorMessage} />}
+                    {/* only show balance error if limits blocking card is not displayed (warnings can coexist) */}
+                    {balanceErrorMessage && !limitsValidation.isBlocking && (
+                        <ErrorAlert description={balanceErrorMessage} />
+                    )}
                 </div>
             )}
 
