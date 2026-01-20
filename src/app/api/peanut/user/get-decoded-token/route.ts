@@ -1,10 +1,9 @@
-import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import { getJWTCookie } from '@/utils/cookie-migration.utils'
 
 export async function GET() {
     try {
-        const cookieStore = await cookies()
-        const token = cookieStore.get('jwt-token')
+        const token = await getJWTCookie()
 
         if (!token) {
             return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
