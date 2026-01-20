@@ -1,9 +1,8 @@
 import { fetchWithSentry } from '@/utils/sentry.utils'
-import { cookies } from 'next/headers'
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { PEANUT_API_URL } from '@/constants/general.consts'
-import { refreshJWTCookieIfNeeded } from '@/utils/cookie-migration.utils'
+import { getJWTCookie } from '@/utils/cookie-migration.utils'
 
 export async function POST(request: NextRequest) {
     try {
@@ -11,16 +10,11 @@ export async function POST(request: NextRequest) {
         const { userId, bridgeAccountId, accountType, accountIdentifier, connector, telegramHandle } = body
 
         const apiKey = process.env.PEANUT_API_KEY!
-
-        const cookieStore = await cookies()
-        const token = cookieStore.get('jwt-token')
+        const token = await getJWTCookie()
 
         if (!apiKey || !accountType || !accountIdentifier || !userId || !token) {
             return new NextResponse('Bad Request: Missing required fields', { status: 400 })
         }
-
-        // Auto-migrate cookie from sameSite='strict' to 'lax'
-        await refreshJWTCookieIfNeeded(token.value)
 
         const response = await fetchWithSentry(`${PEANUT_API_URL}/add-account`, {
             method: 'POST',

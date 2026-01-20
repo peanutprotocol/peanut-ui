@@ -1,18 +1,13 @@
-import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
-import { refreshJWTCookieIfNeeded } from '@/utils/cookie-migration.utils'
+import { getJWTCookie } from '@/utils/cookie-migration.utils'
 
 export async function GET() {
     try {
-        const cookieStore = await cookies()
-        const token = cookieStore.get('jwt-token')
+        const token = await getJWTCookie()
 
         if (!token) {
             return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
         }
-
-        // Auto-migrate cookie from sameSite='strict' to 'lax'
-        await refreshJWTCookieIfNeeded(token.value)
 
         const decodedToken = parseJwt(token.value)
         return new NextResponse(JSON.stringify(decodedToken), {
