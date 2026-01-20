@@ -176,7 +176,7 @@ export type ExternalNodesConfig = {
 
 export const DEFAULT_EXTERNAL_NODES_CONFIG: ExternalNodesConfig = {
     enabled: false,
-    minConnections: 2,
+    minConnections: 1, // Changed from 2 to 1 to show all external nodes including single-user banks
     limit: 5000, // Default limit for API query (can increase up to 10k)
     types: {
         WALLET: false, // Disabled by default (too many, less useful for analysis)
@@ -618,23 +618,30 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         return [...userNodes, ...externalNodes]
     }, [filteredGraphData, filteredExternalNodes, externalNodesConfig.enabled])
 
-    // Build links to external nodes
+    // Build links to external nodes with per-user transaction data
     const externalLinks = useMemo(() => {
         if (!externalNodesConfig.enabled || filteredExternalNodes.length === 0 || !filteredGraphData) {
             return []
         }
 
         const userIdsInGraph = new Set(filteredGraphData.nodes.map((n) => n.id))
-        const links: { source: string; target: string; isExternal: true }[] = []
+        const links: { source: string; target: string; isExternal: true; txCount: number; totalUsd: number }[] = []
 
         filteredExternalNodes.forEach((ext) => {
             const extNodeId = `ext_${ext.id}`
             ext.userIds.forEach((userId) => {
                 if (userIdsInGraph.has(userId)) {
+                    // Use per-user data if available, otherwise fall back to node totals
+                    const userData = ext.userTxData?.[userId] || {
+                        txCount: ext.txCount,
+                        totalUsd: ext.totalUsd,
+                    }
                     links.push({
                         source: userId,
                         target: extNodeId,
                         isExternal: true,
+                        txCount: userData.txCount,
+                        totalUsd: userData.totalUsd,
                     })
                 }
             })
@@ -1943,11 +1950,15 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                     }}
                     nodeCanvasObject={nodeCanvasObject}
                     nodeCanvasObjectMode={() => 'replace'}
-                    linkLabel={(link: any) =>
-                        link.isP2P
-                            ? `P2P: ${link.count} txs ($${link.totalUsd?.toFixed(2) ?? '0'})`
-                            : `${link.type} - ${new Date(link.createdAt).toLocaleDateString()}`
-                    }
+                    linkLabel={(link: any) => {
+                        if (link.isP2P) {
+                            return `P2P: ${link.count} txs ($${link.totalUsd?.toFixed(2) ?? '0'})`
+                        }
+                        if (link.isExternal) {
+                            return `External: ${link.txCount} txs ($${link.totalUsd?.toFixed(2) ?? '0'})`
+                        }
+                        return `${link.type} - ${new Date(link.createdAt).toLocaleDateString()}`
+                    }}
                     linkCanvasObject={linkCanvasObject}
                     linkCanvasObjectMode={() => 'replace'}
                     onNodeClick={handleNodeClick}

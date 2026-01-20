@@ -55,6 +55,7 @@ export type ExternalNode = {
     txCount: number
     totalUsd: number
     label: string
+    userTxData: Record<string, { txCount: number; totalUsd: number }> // Per-user breakdown for edge weights
 }
 
 type ExternalNodesResponse = {

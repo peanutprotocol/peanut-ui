@@ -433,27 +433,31 @@ export default function InviteGraphPage() {
                                     )}
                                     {!externalNodesError && externalNodesConfig.enabled && (
                                         <div className="space-y-1.5 pl-4">
-                                            {/* Min connections slider - show only external addresses used by N+ users */}
+                                            {/* Min connections - discrete options */}
                                             <div className="space-y-0.5">
                                                 <div className="flex items-center justify-between">
-                                                    <span className="text-[9px] text-gray-500">
-                                                        Show if ≥{externalNodesConfig.minConnections} users
-                                                    </span>
+                                                    <span className="text-[9px] text-gray-500">Min users:</span>
+                                                    <div className="flex gap-1">
+                                                        {[1, 2, 3, 5, 10].map((val) => (
+                                                            <button
+                                                                key={val}
+                                                                onClick={() =>
+                                                                    setExternalNodesConfig({
+                                                                        ...externalNodesConfig,
+                                                                        minConnections: val,
+                                                                    })
+                                                                }
+                                                                className={`rounded px-1.5 py-0.5 text-[9px] transition-colors ${
+                                                                    externalNodesConfig.minConnections === val
+                                                                        ? 'bg-orange-600 text-white'
+                                                                        : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                                                                }`}
+                                                            >
+                                                                {val}
+                                                            </button>
+                                                        ))}
+                                                    </div>
                                                 </div>
-                                                <input
-                                                    type="range"
-                                                    min="2"
-                                                    max="20"
-                                                    step="1"
-                                                    value={externalNodesConfig.minConnections}
-                                                    onChange={(e) =>
-                                                        setExternalNodesConfig({
-                                                            ...externalNodesConfig,
-                                                            minConnections: parseInt(e.target.value),
-                                                        })
-                                                    }
-                                                    className="h-1 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 accent-orange-600"
-                                                />
                                             </div>
                                             {/* Type filters */}
                                             <div className="flex gap-2 text-[9px]">
