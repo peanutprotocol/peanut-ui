@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production', // in production, only send cookies over HTTPS
             path: '/',
-            sameSite: 'strict',
+            sameSite: 'lax', // 'lax' allows cookies on top-level navigation while still preventing CSRF
         })
 
         return new NextResponse(JSON.stringify(data), {
