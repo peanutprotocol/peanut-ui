@@ -239,6 +239,7 @@ export default function MantecaWithdrawFlow() {
         countryConfig?.needsAccountType,
         usdAmount,
         currencyCode,
+        currencyAmount,
         isMantecaKycRequired,
         isLockingPrice,
     ])
