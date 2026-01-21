@@ -2,12 +2,14 @@
 
 import ActionModal from '@/components/Global/ActionModal'
 import IframeWrapper from '@/components/Global/IframeWrapper'
+import CameraPermissionWarningModal from './CameraPermissionWarningModal'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { useMantecaKycFlow } from '@/hooks/useMantecaKycFlow'
 import { type CountryData } from '@/components/AddMoney/consts'
 import { Button } from '@/components/0_Bruddle/Button'
 import { PeanutDoesntStoreAnyPersonalInformation } from './KycVerificationInProgressModal'
 import { useEffect } from 'react'
+import { useKycCameraCheck } from '@/hooks/useKycCameraCheck'
 
 interface Props {
     isOpen: boolean
@@ -41,8 +43,24 @@ const InitiateMantecaKYCModal = ({
         country,
     })
 
+    const {
+        showCameraWarning,
+        setShowCameraWarning,
+        mediaCheckResult,
+        handleVerifyClick,
+        handleContinueAnyway,
+        handleOpenInBrowser,
+        isChecking,
+    } = useKycCameraCheck({
+        onInitiateKyc: () => openMantecaKyc(country),
+        onClose,
+    })
+
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
+            // Validate origin for security
+            if (!event.origin.includes('manteca')) return
+
             if (event.data.source === 'peanut-kyc-success') {
                 onKycSuccess?.()
             }
@@ -53,7 +71,7 @@ const InitiateMantecaKYCModal = ({
         return () => {
             window.removeEventListener('message', handleMessage)
         }
-    }, [])
+    }, [onKycSuccess])
 
     useEffect(() => {
         if (autoStartKyc) {
@@ -71,7 +89,7 @@ const InitiateMantecaKYCModal = ({
     return (
         <>
             <ActionModal
-                visible={isOpen && !iframeOptions.visible}
+                visible={isOpen && !iframeOptions.visible && !showCameraWarning}
                 onClose={onClose}
                 title={displayTitle}
                 description={displayDescription}
@@ -80,10 +98,10 @@ const InitiateMantecaKYCModal = ({
                 ctaClassName="grid grid-cols-1 gap-3"
                 ctas={[
                     {
-                        text: isLoading ? 'Loading...' : (ctaText ?? 'Verify now'),
-                        onClick: () => openMantecaKyc(country),
+                        text: isLoading || isChecking ? 'Loading...' : (ctaText ?? 'Verify now'),
+                        onClick: handleVerifyClick,
                         variant: 'purple',
-                        disabled: isLoading,
+                        disabled: isLoading || isChecking,
                         shadowSize: '4',
                         icon: 'check-circle',
                         className: 'h-11',
@@ -91,7 +109,22 @@ const InitiateMantecaKYCModal = ({
                 ]}
                 footer={footer}
             />
-            <IframeWrapper {...iframeOptions} onClose={handleIframeClose} />
+
+            {mediaCheckResult && (
+                <CameraPermissionWarningModal
+                    visible={showCameraWarning}
+                    onClose={() => setShowCameraWarning(false)}
+                    onContinueAnyway={handleContinueAnyway}
+                    onOpenInBrowser={handleOpenInBrowser}
+                    mediaCheckResult={mediaCheckResult}
+                />
+            )}
+
+            <IframeWrapper
+                {...iframeOptions}
+                visible={iframeOptions.visible && !showCameraWarning}
+                onClose={handleIframeClose}
+            />
         </>
     )
 }

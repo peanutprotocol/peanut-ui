@@ -2,9 +2,11 @@ import ActionModal from '@/components/Global/ActionModal'
 import { useBridgeKycFlow } from '@/hooks/useBridgeKycFlow'
 import IframeWrapper from '@/components/Global/IframeWrapper'
 import { KycVerificationInProgressModal } from './KycVerificationInProgressModal'
+import CameraPermissionWarningModal from './CameraPermissionWarningModal'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { saveRedirectUrl } from '@/utils/general.utils'
 import useClaimLink from '../Claim/useClaimLink'
+import { useKycCameraCheck } from '@/hooks/useKycCameraCheck'
 
 interface BridgeKycModalFlowProps {
     isOpen: boolean
@@ -32,10 +34,24 @@ export const InitiateBridgeKYCModal = ({
     } = useBridgeKycFlow({ onKycSuccess, flow, onManualClose })
     const { addParamStep } = useClaimLink()
 
+    const {
+        showCameraWarning,
+        setShowCameraWarning,
+        mediaCheckResult,
+        handleVerifyClick: checkAndInitiate,
+        handleContinueAnyway,
+        handleOpenInBrowser,
+        isChecking,
+    } = useKycCameraCheck({
+        onInitiateKyc: handleInitiateKyc,
+        onClose,
+        saveRedirect: saveRedirectUrl,
+    })
+
     const handleVerifyClick = async () => {
         addParamStep('bank')
-        const result = await handleInitiateKyc()
-        if (result?.success) {
+        const result = await checkAndInitiate()
+        if (result?.shouldProceed) {
             saveRedirectUrl()
             onClose()
         }
@@ -44,7 +60,7 @@ export const InitiateBridgeKYCModal = ({
     return (
         <>
             <ActionModal
-                visible={isOpen}
+                visible={isOpen && !showCameraWarning}
                 onClose={onManualClose ? onManualClose : onClose}
                 title="Verify your identity first"
                 description="To continue, you need to complete identity verification. This usually takes just a few minutes."
@@ -53,10 +69,10 @@ export const InitiateBridgeKYCModal = ({
                 ctaClassName="grid grid-cols-1 gap-3"
                 ctas={[
                     {
-                        text: isLoading ? 'Loading...' : 'Verify now',
+                        text: isLoading || isChecking ? 'Loading...' : 'Verify now',
                         onClick: handleVerifyClick,
                         variant: 'purple',
-                        disabled: isLoading,
+                        disabled: isLoading || isChecking,
                         shadowSize: '4',
                         icon: 'check-circle',
                         className: 'h-11',
@@ -71,7 +87,22 @@ export const InitiateBridgeKYCModal = ({
                     },
                 ]}
             />
-            <IframeWrapper {...iframeOptions} onClose={handleIframeClose} />
+
+            {mediaCheckResult && (
+                <CameraPermissionWarningModal
+                    visible={showCameraWarning}
+                    onClose={() => setShowCameraWarning(false)}
+                    onContinueAnyway={handleContinueAnyway}
+                    onOpenInBrowser={handleOpenInBrowser}
+                    mediaCheckResult={mediaCheckResult}
+                />
+            )}
+
+            <IframeWrapper
+                {...iframeOptions}
+                visible={iframeOptions.visible && !showCameraWarning}
+                onClose={handleIframeClose}
+            />
             <KycVerificationInProgressModal
                 isOpen={isVerificationProgressModalOpen}
                 onClose={closeVerificationProgressModal}
