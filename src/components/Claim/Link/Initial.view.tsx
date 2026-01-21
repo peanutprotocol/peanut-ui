@@ -361,6 +361,23 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 } else {
                     // optimistic return - transaction still processing
                     // SUCCESS view will refresh after polling detects txHash
+                    // Queue multiple balance refreshes to catch the update
+                    const refreshIntervals = [5000, 15000, 30000] // 5s, 15s, 30s
+
+                    refreshIntervals.forEach((delay) => {
+                        setTimeout(() => {
+                            if (isPeanutWallet) {
+                                queryClient.refetchQueries({
+                                    queryKey: ['balance'],
+                                    type: 'active',
+                                })
+                            }
+                            queryClient.refetchQueries({
+                                queryKey: [TRANSACTIONS],
+                                type: 'active',
+                            })
+                        }, delay)
+                    })
                 }
             } catch (error) {
                 const errorString = ErrorHandler(error)
