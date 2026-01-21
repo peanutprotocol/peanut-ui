@@ -289,8 +289,9 @@ const AmountInput = ({
                     className="absolute right-0 top-1/2 -translate-x-1/2 -translate-y-1/2 transform cursor-pointer"
                     onClick={(e) => {
                         e.preventDefault()
-                        // Reset editing state - user is switching currency, allow sync with converted value
-                        isEditingRef.current = false
+                        // keep editing state true - user is interacting, prevent sync from initialAmount
+                        // that could cause feedback loops with async URL state updates
+                        isEditingRef.current = true
                         // If no meaningful value entered, just switch symbol and keep empty
                         if (!hasValue) {
                             setDisplayValue('')
