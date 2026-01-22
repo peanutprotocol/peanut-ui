@@ -24,7 +24,6 @@ export const Profile = () => {
     const { logoutUser, isLoggingOut, user } = useAuth()
     const [isKycApprovedModalOpen, setIsKycApprovedModalOpen] = useState(false)
     const [isInviteFriendsModalOpen, setIsInviteFriendsModalOpen] = useState(false)
-    const [showInitiateKycModal, setShowInitiateKycModal] = useState(false)
     const router = useRouter()
     const { isUserKycApproved } = useKycStatus()
 
@@ -80,9 +79,6 @@ export const Profile = () => {
                             icon="globe-lock"
                             label="Regions & Verification"
                             href="/profile/identity-verification"
-                            onClick={() => {
-                                setShowInitiateKycModal(true)
-                            }}
                             position="middle"
                         />
 
@@ -179,30 +175,6 @@ export const Profile = () => {
                         </ShareButton>
                     </>
                 }
-            />
-
-            <ActionModal
-                visible={showInitiateKycModal}
-                onClose={() => setShowInitiateKycModal(false)}
-                title="Verification, Only If You Need It"
-                description="No need to verify unless you want to move money to or from your bank."
-                icon="shield"
-                ctaClassName="flex-col sm:flex-col"
-                ctas={[
-                    {
-                        text: 'Verify now',
-                        shadowSize: '4',
-                        className: 'md:py-2',
-                        onClick: () => router.push('/profile/identity-verification'),
-                    },
-                    {
-                        variant: 'transparent-dark',
-                        className:
-                            'text-black underline text-xs font-medium h-2 mt-1 hover:text-black active:text-black',
-                        text: 'Not now',
-                        onClick: () => setShowInitiateKycModal(false),
-                    },
-                ]}
             />
         </div>
     )

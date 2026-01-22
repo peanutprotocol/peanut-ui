@@ -1,8 +1,7 @@
 export default function LimitsDocsLink() {
     return (
         <a
-            // TODO: add link to docs
-            href=""
+            href="https://docs.peanut.me/limits"
             target="_blank"
             rel="noopener noreferrer"
             className="text-center text-sm underline"
