@@ -6,6 +6,7 @@ import { PEANUT_API_URL } from '@/constants/general.consts'
 /** Qualitative labels for anonymized data */
 export type FrequencyLabel = 'rare' | 'occasional' | 'regular' | 'frequent'
 export type VolumeLabel = 'small' | 'medium' | 'large' | 'whale'
+export type SizeLabel = 'tiny' | 'small' | 'medium' | 'large' | 'huge'
 
 /** P2P edge - can be full (with counts) or anonymized (with labels) */
 export type P2PEdge = {
@@ -28,11 +29,14 @@ type InvitesGraphResponse = {
             id: string
             username: string
             hasAppAccess: boolean
-            directPoints: number
-            transitivePoints: number
-            totalPoints: number
-            createdAt: string
-            lastActiveAt: string | null
+            // Full mode fields - optional in payment mode
+            directPoints?: number
+            transitivePoints?: number
+            totalPoints?: number
+            createdAt?: string
+            lastActiveAt?: string | null
+            // Payment mode fields - optional in full mode
+            size?: SizeLabel
             kycRegions: string[] | null
         }>
         edges: Array<{
@@ -80,14 +84,15 @@ export type ExternalNode = {
     id: string
     type: ExternalNodeType
     label: string
-    uniqueUsers: number
     userTxData: Record<string, UserTxDataEntry>
     // Full mode fields - optional in anonymized mode
+    uniqueUsers?: number
     userIds?: string[]
     txCount?: number
     totalUsd?: number
     lastTxDate?: string
     // Anonymized mode fields - optional in full mode
+    size?: SizeLabel
     frequency?: FrequencyLabel
     volume?: VolumeLabel
 }
@@ -336,6 +341,7 @@ export const pointsApi = {
             minConnections?: number
             types?: ExternalNodeType[]
             limit?: number
+            topNodes?: number
         }
     ): Promise<ExternalNodesResponse> => {
         try {
@@ -359,6 +365,9 @@ export const pointsApi = {
             }
             if (options?.limit) {
                 params.set('limit', options.limit.toString())
+            }
+            if (options?.topNodes && options.topNodes > 0) {
+                params.set('topNodes', options.topNodes.toString())
             }
 
             const url = `${PEANUT_API_URL}/invites/graph/external${params.toString() ? `?${params}` : ''}`

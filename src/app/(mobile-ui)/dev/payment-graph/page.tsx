@@ -65,10 +65,10 @@ export default function PaymentGraphPage() {
     return (
         <div className="fixed inset-0 z-50 flex flex-col bg-gray-50">
             <InvitesGraph
-                key={`payment-graph-${performanceMode ? 'perf' : 'full'}`}
                 apiKey={apiKey}
                 mode="payment"
-                topNodes={performanceMode ? 1000 : 0}
+                topNodes={5000}
+                performanceMode={performanceMode}
                 onClose={handleClose}
                 width={typeof window !== 'undefined' ? window.innerWidth : 1200}
                 height={typeof window !== 'undefined' ? window.innerHeight - 120 : 800}
