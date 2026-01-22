@@ -90,17 +90,26 @@ const MantecaAddMoney: FC = () => {
 
     // Validate USD amount (min check only - max is handled by limits validation)
     useEffect(() => {
-        if (!usdAmount || usdAmount === '0.00') {
+        // if user hasn't entered any amount yet, don't show error
+        if (!displayedAmount || displayedAmount === '0') {
             setError(null)
             return
         }
+
+        // user has entered something - validate the USD equivalent
+        // if USD amount is effectively zero or too small, show minimum error
+        if (!usdAmount || usdAmount === '0.00') {
+            setError(`Deposit amount must be at least $${MIN_MANTECA_DEPOSIT_AMOUNT}`)
+            return
+        }
+
         const paymentAmount = parseUnits(usdAmount, PEANUT_WALLET_TOKEN_DECIMALS)
         if (paymentAmount < parseUnits(MIN_MANTECA_DEPOSIT_AMOUNT.toString(), PEANUT_WALLET_TOKEN_DECIMALS)) {
             setError(`Deposit amount must be at least $${MIN_MANTECA_DEPOSIT_AMOUNT}`)
         } else {
             setError(null)
         }
-    }, [usdAmount])
+    }, [usdAmount, displayedAmount])
 
     // Invalidate transactions query when entering deposit details step
     useEffect(() => {
