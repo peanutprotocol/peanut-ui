@@ -98,7 +98,7 @@ export const VerifiedUserLabel = ({
                 />
             ) : (
                 <div
-                    className={twMerge('font-semibold md:text-base', className, onNameClick && 'cursor-pointer')}
+                    className={twMerge('font-semibold md:text-base line-clamp-1', className, onNameClick && 'cursor-pointer')}
                     onClick={onNameClick}
                 >
                     {name}
