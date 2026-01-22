@@ -34,7 +34,14 @@ import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
-import { pointsApi, type ExternalNode, type ExternalNodeType } from '@/services/points'
+import {
+    pointsApi,
+    type ExternalNode,
+    type ExternalNodeType,
+    type SizeLabel,
+    type FrequencyLabel,
+    type VolumeLabel,
+} from '@/services/points'
 import { inferBankAccountType } from '@/utils/bridge.utils'
 import { useGraphPreferences } from '@/hooks/useGraphPreferences'
 
@@ -46,18 +53,61 @@ const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), {
 const CLICK_MAX_DURATION_MS = 200
 const CLICK_MAX_DISTANCE_PX = 5
 
+// Helper to convert qualitative size labels to numeric points for graph calculations
+// Used in payment mode where real points aren't sent to frontend
+function sizeLabelToPoints(size: SizeLabel | undefined): number {
+    if (!size) return 10 // default
+    switch (size) {
+        case 'tiny':
+            return 5
+        case 'small':
+            return 50
+        case 'medium':
+            return 500
+        case 'large':
+            return 5000
+        case 'huge':
+            return 50000
+    }
+}
+
+// Helper to get effective points for a node (real points in full mode, converted from size in payment mode)
+function getNodePoints(node: any): number {
+    // Payment mode: node has size label instead of totalPoints
+    if (node.size && !node.totalPoints) {
+        return sizeLabelToPoints(node.size)
+    }
+    // Full mode: use real totalPoints
+    return node.totalPoints || 0
+}
+
+// Helper to get effective unique users count for external nodes
+function getExternalNodeUsers(node: any): number {
+    // Payment mode: use userIds array length (accurate count of connections in graph)
+    if (node.userIds && node.userIds.length > 0) {
+        return node.userIds.length
+    }
+    // Full mode: use real uniqueUsers count
+    if (node.uniqueUsers !== undefined) {
+        return node.uniqueUsers
+    }
+    // Fallback: shouldn't reach here in normal operation
+    return 1
+}
+
 // Types
 export interface GraphNode {
     id: string
     username: string
     hasAppAccess: boolean
-    directPoints: number
-    transitivePoints: number
-    totalPoints: number
-    /** ISO date when user signed up */
-    createdAt: string
-    /** ISO date of last transaction activity (null if never active or >90 days ago) */
-    lastActiveAt: string | null
+    // Full mode fields - optional in payment mode
+    directPoints?: number
+    transitivePoints?: number
+    totalPoints?: number
+    createdAt?: string
+    lastActiveAt?: string | null
+    // Payment mode fields - optional in full mode
+    size?: SizeLabel
     /** KYC regions: AR (Manteca Argentina), BR (Manteca Brazil), World (Bridge) - null if not KYC'd */
     kycRegions: string[] | null
     x?: number
@@ -242,6 +292,8 @@ interface FullModeProps extends BaseProps {
     mode?: GraphMode
     /** Close/back button handler */
     onClose?: () => void
+    /** Performance mode: limit to top 1000 nodes (frontend-filtered, no refetch) */
+    performanceMode?: boolean
     /** Minimal mode disabled */
     minimal?: false
     data?: never
@@ -326,14 +378,14 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                   types: { WALLET: false, BANK: false, MERCHANT: true },
               }
             : DEFAULT_EXTERNAL_NODES_CONFIG
-    // Apply payment mode external link force adjustment (0.01x default - very weak to avoid clustering)
+    // Apply payment mode external link force adjustment (0.1x default - weak to avoid clustering)
     const finalModeForceConfig: ForceConfig =
         mode === 'payment'
             ? {
                   ...modeForceConfig,
                   externalLinks: {
                       ...DEFAULT_FORCE_CONFIG.externalLinks,
-                      strength: DEFAULT_FORCE_CONFIG.externalLinks.strength * 0.01,
+                      strength: DEFAULT_FORCE_CONFIG.externalLinks.strength * 0.1,
                   },
               }
             : modeForceConfig
@@ -350,11 +402,68 @@ export default function InvitesGraph(props: InvitesGraphProps) {
 
     // Use passed data in minimal mode, fetched data otherwise
     // Note: topNodes filtering is now done by backend, no client-side pruning needed
-    const rawGraphData = isMinimal ? props.data : fetchedGraphData
+    // Performance mode: frontend filter to top 1000 without refetch
+    const rawGraphData = useMemo(() => {
+        const data = isMinimal ? props.data : fetchedGraphData
+        if (!data) return null
+
+        // Performance mode: limit to top 1000 nodes on frontend (payment graph only)
+        const performanceMode = !isMinimal && (props as FullModeProps).performanceMode
+        if (performanceMode && data.nodes.length > 1000) {
+            // Sort by size label (payment mode) or totalPoints (full mode) and take top 1000
+            const sortedNodes = [...data.nodes].sort((a, b) => {
+                // Payment mode nodes have size labels, full mode has totalPoints
+                if (a.totalPoints !== undefined && b.totalPoints !== undefined) {
+                    return b.totalPoints - a.totalPoints
+                }
+                // Size label sorting: huge > large > medium > small > tiny
+                const sizeOrder: Record<string, number> = { huge: 5, large: 4, medium: 3, small: 2, tiny: 1 }
+                const aSize = (a as any).size || 'tiny'
+                const bSize = (b as any).size || 'tiny'
+                return (sizeOrder[bSize as string] || 0) - (sizeOrder[aSize as string] || 0)
+            })
+            const limitedNodes = sortedNodes.slice(0, 1000)
+            const limitedNodeIds = new Set(limitedNodes.map((n) => n.id))
+
+            // Filter edges and P2P edges to only include connections between limited nodes
+            const filteredEdges = data.edges.filter(
+                (edge) => limitedNodeIds.has(edge.source) && limitedNodeIds.has(edge.target)
+            )
+            const filteredP2PEdges = (data.p2pEdges || []).filter(
+                (edge) => limitedNodeIds.has(edge.source) && limitedNodeIds.has(edge.target)
+            )
+
+            console.log('[PerformanceMode] Limited to top 1000:', {
+                before: data.nodes.length,
+                after: limitedNodes.length,
+                p2pEdges: { before: data.p2pEdges?.length || 0, after: filteredP2PEdges.length },
+            })
+
+            return {
+                nodes: limitedNodes,
+                edges: filteredEdges,
+                p2pEdges: filteredP2PEdges,
+                stats: {
+                    ...data.stats,
+                    totalNodes: limitedNodes.length,
+                    totalEdges: filteredEdges.length,
+                    totalP2PEdges: filteredP2PEdges.length,
+                },
+            }
+        }
+
+        return data
+    }, [isMinimal, props, fetchedGraphData])
 
     // Helper to check if node is active based on activityDays threshold
     // Used for both coloring and visibility filtering
     const isNodeActive = useCallback((node: GraphNode, filter: ActivityFilter): boolean => {
+        // In payment mode, nodes are anonymized and lack timestamps
+        // Treat all nodes as "active" since we can't determine activity
+        if (!node.createdAt && !node.lastActiveAt) {
+            return true
+        }
+
         const now = Date.now()
         const activityCutoff = now - filter.activityDays * 24 * 60 * 60 * 1000
 
@@ -386,15 +495,18 @@ export default function InvitesGraph(props: InvitesGraphProps) {
     // This allows refetch when limit changes while preventing refetch on toggle off/on
     const externalNodesFetchedLimitRef = useRef<number | null>(null)
 
-    // Graph preferences persistence
-    const { preferences, savePreferences, isLoaded: preferencesLoaded } = useGraphPreferences()
+    // Graph preferences persistence (separate storage for payment vs full mode)
+    const isPaymentMode = mode === 'payment'
+    const { preferences, savePreferences, isLoaded: preferencesLoaded } = useGraphPreferences(
+        isPaymentMode ? 'payment' : 'full'
+    )
     const preferencesRestoredRef = useRef(false)
 
-    // Load preferences ONCE on mount (only in full mode, not minimal or payment)
+    // Load preferences ONCE on mount (not in minimal mode)
+    // Payment and full mode now have separate storage
     // Using preferencesLoaded as the only dependency - preferences won't change after load
-    const isPaymentMode = mode === 'payment'
     useEffect(() => {
-        if (isMinimal || isPaymentMode || !preferencesLoaded || preferencesRestoredRef.current) return
+        if (isMinimal || !preferencesLoaded || preferencesRestoredRef.current) return
 
         // Mark as restored immediately to prevent any re-runs
         preferencesRestoredRef.current = true
@@ -438,19 +550,37 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         // Restore saved preferences
         if (migratedForceConfig) setForceConfig(migratedForceConfig)
         if (preferences.visibilityConfig) setVisibilityConfig(preferences.visibilityConfig)
-        if (preferences.activityFilter) setActivityFilter(preferences.activityFilter)
+
+        // Payment mode: NEVER restore activityDays (fixed at 120) or topNodes (always use prop)
+        // Full mode: restore both
+        if (preferences.activityFilter) {
+            if (isPaymentMode) {
+                // Restore enabled/hideInactive, but keep activityDays at 120
+                setActivityFilter({
+                    ...preferences.activityFilter,
+                    activityDays: 120,
+                })
+            } else {
+                setActivityFilter(preferences.activityFilter)
+            }
+        }
+
         if (preferences.externalNodesConfig) setExternalNodesConfig(preferences.externalNodesConfig)
         if (preferences.showUsernames !== undefined) setShowUsernames(preferences.showUsernames)
-        if (preferences.topNodes !== undefined) setTopNodes(preferences.topNodes)
+
+        // Payment mode: NEVER restore topNodes - always use prop value (5000 for full data)
+        if (!isPaymentMode && preferences.topNodes !== undefined) {
+            setTopNodes(preferences.topNodes)
+        }
 
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [preferencesLoaded, isMinimal, isPaymentMode]) // Only depend on preferencesLoaded, not preferences
+    }, [preferencesLoaded, isMinimal]) // Only depend on preferencesLoaded, not preferences
 
     // Auto-save preferences when they change (debounced to avoid excessive writes)
     // Skip saving until preferences have been restored to avoid overwriting with defaults
-    // Also skip in payment mode - payment mode has its own defaults and shouldn't pollute full-graph prefs
+    // Payment and full mode now save to separate keys, so no pollution
     useEffect(() => {
-        if (isMinimal || isPaymentMode || !preferencesRestoredRef.current) return
+        if (isMinimal || !preferencesRestoredRef.current) return
 
         const timeout = setTimeout(() => {
             savePreferences({
@@ -482,18 +612,33 @@ export default function InvitesGraph(props: InvitesGraphProps) {
 
         // Start with all nodes
         let filteredNodes = rawGraphData.nodes
+        const initialNodeCount = filteredNodes.length
 
         // Filter by activity time window AND active/inactive checkboxes
         // activityDays defines the time window (e.g., 30 days)
         // Nodes are classified as active (within window) or inactive (outside window)
         // Then visibilityConfig checkboxes control which category to show
         if (!visibilityConfig.activeNodes || !visibilityConfig.inactiveNodes) {
+            const beforeFilter = filteredNodes.length
             filteredNodes = filteredNodes.filter((node) => {
                 const isActive = isNodeActive(node, activityFilter)
                 if (isActive && !visibilityConfig.activeNodes) return false
                 if (!isActive && !visibilityConfig.inactiveNodes) return false
                 return true
             })
+            const afterFilter = filteredNodes.length
+            if (beforeFilter !== afterFilter) {
+                console.log('[GraphData] Activity filter removed nodes:', {
+                    before: beforeFilter,
+                    after: afterFilter,
+                    removed: beforeFilter - afterFilter,
+                    visibilityConfig: {
+                        activeNodes: visibilityConfig.activeNodes,
+                        inactiveNodes: visibilityConfig.inactiveNodes,
+                    },
+                    activityDays: activityFilter.activityDays,
+                })
+            }
         }
 
         const nodeIds = new Set(filteredNodes.map((n) => n.id))
@@ -510,6 +655,13 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         if (!visibilityConfig.p2pEdges) {
             filteredP2PEdges = []
         }
+
+        console.log('[GraphData] Final filtered data:', {
+            initialNodes: initialNodeCount,
+            filteredNodes: filteredNodes.length,
+            edges: filteredEdges.length,
+            p2pEdges: filteredP2PEdges.length,
+        })
 
         return {
             nodes: filteredNodes,
@@ -597,10 +749,25 @@ export default function InvitesGraph(props: InvitesGraphProps) {
 
         const now = Date.now()
         const activityCutoff = now - activityFilter.activityDays * 24 * 60 * 60 * 1000
+        const isPaymentMode = mode === 'payment'
 
         const filtered = externalNodesData.filter((node) => {
             // Filter by minConnections
-            if (node.uniqueUsers < externalNodesConfig.minConnections) return false
+            // In payment mode: count unique user IDs from userIds array
+            // In full mode: use uniqueUsers or fall back to size label conversion
+            let userCount: number
+            if (isPaymentMode) {
+                // Payment mode: count actual user IDs in the array
+                userCount = node.userIds?.length || 0
+            } else {
+                // Full mode: use helper which reads uniqueUsers or converts size label
+                userCount = getExternalNodeUsers(node)
+            }
+
+            if (userCount < externalNodesConfig.minConnections) {
+                return false
+            }
+
             // Filter by type
             if (!externalNodesConfig.types[node.type]) return false
             // Filter by activity window (only in full mode where lastTxDate exists)
@@ -711,7 +878,14 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             visibleUserCount: userIdsInGraph.size,
         })
 
-        return [...userNodes, ...externalNodes]
+        const combined = [...userNodes, ...externalNodes]
+        console.log('[CombinedGraphNodes] Final node counts:', {
+            userNodes: userNodes.length,
+            externalNodes: externalNodes.length,
+            total: combined.length,
+        })
+
+        return combined
     }, [filteredGraphData, filteredExternalNodes, externalNodesConfig.enabled])
 
     // Build links to external nodes with per-user transaction data and direction
@@ -737,21 +911,34 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         filteredExternalNodes.forEach((ext) => {
             const extNodeId = `ext_${ext.id}`
 
-            // In payment mode, userTxData keys are anonymized (hex IDs) but we have userIds array with real UUIDs
-            // Use userIds for linking since it matches the user node IDs
-            if (isPaymentMode && ext.userIds) {
-                ext.userIds.forEach((userId: string) => {
-                    if (!userIdsInGraph.has(userId)) return
-                    // In payment mode, use the overall merchant frequency/volume since per-user data is anonymized
+            // In payment mode, userTxData keys are anonymized (hex IDs)
+            // Parse userTxData to get per-user direction, frequency, and volume
+            if (isPaymentMode) {
+                // userTxData format: { "hexUserId_DIRECTION": { direction, frequency, volume } }
+                Object.entries(ext.userTxData || {}).forEach(([key, data]) => {
+                    // Parse userId and direction from key format: "hexUserId_DIRECTION"
+                    const lastUnderscoreIdx = key.lastIndexOf('_')
+                    if (lastUnderscoreIdx === -1) return // Skip malformed keys
+
+                    const hexUserId = key.substring(0, lastUnderscoreIdx)
+                    const direction = key.substring(lastUnderscoreIdx + 1) as 'INCOMING' | 'OUTGOING'
+
+                    // userTxData keys are hex-anonymized, but graph nodes use the original hex IDs
+                    // Match by checking if this hex ID is in the graph
+                    if (!userIdsInGraph.has(hexUserId)) {
+                        return
+                    }
+
                     links.push({
-                        source: userId,
+                        source: hexUserId,
                         target: extNodeId,
                         isExternal: true,
-                        frequency: ext.frequency || 'occasional',
-                        volume: ext.volume || 'medium',
-                        direction: 'OUTGOING', // Default direction for payment mode
+                        frequency: data.frequency || ext.frequency || 'occasional',
+                        volume: data.volume || ext.volume || 'medium',
+                        direction: direction,
                     })
                 })
+
                 return
             }
 
@@ -858,6 +1045,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                     minConnections: 1, // Fetch all, filter client-side for flexibility
                     limit: externalNodesConfig.limit, // User-configurable limit
                     types: ['WALLET', 'BANK', 'MERCHANT'], // Fetch all types, filter client-side
+                    topNodes: topNodes > 0 ? topNodes : undefined, // Match graph's top-N filter
                 })
 
                 if (result.success && result.data) {
@@ -975,7 +1163,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             if (node.isExternal) {
                 if (!extConfig.enabled) return // Hidden
 
-                const size = 4 + Math.log2(node.uniqueUsers || 1) * 2
+                const size = 4 + Math.log2(getExternalNodeUsers(node)) * 2
 
                 // Colors by type
                 const colors: Record<string, string> = {
@@ -1055,7 +1243,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                 size = 12 // Fixed size for user graph - all nodes equal
             } else {
                 const baseSize = hasAccess ? 6 : 3
-                const pointsMultiplier = Math.sqrt(node.totalPoints) / 10
+                const pointsMultiplier = Math.sqrt(getNodePoints(node)) / 10
                 size = baseSize + Math.min(pointsMultiplier, 25)
             }
 
@@ -1620,7 +1808,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                         }
                         // User nodes: scale slightly with points (bigger nodes push more)
                         const base = -fc.charge.strength
-                        const pointsMultiplier = 1 + Math.sqrt(node.totalPoints || 0) / 100
+                        const pointsMultiplier = 1 + Math.sqrt(getNodePoints(node)) / 100
                         return base * Math.min(pointsMultiplier, 2) // Cap at 2x
                     })
                     .distanceMin(10) // Prevent infinite force at very close range
@@ -1637,12 +1825,12 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             .radius((node: any) => {
                 // External nodes: size based on connections
                 if (node.isExternal) {
-                    const size = 4 + Math.log2(node.uniqueUsers || 1) * 2
+                    const size = 4 + Math.log2(getExternalNodeUsers(node)) * 2
                     return size * 1.5
                 }
                 // User nodes: size based on points
                 const baseSize = node.hasAppAccess ? 6 : 3
-                const pointsMultiplier = Math.sqrt(node.totalPoints || 0) / 10
+                const pointsMultiplier = Math.sqrt(getNodePoints(node)) / 10
                 const nodeRadius = baseSize + Math.min(pointsMultiplier, 25)
                 return nodeRadius * 1.5 // 1.5x = slight padding, doesn't fight charge
             })
@@ -1688,7 +1876,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
 
                     // sizeBias: 0 = uniform, 1 = big nodes get 2x pull
                     // Formula: strength * (1 + sizeBias * pointsMultiplier)
-                    const pointsMultiplier = Math.min(Math.sqrt(node.totalPoints || 0) / 100, 1)
+                    const pointsMultiplier = Math.min(Math.sqrt(getNodePoints(node)) / 100, 1)
                     return centerConfig.strength * (1 + centerConfig.sizeBias * pointsMultiplier)
                 })
             )
@@ -1696,7 +1884,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                 'y',
                 d3.forceY(0).strength((node: any) => {
                     if (node.isExternal) return centerConfig.strength * 0.5
-                    const pointsMultiplier = Math.min(Math.sqrt(node.totalPoints || 0) / 100, 1)
+                    const pointsMultiplier = Math.min(Math.sqrt(getNodePoints(node)) / 100, 1)
                     return centerConfig.strength * (1 + centerConfig.sizeBias * pointsMultiplier)
                 })
             )
@@ -1873,6 +2061,54 @@ export default function InvitesGraph(props: InvitesGraphProps) {
     // 1. autoPauseRedraw={false} on ForceGraph2D - keeps rendering after simulation stops
     // 2. performance.now() in linkCanvasObject - animates particles based on real time
     // No additional animation loop needed!
+
+    // Debug: Build combined links and log what's being passed to ForceGraph2D
+    const combinedLinks = useMemo(() => {
+        if (!filteredGraphData) return []
+
+        const inviteLinks = filteredGraphData.edges.map((edge) => ({
+            ...edge,
+            source: edge.target,
+            target: edge.source,
+            isP2P: false,
+            isExternal: false,
+        }))
+
+        const p2pLinks = (filteredGraphData.p2pEdges || []).map((edge, i) => ({
+            id: `p2p-${i}`,
+            source: edge.source,
+            target: edge.target,
+            type: edge.type,
+            count: edge.count,
+            totalUsd: edge.totalUsd,
+            frequency: edge.frequency,
+            volume: edge.volume,
+            bidirectional: edge.bidirectional,
+            isP2P: true,
+            isExternal: false,
+        }))
+
+        const allLinks = [...inviteLinks, ...p2pLinks, ...externalLinks]
+
+        // Debug logging
+        const externalLinksInFinal = allLinks.filter(l => l.isExternal)
+        const carrefourLinks = externalLinksInFinal.filter(l => (l.target as string).includes('ext_CARREF'))
+
+        console.log('[CombinedLinks] Final links passed to ForceGraph2D:', {
+            totalLinks: allLinks.length,
+            inviteLinks: inviteLinks.length,
+            p2pLinks: p2pLinks.length,
+            externalLinks: externalLinksInFinal.length,
+            carrefourLinks: carrefourLinks.length,
+            sampleCarrefourLinks: carrefourLinks.slice(0, 3).map(l => ({
+                source: l.source,
+                target: l.target,
+                isExternal: l.isExternal
+            }))
+        })
+
+        return allLinks
+    }, [filteredGraphData, externalLinks])
 
     // Cleanup on unmount
     useEffect(() => {
@@ -2159,8 +2395,10 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                                             {node.isExternal
                                                 ? node.totalUsd
                                                     ? `${node.uniqueUsers} users, $${node.totalUsd.toFixed(0)}`
-                                                    : `${node.uniqueUsers} users, ${node.volume || 'N/A'}`
-                                                : `${node.totalPoints?.toLocaleString() || 0} pts`}
+                                                    : `${node.size || node.volume || 'N/A'}`
+                                                : node.totalPoints
+                                                  ? `${node.totalPoints.toLocaleString()} pts`
+                                                  : node.size || 'N/A'}
                                         </span>
                                     </button>
                                 ))}
@@ -2201,44 +2439,18 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                     ref={graphRef}
                     graphData={{
                         nodes: combinedGraphNodes,
-                        links: [
-                            // Invite edges (reversed for arrow direction)
-                            ...filteredGraphData.edges.map((edge) => ({
-                                ...edge,
-                                source: edge.target,
-                                target: edge.source,
-                                isP2P: false,
-                                isExternal: false,
-                            })),
-                            // P2P payment edges (for clustering visualization)
-                            // Include both full mode (count/totalUsd) and anonymized mode (frequency/volume) fields
-                            ...(filteredGraphData.p2pEdges || []).map((edge, i) => ({
-                                id: `p2p-${i}`,
-                                source: edge.source,
-                                target: edge.target,
-                                type: edge.type,
-                                count: edge.count,
-                                totalUsd: edge.totalUsd,
-                                frequency: edge.frequency,
-                                volume: edge.volume,
-                                bidirectional: edge.bidirectional,
-                                isP2P: true,
-                                isExternal: false,
-                            })),
-                            // External node links (user → external)
-                            ...externalLinks,
-                        ],
+                        links: combinedLinks,
                     }}
                     nodeId="id"
                     nodePointerAreaPaint={(node: any, color: string, ctx: CanvasRenderingContext2D) => {
                         // Draw hit detection area matching actual rendered node size
                         let size: number
                         if (node.isExternal) {
-                            size = 4 + Math.log2(node.uniqueUsers || 1) * 2
+                            size = 4 + Math.log2(getExternalNodeUsers(node)) * 2
                         } else {
                             const hasAccess = node.hasAppAccess
                             const baseSize = hasAccess ? 6 : 3
-                            const pointsMultiplier = Math.sqrt(node.totalPoints || 0) / 10
+                            const pointsMultiplier = Math.sqrt(getNodePoints(node)) / 10
                             size = baseSize + Math.min(pointsMultiplier, 25)
                         }
                         ctx.fillStyle = color
@@ -2265,11 +2477,15 @@ export default function InvitesGraph(props: InvitesGraphProps) {
 
                             // Anonymized mode: show qualitative labels instead of exact values
                             if (isAnonymized) {
+                                // In payment mode, uniqueUsers is not sent - use size label or userIds count
+                                const userCount = node.uniqueUsers ?? (node.userIds?.length || 0)
+                                const userDisplay = node.size || userCount
+
                                 return `<div style="background: white; border-radius: 8px; border: 1px solid #e5e7eb; font-family: Inter, system-ui, sans-serif; max-width: 280px; padding: 12px 14px;">
                                     <div style="font-weight: 700; margin-bottom: 8px; font-size: 14px; color: #1f2937;">${typeLabel}</div>
                                     <div style="font-size: 12px; line-height: 1.6; color: #6b7280;">
                                         <div style="margin-bottom: 4px; word-break: break-all;">🏷️ ${displayLabel}: <span style="color: #374151; font-weight: 600;">${node.label}</span></div>
-                                        <div style="margin-bottom: 4px;">👥 Users: <span style="color: #374151;">${node.uniqueUsers}</span></div>
+                                        <div style="margin-bottom: 4px;">👥 Users: <span style="color: #374151;">${userDisplay}</span></div>
                                         <div style="margin-bottom: 4px;">📊 Activity: <span style="color: #374151;">${node.frequency || 'N/A'}</span></div>
                                         <div>💵 Volume: <span style="color: #374151;">${node.volume || 'N/A'}</span></div>
                                     </div>
@@ -2280,8 +2496,8 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                                 <div style="font-weight: 700; margin-bottom: 8px; font-size: 14px; color: #1f2937;">${typeLabel}</div>
                                 <div style="font-size: 12px; line-height: 1.6; color: #6b7280;">
                                     <div style="margin-bottom: 4px; word-break: break-all;">🏷️ ${displayLabel}: <span style="color: #374151; font-weight: 600;">${node.label}</span></div>
-                                    <div style="margin-bottom: 4px;">👥 Users: <span style="color: #374151;">${node.uniqueUsers}</span></div>
-                                    <div style="margin-bottom: 4px;">📊 Transactions: <span style="color: #374151;">${node.txCount}</span></div>
+                                    <div style="margin-bottom: 4px;">👥 Users: <span style="color: #374151;">${node.uniqueUsers ?? (node.userIds?.length || 0)}</span></div>
+                                    <div style="margin-bottom: 4px;">📊 Transactions: <span style="color: #374151;">${node.txCount ?? 'N/A'}</span></div>
                                     <div>💵 Volume: <span style="color: #374151;">$${(node.totalUsd || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span></div>
                                 </div>
                             </div>`
@@ -2317,9 +2533,13 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                                 ${invitedBy ? `<div style="margin-bottom: 4px;">👤 Invited by: <span style="color: #8b5cf6; font-weight: 500;">${invitedBy}</span></div>` : ''}
                                 <div style="margin-bottom: 4px;">${node.hasAppAccess ? '<span style="color: #10b981;">✓ Has Access</span>' : '<span style="color: #f59e0b;">⏳ Jailed</span>'}</div>
                                 ${kycDisplay ? `<div style="margin-bottom: 4px;">🪪 KYC: <span style="color: #374151;">${kycDisplay}</span></div>` : ''}
-                                <div style="margin-top: 6px; padding-top: 6px; border-top: 1px solid #e5e7eb; color: #9ca3af; font-size: 11px;">
+                                ${
+                                    node.totalPoints
+                                        ? `<div style="margin-top: 6px; padding-top: 6px; border-top: 1px solid #e5e7eb; color: #9ca3af; font-size: 11px;">
                                     ${node.totalPoints.toLocaleString()} pts (${node.directPoints} direct, ${node.transitivePoints} trans)
-                                </div>
+                                </div>`
+                                        : ''
+                                }
                             </div>
                         </div>`
                     }}
