@@ -12,7 +12,7 @@ import EmptyState from '../Global/EmptyStates/EmptyState'
 import { useAuth } from '@/context/authContext'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { DynamicBankAccountForm, type IBankAccountDetails } from './DynamicBankAccountForm'
-import { addBankAccount } from '@/app/actions/users'
+import { addBankAccount, updateUserById } from '@/app/actions/users'
 import { type BridgeKycStatus } from '@/utils/bridge-accounts.utils'
 import { type AddBankAccountPayload } from '@/app/actions/types/users.types'
 import { useWebSocket } from '@/hooks/useWebSocket'
@@ -136,6 +136,24 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
         // scenario (2): if the user hasn't completed kyc yet
         if (!isUserKycVerified) {
+            // update user's name and email if they are not present
+            const hasNameOnLoad = !!user?.user.fullName
+            const hasEmailOnLoad = !!user?.user.email
+
+            if (!hasNameOnLoad || !hasEmailOnLoad) {
+                if (user?.user.userId && rawData.accountOwnerName && rawData.email) {
+                    const result = await updateUserById({
+                        userId: user.user.userId,
+                        fullName: rawData.accountOwnerName.trim(),
+                        email: rawData.email,
+                    })
+                    if (result.error) {
+                        return { error: result.error }
+                    }
+                    await fetchUser()
+                }
+            }
+
             setIsKycModalOpen(true)
         }
 

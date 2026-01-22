@@ -5,6 +5,7 @@ import { KycVerificationInProgressModal } from './KycVerificationInProgressModal
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { saveRedirectUrl } from '@/utils/general.utils'
 import useClaimLink from '../Claim/useClaimLink'
+import { useEffect } from 'react'
 
 interface BridgeKycModalFlowProps {
     isOpen: boolean
@@ -29,8 +30,14 @@ export const InitiateBridgeKYCModal = ({
         handleInitiateKyc,
         handleIframeClose,
         closeVerificationProgressModal,
+        resetError,
     } = useBridgeKycFlow({ onKycSuccess, flow, onManualClose })
     const { addParamStep } = useClaimLink()
+
+    // Reset error whenever modal open state changes to ensure clean state
+    useEffect(() => {
+        resetError()
+    }, [isOpen, resetError])
 
     const handleVerifyClick = async () => {
         addParamStep('bank')
@@ -61,14 +68,17 @@ export const InitiateBridgeKYCModal = ({
                         icon: 'check-circle',
                         className: 'h-11',
                     },
-                    {
-                        hidden: !error,
-                        text: error ?? 'Retry',
-                        onClick: onClose,
-                        variant: 'transparent',
-                        className:
-                            'underline text-xs md:text-sm !font-normal w-full !transform-none !pt-2 text-error-3 px-0',
-                    },
+                    ...(error
+                        ? [
+                              {
+                                  text: error,
+                                  onClick: onClose,
+                                  variant: 'transparent' as const,
+                                  className:
+                                      'underline text-xs md:text-sm !font-normal w-full !transform-none !pt-2 text-error-3 px-0',
+                              },
+                          ]
+                        : []),
                 ]}
             />
             <IframeWrapper {...iframeOptions} onClose={handleIframeClose} />
