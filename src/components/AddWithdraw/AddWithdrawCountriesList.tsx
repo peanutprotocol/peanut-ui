@@ -141,16 +141,30 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             const hasEmailOnLoad = !!user?.user.email
 
             if (!hasNameOnLoad || !hasEmailOnLoad) {
-                if (user?.user.userId && rawData.accountOwnerName && rawData.email) {
-                    const result = await updateUserById({
-                        userId: user.user.userId,
-                        fullName: rawData.accountOwnerName.trim(),
-                        email: rawData.email,
-                    })
-                    if (result.error) {
-                        return { error: result.error }
+                if (user?.user.userId) {
+                    // Build update payload to only update missing fields
+                    const updatePayload: Record<string, any> = { userId: user.user.userId }
+
+                    if (!hasNameOnLoad && rawData.accountOwnerName) {
+                        updatePayload.fullName = rawData.accountOwnerName.trim()
                     }
-                    await fetchUser()
+
+                    if (!hasEmailOnLoad && rawData.email) {
+                        updatePayload.email = rawData.email.trim()
+                    }
+
+                    // Only call update if we have fields to update
+                    if (Object.keys(updatePayload).length > 1) {
+                        const result = await updateUserById(updatePayload)
+                        if (result.error) {
+                            return { error: result.error }
+                        }
+                        try {
+                            await fetchUser()
+                        } catch (err) {
+                            console.error('Failed to refresh user data after update:', err)
+                        }
+                    }
                 }
             }
 
