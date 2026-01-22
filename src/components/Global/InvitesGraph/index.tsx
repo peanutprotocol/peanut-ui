@@ -326,14 +326,14 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                   types: { WALLET: false, BANK: false, MERCHANT: true },
               }
             : DEFAULT_EXTERNAL_NODES_CONFIG
-    // Apply payment mode external link force adjustment (0.1x default)
+    // Apply payment mode external link force adjustment (0.01x default - very weak to avoid clustering)
     const finalModeForceConfig: ForceConfig =
         mode === 'payment'
             ? {
                   ...modeForceConfig,
                   externalLinks: {
                       ...DEFAULT_FORCE_CONFIG.externalLinks,
-                      strength: DEFAULT_FORCE_CONFIG.externalLinks.strength * 0.1,
+                      strength: DEFAULT_FORCE_CONFIG.externalLinks.strength * 0.01,
                   },
               }
             : modeForceConfig
@@ -382,16 +382,19 @@ export default function InvitesGraph(props: InvitesGraphProps) {
     const [externalNodesData, setExternalNodesData] = useState<ExternalNode[]>([])
     const [externalNodesLoading, setExternalNodesLoading] = useState(false)
     const [externalNodesError, setExternalNodesError] = useState<string | null>(null)
-    const externalNodesFetchedRef = useRef(false) // Track if we've fetched (don't refetch on toggle off/on)
+    // Track fetch state: stores the limit used for last fetch, or null if never fetched
+    // This allows refetch when limit changes while preventing refetch on toggle off/on
+    const externalNodesFetchedLimitRef = useRef<number | null>(null)
 
     // Graph preferences persistence
     const { preferences, savePreferences, isLoaded: preferencesLoaded } = useGraphPreferences()
     const preferencesRestoredRef = useRef(false)
 
-    // Load preferences ONCE on mount (only in full mode)
+    // Load preferences ONCE on mount (only in full mode, not minimal or payment)
     // Using preferencesLoaded as the only dependency - preferences won't change after load
+    const isPaymentMode = mode === 'payment'
     useEffect(() => {
-        if (isMinimal || !preferencesLoaded || preferencesRestoredRef.current) return
+        if (isMinimal || isPaymentMode || !preferencesLoaded || preferencesRestoredRef.current) return
 
         // Mark as restored immediately to prevent any re-runs
         preferencesRestoredRef.current = true
@@ -441,12 +444,13 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         if (preferences.topNodes !== undefined) setTopNodes(preferences.topNodes)
 
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [preferencesLoaded, isMinimal]) // Only depend on preferencesLoaded, not preferences
+    }, [preferencesLoaded, isMinimal, isPaymentMode]) // Only depend on preferencesLoaded, not preferences
 
     // Auto-save preferences when they change (debounced to avoid excessive writes)
     // Skip saving until preferences have been restored to avoid overwriting with defaults
+    // Also skip in payment mode - payment mode has its own defaults and shouldn't pollute full-graph prefs
     useEffect(() => {
-        if (isMinimal || !preferencesRestoredRef.current) return
+        if (isMinimal || isPaymentMode || !preferencesRestoredRef.current) return
 
         const timeout = setTimeout(() => {
             savePreferences({
@@ -594,7 +598,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         const now = Date.now()
         const activityCutoff = now - activityFilter.activityDays * 24 * 60 * 60 * 1000
 
-        return externalNodesData.filter((node) => {
+        const filtered = externalNodesData.filter((node) => {
             // Filter by minConnections
             if (node.uniqueUsers < externalNodesConfig.minConnections) return false
             // Filter by type
@@ -606,6 +610,23 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             }
             return true
         })
+
+        // Debug logging
+        const byType = {
+            WALLET: filtered.filter((n) => n.type === 'WALLET').length,
+            BANK: filtered.filter((n) => n.type === 'BANK').length,
+            MERCHANT: filtered.filter((n) => n.type === 'MERCHANT').length,
+        }
+        console.log('[ExternalNodes] After client filter:', {
+            total: filtered.length,
+            byType,
+            config: {
+                minConnections: externalNodesConfig.minConnections,
+                types: externalNodesConfig.types,
+                activityDays: activityFilter.activityDays,
+            },
+        })
+        return filtered
     }, [externalNodesData, externalNodesConfig, activityFilter.activityDays])
 
     // Build combined graph nodes including external nodes
@@ -625,8 +646,8 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         // Get set of user IDs in the graph for filtering links
         const userIdsInGraph = new Set(filteredGraphData.nodes.map((n) => n.id))
 
-        // Helper to extract userId from userTxData keys
-        // Keys can be: `${userId}_${direction}` (new format) or just `${userId}` (old format)
+        // Helper to extract userId from userTxData keys (full mode only)
+        // Keys can be: `${userId}_${direction}` (e.g., "abc123_INCOMING") or just `${userId}` (old format)
         // User IDs may contain underscores, so we use lastIndexOf to find the direction suffix
         const extractUserIdFromKey = (key: string): string => {
             if (key.endsWith('_INCOMING') || key.endsWith('_OUTGOING')) {
@@ -635,17 +656,33 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             return key // Old format: key is just the userId
         }
 
+        // Get connected user IDs for an external node
+        // In payment mode: use userIds array (real UUIDs for graph linking)
+        // In full mode: use userIds if available, otherwise extract from userTxData keys
+        const getConnectedUserIds = (ext: ExternalNode): string[] => {
+            if (ext.userIds && ext.userIds.length > 0) {
+                return ext.userIds
+            }
+            return Object.keys(ext.userTxData || {}).map(extractUserIdFromKey)
+        }
+
         // Add external nodes with position hint (start them at edges)
         // x, y will be populated by force simulation at runtime
+        // Track filtered out nodes for debugging
+        const filteredOutByVisibility = { WALLET: 0, BANK: 0, MERCHANT: 0 }
         const externalNodes = filteredExternalNodes
             .filter((ext) => {
                 // Only show if connected to visible users
-                // In anonymized mode, check userTxData keys for user IDs
-                const connectedUserIds = ext.userIds || Object.keys(ext.userTxData || {}).map(extractUserIdFromKey)
-                return connectedUserIds.some((uid: string) => userIdsInGraph.has(uid))
+                const connectedUserIds = getConnectedUserIds(ext)
+                const hasVisibleUser = connectedUserIds.some((uid: string) => userIdsInGraph.has(uid))
+                if (!hasVisibleUser) {
+                    filteredOutByVisibility[ext.type as keyof typeof filteredOutByVisibility]++
+                }
+                return hasVisibleUser
             })
             .map((ext) => {
-                const connectedUserIds = ext.userIds || Object.keys(ext.userTxData || {}).map(extractUserIdFromKey)
+                const connectedUserIds = getConnectedUserIds(ext)
+                const filteredUserIds = connectedUserIds.filter((uid: string) => userIdsInGraph.has(uid))
                 return {
                     id: `ext_${ext.id}`,
                     label: ext.label,
@@ -655,12 +692,24 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                     totalUsd: ext.totalUsd,
                     frequency: ext.frequency,
                     volume: ext.volume,
-                    userIds: connectedUserIds.filter((uid: string) => userIdsInGraph.has(uid)),
+                    userIds: filteredUserIds,
                     isExternal: true as const,
                     x: undefined as number | undefined,
                     y: undefined as number | undefined,
                 }
             })
+
+        // Debug logging
+        const visibleByType = {
+            WALLET: externalNodes.filter((n) => n.externalType === 'WALLET').length,
+            BANK: externalNodes.filter((n) => n.externalType === 'BANK').length,
+            MERCHANT: externalNodes.filter((n) => n.externalType === 'MERCHANT').length,
+        }
+        console.log('[ExternalNodes] After visible users filter:', {
+            visible: visibleByType,
+            filteredOut: filteredOutByVisibility,
+            visibleUserCount: userIdsInGraph.size,
+        })
 
         return [...userNodes, ...externalNodes]
     }, [filteredGraphData, filteredExternalNodes, externalNodesConfig.enabled])
@@ -674,6 +723,8 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         }
 
         const userIdsInGraph = new Set(filteredGraphData.nodes.map((n) => n.id))
+        const isPaymentMode = mode === 'payment'
+
         type ExternalLink = {
             source: string
             target: string
@@ -686,7 +737,25 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         filteredExternalNodes.forEach((ext) => {
             const extNodeId = `ext_${ext.id}`
 
-            // userTxData keys can be in two formats:
+            // In payment mode, userTxData keys are anonymized (hex IDs) but we have userIds array with real UUIDs
+            // Use userIds for linking since it matches the user node IDs
+            if (isPaymentMode && ext.userIds) {
+                ext.userIds.forEach((userId: string) => {
+                    if (!userIdsInGraph.has(userId)) return
+                    // In payment mode, use the overall merchant frequency/volume since per-user data is anonymized
+                    links.push({
+                        source: userId,
+                        target: extNodeId,
+                        isExternal: true,
+                        frequency: ext.frequency || 'occasional',
+                        volume: ext.volume || 'medium',
+                        direction: 'OUTGOING', // Default direction for payment mode
+                    })
+                })
+                return
+            }
+
+            // Full mode: userTxData keys can be in two formats:
             // - New format: `${userId}_${direction}` (e.g., "abc123_INCOMING", "abc123_OUTGOING")
             // - Old format: just `${userId}` (e.g., "abc123") - backwards compatibility
             Object.entries(ext.userTxData || {}).forEach(([key, data]) => {
@@ -735,7 +804,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         })
 
         return links
-    }, [filteredExternalNodes, filteredGraphData, externalNodesConfig.enabled])
+    }, [filteredExternalNodes, filteredGraphData, externalNodesConfig.enabled, mode])
 
     // Fetch graph data on mount and when topNodes changes (only in full mode)
     // Note: topNodes filtering only applies to full mode (payment mode has fixed 5000 limit in backend)
@@ -747,11 +816,11 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             setError(null)
 
             // API only supports 'full' | 'payment' modes (user mode uses different endpoint)
-            const apiMode = props.mode === 'payment' ? 'payment' : 'full'
-            // Only pass topNodes for full mode (payment mode ignores it, has its own limit)
+            const apiMode = mode === 'payment' ? 'payment' : 'full'
+            // Pass topNodes for both modes - payment mode now supports it via Performance button
             const result = await pointsApi.getInvitesGraph(props.apiKey, {
                 mode: apiMode,
-                topNodes: apiMode === 'full' ? topNodes : undefined,
+                topNodes: topNodes > 0 ? topNodes : undefined,
             })
 
             if (result.success && result.data) {
@@ -767,10 +836,13 @@ export default function InvitesGraph(props: InvitesGraphProps) {
     }, [isMinimal, !isMinimal && props.apiKey, mode, topNodes])
 
     // Fetch external nodes when enabled (lazy load on first enable)
+    // Refetch if limit changes (but not on simple toggle off/on)
     useEffect(() => {
         if (isMinimal) return
         if (!externalNodesConfig.enabled) return
-        if (externalNodesFetchedRef.current) return // Already fetched, don't refetch
+        // Skip if already fetched with same or higher limit (no need to refetch for same data)
+        const lastLimit = externalNodesFetchedLimitRef.current
+        if (lastLimit !== null && lastLimit >= externalNodesConfig.limit) return
 
         const fetchExternalNodes = async () => {
             setExternalNodesLoading(true)
@@ -778,16 +850,31 @@ export default function InvitesGraph(props: InvitesGraphProps) {
 
             try {
                 // API only supports 'full' | 'payment' modes
-                const apiMode = props.mode === 'payment' ? 'payment' : 'full'
+                const apiMode = mode === 'payment' ? 'payment' : 'full'
+                // Fetch ALL types so user can toggle client-side without refetch
+                // Backend defaults to MERCHANT only in payment mode, so we must explicitly request all
                 const result = await pointsApi.getExternalNodes(props.apiKey, {
                     mode: apiMode,
                     minConnections: 1, // Fetch all, filter client-side for flexibility
                     limit: externalNodesConfig.limit, // User-configurable limit
+                    types: ['WALLET', 'BANK', 'MERCHANT'], // Fetch all types, filter client-side
                 })
 
                 if (result.success && result.data) {
+                    // Debug logging for external nodes
+                    const byType = {
+                        WALLET: result.data.nodes.filter((n) => n.type === 'WALLET').length,
+                        BANK: result.data.nodes.filter((n) => n.type === 'BANK').length,
+                        MERCHANT: result.data.nodes.filter((n) => n.type === 'MERCHANT').length,
+                    }
+                    console.log('[ExternalNodes] Fetched:', {
+                        total: result.data.nodes.length,
+                        byType,
+                        stats: result.data.stats,
+                        mode: apiMode,
+                    })
                     setExternalNodesData(result.data.nodes)
-                    externalNodesFetchedRef.current = true
+                    externalNodesFetchedLimitRef.current = externalNodesConfig.limit
                 } else {
                     const errorMsg = result.error || 'Unknown error'
                     setExternalNodesError(errorMsg)
@@ -803,7 +890,8 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         }
 
         fetchExternalNodes()
-    }, [isMinimal, props.apiKey, externalNodesConfig.enabled])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isMinimal, !isMinimal && props.apiKey, externalNodesConfig.enabled, mode, externalNodesConfig.limit])
 
     // Track display settings with ref to avoid re-renders
     // NOTE: These settings only affect RENDERING, not force simulation
@@ -2199,13 +2287,10 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                             </div>`
                         }
 
-                        // User node tooltip - anonymized in payment mode
+                        // User node tooltip - anonymized in payment mode (minimal, no status)
                         if (isAnonymized) {
                             return `<div style="background: white; border-radius: 8px; border: 1px solid #e5e7eb; font-family: Inter, system-ui, sans-serif; max-width: 240px; padding: 12px 14px; box-shadow: none;">
-                                <div style="font-weight: 700; margin-bottom: 8px; font-size: 14px; color: #1f2937; font-family: monospace;">${node.username || 'User'}</div>
-                                <div style="font-size: 12px; line-height: 1.6; color: #6b7280;">
-                                    <div style="margin-bottom: 4px;">${node.hasAppAccess ? '<span style="color: #10b981;">✓ Active User</span>' : '<span style="color: #f59e0b;">⏳ Inactive</span>'}</div>
-                                </div>
+                                <div style="font-weight: 700; font-size: 14px; color: #1f2937; font-family: monospace;">${node.username || 'User'}</div>
                             </div>`
                         }
 

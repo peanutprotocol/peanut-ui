@@ -24,7 +24,7 @@ export default function DevToolsPage() {
         },
         {
             name: 'Payment Graph',
-            description: 'P2P payment flow visualization (120-day window, no invites)',
+            description: 'P2P payment flow visualization',
             path: '/dev/payment-graph',
             icon: '💸',
             status: 'active',

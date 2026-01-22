@@ -481,8 +481,8 @@ export default function FullGraphPage() {
                                             <div className="space-y-0.5">
                                                 <div className="flex items-center justify-between">
                                                     <span className="text-[9px] text-gray-500">Min users:</span>
-                                                    <div className="flex gap-1">
-                                                        {[1, 2, 3, 5, 10].map((val) => (
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {[1, 2, 3, 5, 10, 20, 50].map((val) => (
                                                             <button
                                                                 key={val}
                                                                 onClick={() =>

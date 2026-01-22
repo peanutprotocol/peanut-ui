@@ -113,12 +113,13 @@ type ExternalNodesResponse = {
 async function fetchInvitesGraph(
     endpoint: string,
     extraHeaders?: Record<string, string>,
-    handleStatusError?: (status: number) => string | null
+    handleStatusError?: (status: number) => string | null,
+    requiresAuth: boolean = true
 ): Promise<InvitesGraphResponse> {
     try {
-        // Get JWT token for user authentication
+        // Get JWT token for user authentication (optional in payment mode)
         const jwtToken = Cookies.get('jwt-token')
-        if (!jwtToken) {
+        if (requiresAuth && !jwtToken) {
             console.error('getInvitesGraph: No JWT token found')
             return { success: false, data: null, error: 'Not authenticated. Please log in.' }
         }
@@ -127,13 +128,18 @@ async function fetchInvitesGraph(
         const controller = new AbortController()
         const timeoutId = setTimeout(() => controller.abort(), 30000)
 
+        // Build headers - JWT is optional when requiresAuth is false
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+            ...extraHeaders,
+        }
+        if (jwtToken) {
+            headers['Authorization'] = `Bearer ${jwtToken}`
+        }
+
         const response = await fetchWithSentry(`${PEANUT_API_URL}${endpoint}`, {
             method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${jwtToken}`,
-                ...extraHeaders,
-            },
+            headers,
             signal: controller.signal,
         })
 
@@ -294,22 +300,29 @@ export const pointsApi = {
         apiKey: string,
         options?: { mode?: 'full' | 'payment'; topNodes?: number }
     ): Promise<InvitesGraphResponse> => {
+        const isPaymentMode = options?.mode === 'payment'
         const params = new URLSearchParams()
-        if (options?.mode === 'payment') {
+        if (isPaymentMode) {
             params.set('mode', 'payment')
         }
         if (options?.topNodes && options.topNodes > 0) {
             params.set('topNodes', options.topNodes.toString())
         }
         const endpoint = `/invites/graph${params.toString() ? `?${params}` : ''}`
-        return fetchInvitesGraph(endpoint, { 'api-key': apiKey }, (status) => {
-            if (status === 403) {
-                return 'Access denied. Only authorized users can access this tool.'
-            } else if (status === 401) {
-                return 'Invalid API key or authentication token.'
-            }
-            return null
-        })
+        // Payment mode only requires API key, full mode requires JWT
+        return fetchInvitesGraph(
+            endpoint,
+            { 'api-key': apiKey },
+            (status) => {
+                if (status === 403) {
+                    return 'Access denied. Only authorized users can access this tool.'
+                } else if (status === 401) {
+                    return 'Invalid API key or authentication token.'
+                }
+                return null
+            },
+            !isPaymentMode // requiresAuth = false for payment mode
+        )
     },
 
     getUserInvitesGraph: async (): Promise<InvitesGraphResponse> => {
@@ -327,7 +340,9 @@ export const pointsApi = {
     ): Promise<ExternalNodesResponse> => {
         try {
             const jwtToken = Cookies.get('jwt-token')
-            if (!jwtToken) {
+            // Payment mode only requires API key, full mode requires JWT
+            const isPaymentMode = options?.mode === 'payment'
+            if (!isPaymentMode && !jwtToken) {
                 return { success: false, data: null, error: 'Not authenticated. Please log in.' }
             }
 
@@ -348,13 +363,18 @@ export const pointsApi = {
 
             const url = `${PEANUT_API_URL}/invites/graph/external${params.toString() ? `?${params}` : ''}`
 
+            // Build headers - JWT is optional in payment mode
+            const headers: Record<string, string> = {
+                'Content-Type': 'application/json',
+                'api-key': apiKey,
+            }
+            if (jwtToken) {
+                headers['Authorization'] = `Bearer ${jwtToken}`
+            }
+
             const response = await fetchWithSentry(url, {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${jwtToken}`,
-                    'api-key': apiKey,
-                },
+                headers,
             })
 
             if (!response.ok) {

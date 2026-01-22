@@ -8,6 +8,8 @@ export default function PaymentGraphPage() {
     const [apiKey, setApiKey] = useState('')
     const [apiKeySubmitted, setApiKeySubmitted] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    // Performance mode: limit to 1000 top nodes
+    const [performanceMode, setPerformanceMode] = useState(false)
 
     const handleApiKeySubmit = useCallback(() => {
         if (!apiKey.trim()) {
@@ -30,9 +32,7 @@ export default function PaymentGraphPage() {
                     <div className="text-center">
                         <div className="mb-4 text-6xl">💸</div>
                         <h2 className="mb-2 text-2xl font-bold text-gray-900">Payment Graph</h2>
-                        <p className="text-sm text-gray-600">
-                            P2P payment flow visualization (120-day window, no invites)
-                        </p>
+                        <p className="text-sm text-gray-600">P2P payment flow visualization</p>
                     </div>
                     {error && (
                         <div className="bg-red-50 text-red-800 rounded-lg p-3 text-sm">
@@ -65,8 +65,10 @@ export default function PaymentGraphPage() {
     return (
         <div className="fixed inset-0 z-50 flex flex-col bg-gray-50">
             <InvitesGraph
+                key={`payment-graph-${performanceMode ? 'perf' : 'full'}`}
                 apiKey={apiKey}
                 mode="payment"
+                topNodes={performanceMode ? 1000 : 0}
                 onClose={handleClose}
                 width={typeof window !== 'undefined' ? window.innerWidth : 1200}
                 height={typeof window !== 'undefined' ? window.innerHeight - 120 : 800}
@@ -267,7 +269,7 @@ export default function PaymentGraphPage() {
                                 {/* Divider */}
                                 <div className="my-1 border-t border-gray-200"></div>
 
-                                {/* Merchants Section */}
+                                {/* External Nodes Section */}
                                 <div className="space-y-1">
                                     <div className="flex items-center gap-1.5">
                                         <input
@@ -283,11 +285,11 @@ export default function PaymentGraphPage() {
                                                         : externalNodesConfig.types,
                                                 })
                                             }
-                                            className="h-3 w-3 rounded border-gray-300 text-green-600"
+                                            className="h-3 w-3 rounded border-gray-300 text-orange-600"
                                         />
-                                        <span className="text-gray-700">Merchants</span>
+                                        <span className="text-gray-700">External Nodes</span>
                                         {externalNodesLoading && (
-                                            <span className="ml-auto animate-pulse text-[9px] text-green-500">
+                                            <span className="ml-auto animate-pulse text-[9px] text-orange-500">
                                                 loading...
                                             </span>
                                         )}
@@ -309,13 +311,65 @@ export default function PaymentGraphPage() {
                                     </div>
                                     {externalNodesConfig.enabled && !externalNodesError && (
                                         <div className="space-y-1.5 pl-4">
+                                            {/* Type filters - emoji only */}
+                                            <div className="flex gap-2 text-[9px]">
+                                                <label className="flex cursor-pointer items-center gap-0.5">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={externalNodesConfig.types.WALLET}
+                                                        onChange={(e) =>
+                                                            setExternalNodesConfig({
+                                                                ...externalNodesConfig,
+                                                                types: {
+                                                                    ...externalNodesConfig.types,
+                                                                    WALLET: e.target.checked,
+                                                                },
+                                                            })
+                                                        }
+                                                        className="h-2.5 w-2.5 rounded border-gray-300 text-orange-500"
+                                                    />
+                                                    <span className="text-orange-600">₿</span>
+                                                </label>
+                                                <label className="flex cursor-pointer items-center gap-0.5">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={externalNodesConfig.types.BANK}
+                                                        onChange={(e) =>
+                                                            setExternalNodesConfig({
+                                                                ...externalNodesConfig,
+                                                                types: {
+                                                                    ...externalNodesConfig.types,
+                                                                    BANK: e.target.checked,
+                                                                },
+                                                            })
+                                                        }
+                                                        className="h-2.5 w-2.5 rounded border-gray-300 text-blue-500"
+                                                    />
+                                                    <span className="text-blue-600">🏦</span>
+                                                </label>
+                                                <label className="flex cursor-pointer items-center gap-0.5">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={externalNodesConfig.types.MERCHANT}
+                                                        onChange={(e) =>
+                                                            setExternalNodesConfig({
+                                                                ...externalNodesConfig,
+                                                                types: {
+                                                                    ...externalNodesConfig.types,
+                                                                    MERCHANT: e.target.checked,
+                                                                },
+                                                            })
+                                                        }
+                                                        className="h-2.5 w-2.5 rounded border-gray-300 text-green-500"
+                                                    />
+                                                    <span className="text-green-600">🏪</span>
+                                                </label>
+                                            </div>
                                             {/* Min connections */}
                                             <div className="space-y-1">
-                                                <span className="text-[9px] text-gray-500">
-                                                    Min users to show merchant:
-                                                </span>
-                                                <div className="flex gap-0.5">
-                                                    {[1, 2, 3, 5, 10].map((val) => (
+                                                <span className="text-[9px] text-gray-500">Min users:</span>
+                                                <div className="flex flex-wrap gap-0.5">
+                                                    {[1, 2, 3, 5, 10, 20, 50].map((val) => (
                                                         <button
                                                             key={val}
                                                             onClick={() =>
@@ -326,7 +380,7 @@ export default function PaymentGraphPage() {
                                                             }
                                                             className={`rounded px-1 py-0.5 text-[9px] transition-colors ${
                                                                 externalNodesConfig.minConnections === val
-                                                                    ? 'bg-green-600 text-white'
+                                                                    ? 'bg-orange-600 text-white'
                                                                     : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
                                                             }`}
                                                         >
@@ -355,7 +409,7 @@ export default function PaymentGraphPage() {
                                                                     },
                                                                 })
                                                             }
-                                                            className="h-2.5 w-2.5 rounded border-gray-300 text-green-500"
+                                                            className="h-2.5 w-2.5 rounded border-gray-300 text-orange-500"
                                                         />
                                                         <span className="text-[9px] text-gray-600">Link Force</span>
                                                     </div>
@@ -395,7 +449,7 @@ export default function PaymentGraphPage() {
                                                                 },
                                                             })
                                                         }
-                                                        className="h-1 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 accent-green-500"
+                                                        className="h-1 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 accent-orange-500"
                                                     />
                                                 )}
                                             </div>
@@ -417,6 +471,21 @@ export default function PaymentGraphPage() {
                                         />
                                         <span className="text-gray-600">Names</span>
                                     </label>
+                                </div>
+
+                                {/* Performance mode toggle */}
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => setPerformanceMode(!performanceMode)}
+                                        className={`flex-1 rounded border px-2 py-1 text-[10px] transition-colors ${
+                                            performanceMode
+                                                ? 'border-green-500 bg-green-50 text-green-700'
+                                                : 'border-gray-200 text-gray-500 hover:bg-gray-50'
+                                        }`}
+                                        title="Limit to top 1000 nodes for better performance"
+                                    >
+                                        ⚡ Performance {performanceMode ? 'ON' : 'OFF'}
+                                    </button>
                                 </div>
 
                                 {/* Action buttons */}
@@ -455,16 +524,30 @@ export default function PaymentGraphPage() {
                                     {/* External nodes */}
                                     {externalNodesConfig.enabled && (
                                         <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-gray-500">
-                                            <span className="flex items-center gap-0.5">
-                                                <span
-                                                    className="inline-block h-2 w-2 bg-green-500"
-                                                    style={{
-                                                        clipPath:
-                                                            'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
-                                                    }}
-                                                ></span>
-                                                Merchant
-                                            </span>
+                                            {externalNodesConfig.types.WALLET && (
+                                                <span className="flex items-center gap-0.5">
+                                                    <span className="inline-block h-2 w-2 rotate-45 bg-orange-500"></span>
+                                                    ₿
+                                                </span>
+                                            )}
+                                            {externalNodesConfig.types.BANK && (
+                                                <span className="flex items-center gap-0.5">
+                                                    <span className="inline-block h-2 w-2 bg-blue-500"></span>
+                                                    Bank
+                                                </span>
+                                            )}
+                                            {externalNodesConfig.types.MERCHANT && (
+                                                <span className="flex items-center gap-0.5">
+                                                    <span
+                                                        className="inline-block h-2 w-2 bg-green-500"
+                                                        style={{
+                                                            clipPath:
+                                                                'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
+                                                        }}
+                                                    ></span>
+                                                    Merchant
+                                                </span>
+                                            )}
                                         </div>
                                     )}
                                     {/* Edges */}
@@ -474,7 +557,9 @@ export default function PaymentGraphPage() {
                                         </span>
                                     </div>
                                     <p className="text-gray-400">Click → Grafana | Right-click → Focus</p>
-                                    <p className="text-gray-400">Limited to 5000 nodes for performance</p>
+                                    <p className="text-gray-400">
+                                        {performanceMode ? 'Limited to 1000 nodes' : 'Limited to 5000 nodes'}
+                                    </p>
                                 </div>
                             </div>
                         </div>
