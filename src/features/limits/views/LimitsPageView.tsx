@@ -4,7 +4,6 @@ import { ActionListCard } from '@/components/ActionListCard'
 import { getCardPosition } from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
-import { Button } from '@/components/0_Bruddle/Button'
 import { useIdentityVerification, type Region } from '@/hooks/useIdentityVerification'
 import useKycStatus from '@/hooks/useKycStatus'
 import Image from 'next/image'
@@ -134,13 +133,6 @@ const UnlockedRegionsList = ({ regions, hasMantecaKyc }: UnlockedRegionsListProp
                     }}
                     description={region.description}
                     descriptionClassName="text-xs"
-                    rightContent={
-                        <StatusBadge
-                            status="custom"
-                            customText="Unlocked"
-                            className="border border-success-5 bg-success-2 text-success-4"
-                        />
-                    }
                 />
             ))}
         </div>
@@ -189,21 +181,7 @@ const LockedRegionsList = ({ regions, isBridgeKycPending }: LockedRegionsListPro
                         isDisabled={isPending}
                         description={region.description}
                         descriptionClassName="text-xs"
-                        rightContent={
-                            isPending ? (
-                                <StatusBadge status="pending" />
-                            ) : (
-                                <Button
-                                    shadowSize="4"
-                                    size="small"
-                                    className="h-6 w-6 rounded-full p-0 shadow-[0.12rem_0.12rem_0_#000000]"
-                                >
-                                    <div className="flex size-7 items-center justify-center">
-                                        <span className="text-xs">›</span>
-                                    </div>
-                                </Button>
-                            )
-                        }
+                        rightContent={isPending && <StatusBadge status="pending" />}
                     />
                 )
             })}
