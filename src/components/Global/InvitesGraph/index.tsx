@@ -497,9 +497,11 @@ export default function InvitesGraph(props: InvitesGraphProps) {
 
     // Graph preferences persistence (separate storage for payment vs full mode)
     const isPaymentMode = mode === 'payment'
-    const { preferences, savePreferences, isLoaded: preferencesLoaded } = useGraphPreferences(
-        isPaymentMode ? 'payment' : 'full'
-    )
+    const {
+        preferences,
+        savePreferences,
+        isLoaded: preferencesLoaded,
+    } = useGraphPreferences(isPaymentMode ? 'payment' : 'full')
     const preferencesRestoredRef = useRef(false)
 
     // Load preferences ONCE on mount (not in minimal mode)
@@ -2091,8 +2093,8 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         const allLinks = [...inviteLinks, ...p2pLinks, ...externalLinks]
 
         // Debug logging
-        const externalLinksInFinal = allLinks.filter(l => l.isExternal)
-        const carrefourLinks = externalLinksInFinal.filter(l => (l.target as string).includes('ext_CARREF'))
+        const externalLinksInFinal = allLinks.filter((l) => l.isExternal)
+        const carrefourLinks = externalLinksInFinal.filter((l) => (l.target as string).includes('ext_CARREF'))
 
         console.log('[CombinedLinks] Final links passed to ForceGraph2D:', {
             totalLinks: allLinks.length,
@@ -2100,11 +2102,11 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             p2pLinks: p2pLinks.length,
             externalLinks: externalLinksInFinal.length,
             carrefourLinks: carrefourLinks.length,
-            sampleCarrefourLinks: carrefourLinks.slice(0, 3).map(l => ({
+            sampleCarrefourLinks: carrefourLinks.slice(0, 3).map((l) => ({
                 source: l.source,
                 target: l.target,
-                isExternal: l.isExternal
-            }))
+                isExternal: l.isExternal,
+            })),
         })
 
         return allLinks
