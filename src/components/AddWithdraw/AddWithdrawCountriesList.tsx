@@ -12,7 +12,7 @@ import EmptyState from '../Global/EmptyStates/EmptyState'
 import { useAuth } from '@/context/authContext'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { DynamicBankAccountForm, type IBankAccountDetails } from './DynamicBankAccountForm'
-import { addBankAccount } from '@/app/actions/users'
+import { addBankAccount, updateUserById } from '@/app/actions/users'
 import { type BridgeKycStatus } from '@/utils/bridge-accounts.utils'
 import { type AddBankAccountPayload } from '@/app/actions/types/users.types'
 import { useWebSocket } from '@/hooks/useWebSocket'
@@ -136,6 +136,38 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
         // scenario (2): if the user hasn't completed kyc yet
         if (!isUserKycVerified) {
+            // update user's name and email if they are not present
+            const hasNameOnLoad = !!user?.user.fullName
+            const hasEmailOnLoad = !!user?.user.email
+
+            if (!hasNameOnLoad || !hasEmailOnLoad) {
+                if (user?.user.userId) {
+                    // Build update payload to only update missing fields
+                    const updatePayload: Record<string, any> = { userId: user.user.userId }
+
+                    if (!hasNameOnLoad && rawData.accountOwnerName) {
+                        updatePayload.fullName = rawData.accountOwnerName.trim()
+                    }
+
+                    if (!hasEmailOnLoad && rawData.email) {
+                        updatePayload.email = rawData.email.trim()
+                    }
+
+                    // Only call update if we have fields to update
+                    if (Object.keys(updatePayload).length > 1) {
+                        const result = await updateUserById(updatePayload)
+                        if (result.error) {
+                            return { error: result.error }
+                        }
+                        try {
+                            await fetchUser()
+                        } catch (err) {
+                            console.error('Failed to refresh user data after update:', err)
+                        }
+                    }
+                }
+            }
+
             setIsKycModalOpen(true)
         }
 

@@ -170,6 +170,10 @@ export const useBridgeKycFlow = ({ onKycSuccess, flow, onManualClose }: UseKycFl
         router.push('/home')
     }
 
+    const resetError = useCallback(() => {
+        setError(null)
+    }, [])
+
     return {
         isLoading,
         error,
@@ -179,5 +183,6 @@ export const useBridgeKycFlow = ({ onKycSuccess, flow, onManualClose }: UseKycFl
         handleIframeClose,
         closeVerificationProgressModal,
         closeVerificationModalAndGoHome,
+        resetError,
     }
 }
