@@ -8,6 +8,7 @@ import type {
 } from '@/components/Global/InvitesGraph'
 
 const GRAPH_PREFS_KEY = 'invite-graph-preferences'
+const PAYMENT_GRAPH_PREFS_KEY = 'payment-graph-preferences'
 
 export interface GraphPreferences {
     forceConfig?: ForceConfig
@@ -15,7 +16,8 @@ export interface GraphPreferences {
     activityFilter?: ActivityFilter
     externalNodesConfig?: ExternalNodesConfig
     showUsernames?: boolean
-    showAllNodes?: boolean
+    /** Top N nodes limit (0 = all nodes). Backend-filtered. */
+    topNodes?: number
 }
 
 /**
@@ -25,36 +27,43 @@ export interface GraphPreferences {
  *
  * IMPORTANT: savePreferences does NOT update state to avoid infinite loops
  * It only writes to localStorage. preferences state is only set on initial load.
+ *
+ * @param mode - 'full' for full-graph, 'payment' for payment-graph (separate storage keys)
  */
-export function useGraphPreferences() {
+export function useGraphPreferences(mode: 'full' | 'payment' = 'full') {
     const [preferences, setPreferences] = useState<GraphPreferences | null>(null)
     const [isLoaded, setIsLoaded] = useState(false)
     const initialPrefsRef = useRef<GraphPreferences | null>(null)
 
+    const storageKey = mode === 'payment' ? PAYMENT_GRAPH_PREFS_KEY : GRAPH_PREFS_KEY
+
     // Load preferences on mount
     useEffect(() => {
-        const saved = getFromLocalStorage(GRAPH_PREFS_KEY) as GraphPreferences | null
+        const saved = getFromLocalStorage(storageKey) as GraphPreferences | null
         if (saved) {
             setPreferences(saved)
             initialPrefsRef.current = saved
         }
         setIsLoaded(true)
-    }, [])
+    }, [storageKey])
 
     // Save preferences to localStorage ONLY - does NOT update state to avoid loops
-    const savePreferences = useCallback((prefs: GraphPreferences) => {
-        saveToLocalStorage(GRAPH_PREFS_KEY, prefs)
-        // Don't call setPreferences here - it causes infinite loops
-    }, [])
+    const savePreferences = useCallback(
+        (prefs: GraphPreferences) => {
+            saveToLocalStorage(storageKey, prefs)
+            // Don't call setPreferences here - it causes infinite loops
+        },
+        [storageKey]
+    )
 
     // Clear all preferences
     const clearPreferences = useCallback(() => {
         setPreferences(null)
         initialPrefsRef.current = null
         if (typeof localStorage !== 'undefined') {
-            localStorage.removeItem(GRAPH_PREFS_KEY)
+            localStorage.removeItem(storageKey)
         }
-    }, [])
+    }, [storageKey])
 
     return {
         preferences,
