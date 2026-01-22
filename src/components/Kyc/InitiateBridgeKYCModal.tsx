@@ -34,9 +34,11 @@ export const InitiateBridgeKYCModal = ({
     } = useBridgeKycFlow({ onKycSuccess, flow, onManualClose })
     const { addParamStep } = useClaimLink()
 
-    // Reset error whenever modal open state changes to ensure clean state
+    // Reset error when modal opens to ensure clean state
     useEffect(() => {
-        resetError()
+        if (isOpen) {
+            resetError()
+        }
     }, [isOpen, resetError])
 
     const handleVerifyClick = async () => {
