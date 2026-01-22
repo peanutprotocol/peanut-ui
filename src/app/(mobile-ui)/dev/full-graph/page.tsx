@@ -11,7 +11,7 @@ import InvitesGraph, {
 } from '@/components/Global/InvitesGraph'
 
 // Allowed users for full graph access (frontend check - backend also validates)
-const ALLOWED_USERNAMES = ['squirrel', 'konrad', 'hugo']
+const ALLOWED_USERNAMES = ['squirrel', 'kkonrad', 'hugo']
 
 export default function FullGraphPage() {
     const { user, isFetchingUser } = useAuth()
