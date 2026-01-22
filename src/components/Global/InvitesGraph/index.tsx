@@ -288,6 +288,8 @@ interface BaseProps {
 interface FullModeProps extends BaseProps {
     /** Admin API key to fetch full graph */
     apiKey: string
+    /** Password for payment mode authentication */
+    password?: string
     /** Graph mode: 'full' shows all features, 'payment' shows P2P only (no invites, fixed 120-day window) */
     mode?: GraphMode
     /** Close/back button handler */
@@ -960,9 +962,11 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             // API only supports 'full' | 'payment' modes (user mode uses different endpoint)
             const apiMode = mode === 'payment' ? 'payment' : 'full'
             // Pass topNodes for both modes - payment mode now supports it via Performance button
+            // Pass password for payment mode authentication
             const result = await pointsApi.getInvitesGraph(props.apiKey, {
                 mode: apiMode,
                 topNodes: topNodes > 0 ? topNodes : undefined,
+                password: mode === 'payment' ? props.password : undefined,
             })
 
             if (result.success && result.data) {

@@ -1,31 +1,42 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/0_Bruddle/Button'
 import InvitesGraph, { DEFAULT_FORCE_CONFIG } from '@/components/Global/InvitesGraph'
 
 export default function PaymentGraphPage() {
-    const [apiKey, setApiKey] = useState('')
-    const [apiKeySubmitted, setApiKeySubmitted] = useState(false)
+    const searchParams = useSearchParams()
+    const [password, setPassword] = useState('')
+    const [passwordSubmitted, setPasswordSubmitted] = useState(false)
     const [error, setError] = useState<string | null>(null)
     // Performance mode: limit to 1000 top nodes
     const [performanceMode, setPerformanceMode] = useState(false)
 
-    const handleApiKeySubmit = useCallback(() => {
-        if (!apiKey.trim()) {
-            setError('Please enter an API key')
+    // Check for password in URL on mount
+    useEffect(() => {
+        const urlPassword = searchParams.get('password')
+        if (urlPassword) {
+            setPassword(urlPassword)
+            setPasswordSubmitted(true)
+        }
+    }, [searchParams])
+
+    const handlePasswordSubmit = useCallback(() => {
+        if (!password.trim()) {
+            setError('Please enter a password')
             return
         }
         setError(null)
-        setApiKeySubmitted(true)
-    }, [apiKey])
+        setPasswordSubmitted(true)
+    }, [password])
 
     const handleClose = useCallback(() => {
         window.location.href = '/dev'
     }, [])
 
-    // API key input screen
-    if (!apiKeySubmitted) {
+    // Password input screen (only shown if not provided in URL)
+    if (!passwordSubmitted) {
         return (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900">
                 <div className="w-full max-w-md space-y-6 rounded-2xl bg-white p-8 shadow-2xl">
@@ -42,13 +53,13 @@ export default function PaymentGraphPage() {
                     )}
                     <input
                         type="password"
-                        value={apiKey}
-                        onChange={(e) => setApiKey(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleApiKeySubmit()}
-                        placeholder="Admin API Key"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handlePasswordSubmit()}
+                        placeholder="Password"
                         className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm transition-colors focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
                     />
-                    <Button onClick={handleApiKeySubmit} className="w-full">
+                    <Button onClick={handlePasswordSubmit} className="w-full">
                         Enter Graph
                     </Button>
                     <button
@@ -65,7 +76,8 @@ export default function PaymentGraphPage() {
     return (
         <div className="fixed inset-0 z-50 flex flex-col bg-gray-50">
             <InvitesGraph
-                apiKey={apiKey}
+                apiKey=""
+                password={password}
                 mode="payment"
                 topNodes={5000}
                 performanceMode={performanceMode}

@@ -303,7 +303,7 @@ export const pointsApi = {
 
     getInvitesGraph: async (
         apiKey: string,
-        options?: { mode?: 'full' | 'payment'; topNodes?: number }
+        options?: { mode?: 'full' | 'payment'; topNodes?: number; password?: string }
     ): Promise<InvitesGraphResponse> => {
         const isPaymentMode = options?.mode === 'payment'
         const params = new URLSearchParams()
@@ -313,16 +313,20 @@ export const pointsApi = {
         if (options?.topNodes && options.topNodes > 0) {
             params.set('topNodes', options.topNodes.toString())
         }
+        if (options?.password) {
+            params.set('password', options.password)
+        }
         const endpoint = `/invites/graph${params.toString() ? `?${params}` : ''}`
-        // Payment mode only requires API key, full mode requires JWT
+        // Payment mode uses password auth (no API key needed), full mode requires API key + JWT
+        const headers: Record<string, string> = isPaymentMode ? {} : { 'api-key': apiKey }
         return fetchInvitesGraph(
             endpoint,
-            { 'api-key': apiKey },
+            headers,
             (status) => {
                 if (status === 403) {
                     return 'Access denied. Only authorized users can access this tool.'
                 } else if (status === 401) {
-                    return 'Invalid API key or authentication token.'
+                    return isPaymentMode ? 'Invalid or missing password.' : 'Invalid API key or authentication token.'
                 }
                 return null
             },
