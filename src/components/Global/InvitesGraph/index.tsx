@@ -1005,6 +1005,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                     limit: externalNodesConfig.limit, // User-configurable limit
                     types: ['WALLET', 'BANK', 'MERCHANT'], // Fetch all types, filter client-side
                     topNodes: topNodes > 0 ? topNodes : undefined, // Match graph's top-N filter
+                    password: apiMode === 'payment' ? props.password : undefined, // Password for payment mode
                 })
 
                 if (result.success && result.data) {

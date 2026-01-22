@@ -346,11 +346,12 @@ export const pointsApi = {
             types?: ExternalNodeType[]
             limit?: number
             topNodes?: number
+            password?: string
         }
     ): Promise<ExternalNodesResponse> => {
         try {
             const jwtToken = Cookies.get('jwt-token')
-            // Payment mode only requires API key, full mode requires JWT
+            // Payment mode uses password auth, full mode requires JWT
             const isPaymentMode = options?.mode === 'payment'
             if (!isPaymentMode && !jwtToken) {
                 return { success: false, data: null, error: 'Not authenticated. Please log in.' }
@@ -373,13 +374,21 @@ export const pointsApi = {
             if (options?.topNodes && options.topNodes > 0) {
                 params.set('topNodes', options.topNodes.toString())
             }
+            // Password is required for payment mode
+            if (options?.password) {
+                params.set('password', options.password)
+            }
 
             const url = `${PEANUT_API_URL}/invites/graph/external${params.toString() ? `?${params}` : ''}`
 
-            // Build headers - JWT is optional in payment mode
+            // Build headers:
+            // - Payment mode: no API key required (uses password auth)
+            // - Full mode: API key + JWT required
             const headers: Record<string, string> = {
                 'Content-Type': 'application/json',
-                'api-key': apiKey,
+            }
+            if (!isPaymentMode) {
+                headers['api-key'] = apiKey
             }
             if (jwtToken) {
                 headers['Authorization'] = `Bearer ${jwtToken}`
