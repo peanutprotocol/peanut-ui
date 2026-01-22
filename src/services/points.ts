@@ -3,6 +3,24 @@ import { type CalculatePointsRequest, PointsAction, type TierInfo } from './serv
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 
+/** Qualitative labels for anonymized data */
+export type FrequencyLabel = 'rare' | 'occasional' | 'regular' | 'frequent'
+export type VolumeLabel = 'small' | 'medium' | 'large' | 'whale'
+
+/** P2P edge - can be full (with counts) or anonymized (with labels) */
+export type P2PEdge = {
+    source: string
+    target: string
+    type: 'SEND_LINK' | 'REQUEST_PAYMENT' | 'DIRECT_TRANSFER'
+    bidirectional: boolean
+    // Full mode (exact values) - optional in anonymized mode
+    count?: number
+    totalUsd?: number
+    // Anonymized mode (qualitative labels) - optional in full mode
+    frequency?: FrequencyLabel
+    volume?: VolumeLabel
+}
+
 type InvitesGraphResponse = {
     success: boolean
     data: {
@@ -24,14 +42,7 @@ type InvitesGraphResponse = {
             type: 'DIRECT' | 'PAYMENT_LINK'
             createdAt: string
         }>
-        p2pEdges: Array<{
-            source: string
-            target: string
-            type: 'SEND_LINK' | 'REQUEST_PAYMENT' | 'DIRECT_TRANSFER'
-            count: number
-            totalUsd: number
-            bidirectional: boolean
-        }>
+        p2pEdges: P2PEdge[]
         stats: {
             totalNodes: number
             totalEdges: number
@@ -46,17 +57,39 @@ type InvitesGraphResponse = {
 /** External node types for payment destinations outside our user base */
 export type ExternalNodeType = 'WALLET' | 'BANK' | 'MERCHANT'
 
-/** External payment destination node */
+/** Direction of payment flow for external nodes */
+export type ExternalDirection = 'INCOMING' | 'OUTGOING'
+
+/** Per-user transaction data with direction
+ * Supports both full mode (with exact values) and anonymized mode (with labels)
+ */
+export type UserTxDataEntry = {
+    direction: ExternalDirection
+    // Full mode (exact values) - optional in anonymized mode
+    txCount?: number
+    totalUsd?: number
+    // Anonymized mode (qualitative labels) - optional in full mode
+    frequency?: FrequencyLabel
+    volume?: VolumeLabel
+}
+
+/** External payment destination node
+ * Supports both full mode and anonymized mode with optional fields
+ */
 export type ExternalNode = {
     id: string
     type: ExternalNodeType
-    userIds: string[]
-    uniqueUsers: number
-    txCount: number
-    totalUsd: number
     label: string
-    userTxData: Record<string, { txCount: number; totalUsd: number }> // Per-user breakdown for edge weights
-    lastTxDate: string // ISO date of most recent transaction (for activity filtering)
+    uniqueUsers: number
+    userTxData: Record<string, UserTxDataEntry>
+    // Full mode fields - optional in anonymized mode
+    userIds?: string[]
+    txCount?: number
+    totalUsd?: number
+    lastTxDate?: string
+    // Anonymized mode fields - optional in full mode
+    frequency?: FrequencyLabel
+    volume?: VolumeLabel
 }
 
 type ExternalNodesResponse = {
@@ -70,8 +103,8 @@ type ExternalNodesResponse = {
                 BANK: number
                 MERCHANT: number
             }
-            totalTxCount: number
-            totalVolumeUsd: number
+            totalTxCount?: number
+            totalVolumeUsd?: number
         }
     } | null
     error?: string
@@ -257,8 +290,19 @@ export const pointsApi = {
         }
     },
 
-    getInvitesGraph: async (apiKey: string): Promise<InvitesGraphResponse> => {
-        return fetchInvitesGraph('/invites/graph', { 'api-key': apiKey }, (status) => {
+    getInvitesGraph: async (
+        apiKey: string,
+        options?: { mode?: 'full' | 'payment'; topNodes?: number }
+    ): Promise<InvitesGraphResponse> => {
+        const params = new URLSearchParams()
+        if (options?.mode === 'payment') {
+            params.set('mode', 'payment')
+        }
+        if (options?.topNodes && options.topNodes > 0) {
+            params.set('topNodes', options.topNodes.toString())
+        }
+        const endpoint = `/invites/graph${params.toString() ? `?${params}` : ''}`
+        return fetchInvitesGraph(endpoint, { 'api-key': apiKey }, (status) => {
             if (status === 403) {
                 return 'Access denied. Only authorized users can access this tool.'
             } else if (status === 401) {
@@ -274,7 +318,12 @@ export const pointsApi = {
 
     getExternalNodes: async (
         apiKey: string,
-        options?: { minConnections?: number; types?: ExternalNodeType[]; limit?: number }
+        options?: {
+            mode?: 'full' | 'payment'
+            minConnections?: number
+            types?: ExternalNodeType[]
+            limit?: number
+        }
     ): Promise<ExternalNodesResponse> => {
         try {
             const jwtToken = Cookies.get('jwt-token')
@@ -284,6 +333,9 @@ export const pointsApi = {
 
             // Build query params
             const params = new URLSearchParams()
+            if (options?.mode) {
+                params.set('mode', options.mode)
+            }
             if (options?.minConnections) {
                 params.set('minConnections', options.minConnections.toString())
             }

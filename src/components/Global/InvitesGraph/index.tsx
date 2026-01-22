@@ -14,7 +14,7 @@
  *   - visibilityConfig: Remove nodes/edges from simulation
  *     - activeNodes / inactiveNodes: Filter by activity status
  *     - inviteEdges / p2pEdges: Filter edge types
- *   - showAllNodes: Toggle 5000 node limit
+ *   - topNodes: Limit to top N nodes by points (0 = all, default 5000)
  *   - externalNodesConfig: Add/remove external nodes
  *
  * REINSERTION STRATEGY (when toggling nodes/edges back ON):
@@ -72,15 +72,21 @@ export interface GraphEdge {
     createdAt: string
 }
 
-/** P2P payment edge between users (for clustering) */
+/** P2P payment edge between users (for clustering)
+ * Supports both full mode (with exact count/totalUsd) and anonymized mode (with frequency/volume labels)
+ */
 export interface P2PEdge {
     source: string
     target: string
     type: 'SEND_LINK' | 'REQUEST_PAYMENT' | 'DIRECT_TRANSFER'
-    count: number
-    totalUsd: number
     /** True if payments went both ways between these users */
     bidirectional: boolean
+    // Full mode fields (exact values)
+    count?: number
+    totalUsd?: number
+    // Anonymized mode fields (qualitative labels)
+    frequency?: 'rare' | 'occasional' | 'regular' | 'frequent'
+    volume?: 'small' | 'medium' | 'large' | 'whale'
 }
 
 export interface GraphData {
@@ -116,7 +122,7 @@ export type ForceConfig = {
     /** Node repulsion (charge) - prevents overlap */
     charge: { enabled: boolean; strength: number }
     /** Invite link attraction - tree clustering (force only, use visibilityConfig to hide edges) */
-    inviteLinks: { enabled: boolean; strength: number }
+    inviteLinks: { enabled: boolean; strength: number; distance?: number }
     /** P2P link attraction - clusters transacting users (force only, use visibilityConfig to hide edges) */
     p2pLinks: { enabled: boolean; strength: number }
     /** External link attraction - clusters users with shared wallets/banks/merchants */
@@ -127,7 +133,7 @@ export type ForceConfig = {
 
 export const DEFAULT_FORCE_CONFIG: ForceConfig = {
     charge: { enabled: true, strength: 80 },
-    inviteLinks: { enabled: true, strength: 0.4 },
+    inviteLinks: { enabled: true, strength: 0.4, distance: 50 },
     p2pLinks: { enabled: true, strength: 0.3 },
     externalLinks: { enabled: true, strength: 0.2 }, // Weaker than P2P - external connections are looser
     center: { enabled: true, strength: 0.03, sizeBias: 0.5 },
@@ -188,14 +194,17 @@ export const DEFAULT_EXTERNAL_NODES_CONFIG: ExternalNodesConfig = {
 /** Re-export ExternalNode type for convenience */
 export type { ExternalNode, ExternalNodeType }
 
+/** Graph mode determines which features are enabled */
+export type GraphMode = 'full' | 'payment' | 'user'
+
 interface BaseProps {
     width?: number
     height?: number
     backgroundColor?: string
     /** Show usernames on nodes */
     showUsernames?: boolean
-    /** Show all nodes (no 5000 limit) - can be slow */
-    showAllNodes?: boolean
+    /** Limit to top N nodes by points (0 = all nodes, default 5000). Backend filtering. */
+    topNodes?: number
     /** Activity filter for highlighting active/inactive/new users */
     activityFilter?: ActivityFilter
     /** Force configuration for layout tuning */
@@ -206,8 +215,9 @@ interface BaseProps {
     renderOverlays?: (props: {
         showUsernames: boolean
         setShowUsernames: (v: boolean) => void
-        showAllNodes: boolean
-        setShowAllNodes: (v: boolean) => void
+        /** Top N nodes limit (0 = all). Changing triggers backend refetch. */
+        topNodes: number
+        setTopNodes: (v: number) => void
         activityFilter: ActivityFilter
         setActivityFilter: (v: ActivityFilter) => void
         forceConfig: ForceConfig
@@ -228,6 +238,8 @@ interface BaseProps {
 interface FullModeProps extends BaseProps {
     /** Admin API key to fetch full graph */
     apiKey: string
+    /** Graph mode: 'full' shows all features, 'payment' shows P2P only (no invites, fixed 120-day window) */
+    mode?: GraphMode
     /** Close/back button handler */
     onClose?: () => void
     /** Minimal mode disabled */
@@ -260,57 +272,8 @@ export const DEFAULT_ACTIVITY_FILTER: ActivityFilter = {
     hideInactive: false, // Default: show inactive as greyed out
 }
 
-// Performance limit - max nodes to render
-const MAX_NODES = 5000
-
-/**
- * Prune graph to MAX_NODES by removing oldest inactive users first
- * Keeps all edges between remaining nodes
- */
-function pruneGraphData(graphData: GraphData | null): GraphData | null {
-    if (!graphData || graphData.nodes.length <= MAX_NODES) {
-        return graphData
-    }
-
-    // Sort nodes: active users first (by lastActiveAt desc), then inactive (by createdAt desc)
-    const sortedNodes = [...graphData.nodes].sort((a, b) => {
-        // Both have lastActiveAt - sort by most recent first
-        if (a.lastActiveAt && b.lastActiveAt) {
-            return new Date(b.lastActiveAt).getTime() - new Date(a.lastActiveAt).getTime()
-        }
-        // Only a has activity - a comes first
-        if (a.lastActiveAt && !b.lastActiveAt) return -1
-        // Only b has activity - b comes first
-        if (!a.lastActiveAt && b.lastActiveAt) return 1
-        // Neither has activity - sort by createdAt (most recent first)
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    })
-
-    // Take top MAX_NODES
-    const keptNodes = sortedNodes.slice(0, MAX_NODES)
-    const keptNodeIds = new Set(keptNodes.map((n) => n.id))
-
-    // Filter edges to only include those between kept nodes
-    const keptEdges = graphData.edges.filter((edge) => keptNodeIds.has(edge.source) && keptNodeIds.has(edge.target))
-
-    // Filter P2P edges to only include those between kept nodes
-    const keptP2PEdges = (graphData.p2pEdges || []).filter(
-        (edge) => keptNodeIds.has(edge.source) && keptNodeIds.has(edge.target)
-    )
-
-    return {
-        nodes: keptNodes,
-        edges: keptEdges,
-        p2pEdges: keptP2PEdges,
-        stats: {
-            totalNodes: keptNodes.length,
-            totalEdges: keptEdges.length,
-            totalP2PEdges: keptP2PEdges.length,
-            usersWithAccess: keptNodes.filter((n) => n.hasAppAccess).length,
-            orphans: keptNodes.filter((n) => !n.hasAppAccess).length,
-        },
-    }
-}
+// Default top nodes limit (0 = all nodes, backend-filtered)
+const DEFAULT_TOP_NODES = 5000
 
 export default function InvitesGraph(props: InvitesGraphProps) {
     const {
@@ -318,7 +281,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         height,
         backgroundColor = '#f9fafb',
         showUsernames: initialShowUsernames = true,
-        showAllNodes: initialShowAllNodes = false,
+        topNodes: initialTopNodes = DEFAULT_TOP_NODES,
         activityFilter: initialActivityFilter = DEFAULT_ACTIVITY_FILTER,
         forceConfig: initialForceConfig = DEFAULT_FORCE_CONFIG,
         visibilityConfig: initialVisibilityConfig = DEFAULT_VISIBILITY_CONFIG,
@@ -326,6 +289,54 @@ export default function InvitesGraph(props: InvitesGraphProps) {
     } = props
 
     const isMinimal = props.minimal === true
+    // Get mode from props - defaults to 'full' for non-minimal, 'user' for minimal
+    const mode: GraphMode = isMinimal ? 'user' : (props.mode ?? 'full')
+
+    // Mode-specific defaults
+    // Payment mode: 120-day fixed window, no invite edges
+    // User mode: invite edges only (no P2P), used for points animation
+    const modeActivityFilter: ActivityFilter =
+        mode === 'payment' ? { ...initialActivityFilter, activityDays: 120 } : initialActivityFilter
+    const modeVisibilityConfig: VisibilityConfig =
+        mode === 'payment'
+            ? { ...initialVisibilityConfig, inviteEdges: false }
+            : mode === 'user'
+              ? { ...initialVisibilityConfig, p2pEdges: false }
+              : initialVisibilityConfig
+    const modeForceConfig: ForceConfig =
+        mode === 'payment'
+            ? { ...initialForceConfig, inviteLinks: { ...initialForceConfig.inviteLinks, enabled: false } }
+            : mode === 'user'
+              ? {
+                    ...initialForceConfig,
+                    p2pLinks: { ...initialForceConfig.p2pLinks, enabled: false },
+                    // Stronger repulsion for user graph to prevent overlap in small space
+                    charge: { ...initialForceConfig.charge, strength: initialForceConfig.charge.strength * 3 },
+                    // Longer link distance for clearer separation
+                    inviteLinks: { ...initialForceConfig.inviteLinks, distance: 80 },
+                }
+              : initialForceConfig
+    // Payment mode: merchants enabled by default with minConnections=10, weaker link force (0.1x)
+    const modeExternalNodesConfig: ExternalNodesConfig =
+        mode === 'payment'
+            ? {
+                  enabled: true,
+                  minConnections: 10,
+                  limit: 5000,
+                  types: { WALLET: false, BANK: false, MERCHANT: true },
+              }
+            : DEFAULT_EXTERNAL_NODES_CONFIG
+    // Apply payment mode external link force adjustment (0.1x default)
+    const finalModeForceConfig: ForceConfig =
+        mode === 'payment'
+            ? {
+                  ...modeForceConfig,
+                  externalLinks: {
+                      ...DEFAULT_FORCE_CONFIG.externalLinks,
+                      strength: DEFAULT_FORCE_CONFIG.externalLinks.strength * 0.1,
+                  },
+              }
+            : modeForceConfig
 
     // Data state
     const [fetchedGraphData, setFetchedGraphData] = useState<GraphData | null>(null)
@@ -334,16 +345,12 @@ export default function InvitesGraph(props: InvitesGraphProps) {
 
     // UI state (declare early so they can be used in data processing)
     const [showUsernames, setShowUsernames] = useState(initialShowUsernames)
-    const [showAllNodes, setShowAllNodes] = useState(initialShowAllNodes)
+    // topNodes: limit to top N by points (0 = all). Backend-filtered, triggers refetch.
+    const [topNodes, setTopNodes] = useState(initialTopNodes)
 
     // Use passed data in minimal mode, fetched data otherwise
+    // Note: topNodes filtering is now done by backend, no client-side pruning needed
     const rawGraphData = isMinimal ? props.data : fetchedGraphData
-
-    // Prune to MAX_NODES for performance (keeps most active users) unless showAllNodes is enabled
-    const prunedGraphData = useMemo(() => {
-        if (showAllNodes) return rawGraphData
-        return pruneGraphData(rawGraphData)
-    }, [rawGraphData, showAllNodes])
 
     // Helper to check if node is active based on activityDays threshold
     // Used for both coloring and visibility filtering
@@ -363,15 +370,15 @@ export default function InvitesGraph(props: InvitesGraphProps) {
 
         return false
     }, [])
-    const [activityFilter, setActivityFilter] = useState<ActivityFilter>(initialActivityFilter)
-    const [forceConfig, setForceConfig] = useState<ForceConfig>(initialForceConfig)
-    const [visibilityConfig, setVisibilityConfig] = useState<VisibilityConfig>(initialVisibilityConfig)
+    const [activityFilter, setActivityFilter] = useState<ActivityFilter>(modeActivityFilter)
+    const [forceConfig, setForceConfig] = useState<ForceConfig>(finalModeForceConfig)
+    const [visibilityConfig, setVisibilityConfig] = useState<VisibilityConfig>(modeVisibilityConfig)
     const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
     const [searchQuery, setSearchQuery] = useState('')
     const [searchResults, setSearchResults] = useState<GraphNode[]>([])
 
     // External nodes state (wallets, banks, merchants)
-    const [externalNodesConfig, setExternalNodesConfig] = useState<ExternalNodesConfig>(DEFAULT_EXTERNAL_NODES_CONFIG)
+    const [externalNodesConfig, setExternalNodesConfig] = useState<ExternalNodesConfig>(modeExternalNodesConfig)
     const [externalNodesData, setExternalNodesData] = useState<ExternalNode[]>([])
     const [externalNodesLoading, setExternalNodesLoading] = useState(false)
     const [externalNodesError, setExternalNodesError] = useState<string | null>(null)
@@ -431,7 +438,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         if (preferences.activityFilter) setActivityFilter(preferences.activityFilter)
         if (preferences.externalNodesConfig) setExternalNodesConfig(preferences.externalNodesConfig)
         if (preferences.showUsernames !== undefined) setShowUsernames(preferences.showUsernames)
-        if (preferences.showAllNodes !== undefined) setShowAllNodes(preferences.showAllNodes)
+        if (preferences.topNodes !== undefined) setTopNodes(preferences.topNodes)
 
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [preferencesLoaded, isMinimal]) // Only depend on preferencesLoaded, not preferences
@@ -448,7 +455,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                 activityFilter,
                 externalNodesConfig,
                 showUsernames,
-                showAllNodes,
+                topNodes,
             })
         }, 1000) // Debounce 1 second
 
@@ -459,7 +466,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         activityFilter,
         externalNodesConfig,
         showUsernames,
-        showAllNodes,
+        topNodes,
         isMinimal,
         savePreferences,
     ])
@@ -467,10 +474,10 @@ export default function InvitesGraph(props: InvitesGraphProps) {
     // Filter nodes/edges based on visibility settings (DELETE approach)
     // All visibility toggles remove data from simulation for better performance and accurate layout
     const graphData = useMemo(() => {
-        if (!prunedGraphData) return null
+        if (!rawGraphData) return null
 
         // Start with all nodes
-        let filteredNodes = prunedGraphData.nodes
+        let filteredNodes = rawGraphData.nodes
 
         // Filter by activity time window AND active/inactive checkboxes
         // activityDays defines the time window (e.g., 30 days)
@@ -488,12 +495,12 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         const nodeIds = new Set(filteredNodes.map((n) => n.id))
 
         // Filter edges based on visibility settings AND whether both nodes exist
-        let filteredEdges = prunedGraphData.edges.filter((edge) => nodeIds.has(edge.source) && nodeIds.has(edge.target))
+        let filteredEdges = rawGraphData.edges.filter((edge) => nodeIds.has(edge.source) && nodeIds.has(edge.target))
         if (!visibilityConfig.inviteEdges) {
             filteredEdges = []
         }
 
-        let filteredP2PEdges = (prunedGraphData.p2pEdges || []).filter(
+        let filteredP2PEdges = (rawGraphData.p2pEdges || []).filter(
             (edge) => nodeIds.has(edge.source) && nodeIds.has(edge.target)
         )
         if (!visibilityConfig.p2pEdges) {
@@ -512,7 +519,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                 orphans: filteredNodes.filter((n) => !n.hasAppAccess).length,
             },
         }
-    }, [prunedGraphData, activityFilter.activityDays, visibilityConfig, isNodeActive])
+    }, [rawGraphData, activityFilter.activityDays, visibilityConfig, isNodeActive])
 
     const graphRef = useRef<any>(null)
     const containerRef = useRef<HTMLDivElement>(null)
@@ -568,6 +575,18 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         return map
     }, [filteredGraphData])
 
+    // Build set of node IDs that participate in P2P (for payment mode coloring)
+    // A node is "P2P active" if it's the source or target of any P2P edge
+    const p2pActiveNodes = useMemo(() => {
+        if (!rawGraphData) return new Set<string>()
+        const set = new Set<string>()
+        ;(rawGraphData.p2pEdges || []).forEach((edge) => {
+            set.add(edge.source)
+            set.add(edge.target)
+        })
+        return set
+    }, [rawGraphData])
+
     // Filter external nodes based on config (client-side for fast UI updates)
     const filteredExternalNodes = useMemo(() => {
         if (!externalNodesConfig.enabled) return []
@@ -580,9 +599,11 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             if (node.uniqueUsers < externalNodesConfig.minConnections) return false
             // Filter by type
             if (!externalNodesConfig.types[node.type]) return false
-            // Filter by activity window (only show nodes with recent transactions)
-            const lastTxMs = new Date(node.lastTxDate).getTime()
-            if (lastTxMs < activityCutoff) return false
+            // Filter by activity window (only in full mode where lastTxDate exists)
+            if (node.lastTxDate) {
+                const lastTxMs = new Date(node.lastTxDate).getTime()
+                if (lastTxMs < activityCutoff) return false
+            }
             return true
         })
     }, [externalNodesData, externalNodesConfig, activityFilter.activityDays])
@@ -604,50 +625,110 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         // Get set of user IDs in the graph for filtering links
         const userIdsInGraph = new Set(filteredGraphData.nodes.map((n) => n.id))
 
+        // Helper to extract userId from userTxData keys
+        // Keys can be: `${userId}_${direction}` (new format) or just `${userId}` (old format)
+        // User IDs may contain underscores, so we use lastIndexOf to find the direction suffix
+        const extractUserIdFromKey = (key: string): string => {
+            if (key.endsWith('_INCOMING') || key.endsWith('_OUTGOING')) {
+                return key.substring(0, key.lastIndexOf('_'))
+            }
+            return key // Old format: key is just the userId
+        }
+
         // Add external nodes with position hint (start them at edges)
         // x, y will be populated by force simulation at runtime
         const externalNodes = filteredExternalNodes
-            .filter((ext) => ext.userIds.some((uid) => userIdsInGraph.has(uid))) // Only show if connected to visible users
-            .map((ext) => ({
-                id: `ext_${ext.id}`,
-                label: ext.label,
-                externalType: ext.type,
-                uniqueUsers: ext.uniqueUsers,
-                txCount: ext.txCount,
-                totalUsd: ext.totalUsd,
-                userIds: ext.userIds.filter((uid) => userIdsInGraph.has(uid)), // Only connected users in graph
-                isExternal: true as const,
-                x: undefined as number | undefined,
-                y: undefined as number | undefined,
-            }))
+            .filter((ext) => {
+                // Only show if connected to visible users
+                // In anonymized mode, check userTxData keys for user IDs
+                const connectedUserIds = ext.userIds || Object.keys(ext.userTxData || {}).map(extractUserIdFromKey)
+                return connectedUserIds.some((uid: string) => userIdsInGraph.has(uid))
+            })
+            .map((ext) => {
+                const connectedUserIds = ext.userIds || Object.keys(ext.userTxData || {}).map(extractUserIdFromKey)
+                return {
+                    id: `ext_${ext.id}`,
+                    label: ext.label,
+                    externalType: ext.type,
+                    uniqueUsers: ext.uniqueUsers,
+                    txCount: ext.txCount,
+                    totalUsd: ext.totalUsd,
+                    frequency: ext.frequency,
+                    volume: ext.volume,
+                    userIds: connectedUserIds.filter((uid: string) => userIdsInGraph.has(uid)),
+                    isExternal: true as const,
+                    x: undefined as number | undefined,
+                    y: undefined as number | undefined,
+                }
+            })
 
         return [...userNodes, ...externalNodes]
     }, [filteredGraphData, filteredExternalNodes, externalNodesConfig.enabled])
 
-    // Build links to external nodes with per-user transaction data
+    // Build links to external nodes with per-user transaction data and direction
+    // Creates separate links for INCOMING and OUTGOING to enable correct particle flow
+    // Supports both full mode (txCount, totalUsd) and anonymized mode (frequency, volume)
     const externalLinks = useMemo(() => {
         if (!externalNodesConfig.enabled || filteredExternalNodes.length === 0 || !filteredGraphData) {
             return []
         }
 
         const userIdsInGraph = new Set(filteredGraphData.nodes.map((n) => n.id))
-        const links: { source: string; target: string; isExternal: true; txCount: number; totalUsd: number }[] = []
+        type ExternalLink = {
+            source: string
+            target: string
+            isExternal: true
+            direction: 'INCOMING' | 'OUTGOING'
+        } & ({ txCount: number; totalUsd: number } | { frequency: string; volume: string })
+
+        const links: ExternalLink[] = []
 
         filteredExternalNodes.forEach((ext) => {
             const extNodeId = `ext_${ext.id}`
-            ext.userIds.forEach((userId) => {
-                if (userIdsInGraph.has(userId)) {
-                    // Use per-user data if available, otherwise fall back to node totals
-                    const userData = ext.userTxData?.[userId] || {
-                        txCount: ext.txCount,
-                        totalUsd: ext.totalUsd,
-                    }
+
+            // userTxData keys can be in two formats:
+            // - New format: `${userId}_${direction}` (e.g., "abc123_INCOMING", "abc123_OUTGOING")
+            // - Old format: just `${userId}` (e.g., "abc123") - backwards compatibility
+            Object.entries(ext.userTxData || {}).forEach(([key, data]) => {
+                // Check if key ends with _INCOMING or _OUTGOING (new format)
+                const isNewFormat = key.endsWith('_INCOMING') || key.endsWith('_OUTGOING')
+
+                let userId: string
+                let direction: 'INCOMING' | 'OUTGOING'
+
+                if (isNewFormat) {
+                    // New format: parse userId and direction from key
+                    const lastUnderscoreIdx = key.lastIndexOf('_')
+                    userId = key.substring(0, lastUnderscoreIdx)
+                    direction = key.substring(lastUnderscoreIdx + 1) as 'INCOMING' | 'OUTGOING'
+                } else {
+                    // Old format: key is just userId, default to OUTGOING (original behavior)
+                    userId = key
+                    direction = data.direction || 'OUTGOING'
+                }
+
+                if (!userIdsInGraph.has(userId)) return
+
+                // Handle both full and anonymized data formats
+                if (data.txCount !== undefined && data.totalUsd !== undefined) {
+                    // Full mode: use exact values
                     links.push({
                         source: userId,
                         target: extNodeId,
                         isExternal: true,
-                        txCount: userData.txCount,
-                        totalUsd: userData.totalUsd,
+                        txCount: data.txCount,
+                        totalUsd: data.totalUsd,
+                        direction: direction,
+                    })
+                } else if (data.frequency && data.volume) {
+                    // Anonymized mode: use labels
+                    links.push({
+                        source: userId,
+                        target: extNodeId,
+                        isExternal: true,
+                        frequency: data.frequency,
+                        volume: data.volume,
+                        direction: direction,
                     })
                 }
             })
@@ -656,7 +737,8 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         return links
     }, [filteredExternalNodes, filteredGraphData, externalNodesConfig.enabled])
 
-    // Fetch graph data on mount (only in full mode)
+    // Fetch graph data on mount and when topNodes changes (only in full mode)
+    // Note: topNodes filtering only applies to full mode (payment mode has fixed 5000 limit in backend)
     useEffect(() => {
         if (isMinimal) return
 
@@ -664,7 +746,13 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             setLoading(true)
             setError(null)
 
-            const result = await pointsApi.getInvitesGraph(props.apiKey)
+            // API only supports 'full' | 'payment' modes (user mode uses different endpoint)
+            const apiMode = props.mode === 'payment' ? 'payment' : 'full'
+            // Only pass topNodes for full mode (payment mode ignores it, has its own limit)
+            const result = await pointsApi.getInvitesGraph(props.apiKey, {
+                mode: apiMode,
+                topNodes: apiMode === 'full' ? topNodes : undefined,
+            })
 
             if (result.success && result.data) {
                 setFetchedGraphData(result.data)
@@ -675,7 +763,8 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         }
 
         fetchData()
-    }, [isMinimal, props.apiKey])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isMinimal, !isMinimal && props.apiKey, mode, topNodes])
 
     // Fetch external nodes when enabled (lazy load on first enable)
     useEffect(() => {
@@ -688,7 +777,10 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             setExternalNodesError(null)
 
             try {
+                // API only supports 'full' | 'payment' modes
+                const apiMode = props.mode === 'payment' ? 'payment' : 'full'
                 const result = await pointsApi.getExternalNodes(props.apiKey, {
+                    mode: apiMode,
                     minConnections: 1, // Fetch all, filter client-side for flexibility
                     limit: externalNodesConfig.limit, // User-configurable limit
                 })
@@ -720,25 +812,42 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         showUsernames,
         selectedUserId,
         isMinimal,
+        mode,
         activityFilter,
         visibilityConfig,
         externalNodesConfig,
+        p2pActiveNodes,
     })
     useEffect(() => {
         displaySettingsRef.current = {
             showUsernames,
             selectedUserId,
             isMinimal,
+            mode,
             activityFilter,
             visibilityConfig,
             externalNodesConfig,
+            p2pActiveNodes,
         }
-    }, [showUsernames, selectedUserId, isMinimal, activityFilter, visibilityConfig, externalNodesConfig])
+    }, [
+        showUsernames,
+        selectedUserId,
+        isMinimal,
+        mode,
+        activityFilter,
+        visibilityConfig,
+        externalNodesConfig,
+        p2pActiveNodes,
+    ])
 
     // Helper to determine user activity status
     const getUserActivityStatus = useCallback(
         (node: GraphNode, filter: ActivityFilter): 'new' | 'active' | 'inactive' => {
             if (!filter.enabled) return 'active' // No filtering, show all as active
+
+            // In payment mode, all nodes shown as active (no inactive differentiation)
+            // Backend already sets lastActiveAt to now, but check mode to be safe
+            if (mode === 'payment') return 'active'
 
             const now = Date.now()
             const activityCutoff = now - filter.activityDays * 24 * 60 * 60 * 1000
@@ -757,7 +866,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             if (hasRecentActivity) return 'active'
             return 'inactive'
         },
-        []
+        [mode]
     )
 
     // Node styling
@@ -845,21 +954,29 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             // ============================================
             const isSelected = node.id === selId
             const hasAccess = node.hasAppAccess
+            const { mode: currentMode } = displaySettingsRef.current
 
             // Determine activity status for coloring
             // Note: Visibility filtering is done at data level, so hidden nodes never reach here
             const activityStatus = getUserActivityStatus(node, filter)
 
-            const baseSize = hasAccess ? 6 : 3
-            const pointsMultiplier = Math.sqrt(node.totalPoints) / 10
-            const size = baseSize + Math.min(pointsMultiplier, 25)
+            // In user mode: all nodes same size (larger for cleaner display)
+            // In other modes: size based on points
+            let size: number
+            if (currentMode === 'user') {
+                size = 12 // Fixed size for user graph - all nodes equal
+            } else {
+                const baseSize = hasAccess ? 6 : 3
+                const pointsMultiplier = Math.sqrt(node.totalPoints) / 10
+                size = baseSize + Math.min(pointsMultiplier, 25)
+            }
 
             // ===========================================
             // NODE STYLING: Fill + Outline are separate
             // ===========================================
-            // FILL: Based on activity status
-            //   - Active (signup or tx within window): purple (#8b5cf6)
-            //   - Inactive: gray, semi-transparent
+            // In USER mode: All nodes same purple color (unified appearance)
+            // In PAYMENT mode: Color by P2P activity (purple = has P2P, grey = no P2P)
+            // In FULL mode: Color based on activity status
             // OUTLINE: Based on access/selection
             //   - Jailed (no app access): black (#000000)
             //   - Selected: golden (#fbbf24)
@@ -867,8 +984,18 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             // ===========================================
 
             let fillColor: string
+            const { p2pActiveNodes: p2pNodes } = displaySettingsRef.current
 
-            if (!filter.enabled) {
+            if (currentMode === 'user') {
+                // User mode: all nodes same pleasant purple
+                fillColor = 'rgba(139, 92, 246, 0.9)' // Solid purple for all
+            } else if (currentMode === 'payment') {
+                // Payment mode: color by P2P participation (sending or receiving)
+                const hasP2PActivity = p2pNodes.has(node.id)
+                fillColor = hasP2PActivity
+                    ? 'rgba(139, 92, 246, 0.85)' // Purple for P2P active
+                    : 'rgba(156, 163, 175, 0.5)' // Grey for no P2P
+            } else if (!filter.enabled) {
                 // No filter - simple active/inactive by access
                 fillColor = hasAccess ? 'rgba(139, 92, 246, 0.85)' : 'rgba(156, 163, 175, 0.85)'
             } else {
@@ -884,25 +1011,25 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                     const lastActiveMs = node.lastActiveAt ? new Date(node.lastActiveAt).getTime() : 0
                     const lastActivityMs = Math.max(createdAtMs, lastActiveMs)
                     const daysSinceActivity = (now - lastActivityMs) / (24 * 60 * 60 * 1000)
-                    
+
                     // Exponential time bands: 1w, 2w, 4w, 8w, 16w, 32w, 64w+
                     // Each band gets progressively lighter gray
                     if (daysSinceActivity < 7) {
-                        fillColor = 'rgba(80, 80, 80, 0.9)'    // Very dark gray - <1 week
+                        fillColor = 'rgba(80, 80, 80, 0.9)' // Very dark gray - <1 week
                     } else if (daysSinceActivity < 14) {
                         fillColor = 'rgba(100, 100, 100, 0.85)' // Dark gray - 1-2 weeks
                     } else if (daysSinceActivity < 28) {
-                        fillColor = 'rgba(120, 120, 120, 0.8)'  // Medium-dark - 2-4 weeks
+                        fillColor = 'rgba(120, 120, 120, 0.8)' // Medium-dark - 2-4 weeks
                     } else if (daysSinceActivity < 56) {
-                        fillColor = 'rgba(145, 145, 145, 0.7)'  // Medium gray - 4-8 weeks
+                        fillColor = 'rgba(145, 145, 145, 0.7)' // Medium gray - 4-8 weeks
                     } else if (daysSinceActivity < 112) {
-                        fillColor = 'rgba(170, 170, 170, 0.6)'  // Medium-light - 8-16 weeks
+                        fillColor = 'rgba(170, 170, 170, 0.6)' // Medium-light - 8-16 weeks
                     } else if (daysSinceActivity < 224) {
-                        fillColor = 'rgba(195, 195, 195, 0.5)'  // Light gray - 16-32 weeks
+                        fillColor = 'rgba(195, 195, 195, 0.5)' // Light gray - 16-32 weeks
                     } else if (daysSinceActivity < 448) {
-                        fillColor = 'rgba(215, 215, 215, 0.4)'  // Very light - 32-64 weeks
+                        fillColor = 'rgba(215, 215, 215, 0.4)' // Very light - 32-64 weeks
                     } else {
-                        fillColor = 'rgba(235, 235, 235, 0.3)'  // Almost invisible - 64+ weeks
+                        fillColor = 'rgba(235, 235, 235, 0.3)' // Almost invisible - 64+ weeks
                     }
                 }
             }
@@ -1018,8 +1145,16 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                     MERCHANT: 'rgba(16, 185, 129, 0.8)', // Green
                 }
 
+                // Convert frequency/volume labels to numeric values for rendering
+                // Full mode: use actual values; Anonymized mode: map labels to ranges
+                const frequencyMap = { rare: 1, occasional: 3, regular: 10, frequent: 30 }
+                const volumeMap = { small: 50, medium: 500, large: 5000, whale: 50000 }
+
+                const txCount = link.txCount ?? frequencyMap[link.frequency as keyof typeof frequencyMap] ?? 1
+                const usdVolume = link.totalUsd ?? volumeMap[link.volume as keyof typeof volumeMap] ?? 50
+
                 // Scale line width by transaction count (same formula as P2P)
-                const lineWidth = Math.min(0.4 + (link.txCount || 1) * 0.25, 3.0)
+                const lineWidth = Math.min(0.4 + txCount * 0.25, 3.0)
 
                 // Draw base line
                 ctx.strokeStyle = lineColors[extType] || 'rgba(107, 114, 128, 0.25)'
@@ -1029,17 +1164,16 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                 ctx.lineTo(target.x, target.y)
                 ctx.stroke()
 
-                // Animated particles flowing user → external (scaled by activity, slightly slower than P2P)
+                // Animated particles with direction based on actual fund flow
                 const time = performance.now()
-                // Logarithmic scaling for better visual distinction (1 tx vs 10 tx vs 100 tx)
-                const logTxCount = Math.log10(Math.max(link.txCount || 1, 1) + 1) // log10(2) to log10(101) = 0.3 to 2.0
-                const logUsd = Math.log10(Math.max(link.totalUsd || 1, 1) + 1) // Similar range
-                
+                // Logarithmic scaling for better visual distinction
+                const logTxCount = Math.log10(Math.max(txCount, 1) + 1)
+                const logUsd = Math.log10(Math.max(usdVolume, 1) + 1)
+
                 // Speed: 0.0002 (1tx) → 0.0008 (100tx) using log scale
                 const baseSpeed = 0.0002 + logTxCount * 0.0003
-                // Only normalize by length when simulation is stable (avoid jitter)
                 const speed = baseSpeed
-                
+
                 // Particle count: 1 → 4 particles, log-scaled
                 const particleCount = Math.min(1 + Math.floor(logTxCount * 1.5), 4)
                 // Size: 1.5 (small) → 6.0 (large), log-scaled by USD volume
@@ -1047,11 +1181,17 @@ export default function InvitesGraph(props: InvitesGraphProps) {
 
                 ctx.fillStyle = particleColors[extType] || 'rgba(107, 114, 128, 0.8)'
 
+                // Determine particle direction based on fund flow
+                const isIncoming = link.direction === 'INCOMING'
+
                 // Draw particles along the edge
                 for (let i = 0; i < particleCount; i++) {
                     const t = (time * speed + i / particleCount) % 1
-                    const px = source.x + dx * t
-                    const py = source.y + dy * t
+                    // OUTGOING: flow from source (user) to target (external) → t goes 0→1
+                    // INCOMING: flow from target (external) to source (user) → t goes 1→0 (use 1-t)
+                    const progress = isIncoming ? 1 - t : t
+                    const px = source.x + dx * progress
+                    const py = source.y + dy * progress
                     ctx.beginPath()
                     ctx.arc(px, py, particleSize, 0, 2 * Math.PI)
                     ctx.fill()
@@ -1062,10 +1202,20 @@ export default function InvitesGraph(props: InvitesGraphProps) {
 
             if (link.isP2P) {
                 // P2P: Draw line with animated particles (scaled by activity & volume)
+                // Supports both full mode (count/totalUsd) and anonymized mode (frequency/volume labels)
                 const baseAlpha = inactive ? 0.08 : 0.25
                 ctx.strokeStyle = `rgba(6, 182, 212, ${baseAlpha})`
+
+                // Convert frequency/volume labels to numeric values for rendering
+                // Full mode: use actual values; Anonymized mode: map labels to ranges
+                const frequencyMap = { rare: 1, occasional: 3, regular: 10, frequent: 30 }
+                const volumeMap = { small: 50, medium: 500, large: 5000, whale: 50000 }
+
+                const txCount = link.count ?? frequencyMap[link.frequency as keyof typeof frequencyMap] ?? 1
+                const usdVolume = link.totalUsd ?? volumeMap[link.volume as keyof typeof volumeMap] ?? 50
+
                 // Line width: 0.4 (min) → 3.0 (max) based on tx count
-                ctx.lineWidth = Math.min(0.4 + (link.count || 1) * 0.25, 3.0)
+                ctx.lineWidth = Math.min(0.4 + txCount * 0.25, 3.0)
                 ctx.beginPath()
                 ctx.moveTo(source.x, source.y)
                 ctx.lineTo(target.x, target.y)
@@ -1074,16 +1224,16 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                 // Animated particles for P2P
                 if (!inactive) {
                     const time = performance.now()
-                    // Logarithmic scaling for better visual distinction (1 tx vs 10 tx vs 100 tx)
-                    const logTxCount = Math.log10(Math.max(link.count || 1, 1) + 1) // log10(2) to log10(101) = 0.3 to 2.0
-                    const logUsd = Math.log10(Math.max(link.totalUsd || 1, 1) + 1)
-                    
+                    // Logarithmic scaling for better visual distinction
+                    const logTxCount = Math.log10(Math.max(txCount, 1) + 1)
+                    const logUsd = Math.log10(Math.max(usdVolume, 1) + 1)
+
                     // Particle count: 1 → 5 particles, log-scaled
                     const particleCount = Math.min(1 + Math.floor(logTxCount * 2), 5)
                     // Speed: 0.0003 (1tx) → 0.001 (100tx) using log scale
                     const baseSpeed = 0.0003 + logTxCount * 0.00035
                     const speed = baseSpeed
-                    
+
                     // Size: 1.5 (small) → 6.0 (large), log-scaled by USD volume
                     const particleSize = 1.5 + logUsd * 2.25
                     const isBidirectional = link.bidirectional === true
@@ -1116,6 +1266,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                 const baseColor = isDirect ? [139, 92, 246] : [236, 72, 153]
                 const alpha = inactive ? 0.12 : 0.35
                 const arrowAlpha = inactive ? 0.2 : 0.6
+                const { mode: currentMode } = displaySettingsRef.current
 
                 // Draw main line
                 ctx.strokeStyle = `rgba(${baseColor.join(',')}, ${alpha})`
@@ -1125,34 +1276,60 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                 ctx.lineTo(target.x, target.y)
                 ctx.stroke()
 
-                // Draw arrows along the line (every ~60px, minimum 2)
-                // Skip the last arrow to prevent bunching near target node
-                const arrowSpacing = 60
-                const numArrows = Math.max(2, Math.floor(len / arrowSpacing))
-                const arrowSize = inactive ? 3 : 5
+                // In user mode: Draw animated points flowing UP the tree (invitee → inviter)
+                // This visualizes "points flowing to the inviter"
+                if (currentMode === 'user' && !inactive) {
+                    const time = performance.now()
+                    // Slow, pulsing animation - slower than P2P
+                    const baseSpeed = 0.00015
+                    const particleCount = 3
+                    const particleSize = 3
 
-                ctx.fillStyle = `rgba(${baseColor.join(',')}, ${arrowAlpha})`
+                    // Gold color for points
+                    ctx.fillStyle = 'rgba(251, 191, 36, 0.9)' // #fbbf24 with alpha
 
-                // Draw arrows from source toward target, but skip the last one (closest to target)
-                for (let i = 1; i < numArrows; i++) {
-                    // Changed: i < numArrows instead of i <= numArrows
-                    const t = i / (numArrows + 1)
-                    const ax = source.x + dx * t
-                    const ay = source.y + dy * t
+                    for (let i = 0; i < particleCount; i++) {
+                        // Flow direction: source → target (invitee → inviter)
+                        // Note: Edges are REVERSED for graph rendering (see graphData mapping)
+                        // After reversal: link.source = invitee, link.target = inviter
+                        // So particles flow from source (invitee) to target (inviter)
+                        const t = (time * baseSpeed + i / particleCount) % 1
+                        const px = source.x + (target.x - source.x) * t
+                        const py = source.y + (target.y - source.y) * t
+                        ctx.beginPath()
+                        ctx.arc(px, py, particleSize, 0, 2 * Math.PI)
+                        ctx.fill()
+                    }
+                } else {
+                    // Full/Payment mode: Draw arrows along the line (every ~60px, minimum 2)
+                    // Skip the last arrow to prevent bunching near target node
+                    const arrowSpacing = 60
+                    const numArrows = Math.max(2, Math.floor(len / arrowSpacing))
+                    const arrowSize = inactive ? 3 : 5
 
-                    // Draw arrow head pointing in direction of edge
-                    ctx.beginPath()
-                    ctx.moveTo(ax + ux * arrowSize, ay + uy * arrowSize)
-                    ctx.lineTo(
-                        ax - ux * arrowSize * 0.5 - uy * arrowSize * 0.6,
-                        ay - uy * arrowSize * 0.5 + ux * arrowSize * 0.6
-                    )
-                    ctx.lineTo(
-                        ax - ux * arrowSize * 0.5 + uy * arrowSize * 0.6,
-                        ay - uy * arrowSize * 0.5 - ux * arrowSize * 0.6
-                    )
-                    ctx.closePath()
-                    ctx.fill()
+                    ctx.fillStyle = `rgba(${baseColor.join(',')}, ${arrowAlpha})`
+
+                    // Draw arrows from source toward target, but skip the last one (closest to target)
+                    for (let i = 1; i < numArrows; i++) {
+                        // Changed: i < numArrows instead of i <= numArrows
+                        const t = i / (numArrows + 1)
+                        const ax = source.x + dx * t
+                        const ay = source.y + dy * t
+
+                        // Draw arrow head pointing in direction of edge
+                        ctx.beginPath()
+                        ctx.moveTo(ax + ux * arrowSize, ay + uy * arrowSize)
+                        ctx.lineTo(
+                            ax - ux * arrowSize * 0.5 - uy * arrowSize * 0.6,
+                            ay - uy * arrowSize * 0.5 + ux * arrowSize * 0.6
+                        )
+                        ctx.lineTo(
+                            ax - ux * arrowSize * 0.5 + uy * arrowSize * 0.6,
+                            ay - uy * arrowSize * 0.5 - ux * arrowSize * 0.6
+                        )
+                        ctx.closePath()
+                        ctx.fill()
+                    }
                 }
             }
         },
@@ -1216,7 +1393,10 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             if (selectedUserId === node.id) {
                 // Already selected - open Grafana
                 const username = node.username || node.id
-                window.open(`https://teampeanut.grafana.net/d/ad31f645-81ca-4779-bfb2-bff8e03d9057/explore-peanut-wallet-user?orgId=1&var-GRAFANA_VAR_Username=${encodeURIComponent(username)}`, '_blank')
+                window.open(
+                    `https://teampeanut.grafana.net/d/ad31f645-81ca-4779-bfb2-bff8e03d9057/explore-peanut-wallet-user?orgId=1&var-GRAFANA_VAR_Username=${encodeURIComponent(username)}`,
+                    '_blank'
+                )
             } else {
                 // Select node
                 setSelectedUserId(node.id)
@@ -1261,7 +1441,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                 clearTimeout(searchTimeoutRef.current)
             }
 
-            if (!prunedGraphData || !query.trim()) {
+            if (!rawGraphData || !query.trim()) {
                 setSearchResults([])
                 return
             }
@@ -1272,21 +1452,18 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                 const results: any[] = []
 
                 // Search user nodes
-                if (prunedGraphData) {
-                    const userResults = prunedGraphData.nodes.filter(
+                if (rawGraphData) {
+                    const userResults = rawGraphData.nodes.filter(
                         (node) => node.username && node.username.toLowerCase().includes(lowerQuery)
                     )
-                    results.push(
-                        ...userResults.map((n) => ({ ...n, isExternal: false, displayName: n.username }))
-                    )
+                    results.push(...userResults.map((n) => ({ ...n, isExternal: false, displayName: n.username })))
                 }
 
                 // Search external nodes (by label and ID)
                 if (externalNodesConfig.enabled && filteredExternalNodes.length > 0) {
                     const externalResults = filteredExternalNodes.filter(
                         (node) =>
-                            node.label.toLowerCase().includes(lowerQuery) ||
-                            node.id.toLowerCase().includes(lowerQuery)
+                            node.label.toLowerCase().includes(lowerQuery) || node.id.toLowerCase().includes(lowerQuery)
                     )
                     results.push(
                         ...externalResults.map((n) => ({
@@ -1307,7 +1484,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                 }
             }, 150)
         },
-        [prunedGraphData, filteredExternalNodes, externalNodesConfig.enabled]
+        [rawGraphData, filteredExternalNodes, externalNodesConfig.enabled]
     )
 
     const handleClearSearch = useCallback(() => {
@@ -1689,6 +1866,8 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                                         isP2P: false,
                                     })),
                                     // P2P payment edges (for clustering visualization)
+                                    // P2P payment edges (for clustering visualization)
+                                    // Include both full mode (count/totalUsd) and anonymized mode (frequency/volume) fields
                                     ...(filteredGraphData.p2pEdges || []).map((edge, i) => ({
                                         id: `p2p-${i}`,
                                         source: edge.source,
@@ -1696,6 +1875,9 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                                         type: edge.type,
                                         count: edge.count,
                                         totalUsd: edge.totalUsd,
+                                        frequency: edge.frequency,
+                                        volume: edge.volume,
+                                        bidirectional: edge.bidirectional,
                                         isP2P: true,
                                     })),
                                 ],
@@ -1703,10 +1885,8 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                             nodeId="id"
                             nodePointerAreaPaint={(node: any, color: string, ctx: CanvasRenderingContext2D) => {
                                 // Draw hit detection area matching actual rendered node size
-                                const hasAccess = node.hasAppAccess
-                                const baseSize = hasAccess ? 6 : 3
-                                const pointsMultiplier = Math.sqrt(node.totalPoints || 0) / 10
-                                const nodeRadius = baseSize + Math.min(pointsMultiplier, 25)
+                                // In user mode (minimal): fixed size of 12
+                                const nodeRadius = 12
                                 ctx.fillStyle = color
                                 ctx.beginPath()
                                 ctx.arc(node.x, node.y, nodeRadius + 2, 0, 2 * Math.PI) // +2 for easier hover
@@ -1749,8 +1929,8 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                     {renderOverlays?.({
                         showUsernames,
                         setShowUsernames,
-                        showAllNodes,
-                        setShowAllNodes,
+                        topNodes,
+                        setTopNodes,
                         activityFilter,
                         setActivityFilter,
                         forceConfig,
@@ -1800,7 +1980,9 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                                 <div className="h-6 w-px bg-gray-300"></div>
                             </>
                         )}
-                        <h1 className="text-lg font-bold text-gray-900">Invite Network</h1>
+                        <h1 className="text-lg font-bold text-gray-900">
+                            {mode === 'payment' ? 'Payment Network' : 'Invite Network'}
+                        </h1>
                         <div className="flex gap-3 text-xs font-medium">
                             <span className="rounded-full bg-purple-100 px-2 py-1 text-purple-700">
                                 {combinedGraphNodes.length} nodes
@@ -1812,7 +1994,11 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                                     )}
                             </span>
                             <span className="rounded-full bg-blue-100 px-2 py-1 text-blue-700">
-                                {filteredGraphData.stats.totalEdges + externalLinks.length} edges
+                                {/* In payment mode, show P2P edges; in other modes, show invite edges */}
+                                {(mode === 'payment'
+                                    ? filteredGraphData.stats.totalP2PEdges
+                                    : filteredGraphData.stats.totalEdges) + externalLinks.length}{' '}
+                                edges
                                 {externalNodesConfig.enabled && externalLinks.length > 0 && (
                                     <span className="ml-1 text-orange-600">(+{externalLinks.length} ext)</span>
                                 )}
@@ -1823,73 +2009,77 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                     {/* Right side - empty, controls are in sidebar overlay */}
                 </div>
 
-                {/* Second Row: Search */}
-                <div className="border-t border-gray-100 px-4 py-2">
-                    <div className="flex items-center gap-2">
-                        <div className="relative flex-1">
-                            <input
-                                type="text"
-                                value={searchQuery}
-                                onChange={(e) => handleSearch(e.target.value)}
-                                placeholder="Search username..."
-                                className="w-full rounded-lg border border-gray-300 py-1.5 pl-9 pr-9 text-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
-                            />
-                            <Icon
-                                name="search"
-                                size={16}
-                                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                            />
-                            {searchQuery && (
-                                <button
-                                    onClick={handleClearSearch}
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-                                >
-                                    <Icon name="cancel" size={14} />
-                                </button>
+                {/* Second Row: Search (hidden in payment mode - no usernames) */}
+                {mode !== 'payment' && (
+                    <div className="border-t border-gray-100 px-4 py-2">
+                        <div className="flex items-center gap-2">
+                            <div className="relative flex-1">
+                                <input
+                                    type="text"
+                                    value={searchQuery}
+                                    onChange={(e) => handleSearch(e.target.value)}
+                                    placeholder="Search username..."
+                                    className="w-full rounded-lg border border-gray-300 py-1.5 pl-9 pr-9 text-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+                                />
+                                <Icon
+                                    name="search"
+                                    size={16}
+                                    className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                                />
+                                {searchQuery && (
+                                    <button
+                                        onClick={handleClearSearch}
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                                    >
+                                        <Icon name="cancel" size={14} />
+                                    </button>
+                                )}
+                            </div>
+                            {searchResults.length > 0 && (
+                                <span className="text-xs text-gray-600">
+                                    {searchResults.length} {searchResults.length === 1 ? 'match' : 'matches'}
+                                </span>
                             )}
                         </div>
-                        {searchResults.length > 0 && (
-                            <span className="text-xs text-gray-600">
-                                {searchResults.length} {searchResults.length === 1 ? 'match' : 'matches'}
-                            </span>
+                        {/* Search Results Dropdown */}
+                        {searchQuery && searchResults.length > 1 && (
+                            <div className="mt-2 max-h-48 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
+                                {searchResults.map((node: any) => (
+                                    <button
+                                        key={node.id}
+                                        onClick={() => {
+                                            setSelectedUserId(node.id)
+                                            handleClearSearch()
+                                        }}
+                                        className={`flex w-full items-center justify-between px-3 py-2 text-sm transition-colors ${
+                                            node.isExternal ? 'hover:bg-orange-50' : 'hover:bg-purple-50'
+                                        }`}
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            {node.isExternal && (
+                                                <span className="text-xs">
+                                                    {node.externalType === 'WALLET'
+                                                        ? '💳'
+                                                        : node.externalType === 'BANK'
+                                                          ? '🏦'
+                                                          : '🏪'}
+                                                </span>
+                                            )}
+                                            <span className="font-medium text-gray-900">{node.displayName}</span>
+                                        </div>
+                                        <span className="text-xs text-gray-500">
+                                            {node.isExternal
+                                                ? node.totalUsd
+                                                    ? `${node.uniqueUsers} users, $${node.totalUsd.toFixed(0)}`
+                                                    : `${node.uniqueUsers} users, ${node.volume || 'N/A'}`
+                                                : `${node.totalPoints?.toLocaleString() || 0} pts`}
+                                        </span>
+                                    </button>
+                                ))}
+                            </div>
                         )}
                     </div>
-                    {/* Search Results Dropdown */}
-                    {searchQuery && searchResults.length > 1 && (
-                        <div className="mt-2 max-h-48 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
-                            {searchResults.map((node: any) => (
-                                <button
-                                    key={node.id}
-                                    onClick={() => {
-                                        setSelectedUserId(node.id)
-                                        handleClearSearch()
-                                    }}
-                                    className={`flex w-full items-center justify-between px-3 py-2 text-sm transition-colors ${
-                                        node.isExternal ? 'hover:bg-orange-50' : 'hover:bg-purple-50'
-                                    }`}
-                                >
-                                    <div className="flex items-center gap-2">
-                                        {node.isExternal && (
-                                            <span className="text-xs">
-                                                {node.externalType === 'WALLET'
-                                                    ? '💳'
-                                                    : node.externalType === 'BANK'
-                                                      ? '🏦'
-                                                      : '🏪'}
-                                            </span>
-                                        )}
-                                        <span className="font-medium text-gray-900">{node.displayName}</span>
-                                    </div>
-                                    <span className="text-xs text-gray-500">
-                                        {node.isExternal
-                                            ? `${node.uniqueUsers} users, $${node.totalUsd.toFixed(0)}`
-                                            : `${node.totalPoints?.toLocaleString() || 0} pts`}
-                                    </span>
-                                </button>
-                            ))}
-                        </div>
-                    )}
-                </div>
+                )}
 
                 {/* Selected User/Node Banner */}
                 {selectedUserId && (
@@ -1900,9 +2090,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                                 : 'border-purple-100 bg-purple-50'
                         }`}
                     >
-                        <span
-                            className={selectedUserId.startsWith('ext_') ? 'text-orange-700' : 'text-purple-700'}
-                        >
+                        <span className={selectedUserId.startsWith('ext_') ? 'text-orange-700' : 'text-purple-700'}>
                             Focused on:{' '}
                             <span className="font-bold">
                                 {selectedUserId.startsWith('ext_')
@@ -1935,6 +2123,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                                 isExternal: false,
                             })),
                             // P2P payment edges (for clustering visualization)
+                            // Include both full mode (count/totalUsd) and anonymized mode (frequency/volume) fields
                             ...(filteredGraphData.p2pEdges || []).map((edge, i) => ({
                                 id: `p2p-${i}`,
                                 source: edge.source,
@@ -1942,6 +2131,9 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                                 type: edge.type,
                                 count: edge.count,
                                 totalUsd: edge.totalUsd,
+                                frequency: edge.frequency,
+                                volume: edge.volume,
+                                bidirectional: edge.bidirectional,
                                 isP2P: true,
                                 isExternal: false,
                             })),
@@ -1967,6 +2159,9 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                         ctx.fill()
                     }}
                     nodeLabel={(node: any) => {
+                        const currentMode = displaySettingsRef.current.mode
+                        const isAnonymized = currentMode === 'payment'
+
                         // External node tooltip
                         if (node.isExternal) {
                             const fullId = node.id.replace('ext_', '')
@@ -1976,9 +2171,22 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                                     : node.externalType === 'BANK'
                                       ? `🏦 ${inferBankAccountType(fullId)}`
                                       : '🏪 Merchant'
-                            
+
                             // Show only masked labels for all types
                             const displayLabel = node.externalType === 'BANK' ? 'Account' : 'ID'
+
+                            // Anonymized mode: show qualitative labels instead of exact values
+                            if (isAnonymized) {
+                                return `<div style="background: white; border-radius: 8px; border: 1px solid #e5e7eb; font-family: Inter, system-ui, sans-serif; max-width: 280px; padding: 12px 14px;">
+                                    <div style="font-weight: 700; margin-bottom: 8px; font-size: 14px; color: #1f2937;">${typeLabel}</div>
+                                    <div style="font-size: 12px; line-height: 1.6; color: #6b7280;">
+                                        <div style="margin-bottom: 4px; word-break: break-all;">🏷️ ${displayLabel}: <span style="color: #374151; font-weight: 600;">${node.label}</span></div>
+                                        <div style="margin-bottom: 4px;">👥 Users: <span style="color: #374151;">${node.uniqueUsers}</span></div>
+                                        <div style="margin-bottom: 4px;">📊 Activity: <span style="color: #374151;">${node.frequency || 'N/A'}</span></div>
+                                        <div>💵 Volume: <span style="color: #374151;">${node.volume || 'N/A'}</span></div>
+                                    </div>
+                                </div>`
+                            }
 
                             return `<div style="background: white; border-radius: 8px; border: 1px solid #e5e7eb; font-family: Inter, system-ui, sans-serif; max-width: 280px; padding: 12px 14px;">
                                 <div style="font-weight: 700; margin-bottom: 8px; font-size: 14px; color: #1f2937;">${typeLabel}</div>
@@ -1990,7 +2198,18 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                                 </div>
                             </div>`
                         }
-                        // User node tooltip
+
+                        // User node tooltip - anonymized in payment mode
+                        if (isAnonymized) {
+                            return `<div style="background: white; border-radius: 8px; border: 1px solid #e5e7eb; font-family: Inter, system-ui, sans-serif; max-width: 240px; padding: 12px 14px; box-shadow: none;">
+                                <div style="font-weight: 700; margin-bottom: 8px; font-size: 14px; color: #1f2937; font-family: monospace;">${node.username || 'User'}</div>
+                                <div style="font-size: 12px; line-height: 1.6; color: #6b7280;">
+                                    <div style="margin-bottom: 4px;">${node.hasAppAccess ? '<span style="color: #10b981;">✓ Active User</span>' : '<span style="color: #f59e0b;">⏳ Inactive</span>'}</div>
+                                </div>
+                            </div>`
+                        }
+
+                        // Full mode: show all details
                         const signupDate = node.createdAt ? new Date(node.createdAt).toLocaleDateString() : 'Unknown'
                         const lastActive = node.lastActiveAt
                             ? new Date(node.lastActiveAt).toLocaleDateString()
@@ -2023,9 +2242,17 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                     nodeCanvasObjectMode={() => 'replace'}
                     linkLabel={(link: any) => {
                         if (link.isP2P) {
+                            // Handle both full (count/totalUsd) and anonymized (frequency/volume) modes
+                            if (link.frequency && link.volume) {
+                                return `P2P: ${link.frequency} activity, ${link.volume} volume`
+                            }
                             return `P2P: ${link.count} txs ($${link.totalUsd?.toFixed(2) ?? '0'})`
                         }
                         if (link.isExternal) {
+                            // Handle both full and anonymized modes
+                            if (link.frequency && link.volume) {
+                                return `Merchant: ${link.frequency} activity, ${link.volume} volume`
+                            }
                             return `External: ${link.txCount} txs ($${link.totalUsd?.toFixed(2) ?? '0'})`
                         }
                         return `${link.type} - ${new Date(link.createdAt).toLocaleDateString()}`
@@ -2056,8 +2283,8 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                 {renderOverlays?.({
                     showUsernames,
                     setShowUsernames,
-                    showAllNodes,
-                    setShowAllNodes,
+                    topNodes,
+                    setTopNodes,
                     activityFilter,
                     setActivityFilter,
                     forceConfig,

@@ -15,7 +15,8 @@ export interface GraphPreferences {
     activityFilter?: ActivityFilter
     externalNodesConfig?: ExternalNodesConfig
     showUsernames?: boolean
-    showAllNodes?: boolean
+    /** Top N nodes limit (0 = all nodes). Backend-filtered. */
+    topNodes?: number
 }
 
 /**

@@ -2,13 +2,19 @@
 
 import { useState, useCallback } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
+import { useAuth } from '@/context/authContext'
+import { IS_DEV } from '@/constants/general.consts'
 import InvitesGraph, {
     DEFAULT_FORCE_CONFIG,
     DEFAULT_VISIBILITY_CONFIG,
     DEFAULT_EXTERNAL_NODES_CONFIG,
 } from '@/components/Global/InvitesGraph'
 
-export default function InviteGraphPage() {
+// Allowed users for full graph access (frontend check - backend also validates)
+const ALLOWED_USERNAMES = ['squirrel', 'konrad', 'hugo']
+
+export default function FullGraphPage() {
+    const { user, isFetchingUser } = useAuth()
     const [apiKey, setApiKey] = useState('')
     const [apiKeySubmitted, setApiKeySubmitted] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -26,6 +32,44 @@ export default function InviteGraphPage() {
         window.location.href = '/dev'
     }, [])
 
+    // Check if user is allowed (frontend defense - backend also validates)
+    // In dev mode, allow all users; in prod, restrict to allowed usernames
+    const isAllowedUser =
+        IS_DEV || (user?.user?.username && ALLOWED_USERNAMES.includes(user.user.username.toLowerCase()))
+
+    // Loading state
+    if (isFetchingUser) {
+        return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900">
+                <div className="text-white">Loading...</div>
+            </div>
+        )
+    }
+
+    // Access denied screen
+    if (!isAllowedUser) {
+        return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900">
+                <div className="w-full max-w-md space-y-6 rounded-2xl bg-white p-8 shadow-2xl">
+                    <div className="text-center">
+                        <div className="mb-4 text-6xl">🔒</div>
+                        <h2 className="mb-2 text-2xl font-bold text-gray-900">Access Restricted</h2>
+                        <p className="text-sm text-gray-600">This tool is only available to authorized users.</p>
+                        {user?.user?.username && (
+                            <p className="mt-2 text-xs text-gray-400">Logged in as: {user.user.username}</p>
+                        )}
+                    </div>
+                    <button
+                        onClick={() => (window.location.href = '/dev')}
+                        className="w-full text-sm text-gray-500 hover:text-gray-700"
+                    >
+                        ← Back to Dev Tools
+                    </button>
+                </div>
+            </div>
+        )
+    }
+
     // API key input screen
     if (!apiKeySubmitted) {
         return (
@@ -33,7 +77,7 @@ export default function InviteGraphPage() {
                 <div className="w-full max-w-md space-y-6 rounded-2xl bg-white p-8 shadow-2xl">
                     <div className="text-center">
                         <div className="mb-4 text-6xl">🕸️</div>
-                        <h2 className="mb-2 text-2xl font-bold text-gray-900">Invite Graph</h2>
+                        <h2 className="mb-2 text-2xl font-bold text-gray-900">Full Graph</h2>
                         <p className="text-sm text-gray-600">
                             Admin tool - Enter your API key to visualize the network
                         </p>
@@ -76,8 +120,8 @@ export default function InviteGraphPage() {
                 renderOverlays={({
                     showUsernames,
                     setShowUsernames,
-                    showAllNodes,
-                    setShowAllNodes,
+                    topNodes,
+                    setTopNodes,
                     activityFilter,
                     setActivityFilter,
                     forceConfig,
@@ -617,7 +661,7 @@ export default function InviteGraphPage() {
                                 </div>
 
                                 {/* Other options */}
-                                <div className="flex gap-3">
+                                <div className="flex items-center gap-3">
                                     <label className="flex cursor-pointer items-center gap-1">
                                         <input
                                             type="checkbox"
@@ -627,15 +671,30 @@ export default function InviteGraphPage() {
                                         />
                                         <span className="text-gray-600">Names</span>
                                     </label>
-                                    <label className="flex cursor-pointer items-center gap-1">
-                                        <input
-                                            type="checkbox"
-                                            checked={showAllNodes}
-                                            onChange={(e) => setShowAllNodes(e.target.checked)}
-                                            className="text-red-600 h-3 w-3 rounded border-gray-300"
-                                        />
-                                        <span className="text-gray-600">All nodes</span>
-                                    </label>
+                                </div>
+
+                                {/* Top nodes slider */}
+                                <div className="space-y-0.5">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[10px] text-gray-500">Top nodes:</span>
+                                        <span className="text-[9px] text-gray-500">
+                                            {topNodes === 0 ? 'All' : topNodes.toLocaleString()}
+                                        </span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="10000"
+                                        step="500"
+                                        value={topNodes}
+                                        onChange={(e) => setTopNodes(parseInt(e.target.value))}
+                                        className="h-1 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 accent-purple-600"
+                                    />
+                                    <div className="flex justify-between text-[8px] text-gray-400">
+                                        <span>All</span>
+                                        <span>5k</span>
+                                        <span>10k</span>
+                                    </div>
                                 </div>
 
                                 {/* Activity window */}
@@ -736,7 +795,9 @@ export default function InviteGraphPage() {
                                         </span>
                                     </div>
                                     <p className="text-gray-400">Click → Grafana | Right-click → Focus</p>
-                                    {!showAllNodes && <p className="text-gray-400">Showing top 5000 nodes</p>}
+                                    {topNodes > 0 && (
+                                        <p className="text-gray-400">Showing top {topNodes.toLocaleString()} nodes</p>
+                                    )}
                                 </div>
                             </div>
                         </div>
