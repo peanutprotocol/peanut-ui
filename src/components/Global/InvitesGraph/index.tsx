@@ -433,12 +433,6 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                 (edge) => limitedNodeIds.has(edge.source) && limitedNodeIds.has(edge.target)
             )
 
-            console.log('[PerformanceMode] Limited to top 1000:', {
-                before: data.nodes.length,
-                after: limitedNodes.length,
-                p2pEdges: { before: data.p2pEdges?.length || 0, after: filteredP2PEdges.length },
-            })
-
             return {
                 nodes: limitedNodes,
                 edges: filteredEdges,
@@ -614,33 +608,18 @@ export default function InvitesGraph(props: InvitesGraphProps) {
 
         // Start with all nodes
         let filteredNodes = rawGraphData.nodes
-        const initialNodeCount = filteredNodes.length
 
         // Filter by activity time window AND active/inactive checkboxes
         // activityDays defines the time window (e.g., 30 days)
         // Nodes are classified as active (within window) or inactive (outside window)
         // Then visibilityConfig checkboxes control which category to show
         if (!visibilityConfig.activeNodes || !visibilityConfig.inactiveNodes) {
-            const beforeFilter = filteredNodes.length
             filteredNodes = filteredNodes.filter((node) => {
                 const isActive = isNodeActive(node, activityFilter)
                 if (isActive && !visibilityConfig.activeNodes) return false
                 if (!isActive && !visibilityConfig.inactiveNodes) return false
                 return true
             })
-            const afterFilter = filteredNodes.length
-            if (beforeFilter !== afterFilter) {
-                console.log('[GraphData] Activity filter removed nodes:', {
-                    before: beforeFilter,
-                    after: afterFilter,
-                    removed: beforeFilter - afterFilter,
-                    visibilityConfig: {
-                        activeNodes: visibilityConfig.activeNodes,
-                        inactiveNodes: visibilityConfig.inactiveNodes,
-                    },
-                    activityDays: activityFilter.activityDays,
-                })
-            }
         }
 
         const nodeIds = new Set(filteredNodes.map((n) => n.id))
@@ -651,19 +630,18 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             filteredEdges = []
         }
 
+        // Safety: detect duplicate node IDs (should never happen after SHA-256 fix)
+        console.assert(
+            nodeIds.size === filteredNodes.length,
+            `Duplicate node IDs detected: ${filteredNodes.length} nodes collapsed to ${nodeIds.size} unique IDs`
+        )
+
         let filteredP2PEdges = (rawGraphData.p2pEdges || []).filter(
             (edge) => nodeIds.has(edge.source) && nodeIds.has(edge.target)
         )
         if (!visibilityConfig.p2pEdges) {
             filteredP2PEdges = []
         }
-
-        console.log('[GraphData] Final filtered data:', {
-            initialNodes: initialNodeCount,
-            filteredNodes: filteredNodes.length,
-            edges: filteredEdges.length,
-            p2pEdges: filteredP2PEdges.length,
-        })
 
         return {
             nodes: filteredNodes,
@@ -780,21 +758,6 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             return true
         })
 
-        // Debug logging
-        const byType = {
-            WALLET: filtered.filter((n) => n.type === 'WALLET').length,
-            BANK: filtered.filter((n) => n.type === 'BANK').length,
-            MERCHANT: filtered.filter((n) => n.type === 'MERCHANT').length,
-        }
-        console.log('[ExternalNodes] After client filter:', {
-            total: filtered.length,
-            byType,
-            config: {
-                minConnections: externalNodesConfig.minConnections,
-                types: externalNodesConfig.types,
-                activityDays: activityFilter.activityDays,
-            },
-        })
         return filtered
     }, [externalNodesData, externalNodesConfig, activityFilter.activityDays])
 
@@ -868,27 +831,17 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                 }
             })
 
-        // Debug logging
-        const visibleByType = {
-            WALLET: externalNodes.filter((n) => n.externalType === 'WALLET').length,
-            BANK: externalNodes.filter((n) => n.externalType === 'BANK').length,
-            MERCHANT: externalNodes.filter((n) => n.externalType === 'MERCHANT').length,
-        }
-        console.log('[ExternalNodes] After visible users filter:', {
-            visible: visibleByType,
-            filteredOut: filteredOutByVisibility,
-            visibleUserCount: userIdsInGraph.size,
-        })
-
         const combined = [...userNodes, ...externalNodes]
-        console.log('[CombinedGraphNodes] Final node counts:', {
-            userNodes: userNodes.length,
-            externalNodes: externalNodes.length,
-            total: combined.length,
-        })
+
+        // Safety: detect duplicate external node IDs
+        const externalNodeIds = new Set(externalNodes.map((n) => n.id))
+        console.assert(
+            externalNodeIds.size === externalNodes.length,
+            `Duplicate external node IDs: ${externalNodes.length} nodes collapsed to ${externalNodeIds.size} unique IDs`
+        )
 
         return combined
-    }, [filteredGraphData, filteredExternalNodes, externalNodesConfig.enabled])
+    }, [filteredGraphData, externalNodesConfig.enabled, filteredExternalNodes])
 
     // Build links to external nodes with per-user transaction data and direction
     // Creates separate links for INCOMING and OUTGOING to enable correct particle flow
@@ -1052,17 +1005,6 @@ export default function InvitesGraph(props: InvitesGraphProps) {
 
                 if (result.success && result.data) {
                     // Debug logging for external nodes
-                    const byType = {
-                        WALLET: result.data.nodes.filter((n) => n.type === 'WALLET').length,
-                        BANK: result.data.nodes.filter((n) => n.type === 'BANK').length,
-                        MERCHANT: result.data.nodes.filter((n) => n.type === 'MERCHANT').length,
-                    }
-                    console.log('[ExternalNodes] Fetched:', {
-                        total: result.data.nodes.length,
-                        byType,
-                        stats: result.data.stats,
-                        mode: apiMode,
-                    })
                     setExternalNodesData(result.data.nodes)
                     externalNodesFetchedLimitRef.current = externalNodesConfig.limit
                 } else {
@@ -1911,13 +1853,6 @@ export default function InvitesGraph(props: InvitesGraphProps) {
 
         const graph = graphRef.current as any
 
-        // Try different ways to access simulation
-        const simulation =
-            graph.d3Force?.('link')?._simulation || // via force
-            graph._simulation || // direct
-            graph.simulation?.() || // method
-            graph.__simulation // alt internal
-
         // Get nodes from graphData prop or via d3Force
         const linkForce = graph.d3Force?.('link')
         const nodes =
@@ -1925,8 +1860,6 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             filteredGraphDataRef.current?.nodes ||
             []
         const uniqueNodes = [...new Map(nodes.map((n: any) => [n.id || n, n])).values()]
-
-        console.log('[RECALC] Found nodes:', uniqueNodes.length, 'hasSimulation:', !!simulation)
 
         if (uniqueNodes.length > 0) {
             // Reset positions on actual node objects
@@ -1956,12 +1889,6 @@ export default function InvitesGraph(props: InvitesGraphProps) {
 
         const applyForces = () => {
             if (!graphRef.current) return false
-
-            console.log('[FORCES] Configuring:', {
-                charge: forceConfig.charge.strength,
-                links: forceConfig.inviteLinks.strength,
-                nodes: filteredGraphData.nodes.length,
-            })
 
             // configureForces is async - must wait for it to complete before reheating
             configureForces().then(() => {
@@ -2091,23 +2018,6 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         }))
 
         const allLinks = [...inviteLinks, ...p2pLinks, ...externalLinks]
-
-        // Debug logging
-        const externalLinksInFinal = allLinks.filter((l) => l.isExternal)
-        const carrefourLinks = externalLinksInFinal.filter((l) => (l.target as string).includes('ext_CARREF'))
-
-        console.log('[CombinedLinks] Final links passed to ForceGraph2D:', {
-            totalLinks: allLinks.length,
-            inviteLinks: inviteLinks.length,
-            p2pLinks: p2pLinks.length,
-            externalLinks: externalLinksInFinal.length,
-            carrefourLinks: carrefourLinks.length,
-            sampleCarrefourLinks: carrefourLinks.slice(0, 3).map((l) => ({
-                source: l.source,
-                target: l.target,
-                isExternal: l.isExternal,
-            })),
-        })
 
         return allLinks
     }, [filteredGraphData, externalLinks])
