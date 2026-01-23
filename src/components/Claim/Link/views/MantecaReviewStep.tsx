@@ -106,7 +106,12 @@ const MantecaReviewStep: FC<MantecaReviewStepProps> = ({
                     currency,
                 })
                 if (withdrawError || !data) {
-                    setError(withdrawError || 'Something went wrong. Please contact Support')
+                    // handle third-party account error with user-friendly message
+                    if (withdrawError === 'TAX_ID_MISMATCH' || withdrawError === 'CUIT_MISMATCH') {
+                        setError('You can only withdraw to accounts under your name.')
+                    } else {
+                        setError(withdrawError || 'Something went wrong. Please contact Support')
+                    }
                     return
                 }
                 setCurrentStep(MercadoPagoStep.SUCCESS)
