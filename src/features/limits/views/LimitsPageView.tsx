@@ -1,7 +1,7 @@
 'use client'
 
 import { ActionListCard } from '@/components/ActionListCard'
-import { getCardPosition } from '@/components/Global/Card'
+import { getCardPosition } from '@/components/Global/Card/card.utils'
 import NavHeader from '@/components/Global/NavHeader'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import { useIdentityVerification, type Region } from '@/hooks/useIdentityVerification'

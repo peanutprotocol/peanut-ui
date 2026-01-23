@@ -1,7 +1,8 @@
 'use client'
 
 import PageContainer from '@/components/0_Bruddle/PageContainer'
-import Card, { getCardPosition } from '@/components/Global/Card'
+import Card from '@/components/Global/Card'
+import { getCardPosition } from '@/components/Global/Card/card.utils'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'

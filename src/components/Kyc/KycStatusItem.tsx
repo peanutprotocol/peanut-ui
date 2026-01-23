@@ -1,15 +1,15 @@
 import { useState, useMemo, useCallback } from 'react'
-import Card, { type CardPosition } from '@/components/Global/Card'
+import Card from '@/components/Global/Card'
+import { type CardPosition } from '@/components/Global/Card/card.utils'
 import { KycStatusDrawer } from './KycStatusDrawer'
 import { useUserStore } from '@/redux/hooks'
-import AvatarWithBadge from '../Profile/AvatarWithBadge'
-import StatusBadge, { type StatusType } from '../Global/Badges/StatusBadge'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { type BridgeKycStatus } from '@/utils/bridge-accounts.utils'
 import { type HTMLAttributes } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { type IUserKycVerification } from '@/interfaces'
 import StatusPill from '../Global/StatusPill'
+import { KYCStatusIcon } from './KYCStatusIcon'
 
 // this component shows the current kyc status and opens a drawer with more details on click
 export const KycStatusItem = ({
@@ -95,21 +95,5 @@ export const KycStatusItem = ({
                 bridgeKycStatus={finalBridgeKycStatus}
             />
         </>
-    )
-}
-
-export const KYCStatusIcon = () => {
-    return <AvatarWithBadge icon="user-id" className="bg-yellow-1" size="extra-small" />
-}
-
-export const KYCStatusDrawerItem = ({ status }: { status: StatusType }) => {
-    return (
-        <Card position="single" className="flex items-center gap-4">
-            <KYCStatusIcon />
-            <div className="flex flex-col gap-2">
-                <h3 className="text-lg font-extrabold">Identity verification</h3>
-                <StatusBadge status={status} className="w-fit" size="small" />
-            </div>
-        </Card>
     )
 }

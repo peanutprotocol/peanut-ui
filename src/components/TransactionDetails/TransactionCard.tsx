@@ -1,4 +1,5 @@
-import Card, { type CardPosition } from '@/components/Global/Card'
+import Card from '@/components/Global/Card'
+import { type CardPosition } from '@/components/Global/Card/card.utils'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
 import { type TransactionDirection } from '@/components/TransactionDetails/TransactionDetailsHeaderCard'

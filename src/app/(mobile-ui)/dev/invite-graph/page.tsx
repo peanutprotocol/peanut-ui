@@ -2,11 +2,12 @@
 
 import { useState, useCallback } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
-import InvitesGraph, {
+import InvitesGraph from '@/components/Global/InvitesGraph'
+import {
     DEFAULT_FORCE_CONFIG,
     DEFAULT_VISIBILITY_CONFIG,
     DEFAULT_EXTERNAL_NODES_CONFIG,
-} from '@/components/Global/InvitesGraph'
+} from '@/components/Global/InvitesGraph/types'
 
 export default function InviteGraphPage() {
     const [apiKey, setApiKey] = useState('')

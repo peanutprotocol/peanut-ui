@@ -1,6 +1,6 @@
 'use client'
 import { ActionListCard } from '../ActionListCard'
-import { getCardPosition } from '../Global/Card'
+import { getCardPosition } from '../Global/Card/card.utils'
 
 /**
  * displays a contacts list skeleton during loading
