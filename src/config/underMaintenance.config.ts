@@ -17,6 +17,11 @@
  *    - shows clear error message to users about provider outage
  *    - other providers continue to work normally
  *
+ * 4. disableSquidWithdraw: disables cross-chain withdrawals via Squid
+ *    - restricts withdraw token selector to only USDC on Arbitrum
+ *    - shows info message explaining cross-chain is temporarily unavailable
+ *    - same-chain withdrawals (USDC on Arbitrum) continue to work
+ *
  * note: if either mode is enabled, the maintenance banner will show everywhere
  *
  * I HOPE WE NEVER NEED TO USE THIS...
@@ -29,12 +34,14 @@ interface MaintenanceConfig {
     enableFullMaintenance: boolean
     enableMaintenanceBanner: boolean
     disabledPaymentProviders: PaymentProvider[]
+    disableSquidWithdraw: boolean
 }
 
 const underMaintenanceConfig: MaintenanceConfig = {
     enableFullMaintenance: false, // set to true to redirect all pages to /maintenance
     enableMaintenanceBanner: false, // set to true to show maintenance banner on all pages
     disabledPaymentProviders: [], // set to ['MANTECA'] to disable Manteca QR payments
+    disableSquidWithdraw: true, // set to true to disable cross-chain withdrawals (only allows USDC on Arbitrum)
 }
 
 export default underMaintenanceConfig
