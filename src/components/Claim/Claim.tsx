@@ -275,7 +275,13 @@ export const Claim = ({}) => {
                     return
                 }
 
-                if (sendLink.status === ESendLinkStatus.CLAIMED || sendLink.status === ESendLinkStatus.CANCELLED) {
+                // Treat CLAIMING and FAILED as non-claimable (funds already left the link)
+                if (
+                    sendLink.status === ESendLinkStatus.CLAIMED ||
+                    sendLink.status === ESendLinkStatus.CANCELLED ||
+                    sendLink.status === ESendLinkStatus.CLAIMING ||
+                    sendLink.status === ESendLinkStatus.FAILED
+                ) {
                     setLinkState(_consts.claimLinkStateType.ALREADY_CLAIMED)
                     return
                 }
@@ -317,8 +323,14 @@ export const Claim = ({}) => {
     useEffect(() => {
         if (!claimLinkData || isFetchingUser) return
 
-        // If link is already claimed or cancelled, that state takes precedence
-        if (claimLinkData.status === ESendLinkStatus.CLAIMED || claimLinkData.status === ESendLinkStatus.CANCELLED) {
+        // If link is already claimed, cancelled, claiming, or failed, that state takes precedence
+        // (funds already left the link in CLAIMING/FAILED states)
+        if (
+            claimLinkData.status === ESendLinkStatus.CLAIMED ||
+            claimLinkData.status === ESendLinkStatus.CANCELLED ||
+            claimLinkData.status === ESendLinkStatus.CLAIMING ||
+            claimLinkData.status === ESendLinkStatus.FAILED
+        ) {
             setLinkState(_consts.claimLinkStateType.ALREADY_CLAIMED)
             return
         }
