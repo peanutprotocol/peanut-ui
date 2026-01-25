@@ -6,6 +6,7 @@ import { ETHEREUM_ICON } from '@/assets/icons'
 import Image from 'next/image'
 import { Icon } from '../Icons/Icon'
 import { useQRScanner, type QRScanHandler } from './useQRScanner'
+import { useToast } from '@/components/0_Bruddle/Toast'
 
 // ============================================================================
 // Configuration
@@ -86,7 +87,7 @@ function ScannerControls({ onClose, onToggleCamera }: { onClose: () => void; onT
     )
 }
 
-function ScanRegionOverlay() {
+function ScanRegionOverlay({ onPaste }: { onPaste: () => void }) {
     return (
         <div className="fixed left-1/2 flex h-64 w-64 -translate-x-1/2 translate-y-1/2 justify-center">
             {/* Darkened background with transparent scan region */}
@@ -97,13 +98,20 @@ function ScanRegionOverlay() {
                 ))}
             </div>
 
-            {/* Supported payment methods */}
+            {/* Supported payment methods and paste option */}
             <div className="flex-column z-50 translate-y-[100%] transform items-center text-center">
                 <div className="mt-10 flex flex-wrap justify-center gap-2">
                     {PAYMENT_METHODS.map((method) => (
                         <PaymentMethodBadge key={method.name} {...method} />
                     ))}
                 </div>
+                <button
+                    onClick={onPaste}
+                    className="justify mx-auto mt-10 flex items-center gap-1.5 text-center text-white underline underline-offset-2"
+                >
+                    <Icon name="paste" fill="white" height={16} width={16} />
+                    <span className="text-sm">Click to paste</span>
+                </button>
             </div>
         </div>
     )
@@ -126,6 +134,21 @@ function ErrorView({ message, onClose }: { message: string; onClose: () => void 
 
 export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerProps) {
     const { error, isScanning, videoRef, close, toggleCamera } = useQRScanner(onScan, onClose, isOpen)
+    const toast = useToast()
+
+    const handlePaste = async () => {
+        try {
+            const text = await navigator.clipboard.readText()
+            if (text.trim()) {
+                await onScan(text.trim())
+            } else {
+                toast.error('Clipboard is empty')
+            }
+        } catch (err) {
+            console.error('Failed to read clipboard:', err)
+            toast.error('Could not access clipboard. Please check your browser permissions.')
+        }
+    }
 
     if (!isScanning) return null
 
@@ -144,7 +167,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                         muted
                     />
                     <ScannerControls onClose={close} onToggleCamera={toggleCamera} />
-                    <ScanRegionOverlay />
+                    <ScanRegionOverlay onPaste={handlePaste} />
                 </>
             )}
         </div>,
