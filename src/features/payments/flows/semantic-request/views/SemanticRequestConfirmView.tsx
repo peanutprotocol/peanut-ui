@@ -22,7 +22,6 @@ import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import DisplayIcon from '@/components/Global/DisplayIcon'
 import { useSemanticRequestFlow } from '../useSemanticRequestFlow'
 import { formatAmount, isStableCoin } from '@/utils/general.utils'
-import { interfaces } from '@squirrel-labs/peanut-sdk'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { useMemo } from 'react'
 import { formatUnits } from 'viem'
@@ -51,18 +50,13 @@ export function SemanticRequestConfirmView() {
         selectedChainID,
         selectedTokenData,
         urlToken,
+        isTokenDenominated,
         goBackToInitial,
         executePayment,
         prepareRoute,
         handleRouteExpired,
         handleRouteNearExpiry,
     } = useSemanticRequestFlow()
-
-    // check if url specified a non-stablecoin token (e.g., eth)
-    const isTokenDenominated = useMemo(() => {
-        if (!urlToken) return false
-        return !isStableCoin(urlToken.symbol)
-    }, [urlToken])
 
     // get the display symbol for the requested amount
     const displayTokenSymbol = useMemo(() => {

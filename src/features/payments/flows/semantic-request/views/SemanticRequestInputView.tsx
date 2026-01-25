@@ -24,7 +24,7 @@ import { useSemanticRequestFlow } from '../useSemanticRequestFlow'
 import { useRouter } from 'next/navigation'
 import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPeanutCta'
 import { PaymentMethodActionList } from '@/features/payments/shared/components/PaymentMethodActionList'
-import { printableAddress, areEvmAddressesEqual, isStableCoin } from '@/utils/general.utils'
+import { printableAddress, areEvmAddressesEqual } from '@/utils/general.utils'
 import { tokenSelectorContext } from '@/context'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 
@@ -37,6 +37,7 @@ export function SemanticRequestInputView() {
         chargeIdFromUrl,
         isAmountFromUrl,
         urlToken,
+        isTokenDenominated,
         error,
         formattedBalance,
         canProceed,
@@ -138,12 +139,6 @@ export function SemanticRequestInputView() {
     // determine denomination for amount input
     // if url specifies a non-stablecoin token (e.g., eth), use that token as primary denomination
     // otherwise default to USD
-    const isTokenDenominated = useMemo(() => {
-        if (!urlToken) return false
-        // stablecoins should still display as USD
-        return !isStableCoin(urlToken.symbol)
-    }, [urlToken])
-
     const primaryDenomination = useMemo(() => {
         if (isTokenDenominated && urlToken) {
             return {

@@ -129,17 +129,22 @@ export async function generateMetadata({ params, searchParams }: any) {
     // Determine how to display the amount (with token symbol or $)
     // Stablecoins (USDC, USDT, etc.) should show as $, other tokens show with their symbol
     const isTokenDenominated = token && !isStableCoin(token)
-    const amountDisplay = isTokenDenominated && token ? `${amount} ${token.toUpperCase()}` : `$${amount}`
+    // Guard against undefined amount to avoid "$undefined" in titles
+    const amountDisplay = amount
+        ? isTokenDenominated && token
+            ? `${amount} ${token.toUpperCase()}`
+            : `$${amount}`
+        : null
 
     if (isReceipt) {
         // Receipt case - show who shared the receipt
         const displayName = username || (isEthAddress ? printableAddress(recipient) : recipient)
-        title = `${displayName} shared a receipt for ${amountDisplay} via Peanut`
+        title = amountDisplay
+            ? `${displayName} shared a receipt for ${amountDisplay} via Peanut`
+            : `${displayName} shared a receipt via Peanut`
         description = 'Tap to view the payment details instantly and securely.'
-    } else if (amount && token) {
+    } else if (amountDisplay) {
         title = `${isEthAddress ? printableAddress(recipient) : recipient} is requesting ${amountDisplay} via Peanut`
-    } else if (amount) {
-        title = `${isEthAddress ? printableAddress(recipient) : recipient} is requesting $${amount} via Peanut`
     } else if (isAddressOrEns) {
         title = `${isEthAddress ? printableAddress(recipient) : recipient} is requesting funds`
     } else if (chargeId) {
