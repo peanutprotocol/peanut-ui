@@ -4,7 +4,7 @@ import PaymentPage from './client'
 import getOrigin from '@/lib/hosting/get-origin'
 import { BASE_URL } from '@/constants/general.consts'
 import { isAddress } from 'viem'
-import { printableAddress } from '@/utils/general.utils'
+import { printableAddress, isStableCoin } from '@/utils/general.utils'
 import { chargesApi } from '@/services/charges'
 import { parseAmountAndToken } from '@/lib/url-parser/parser'
 import { notFound } from 'next/navigation'
@@ -126,13 +126,18 @@ export async function generateMetadata({ params, searchParams }: any) {
     // Check if this is a receipt (chargeId exists and charge is paid)
     const isReceipt = chargeId && isPaid
 
+    // Determine how to display the amount (with token symbol or $)
+    // Stablecoins (USDC, USDT, etc.) should show as $, other tokens show with their symbol
+    const isTokenDenominated = token && !isStableCoin(token)
+    const amountDisplay = isTokenDenominated && token ? `${amount} ${token.toUpperCase()}` : `$${amount}`
+
     if (isReceipt) {
         // Receipt case - show who shared the receipt
         const displayName = username || (isEthAddress ? printableAddress(recipient) : recipient)
-        title = `${displayName} shared a receipt for $${amount} via Peanut`
+        title = `${displayName} shared a receipt for ${amountDisplay} via Peanut`
         description = 'Tap to view the payment details instantly and securely.'
     } else if (amount && token) {
-        title = `${isEthAddress ? printableAddress(recipient) : recipient} is requesting $${amount} via Peanut`
+        title = `${isEthAddress ? printableAddress(recipient) : recipient} is requesting ${amountDisplay} via Peanut`
     } else if (amount) {
         title = `${isEthAddress ? printableAddress(recipient) : recipient} is requesting $${amount} via Peanut`
     } else if (isAddressOrEns) {

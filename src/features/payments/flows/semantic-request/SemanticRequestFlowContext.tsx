@@ -19,6 +19,7 @@ import { createContext, useContext, useState, useMemo, useCallback, type ReactNo
 import { type Address, type Hash } from 'viem'
 import { type TRequestChargeResponse, type PaymentCreationResponse } from '@/services/services.types'
 import { type ParsedURL, type RecipientType } from '@/lib/url-parser/types/payment'
+import { interfaces } from '@squirrel-labs/peanut-sdk'
 
 // view states for semantic request flow
 export type SemanticRequestFlowView = 'INITIAL' | 'CONFIRM' | 'STATUS' | 'RECEIPT' | 'EXTERNAL_WALLET'
@@ -67,6 +68,10 @@ interface SemanticRequestFlowContextValue {
     isAmountFromUrl: boolean
     isTokenFromUrl: boolean
     isChainFromUrl: boolean
+
+    // token denomination from url (e.g., ETH when url is /address/0.0001eth)
+    // when set, amounts should be displayed in this token rather than USD
+    urlToken: interfaces.ISquidToken | undefined
 
     // attachment state
     attachment: SemanticRequestAttachment
@@ -127,6 +132,10 @@ export function SemanticRequestFlowProvider({
     const isTokenFromUrl = !!initialParsedUrl.token
     const isChainFromUrl = !!initialParsedUrl.chain
 
+    // token denomination from url - when url specifies a token like /address/0.0001eth
+    // this is used to display amounts in that token rather than USD
+    const urlToken = initialParsedUrl.token
+
     // amount state
     const [amount, setAmount] = useState<string>(initialParsedUrl.amount || '')
     const [usdAmount, setUsdAmount] = useState<string>(initialParsedUrl.amount || '')
@@ -185,6 +194,7 @@ export function SemanticRequestFlowProvider({
             isAmountFromUrl,
             isTokenFromUrl,
             isChainFromUrl,
+            urlToken,
             attachment,
             setAttachment,
             charge,
@@ -213,6 +223,7 @@ export function SemanticRequestFlowProvider({
             isAmountFromUrl,
             isTokenFromUrl,
             isChainFromUrl,
+            urlToken,
             attachment,
             charge,
             payment,

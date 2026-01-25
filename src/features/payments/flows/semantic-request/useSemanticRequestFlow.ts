@@ -24,7 +24,7 @@ import { useAuth } from '@/context/authContext'
 import { tokenSelectorContext } from '@/context'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { ErrorHandler } from '@/utils/sdkErrorHandler.utils'
-import { areEvmAddressesEqual } from '@/utils/general.utils'
+import { areEvmAddressesEqual, isStableCoin } from '@/utils/general.utils'
 import { useQueryClient } from '@tanstack/react-query'
 import { TRANSACTIONS } from '@/constants/query.consts'
 
@@ -42,6 +42,7 @@ export function useSemanticRequestFlow() {
         isAmountFromUrl,
         isTokenFromUrl,
         isChainFromUrl,
+        urlToken,
         attachment,
         setAttachment,
         charge,
@@ -93,13 +94,30 @@ export function useSemanticRequestFlow() {
 
     const isLoggedIn = !!user?.user?.userId
 
-    // set amount (for peanut wallet, amount is always in usd)
+    // check if url specified a non-stablecoin token (e.g., eth)
+    // when true, amount is in token units, not usd
+    const isTokenDenominated = useMemo(() => {
+        if (!urlToken) return false
+        return !isStableCoin(urlToken.symbol)
+    }, [urlToken])
+
+    // set amount - handles conversion between token and usd amounts
+    // when url specifies a token like eth, amount is in token units
+    // and we calculate the usd equivalent
     const handleSetAmount = useCallback(
         (value: string) => {
             setAmount(value)
-            setUsdAmount(value)
+            if (isTokenDenominated && urlToken?.usdPrice) {
+                // convert token amount to usd
+                const tokenAmount = parseFloat(value) || 0
+                const usdValue = (tokenAmount * urlToken.usdPrice).toString()
+                setUsdAmount(usdValue)
+            } else {
+                // amount is already in usd
+                setUsdAmount(value)
+            }
         },
-        [setAmount, setUsdAmount]
+        [setAmount, setUsdAmount, isTokenDenominated, urlToken]
     )
 
     // clear error
@@ -550,6 +568,7 @@ export function useSemanticRequestFlow() {
         isAmountFromUrl,
         isTokenFromUrl,
         isChainFromUrl,
+        urlToken,
         attachment,
         charge,
         payment,

@@ -13,7 +13,7 @@
  * for cross-chain: navigates to confirm view
  */
 
-import { useEffect, useContext } from 'react'
+import { useEffect, useContext, useMemo } from 'react'
 import NavHeader from '@/components/Global/NavHeader'
 import AmountInput from '@/components/Global/AmountInput'
 import UserCard from '@/components/User/UserCard'
@@ -24,7 +24,7 @@ import { useSemanticRequestFlow } from '../useSemanticRequestFlow'
 import { useRouter } from 'next/navigation'
 import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPeanutCta'
 import { PaymentMethodActionList } from '@/features/payments/shared/components/PaymentMethodActionList'
-import { printableAddress, areEvmAddressesEqual } from '@/utils/general.utils'
+import { printableAddress, areEvmAddressesEqual, isStableCoin } from '@/utils/general.utils'
 import { tokenSelectorContext } from '@/context'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 
@@ -36,6 +36,7 @@ export function SemanticRequestInputView() {
         parsedUrl,
         chargeIdFromUrl,
         isAmountFromUrl,
+        urlToken,
         error,
         formattedBalance,
         canProceed,
@@ -134,6 +135,31 @@ export function SemanticRequestInputView() {
         (recipient?.recipientType === 'ADDRESS' || recipient?.recipientType === 'ENS') &&
         isConnected
 
+    // determine denomination for amount input
+    // if url specifies a non-stablecoin token (e.g., eth), use that token as primary denomination
+    // otherwise default to USD
+    const isTokenDenominated = useMemo(() => {
+        if (!urlToken) return false
+        // stablecoins should still display as USD
+        return !isStableCoin(urlToken.symbol)
+    }, [urlToken])
+
+    const primaryDenomination = useMemo(() => {
+        if (isTokenDenominated && urlToken) {
+            return {
+                symbol: urlToken.symbol.toUpperCase(),
+                price: urlToken.usdPrice,
+                decimals: urlToken.decimals,
+            }
+        }
+        // default to USD
+        return {
+            symbol: '$',
+            price: 1,
+            decimals: 6, // USDC decimals
+        }
+    }, [isTokenDenominated, urlToken])
+
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
             <NavHeader onPrev={handleGoBack} title="Pay" />
@@ -157,11 +183,7 @@ export function SemanticRequestInputView() {
                 <AmountInput
                     initialAmount={amount}
                     setPrimaryAmount={setAmount}
-                    primaryDenomination={{
-                        symbol: '$',
-                        price: 1,
-                        decimals: 6, // we want USDC decimals to be able to pay exactly
-                    }}
+                    primaryDenomination={primaryDenomination}
                     onSubmit={handleSubmit}
                     walletBalance={isLoggedIn ? formattedBalance : undefined}
                     hideBalance={!isLoggedIn}

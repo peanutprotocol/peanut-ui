@@ -22,6 +22,7 @@ import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import DisplayIcon from '@/components/Global/DisplayIcon'
 import { useSemanticRequestFlow } from '../useSemanticRequestFlow'
 import { formatAmount, isStableCoin } from '@/utils/general.utils'
+import { interfaces } from '@squirrel-labs/peanut-sdk'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { useMemo } from 'react'
 import { formatUnits } from 'viem'
@@ -49,12 +50,27 @@ export function SemanticRequestConfirmView() {
         isFetchingCharge,
         selectedChainID,
         selectedTokenData,
+        urlToken,
         goBackToInitial,
         executePayment,
         prepareRoute,
         handleRouteExpired,
         handleRouteNearExpiry,
     } = useSemanticRequestFlow()
+
+    // check if url specified a non-stablecoin token (e.g., eth)
+    const isTokenDenominated = useMemo(() => {
+        if (!urlToken) return false
+        return !isStableCoin(urlToken.symbol)
+    }, [urlToken])
+
+    // get the display symbol for the requested amount
+    const displayTokenSymbol = useMemo(() => {
+        if (isTokenDenominated && urlToken) {
+            return urlToken.symbol.toUpperCase()
+        }
+        return '$'
+    }, [isTokenDenominated, urlToken])
 
     // icons for sending token (peanut wallet usdc)
     const {
@@ -84,9 +100,13 @@ export function SemanticRequestConfirmView() {
     const isCrossChainPayment = isXChain || isDiffToken
 
     // format display values
+    // when token-denominated (e.g., eth), show the token amount, not usd amount
     const displayAmount = useMemo(() => {
+        if (isTokenDenominated) {
+            return `${formatAmount(amount)}`
+        }
         return `${formatAmount(usdAmount || amount)}`
-    }, [amount, usdAmount])
+    }, [amount, usdAmount, isTokenDenominated])
 
     // get network fee display
     const networkFee = useMemo<string | React.ReactNode>(() => {
@@ -163,7 +183,7 @@ export function SemanticRequestConfirmView() {
                         recipientType={recipient?.recipientType as PeanutActionDetailsCardRecipientType}
                         recipientName={recipient?.identifier || recipient?.resolvedAddress || ''}
                         amount={displayAmount}
-                        tokenSymbol={'$'}
+                        tokenSymbol={displayTokenSymbol}
                         message={attachment?.message ?? ''}
                         fileUrl={attachment?.fileUrl ?? ''}
                         showTimer={isCrossChainPayment && calculatedRoute?.type === 'rfq'}
