@@ -34,6 +34,7 @@ import {
     StarRounded,
     PersonAddOutlined,
     ContentCopyOutlined,
+    ContentPasteRounded,
     CloseRounded,
     QrCode2Rounded,
     UpdateRounded,
@@ -148,6 +149,7 @@ export type IconName =
     | 'bulb'
     | 'upload-cloud'
     | 'alert-filled'
+    | 'paste'
 export interface IconProps extends SVGProps<SVGSVGElement> {
     name: IconName
     size?: number | string
@@ -287,6 +289,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     'upload-cloud': (props) => <MaterialIconWrapper Icon={CloudUploadOutlined} {...props} />,
     'invite-heart': InviteHeartIcon,
     'alert-filled': (props) => <MaterialIconWrapper Icon={WarningRounded} {...props} />,
+    paste: (props) => <MaterialIconWrapper Icon={ContentPasteRounded} {...props} />,
 }
 
 export const Icon: FC<IconProps> = ({ name, size = 24, width, height, ...props }) => {
