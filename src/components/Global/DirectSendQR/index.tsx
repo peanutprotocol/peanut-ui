@@ -17,6 +17,7 @@ import { twMerge } from 'tailwind-merge'
 import ActionModal from '../ActionModal'
 import { Icon, type IconName } from '../Icons/Icon'
 import { EQrType, NAME_BY_QR_TYPE, parseEip681, recognizeQr } from './utils'
+import { pixKeyToBRCode } from '@/utils/pix.utils'
 import { useHaptic } from 'use-haptic'
 import { useModalsContext } from '@/context/ModalsContext'
 
@@ -326,6 +327,21 @@ export default function DirectSendQr({
                     const timestamp = Date.now()
                     // Casing matters, so send original instead of normalized
                     redirectUrl = `/qr-pay?qrCode=${encodeURIComponent(originalData)}&t=${timestamp}&type=${qrType}`
+                }
+                break
+            case EQrType.PIX_KEY:
+                {
+                    const brCode = pixKeyToBRCode(originalData)
+                    if (brCode) {
+                        const timestamp = Date.now()
+                        redirectUrl = `/qr-pay?qrCode=${encodeURIComponent(brCode)}&t=${timestamp}&type=${EQrType.PIX}`
+                    } else {
+                        // Invalid PIX key - show unrecognized modal
+                        setModalContent(EModalType.UNRECOGNIZED)
+                        setIsModalOpen(true)
+                        setIsQRScannerOpen(false)
+                        return { success: true }
+                    }
                 }
                 break
             case EQrType.BITCOIN_ONCHAIN:

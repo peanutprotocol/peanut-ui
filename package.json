@@ -61,6 +61,7 @@
         "jsqr": "^1.4.0",
         "next": "16.0.10",
         "nuqs": "^2.8.6",
+        "pix-utils": "^2.8.2",
         "pulltorefreshjs": "^0.1.22",
         "qr-scanner": "^1.4.2",
         "react": "^19.2.1",

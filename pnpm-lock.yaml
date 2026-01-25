@@ -133,6 +133,9 @@ importers:
       nuqs:
         specifier: ^2.8.6
         version: 2.8.6(next@16.0.10(@babel/core@7.28.3)(@opentelemetry/api@1.9.0)(babel-plugin-macros@3.1.0)(react-dom@19.2.1(react@19.2.1))(react@19.2.1))(react@19.2.1)
+      pix-utils:
+        specifier: ^2.8.2
+        version: 2.8.2
       pulltorefreshjs:
         specifier: ^0.1.22
         version: 0.1.22
@@ -4546,6 +4549,9 @@ packages:
   fast-safe-stringify@2.1.1:
     resolution: {integrity: sha512-W+KJc2dmILlPplD/H4K9l9LcAHAfPtP6BY84uVLXQ6Evcz9Lcg33Y2z1IVblT6xdY54PXYVHEv+0Wpq8Io6zkA==}
 
+  fast-text-encoding@1.0.6:
+    resolution: {integrity: sha512-VhXlQgj9ioXCqGstD37E/HBeqEGV/qOD/kmbVG8h5xKBYvM1L3lR1Zn4555cQ8GkYbJa8aJSipLPndE1k6zK2w==}
+
   fast-uri@3.1.0:
     resolution: {integrity: sha512-iPeeDKJSWf4IEOasVVrknXpaBV0IApz/gp7S2bb7Z4Lljbl2MGJRqInZiUrQwV16cpzw/D3S5j5Julj/gT52AA==}
 
@@ -5853,6 +5859,10 @@ packages:
     resolution: {integrity: sha512-TfySrs/5nm8fQJDcBDuUng3VOUKsd7S+zqvbOTiGXHfxX4wK31ard+hoNuvkicM/2YFzlpDgABOevKSsB4G/FA==}
     engines: {node: '>= 6'}
 
+  pix-utils@2.8.2:
+    resolution: {integrity: sha512-PXkuvFJzFkcxlFCotVQJGZAhz6uruOdjUaW1RsBbx5DC5dzfFCYjtVdhb65a0YMG1BScdM5fLBu3udEchyRk4Q==}
+    engines: {node: '>=12', npm: '>=6'}
+
   pkg-dir@4.2.0:
     resolution: {integrity: sha512-HRDzbaKjC+AOWVXxAU/x54COGeIv9eb+6CkDSQoNTt4XyWoIJvuPsXizxu/Fr23EiekbtZwmh1IcIG/l/a10GQ==}
     engines: {node: '>=8'}
@@ -6069,6 +6079,11 @@ packages:
 
   qrcode@1.5.3:
     resolution: {integrity: sha512-puyri6ApkEHYiVl4CFzo1tDkAZ+ATcnbJrJ6RiBM1Fhctdn/ix9MTE3hRph33omisEbC/2fcfemsseiKgBPKZg==}
+    engines: {node: '>=10.13.0'}
+    hasBin: true
+
+  qrcode@1.5.4:
+    resolution: {integrity: sha512-1ca71Zgiu6ORjHqFBDpnSMTR2ReToX4l1Au1VFLyVeBTFavzQnv5JxMFr3ukHVKpSrSA2MCk0lNJSykjUfz7Zg==}
     engines: {node: '>=10.13.0'}
     hasBin: true
 
@@ -13623,6 +13638,8 @@ snapshots:
 
   fast-safe-stringify@2.1.1: {}
 
+  fast-text-encoding@1.0.6: {}
+
   fast-uri@3.1.0: {}
 
   fastq@1.19.1:
@@ -15301,6 +15318,14 @@ snapshots:
 
   pirates@4.0.7: {}
 
+  pix-utils@2.8.2:
+    dependencies:
+      axios: 1.11.0
+      fast-text-encoding: 1.0.6
+      qrcode: 1.5.4
+    transitivePeerDependencies:
+      - debug
+
   pkg-dir@4.2.0:
     dependencies:
       find-up: 4.1.0
@@ -15473,6 +15498,12 @@ snapshots:
     dependencies:
       dijkstrajs: 1.0.3
       encode-utf8: 1.0.3
+      pngjs: 5.0.0
+      yargs: 15.4.1
+
+  qrcode@1.5.4:
+    dependencies:
+      dijkstrajs: 1.0.3
       pngjs: 5.0.0
       yargs: 15.4.1
 

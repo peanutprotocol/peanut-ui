@@ -1,5 +1,6 @@
 import { ENS_NAME_REGEX } from '@/constants/general.consts'
 import { getTokenSymbol, getTokenDecimals } from '@/utils/general.utils'
+import { validatePixKey, isPixEmvcoQr } from '@/utils/withdraw.utils'
 import { isAddress, formatUnits } from 'viem'
 
 export enum EQrType {
@@ -13,6 +14,7 @@ export enum EQrType {
     BITCOIN_ONCHAIN = 'BITCOIN_ONCHAIN',
     BITCOIN_INVOICE = 'BITCOIN_INVOICE',
     PIX = 'PIX',
+    PIX_KEY = 'PIX_KEY',
     TRON_ADDRESS = 'TRON_ADDRESS',
     SOLANA_ADDRESS = 'SOLANA_ADDRESS',
     XRP_ADDRESS = 'XRP_ADDRESS',
@@ -27,6 +29,7 @@ export const NAME_BY_QR_TYPE: { [key in QrType]?: string } = {
     [EQrType.BITCOIN_ONCHAIN]: 'Bitcoin',
     [EQrType.BITCOIN_INVOICE]: 'Bitcoin',
     [EQrType.PIX]: 'PIX',
+    [EQrType.PIX_KEY]: 'PIX',
     [EQrType.TRON_ADDRESS]: 'Tron',
     [EQrType.SOLANA_ADDRESS]: 'Solana',
     [EQrType.XRP_ADDRESS]: 'Ripple',
@@ -127,10 +130,20 @@ export function recognizeQr(data: string): QrType | null {
     }
 
     for (const [type, regex] of Object.entries(REGEXES_BY_TYPE)) {
+        // Check for raw PIX keys BEFORE URL regex (emails match URL pattern)
+        // But skip if it looks like a real URL (has protocol)
+        if (type === EQrType.URL && !data.includes('://')) {
+            const pixValidation = validatePixKey(data)
+            if (pixValidation.valid && !isPixEmvcoQr(data)) {
+                return EQrType.PIX_KEY
+            }
+        }
+
         if (regex.test(data)) {
             return type as QrType
         }
     }
+
     return null
 }
 
