@@ -241,7 +241,26 @@ export default function DirectSendQr({
         const originalData = data
         data = data.toLowerCase()
         const qrType = recognizeQr(data)
-        hitUserMetric(user!.user.userId, 'scan-qr', { qrType, data: originalData })
+
+        // Redact sensitive data for privacy before logging to analytics
+        const getLogData = () => {
+            // PIX keys contain PII (CPF, phone, email) - only log the key type
+            if (qrType === EQrType.PIX_KEY) {
+                const trimmed = originalData.trim()
+                if (trimmed.startsWith('+') || /^55\d/.test(trimmed)) return 'pix:phone'
+                if (/^\d{11}$/.test(trimmed)) return 'pix:cpf'
+                if (/^\d{14}$/.test(trimmed)) return 'pix:cnpj'
+                if (trimmed.includes('@')) return 'pix:email'
+                if (/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(trimmed)) return 'pix:uuid'
+                return 'pix:unknown'
+            }
+            // Claim links contain private keys - redact the sensitive part
+            if (qrType === EQrType.PEANUT_URL && originalData.toLowerCase().includes('/claim')) {
+                return 'peanut:claim-link'
+            }
+            return originalData
+        }
+        hitUserMetric(user!.user.userId, 'scan-qr', { qrType, data: getLogData() })
         setQrType(qrType as EQrType)
         switch (qrType) {
             case EQrType.PEANUT_URL:
