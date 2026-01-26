@@ -1568,6 +1568,7 @@ export default function QRPayPage() {
                         <PaymentInfoRow
                             label="Exchange Rate"
                             value={`1 USD = ${currency.price} ${currency.code.toUpperCase()}`}
+                            moreInfoText="Rate shown is current but may vary slightly (~$1-5 ARS) until payment is confirmed."
                         />
                         <PaymentInfoRow label="Peanut fee" value="Sponsored by Peanut!" hideBottomBorder />
                     </Card>
