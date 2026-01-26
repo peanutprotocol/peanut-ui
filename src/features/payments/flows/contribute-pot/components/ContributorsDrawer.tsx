@@ -12,7 +12,7 @@
 
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/Global/Drawer'
 import ContributorCard, { type Contributor } from '@/components/Global/Contributors/ContributorCard'
-import { getCardPosition } from '@/components/Global/Card'
+import { getCardPosition } from '@/components/Global/Card/card.utils'
 import { Button } from '@/components/0_Bruddle/Button'
 import { type PotContributor } from '../ContributePotFlowContext'
 import { useMemo } from 'react'

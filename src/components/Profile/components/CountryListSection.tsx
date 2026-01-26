@@ -1,6 +1,6 @@
 import { ActionListCard } from '@/components/ActionListCard'
 import { type CountryData } from '@/components/AddMoney/consts'
-import { getCardPosition } from '@/components/Global/Card'
+import { getCardPosition } from '@/components/Global/Card/card.utils'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { Icon } from '@/components/Global/Icons/Icon'
 import * as Accordion from '@radix-ui/react-accordion'

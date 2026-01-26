@@ -1,5 +1,5 @@
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
-import { getCardPosition } from '@/components/Global/Card'
+import { getCardPosition } from '@/components/Global/Card/card.utils'
 import NavHeader from '@/components/Global/NavHeader'
 import Image from 'next/image'
 import React from 'react'

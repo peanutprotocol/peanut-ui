@@ -298,17 +298,9 @@ export default function MantecaWithdrawFlow() {
             })
 
             if (result.error) {
-                // Handle specific error types with user-friendly messages
-                // TAX_ID_MISMATCH covers both Argentina (CUIT) and Brazil (CPF)
+                // handle third-party account error with user-friendly message
                 if (result.error === 'TAX_ID_MISMATCH' || result.error === 'CUIT_MISMATCH') {
-                    // Country-specific message based on currency (Manteca countries have this restriction)
-                    const countryName =
-                        currencyCode === 'ARS' ? 'Argentina' : currencyCode === 'BRL' ? 'Brazil' : 'your country'
-                    setErrorMessage(
-                        result.message ??
-                            `The bank account you entered is not registered under your name. Due to local regulations in ${countryName}, you can only withdraw to accounts linked to your identity. Please contact support to request a refund.`
-                    )
-                    setStep('failure')
+                    setErrorMessage('You can only withdraw to accounts under your name.')
                 } else if (result.error === 'Unexpected error') {
                     setErrorMessage('Withdraw failed unexpectedly. If problem persists contact support')
                     setStep('failure')

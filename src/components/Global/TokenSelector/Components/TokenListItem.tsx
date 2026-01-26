@@ -5,7 +5,8 @@
  * handles selection state and disabled state for unsupported tokens
  */
 
-import Card, { type CardPosition } from '@/components/Global/Card'
+import Card from '@/components/Global/Card'
+import { type CardPosition } from '@/components/Global/Card/card.utils'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { type IUserBalance } from '@/interfaces'

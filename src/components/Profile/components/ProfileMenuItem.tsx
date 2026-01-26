@@ -1,5 +1,6 @@
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
-import Card, { type CardPosition } from '@/components/Global/Card'
+import Card from '@/components/Global/Card'
+import { type CardPosition } from '@/components/Global/Card/card.utils'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import NavigationArrow from '@/components/Global/NavigationArrow'
 import { Tooltip } from '@/components/Tooltip'

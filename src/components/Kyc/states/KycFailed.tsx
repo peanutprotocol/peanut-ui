@@ -1,6 +1,6 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
-import { KYCStatusDrawerItem } from '../KycStatusItem'
+import { KYCStatusDrawerItem } from '../KYCStatusDrawerItem'
 import Card from '@/components/Global/Card'
 import { useMemo } from 'react'
 import { formatDate } from '@/utils/general.utils'

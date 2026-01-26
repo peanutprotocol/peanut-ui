@@ -7,7 +7,8 @@
  * - Large component that could be split into smaller focused components
  */
 
-import Card, { getCardPosition } from '@/components/Global/Card'
+import Card from '@/components/Global/Card'
+import { getCardPosition } from '@/components/Global/Card/card.utils'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { TRANSACTIONS } from '@/constants/query.consts'

@@ -1,5 +1,5 @@
 'use client'
-import { type CardPosition } from '@/components/Global/Card'
+import { type CardPosition } from '@/components/Global/Card/card.utils'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import Image from 'next/image'
 import { twMerge } from 'tailwind-merge'
