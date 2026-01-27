@@ -23,6 +23,7 @@ import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { type PointsInvite } from '@/services/services.types'
 import { useEffect } from 'react'
 import InvitesGraph from '@/components/Global/InvitesGraph'
+import { IS_DEV } from '@/constants/general.consts'
 
 const PointsPage = () => {
     const router = useRouter()
@@ -54,11 +55,12 @@ const PointsPage = () => {
         enabled: !!user?.user.userId,
     })
 
+    // In dev mode, show graph for all users. In production, only for Seedling badge holders.
+    const hasSeedlingBadge = user?.user?.badges?.some((badge) => badge.code === 'SEEDLING_DEVCONNECT_BA_2025')
     const { data: myGraphResult } = useQuery({
         queryKey: ['myInviteGraph', user?.user.userId],
         queryFn: () => pointsApi.getUserInvitesGraph(),
-        enabled:
-            !!user?.user.userId && user?.user?.badges?.some((badge) => badge.code === 'SEEDLING_DEVCONNECT_BA_2025'),
+        enabled: !!user?.user.userId && (IS_DEV || hasSeedlingBadge),
     })
     const username = user?.user.username
     const { inviteCode, inviteLink } = generateInviteCodeLink(username ?? '')
@@ -172,6 +174,29 @@ const PointsPage = () => {
                     </Card>
                 </div>
 
+                {/* User Graph - shows user, their inviter, and points flow regardless of invites */}
+                {myGraphResult?.data && (
+                    <>
+                        <Card className="overflow-hidden p-0">
+                            <InvitesGraph
+                                minimal
+                                data={myGraphResult.data}
+                                height={250}
+                                backgroundColor="#ffffff"
+                                showUsernames
+                            />
+                        </Card>
+                        <div className="flex items-center gap-2">
+                            <Icon name="info" className="size-4 flex-shrink-0 text-black" />
+                            <p className="text-sm text-black">
+                                {IS_DEV
+                                    ? 'Experimental. Enabled for all users in dev mode.'
+                                    : 'Experimental. Only available for Seedlings badge holders.'}
+                            </p>
+                        </div>
+                    </>
+                )}
+
                 {invites && invites?.invitees && invites.invitees.length > 0 && (
                     <>
                         <ShareButton
@@ -187,27 +212,6 @@ const PointsPage = () => {
                             <h2 className="font-bold">People you invited</h2>
                             <NavigationArrow className="text-black" />
                         </div>
-
-                        {/* Invite Graph */}
-                        {myGraphResult?.data && (
-                            <>
-                                <Card className="overflow-hidden p-0">
-                                    <InvitesGraph
-                                        minimal
-                                        data={myGraphResult.data}
-                                        height={250}
-                                        backgroundColor="#ffffff"
-                                        showUsernames
-                                    />
-                                </Card>
-                                <div className="flex items-center gap-2">
-                                    <Icon name="info" className="size-4 flex-shrink-0 text-black" />
-                                    <p className="text-sm text-black">
-                                        Experimental. Only available for Seedlings badge holders.
-                                    </p>
-                                </div>
-                            </>
-                        )}
 
                         <div>
                             {invites.invitees?.map((invite: PointsInvite, i: number) => {

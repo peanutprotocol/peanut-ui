@@ -1,17 +1,26 @@
-import { type ExternalNode, type ExternalNodeType } from '@/services/points'
+import {
+    type ExternalNode,
+    type ExternalNodeType,
+    type SizeLabel,
+    type FrequencyLabel,
+    type VolumeLabel,
+} from '@/services/points'
 
 // Types
 export interface GraphNode {
     id: string
     username: string
     hasAppAccess: boolean
-    directPoints: number
-    transitivePoints: number
-    totalPoints: number
+    // Full mode fields - optional in payment mode
+    directPoints?: number
+    transitivePoints?: number
+    totalPoints?: number
     /** ISO date when user signed up */
-    createdAt: string
+    createdAt?: string
     /** ISO date of last transaction activity (null if never active or >90 days ago) */
-    lastActiveAt: string | null
+    lastActiveAt?: string | null
+    // Payment mode fields - optional in full mode
+    size?: SizeLabel
     /** KYC regions: AR (Manteca Argentina), BR (Manteca Brazil), World (Bridge) - null if not KYC'd */
     kycRegions: string[] | null
     x?: number
@@ -26,15 +35,21 @@ export interface GraphEdge {
     createdAt: string
 }
 
-/** P2P payment edge between users (for clustering) */
+/** P2P payment edge between users (for clustering)
+ * Supports both full mode (with exact count/totalUsd) and anonymized mode (with frequency/volume labels)
+ */
 export interface P2PEdge {
     source: string
     target: string
     type: 'SEND_LINK' | 'REQUEST_PAYMENT' | 'DIRECT_TRANSFER'
-    count: number
-    totalUsd: number
     /** True if payments went both ways between these users */
     bidirectional: boolean
+    // Full mode fields (exact values)
+    count?: number
+    totalUsd?: number
+    // Anonymized mode fields (qualitative labels)
+    frequency?: FrequencyLabel
+    volume?: VolumeLabel
 }
 
 export interface GraphData {
@@ -70,7 +85,7 @@ export type ForceConfig = {
     /** Node repulsion (charge) - prevents overlap */
     charge: { enabled: boolean; strength: number }
     /** Invite link attraction - tree clustering (force only, use visibilityConfig to hide edges) */
-    inviteLinks: { enabled: boolean; strength: number }
+    inviteLinks: { enabled: boolean; strength: number; distance?: number }
     /** P2P link attraction - clusters transacting users (force only, use visibilityConfig to hide edges) */
     p2pLinks: { enabled: boolean; strength: number }
     /** External link attraction - clusters users with shared wallets/banks/merchants */
@@ -147,5 +162,5 @@ export const DEFAULT_ACTIVITY_FILTER: ActivityFilter = {
     hideInactive: false, // Default: show inactive as greyed out
 }
 
-/** Re-export ExternalNode type for convenience */
-export type { ExternalNode, ExternalNodeType }
+/** Re-export types from points service for convenience */
+export type { ExternalNode, ExternalNodeType, SizeLabel, FrequencyLabel, VolumeLabel }

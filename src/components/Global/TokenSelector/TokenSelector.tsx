@@ -33,6 +33,7 @@ import {
     TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS,
 } from './TokenSelector.consts'
 import { Drawer, DrawerContent, DrawerTitle } from '../Drawer'
+import underMaintenanceConfig from '@/config/underMaintenance.config'
 
 interface SectionProps {
     title: string
@@ -59,6 +60,9 @@ interface NewTokenSelectorProps {
 }
 
 const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewType = 'other', disabled }) => {
+    // check if cross-chain withdraw is disabled via maintenance config
+    const isSquidWithdrawDisabled = viewType === 'withdraw' && underMaintenanceConfig.disableSquidWithdraw
+
     // state to track content height
     const contentRef = useRef<HTMLDivElement>(null)
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
@@ -168,6 +172,28 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
 
     // build list of popular tokens (usdc, usdt, native) for display
     const popularTokensList = useMemo(() => {
+        // when squid withdraw is disabled, only show USDC on Arbitrum
+        if (isSquidWithdrawDisabled) {
+            if (!supportedSquidChainsAndTokens) return []
+            const arbitrumChainId = PEANUT_WALLET_CHAIN.id.toString()
+            const chainData = supportedSquidChainsAndTokens[arbitrumChainId]
+            if (!chainData?.tokens) return []
+
+            const usdcToken = chainData.tokens.find((t) => areEvmAddressesEqual(t.address, PEANUT_WALLET_TOKEN))
+            if (!usdcToken) return []
+
+            return [
+                {
+                    ...usdcToken,
+                    chainId: arbitrumChainId,
+                    amount: 0,
+                    price: 0,
+                    currency: usdcToken.symbol,
+                    value: '',
+                },
+            ]
+        }
+
         const popularSymbolsToFind = ['USDC', 'USDT']
         const createPopularTokenEntry = (token: IToken, chainId: string): IUserBalance => ({
             ...token,
@@ -250,7 +276,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
         // default: popular tokens on popular chains
         const popularChainIds = popularChainsForButtons.map((pc) => pc.chainId)
         return buildTokensForChainArray(popularChainIds)
-    }, [searchValue, selectedChainID, supportedSquidChainsAndTokens, popularChainsForButtons])
+    }, [searchValue, selectedChainID, supportedSquidChainsAndTokens, popularChainsForButtons, isSquidWithdrawDisabled])
 
     // filter popular tokens by search
     const filteredPopularTokensToDisplay = useMemo(() => {
@@ -365,60 +391,76 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                             />
                         ) : (
                             <div className="relative flex flex-col space-y-4">
-                                {/* Popular chains section - rendered for all views */}
-                                <>
-                                    <Section title="Select a network">
-                                        <div className="flex flex-col gap-4">
-                                            <div className="flex items-stretch justify-between space-x-2">
-                                                {popularChainsForButtons.map((chain) => (
-                                                    <NetworkButton
-                                                        key={chain.chainId}
-                                                        chainName={chain.name}
-                                                        chainIconURI={chain.iconURI}
-                                                        onClick={() => {
-                                                            if (selectedChainID === chain.chainId) {
-                                                                setSelectedChainID('') // clear selection if already selected
-                                                            } else {
-                                                                setSelectedChainID(chain.chainId) //otherwise, select it
-                                                            }
-                                                        }}
-                                                        isSelected={chain.chainId === selectedChainID}
-                                                    />
-                                                ))}
-                                                <NetworkButton
-                                                    chainName="Search"
-                                                    isSearch={true}
-                                                    onClick={handleSearchNetwork}
-                                                />
-                                            </div>
-                                        </div>
-                                    </Section>
-                                    <Divider className="p-0" dividerClassname="border-grey-1" />
-                                </>
-
-                                <div className="sticky -top-1 z-10 space-y-2 bg-background py-3">
-                                    <SearchInput
-                                        value={searchValue}
-                                        onChange={setSearchValue}
-                                        onClear={() => setSearchValue('')}
-                                        placeholder="Search for a token or paste address"
-                                    />
-                                    <div className="flex items-center justify-center gap-2">
-                                        <Icon name="info" size={10} className="text-grey-1" />
-                                        <span className="text-xs font-normal text-grey-1">
-                                            Transactions using USDC on Arbitrum are sponsored
+                                {/* Info banner when cross-chain withdraw is disabled */}
+                                {isSquidWithdrawDisabled && (
+                                    <div className="flex items-center gap-2 rounded-lg bg-yellow-100 p-3 text-sm text-yellow-800">
+                                        <Icon name="info" size={16} className="flex-shrink-0" />
+                                        <span>
+                                            Cross-chain withdrawals are temporarily unavailable. You can withdraw USDC
+                                            on Arbitrum.
                                         </span>
                                     </div>
-                                </div>
+                                )}
+
+                                {/* Popular chains section - hidden when cross-chain withdraw is disabled */}
+                                {!isSquidWithdrawDisabled && (
+                                    <>
+                                        <Section title="Select a network">
+                                            <div className="flex flex-col gap-4">
+                                                <div className="flex items-stretch justify-between space-x-2">
+                                                    {popularChainsForButtons.map((chain) => (
+                                                        <NetworkButton
+                                                            key={chain.chainId}
+                                                            chainName={chain.name}
+                                                            chainIconURI={chain.iconURI}
+                                                            onClick={() => {
+                                                                if (selectedChainID === chain.chainId) {
+                                                                    setSelectedChainID('') // clear selection if already selected
+                                                                } else {
+                                                                    setSelectedChainID(chain.chainId) //otherwise, select it
+                                                                }
+                                                            }}
+                                                            isSelected={chain.chainId === selectedChainID}
+                                                        />
+                                                    ))}
+                                                    <NetworkButton
+                                                        chainName="Search"
+                                                        isSearch={true}
+                                                        onClick={handleSearchNetwork}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </Section>
+                                        <Divider className="p-0" dividerClassname="border-grey-1" />
+                                    </>
+                                )}
+
+                                {/* Hide search when squid withdraw is disabled - only one option available */}
+                                {!isSquidWithdrawDisabled && (
+                                    <div className="sticky -top-1 z-10 space-y-2 bg-background py-3">
+                                        <SearchInput
+                                            value={searchValue}
+                                            onChange={setSearchValue}
+                                            onClear={() => setSearchValue('')}
+                                            placeholder="Search for a token or paste address"
+                                        />
+                                        <div className="flex items-center justify-center gap-2">
+                                            <Icon name="info" size={10} className="text-grey-1" />
+                                            <span className="text-xs font-normal text-grey-1">
+                                                Transactions using USDC on Arbitrum are sponsored
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Popular tokens section */}
                                 <Section
-                                    title={popularTokensListTitle}
+                                    title={isSquidWithdrawDisabled ? 'Available token' : popularTokensListTitle}
                                     icon={searchValue ? 'search' : 'star'}
                                     titleClassName="text-grey-1 font-medium"
                                     className="relative space-y-4"
                                 >
-                                    {selectedNetworkName && clearChainSelection()}
+                                    {selectedNetworkName && !isSquidWithdrawDisabled && clearChainSelection()}
                                     <ScrollableList>
                                         {filteredPopularTokensToDisplay.length > 0 ? (
                                             filteredPopularTokensToDisplay.map((token) => {
