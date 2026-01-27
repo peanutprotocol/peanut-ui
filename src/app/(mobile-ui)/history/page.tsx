@@ -167,9 +167,16 @@ const HistoryPage = () => {
 
         if (user) {
             if (user.user?.bridgeKycStatus && user.user.bridgeKycStatus !== 'not_started') {
+                // Use appropriate timestamp based on KYC status
+                const bridgeKycTimestamp = (() => {
+                    const status = user.user.bridgeKycStatus
+                    if (status === 'approved') return user.user.bridgeKycApprovedAt
+                    if (status === 'rejected') return user.user.bridgeKycRejectedAt
+                    return user.user.bridgeKycStartedAt
+                })()
                 entries.push({
                     isKyc: true,
-                    timestamp: user.user.bridgeKycStartedAt ?? user.user.createdAt ?? new Date().toISOString(),
+                    timestamp: bridgeKycTimestamp ?? user.user.createdAt ?? new Date().toISOString(),
                     uuid: 'bridge-kyc-status-item',
                     bridgeKycStatus: user.user.bridgeKycStatus,
                 })
