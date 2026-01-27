@@ -160,9 +160,7 @@ function checkBlock(block: string, weights: number[]) {
 export function validateCbuCvuAlias(value: string): { valid: boolean; message?: string } {
     value = value.trim()
     const length = value.length
-    //TODO: enable this again when alias is supported
-    //if ((length < 6 || length > 20) && length !== 22) {
-    if (length !== 22) {
+    if ((length < 6 || length > 20) && length !== 22) {
         return { valid: false, message: 'Invalid length' }
     }
 
