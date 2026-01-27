@@ -17,6 +17,7 @@ import { twMerge } from 'tailwind-merge'
 import ActionModal from '../ActionModal'
 import { Icon, type IconName } from '../Icons/Icon'
 import { EQrType, NAME_BY_QR_TYPE, parseEip681, recognizeQr } from './utils'
+import { pixKeyToBRCode } from '@/utils/pix.utils'
 import { useHaptic } from 'use-haptic'
 import { useModalsContext } from '@/context/ModalsContext'
 
@@ -240,7 +241,26 @@ export default function DirectSendQr({
         const originalData = data
         data = data.toLowerCase()
         const qrType = recognizeQr(data)
-        hitUserMetric(user!.user.userId, 'scan-qr', { qrType, data: originalData })
+
+        // Redact sensitive data for privacy before logging to analytics
+        const getLogData = () => {
+            // PIX keys contain PII (CPF, phone, email) - only log the key type
+            if (qrType === EQrType.PIX_KEY) {
+                const trimmed = originalData.trim()
+                if (trimmed.startsWith('+') || /^55\d/.test(trimmed)) return 'pix:phone'
+                if (/^\d{11}$/.test(trimmed)) return 'pix:cpf'
+                if (/^\d{14}$/.test(trimmed)) return 'pix:cnpj'
+                if (trimmed.includes('@')) return 'pix:email'
+                if (/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(trimmed)) return 'pix:uuid'
+                return 'pix:unknown'
+            }
+            // Claim links contain private keys - redact the sensitive part
+            if (qrType === EQrType.PEANUT_URL && originalData.toLowerCase().includes('/claim')) {
+                return 'peanut:claim-link'
+            }
+            return originalData
+        }
+        hitUserMetric(user!.user.userId, 'scan-qr', { qrType, data: getLogData() })
         setQrType(qrType as EQrType)
         switch (qrType) {
             case EQrType.PEANUT_URL:
@@ -326,6 +346,21 @@ export default function DirectSendQr({
                     const timestamp = Date.now()
                     // Casing matters, so send original instead of normalized
                     redirectUrl = `/qr-pay?qrCode=${encodeURIComponent(originalData)}&t=${timestamp}&type=${qrType}`
+                }
+                break
+            case EQrType.PIX_KEY:
+                {
+                    const brCode = pixKeyToBRCode(originalData)
+                    if (brCode) {
+                        const timestamp = Date.now()
+                        redirectUrl = `/qr-pay?qrCode=${encodeURIComponent(brCode)}&t=${timestamp}&type=${EQrType.PIX}`
+                    } else {
+                        // Invalid PIX key - show unrecognized modal
+                        setModalContent(EModalType.UNRECOGNIZED)
+                        setIsModalOpen(true)
+                        setIsQRScannerOpen(false)
+                        return { success: true }
+                    }
                 }
                 break
             case EQrType.BITCOIN_ONCHAIN:

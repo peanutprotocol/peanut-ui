@@ -1,5 +1,7 @@
 import { recognizeQr, EQrType } from '../utils'
 
+jest.mock('@/assets', () => ({}))
+
 describe('recognizeQr', () => {
     describe('PEANUT_URL', () => {
         it.each([
@@ -184,6 +186,55 @@ describe('recognizeQr', () => {
             ['00020153039865802BR', 'missing PIX identifier'],
         ])('should NOT recognize %s as PIX (%s)', (data, _description) => {
             expect(recognizeQr(data)).not.toBe(EQrType.PIX)
+        })
+    })
+
+    describe('PIX_KEY (raw PIX keys)', () => {
+        it.each([
+            // Email
+            ['user@example.com', 'email PIX key'],
+            ['test.user@domain.com.br', 'email with subdomain'],
+            // CPF (11 digits)
+            ['12345678901', 'CPF PIX key'],
+            ['98765432100', 'another CPF'],
+            // CNPJ (14 digits)
+            ['12345678901234', 'CNPJ PIX key'],
+            // Phone numbers
+            ['+5511999999999', 'phone with +'],
+            ['5511999999999', 'phone without +'],
+            ['+5521987654321', 'different area code'],
+            // UUID (random key)
+            ['123e4567-e89b-12d3-a456-426614174000', 'UUID PIX key'],
+            ['a1b2c3d4-e5f6-7890-abcd-ef1234567890', 'another UUID'],
+        ])('should recognize %s as PIX_KEY (%s)', (data, _description) => {
+            expect(recognizeQr(data)).toBe(EQrType.PIX_KEY)
+        })
+
+        it.each([
+            // Invalid PIX keys should NOT be recognized as PIX_KEY
+            ['invalid-text', 'random text'],
+            ['123456', 'too short number'],
+            ['11111111111', 'all same digits CPF'],
+            ['not-a-valid-email', 'invalid email format'],
+            ['123e4567-e89b-12d3-a456', 'incomplete UUID'],
+            ['+5511', 'too short phone'],
+        ])('should NOT recognize %s as PIX_KEY (%s)', (data, _description) => {
+            expect(recognizeQr(data)).not.toBe(EQrType.PIX_KEY)
+        })
+
+        it('should prioritize PIX (BR Code) over PIX_KEY for valid EMVCo QR codes', () => {
+            const brCode =
+                '00020126580014br.gov.bcb.pix0136123e4567-e12b-12d1-a456-4266554400005204000053039865802BR5913Fulano de Tal6008BRASILIA62070503***63041D3D'
+            expect(recognizeQr(brCode)).toBe(EQrType.PIX)
+            expect(recognizeQr(brCode)).not.toBe(EQrType.PIX_KEY)
+        })
+
+        it('should prioritize PIX_KEY over URL for email-like strings without protocol', () => {
+            // Emails are valid PIX keys in Brazil, so they should be recognized as PIX_KEY
+            // rather than URL (even though they technically match the URL regex)
+            expect(recognizeQr('user@email.com')).toBe(EQrType.PIX_KEY)
+            // But URLs with protocol should still be recognized as URLs
+            expect(recognizeQr('https://user:pass@example.com')).toBe(EQrType.URL)
         })
     })
 
@@ -395,9 +446,7 @@ describe('recognizeQr', () => {
             ['https://example.com/path?query=value&other=param', 'with query params'],
             ['https://example.com/path#fragment', 'with fragment'],
             ['http://192.168.1.1', 'IP address'],
-            ['https://user:pass@example.com', 'with credentials'],
             ['example.com/path', 'domain with path, no protocol'],
-            ['user@email.com', 'email (matches URL regex)'],
             ['https%3A%2F%2Fexample.com', 'URL encoded (matches URL regex)'],
         ])('should recognize %s (%s)', (data, _description) => {
             expect(recognizeQr(data)).toBe(EQrType.URL)
@@ -493,6 +542,17 @@ describe('recognizeQr', () => {
         it('should prioritize EIP_681 over URL for ethereum: URIs', () => {
             const eip681 = 'ethereum:0x1234567890123456789012345678901234567890'
             expect(recognizeQr(eip681)).toBe(EQrType.EIP_681)
+        })
+
+        it('should prioritize PIX (BR Code) over PIX_KEY', () => {
+            const brCode =
+                '00020126580014br.gov.bcb.pix0136123e4567-e12b-12d1-a456-4266554400005204000053039865802BR5913Fulano de Tal6008BRASILIA62070503***63041D3D'
+            expect(recognizeQr(brCode)).toBe(EQrType.PIX)
+        })
+
+        it('should recognize raw PIX keys when no other pattern matches', () => {
+            expect(recognizeQr('nubank@email.com')).toBe(EQrType.PIX_KEY)
+            expect(recognizeQr('12345678901')).toBe(EQrType.PIX_KEY)
         })
     })
 
