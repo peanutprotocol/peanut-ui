@@ -1,4 +1,10 @@
-import { type ExternalNode, type ExternalNodeType, type SizeLabel, type FrequencyLabel, type VolumeLabel } from '@/services/points'
+import {
+    type ExternalNode,
+    type ExternalNodeType,
+    type SizeLabel,
+    type FrequencyLabel,
+    type VolumeLabel,
+} from '@/services/points'
 
 // Types
 export interface GraphNode {

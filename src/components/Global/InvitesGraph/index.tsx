@@ -105,7 +105,6 @@ function getExternalNodeUsers(node: any): number {
 /** Graph mode determines which features are enabled */
 export type GraphMode = 'full' | 'payment' | 'user'
 
-
 interface BaseProps {
     width?: number
     height?: number
