@@ -27,7 +27,7 @@ interface InitialWithdrawViewProps {
 }
 
 export default function InitialWithdrawView({ amount, onReview, onBack, isProcessing }: InitialWithdrawViewProps) {
-    const { usdAmount } = useWithdrawFlow()
+    const { usdAmount, withdrawData } = useWithdrawFlow()
     const router = useRouter()
     const {
         selectedTokenData,
@@ -70,8 +70,15 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
     }
 
     useEffect(() => {
-        setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
-        setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
+        // if withdrawData exists (user clicked back from confirm), preserve their selection
+        if (withdrawData?.chain && withdrawData?.token) {
+            setSelectedChainID(withdrawData.chain.chainId)
+            setSelectedTokenAddress(withdrawData.token.address)
+        } else {
+            // otherwise, set defaults for new withdraw flow
+            setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
+            setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
+        }
     }, [])
 
     return (
