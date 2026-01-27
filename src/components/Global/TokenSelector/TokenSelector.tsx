@@ -439,7 +439,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                     </>
                                 )}
 
-                                {/* Hide search when squid withdraw is disabled - only one option available */}
+                                {/* Hide search when cross-chain functionality is disabled (withdraw or send) - only one option available */}
                                 {!isCrossChainDisabled && (
                                     <div className="sticky -top-1 z-10 space-y-2 bg-background py-3">
                                         <SearchInput
