@@ -180,13 +180,13 @@ export function validateCbuCvuAlias(value: string): { valid: boolean; message?: 
         const expectedSecond = checkBlock(secondBlock, [3, 9, 7, 1, 3, 9, 7, 1, 3, 9, 7, 1, 3]).toString()
 
         if (expectedFirst !== firstCheck || expectedSecond !== secondCheck) {
-            return { valid: false, message: 'Invalid CBU/CVU check that you entered it correctly' }
+            return { valid: false, message: 'Invalid CBU/CVU - check that you entered it correctly' }
         }
         return { valid: true }
     }
 
     // Alias case
-    if (!/^[a-z/d\.-]*$/i.test(value)) {
+    if (!/^[a-z\d.-]*$/i.test(value)) {
         return { valid: false, message: 'Alias must contain only letters, numbers, dots, and dashes' }
     }
 
