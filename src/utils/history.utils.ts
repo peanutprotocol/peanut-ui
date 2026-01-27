@@ -284,13 +284,14 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
         }
         case EHistoryEntryType.BRIDGE_OFFRAMP:
         case EHistoryEntryType.BRIDGE_GUEST_OFFRAMP:
-        case EHistoryEntryType.BANK_SEND_LINK_CLAIM: {
+        case EHistoryEntryType.BANK_SEND_LINK_CLAIM:
+        case EHistoryEntryType.MANTECA_OFFRAMP: {
             tokenSymbol = entry.tokenSymbol
             usdAmount = entry.amount
             if (entry.currency?.code) {
                 entry.currency.code = entry.currency.code.toUpperCase()
             }
-            // when bridge returns non-usd currency on pending states, it may mirror the usd amount.
+            // when bridge/manteca returns non-usd currency on pending states, it may mirror the usd amount.
             // convert it using current fx rate if it looks unconverted (missing or ~equal to usd amount).
             if (entry.currency?.code && entry.currency.code !== 'USD') {
                 const usdNum = Number(usdAmount)
