@@ -15,6 +15,7 @@ import { useAuth } from '@/context/authContext'
 import { useCreateOnramp } from '@/hooks/useCreateOnramp'
 import { useRouter, useParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import countryCurrencyMappings from '@/constants/countryCurrencyMapping'
 import { formatUnits } from 'viem'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
@@ -73,6 +74,23 @@ export default function OnrampBankPage() {
         if (!selectedCountryPath) return null
         return countryData.find((country) => country.type === 'country' && country.path === selectedCountryPath)
     }, [selectedCountryPath])
+
+    const nonEuroCurrency = countryCurrencyMappings.find(
+        (currency) =>
+            selectedCountryPath.toLowerCase() === currency.country.toLowerCase() ||
+            currency.path?.toLowerCase() === selectedCountryPath.toLowerCase()
+    )?.currencyCode
+
+    // non-eur sepa countries that are currently experiencing issues
+    const isNonEuroSepaCountry = !!(
+        nonEuroCurrency &&
+        nonEuroCurrency !== 'EUR' &&
+        nonEuroCurrency !== 'USD' &&
+        nonEuroCurrency !== 'MXN'
+    )
+
+    // UK-specific check
+    const isUK = nonEuroCurrency === 'GBP'
 
     useWebSocket({
         username: user?.user.username ?? undefined,
@@ -421,7 +439,21 @@ export default function OnrampBankPage() {
                         <InfoCard
                             variant="warning"
                             icon="alert"
-                            description="This must match what you send from your bank!"
+                            description="Amount must match what you send from your bank!"
+                        />
+                    )}
+
+                    {/* Warning for non-EUR SEPA countries */}
+                    {!limitsValidation.isBlocking && isNonEuroSepaCountry && (
+                        <InfoCard
+                            variant="info"
+                            icon="alert"
+                            title="EUR accounts only"
+                            description={
+                                !isUK
+                                    ? 'Only EUR accounts with IBAN work for onramps. Standard GBP accounts with Account Number + Sort Code are not supported.'
+                                    : 'Only EUR accounts with IBAN work for onramps. Your local currency account may not work.'
+                            }
                         />
                     )}
                     <Button
