@@ -15,10 +15,18 @@ export default function DevToolsPage() {
             status: 'active',
         },
         {
-            name: 'Invite Graph',
-            description: 'Interactive force-directed graph visualization of all user invites (admin only)',
-            path: '/dev/invite-graph',
+            name: 'Full Graph',
+            description:
+                'Interactive force-directed graph visualization of all users, invites, and P2P activity (admin only)',
+            path: '/dev/full-graph',
             icon: '🕸️',
+            status: 'active',
+        },
+        {
+            name: 'Payment Graph',
+            description: 'P2P payment flow visualization',
+            path: '/dev/payment-graph',
+            icon: '💸',
             status: 'active',
         },
         {
@@ -70,7 +78,7 @@ export default function DevToolsPage() {
                 <Card className="space-y-2 bg-blue-50 p-4">
                     <h3 className="font-bold text-blue-900">ℹ️ Info</h3>
                     <ul className="space-y-1 text-sm text-blue-800">
-                        <li>• These tools are publicly accessible (no login required)</li>
+                        <li>• These tools are only available in development mode</li>
                         <li>• Perfect for testing on multiple devices</li>
                         <li>• Share the URL with team members for testing</li>
                     </ul>
