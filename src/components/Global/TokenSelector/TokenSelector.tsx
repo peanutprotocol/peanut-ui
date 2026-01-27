@@ -60,8 +60,12 @@ interface NewTokenSelectorProps {
 }
 
 const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewType = 'other', disabled }) => {
-    // check if cross-chain withdraw is disabled via maintenance config
+    // check if cross-chain is disabled via maintenance config
     const isSquidWithdrawDisabled = viewType === 'withdraw' && underMaintenanceConfig.disableSquidWithdraw
+    const isSquidSendDisabled =
+        (viewType === 'claim' || viewType === 'req_pay') && underMaintenanceConfig.disableSquidSend
+    // combined flag for any cross-chain disabled state
+    const isCrossChainDisabled = isSquidWithdrawDisabled || isSquidSendDisabled
 
     // state to track content height
     const contentRef = useRef<HTMLDivElement>(null)
@@ -173,7 +177,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
     // build list of popular tokens (usdc, usdt, native) for display
     const popularTokensList = useMemo(() => {
         // when squid withdraw is disabled, only show USDC on Arbitrum
-        if (isSquidWithdrawDisabled) {
+        if (isCrossChainDisabled) {
             if (!supportedSquidChainsAndTokens) return []
             const arbitrumChainId = PEANUT_WALLET_CHAIN.id.toString()
             const chainData = supportedSquidChainsAndTokens[arbitrumChainId]
@@ -276,7 +280,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
         // default: popular tokens on popular chains
         const popularChainIds = popularChainsForButtons.map((pc) => pc.chainId)
         return buildTokensForChainArray(popularChainIds)
-    }, [searchValue, selectedChainID, supportedSquidChainsAndTokens, popularChainsForButtons, isSquidWithdrawDisabled])
+    }, [searchValue, selectedChainID, supportedSquidChainsAndTokens, popularChainsForButtons, isCrossChainDisabled])
 
     // filter popular tokens by search
     const filteredPopularTokensToDisplay = useMemo(() => {
@@ -391,19 +395,19 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                             />
                         ) : (
                             <div className="relative flex flex-col space-y-4">
-                                {/* Info banner when cross-chain withdraw is disabled */}
-                                {isSquidWithdrawDisabled && (
+                                {/* Info banner when cross-chain is disabled */}
+                                {isCrossChainDisabled && (
                                     <div className="flex items-center gap-2 rounded-lg bg-yellow-100 p-3 text-sm text-yellow-800">
                                         <Icon name="info" size={16} className="flex-shrink-0" />
                                         <span>
-                                            Cross-chain withdrawals are temporarily unavailable. You can withdraw USDC
-                                            on Arbitrum.
+                                            Cross-chain transactions are temporarily unavailable. You can use USDC on
+                                            Arbitrum.
                                         </span>
                                     </div>
                                 )}
 
-                                {/* Popular chains section - hidden when cross-chain withdraw is disabled */}
-                                {!isSquidWithdrawDisabled && (
+                                {/* Popular chains section - hidden when cross-chain is disabled */}
+                                {!isCrossChainDisabled && (
                                     <>
                                         <Section title="Select a network">
                                             <div className="flex flex-col gap-4">
@@ -436,7 +440,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                 )}
 
                                 {/* Hide search when squid withdraw is disabled - only one option available */}
-                                {!isSquidWithdrawDisabled && (
+                                {!isCrossChainDisabled && (
                                     <div className="sticky -top-1 z-10 space-y-2 bg-background py-3">
                                         <SearchInput
                                             value={searchValue}
@@ -455,12 +459,12 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
 
                                 {/* Popular tokens section */}
                                 <Section
-                                    title={isSquidWithdrawDisabled ? 'Available token' : popularTokensListTitle}
+                                    title={isCrossChainDisabled ? 'Available token' : popularTokensListTitle}
                                     icon={searchValue ? 'search' : 'star'}
                                     titleClassName="text-grey-1 font-medium"
                                     className="relative space-y-4"
                                 >
-                                    {selectedNetworkName && !isSquidWithdrawDisabled && clearChainSelection()}
+                                    {selectedNetworkName && !isCrossChainDisabled && clearChainSelection()}
                                     <ScrollableList>
                                         {filteredPopularTokensToDisplay.length > 0 ? (
                                             filteredPopularTokensToDisplay.map((token) => {
