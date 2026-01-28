@@ -1,7 +1,6 @@
 import React from 'react'
 import { twMerge } from 'tailwind-merge'
-
-export type CardPosition = 'single' | 'first' | 'middle' | 'last'
+import { type CardPosition } from './card.utils'
 
 interface CardProps {
     children: React.ReactNode
@@ -10,13 +9,6 @@ interface CardProps {
     onClick?: () => void
     border?: boolean
     ref?: React.Ref<HTMLDivElement>
-}
-
-export function getCardPosition(index: number, totalItems: number): CardPosition {
-    if (totalItems === 1) return 'single'
-    if (index === 0) return 'first'
-    if (index === totalItems - 1) return 'last'
-    return 'middle'
 }
 
 const Card: React.FC<CardProps> = ({ children, position = 'single', className = '', onClick, border = true, ref }) => {

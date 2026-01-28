@@ -10,7 +10,6 @@ export enum QrKycState {
     PROCEED_TO_PAY = 'proceed_to_pay',
     REQUIRES_IDENTITY_VERIFICATION = 'requires_identity_verification',
     IDENTITY_VERIFICATION_IN_PROGRESS = 'identity_verification_in_progress',
-    REQUIRES_MANTECA_KYC_FOR_ARG_BRIDGE_USER = 'requires_manteca_kyc_for_arg_bridge_user',
 }
 
 export interface QrKycGateResult {
@@ -89,6 +88,13 @@ export function useQrKycGate(paymentProcessor?: 'MANTECA' | 'SIMPLEFI' | null): 
             return
         }
 
+        // check if bridge kyc is in progress (user started but hasn't completed)
+        // bridge kyc status is 'incomplete' or 'under_review' when user has initiated the kyc process
+        if (currentUser.bridgeKycStatus === 'under_review' || currentUser.bridgeKycStatus === 'incomplete') {
+            setKycGateState(QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS)
+            return
+        }
+
         if (hasAnyMantecaKyc) {
             setKycGateState(QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS)
             return
@@ -104,7 +110,6 @@ export function useQrKycGate(paymentProcessor?: 'MANTECA' | 'SIMPLEFI' | null): 
     const result: QrKycGateResult = {
         kycGateState,
         shouldBlockPay:
-            kycGateState === QrKycState.REQUIRES_MANTECA_KYC_FOR_ARG_BRIDGE_USER ||
             kycGateState === QrKycState.REQUIRES_IDENTITY_VERIFICATION ||
             kycGateState === QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS ||
             kycGateState === QrKycState.LOADING,

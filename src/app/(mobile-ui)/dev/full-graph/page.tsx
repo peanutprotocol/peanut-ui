@@ -4,11 +4,12 @@ import { useState, useCallback } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import { useAuth } from '@/context/authContext'
 import { IS_DEV } from '@/constants/general.consts'
-import InvitesGraph, {
+import InvitesGraph from '@/components/Global/InvitesGraph'
+import {
     DEFAULT_FORCE_CONFIG,
     DEFAULT_VISIBILITY_CONFIG,
     DEFAULT_EXTERNAL_NODES_CONFIG,
-} from '@/components/Global/InvitesGraph'
+} from '@/components/Global/InvitesGraph/types'
 
 // Allowed users for full graph access (frontend check - backend also validates)
 const ALLOWED_USERNAMES = ['squirrel', 'kkonrad', 'hugo']

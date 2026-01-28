@@ -42,6 +42,8 @@ export function useSemanticRequestFlow() {
         isAmountFromUrl,
         isTokenFromUrl,
         isChainFromUrl,
+        urlToken,
+        isTokenDenominated,
         attachment,
         setAttachment,
         charge,
@@ -93,13 +95,39 @@ export function useSemanticRequestFlow() {
 
     const isLoggedIn = !!user?.user?.userId
 
-    // set amount (for peanut wallet, amount is always in usd)
+    // set amount - handles conversion between token and usd amounts
+    // when url specifies a token like eth, amount is in token units
+    // and we calculate the usd equivalent
     const handleSetAmount = useCallback(
         (value: string) => {
             setAmount(value)
-            setUsdAmount(value)
+
+            if (!isTokenDenominated) {
+                // amount is already in usd
+                setUsdAmount(value)
+                return
+            }
+
+            // token-denominated: convert to usd
+            const tokenAmount = parseFloat(value)
+            if (isNaN(tokenAmount) || tokenAmount <= 0) {
+                // invalid input - clear usd amount to avoid NaN/incorrect values
+                setUsdAmount('')
+                return
+            }
+
+            const usdPrice = urlToken?.usdPrice
+            if (!usdPrice || usdPrice <= 0 || isNaN(usdPrice)) {
+                // missing or invalid price - fallback to 1:1 (shouldn't happen in practice)
+                console.warn('Missing or invalid usdPrice for token:', urlToken?.symbol)
+                setUsdAmount(value)
+                return
+            }
+
+            const usdValue = (tokenAmount * usdPrice).toString()
+            setUsdAmount(usdValue)
         },
-        [setAmount, setUsdAmount]
+        [setAmount, setUsdAmount, isTokenDenominated, urlToken?.usdPrice, urlToken?.symbol]
     )
 
     // clear error
@@ -550,6 +578,8 @@ export function useSemanticRequestFlow() {
         isAmountFromUrl,
         isTokenFromUrl,
         isChainFromUrl,
+        urlToken,
+        isTokenDenominated,
         attachment,
         charge,
         payment,

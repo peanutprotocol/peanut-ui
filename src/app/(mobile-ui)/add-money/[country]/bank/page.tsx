@@ -15,6 +15,7 @@ import { useAuth } from '@/context/authContext'
 import { useCreateOnramp } from '@/hooks/useCreateOnramp'
 import { useRouter, useParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import countryCurrencyMappings, { isNonEuroSepaCountry, isUKCountry } from '@/constants/countryCurrencyMapping'
 import { formatUnits } from 'viem'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
@@ -25,24 +26,43 @@ import { getCurrencyConfig, getCurrencySymbol, getMinimumAmount } from '@/utils/
 import { OnrampConfirmationModal } from '@/components/AddMoney/components/OnrampConfirmationModal'
 import { InitiateBridgeKYCModal } from '@/components/Kyc/InitiateBridgeKYCModal'
 import InfoCard from '@/components/Global/InfoCard'
+import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
+import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
+import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
+import { getLimitsWarningCardProps } from '@/features/limits/utils'
+import { useExchangeRate } from '@/hooks/useExchangeRate'
 
-type AddStep = 'inputAmount' | 'kyc' | 'loading' | 'collectUserDetails' | 'showDetails'
+// Step type for URL state
+type BridgeBankStep = 'inputAmount' | 'kyc' | 'collectUserDetails' | 'showDetails'
 
 export default function OnrampBankPage() {
     const router = useRouter()
     const params = useParams()
-    const [step, setStep] = useState<AddStep>('loading')
-    const [rawTokenAmount, setRawTokenAmount] = useState<string>('')
+
+    // URL state - persisted in query params
+    // Example: /add-money/mexico/bank?step=inputAmount&amount=500
+    const [urlState, setUrlState] = useQueryStates(
+        {
+            step: parseAsStringEnum<BridgeBankStep>(['inputAmount', 'kyc', 'collectUserDetails', 'showDetails']),
+            amount: parseAsString,
+        },
+        { history: 'push' }
+    )
+
+    // Amount from URL
+    const rawTokenAmount = urlState.amount ?? ''
+
+    // Local UI state (not URL-appropriate - transient)
     const [showWarningModal, setShowWarningModal] = useState<boolean>(false)
     const [isRiskAccepted, setIsRiskAccepted] = useState<boolean>(false)
-
     const [isKycModalOpen, setIsKycModalOpen] = useState(false)
     const [liveKycStatus, setLiveKycStatus] = useState<BridgeKycStatus | undefined>(undefined)
-    const { amountToOnramp: amountFromContext, setAmountToOnramp, setError, error, setOnrampData } = useOnrampFlow()
-    const formRef = useRef<{ handleSubmit: () => void }>(null)
     const [isUpdatingUser, setIsUpdatingUser] = useState(false)
     const [userUpdateError, setUserUpdateError] = useState<string | null>(null)
     const [isUserDetailsFormValid, setIsUserDetailsFormValid] = useState(false)
+
+    const { setError, error, setOnrampData, onrampData } = useOnrampFlow()
+    const formRef = useRef<{ handleSubmit: () => void }>(null)
 
     const { balance } = useWallet()
     const { user, fetchUser } = useAuth()
@@ -54,6 +74,18 @@ export default function OnrampBankPage() {
         if (!selectedCountryPath) return null
         return countryData.find((country) => country.type === 'country' && country.path === selectedCountryPath)
     }, [selectedCountryPath])
+
+    const nonEuroCurrency = countryCurrencyMappings.find(
+        (currency) =>
+            selectedCountryPath.toLowerCase() === currency.country.toLowerCase() ||
+            currency.path?.toLowerCase() === selectedCountryPath.toLowerCase()
+    )?.currencyCode
+
+    // non-eur sepa countries that are currently experiencing issues
+    const isNonEuroSepa = isNonEuroSepaCountry(nonEuroCurrency)
+
+    // uk-specific check
+    const isUK = isUKCountry(selectedCountryPath)
 
     useWebSocket({
         username: user?.user.username ?? undefined,
@@ -82,32 +114,66 @@ export default function OnrampBankPage() {
         return getMinimumAmount(selectedCountry.id)
     }, [selectedCountry?.id])
 
-    useEffect(() => {
-        if (user === null) return // wait for user to be fetched
-        if (step === 'loading') {
-            const currentKycStatus = liveKycStatus || user?.user.bridgeKycStatus
-            const isUserKycVerified = currentKycStatus === 'approved'
+    // get local currency for the selected country (EUR, MXN, USD)
+    const localCurrency = useMemo(() => {
+        if (!selectedCountry?.id) return 'USD'
+        return getCurrencyConfig(selectedCountry.id, 'onramp').currency.toUpperCase()
+    }, [selectedCountry?.id])
 
-            if (!isUserKycVerified) {
-                setStep('collectUserDetails')
-            } else {
-                setStep('inputAmount')
-                if (amountFromContext && !rawTokenAmount) {
-                    setRawTokenAmount(amountFromContext)
-                }
-            }
+    // get exchange rate: local currency → USD (for limits validation)
+    // skip for USD since it's 1:1
+    const { exchangeRate, isLoading: isRateLoading } = useExchangeRate({
+        sourceCurrency: localCurrency,
+        destinationCurrency: 'USD',
+        enabled: localCurrency !== 'USD',
+    })
+
+    // convert input amount to USD for limits validation
+    // bridge limits are always in USD, but user inputs in local currency
+    const usdEquivalent = useMemo(() => {
+        if (!rawTokenAmount) return 0
+        const numericAmount = parseFloat(rawTokenAmount.replace(/,/g, ''))
+        if (isNaN(numericAmount)) return 0
+
+        // for USD, no conversion needed
+        if (localCurrency === 'USD') return numericAmount
+
+        // convert local currency to USD
+        return exchangeRate > 0 ? numericAmount * exchangeRate : 0
+    }, [rawTokenAmount, localCurrency, exchangeRate])
+
+    // validate against user's bridge limits
+    // uses USD equivalent to correctly compare against USD-denominated limits
+    const limitsValidation = useLimitsValidation({
+        flowType: 'onramp',
+        amount: usdEquivalent,
+        currency: 'USD',
+    })
+
+    // Determine initial step based on KYC status (only when URL has no step)
+    useEffect(() => {
+        // If URL already has a step, respect it (allows deep linking)
+        if (urlState.step) return
+
+        // Wait for user to be fetched before determining initial step
+        if (user === null) return
+
+        const currentKycStatus = liveKycStatus || user?.user.bridgeKycStatus
+        const isUserKycVerified = currentKycStatus === 'approved'
+
+        if (!isUserKycVerified) {
+            setUrlState({ step: 'collectUserDetails' })
+        } else {
+            setUrlState({ step: 'inputAmount' })
         }
-    }, [liveKycStatus, user, step, amountFromContext, rawTokenAmount])
+    }, [liveKycStatus, user, urlState.step, setUrlState])
 
     // Handle KYC completion
     useEffect(() => {
-        if (step === 'kyc' && liveKycStatus === 'approved') {
-            setStep('inputAmount')
-            if (amountFromContext && !rawTokenAmount) {
-                setRawTokenAmount(amountFromContext)
-            }
+        if (urlState.step === 'kyc' && liveKycStatus === 'approved') {
+            setUrlState({ step: 'inputAmount' })
         }
-    }, [liveKycStatus, step, amountFromContext, rawTokenAmount])
+    }, [liveKycStatus, urlState.step, setUrlState])
 
     const validateAmount = useCallback(
         (amountStr: string): boolean => {
@@ -130,22 +196,23 @@ export default function OnrampBankPage() {
         [setError, minimumAmount]
     )
 
+    // Handle amount change - sync to URL state
     const handleTokenAmountChange = useCallback(
         (value: string | undefined) => {
-            setRawTokenAmount(value || '')
+            const newAmount = value || null // null removes from URL
+            setUrlState({ amount: newAmount })
         },
-        [setRawTokenAmount]
+        [setUrlState]
     )
 
+    // Validate amount when it changes
     useEffect(() => {
         if (rawTokenAmount === '') {
-            if (!amountFromContext) {
-                setError({ showError: false, errorMessage: '' })
-            }
+            setError({ showError: false, errorMessage: '' })
         } else {
             validateAmount(rawTokenAmount)
         }
-    }, [rawTokenAmount, validateAmount, setError, amountFromContext])
+    }, [rawTokenAmount, validateAmount, setError])
 
     const handleAmountContinue = () => {
         if (validateAmount(rawTokenAmount)) {
@@ -161,7 +228,6 @@ export default function OnrampBankPage() {
             })
             return
         }
-        setAmountToOnramp(rawTokenAmount)
         setShowWarningModal(false)
         setIsRiskAccepted(false)
         try {
@@ -172,7 +238,7 @@ export default function OnrampBankPage() {
             setOnrampData(onrampDataResponse)
 
             if (onrampDataResponse.transferId) {
-                setStep('showDetails')
+                setUrlState({ step: 'showDetails' })
             } else {
                 setError({
                     showError: true,
@@ -195,13 +261,9 @@ export default function OnrampBankPage() {
         setIsRiskAccepted(false)
     }
 
-    const handleKycModalOpen = () => {
-        setIsKycModalOpen(true)
-    }
-
     const handleKycSuccess = () => {
         setIsKycModalOpen(false)
-        setStep('inputAmount')
+        setUrlState({ step: 'inputAmount' })
     }
 
     const handleKycModalClose = () => {
@@ -222,7 +284,7 @@ export default function OnrampBankPage() {
                 throw new Error(result.error)
             }
             await fetchUser()
-            setStep('kyc')
+            setUrlState({ step: 'kyc' })
         } catch (error: any) {
             setUserUpdateError(error.message)
             return { error: error.message }
@@ -240,24 +302,29 @@ export default function OnrampBankPage() {
         }
     }
 
-    const [firstName, ...lastNameParts] = (user?.user.fullName ?? '').split(' ')
-    const lastName = lastNameParts.join(' ')
-
     const initialUserDetails: Partial<UserDetailsFormData> = useMemo(
         () => ({
             fullName: user?.user.fullName ?? '',
             email: user?.user.email ?? '',
         }),
-        [user?.user.fullName, user?.user.email, firstName, lastName]
+        [user?.user.fullName, user?.user.email]
     )
 
     useEffect(() => {
-        if (step === 'kyc') {
+        if (urlState.step === 'kyc') {
             setIsKycModalOpen(true)
         }
-    }, [step])
+    }, [urlState.step])
 
-    if (step === 'loading') {
+    // Redirect to inputAmount if showDetails is accessed without required data (deep link / back navigation)
+    useEffect(() => {
+        if (urlState.step === 'showDetails' && !onrampData?.transferId) {
+            setUrlState({ step: 'inputAmount' })
+        }
+    }, [urlState.step, onrampData?.transferId, setUrlState])
+
+    // Show loading while user is being fetched and no step in URL yet
+    if (!urlState.step && user === null) {
         return <PeanutLoading />
     }
 
@@ -270,7 +337,12 @@ export default function OnrampBankPage() {
         )
     }
 
-    if (step === 'collectUserDetails') {
+    // Still determining initial step
+    if (!urlState.step) {
+        return <PeanutLoading />
+    }
+
+    if (urlState.step === 'collectUserDetails') {
         return (
             <div className="flex flex-col justify-start space-y-8">
                 <NavHeader onPrev={handleBack} title="Identity Verification" />
@@ -299,7 +371,7 @@ export default function OnrampBankPage() {
         )
     }
 
-    if (step === 'kyc') {
+    if (urlState.step === 'kyc') {
         return (
             <div className="flex flex-col justify-start space-y-8">
                 <InitiateBridgeKYCModal
@@ -313,11 +385,17 @@ export default function OnrampBankPage() {
         )
     }
 
-    if (step === 'showDetails') {
+    if (urlState.step === 'showDetails') {
+        // Show loading while useEffect redirects if data is missing
+        if (!onrampData?.transferId) {
+            return <PeanutLoading />
+        }
         return <AddMoneyBankDetails />
     }
 
-    if (step === 'inputAmount') {
+    if (urlState.step === 'inputAmount') {
+        const showLimitsCard = limitsValidation.isBlocking || limitsValidation.isWarning
+
         return (
             <div className="flex flex-col justify-start space-y-8">
                 <NavHeader title="Add Money" onPrev={handleBack} />
@@ -341,11 +419,38 @@ export default function OnrampBankPage() {
                         hideBalance
                     />
 
-                    <InfoCard
-                        variant="warning"
-                        icon="alert"
-                        description="This must match what you send from your bank!"
-                    />
+                    {/* limits warning/error card */}
+                    {showLimitsCard &&
+                        (() => {
+                            const limitsCardProps = getLimitsWarningCardProps({
+                                validation: limitsValidation,
+                                flowType: 'onramp',
+                                currency: 'USD',
+                            })
+                            return limitsCardProps ? <LimitsWarningCard {...limitsCardProps} /> : null
+                        })()}
+
+                    {!limitsValidation.isBlocking && (
+                        <InfoCard
+                            variant="warning"
+                            icon="alert"
+                            description="Amount must match what you send from your bank!"
+                        />
+                    )}
+
+                    {/* Warning for non-EUR SEPA countries */}
+                    {!limitsValidation.isBlocking && isNonEuroSepa && (
+                        <InfoCard
+                            variant="warning"
+                            icon="alert"
+                            title="EUR accounts only"
+                            description={
+                                !isUK
+                                    ? 'Only EUR accounts with IBAN work for onramps. Standard GBP accounts with Account Number + Sort Code are not supported.'
+                                    : 'Only EUR accounts with IBAN work for onramps. Your local currency account may not work.'
+                            }
+                        />
+                    )}
                     <Button
                         variant="purple"
                         shadowSize="4"
@@ -354,14 +459,19 @@ export default function OnrampBankPage() {
                             !parseFloat(rawTokenAmount) ||
                             parseFloat(rawTokenAmount) < minimumAmount ||
                             error.showError ||
-                            isCreatingOnramp
+                            isCreatingOnramp ||
+                            limitsValidation.isBlocking ||
+                            (localCurrency !== 'USD' && isRateLoading)
                         }
                         className="w-full"
                         loading={isCreatingOnramp}
                     >
                         Continue
                     </Button>
-                    {error.showError && !!error.errorMessage && <ErrorAlert description={error.errorMessage} />}
+                    {/* only show error if limits blocking card is not displayed (warnings can coexist) */}
+                    {error.showError && !!error.errorMessage && !limitsValidation.isBlocking && (
+                        <ErrorAlert description={error.errorMessage} />
+                    )}
                 </div>
 
                 <OnrampConfirmationModal

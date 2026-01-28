@@ -3,7 +3,8 @@
 import { useState, useCallback, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/0_Bruddle/Button'
-import InvitesGraph, { DEFAULT_FORCE_CONFIG } from '@/components/Global/InvitesGraph'
+import InvitesGraph from '@/components/Global/InvitesGraph'
+import { DEFAULT_FORCE_CONFIG } from '@/components/Global/InvitesGraph/types'
 
 export default function PaymentGraphPage() {
     const searchParams = useSearchParams()

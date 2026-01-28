@@ -1,10 +1,10 @@
 'use server'
 
-import { cookies } from 'next/headers'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { type CountryData } from '@/components/AddMoney/consts'
 import { getCurrencyConfig } from '@/utils/bridge.utils'
 import { getCurrencyPrice } from '@/app/actions/currency'
+import { getJWTCookie } from '@/utils/cookie-migration.utils'
 
 const API_KEY = process.env.PEANUT_API_KEY!
 
@@ -33,8 +33,7 @@ export async function cancelOnramp(transferId: string): Promise<{ data?: { succe
     }
 
     try {
-        const cookieStore = await cookies()
-        const jwtToken = cookieStore.get('jwt-token')?.value
+        const jwtToken = (await getJWTCookie())?.value
 
         if (!jwtToken) {
             return { error: 'Authentication token not found.' }

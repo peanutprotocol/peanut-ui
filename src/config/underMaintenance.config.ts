@@ -22,6 +22,11 @@
  *    - shows info message explaining cross-chain is temporarily unavailable
  *    - same-chain withdrawals (USDC on Arbitrum) continue to work
  *
+ * 5. disableSquidSend: disables cross-chain sends via Squid (claim, request payments)
+ *    - restricts token selector to only USDC on Arbitrum for claim and req_pay flows
+ *    - shows info message explaining cross-chain is temporarily unavailable
+ *    - same-chain operations continue to work
+ *
  * note: if either mode is enabled, the maintenance banner will show everywhere
  *
  * I HOPE WE NEVER NEED TO USE THIS...
@@ -35,6 +40,7 @@ interface MaintenanceConfig {
     enableMaintenanceBanner: boolean
     disabledPaymentProviders: PaymentProvider[]
     disableSquidWithdraw: boolean
+    disableSquidSend: boolean
 }
 
 const underMaintenanceConfig: MaintenanceConfig = {
@@ -42,6 +48,7 @@ const underMaintenanceConfig: MaintenanceConfig = {
     enableMaintenanceBanner: false, // set to true to show maintenance banner on all pages
     disabledPaymentProviders: [], // set to ['MANTECA'] to disable Manteca QR payments
     disableSquidWithdraw: true, // set to true to disable cross-chain withdrawals (only allows USDC on Arbitrum)
+    disableSquidSend: true, // set to true to disable cross-chain sends (claim, request payments - only allows USDC on Arbitrum)
 }
 
 export default underMaintenanceConfig

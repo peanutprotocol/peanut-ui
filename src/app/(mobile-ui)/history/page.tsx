@@ -1,6 +1,6 @@
 'use client'
 
-import { type CardPosition } from '@/components/Global/Card'
+import { type CardPosition } from '@/components/Global/Card/card.utils'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NoDataEmptyState from '@/components/Global/EmptyStates/NoDataEmptyState'
 import NavHeader from '@/components/Global/NavHeader'
@@ -14,7 +14,8 @@ import { formatGroupHeaderDate, getDateGroup, getDateGroupKey } from '@/utils/da
 import * as Sentry from '@sentry/nextjs'
 import { isKycStatusItem } from '@/hooks/useBridgeKycFlow'
 import { useAuth } from '@/context/authContext'
-import { BadgeStatusItem, isBadgeHistoryItem } from '@/components/Badges/BadgeStatusItem'
+import { BadgeStatusItem } from '@/components/Badges/BadgeStatusItem'
+import { isBadgeHistoryItem } from '@/components/Badges/badge.types'
 import React, { useMemo } from 'react'
 import { useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { useWebSocket } from '@/hooks/useWebSocket'
@@ -166,9 +167,16 @@ const HistoryPage = () => {
 
         if (user) {
             if (user.user?.bridgeKycStatus && user.user.bridgeKycStatus !== 'not_started') {
+                // Use appropriate timestamp based on KYC status
+                const bridgeKycTimestamp = (() => {
+                    const status = user.user.bridgeKycStatus
+                    if (status === 'approved') return user.user.bridgeKycApprovedAt
+                    if (status === 'rejected') return user.user.bridgeKycRejectedAt
+                    return user.user.bridgeKycStartedAt
+                })()
                 entries.push({
                     isKyc: true,
-                    timestamp: user.user.bridgeKycStartedAt ?? user.user.createdAt ?? new Date().toISOString(),
+                    timestamp: bridgeKycTimestamp ?? user.user.createdAt ?? new Date().toISOString(),
                     uuid: 'bridge-kyc-status-item',
                     bridgeKycStatus: user.user.bridgeKycStatus,
                 })

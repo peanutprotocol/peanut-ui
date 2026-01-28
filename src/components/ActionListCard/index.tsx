@@ -1,6 +1,7 @@
 'use client'
 
-import Card, { type CardPosition } from '@/components/Global/Card'
+import Card from '@/components/Global/Card'
+import { type CardPosition } from '@/components/Global/Card/card.utils'
 import { Icon } from '@/components/Global/Icons/Icon'
 import React from 'react'
 import { twMerge } from 'tailwind-merge'

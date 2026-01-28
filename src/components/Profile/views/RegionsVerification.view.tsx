@@ -1,14 +1,13 @@
 'use client'
 
 import { ActionListCard } from '@/components/ActionListCard'
-import { getCardPosition } from '@/components/Global/Card'
+import { getCardPosition } from '@/components/Global/Card/card.utils'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import { useIdentityVerification, type Region } from '@/hooks/useIdentityVerification'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import React from 'react'
 
 const RegionsVerification = () => {
     const router = useRouter()

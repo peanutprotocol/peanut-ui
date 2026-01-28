@@ -1,7 +1,7 @@
 import { type ChargeEntry } from '@/services/services.types'
 import { getContributorsFromCharge } from '@/utils/general.utils'
 import ContributorCard from './ContributorCard'
-import { getCardPosition } from '../Card'
+import { getCardPosition } from '../Card/card.utils'
 
 const Contributors = ({ charges }: { charges: ChargeEntry[] }) => {
     const contributors = getContributorsFromCharge(charges)

@@ -10,12 +10,14 @@ import { useAuth } from '@/context/authContext'
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
-import Card, { type CardPosition, getCardPosition } from '../Global/Card'
+import Card from '../Global/Card'
+import { type CardPosition, getCardPosition } from '../Global/Card/card.utils'
 import EmptyState from '../Global/EmptyStates/EmptyState'
 import { KycStatusItem } from '../Kyc/KycStatusItem'
 import { isKycStatusItem, type KycHistoryEntry } from '@/hooks/useBridgeKycFlow'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { BadgeStatusItem, isBadgeHistoryItem } from '@/components/Badges/BadgeStatusItem'
+import { BadgeStatusItem } from '@/components/Badges/BadgeStatusItem'
+import { isBadgeHistoryItem } from '@/components/Badges/badge.types'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { completeHistoryEntry } from '@/utils/history.utils'
 import { formatUnits } from 'viem'
@@ -179,9 +181,16 @@ const HomeHistory = ({ username, hideTxnAmount = false }: { username?: string; h
                 // viewing their own history
                 if (isViewingOwnHistory) {
                     if (user?.user?.bridgeKycStatus && user.user.bridgeKycStatus !== 'not_started') {
+                        // Use appropriate timestamp based on KYC status
+                        const bridgeKycTimestamp = (() => {
+                            const status = user.user.bridgeKycStatus
+                            if (status === 'approved') return user.user.bridgeKycApprovedAt
+                            if (status === 'rejected') return user.user.bridgeKycRejectedAt
+                            return user.user.bridgeKycStartedAt
+                        })()
                         entries.push({
                             isKyc: true,
-                            timestamp: user.user.bridgeKycStartedAt ?? user.user.createdAt ?? new Date().toISOString(),
+                            timestamp: bridgeKycTimestamp ?? user.user.createdAt ?? new Date().toISOString(),
                             uuid: 'bridge-kyc-status-item',
                             bridgeKycStatus: user.user.bridgeKycStatus,
                         })

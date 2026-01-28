@@ -9,7 +9,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { Icon } from '@/components/Global/Icons/Icon'
 import PeanutLoading from '@/components/Global/PeanutLoading'
-import { mantecaApi } from '@/services/manteca'
+import { mantecaApi, type WithdrawPriceLock } from '@/services/manteca'
 import { useCurrency } from '@/hooks/useCurrency'
 import { isTxReverted } from '@/utils/general.utils'
 import { loadingStateContext } from '@/context'
@@ -45,16 +45,19 @@ import {
 } from '@/constants/manteca.consts'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
+import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
+import { MIN_MANTECA_WITHDRAW_AMOUNT } from '@/constants/payment.consts'
+import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
+import { getLimitsWarningCardProps } from '@/features/limits/utils'
 
 type MantecaWithdrawStep = 'amountInput' | 'bankDetails' | 'review' | 'success' | 'failure'
-
-const MAX_WITHDRAW_AMOUNT = '2000'
-const MIN_WITHDRAW_AMOUNT = '1'
 
 export default function MantecaWithdrawFlow() {
     const flowId = useId() // Unique ID per flow instance to prevent cache collisions
     const [currencyAmount, setCurrencyAmount] = useState<string | undefined>(undefined)
     const [usdAmount, setUsdAmount] = useState<string | undefined>(undefined)
+    // store original currency amount before price lock to restore on back navigation
+    const [originalCurrencyAmount, setOriginalCurrencyAmount] = useState<string | undefined>(undefined)
     const [step, setStep] = useState<MantecaWithdrawStep>('amountInput')
     const [balanceErrorMessage, setBalanceErrorMessage] = useState<string | null>(null)
     const searchParams = useSearchParams()
@@ -67,6 +70,9 @@ export default function MantecaWithdrawFlow() {
     const [isKycModalOpen, setIsKycModalOpen] = useState(false)
     const [isDestinationAddressValid, setIsDestinationAddressValid] = useState(false)
     const [isDestinationAddressChanging, setIsDestinationAddressChanging] = useState(false)
+    // price lock state - holds the locked price from /withdraw/init
+    const [priceLock, setPriceLock] = useState<WithdrawPriceLock | null>(null)
+    const [isLockingPrice, setIsLockingPrice] = useState(false)
     const router = useRouter()
     const { sendMoney, balance } = useWallet()
     const { isLoading, loadingState, setLoadingState } = useContext(loadingStateContext)
@@ -94,13 +100,20 @@ export default function MantecaWithdrawFlow() {
 
     const {
         code: currencyCode,
-        symbol: currencySymbol,
         price: currencyPrice,
         isLoading: isCurrencyLoading,
     } = useCurrency(selectedCountry?.currency!)
 
     // Initialize KYC flow hook
     const { isMantecaKycRequired } = useMantecaKycFlow({ country: selectedCountry })
+
+    // validates withdrawal against user's limits
+    // currency comes from country config - hook normalizes it internally
+    const limitsValidation = useLimitsValidation({
+        flowType: 'offramp',
+        amount: usdAmount,
+        currency: selectedCountry?.currency,
+    })
 
     // WebSocket listener for KYC status updates
     useWebSocket({
@@ -171,7 +184,10 @@ export default function MantecaWithdrawFlow() {
         )
     }, [selectedBank, accountType, countryConfig, destinationAddress])
 
-    const handleBankDetailsSubmit = useCallback(() => {
+    const handleBankDetailsSubmit = useCallback(async () => {
+        // prevent duplicate requests from rapid clicks
+        if (isLockingPrice) return
+
         if (!destinationAddress.trim()) {
             setErrorMessage('Please enter your account address')
             return
@@ -182,20 +198,59 @@ export default function MantecaWithdrawFlow() {
         }
         setErrorMessage(null)
 
-        // Check if we still need to determine KYC status
+        // check if we still need to determine KYC status
         if (isMantecaKycRequired === null) {
-            // still loading/determining KYC status, don't proceed yet
             return
         }
 
-        // Check KYC status before proceeding to review
+        // check KYC status before proceeding to review
         if (isMantecaKycRequired === true) {
             setIsKycModalOpen(true)
             return
         }
 
-        setStep('review')
-    }, [selectedBank, accountType, destinationAddress, countryConfig?.needsBankCode, countryConfig?.needsAccountType])
+        // lock the price before showing review screen
+        // this ensures user sees the exact amount they'll receive
+        if (!usdAmount || !currencyCode) return
+
+        setIsLockingPrice(true)
+        try {
+            const result = await mantecaApi.initiateWithdraw({
+                amount: usdAmount,
+                currency: currencyCode,
+            })
+
+            if (result.error) {
+                setErrorMessage(result.error)
+                return
+            }
+
+            if (result.data) {
+                // store original amount before overwriting so we can restore on back navigation
+                setOriginalCurrencyAmount(currencyAmount)
+                setPriceLock(result.data)
+                // update the displayed fiat amount to the locked amount
+                setCurrencyAmount(result.data.fiatAmount)
+                setStep('review')
+            }
+        } catch (error) {
+            captureException(error)
+            setErrorMessage('Could not lock exchange rate. Please try again.')
+        } finally {
+            setIsLockingPrice(false)
+        }
+    }, [
+        selectedBank,
+        accountType,
+        destinationAddress,
+        countryConfig?.needsBankCode,
+        countryConfig?.needsAccountType,
+        usdAmount,
+        currencyCode,
+        currencyAmount,
+        isMantecaKycRequired,
+        isLockingPrice,
+    ])
 
     const handleWithdraw = async () => {
         if (!destinationAddress || !usdAmount || !currencyCode) return
@@ -229,7 +284,7 @@ export default function MantecaWithdrawFlow() {
             const txHash = receipt?.transactionHash ?? userOpHash
             setLoadingState('Withdrawing')
 
-            // Call Manteca withdraw API
+            // call Manteca withdraw API with the locked price code
             const result = await mantecaApi.withdraw({
                 amount: usdAmount,
                 destinationAddress: destinationAddress.toLowerCase(),
@@ -237,20 +292,15 @@ export default function MantecaWithdrawFlow() {
                 accountType: accountType ?? undefined,
                 txHash,
                 currency: currencyCode,
+                // pass the price lock code to use the locked price
+                // if not available (edge case), backend will create a new lock
+                priceLockCode: priceLock?.priceLockCode,
             })
 
             if (result.error) {
-                // Handle specific error types with user-friendly messages
-                // TAX_ID_MISMATCH covers both Argentina (CUIT) and Brazil (CPF)
+                // handle third-party account error with user-friendly message
                 if (result.error === 'TAX_ID_MISMATCH' || result.error === 'CUIT_MISMATCH') {
-                    // Country-specific message based on currency (Manteca countries have this restriction)
-                    const countryName =
-                        currencyCode === 'ARS' ? 'Argentina' : currencyCode === 'BRL' ? 'Brazil' : 'your country'
-                    setErrorMessage(
-                        result.message ??
-                            `The bank account you entered is not registered under your name. Due to local regulations in ${countryName}, you can only withdraw to accounts linked to your identity. Please contact support to request a refund.`
-                    )
-                    setStep('failure')
+                    setErrorMessage('You can only withdraw to accounts under your name.')
                 } else if (result.error === 'Unexpected error') {
                     setErrorMessage('Withdraw failed unexpectedly. If problem persists contact support')
                     setStep('failure')
@@ -277,6 +327,7 @@ export default function MantecaWithdrawFlow() {
         setStep('amountInput')
         setCurrencyAmount(undefined)
         setUsdAmount(undefined)
+        setOriginalCurrencyAmount(undefined)
         setDestinationAddress(paramAddress ?? '')
         setSelectedBank(null)
         setAccountType(null)
@@ -285,6 +336,8 @@ export default function MantecaWithdrawFlow() {
         setIsDestinationAddressValid(false)
         setIsDestinationAddressChanging(false)
         setBalanceErrorMessage(null)
+        setPriceLock(null)
+        setIsLockingPrice(false)
     }
 
     useEffect(() => {
@@ -304,10 +357,9 @@ export default function MantecaWithdrawFlow() {
             return
         }
         const paymentAmount = parseUnits(usdAmount, PEANUT_WALLET_TOKEN_DECIMALS)
-        if (paymentAmount < parseUnits(MIN_WITHDRAW_AMOUNT, PEANUT_WALLET_TOKEN_DECIMALS)) {
-            setBalanceErrorMessage(`Withdraw amount must be at least $${MIN_WITHDRAW_AMOUNT}`)
-        } else if (paymentAmount > parseUnits(MAX_WITHDRAW_AMOUNT, PEANUT_WALLET_TOKEN_DECIMALS)) {
-            setBalanceErrorMessage(`Withdraw amount exceeds maximum limit of $${MAX_WITHDRAW_AMOUNT}`)
+        // only check min amount and balance here - max amount is handled by limits validation
+        if (paymentAmount < parseUnits(MIN_MANTECA_WITHDRAW_AMOUNT.toString(), PEANUT_WALLET_TOKEN_DECIMALS)) {
+            setBalanceErrorMessage(`Withdraw amount must be at least $${MIN_MANTECA_WITHDRAW_AMOUNT}`)
         } else if (paymentAmount > balance) {
             setBalanceErrorMessage('Not enough balance to complete withdrawal.')
         } else {
@@ -410,6 +462,12 @@ export default function MantecaWithdrawFlow() {
                 title="Withdraw"
                 onPrev={() => {
                     if (step === 'review') {
+                        // clear price lock and restore original amount when going back
+                        setPriceLock(null)
+                        if (originalCurrencyAmount) {
+                            setCurrencyAmount(originalCurrencyAmount)
+                            setOriginalCurrencyAmount(undefined)
+                        }
                         setStep('bankDetails')
                     } else if (step === 'bankDetails') {
                         setStep('amountInput')
@@ -443,6 +501,17 @@ export default function MantecaWithdrawFlow() {
                             balance ? formatAmount(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS)) : undefined
                         }
                     />
+
+                    {/* limits warning/error card - uses centralized helper for props */}
+                    {(() => {
+                        const limitsCardProps = getLimitsWarningCardProps({
+                            validation: limitsValidation,
+                            flowType: 'offramp',
+                            currency: limitsValidation.currency,
+                        })
+                        return limitsCardProps ? <LimitsWarningCard {...limitsCardProps} /> : null
+                    })()}
+
                     <Button
                         variant="purple"
                         shadowSize="4"
@@ -456,12 +525,15 @@ export default function MantecaWithdrawFlow() {
                                 }
                             }
                         }}
-                        disabled={!Number(usdAmount) || !!balanceErrorMessage}
+                        disabled={!Number(usdAmount) || !!balanceErrorMessage || limitsValidation.isBlocking}
                         className="w-full"
                     >
                         Continue
                     </Button>
-                    {balanceErrorMessage && <ErrorAlert description={balanceErrorMessage} />}
+                    {/* only show balance error if limits blocking card is not displayed (warnings can coexist) */}
+                    {balanceErrorMessage && !limitsValidation.isBlocking && (
+                        <ErrorAlert description={balanceErrorMessage} />
+                    )}
                 </div>
             )}
 
@@ -553,13 +625,16 @@ export default function MantecaWithdrawFlow() {
                         <Button
                             onClick={handleBankDetailsSubmit}
                             disabled={
-                                !isCompleteBankDetails || isDestinationAddressChanging || !isDestinationAddressValid
+                                !isCompleteBankDetails ||
+                                isDestinationAddressChanging ||
+                                !isDestinationAddressValid ||
+                                isLockingPrice
                             }
-                            loading={isDestinationAddressChanging}
+                            loading={isDestinationAddressChanging || isLockingPrice}
                             className="w-full"
                             shadowSize="4"
                         >
-                            Review
+                            {isLockingPrice ? 'Locking rate...' : 'Review'}
                         </Button>
 
                         {errorMessage && <ErrorAlert description={errorMessage} />}
@@ -605,7 +680,10 @@ export default function MantecaWithdrawFlow() {
                                     <Icon name="arrow-up" size={10} /> You're withdrawing
                                 </p>
                                 <p className="text-2xl font-bold">
-                                    {currencyCode} {formatNumberForDisplay(currencyAmount, { maxDecimals: 2 })}
+                                    {currencyCode}{' '}
+                                    {formatNumberForDisplay(priceLock?.fiatAmount ?? currencyAmount, {
+                                        maxDecimals: 2,
+                                    })}
                                 </p>
                                 <div className="text-lg font-bold">
                                     ≈ {formatNumberForDisplay(usdAmount, { maxDecimals: 2 })} USD
@@ -618,7 +696,8 @@ export default function MantecaWithdrawFlow() {
                         <PaymentInfoRow label={countryConfig!.accountNumberLabel} value={destinationAddress} />
                         <PaymentInfoRow
                             label="Exchange Rate"
-                            value={`1 USD = ${currencyPrice!.sell} ${currencyCode!.toUpperCase()}`}
+                            value={`1 USD = ${priceLock?.price ?? currencyPrice!.sell} ${currencyCode!.toUpperCase()}`}
+                            moreInfoText="Rate shown is current but may vary slightly (~$1-5 ARS) until payment is confirmed."
                         />
                         <PaymentInfoRow label="Peanut fee" value="Sponsored by Peanut!" hideBottomBorder />
                     </Card>

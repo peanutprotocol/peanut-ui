@@ -5,7 +5,7 @@ import type {
     ForceConfig,
     VisibilityConfig,
     ExternalNodesConfig,
-} from '@/components/Global/InvitesGraph'
+} from '@/components/Global/InvitesGraph/types'
 
 const GRAPH_PREFS_KEY = 'invite-graph-preferences'
 const PAYMENT_GRAPH_PREFS_KEY = 'payment-graph-preferences'

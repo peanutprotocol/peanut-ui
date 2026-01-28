@@ -1,8 +1,8 @@
 'use server'
 
-import { cookies } from 'next/headers'
 import { type TCreateOfframpRequest } from '../../services/services.types'
 import { fetchWithSentry } from '@/utils/sentry.utils'
+import { getJWTCookie } from '@/utils/cookie-migration.utils'
 
 const API_KEY = process.env.PEANUT_API_KEY!
 
@@ -34,8 +34,7 @@ export async function createOfframp(
     }
 
     try {
-        const cookieStore = await cookies()
-        const jwtToken = cookieStore.get('jwt-token')?.value
+        const jwtToken = (await getJWTCookie())?.value
 
         if (!jwtToken) {
             return { error: 'Authentication token not found.' }
@@ -131,8 +130,7 @@ export async function confirmOfframp(
     }
 
     try {
-        const cookieStore = await cookies()
-        const jwtToken = cookieStore.get('jwt-token')?.value
+        const jwtToken = (await getJWTCookie())?.value
 
         if (!jwtToken) {
             return { error: 'Authentication token not found.' }

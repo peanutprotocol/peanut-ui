@@ -1,6 +1,11 @@
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
 
+/**
+ * TODO: Implement server-side token invalidation.
+ * Currently logout only deletes the cookie; the JWT remains valid for 30 days.
+ * Fix: Add tokenVersion to User table, include in JWT, increment on logout.
+ */
 export async function GET(request: NextRequest) {
     const cookieStore = await cookies()
     const token = cookieStore.get('jwt-token')

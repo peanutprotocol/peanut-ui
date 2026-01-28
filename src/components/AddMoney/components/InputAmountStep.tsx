@@ -8,17 +8,28 @@ import { useRouter } from 'next/navigation'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { useCurrency } from '@/hooks/useCurrency'
 import PeanutLoading from '@/components/Global/PeanutLoading'
+import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
+import { getLimitsWarningCardProps, type LimitCurrency } from '@/features/limits/utils'
+import type { LimitValidationResult } from '@/features/limits/hooks/useLimitsValidation'
 
 type ICurrency = ReturnType<typeof useCurrency>
+
+type LimitsValidationWithUser = LimitValidationResult & { isMantecaUser?: boolean }
+
 interface InputAmountStepProps {
     onSubmit: () => void
     isLoading: boolean
     tokenAmount: string
-    setTokenAmount: React.Dispatch<React.SetStateAction<string>>
+    setTokenAmount: ((value: string) => void) | React.Dispatch<React.SetStateAction<string>>
     error: string | null
     setCurrencyAmount: (amount: string | undefined) => void
     currencyData?: ICurrency
     setCurrentDenomination?: (denomination: string) => void
+    initialDenomination?: string
+    setDisplayedAmount?: (value: string) => void
+    limitsValidation?: LimitsValidationWithUser
+    // required - must be provided by caller based on the payment flow's currency (ARS, BRL, USD)
+    limitsCurrency: LimitCurrency
 }
 
 const InputAmountStep = ({
@@ -30,12 +41,24 @@ const InputAmountStep = ({
     currencyData,
     setCurrencyAmount,
     setCurrentDenomination,
+    initialDenomination,
+    setDisplayedAmount,
+    limitsValidation,
+    limitsCurrency,
 }: InputAmountStepProps) => {
     const router = useRouter()
 
     if (currencyData?.isLoading) {
         return <PeanutLoading />
     }
+
+    const limitsCardProps = limitsValidation
+        ? getLimitsWarningCardProps({
+              validation: limitsValidation,
+              flowType: 'onramp',
+              currency: limitsCurrency,
+          })
+        : null
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-start space-y-8">
@@ -45,8 +68,10 @@ const InputAmountStep = ({
 
                 <AmountInput
                     initialAmount={tokenAmount}
+                    initialDenomination={initialDenomination}
                     setPrimaryAmount={setCurrencyAmount}
                     setSecondaryAmount={setTokenAmount}
+                    setDisplayedAmount={setDisplayedAmount}
                     secondaryDenomination={{ symbol: 'USD', price: 1, decimals: 2 }}
                     primaryDenomination={
                         currencyData
@@ -60,6 +85,10 @@ const InputAmountStep = ({
                     setCurrentDenomination={setCurrentDenomination}
                     hideBalance
                 />
+
+                {/* limits warning/error card */}
+                {limitsCardProps && <LimitsWarningCard {...limitsCardProps} />}
+
                 <div className="flex items-center gap-2 text-xs text-grey-1">
                     <Icon name="info" width={16} height={16} />
                     <span>This must exactly match what you send from your bank</span>
@@ -68,13 +97,14 @@ const InputAmountStep = ({
                     variant="purple"
                     shadowSize="4"
                     onClick={onSubmit}
-                    disabled={!!error || isLoading || !parseFloat(tokenAmount)}
+                    disabled={!!error || isLoading || !parseFloat(tokenAmount) || limitsValidation?.isBlocking}
                     className="w-full"
                     loading={isLoading}
                 >
                     Continue
                 </Button>
-                {error && <ErrorAlert description={error} />}
+                {/* only show error if limits blocking card is not displayed (warnings can coexist) */}
+                {error && !limitsValidation?.isBlocking && <ErrorAlert description={error} />}
             </div>
         </div>
     )

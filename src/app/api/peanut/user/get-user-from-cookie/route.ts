@@ -1,16 +1,16 @@
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import { fetchWithSentry } from '@/utils/sentry.utils'
-import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
+import { getJWTCookie } from '@/utils/cookie-migration.utils'
 
 export async function GET(_request: NextRequest) {
-    const cookieStore = await cookies()
-    const token = cookieStore.get('jwt-token')
+    const token = await getJWTCookie()
     const apiKey = process.env.PEANUT_API_KEY
 
     if (!token || !apiKey) {
         return new NextResponse('Bad Request: missing required parameters', { status: 400 })
     }
+
     try {
         const response = await fetchWithSentry(`${PEANUT_API_URL}/get-user`, {
             method: 'POST',

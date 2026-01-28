@@ -21,7 +21,6 @@
         "script": "NODE_OPTIONS=\"--experimental-json-modules\" tsx"
     },
     "dependencies": {
-        "@daimo/pay": "^1.16.5",
         "@dicebear/collection": "^9.2.2",
         "@dicebear/core": "^9.2.2",
         "@emotion/react": "^11.14.0",
@@ -61,7 +60,10 @@
         "js-cookie": "^3.0.5",
         "jsqr": "^1.4.0",
         "next": "16.0.10",
+        "nuqs": "^2.8.6",
+        "pix-utils": "^2.8.2",
         "pulltorefreshjs": "^0.1.22",
+        "qr-scanner": "^1.4.2",
         "react": "^19.2.1",
         "react-dom": "^19.2.1",
         "react-fast-marquee": "^1.6.5",
@@ -152,8 +154,7 @@
     "resolutions": {
         "@wagmi/core": "2.19.0",
         "viem": "^2.22.0",
-        "wagmi": "2.16.3",
-        "ox": "0.6.5"
+        "wagmi": "2.16.3"
     },
     "size-limit": [
         {

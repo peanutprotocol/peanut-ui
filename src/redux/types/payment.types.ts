@@ -21,6 +21,4 @@ export interface IPaymentState {
     resolvedAddress: string | null
     error: string | null
     usdAmount: string | null
-    daimoError: string | null
-    isDaimoPaymentProcessing: boolean
 }

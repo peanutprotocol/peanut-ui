@@ -1,7 +1,6 @@
 export * from './Blog'
 export * from './Claim'
 export * from './CrispChat' // Only exports CrispButton
-export * from './Global/DaimoPayButton'
 export * from './Jobs'
 export * from './Privacy'
 export * from './Profile'

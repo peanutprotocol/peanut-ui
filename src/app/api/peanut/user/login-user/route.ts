@@ -36,9 +36,10 @@ export async function POST(request: NextRequest) {
 
         const cookieStore = await cookies()
         cookieStore.set('jwt-token', token, {
-            httpOnly: true,
+            httpOnly: false, // Required for client-side services to read token (see cookie-migration.utils.ts for TODO)
+            secure: process.env.NODE_ENV === 'production',
             path: '/',
-            sameSite: 'strict',
+            sameSite: 'lax',
         })
 
         return new NextResponse(JSON.stringify(data), {

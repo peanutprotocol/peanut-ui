@@ -1,6 +1,7 @@
 'use client'
 import { type Payment } from '@/services/services.types'
-import Card, { type CardPosition } from '../Card'
+import Card from '../Card'
+import { type CardPosition } from '../Card/card.utils'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { getColorForUsername } from '@/utils/color.utils'
 import { VerifiedUserLabel } from '@/components/UserHeader'

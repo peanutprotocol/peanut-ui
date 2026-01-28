@@ -68,6 +68,9 @@ export type MantecaWithdrawData = {
     accountType?: MantecaAccountType
     txHash: string
     currency: string
+    // optional: if provided, uses the pre-locked price from /withdraw/init
+    // if not provided, a new price lock is created (legacy behavior)
+    priceLockCode?: string
 }
 
 export type MantecaWithdrawResponseData = {

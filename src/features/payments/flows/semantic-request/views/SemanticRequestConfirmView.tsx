@@ -49,12 +49,22 @@ export function SemanticRequestConfirmView() {
         isFetchingCharge,
         selectedChainID,
         selectedTokenData,
+        urlToken,
+        isTokenDenominated,
         goBackToInitial,
         executePayment,
         prepareRoute,
         handleRouteExpired,
         handleRouteNearExpiry,
     } = useSemanticRequestFlow()
+
+    // get the display symbol for the requested amount
+    const displayTokenSymbol = useMemo(() => {
+        if (isTokenDenominated && urlToken) {
+            return urlToken.symbol.toUpperCase()
+        }
+        return '$'
+    }, [isTokenDenominated, urlToken])
 
     // icons for sending token (peanut wallet usdc)
     const {
@@ -84,9 +94,13 @@ export function SemanticRequestConfirmView() {
     const isCrossChainPayment = isXChain || isDiffToken
 
     // format display values
+    // when token-denominated (e.g., eth), show the token amount, not usd amount
     const displayAmount = useMemo(() => {
+        if (isTokenDenominated) {
+            return `${formatAmount(amount)}`
+        }
         return `${formatAmount(usdAmount || amount)}`
-    }, [amount, usdAmount])
+    }, [amount, usdAmount, isTokenDenominated])
 
     // get network fee display
     const networkFee = useMemo<string | React.ReactNode>(() => {
@@ -163,7 +177,7 @@ export function SemanticRequestConfirmView() {
                         recipientType={recipient?.recipientType as PeanutActionDetailsCardRecipientType}
                         recipientName={recipient?.identifier || recipient?.resolvedAddress || ''}
                         amount={displayAmount}
-                        tokenSymbol={'$'}
+                        tokenSymbol={displayTokenSymbol}
                         message={attachment?.message ?? ''}
                         fileUrl={attachment?.fileUrl ?? ''}
                         showTimer={isCrossChainPayment && calculatedRoute?.type === 'rfq'}

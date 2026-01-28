@@ -1,5 +1,5 @@
 import Card from '@/components/Global/Card'
-import { KYCStatusDrawerItem } from '../KycStatusItem'
+import { KYCStatusDrawerItem } from '../KYCStatusDrawerItem'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { useMemo } from 'react'
 import { formatDate } from '@/utils/general.utils'

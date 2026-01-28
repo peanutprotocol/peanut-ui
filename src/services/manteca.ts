@@ -101,6 +101,16 @@ export type MantecaPrice = {
     effectiveSell: string
 }
 
+// withdraw init response - contains locked price for withdraw flow
+export type WithdrawPriceLock = {
+    priceLockCode: string
+    price: string
+    expiresAt: string
+    usdAmount: string
+    fiatAmount: string
+    currency: string
+}
+
 export const mantecaApi = {
     initiateQrPayment: async (data: QrPaymentRequest): Promise<QrPaymentLock> => {
         const response = await fetchWithSentry(`${PEANUT_API_URL}/manteca/qr-payment/init`, {
@@ -329,6 +339,40 @@ export const mantecaApi = {
         } catch (error) {
             console.log('error', error)
             console.error('Error calling create manteca withdraw API:', error)
+            if (error instanceof Error) {
+                return { error: error.message }
+            }
+            return { error: 'An unexpected error occurred.' }
+        }
+    },
+
+    /**
+     * Initialize withdraw with a locked price.
+     * This locks the exchange rate for ~120 seconds so user sees the exact amount they'll receive.
+     * The priceLockCode should be passed to withdraw() to use the locked price.
+     */
+    initiateWithdraw: async (params: {
+        amount: string
+        currency: string
+    }): Promise<{ data?: WithdrawPriceLock; error?: string }> => {
+        try {
+            const response = await fetchWithSentry(`${PEANUT_API_URL}/manteca/withdraw/init`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+                },
+                body: jsonStringify(params),
+            })
+
+            const result = await response.json()
+            if (!response.ok) {
+                return { error: result.error || result.message || 'Failed to lock withdraw price.' }
+            }
+
+            return { data: result }
+        } catch (error) {
+            console.error('Error calling manteca withdraw init API:', error)
             if (error instanceof Error) {
                 return { error: error.message }
             }

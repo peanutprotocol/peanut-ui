@@ -1,21 +1,11 @@
 import { useState, useMemo } from 'react'
-import Card, { type CardPosition } from '@/components/Global/Card'
+import Card from '@/components/Global/Card'
+import { type CardPosition } from '@/components/Global/Card/card.utils'
 import { BadgeStatusDrawer } from './BadgeStatusDrawer'
 import Image from 'next/image'
 import InvitesIcon from '../Home/InvitesIcon'
 import { getBadgeIcon } from './badge.utils'
-
-export type BadgeHistoryEntry = {
-    isBadge: true
-    uuid: string
-    timestamp: string
-    code: string
-    name: string
-    description?: string | null
-    iconUrl?: string | null
-}
-
-export const isBadgeHistoryItem = (entry: any): entry is BadgeHistoryEntry => !!entry?.isBadge
+import { type BadgeHistoryEntry } from './badge.types'
 
 export const BadgeStatusItem = ({
     position = 'first',

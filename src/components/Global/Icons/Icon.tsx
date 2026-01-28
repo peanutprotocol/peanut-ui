@@ -34,6 +34,7 @@ import {
     StarRounded,
     PersonAddOutlined,
     ContentCopyOutlined,
+    ContentPasteRounded,
     CloseRounded,
     QrCode2Rounded,
     UpdateRounded,
@@ -62,6 +63,8 @@ import {
     CloudUploadOutlined,
     CompareArrowsRounded,
     WarningRounded,
+    SpeedRounded,
+    InfoRounded,
 } from '@mui/icons-material'
 import { DocsIcon } from './docs'
 import { PeanutSupportIcon } from './peanut-support'
@@ -88,6 +91,7 @@ export type IconName =
     | 'check-circle'
     | 'plus-circle'
     | 'minus-circle'
+    | 'meter'
     | 'cancel'
     | 'download'
     | 'double-check'
@@ -120,6 +124,7 @@ export type IconName =
     | 'error'
     | 'clip'
     | 'info'
+    | 'info-filled'
     | 'external-link'
     | 'plus'
     | 'switch'
@@ -144,6 +149,7 @@ export type IconName =
     | 'bulb'
     | 'upload-cloud'
     | 'alert-filled'
+    | 'paste'
 export interface IconProps extends SVGProps<SVGSVGElement> {
     name: IconName
     size?: number | string
@@ -252,6 +258,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     clip: (props) => <MaterialIconWrapper Icon={AttachmentRounded} {...props} transformClassName="rotate-[-45deg]" />,
     info: (props) => <MaterialIconWrapper Icon={InfoOutlined} {...props} />,
     'external-link': (props) => <MaterialIconWrapper Icon={OpenInNewOutlined} {...props} />,
+    'info-filled': (props) => <MaterialIconWrapper Icon={InfoRounded} {...props} fill="currentColor" />,
     plus: (props) => <MaterialIconWrapper Icon={AddRounded} {...props} />,
     alert: (props) => <MaterialIconWrapper Icon={WarningAmberRounded} {...props} />,
     switch: (props) => <MaterialIconWrapper Icon={PowerSettingsNewRounded} {...props} />,
@@ -274,6 +281,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     'plus-circle': (props) => <MaterialIconWrapper Icon={ControlPointRounded} {...props} />,
     'minus-circle': (props) => <MaterialIconWrapper Icon={RemoveCircleOutlineRounded} {...props} />,
     'arrow-exchange': (props) => <MaterialIconWrapper Icon={CompareArrowsRounded} {...props} />,
+    meter: (props) => <MaterialIconWrapper Icon={SpeedRounded} {...props} />,
     // custom icons
     'txn-off': TxnOffIcon,
     docs: DocsIcon,
@@ -281,6 +289,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     'upload-cloud': (props) => <MaterialIconWrapper Icon={CloudUploadOutlined} {...props} />,
     'invite-heart': InviteHeartIcon,
     'alert-filled': (props) => <MaterialIconWrapper Icon={WarningRounded} {...props} />,
+    paste: (props) => <MaterialIconWrapper Icon={ContentPasteRounded} {...props} />,
 }
 
 export const Icon: FC<IconProps> = ({ name, size = 24, width, height, ...props }) => {
