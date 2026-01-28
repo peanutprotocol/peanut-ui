@@ -4,6 +4,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
 import Card from '@/components/Global/Card'
 import ErrorAlert from '@/components/Global/ErrorAlert'
+import InfoCard from '@/components/Global/InfoCard'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
@@ -26,7 +27,7 @@ import { getOfframpCurrencyConfig } from '@/utils/bridge.utils'
 import { createOfframp, confirmOfframp } from '@/app/actions/offramp'
 import { useAuth } from '@/context/authContext'
 import ExchangeRate from '@/components/ExchangeRate'
-import countryCurrencyMappings from '@/constants/countryCurrencyMapping'
+import countryCurrencyMappings, { isNonEuroSepaCountry, isUKCountry } from '@/constants/countryCurrencyMapping'
 import { PointsAction } from '@/services/services.types'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import { useSearchParams } from 'next/navigation'
@@ -63,6 +64,12 @@ export default function WithdrawBankPage() {
             country.toLowerCase() === currency.country.toLowerCase() ||
             currency.path?.toLowerCase() === country.toLowerCase()
     )?.currencyCode
+
+    // non-eur sepa countries that are currently experiencing issues
+    const isNonEuroSepa = isNonEuroSepaCountry(nonEuroCurrency)
+
+    // uk-specific check - check country path or bank account country code
+    const isUK = isUKCountry(country) || bankAccount?.details?.countryCode === 'GBR'
 
     // Calculate points API call
     const { pointsData } = usePointsCalculation(
@@ -276,6 +283,18 @@ export default function WithdrawBankPage() {
                         amount={amountToWithdraw}
                         tokenSymbol={PEANUT_WALLET_TOKEN_SYMBOL}
                     />
+
+                    {/* Warning for non-EUR SEPA countries */}
+                    {isNonEuroSepa && (
+                        <InfoCard
+                            variant="info"
+                            icon="info"
+                            title="Your bank will receive EUR"
+                            description={
+                                'If your receiving account does not support EUR deposits or automatic conversion, the transaction may be rejected by your bank.'
+                            }
+                        />
+                    )}
 
                     <Card className="rounded-sm">
                         <PaymentInfoRow
