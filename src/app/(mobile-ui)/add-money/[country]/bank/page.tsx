@@ -15,7 +15,7 @@ import { useAuth } from '@/context/authContext'
 import { useCreateOnramp } from '@/hooks/useCreateOnramp'
 import { useRouter, useParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import countryCurrencyMappings from '@/constants/countryCurrencyMapping'
+import countryCurrencyMappings, { isNonEuroSepaCountry, isUKCountry } from '@/constants/countryCurrencyMapping'
 import { formatUnits } from 'viem'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
@@ -82,15 +82,10 @@ export default function OnrampBankPage() {
     )?.currencyCode
 
     // non-eur sepa countries that are currently experiencing issues
-    const isNonEuroSepaCountry = !!(
-        nonEuroCurrency &&
-        nonEuroCurrency !== 'EUR' &&
-        nonEuroCurrency !== 'USD' &&
-        nonEuroCurrency !== 'MXN'
-    )
+    const isNonEuroSepa = isNonEuroSepaCountry(nonEuroCurrency)
 
-    // UK-specific check
-    const isUK = nonEuroCurrency === 'GBP'
+    // uk-specific check
+    const isUK = isUKCountry(selectedCountryPath)
 
     useWebSocket({
         username: user?.user.username ?? undefined,
@@ -444,9 +439,9 @@ export default function OnrampBankPage() {
                     )}
 
                     {/* Warning for non-EUR SEPA countries */}
-                    {!limitsValidation.isBlocking && isNonEuroSepaCountry && (
+                    {!limitsValidation.isBlocking && isNonEuroSepa && (
                         <InfoCard
-                            variant="info"
+                            variant="warning"
                             icon="alert"
                             title="EUR accounts only"
                             description={

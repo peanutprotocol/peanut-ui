@@ -66,7 +66,7 @@ const NavHeader = ({
                     loading={isLoggingOut}
                     variant="stroke"
                     icon="logout"
-                    className={twMerge('h-7 w-7 p-0 md:hidden', isLoggingOut && 'pl-3')}
+                    className={twMerge('h-7 w-7 p-0 md:hidden')}
                 />
             )}
         </div>

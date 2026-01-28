@@ -17,13 +17,7 @@ import PeanutLoading from '@/components/Global/PeanutLoading'
 import AmountInput from '@/components/Global/AmountInput'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSignUserOp } from '@/hooks/wallet/useSignUserOp'
-import {
-    clearRedirectUrl,
-    getRedirectUrl,
-    isTxReverted,
-    saveRedirectUrl,
-    formatNumberForDisplay,
-} from '@/utils/general.utils'
+import { isTxReverted, saveRedirectUrl, formatNumberForDisplay } from '@/utils/general.utils'
 import { getShakeClass, type ShakeIntensity } from '@/utils/perk.utils'
 import { calculateSavingsInCents, isArgentinaMantecaQrPayment, getSavingsMessage } from '@/utils/qr-payment.utils'
 import ErrorAlert from '@/components/Global/ErrorAlert'
@@ -50,7 +44,6 @@ import {
 import type { SimpleFiQrData } from '@/components/Global/DirectSendQR/utils'
 import { QrKycState, useQrKycGate } from '@/hooks/useQrKycGate'
 import ActionModal from '@/components/Global/ActionModal'
-import { MantecaGeoSpecificKycModal } from '@/components/Kyc/InitiateMantecaKYCModal'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { useQueryClient, useQuery } from '@tanstack/react-query'
 import { shootDoubleStarConfetti } from '@/utils/confetti'
@@ -992,8 +985,7 @@ export default function QRPayPage() {
     // because unverified users should see KYC screen, not error screen
     const needsKycVerification =
         kycGateState === QrKycState.REQUIRES_IDENTITY_VERIFICATION ||
-        kycGateState === QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS ||
-        kycGateState === QrKycState.REQUIRES_MANTECA_KYC_FOR_ARG_BRIDGE_USER
+        kycGateState === QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS
 
     // show loading while KYC state is being determined
     if (isLoadingKycState) {
@@ -1005,24 +997,6 @@ export default function QRPayPage() {
         return (
             <div className="flex min-h-[inherit] flex-col gap-8">
                 <NavHeader title="Pay" />
-                <MantecaGeoSpecificKycModal
-                    isUserBridgeKycApproved={kycGateState === QrKycState.REQUIRES_MANTECA_KYC_FOR_ARG_BRIDGE_USER}
-                    selectedCountry={{ id: 'AR', title: 'Argentina' }}
-                    setIsMantecaModalOpen={() => {
-                        router.back()
-                    }}
-                    isMantecaModalOpen={kycGateState === QrKycState.REQUIRES_MANTECA_KYC_FOR_ARG_BRIDGE_USER}
-                    onKycSuccess={() => {
-                        saveRedirectUrl()
-                        const redirectUrl = getRedirectUrl()
-                        if (redirectUrl) {
-                            clearRedirectUrl()
-                            router.push(redirectUrl)
-                        } else {
-                            router.replace('/home')
-                        }
-                    }}
-                />
                 <ActionModal
                     visible={kycGateState === QrKycState.REQUIRES_IDENTITY_VERIFICATION}
                     onClose={() => router.back()}
@@ -1050,17 +1024,27 @@ export default function QRPayPage() {
                 <ActionModal
                     visible={kycGateState === QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS}
                     onClose={() => router.back()}
-                    title="Identity Verification"
-                    description="Your identity is being verified. Please wait."
+                    title="Complete your verification"
+                    description="Your identity is being verified. If you did not finish the process, please continue to complete it."
                     icon="shield"
                     ctas={[
                         {
-                            text: 'Close',
+                            text: 'Continue verification',
+                            onClick: () => {
+                                saveRedirectUrl()
+                                router.push('/profile/identity-verification')
+                            },
+                            variant: 'purple',
+                            shadowSize: '4',
+                            icon: 'check-circle',
+                        },
+                        {
+                            text: 'Not now',
                             onClick: () => {
                                 router.back()
                             },
-                            shadowSize: '4',
-                            className: 'md:py-2',
+                            variant: 'transparent',
+                            className: 'underline text-sm font-medium w-full h-fit mt-3',
                         },
                     ]}
                 />
