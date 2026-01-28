@@ -87,17 +87,17 @@ export function getCountryByCurrency(currencyCode: string): CountryCurrencyMappi
 /**
  * checks if currency is from a non-EUR SEPA country
  * these countries are in SEPA zone but use their own currency, not EUR
- * returns true for GBP, PLN, SEK, etc. but false for EUR, USD, MXN
+ * returns true for GBP, PLN, SEK, etc. but false for EUR, USD, MXN, BRL, ARS
  */
 export function isNonEuroSepaCountry(currencyCode: string | undefined): boolean {
     if (!currencyCode) return false
     const upper = currencyCode.toUpperCase()
-    return (
-        upper !== 'EUR' &&
-        upper !== 'USD' &&
-        upper !== 'MXN' &&
-        countryCurrencyMappings.some((m) => m.currencyCode === upper)
-    )
+
+    // explicit list of non-EUR SEPA currencies
+    // SEPA includes EU countries that use their own currency
+    const nonEurSepaCurrencies = ['GBP', 'PLN', 'SEK', 'DKK', 'CZK', 'HUF', 'RON', 'BGN', 'ISK', 'NOK', 'CHF']
+
+    return nonEurSepaCurrencies.includes(upper)
 }
 
 /**

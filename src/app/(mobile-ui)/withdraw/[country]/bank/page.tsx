@@ -27,7 +27,7 @@ import { getOfframpCurrencyConfig } from '@/utils/bridge.utils'
 import { createOfframp, confirmOfframp } from '@/app/actions/offramp'
 import { useAuth } from '@/context/authContext'
 import ExchangeRate from '@/components/ExchangeRate'
-import countryCurrencyMappings, { isNonEuroSepaCountry, isUKCountry } from '@/constants/countryCurrencyMapping'
+import countryCurrencyMappings, { isNonEuroSepaCountry } from '@/constants/countryCurrencyMapping'
 import { PointsAction } from '@/services/services.types'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import { useSearchParams } from 'next/navigation'
@@ -67,9 +67,6 @@ export default function WithdrawBankPage() {
 
     // non-eur sepa countries that are currently experiencing issues
     const isNonEuroSepa = isNonEuroSepaCountry(nonEuroCurrency)
-
-    // uk-specific check - check country path or bank account country code
-    const isUK = isUKCountry(country) || bankAccount?.details?.countryCode === 'GBR'
 
     // Calculate points API call
     const { pointsData } = usePointsCalculation(
@@ -289,9 +286,9 @@ export default function WithdrawBankPage() {
                         <InfoCard
                             variant="info"
                             icon="info"
-                            title="Your bank will receive EUR"
+                            title="We send EUR to your bank"
                             description={
-                                'If your receiving account does not support EUR deposits or automatic conversion, the transaction may be rejected by your bank.'
+                                'Withdrawals are sent in EUR. Your bank may charge conversion fees or reject the transaction if EUR deposits are not supported.'
                             }
                         />
                     )}
