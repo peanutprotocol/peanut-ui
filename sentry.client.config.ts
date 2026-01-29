@@ -22,30 +22,6 @@ const IGNORED_ERRORS = {
         'The operation was aborted',
     ],
 
-    // Network issues (transient, client-side)
-    network: [
-        'NetworkError',
-        'Failed to fetch',
-        'network error',
-        'Network request failed',
-        'ETIMEDOUT',
-        'ECONNREFUSED',
-        'ECONNRESET',
-        'ENOTFOUND',
-        'Load failed',
-        'fetch failed',
-        'Network Error',
-    ],
-
-    // Chunk loading (usually network/cache issues)
-    chunkLoading: [
-        'ChunkLoadError',
-        'Loading chunk',
-        'Loading CSS chunk',
-        'Failed to load script',
-        'Importing a module script failed',
-    ],
-
     // Browser/extension noise
     browserNoise: [
         'ResizeObserver loop',
