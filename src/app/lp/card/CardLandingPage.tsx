@@ -370,7 +370,7 @@ const CardLandingPage = () => {
                         </span>
                         <h2 className="font-roboto-flex-extrabold mt-4 text-4xl font-extraBlack md:text-5xl">FAQ</h2>
                     </motion.div>
-                    <FAQsPanel questions={faqQuestions} />
+                    <FAQsPanel heading="Frequently Asked Questions" questions={faqQuestions} />
                     <motion.p
                         className="font-roboto-flex mt-8 text-center text-sm opacity-60"
                         initial={{ opacity: 0 }}
