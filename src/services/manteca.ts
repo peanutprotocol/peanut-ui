@@ -392,23 +392,24 @@ export const mantecaApi = {
         currency: string
         bankCode?: string
         accountType?: string
-        signedUserOp: {
-            sender: string
-            nonce: any
-            callData: string
-            signature: string
-            factory?: string
-            factoryData?: string
-            callGasLimit: any
-            verificationGasLimit: any
-            preVerificationGas: any
-            maxFeePerGas: any
-            maxPriorityFeePerGas: any
-            paymaster?: string
-            paymasterData?: string
-            paymasterVerificationGasLimit: any
-            paymasterPostOpGasLimit: any
-        }
+        signedUserOp: Pick<
+            SignUserOperationReturnType,
+            | 'sender'
+            | 'nonce'
+            | 'callData'
+            | 'signature'
+            | 'callGasLimit'
+            | 'verificationGasLimit'
+            | 'preVerificationGas'
+            | 'maxFeePerGas'
+            | 'maxPriorityFeePerGas'
+            | 'paymaster'
+            | 'paymasterData'
+            | 'paymasterVerificationGasLimit'
+            | 'paymasterPostOpGasLimit'
+            | 'factory'
+            | 'factoryData'
+        >
         chainId: string
         entryPointAddress: string
     }): Promise<MantecaWithdrawResponse> => {
