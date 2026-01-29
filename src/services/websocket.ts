@@ -1,4 +1,5 @@
 import { type HistoryEntry } from '@/hooks/useTransactionHistory'
+import { jsonStringify } from '@/utils/general.utils'
 
 export type WebSocketMessage = {
     type:
@@ -149,7 +150,7 @@ export class PeanutWebSocket {
     }
 
     private handleError(event: Event): void {
-        console.error('WebSocket error:', event)
+        console.error('WebSocket error:', jsonStringify(event))
         this.emit('error', event)
     }
 
