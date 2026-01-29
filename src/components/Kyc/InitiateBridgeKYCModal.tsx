@@ -42,7 +42,10 @@ export const InitiateBridgeKYCModal = ({
     }, [isOpen, resetError])
 
     const handleVerifyClick = async () => {
-        addParamStep('bank')
+        // Only add step param for claim flows (not add-money flow which has its own URL state)
+        if (flow !== 'add') {
+            addParamStep('bank')
+        }
         const result = await handleInitiateKyc()
         if (result?.success) {
             saveRedirectUrl()
