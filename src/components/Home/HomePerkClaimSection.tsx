@@ -50,7 +50,7 @@ export function HomePerkClaimSection() {
 
     // Listen for real-time perk notifications via WebSocket
     useWebSocket({
-        username: user?.user.username,
+        username: user?.user.username ?? undefined,
         onPendingPerk: useCallback(
             () => {
                 // A new perk arrived! Invalidate query and trigger arrival animation
