@@ -160,9 +160,7 @@ function checkBlock(block: string, weights: number[]) {
 export function validateCbuCvuAlias(value: string): { valid: boolean; message?: string } {
     value = value.trim()
     const length = value.length
-    //TODO: enable this again when alias is supported
-    //if ((length < 6 || length > 20) && length !== 22) {
-    if (length !== 22) {
+    if ((length < 6 || length > 20) && length !== 22) {
         return { valid: false, message: 'Invalid length' }
     }
 
@@ -182,13 +180,13 @@ export function validateCbuCvuAlias(value: string): { valid: boolean; message?: 
         const expectedSecond = checkBlock(secondBlock, [3, 9, 7, 1, 3, 9, 7, 1, 3, 9, 7, 1, 3]).toString()
 
         if (expectedFirst !== firstCheck || expectedSecond !== secondCheck) {
-            return { valid: false, message: 'Invalid CBU/CVU check that you entered it correctly' }
+            return { valid: false, message: 'Invalid CBU/CVU - check that you entered it correctly' }
         }
         return { valid: true }
     }
 
     // Alias case
-    if (!/^[a-z/d\.-]*$/i.test(value)) {
+    if (!/^[a-z\d.-]*$/i.test(value)) {
         return { valid: false, message: 'Alias must contain only letters, numbers, dots, and dashes' }
     }
 

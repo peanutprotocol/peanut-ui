@@ -66,9 +66,7 @@ type MantecaCountryConfig = {
  */
 export const MANTECA_COUNTRIES_CONFIG: Record<string, MantecaCountryConfig> = {
     AR: {
-        //TODO: enable this again when alias is supported
-        //accountNumberLabel: 'CBU, CVU or Alias',
-        accountNumberLabel: 'CBU/CVU',
+        accountNumberLabel: 'CBU, CVU or Alias',
         depositAddressLabel: 'CBU',
         needsBankCode: false,
         needsAccountType: false,
