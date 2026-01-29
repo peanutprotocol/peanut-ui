@@ -1,5 +1,14 @@
 import { type HistoryEntry } from '@/hooks/useTransactionHistory'
 
+export type PendingPerk = {
+    id: string
+    name: string
+    description?: string
+    reason?: string
+    amountUsd: number
+    createdAt: string
+}
+
 export type WebSocketMessage = {
     type:
         | 'ping'
@@ -8,7 +17,8 @@ export type WebSocketMessage = {
         | 'kyc_status_update'
         | 'manteca_kyc_status_update'
         | 'persona_tos_status_update'
-    data?: HistoryEntry
+        | 'pending_perk'
+    data?: HistoryEntry | PendingPerk
 }
 
 export class PeanutWebSocket {
@@ -125,6 +135,12 @@ export class PeanutWebSocket {
                 case 'persona_tos_status_update':
                     if (message.data && 'status' in (message.data as object)) {
                         this.emit('persona_tos_status_update', message.data)
+                    }
+                    break
+
+                case 'pending_perk':
+                    if (message.data && 'id' in (message.data as object)) {
+                        this.emit('pending_perk', message.data)
                     }
                     break
 

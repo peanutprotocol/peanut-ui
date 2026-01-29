@@ -11,6 +11,7 @@ import { useModalsContext } from '@/context/ModalsContext'
 import { DeviceType, useDeviceType } from './useGetDeviceType'
 import { usePWAStatus } from './usePWAStatus'
 import { useGeoLocation } from './useGeoLocation'
+import { useCardPioneerInfo } from './useCardPioneerInfo'
 import { STAR_STRAIGHT_ICON } from '@/assets'
 
 export type CarouselCTA = {
@@ -41,6 +42,7 @@ export const useHomeCarouselCTAs = () => {
 
     const { setIsQRScannerOpen } = useModalsContext()
     const { countryCode: userCountryCode } = useGeoLocation()
+    const { isEligible: isCardPioneerEligible, hasPurchased: hasCardPioneerPurchased } = useCardPioneerInfo()
 
     const generateCarouselCTAs = useCallback(() => {
         const _carouselCTAs: CarouselCTA[] = []
@@ -48,6 +50,30 @@ export const useHomeCarouselCTAs = () => {
         // DRY: Check KYC approval status once
         const hasKycApproval = isUserKycApproved || isUserMantecaKycApproved
         const isLatamUser = userCountryCode === 'AR' || userCountryCode === 'BR'
+
+        // Card Pioneer CTA - show to all users who haven't purchased yet
+        // Eligibility check happens during the flow (geo screen)
+        if (!hasCardPioneerPurchased) {
+            _carouselCTAs.push({
+                id: 'card-pioneer',
+                title: (
+                    <p>
+                        Get your <b>Peanut Card</b>
+                    </p>
+                ),
+                description: (
+                    <p>
+                        Join Card Pioneers for <b>early access</b> and earn <b>$5</b> per referral.
+                    </p>
+                ),
+                iconContainerClassName: 'bg-purple-1',
+                icon: 'wallet',
+                onClick: () => {
+                    router.push('/card')
+                },
+                iconSize: 16,
+            })
+        }
 
         // Generic invite CTA for non-LATAM users
         if (!isLatamUser) {
@@ -178,6 +204,8 @@ export const useHomeCarouselCTAs = () => {
         deviceType,
         isPwa,
         userCountryCode,
+        isCardPioneerEligible,
+        hasCardPioneerPurchased,
     ])
 
     useEffect(() => {

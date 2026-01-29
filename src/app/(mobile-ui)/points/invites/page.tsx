@@ -16,6 +16,7 @@ import Image from 'next/image'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { getInitialsFromName } from '@/utils/general.utils'
 import { type PointsInvite } from '@/services/services.types'
+import { TRANSITIVITY_MULTIPLIER } from '@/constants/points.consts'
 
 const InvitesPage = () => {
     const router = useRouter()
@@ -45,10 +46,10 @@ const InvitesPage = () => {
         )
     }
 
-    // Calculate total points earned (20% of each invitee's points)
+    // Calculate total points earned (50% of each invitee's points)
     const totalPointsEarned =
         invites?.invitees?.reduce((sum: number, invite: PointsInvite) => {
-            return sum + Math.floor(invite.totalPoints * 0.2)
+            return sum + Math.floor(invite.totalPoints * TRANSITIVITY_MULTIPLIER)
         }, 0) || 0
 
     return (
@@ -75,7 +76,7 @@ const InvitesPage = () => {
                         const username = invite.username
                         const fullName = invite.fullName
                         const isVerified = invite.kycStatus === 'approved'
-                        const pointsEarned = Math.floor(invite.totalPoints * 0.2)
+                        const pointsEarned = Math.floor(invite.totalPoints * TRANSITIVITY_MULTIPLIER)
                         // respect user's showFullName preference for avatar and display name
                         const displayName = invite.showFullName && fullName ? fullName : username
                         return (

@@ -57,6 +57,11 @@ export const RESERVED_ROUTES: readonly string[] = [...DEDICATED_ROUTES, ...STATI
 export const PUBLIC_ROUTES = ['request/pay', 'claim', 'pay', 'support', 'invite', 'qr', 'dev/payment-graph'] as const
 
 /**
+ * Dev test routes that are public only in dev mode
+ */
+export const DEV_ONLY_PUBLIC_ROUTES = ['dev', 'dev/gift-test', 'dev/shake-test'] as const
+
+/**
  * Regex pattern for public routes (used in layout.tsx)
  * Matches paths that don't require authentication
  *
@@ -64,6 +69,12 @@ export const PUBLIC_ROUTES = ['request/pay', 'claim', 'pay', 'support', 'invite'
  * Exception: /dev/payment-graph is public (uses API key instead of user auth)
  */
 export const PUBLIC_ROUTES_REGEX = /^\/(request\/pay|claim|pay\/.+|support|invite|qr|dev\/payment-graph)/
+
+/**
+ * Regex for dev-only public routes (dev index, gift-test, shake-test)
+ * Only matched when IS_DEV is true
+ */
+export const DEV_ONLY_PUBLIC_ROUTES_REGEX = /^\/(dev$|dev\/gift-test|dev\/shake-test)/
 
 /**
  * Routes where middleware should run
@@ -104,7 +115,15 @@ export function isReservedRoute(path: string): boolean {
 
 /**
  * Helper to check if a path is public (no auth required)
+ * Dev test pages (gift-test, shake-test) are only public in dev mode
  */
-export function isPublicRoute(path: string): boolean {
-    return PUBLIC_ROUTES_REGEX.test(path)
+export function isPublicRoute(path: string, isDev = false): boolean {
+    if (PUBLIC_ROUTES_REGEX.test(path)) {
+        return true
+    }
+    // Dev test pages are only public in dev mode
+    if (isDev && DEV_ONLY_PUBLIC_ROUTES_REGEX.test(path)) {
+        return true
+    }
+    return false
 }

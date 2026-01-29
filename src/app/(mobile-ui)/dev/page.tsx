@@ -36,6 +36,20 @@ export default function DevToolsPage() {
             icon: '🧪',
             status: 'active',
         },
+        {
+            name: 'Gift Test',
+            description: 'Test gift box unwrap animations and variants',
+            path: '/dev/gift-test',
+            icon: '🎁',
+            status: 'active',
+        },
+        {
+            name: 'Perk Success Test',
+            description: 'Test the perk claim success screen with mock perks',
+            path: '/dev/perk-success-test',
+            icon: '✅',
+            status: 'active',
+        },
         // Add more dev tools here in the future
     ]
 

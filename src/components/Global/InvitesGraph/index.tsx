@@ -253,6 +253,12 @@ export default function InvitesGraph(props: InvitesGraphProps) {
     // topNodes: limit to top N by points (0 = all). Backend-filtered, triggers refetch.
     const [topNodes, setTopNodes] = useState(initialTopNodes)
 
+    // Particle arrival popups for user mode (+1 pt animations)
+    // Map: linkId → { timestamp, x, y, nodeId }
+    const particleArrivalsRef = useRef<Map<string, { timestamp: number; x: number; y: number; nodeId: string }>>(
+        new Map()
+    )
+
     // Use passed data in minimal mode, fetched data otherwise
     // Note: topNodes filtering is now done by backend, no client-side pruning needed
     // Performance mode: frontend filter to top 1000 without refetch
@@ -562,6 +568,17 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             }
         })
         return map
+    }, [filteredGraphData])
+
+    // Build set of inviter node IDs (nodes that have outgoing invite edges)
+    // Used in minimal/user mode to show heart icon next to inviter usernames
+    const inviterNodes = useMemo(() => {
+        if (!filteredGraphData) return new Set<string>()
+        const set = new Set<string>()
+        filteredGraphData.edges.forEach((edge) => {
+            set.add(edge.source) // source = inviter
+        })
+        return set
     }, [filteredGraphData])
 
     // Build set of node IDs that participate in P2P (for payment mode coloring)
@@ -893,6 +910,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         visibilityConfig,
         externalNodesConfig,
         p2pActiveNodes,
+        inviterNodes,
     })
     useEffect(() => {
         displaySettingsRef.current = {
@@ -904,6 +922,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             visibilityConfig,
             externalNodesConfig,
             p2pActiveNodes,
+            inviterNodes,
         }
     }, [
         showUsernames,
@@ -914,6 +933,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         visibilityConfig,
         externalNodesConfig,
         p2pActiveNodes,
+        inviterNodes,
     ])
 
     // Helper to determine user activity status
@@ -1063,8 +1083,8 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             const { p2pActiveNodes: p2pNodes } = displaySettingsRef.current
 
             if (currentMode === 'user') {
-                // User mode: all nodes same pleasant purple
-                fillColor = 'rgba(139, 92, 246, 0.9)' // Solid purple for all
+                // User mode: all nodes same pleasant purple, fully opaque
+                fillColor = 'rgb(139, 92, 246)' // Solid purple for all
             } else if (currentMode === 'payment') {
                 // Payment mode: color by P2P participation (sending or receiving)
                 const hasP2PActivity = p2pNodes.has(node.id)
@@ -1136,11 +1156,76 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             if (showNames && (minimal || globalScale > 1.2)) {
                 const label = node.username
                 const fontSize = minimal ? 4 : 12 / globalScale
+                const { inviterNodes: inviterNodesSet } = displaySettingsRef.current
+                const isInviter = inviterNodesSet && inviterNodesSet.has(node.id)
+
                 ctx.font = `600 ${fontSize}px Inter, system-ui, -apple-system, sans-serif`
                 ctx.textAlign = 'center'
                 ctx.textBaseline = 'middle'
                 ctx.fillStyle = activityStatus === 'inactive' && filter.enabled ? 'rgba(17, 24, 39, 0.3)' : '#111827'
-                ctx.fillText(label, node.x, node.y + size + fontSize + 2)
+
+                const labelY = node.y + size + fontSize + 2
+
+                // Render username
+                ctx.fillText(label, node.x, labelY)
+
+                // Add heart icon for inviters in minimal/user mode
+                if (minimal && isInviter) {
+                    // Measure text to position heart after it
+                    const textWidth = ctx.measureText(label).width
+                    const heartX = node.x + textWidth / 2 + fontSize * 0.6
+                    const heartY = labelY
+                    const heartSize = fontSize * 0.7
+
+                    // Draw simple heart shape (pink/magenta)
+                    ctx.save()
+                    ctx.fillStyle = '#FF90E8'
+                    ctx.beginPath()
+                    // Heart shape using two circles and a triangle
+                    const topY = heartY - heartSize * 0.3
+                    ctx.arc(heartX - heartSize * 0.25, topY, heartSize * 0.3, 0, Math.PI, true)
+                    ctx.arc(heartX + heartSize * 0.25, topY, heartSize * 0.3, 0, Math.PI, true)
+                    ctx.lineTo(heartX + heartSize * 0.5, topY)
+                    ctx.lineTo(heartX, heartY + heartSize * 0.3)
+                    ctx.lineTo(heartX - heartSize * 0.5, topY)
+                    ctx.closePath()
+                    ctx.fill()
+                    ctx.restore()
+                }
+            }
+
+            // Render "+1" popups for particle arrivals in user mode
+            // currentMode is already defined above, reuse it
+            if (currentMode === 'user' && minimal) {
+                const now = performance.now()
+                const popupDuration = 1500 // 1.5 seconds
+                const arrivals = particleArrivalsRef.current
+
+                // Clean up old arrivals and render active ones
+                const toDelete: string[] = []
+                arrivals.forEach((arrival, linkId) => {
+                    const age = now - arrival.timestamp
+                    if (age > popupDuration) {
+                        toDelete.push(linkId)
+                    } else {
+                        // Render popup with fade-out - start from node center, rise up
+                        const progress = age / popupDuration
+                        const alpha = 1 - progress
+                        const yOffset = -progress * 15 // Rise up 15px from node center
+
+                        ctx.save()
+                        ctx.globalAlpha = alpha
+                        ctx.font = 'bold 5px Inter, system-ui, -apple-system, sans-serif'
+                        ctx.fillStyle = '#fbbf24' // Gold color
+                        ctx.textAlign = 'center'
+                        ctx.textBaseline = 'middle'
+                        ctx.fillText('+1 point', arrival.x, arrival.y + yOffset)
+                        ctx.restore()
+                    }
+                })
+
+                // Clean up expired arrivals
+                toDelete.forEach((linkId) => arrivals.delete(linkId))
             }
         },
         [getUserActivityStatus]
@@ -1372,6 +1457,22 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                         const t = (time * baseSpeed + i / particleCount) % 1
                         const px = source.x + (target.x - source.x) * t
                         const py = source.y + (target.y - source.y) * t
+
+                        // Detect arrival: when particle is close to target (t > 0.95)
+                        // Track arrival to show "+1 pt" popup
+                        if (t > 0.95 && t < 0.99) {
+                            const linkId = `${link.source.id}_${link.target.id}_${i}`
+                            const arrivals = particleArrivalsRef.current
+                            if (!arrivals.has(linkId)) {
+                                arrivals.set(linkId, {
+                                    timestamp: time,
+                                    x: target.x,
+                                    y: target.y,
+                                    nodeId: link.target.id,
+                                })
+                            }
+                        }
+
                         ctx.beginPath()
                         ctx.arc(px, py, particleSize, 0, 2 * Math.PI)
                         ctx.fill()
@@ -1408,6 +1509,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                     }
                 }
             }
+
         },
         [isLinkInactive]
     )
@@ -1465,7 +1567,13 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                 return
             }
 
-            // User node → Select (camera follows) - click again to open Grafana
+            // User mode: Navigate to user profile in new tab
+            if (isMinimal && node.username) {
+                window.open(`/${node.username}`, '_blank')
+                return
+            }
+
+            // Full/Payment mode: User node → Select (camera follows) - click again to open Grafana
             if (selectedUserId === node.id) {
                 // Already selected - open Grafana
                 const username = node.username || node.id
@@ -1478,7 +1586,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                 setSelectedUserId(node.id)
             }
         },
-        [selectedUserId]
+        [selectedUserId, isMinimal]
     )
 
     // Right-click selects the node (camera follows)
@@ -1796,6 +1904,34 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         return () => clearTimeout(timeout)
     }, [filteredGraphData])
 
+    // Continuous zoom tracking in minimal mode during simulation settling
+    useEffect(() => {
+        if (!isMinimal || !filteredGraphData || !graphRef.current) return
+
+        let frameId: number | null = null
+        const startTime = Date.now()
+        const trackDuration = 4000 // Track for 4 seconds (simulation should settle by then)
+
+        const continuousZoom = () => {
+            const elapsed = Date.now() - startTime
+            if (elapsed > trackDuration || !graphRef.current) return
+
+            // Zoom to fit every frame during settling - fast animation
+            graphRef.current.zoomToFit(100, 40)
+            frameId = requestAnimationFrame(continuousZoom)
+        }
+
+        // Start tracking immediately after graph mounts
+        const timeout = setTimeout(() => {
+            frameId = requestAnimationFrame(continuousZoom)
+        }, 100)
+
+        return () => {
+            if (frameId) cancelAnimationFrame(frameId)
+            clearTimeout(timeout)
+        }
+    }, [isMinimal, filteredGraphData])
+
     // Center on selected node - track continuously as it moves
     useEffect(() => {
         if (!selectedUserId || !graphRef.current) return
@@ -1998,8 +2134,8 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                             enableZoomInteraction={true}
                             cooldownTicks={Infinity}
                             warmupTicks={0}
-                            d3AlphaDecay={0.005}
-                            d3VelocityDecay={0.6}
+                            d3AlphaDecay={isMinimal ? 0.03 : 0.005}
+                            d3VelocityDecay={isMinimal ? 0.8 : 0.6}
                             d3AlphaMin={0.001}
                             onEngineStop={handleEngineStop}
                             backgroundColor={backgroundColor}

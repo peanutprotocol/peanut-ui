@@ -63,6 +63,8 @@ export const Profile = () => {
                         href="/dummy" // Dummy link, wont be called
                         position="single"
                     />
+                    {/* Card Pioneer Entry */}
+                    <ProfileMenuItem icon="wallet" label="My Card" href="/card" position="single" badge="NEW" />
                     {/* Menu Items - First Group */}
                     <div>
                         <ProfileMenuItem icon="achievements" label="Your Badges" href="/badges" position="first" />

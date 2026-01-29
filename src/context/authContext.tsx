@@ -42,6 +42,7 @@ interface AuthContextType {
         }
     }) => Promise<void>
     isFetchingUser: boolean
+    userFetchError: Error | null
     logoutUser: () => Promise<void>
     isLoggingOut: boolean
     invitedUsernamesSet: Set<string>
@@ -60,7 +61,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const queryClient = useQueryClient()
     const WEB_AUTHN_COOKIE_KEY = 'web-authn-key'
 
-    const { data: user, isLoading: isFetchingUser, refetch: fetchUser } = useUserQuery()
+    const { data: user, isLoading: isFetchingUser, refetch: fetchUser, error: userFetchError } = useUserQuery()
 
     // Pre-compute a Set of invited usernames for O(1) lookups
     const invitedUsernamesSet = useMemo(() => {
@@ -237,6 +238,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 fetchUser: legacy_fetchUser,
                 addAccount,
                 isFetchingUser,
+                userFetchError: userFetchError ?? null,
                 logoutUser,
                 isLoggingOut,
                 invitedUsernamesSet,

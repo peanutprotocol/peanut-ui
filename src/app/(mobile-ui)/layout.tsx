@@ -5,6 +5,7 @@ import PeanutLoading from '@/components/Global/PeanutLoading'
 import TopNavbar from '@/components/Global/TopNavbar'
 import WalletNavigation from '@/components/Global/WalletNavigation'
 import OfflineScreen from '@/components/Global/OfflineScreen'
+import BackendErrorScreen from '@/components/Global/BackendErrorScreen'
 import { ThemeProvider } from '@/config'
 import { useAuth } from '@/context/authContext'
 import { hasValidJwtToken } from '@/utils/auth'
@@ -19,7 +20,8 @@ import { useRouter } from 'next/navigation'
 import { Banner } from '@/components/Global/Banner'
 import { useSetupStore } from '@/redux/hooks'
 import ForceIOSPWAInstall from '@/components/ForceIOSPWAInstall'
-import { PUBLIC_ROUTES_REGEX } from '@/constants/routes'
+import { isPublicRoute } from '@/constants/routes'
+import { IS_DEV } from '@/constants/general.consts'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 import { useAccountSetupRedirect } from '@/hooks/useAccountSetupRedirect'
@@ -28,9 +30,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const pathName = usePathname()
 
     // Allow access to public paths without authentication
-    const isPublicPath = PUBLIC_ROUTES_REGEX.test(pathName)
+    // Dev test pages (gift-test, shake-test) are only public in dev mode
+    const isPublicPath = isPublicRoute(pathName, IS_DEV)
 
-    const { isFetchingUser, user } = useAuth()
+    const { isFetchingUser, user, userFetchError } = useAuth()
     const [isReady, setIsReady] = useState(false)
     const [hasToken, setHasToken] = useState(false)
     const isUserLoggedIn = !!user?.user.userId || false
@@ -94,6 +97,12 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     // when connection is restored, page auto-reloads (no "back online" screen)
     if (isInitialized && !isOnline) {
         return <OfflineScreen />
+    }
+
+    // show backend error screen when user fetch fails after retries
+    // user can retry or force logout to clear stale state
+    if (userFetchError && !isFetchingUser && !isPublicPath) {
+        return <BackendErrorScreen />
     }
 
     // For public paths, skip user loading and just show content when ready

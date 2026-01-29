@@ -27,7 +27,8 @@ import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
 import { useNotifications } from '@/hooks/useNotifications'
 import useKycStatus from '@/hooks/useKycStatus'
-import HomeCarouselCTA from '@/components/Home/HomeCarouselCTA'
+import { useCardPioneerInfo } from '@/hooks/useCardPioneerInfo'
+import HomePerkClaimSection from '@/components/Home/HomePerkClaimSection'
 import InvitesIcon from '@/components/Home/InvitesIcon'
 import NavigationArrow from '@/components/Global/NavigationArrow'
 import { updateUserById } from '@/app/actions/users'
@@ -43,6 +44,7 @@ const NoMoreJailModal = lazy(() => import('@/components/Global/NoMoreJailModal')
 const EarlyUserModal = lazy(() => import('@/components/Global/EarlyUserModal'))
 const KycCompletedModal = lazy(() => import('@/components/Home/KycCompletedModal'))
 const IosPwaInstallModal = lazy(() => import('@/components/Global/IosPwaInstallModal'))
+const CardPioneerModal = lazy(() => import('@/components/Card/CardPioneerModal'))
 
 const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
 const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_EXPIRY ?? '1814400') // 21 days in seconds
@@ -64,6 +66,11 @@ export default function Home() {
 
     const { isFetchingUser, fetchUser } = useAuth()
     const { isUserKycApproved } = useKycStatus()
+    const {
+        isEligible: isCardPioneerEligible,
+        hasPurchased: hasCardPioneerPurchased,
+        cardInfo,
+    } = useCardPioneerInfo()
     const username = user?.user.username
 
     const [showBalanceWarningModal, setShowBalanceWarningModal] = useState(false)
@@ -182,7 +189,7 @@ export default function Home() {
                 </div>
 
                 <div className="space-y-2">
-                    <HomeCarouselCTA />
+                    <HomePerkClaimSection />
                     <HomeHistory username={username ?? undefined} hideTxnAmount={isBalanceHidden} />
                 </div>
 
@@ -259,6 +266,21 @@ export default function Home() {
                     <IosPwaInstallModal />
                 </Suspense>
             </LazyLoadErrorBoundary>
+
+            {/* Card Pioneer Modal - Show to all users who haven't purchased */}
+            {/* Eligibility check happens during the flow (geo screen), not here */}
+            {/* Only shows if no higher-priority modals are active */}
+            {!showBalanceWarningModal && !showPermissionModal && !showKycModal && !isPostSignupActionModalVisible && (
+                <LazyLoadErrorBoundary>
+                    <Suspense fallback={null}>
+                        <CardPioneerModal
+                            isEligible={isCardPioneerEligible}
+                            hasPurchased={hasCardPioneerPurchased}
+                            slotsRemaining={cardInfo?.slotsRemaining}
+                        />
+                    </Suspense>
+                </LazyLoadErrorBoundary>
+            )}
 
             {/* Referral Campaign Modal - DISABLED FOR NOW */}
             {/* <ReferralCampaignModal
