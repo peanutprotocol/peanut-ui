@@ -213,8 +213,6 @@ if (process.env.NODE_ENV !== 'development' && !Boolean(process.env.LOCAL_BUILD))
             deleteSourcemapsAfterUpload: true,
         },
     })
-} else {
-    module.exports = nextConfig
 }
 
 if (process.env.NODE_ENV !== 'development') {
@@ -225,8 +223,8 @@ if (process.env.NODE_ENV !== 'development') {
             // explicitly include offline screen assets in precache
             additionalPrecacheEntries: ['/icons/peanut-icon.svg'],
         })
-        return withSerwist(nextConfig)
+        return withBundleAnalyzer(withSerwist(nextConfig))
     }
+} else {
+    module.exports = nextConfig
 }
-
-module.exports = withBundleAnalyzer(nextConfig)
