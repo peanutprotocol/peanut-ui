@@ -35,6 +35,7 @@ const DrawerContent = React.forwardRef<
                 'fixed inset-x-0 bottom-0 z-50 mt-24 flex flex-col rounded-t-[10px] border bg-background',
                 className
             )}
+            aria-describedby={undefined}
             {...props}
             onTouchMove={(e) => e.stopPropagation()}
         >
