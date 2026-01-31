@@ -130,8 +130,8 @@ export function recognizeQr(data: string): QrType | null {
     }
 
     // Check for raw PIX keys early, BEFORE URL regex (pix emails/phones can match URL pattern)
-    // skip if it looks like a real URL (has protocol and domain)
-    if (!data.includes('://') || !data.includes('.')) {
+    // skip if it has protocol (clearly a URL, not a raw key)
+    if (!data.includes('://')) {
         const pixValidation = validatePixKey(data)
         if (pixValidation.valid && !isPixEmvcoQr(data)) {
             return EQrType.PIX_KEY
