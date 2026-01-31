@@ -11,7 +11,7 @@ const CONFIG = {
     CAMERA_RETRY_DELAY_MS: 1000,
     MAX_CAMERA_RETRIES: 3,
     IOS_CAMERA_DELAY_MS: 200,
-    SCANNER_MAX_SCANS_PER_SECOND: 25,
+    SCANNER_MAX_SCANS_PER_SECOND: 40,
     SCANNER_CLOSE_DELAY_MS: 1500,
     VIDEO_ELEMENT_RETRY_DELAY_MS: 100,
     MAX_VIDEO_ELEMENT_RETRIES: 2,
@@ -28,6 +28,17 @@ const SCANNER_OPTIONS = {
     highlightScanRegion: false,
     highlightCodeOutline: false,
     maxScansPerSecond: CONFIG.SCANNER_MAX_SCANS_PER_SECOND,
+    // focus on center 70% of frame for faster processing of dense qr codes
+    calculateScanRegion: (video: HTMLVideoElement) => {
+        const smallerDimension = Math.min(video.videoWidth, video.videoHeight)
+        const scanRegionSize = Math.round(0.7 * smallerDimension)
+        return {
+            x: Math.round((video.videoWidth - scanRegionSize) / 2),
+            y: Math.round((video.videoHeight - scanRegionSize) / 2),
+            width: scanRegionSize,
+            height: scanRegionSize,
+        }
+    },
 } as const
 
 // Module-level deduplication to handle rapid-fire callbacks from qr-scanner
