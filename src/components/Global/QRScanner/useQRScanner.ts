@@ -11,7 +11,7 @@ const CONFIG = {
     CAMERA_RETRY_DELAY_MS: 1000,
     MAX_CAMERA_RETRIES: 3,
     IOS_CAMERA_DELAY_MS: 200,
-    SCANNER_MAX_SCANS_PER_SECOND: 40,
+    SCANNER_MAX_SCANS_PER_SECOND: 25,
     SCANNER_CLOSE_DELAY_MS: 1500,
     VIDEO_ELEMENT_RETRY_DELAY_MS: 100,
     MAX_VIDEO_ELEMENT_RETRIES: 2,
@@ -28,17 +28,6 @@ const SCANNER_OPTIONS = {
     highlightScanRegion: false,
     highlightCodeOutline: false,
     maxScansPerSecond: CONFIG.SCANNER_MAX_SCANS_PER_SECOND,
-    // focus on center 70% of frame for faster processing of dense qr codes
-    calculateScanRegion: (video: HTMLVideoElement) => {
-        const smallerDimension = Math.min(video.videoWidth, video.videoHeight)
-        const scanRegionSize = Math.round(0.7 * smallerDimension)
-        return {
-            x: Math.round((video.videoWidth - scanRegionSize) / 2),
-            y: Math.round((video.videoHeight - scanRegionSize) / 2),
-            width: scanRegionSize,
-            height: scanRegionSize,
-        }
-    },
 } as const
 
 // Module-level deduplication to handle rapid-fire callbacks from qr-scanner
@@ -73,6 +62,9 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
 
     // Use ref for processingQR to avoid stale closure issues in scanner callback
     const processingQRRef = useRef(false)
+
+    // track isScanning in a ref to avoid stale closures in setTimeout callbacks
+    const isScanningRef = useRef(isScanning)
 
     // Refs declared individually (not in an object) to maintain stable references across renders
     const videoRef = useRef<HTMLVideoElement>(null)
@@ -117,6 +109,9 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
     const handleQRScan = useCallback(
         async (data: string) => {
             const now = Date.now()
+
+            // debug: log when qr is decoded by library
+            console.log('[QR Scanner] QR decoded by library:', data.substring(0, 50) + '...')
 
             // Module-level deduplication: ignore if same data within debounce window
             if (lastScan && lastScan.data === data && now - lastScan.timestamp < SCAN_DEBOUNCE_MS) {
@@ -184,7 +179,7 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                 if (videoElementRetryCountRef.current < CONFIG.MAX_VIDEO_ELEMENT_RETRIES) {
                     videoElementRetryCountRef.current++
                     setTimeout(() => {
-                        if (isScanning) startCamera(preferredCamera)
+                        if (isScanningRef.current) startCamera(preferredCamera)
                     }, CONFIG.VIDEO_ELEMENT_RETRY_DELAY_MS)
                     return
                 }
@@ -211,6 +206,7 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
 
                 scannerRef.current = scanner
                 await scanner.start()
+                console.log('[QR Scanner] Camera started, ready to scan')
                 retryCountRef.current = 0
             } catch (err: any) {
                 console.error('Error accessing camera:', err)
@@ -223,7 +219,7 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                 if (shouldRetry) {
                     retryCountRef.current++
                     setTimeout(() => {
-                        if (isScanning) startCamera(preferredCamera)
+                        if (isScanningRef.current) startCamera(preferredCamera)
                     }, CONFIG.CAMERA_RETRY_DELAY_MS)
                 } else {
                     retryCountRef.current = 0
@@ -250,6 +246,11 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
     // -------------------------------------------------------------------------
     // Effects
     // -------------------------------------------------------------------------
+
+    // sync ref with isScanning state to avoid stale closures in setTimeout callbacks
+    useEffect(() => {
+        isScanningRef.current = isScanning
+    }, [isScanning])
 
     // Handle visibility change - pause camera when app goes to background
     useEffect(() => {
