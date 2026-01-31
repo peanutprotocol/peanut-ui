@@ -129,16 +129,16 @@ export function recognizeQr(data: string): QrType | null {
         return EQrType.EVM_ADDRESS
     }
 
-    for (const [type, regex] of Object.entries(REGEXES_BY_TYPE)) {
-        // Check for raw PIX keys BEFORE URL regex (emails match URL pattern)
-        // But skip if it looks like a real URL (has protocol)
-        if (type === EQrType.URL && !data.includes('://')) {
-            const pixValidation = validatePixKey(data)
-            if (pixValidation.valid && !isPixEmvcoQr(data)) {
-                return EQrType.PIX_KEY
-            }
+    // Check for raw PIX keys early, BEFORE URL regex (pix emails/phones can match URL pattern)
+    // skip if it looks like a real URL (has protocol and domain)
+    if (!data.includes('://') || !data.includes('.')) {
+        const pixValidation = validatePixKey(data)
+        if (pixValidation.valid && !isPixEmvcoQr(data)) {
+            return EQrType.PIX_KEY
         }
+    }
 
+    for (const [type, regex] of Object.entries(REGEXES_BY_TYPE)) {
         if (regex.test(data)) {
             return type as QrType
         }

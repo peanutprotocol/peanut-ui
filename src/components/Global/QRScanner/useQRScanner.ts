@@ -10,9 +10,11 @@ import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
 const CONFIG = {
     CAMERA_RETRY_DELAY_MS: 1000,
     MAX_CAMERA_RETRIES: 3,
-    IOS_CAMERA_DELAY_MS: 100,
-    SCANNER_MAX_SCANS_PER_SECOND: 10,
+    IOS_CAMERA_DELAY_MS: 200,
+    SCANNER_MAX_SCANS_PER_SECOND: 25,
     SCANNER_CLOSE_DELAY_MS: 1500,
+    VIDEO_ELEMENT_RETRY_DELAY_MS: 100,
+    MAX_VIDEO_ELEMENT_RETRIES: 2,
 } as const
 
 const CAMERA_ERRORS = {
@@ -32,6 +34,11 @@ const SCANNER_OPTIONS = {
 // This is outside React's lifecycle so it's synchronously checked before any re-renders
 let lastScan: { data: string; timestamp: number } | null = null
 const SCAN_DEBOUNCE_MS = 1000
+
+// reset function to clear module-level state when scanner closes
+export const resetScannerState = () => {
+    lastScan = null
+}
 
 // ============================================================================
 // Types
@@ -60,6 +67,7 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
     const videoRef = useRef<HTMLVideoElement>(null)
     const scannerRef = useRef<QrScannerLib | null>(null)
     const retryCountRef = useRef<number>(0)
+    const videoElementRetryCountRef = useRef<number>(0)
 
     // -------------------------------------------------------------------------
     // Scanner Lifecycle
@@ -77,6 +85,8 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
             videoRef.current.srcObject = null
             videoRef.current.load()
         }
+        // reset module-level deduplication state to allow scanning same qr on next open
+        resetScannerState()
     }, [])
 
     const close = useCallback(() => {
@@ -159,9 +169,21 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
             setError(null)
 
             if (!videoRef.current) {
+                // retry if video element not ready (react mounting race condition)
+                if (videoElementRetryCountRef.current < CONFIG.MAX_VIDEO_ELEMENT_RETRIES) {
+                    videoElementRetryCountRef.current++
+                    setTimeout(() => {
+                        if (isScanning) startCamera(preferredCamera)
+                    }, CONFIG.VIDEO_ELEMENT_RETRY_DELAY_MS)
+                    return
+                }
                 setError('Video element not available')
+                videoElementRetryCountRef.current = 0
                 return
             }
+
+            // reset retry counter on success
+            videoElementRetryCountRef.current = 0
 
             try {
                 cleanup()
