@@ -64,7 +64,6 @@
         "nuqs": "^2.8.6",
         "pix-utils": "^2.8.2",
         "pulltorefreshjs": "^0.1.22",
-        "qr-scanner": "^1.4.2",
         "react": "^19.2.1",
         "react-dom": "^19.2.1",
         "react-fast-marquee": "^1.6.5",
