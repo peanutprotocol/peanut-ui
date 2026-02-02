@@ -84,7 +84,7 @@ export const chargesApi = {
         sourceTokenAddress?: string
         sourceTokenSymbol?: string
     }): Promise<PaymentCreationResponse> => {
-        const response = await fetchWithSentry(`/api/proxy/post/charges/${chargeId}/payments`, {
+        const response = await fetchWithSentry(`/api/proxy/charges/${chargeId}/payments`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
