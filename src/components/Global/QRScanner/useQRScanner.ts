@@ -23,22 +23,39 @@ const CAMERA_ERRORS = {
     NOT_FOUND: 'NotFoundError',
 } as const
 
+/**
+ * Custom scan region: top 2/3 of video, horizontally centered.
+ * Matches the visual overlay position better.
+ * Uses 800x800 downscale for dense QR codes (Mercado Pago, PIX).
+ */
+const calculateScanRegion = (video: HTMLVideoElement) => {
+    // Use 2/3 of the smaller dimension for a square scan region
+    const smallerDimension = Math.min(video.videoWidth, video.videoHeight)
+    const scanRegionSize = Math.round((2 / 3) * smallerDimension)
+
+    return {
+        x: Math.round((video.videoWidth - scanRegionSize) / 2), // Centered horizontally
+        y: 0, // Top aligned
+        width: scanRegionSize,
+        height: scanRegionSize,
+        // Larger downscale for dense QR codes (default is 400x400)
+        downScaledWidth: Math.min(scanRegionSize, 800),
+        downScaledHeight: Math.min(scanRegionSize, 800),
+    }
+}
+
 const SCANNER_OPTIONS = {
     returnDetailedScanResult: true,
     highlightScanRegion: false,
-    highlightCodeOutline: false,
+    highlightCodeOutline: true,
     maxScansPerSecond: CONFIG.SCANNER_MAX_SCANS_PER_SECOND,
+    calculateScanRegion,
 } as const
 
 // Module-level deduplication to handle rapid-fire callbacks from qr-scanner
 // This is outside React's lifecycle so it's synchronously checked before any re-renders
 let lastScan: { data: string; timestamp: number } | null = null
 const SCAN_DEBOUNCE_MS = 1000
-
-// reset function to clear module-level state when scanner closes
-export const resetScannerState = () => {
-    lastScan = null
-}
 
 // ============================================================================
 // Types
@@ -88,8 +105,6 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
             videoRef.current.srcObject = null
             videoRef.current.load()
         }
-        // reset module-level deduplication state to allow scanning same qr on next open
-        resetScannerState()
     }, [])
 
     const close = useCallback(() => {
@@ -203,6 +218,9 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                     ...SCANNER_OPTIONS,
                     preferredCamera,
                 })
+
+                // Enable scanning both normal and inverted QR codes (dark on light AND light on dark)
+                scanner.setInversionMode('both')
 
                 scannerRef.current = scanner
                 await scanner.start()
