@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test } from '@playwright/test'
 
 /**
  * Card Pioneer E2E Tests
@@ -17,24 +17,24 @@ test.describe('Card Pioneer Flow', () => {
         // navigate to card pioneer page without auth
         await page.goto('/card')
 
-        // should redirect to setup for onboarding
-        await expect(page).toHaveURL(/\/setup/)
+        // wait for client-side redirect to occur (useEffect-based auth redirect)
+        await page.waitForURL(/\/setup/, { timeout: 10000 })
     })
 
     test('should redirect direct step navigation to setup when unauthenticated', async ({ page }) => {
         // try to directly navigate to details step without auth
         await page.goto('/card?step=details')
 
-        // should redirect to setup
-        await expect(page).toHaveURL(/\/setup/)
+        // wait for client-side redirect to occur
+        await page.waitForURL(/\/setup/, { timeout: 10000 })
     })
 
     test('should redirect purchase step to setup when unauthenticated', async ({ page }) => {
         // try to access purchase step directly without auth
         await page.goto('/card?step=purchase')
 
-        // should redirect to setup
-        await expect(page).toHaveURL(/\/setup/)
+        // wait for client-side redirect to occur
+        await page.waitForURL(/\/setup/, { timeout: 10000 })
     })
 
     test('should skip geo step if user is already eligible', async () => {
@@ -49,15 +49,15 @@ test.describe('Card Pioneer Auth Gating', () => {
         // attempt to access card page directly
         await page.goto('/card')
 
-        // should redirect to setup for onboarding (not login/signin)
-        await expect(page).toHaveURL(/\/setup/)
+        // wait for client-side redirect to occur
+        await page.waitForURL(/\/setup/, { timeout: 10000 })
     })
 
     test('should require authentication to access purchase flow', async ({ page }) => {
         // attempt to access purchase step directly
         await page.goto('/card?step=purchase')
 
-        // should redirect to setup for onboarding
-        await expect(page).toHaveURL(/\/setup/)
+        // wait for client-side redirect to occur
+        await page.waitForURL(/\/setup/, { timeout: 10000 })
     })
 })

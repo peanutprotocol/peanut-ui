@@ -96,13 +96,11 @@ test.describe('Protected Routes', () => {
         // adjust route based on actual protected pages
         await page.goto('/profile')
 
-        // should redirect to setup for onboarding (app's auth redirect behavior)
-        // OR redirect away from protected route
-        const url = page.url()
+        // wait for client-side redirect to occur (useEffect-based auth redirect)
+        await page.waitForURL(/\/setup|\/home|^\/$/, { timeout: 10000 })
 
         // verify user is NOT on the protected route
-        // app redirects to /setup for onboarding flow
+        const url = page.url()
         expect(url).not.toContain('/profile')
-        expect(url).toMatch(/\/setup|\/home|\/$/)
     })
 })
