@@ -96,19 +96,13 @@ test.describe('Protected Routes', () => {
         // adjust route based on actual protected pages
         await page.goto('/profile')
 
-        // should either redirect or show auth prompt
+        // should redirect to setup for onboarding (app's auth redirect behavior)
+        // OR redirect away from protected route
         const url = page.url()
 
-        // check if redirected to login or home
-        // OR if page shows auth prompt
-        const isProtectedRoute = url.includes('/profile')
-
-        if (isProtectedRoute) {
-            // if still on protected route, should show auth requirement
-            await expect(page.locator('text=/sign in|log in|connect wallet|authenticate/i').first()).toBeVisible()
-        } else {
-            // redirected away from protected route
-            expect(url).not.toContain('/profile')
-        }
+        // verify user is NOT on the protected route
+        // app redirects to /setup for onboarding flow
+        expect(url).not.toContain('/profile')
+        expect(url).toMatch(/\/setup|\/home|\/$/)
     })
 })
