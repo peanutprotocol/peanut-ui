@@ -1,13 +1,5 @@
 import { type HistoryEntry } from '@/hooks/useTransactionHistory'
-
-export type PendingPerk = {
-    id: string
-    name: string
-    description?: string
-    reason?: string
-    amountUsd: number
-    createdAt: string
-}
+import { type PendingPerk } from '@/services/perks'
 
 export type WebSocketMessage = {
     type:

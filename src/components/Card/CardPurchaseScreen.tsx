@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import NavHeader from '@/components/Global/NavHeader'
 import { Icon } from '@/components/Global/Icons/Icon'
@@ -32,8 +32,15 @@ const CardPurchaseScreen = ({
     const [paymentUrl, setPaymentUrl] = useState<string | null>(existingPaymentUrl || null)
     const [error, setError] = useState<string | null>(null)
 
-    // Initialize purchase
+    // Guard against double-submit race condition (React state updates are async,
+    // so rapid clicks could trigger multiple API calls before state updates)
+    const isInitiatingRef = useRef(false)
+
+    // Initialize purchase with debounce guard
     const initiatePurchase = useCallback(async () => {
+        if (isInitiatingRef.current) return
+        isInitiatingRef.current = true
+
         setPurchaseState('creating')
         setError(null)
 
@@ -55,6 +62,8 @@ const CardPurchaseScreen = ({
                 setError('Failed to initiate purchase. Please try again.')
             }
             setPurchaseState('error')
+        } finally {
+            isInitiatingRef.current = false
         }
     }, [onPurchaseInitiated, onPurchaseComplete])
 

@@ -166,15 +166,24 @@ export function SemanticRequestFlowProvider({
     const [isSuccess, setIsSuccess] = useState(false)
     const [isExternalWalletPayment, setIsExternalWalletPayment] = useState(false)
 
-    // derive recipient from parsed url
+    // derive recipient from parsed url OR charge
     const recipient = useMemo<SemanticRequestRecipient | null>(() => {
+        // If we have a charge, use its recipient address
+        if (charge?.requestLink?.recipientAddress) {
+            return {
+                identifier: charge.requestLink.recipientAddress,
+                recipientType: 'ADDRESS' as RecipientType,
+                resolvedAddress: charge.requestLink.recipientAddress as Address,
+            }
+        }
+        // Otherwise use parsed URL recipient
         if (!parsedUrl?.recipient) return null
         return {
             identifier: parsedUrl.recipient.identifier,
             recipientType: parsedUrl.recipient.recipientType,
             resolvedAddress: parsedUrl.recipient.resolvedAddress as Address,
         }
-    }, [parsedUrl])
+    }, [parsedUrl, charge])
 
     // reset flow
     const resetSemanticRequestFlow = useCallback(() => {

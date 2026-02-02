@@ -4,6 +4,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import NavHeader from '@/components/Global/NavHeader'
 import { Icon } from '@/components/Global/Icons/Icon'
 import Card from '@/components/Global/Card'
+import InfoCard from '@/components/Global/InfoCard'
 import { useRouter } from 'next/navigation'
 import { saveRedirectUrl } from '@/utils/general.utils'
 
@@ -11,16 +12,26 @@ interface CardGeoScreenProps {
     isEligible: boolean
     eligibilityReason?: string
     onContinue: () => void
+    onInitiatePurchase: () => void
     onBack: () => void
 }
 
-const CardGeoScreen = ({ isEligible, eligibilityReason, onContinue, onBack }: CardGeoScreenProps) => {
+const CardGeoScreen = ({
+    isEligible,
+    eligibilityReason,
+    onContinue,
+    onInitiatePurchase,
+    onBack,
+}: CardGeoScreenProps) => {
     const router = useRouter()
 
-    // Check if the reason indicates missing KYC (no country data)
-    // Only show verification prompt if they truly have NO KYC data
+    // State 3: KYC approved but couldn't fetch country - show warning but allow proceeding
+    const hasKycButNoCountry = !isEligible && eligibilityReason === 'KYC_APPROVED_NO_COUNTRY'
+
+    // State 1 & 2: No KYC or KYC in progress - show verification prompt
     const needsKycVerification =
         !isEligible &&
+        !hasKycButNoCountry &&
         (eligibilityReason?.toLowerCase().includes('country information not available') ||
             eligibilityReason?.toLowerCase().includes('please complete kyc'))
 
@@ -33,19 +44,19 @@ const CardGeoScreen = ({ isEligible, eligibilityReason, onContinue, onBack }: Ca
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col gap-6">
+        <div className="flex min-h-[inherit] flex-col space-y-8">
             <NavHeader title="Eligibility" onPrev={onBack} />
 
-            <div className="flex flex-col gap-6">
+            <div className="my-auto flex flex-col gap-6">
                 {isEligible ? (
                     <>
                         {/* Eligible State */}
                         <Card className="flex flex-col items-center gap-4 p-6">
-                            <div className="flex size-16 items-center justify-center rounded-full bg-success-1">
-                                <Icon name="check" size={32} />
+                            <div className="flex size-8 items-center justify-center rounded-full bg-success-1">
+                                <Icon name="check" size={16} />
                             </div>
                             <div className="text-center">
-                                <h2 className="text-xl font-bold">You're Eligible!</h2>
+                                <h2 className="font-bold">You're Eligible!</h2>
                                 <p className="mt-2 text-sm text-grey-1">
                                     Great news! Card Pioneers is available in your region. Continue to see how the
                                     program works.
@@ -53,15 +64,37 @@ const CardGeoScreen = ({ isEligible, eligibilityReason, onContinue, onBack }: Ca
                             </div>
                         </Card>
                     </>
+                ) : hasKycButNoCountry ? (
+                    <>
+                        {/* State 3: KYC approved but couldn't fetch country - show warning but allow proceeding */}
+                        <Card className="flex flex-col items-center gap-4 p-6">
+                            <div className="flex size-8 items-center justify-center rounded-full bg-success-1">
+                                <Icon name="check" size={16} />
+                            </div>
+                            <div className="text-center">
+                                <h2 className="font-bold">Verification Complete</h2>
+                                <p className="mt-2 text-sm text-grey-1">
+                                    Your identity has been verified. You can proceed with your card reservation.
+                                </p>
+                            </div>
+                        </Card>
+
+                        {/* Warning banner - country data not synced yet */}
+                        <InfoCard
+                            variant="warning"
+                            icon="alert"
+                            description="We're still syncing your location data. If you're in an eligible region, you'll be able to complete your purchase."
+                        />
+                    </>
                 ) : needsKycVerification ? (
                     <>
                         {/* Needs KYC Verification State */}
                         <Card className="flex flex-col items-center gap-4 p-6">
-                            <div className="flex size-16 items-center justify-center rounded-full bg-primary-1">
-                                <Icon name="shield" size={32} />
+                            <div className="flex size-8 items-center justify-center rounded-full bg-primary-1">
+                                <Icon name="shield" size={16} />
                             </div>
                             <div className="text-center">
-                                <h1 className="text-2xl font-bold">Verification Required</h1>
+                                <h1 className="font-bold">Verification Required</h1>
                                 <p className="mt-2 text-sm text-grey-1">
                                     Complete identity verification to check your eligibility for Card Pioneers.
                                 </p>
@@ -69,21 +102,19 @@ const CardGeoScreen = ({ isEligible, eligibilityReason, onContinue, onBack }: Ca
                         </Card>
 
                         <div className="flex items-center gap-2">
-                            <Icon name="info" className="size-4 flex-shrink-0 text-grey-1" />
-                            <p className="text-sm text-grey-1">
-                                Verification helps us determine your region and unlock features like QR payments.
-                            </p>
+                            <Icon name="info" className="size-4 flex-shrink-0" />
+                            <p className="text-sm">Verification helps us determine your region eligibility.</p>
                         </div>
                     </>
                 ) : (
                     <>
                         {/* Not Eligible State */}
                         <Card className="flex flex-col items-center gap-4 p-6">
-                            <div className="flex size-16 items-center justify-center rounded-full bg-yellow-1">
-                                <Icon name="globe-lock" size={32} />
+                            <div className="flex size-8 items-center justify-center rounded-full bg-yellow-1">
+                                <Icon name="globe-lock" size={16} />
                             </div>
                             <div className="text-center">
-                                <h1 className="text-2xl font-bold">Not Available Yet</h1>
+                                <h1 className="font-bold">Not Available Yet</h1>
                                 <p className="mt-2 text-sm text-grey-1">
                                     Card Pioneers isn't available in your region yet. We're working hard to expand
                                     coverage.
@@ -92,8 +123,8 @@ const CardGeoScreen = ({ isEligible, eligibilityReason, onContinue, onBack }: Ca
                         </Card>
 
                         <div className="flex items-center gap-2">
-                            <Icon name="info" className="size-4 flex-shrink-0 text-grey-1" />
-                            <p className="text-sm text-grey-1">
+                            <Icon name="info" className="size-4 flex-shrink-0" />
+                            <p className="text-sm">
                                 We'll notify you when we launch in your area. In the meantime, keep using Peanut to earn
                                 points!
                             </p>
@@ -104,9 +135,15 @@ const CardGeoScreen = ({ isEligible, eligibilityReason, onContinue, onBack }: Ca
 
             {/* CTA Buttons */}
             <div className="mt-auto space-y-3">
-                {isEligible ? (
-                    <Button variant="purple" size="large" shadowSize="4" onClick={onContinue} className="w-full">
-                        Continue
+                {isEligible || hasKycButNoCountry ? (
+                    <Button
+                        variant="purple"
+                        size="large"
+                        shadowSize="4"
+                        onClick={onInitiatePurchase}
+                        className="w-full"
+                    >
+                        Reserve my card
                     </Button>
                 ) : needsKycVerification ? (
                     <>

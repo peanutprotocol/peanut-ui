@@ -661,22 +661,6 @@ input::placeholder {
     transform-origin: center center;
 }
 
-/* Slide in from right animation */
-@keyframes slideInRight {
-    0% {
-        transform: translateX(100%);
-        opacity: 0;
-    }
-    100% {
-        transform: translateX(0);
-        opacity: 1;
-    }
-}
-
-.animate-slide-in-right {
-    animation: slideInRight 0.4s ease-out forwards;
-}
-
 /* Gift box holographic shine effect */
 @keyframes giftShine {
     0% {

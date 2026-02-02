@@ -28,6 +28,8 @@ export type CarouselCTA = {
     iconContainerClassName?: string
     secondaryIcon?: StaticImageData | string
     iconSize?: number
+    // perk claim indicator - shows pink dot instead of X close button
+    isPerkClaim?: boolean
 }
 
 export const useHomeCarouselCTAs = () => {
@@ -42,7 +44,11 @@ export const useHomeCarouselCTAs = () => {
 
     const { setIsQRScannerOpen } = useModalsContext()
     const { countryCode: userCountryCode } = useGeoLocation()
-    const { isEligible: isCardPioneerEligible, hasPurchased: hasCardPioneerPurchased } = useCardPioneerInfo()
+    const {
+        isEligible: isCardPioneerEligible,
+        hasPurchased: hasCardPioneerPurchased,
+        isLoading: isCardPioneerLoading,
+    } = useCardPioneerInfo()
 
     const generateCarouselCTAs = useCallback(() => {
         const _carouselCTAs: CarouselCTA[] = []
@@ -53,7 +59,8 @@ export const useHomeCarouselCTAs = () => {
 
         // Card Pioneer CTA - show to all users who haven't purchased yet
         // Eligibility check happens during the flow (geo screen)
-        if (!hasCardPioneerPurchased) {
+        // Only show when we know for sure they haven't purchased (not while loading)
+        if (hasCardPioneerPurchased === false) {
             _carouselCTAs.push({
                 id: 'card-pioneer',
                 title: (
@@ -206,6 +213,7 @@ export const useHomeCarouselCTAs = () => {
         userCountryCode,
         isCardPioneerEligible,
         hasCardPioneerPurchased,
+        isCardPioneerLoading,
     ])
 
     useEffect(() => {

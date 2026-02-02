@@ -1509,7 +1509,6 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                     }
                 }
             }
-
         },
         [isLinkInactive]
     )

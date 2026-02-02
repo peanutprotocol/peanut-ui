@@ -63,7 +63,10 @@ export function NoFees({ className }: { className?: string }) {
     }
 
     return (
-        <section className={twMerge('relative overflow-hidden bg-secondary-3 px-4 py-24 md:py-14', className)}>
+        <section
+            id="no-fees"
+            className={twMerge('relative overflow-hidden bg-secondary-3 px-4 py-24 md:py-14', className)}
+        >
             <div className="absolute left-0 top-0 h-full w-full overflow-hidden">
                 {/* Animated clouds */}
                 <motion.img

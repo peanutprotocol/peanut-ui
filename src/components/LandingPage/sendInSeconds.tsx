@@ -72,41 +72,8 @@ export function SendInSeconds() {
         />
     )
 
-    const renderArrows = () => (
-        <>
-            <Image
-                src="/arrows/small-arrow.svg"
-                alt="Arrow pointing to button"
-                width={48}
-                height={24}
-                className="absolute -left-13 -top-7 block -translate-y-1/2 transform md:hidden"
-            />
-            <Image
-                src="/arrows/small-arrow.svg"
-                alt="Arrow pointing to button"
-                width={48}
-                height={24}
-                className="absolute -right-13 -top-7 block -translate-y-1/2 scale-x-[-1] transform md:hidden"
-            />
-            <Image
-                src="/arrows/small-arrow.svg"
-                alt="Arrow pointing to button"
-                width={64}
-                height={32}
-                className="absolute -left-18 -top-7 hidden -translate-y-1/2 transform md:block"
-            />
-            <Image
-                src="/arrows/small-arrow.svg"
-                alt="Arrow pointing to button"
-                width={64}
-                height={32}
-                className="absolute -right-18 -top-7 hidden -translate-y-1/2 scale-x-[-1] transform md:block"
-            />
-        </>
-    )
-
     return (
-        <section className="relative overflow-hidden bg-secondary-1 px-4 py-16 text-n-1 md:py-32">
+        <section id="send-in-seconds" className="relative overflow-hidden bg-secondary-1 px-4 py-16 text-n-1 md:py-32">
             {/* Decorative clouds, stars, and exclamations */}
             <div className="absolute left-0 top-0 h-full w-full overflow-hidden">
                 {/* Animated clouds */}
@@ -239,8 +206,6 @@ export function SendInSeconds() {
                             </Button>
                         </a>
                     </motion.div>
-
-                    {renderArrows()}
                 </div>
             </div>
         </section>

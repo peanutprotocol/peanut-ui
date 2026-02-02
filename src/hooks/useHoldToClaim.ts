@@ -123,7 +123,12 @@ export function useHoldToClaim({
             }
 
             // Trigger haptic feedback when intensity changes (only while holding)
-            if (isHolding && newIntensity !== lastHapticIntensityRef.current && newIntensity !== 'none' && 'vibrate' in navigator) {
+            if (
+                isHolding &&
+                newIntensity !== lastHapticIntensityRef.current &&
+                newIntensity !== 'none' &&
+                'vibrate' in navigator
+            ) {
                 switch (newIntensity) {
                     case 'weak':
                         navigator.vibrate(50)
@@ -252,10 +257,18 @@ export function useHoldToClaim({
 
             if (newIntensity !== lastIntensity && 'vibrate' in navigator) {
                 switch (newIntensity) {
-                    case 'weak': navigator.vibrate(50); break
-                    case 'medium': navigator.vibrate([100, 40, 100]); break
-                    case 'strong': navigator.vibrate([150, 40, 150, 40, 150]); break
-                    case 'intense': navigator.vibrate([200, 40, 200, 40, 200, 40, 200]); break
+                    case 'weak':
+                        navigator.vibrate(50)
+                        break
+                    case 'medium':
+                        navigator.vibrate([100, 40, 100])
+                        break
+                    case 'strong':
+                        navigator.vibrate([150, 40, 150, 40, 150])
+                        break
+                    case 'intense':
+                        navigator.vibrate([200, 40, 200, 40, 200, 40, 200])
+                        break
                 }
                 lastIntensity = newIntensity
             }

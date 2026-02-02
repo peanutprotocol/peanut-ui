@@ -334,7 +334,7 @@ const TweetCarousel = () => {
     if (columns.length === 0) return null
 
     return (
-        <section className="w-full bg-primary-1 pb-10 pt-12 md:pb-14 md:pt-16">
+        <section id="testimonials" className="w-full bg-primary-1 pb-10 pt-12 md:pb-14 md:pt-16">
             <div className="mx-auto max-w-7xl px-4 pb-8">
                 <h2 className="font-roboto-flex-extrabold text-center text-[4rem] font-extraBlack text-n-1 lg:text-headingMedium">
                     WALL OF LOVE

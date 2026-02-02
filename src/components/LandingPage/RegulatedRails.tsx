@@ -59,7 +59,11 @@ export function RegulatedRails() {
         }
     }
     return (
-        <section className="relative overflow-hidden py-20 text-n-1" style={{ backgroundColor: bgColor }}>
+        <section
+            id="regulated-rails"
+            className="relative overflow-hidden py-20 text-n-1"
+            style={{ backgroundColor: bgColor }}
+        >
             <div className="absolute left-0 top-0 h-full w-full overflow-hidden">
                 {/* Animated clouds */}
                 <motion.img
@@ -136,7 +140,7 @@ export function RegulatedRails() {
                     {logos.map((logo) => (
                         <div
                             key={logo.alt}
-                            className="btn btn-purple btn-shadow-primary-4 mx-7 mb-2 flex h-26 w-48 items-center gap-2"
+                            className="shadow-primary-4 mx-7 mb-2 flex h-26 w-48 items-center justify-center gap-2 rounded-lg border-2 border-n-1 bg-white px-4 py-3"
                         >
                             <Image src={logo.logo} alt={logo.alt} width={101} height={32} />
                         </div>

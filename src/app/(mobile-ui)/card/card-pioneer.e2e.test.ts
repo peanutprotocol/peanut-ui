@@ -91,9 +91,15 @@ test.describe('Card Pioneer Form Validation', () => {
         if (await continueButton.isVisible()) {
             await continueButton.click()
 
-            // should show validation errors or not navigate
-            // exact behavior depends on implementation
-            // this is a placeholder test - adjust selectors based on actual UI
+            // After clicking continue, we should either:
+            // 1. Stay on same page (validation prevented navigation)
+            // 2. See validation error messages
+            // 3. Navigate to next step (if no validation required)
+            // For now, just verify we're still on a valid page
+            await expect(page).toHaveURL(/\/card/)
+        } else {
+            // If no continue button, page renders differently - skip validation
+            test.skip()
         }
     })
 })
@@ -113,8 +119,8 @@ test.describe('Card Pioneer Auth Gating', () => {
             // if on purchase page, should show auth requirement
             await expect(page.locator('text=/sign in|log in|connect wallet|authenticate/i').first()).toBeVisible()
         } else {
-            // redirected to auth or info page
-            expect(url).toMatch(/login|signin|card/)
+            // redirected to auth page (not /card)
+            expect(url).toMatch(/login|signin/)
         }
     })
 })

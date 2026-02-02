@@ -16,8 +16,8 @@ import { Button } from '@/components/0_Bruddle/Button'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 
 // Step types for the card pioneer flow
-// Flow: info -> details -> geo -> success
-// (purchase happens inline on details screen, navigates to payment page)
+// Flow: info -> details -> geo -> (payment page) -> success
+// Geo screen handles KYC verification prompt or eligibility blocking
 type CardStep = 'info' | 'details' | 'geo' | 'success'
 
 const STEP_ORDER: CardStep[] = ['info', 'details', 'geo', 'success']
@@ -67,29 +67,22 @@ const CardPioneerPage: FC = () => {
         }
     }, [cardInfo?.hasPurchased, currentStep, setUrlState])
 
-    // Skip geo screen if user is already eligible (auto-redirect)
-    // This handles direct navigation to /card?step=geo when user is verified & eligible
+    // Note: Auto-skip removed - user must explicitly click "Reserve my card" button
+    // This prevents automatic redirects and gives user control over the purchase flow
+
+    // Refetch user data when arriving at success screen
+    // This ensures badge and other user data is up-to-date after payment
     useEffect(() => {
-        if (currentStep === 'geo' && cardInfo?.isEligible) {
-            goToStep('success')
+        if (currentStep === 'success') {
+            fetchUser()
+            refetchCardInfo()
         }
-    }, [currentStep, cardInfo?.isEligible, goToStep])
+    }, [currentStep, fetchUser, refetchCardInfo])
 
     const goToNextStep = () => {
         const currentIndex = STEP_ORDER.indexOf(currentStep)
-        const nextStep = STEP_ORDER[currentIndex + 1]
-
-        // Skip geo check if user is already eligible (already KYC'd and in eligible country)
-        // This avoids showing a redundant "You're eligible!" screen
-        // Ineligible users will see the geo screen with appropriate messaging
-        if (nextStep === 'geo' && cardInfo?.isEligible) {
-            // Jump directly to success screen
-            goToStep('success')
-            return
-        }
-
         if (currentIndex < STEP_ORDER.length - 1) {
-            goToStep(nextStep)
+            goToStep(STEP_ORDER[currentIndex + 1])
         }
     }
 
@@ -102,6 +95,26 @@ const CardPioneerPage: FC = () => {
         }
     }
 
+    // Initiate purchase and navigate to payment page
+    const handleInitiatePurchase = async () => {
+        try {
+            const response = await cardApi.purchase()
+            // Build semantic URL directly from response (avoids extra API call + loading state)
+            // Format: /recipient@chainId/amountTOKEN?chargeId=uuid&context=card-pioneer
+            const { recipientAddress, chainId, tokenAmount, tokenSymbol, chargeUuid } = response
+            const semanticUrl = `/${recipientAddress}@${chainId}/${tokenAmount}${tokenSymbol}?chargeId=${chargeUuid}&context=card-pioneer`
+            router.push(semanticUrl)
+        } catch (err: any) {
+            if (err.code === 'ALREADY_PURCHASED') {
+                // User already purchased, redirect to success
+                handlePurchaseComplete()
+                return
+            }
+            // Handle error - show error state
+            console.error('Purchase initiation failed:', err)
+        }
+    }
+
     // Handle purchase completion (called when user already purchased)
     const handlePurchaseComplete = () => {
         refetchCardInfo()
@@ -109,8 +122,9 @@ const CardPioneerPage: FC = () => {
         goToStep('success')
     }
 
-    // Loading state
-    if (isLoading && !cardInfo) {
+    // Loading state - also show loading if we haven't determined purchase status yet
+    // This prevents flashing the info screen for users who have already purchased
+    if ((isLoading && !cardInfo) || (cardInfo?.hasPurchased && currentStep !== 'success')) {
         return (
             <div className="flex min-h-[inherit] w-full items-center justify-center">
                 <Loading />
@@ -141,6 +155,7 @@ const CardPioneerPage: FC = () => {
                         onContinue={() => goToNextStep()}
                         hasPurchased={cardInfo?.hasPurchased ?? false}
                         slotsRemaining={cardInfo?.slotsRemaining}
+                        recentPurchases={cardInfo?.recentPurchases}
                     />
                 )
             case 'details':
@@ -148,7 +163,7 @@ const CardPioneerPage: FC = () => {
                     <CardDetailsScreen
                         price={cardInfo?.price ?? 10}
                         currentTier={cardInfo?.currentTier ?? 0}
-                        onPurchaseComplete={handlePurchaseComplete}
+                        onContinue={() => goToNextStep()}
                         onBack={() => goToPreviousStep()}
                     />
                 )
@@ -158,22 +173,19 @@ const CardPioneerPage: FC = () => {
                         isEligible={cardInfo?.isEligible ?? false}
                         eligibilityReason={cardInfo?.eligibilityReason}
                         onContinue={() => goToNextStep()}
+                        onInitiatePurchase={handleInitiatePurchase}
                         onBack={() => goToPreviousStep()}
                     />
                 )
             case 'success':
-                return (
-                    <CardSuccessScreen
-                        onShareInvite={() => router.push('/profile?tab=invite')}
-                        onViewBadges={() => router.push('/badges')}
-                    />
-                )
+                return <CardSuccessScreen onViewBadges={() => router.push('/badges')} />
             default:
                 return (
                     <CardInfoScreen
                         onContinue={() => goToNextStep()}
                         hasPurchased={cardInfo?.hasPurchased ?? false}
                         slotsRemaining={cardInfo?.slotsRemaining}
+                        recentPurchases={cardInfo?.recentPurchases}
                     />
                 )
         }

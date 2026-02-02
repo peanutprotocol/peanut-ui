@@ -7,8 +7,6 @@ import NavHeader from '@/components/Global/NavHeader'
 import GlobalCard from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
-import Image from 'next/image'
-import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
 import { useHaptic } from 'use-haptic'
 import { shootDoubleStarConfetti } from '@/utils/confetti'
 
@@ -105,7 +103,9 @@ export default function PerkSuccessTestPage() {
 
                 {/* Current Perk Info */}
                 <Card className="p-4">
-                    <p className="text-sm font-bold">Current Mock Perk ({currentPerkIndex + 1}/{MOCK_PERKS.length})</p>
+                    <p className="text-sm font-bold">
+                        Current Mock Perk ({currentPerkIndex + 1}/{MOCK_PERKS.length})
+                    </p>
                     <p className="mt-1 text-xs text-grey-1">ID: {currentPerk.id}</p>
                     <p className="text-xs text-grey-1">Amount: ${currentPerk.amountUsd}</p>
                     <p className="text-xs text-grey-1">Reason: {currentPerk.reason}</p>
@@ -126,42 +126,37 @@ export default function PerkSuccessTestPage() {
                         </p>
 
                         <div
-                            className={`flex flex-col items-center py-4 ${canDismiss ? 'cursor-pointer' : ''} ${isExiting ? 'animate-gift-exit' : 'animate-gift-revealed'}`}
+                            className={`flex flex-col items-center ${canDismiss ? 'cursor-pointer' : ''}`}
                             onClick={handleDismiss}
                         >
                             {playSound && <SoundPlayer sound="success" />}
 
-                            {/* Peanut mascot */}
-                            <div className="relative mb-2">
-                                <Image
-                                    src={chillPeanutAnim.src}
-                                    alt="Peanut Mascot"
-                                    width={120}
-                                    height={120}
-                                    className="h-28 w-28"
-                                    unoptimized
-                                />
-                            </div>
-
-                            {/* Success card */}
-                            <GlobalCard className="flex w-full max-w-[200px] items-center gap-3 p-4">
-                                <div className="flex items-center gap-3">
-                                    <div className="flex h-12 w-12 min-w-12 items-center justify-center rounded-full bg-success-3 font-bold">
-                                        <Icon name="check" size={24} />
-                                    </div>
+                            {/* Success card - full width, matches PaymentSuccessView */}
+                            <GlobalCard
+                                className={`flex w-full items-center gap-4 p-4 ${isExiting ? 'animate-gift-exit' : 'animate-gift-revealed'}`}
+                            >
+                                {/* Check icon */}
+                                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-success-3">
+                                    <Icon name="check" size={28} className="text-white" />
                                 </div>
 
-                                <div className="space-y-1">
-                                    <p className="text-sm font-normal text-grey-1">You claimed</p>
-                                    <p className="text-2xl font-extrabold">+${currentPerk.amountUsd}</p>
-                                    <p className="flex items-center gap-1 text-sm font-medium text-grey-1">
-                                        {inviteeName} <Icon name="invite-heart" size={14} />
+                                {/* Text content */}
+                                <div>
+                                    <p className="text-sm text-grey-1">You received</p>
+                                    <p className="text-3xl font-extrabold">+${currentPerk.amountUsd}</p>
+                                    <p className="mt-1 flex items-center gap-1 text-sm text-grey-1">
+                                        <Icon name="invite-heart" size={14} />
+                                        <span className="font-medium">{inviteeName}</span>
+                                        <span>joined Pioneers</span>
                                     </p>
                                 </div>
                             </GlobalCard>
 
-                            <p className={`mt-3 text-xs ${canDismiss ? 'text-grey-1' : 'text-grey-1/50'}`}>
-                                {canDismiss ? 'Tap to continue' : 'Wait...'}
+                            {/* Tap to continue - fades in when ready */}
+                            <p
+                                className={`mt-4 text-sm text-grey-1 transition-opacity duration-300 ${canDismiss ? 'opacity-100' : 'opacity-0'}`}
+                            >
+                                Tap to continue
                             </p>
                         </div>
                     </div>

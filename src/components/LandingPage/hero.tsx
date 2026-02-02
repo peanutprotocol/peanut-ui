@@ -60,44 +60,6 @@ const renderSparkle = (variant: 'primary' | 'secondary') =>
         />
     )
 
-const renderArrows = (variant: 'primary' | 'secondary', arrowOpacity: number, buttonVisible?: boolean) =>
-    variant === 'primary' && (
-        <>
-            <Image
-                src="/arrows/small-arrow.svg"
-                alt="Arrow pointing to button"
-                width={32}
-                height={16}
-                className="absolute -left-8 -top-5 block -translate-y-1/2 transform md:hidden"
-                style={{ opacity: buttonVisible ? arrowOpacity : 0, rotate: '8deg' }}
-            />
-            <Image
-                src="/arrows/small-arrow.svg"
-                alt="Arrow pointing to button"
-                width={32}
-                height={16}
-                className="absolute -right-8 -top-5 block -translate-y-1/2 scale-x-[-1] transform md:hidden"
-                style={{ opacity: buttonVisible ? arrowOpacity : 0, rotate: '-8deg' }}
-            />
-            <Image
-                src="/arrows/small-arrow.svg"
-                alt="Arrow pointing to button"
-                width={40}
-                height={20}
-                className="absolute -left-10 -top-6 hidden -translate-y-1/2 transform md:block"
-                style={{ opacity: buttonVisible ? arrowOpacity : 0, rotate: '8deg' }}
-            />
-            <Image
-                src="/arrows/small-arrow.svg"
-                alt="Arrow pointing to button"
-                width={40}
-                height={20}
-                className="absolute -right-10 -top-6 hidden -translate-y-1/2 scale-x-[-1] transform md:block"
-                style={{ opacity: buttonVisible ? arrowOpacity : 0, rotate: '-8deg' }}
-            />
-        </>
-    )
-
 export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 }: HeroProps) {
     const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200)
 
@@ -115,8 +77,6 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 
     }, [])
 
     const renderCTAButton = (cta: CTAButton, variant: 'primary' | 'secondary') => {
-        const arrowOpacity = 1 // Always visible
-
         return (
             <motion.div
                 className={getButtonContainerClasses(variant)}
@@ -142,14 +102,15 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 
                 {cta.subtext && (
                     <span className="mt-2 block text-center text-sm italic text-n-1 md:text-base">{cta.subtext}</span>
                 )}
-
-                {renderArrows(variant, arrowOpacity, buttonVisible)}
             </motion.div>
         )
     }
 
     return (
-        <section className="relative flex min-h-[85vh] w-full flex-col items-center justify-between bg-primary-1 px-4 py-4 xl:h-fit xl:justify-center">
+        <section
+            id="hero"
+            className="relative flex min-h-[85vh] w-full flex-col items-center justify-between bg-primary-1 px-4 py-4 xl:h-fit xl:justify-center"
+        >
             <CloudImages screenWidth={screenWidth} />
             <div className="relative mt-10 w-full md:mt-0">
                 <img

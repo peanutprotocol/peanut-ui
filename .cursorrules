@@ -10,6 +10,7 @@
 - **Do not generate .md files** unless explicity told to do so.
 - **Comments** should always be made in all lowercase and simple english
 - **Error messages**, any error being shown in the ui should be user friendly and easy to understand, and any error being logged in consoles and sentry should be descriptive for developers to help with debugging
+- **Never add AI co-author to commits** - do not add "Co-Authored-By" lines for AI assistants in git commits
 
 ## 💻 Code Quality
 

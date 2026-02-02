@@ -7,84 +7,96 @@ import { getJWTCookie } from '@/utils/cookie-migration.utils'
 const API_KEY = process.env.PEANUT_API_KEY!
 
 export interface CardInfoResponse {
-	hasPurchased: boolean
-	chargeStatus?: string
-	chargeUuid?: string
-	paymentUrl?: string
-	isEligible: boolean
-	eligibilityReason?: string
-	price: number
-	currentTier: number
-	slotsRemaining?: number
+    hasPurchased: boolean
+    chargeStatus?: string
+    chargeUuid?: string
+    paymentUrl?: string
+    isEligible: boolean
+    eligibilityReason?: string
+    price: number
+    currentTier: number
+    slotsRemaining?: number
+    recentPurchases?: number
 }
 
 export interface CardPurchaseResponse {
-	chargeUuid: string
-	paymentUrl: string
-	price: number
+    chargeUuid: string
+    paymentUrl: string
+    price: number
+    // Semantic URL components for direct navigation (avoids extra API call)
+    recipientAddress: string
+    chainId: string
+    tokenAmount: string
+    tokenSymbol: string
 }
 
 export interface CardErrorResponse {
-	error: string
-	message: string
-	chargeUuid?: string
+    error: string
+    message: string
+    chargeUuid?: string
 }
 
 /**
  * Get card pioneer info for the authenticated user
  */
 export const getCardInfo = async (): Promise<{ data?: CardInfoResponse; error?: string }> => {
-	const jwtToken = (await getJWTCookie())?.value
+    const jwtToken = (await getJWTCookie())?.value
+    if (!jwtToken) {
+        return { error: 'Authentication required' }
+    }
 
-	try {
-		const response = await fetchWithSentry(`${PEANUT_API_URL}/card`, {
-			method: 'GET',
-			headers: {
-				Authorization: `Bearer ${jwtToken}`,
-				'api-key': API_KEY,
-			},
-		})
+    try {
+        const response = await fetchWithSentry(`${PEANUT_API_URL}/card`, {
+            method: 'GET',
+            headers: {
+                Authorization: `Bearer ${jwtToken}`,
+                'api-key': API_KEY,
+            },
+        })
 
-		if (!response.ok) {
-			const errorData = await response.json()
-			return { error: errorData.message || 'Failed to get card info' }
-		}
+        if (!response.ok) {
+            const errorData = await response.json()
+            return { error: errorData.message || 'Failed to get card info' }
+        }
 
-		const data = await response.json()
-		return { data }
-	} catch (e: any) {
-		return { error: e.message || 'An unexpected error occurred' }
-	}
+        const data = await response.json()
+        return { data }
+    } catch (e: any) {
+        return { error: e.message || 'An unexpected error occurred' }
+    }
 }
 
 /**
  * Initiate card pioneer purchase
  */
 export const purchaseCard = async (): Promise<{ data?: CardPurchaseResponse; error?: string; errorCode?: string }> => {
-	const jwtToken = (await getJWTCookie())?.value
+    const jwtToken = (await getJWTCookie())?.value
+    if (!jwtToken) {
+        return { error: 'Authentication required', errorCode: 'NOT_AUTHENTICATED' }
+    }
 
-	try {
-		const response = await fetchWithSentry(`${PEANUT_API_URL}/card/purchase`, {
-			method: 'POST',
-			headers: {
-				Authorization: `Bearer ${jwtToken}`,
-				'api-key': API_KEY,
-				'Content-Type': 'application/json',
-			},
-			body: JSON.stringify({}),
-		})
+    try {
+        const response = await fetchWithSentry(`${PEANUT_API_URL}/card/purchase`, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${jwtToken}`,
+                'api-key': API_KEY,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({}),
+        })
 
-		if (!response.ok) {
-			const errorData: CardErrorResponse = await response.json()
-			return {
-				error: errorData.message || 'Failed to initiate purchase',
-				errorCode: errorData.error,
-			}
-		}
+        if (!response.ok) {
+            const errorData: CardErrorResponse = await response.json()
+            return {
+                error: errorData.message || 'Failed to initiate purchase',
+                errorCode: errorData.error,
+            }
+        }
 
-		const data = await response.json()
-		return { data }
-	} catch (e: any) {
-		return { error: e.message || 'An unexpected error occurred' }
-	}
+        const data = await response.json()
+        return { data }
+    } catch (e: any) {
+        return { error: e.message || 'An unexpected error occurred' }
+    }
 }

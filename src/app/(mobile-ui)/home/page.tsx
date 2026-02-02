@@ -66,11 +66,7 @@ export default function Home() {
 
     const { isFetchingUser, fetchUser } = useAuth()
     const { isUserKycApproved } = useKycStatus()
-    const {
-        isEligible: isCardPioneerEligible,
-        hasPurchased: hasCardPioneerPurchased,
-        cardInfo,
-    } = useCardPioneerInfo()
+    const { isEligible: isCardPioneerEligible, hasPurchased: hasCardPioneerPurchased, cardInfo } = useCardPioneerInfo()
     const username = user?.user.username
 
     const [showBalanceWarningModal, setShowBalanceWarningModal] = useState(false)
