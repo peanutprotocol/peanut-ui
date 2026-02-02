@@ -1,5 +1,5 @@
 'use client'
-import { type FC, useEffect } from 'react'
+import { type FC, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQueryStates, parseAsStringEnum } from 'nuqs'
 import { useQuery } from '@tanstack/react-query'
@@ -40,7 +40,8 @@ const CardPioneerPage: FC = () => {
     // Derive current step from URL (debug takes priority)
     const currentStep: CardStep = urlState.debugStep ?? urlState.step ?? 'info'
 
-    // No local state needed - purchase navigates directly to payment page
+    // Purchase error state
+    const [purchaseError, setPurchaseError] = useState<string | null>(null)
 
     // Fetch card info
     const {
@@ -49,7 +50,7 @@ const CardPioneerPage: FC = () => {
         error: fetchError,
         refetch: refetchCardInfo,
     } = useQuery<CardInfoResponse>({
-        queryKey: ['card-info'],
+        queryKey: ['card-info', user?.user?.userId],
         queryFn: () => cardApi.getInfo(),
         enabled: !!user?.user?.userId,
         staleTime: 30_000, // 30 seconds
@@ -97,6 +98,7 @@ const CardPioneerPage: FC = () => {
 
     // Initiate purchase and navigate to payment page
     const handleInitiatePurchase = async () => {
+        setPurchaseError(null)
         try {
             const response = await cardApi.purchase()
             // Build semantic URL directly from response (avoids extra API call + loading state)
@@ -110,8 +112,9 @@ const CardPioneerPage: FC = () => {
                 handlePurchaseComplete()
                 return
             }
-            // Handle error - show error state
+            // Show error to user
             console.error('Purchase initiation failed:', err)
+            setPurchaseError(err.message || 'Failed to initiate purchase. Please try again.')
         }
     }
 
@@ -175,6 +178,7 @@ const CardPioneerPage: FC = () => {
                         onContinue={() => goToNextStep()}
                         onInitiatePurchase={handleInitiatePurchase}
                         onBack={() => goToPreviousStep()}
+                        purchaseError={purchaseError}
                     />
                 )
             case 'success':

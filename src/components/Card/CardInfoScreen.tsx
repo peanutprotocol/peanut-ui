@@ -118,6 +118,7 @@ const CardInfoScreen = ({ onContinue, hasPurchased, slotsRemaining, recentPurcha
         timeoutRef.current = setTimeout(tick, 800)
     }, [])
 
+    // TODO: hasAnimated blocks updates on refetch - consider updating displayValue without re-animating
     useEffect(() => {
         if (slotsRemaining === undefined || hasAnimated.current) return
 

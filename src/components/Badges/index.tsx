@@ -23,7 +23,7 @@ export const Badges = () => {
     const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false)
     const [selectedBadge, setSelectedBadge] = useState<BadgeView | null>(null)
 
-    // Refetch user data when component mounts to ensure badges are up-to-date
+    // TODO: fetchUser from context may not be memoized - could cause unnecessary re-renders
     useEffect(() => {
         fetchUser()
     }, [fetchUser])

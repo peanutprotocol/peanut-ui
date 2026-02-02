@@ -11,11 +11,11 @@ import { Icon } from '@/components/Global/Icons/Icon'
 const CardPioneers = () => {
     const { user } = useAuth()
     const router = useRouter()
-    const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200)
+    const [screenWidth, setScreenWidth] = useState(1200)
 
     useEffect(() => {
         const handleResize = () => setScreenWidth(window.innerWidth)
-        handleResize()
+        handleResize() // Set actual width on mount
         window.addEventListener('resize', handleResize)
         return () => window.removeEventListener('resize', handleResize)
     }, [])

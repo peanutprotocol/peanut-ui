@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import Carousel from '@/components/Global/Carousel'
 import CarouselCTA from './CarouselCTA'
@@ -19,6 +19,10 @@ const HomeCarouselCTA = () => {
     // Perk claim modal state
     const [selectedPerk, setSelectedPerk] = useState<PendingPerk | null>(null)
     const [claimedPerkIds, setClaimedPerkIds] = useState<Set<string>>(new Set())
+
+    useEffect(() => {
+        setClaimedPerkIds(new Set())
+    }, [user?.user.userId])
 
     // Fetch pending perks
     const { data: pendingPerksData } = useQuery({

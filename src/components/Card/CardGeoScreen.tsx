@@ -14,6 +14,7 @@ interface CardGeoScreenProps {
     onContinue: () => void
     onInitiatePurchase: () => void
     onBack: () => void
+    purchaseError?: string | null
 }
 
 const CardGeoScreen = ({
@@ -22,6 +23,7 @@ const CardGeoScreen = ({
     onContinue,
     onInitiatePurchase,
     onBack,
+    purchaseError,
 }: CardGeoScreenProps) => {
     const router = useRouter()
 
@@ -29,6 +31,7 @@ const CardGeoScreen = ({
     const hasKycButNoCountry = !isEligible && eligibilityReason === 'KYC_APPROVED_NO_COUNTRY'
 
     // State 1 & 2: No KYC or KYC in progress - show verification prompt
+    // TODO: Replace string matching with structured eligibility codes from backend (e.g., NEEDS_KYC, KYC_IN_PROGRESS)
     const needsKycVerification =
         !isEligible &&
         !hasKycButNoCountry &&
@@ -36,10 +39,8 @@ const CardGeoScreen = ({
             eligibilityReason?.toLowerCase().includes('please complete kyc'))
 
     const handleStartVerification = () => {
-        // Save current URL so user returns here after KYC
         saveRedirectUrl()
-        // Go directly to Bridge KYC (covers Europe, North America, Mexico + QR in AR/BR)
-        // This skips region/country selection and gets user verified faster
+        // TODO: Path says "europe" but Bridge covers all regions - consider renaming route or using generic path
         router.push('/profile/identity-verification/europe/bridge')
     }
 
@@ -132,6 +133,8 @@ const CardGeoScreen = ({
                     </>
                 )}
             </div>
+
+            {purchaseError && <InfoCard variant="error" icon="alert" description={purchaseError} />}
 
             {/* CTA Buttons */}
             <div className="mt-auto space-y-3">
