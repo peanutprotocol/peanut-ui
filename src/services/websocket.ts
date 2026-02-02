@@ -1,5 +1,6 @@
 import { type HistoryEntry } from '@/hooks/useTransactionHistory'
 import { type PendingPerk } from '@/services/perks'
+export type { PendingPerk }
 import { jsonStringify } from '@/utils/general.utils'
 
 export type WebSocketMessage = {

@@ -94,7 +94,7 @@ export function PerkClaimModal({ perk, visible, onClose, onClaimed }: PerkClaimM
 
     if (!visible) return null
 
-    const isSuccessPhase = (claimPhase === 'revealed' || claimPhase === 'exiting') && lastClaimedPerk
+    const isSuccessPhase = (claimPhase === 'revealed' || claimPhase === 'exiting') && !!lastClaimedPerk
 
     // Use ActionModal for consistent styling
     return (
