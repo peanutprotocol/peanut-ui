@@ -101,7 +101,7 @@ const MantecaReviewStep: FC<MantecaReviewStepProps> = ({
 
                 const { data, error: withdrawError } = await mantecaApi.withdraw({
                     amount,
-                    destinationAddress,
+                    destinationAddress: destinationAddress.toLowerCase(),
                     txHash,
                     currency,
                 })
