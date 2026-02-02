@@ -270,8 +270,8 @@ export default function Home() {
                 <LazyLoadErrorBoundary>
                     <Suspense fallback={null}>
                         <CardPioneerModal
-                            isEligible={isCardPioneerEligible}
-                            hasPurchased={hasCardPioneerPurchased}
+                            isEligible={isCardPioneerEligible ?? false}
+                            hasPurchased={hasCardPioneerPurchased ?? false}
                             slotsRemaining={cardInfo?.slotsRemaining}
                         />
                     </Suspense>

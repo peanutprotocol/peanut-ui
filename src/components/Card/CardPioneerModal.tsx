@@ -7,6 +7,7 @@ import BaseModal from '@/components/Global/Modal'
 import PioneerCard3D from '@/components/LandingPage/PioneerCard3D'
 
 const STORAGE_KEY = 'card-pioneer-modal-dismissed'
+const DISMISS_DURATION_DAYS = 3
 
 interface CardPioneerModalProps {
     isEligible: boolean
@@ -30,18 +31,17 @@ const CardPioneerModal = ({ hasPurchased }: CardPioneerModalProps) => {
             return
         }
 
-        // TEMP: Always show for testing (localStorage check disabled)
         // Check localStorage for dismissal
-        // const dismissedAt = localStorage.getItem(STORAGE_KEY)
-        // if (dismissedAt) {
-        //     const dismissedDate = new Date(dismissedAt)
-        //     const now = new Date()
-        //     const daysSinceDismissed = (now.getTime() - dismissedDate.getTime()) / (1000 * 60 * 60 * 24)
+        const dismissedAt = localStorage.getItem(STORAGE_KEY)
+        if (dismissedAt) {
+            const dismissedDate = new Date(dismissedAt)
+            const now = new Date()
+            const daysSinceDismissed = (now.getTime() - dismissedDate.getTime()) / (1000 * 60 * 60 * 24)
 
-        //     if (daysSinceDismissed < DISMISS_DURATION_DAYS) {
-        //         return // Still within dismissal period
-        //     }
-        // }
+            if (daysSinceDismissed < DISMISS_DURATION_DAYS) {
+                return
+            }
+        }
 
         // Show modal with a small delay for better UX
         const timer = setTimeout(() => {
