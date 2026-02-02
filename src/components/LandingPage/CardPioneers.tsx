@@ -46,7 +46,7 @@ const CardPioneers = () => {
                     </h1>
 
                     <p className="font-roboto-flex mt-4 text-lg md:text-xl">
-                        QR payments in Latam. Peanut Card for the rest of the world and get rewarded.
+                        Get the Peanut Card and pay anywhere in the world.
                     </p>
 
                     <ul className="font-roboto-flex mt-6 space-y-3 text-base md:text-lg">

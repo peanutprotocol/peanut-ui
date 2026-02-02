@@ -35,18 +35,18 @@ const CardSuccessScreen = ({ onViewBadges }: CardSuccessScreenProps) => {
                 if (cancelled) return
 
                 shootStarConfetti({
-                    particleCount: 3,
-                    scalar: 1.8,
+                    particleCount: 20,
                     origin: { x: 0, y: 0.8 },
-                    startVelocity: 15,
                     spread: 55,
+                    startVelocity: 30,
+                    ticks: 100,
                 })
                 shootStarConfetti({
-                    particleCount: 3,
-                    scalar: 1.8,
+                    particleCount: 20,
                     origin: { x: 1, y: 0.8 },
-                    startVelocity: 15,
                     spread: 55,
+                    startVelocity: 30,
+                    ticks: 100,
                 })
 
                 if (Date.now() < end) {
@@ -94,7 +94,7 @@ const CardSuccessScreen = ({ onViewBadges }: CardSuccessScreenProps) => {
                         </div>
                         <span className="text-sm text-grey-1">Priority notification when card launches</span>
                     </Card>
-                    <Card position="last" className="flex items-center gap-3 py-3">
+                    <Card position="middle" className="flex items-center gap-3 py-3">
                         <div className="flex size-8 items-center justify-center rounded-full bg-purple-1">
                             <Icon name="gift" size={16} />
                         </div>
