@@ -1,16 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
-import { useAppDispatch } from '@/redux/hooks'
-import { setupActions } from '@/redux/slices/setup-slice'
-import { zerodevActions } from '@/redux/slices/zerodev-slice'
-import { removeFromCookie, clearRedirectUrl } from '@/utils/general.utils'
-import { resetCrispProxySessions } from '@/utils/crisp'
-import { USER_DATA_CACHE_PATTERNS } from '@/constants/cache.consts'
+import { useAuth } from '@/context/authContext'
 import { Button } from '@/components/0_Bruddle/Button'
-
-const WEB_AUTHN_COOKIE_KEY = 'web-authn-key'
 
 // inline peanut icon svg to ensure it works without needing to fetch external assets
 const PeanutIcon = ({ className }: { className?: string }) => (
@@ -75,63 +66,15 @@ const PeanutIcon = ({ className }: { className?: string }) => (
  * displays peanut logo and options to retry or log out
  */
 export default function BackendErrorScreen() {
-    const [isLoggingOut, setIsLoggingOut] = useState(false)
-    const queryClient = useQueryClient()
-    const dispatch = useAppDispatch()
+    const { logoutUser, isLoggingOut } = useAuth()
 
     const handleRetry = () => {
         window.location.reload()
     }
 
-    const handleForceLogout = async () => {
-        setIsLoggingOut(true)
-
-        try {
-            // clear cookies (don't need backend for this)
-            removeFromCookie(WEB_AUTHN_COOKIE_KEY)
-            document.cookie = 'jwt-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
-
-            // clear redirect url
-            clearRedirectUrl()
-
-            // invalidate all queries
-            queryClient.invalidateQueries()
-
-            // reset redux state
-            dispatch(setupActions.resetSetup())
-            dispatch(zerodevActions.resetZeroDevState())
-
-            // clear service worker caches
-            if ('caches' in window) {
-                try {
-                    const cacheNames = await caches.keys()
-                    await Promise.all(
-                        cacheNames
-                            .filter((name) => USER_DATA_CACHE_PATTERNS.some((pattern) => name.includes(pattern)))
-                            .map((name) => caches.delete(name))
-                    )
-                } catch (error) {
-                    console.error('Failed to clear caches:', error)
-                }
-            }
-
-            // clear ios pwa prompt session flag
-            if (typeof window !== 'undefined') {
-                sessionStorage.removeItem('hasSeenIOSPWAPromptThisSession')
-            }
-
-            // reset crisp session
-            if (typeof window !== 'undefined') {
-                resetCrispProxySessions()
-            }
-
-            // redirect to setup
-            window.location.href = '/setup'
-        } catch (error) {
-            console.error('Error during force logout:', error)
-            // still try to redirect even if cleanup fails
-            window.location.href = '/setup'
-        }
+    const handleForceLogout = () => {
+        // Use skipBackendCall since backend is likely down (that's why we're on this screen)
+        logoutUser({ skipBackendCall: true })
     }
 
     return (
