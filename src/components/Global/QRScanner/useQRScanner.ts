@@ -10,9 +10,11 @@ import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
 const CONFIG = {
     CAMERA_RETRY_DELAY_MS: 1000,
     MAX_CAMERA_RETRIES: 3,
-    IOS_CAMERA_DELAY_MS: 100,
-    SCANNER_MAX_SCANS_PER_SECOND: 10,
+    IOS_CAMERA_DELAY_MS: 200,
+    SCANNER_MAX_SCANS_PER_SECOND: 25,
     SCANNER_CLOSE_DELAY_MS: 1500,
+    VIDEO_ELEMENT_RETRY_DELAY_MS: 100,
+    MAX_VIDEO_ELEMENT_RETRIES: 2,
 } as const
 
 const CAMERA_ERRORS = {
@@ -21,11 +23,33 @@ const CAMERA_ERRORS = {
     NOT_FOUND: 'NotFoundError',
 } as const
 
+/**
+ * Custom scan region: top 2/3 of video, horizontally centered.
+ * Matches the visual overlay position better.
+ * Uses 800x800 downscale for dense QR codes (Mercado Pago, PIX).
+ */
+const calculateScanRegion = (video: HTMLVideoElement) => {
+    // Use 2/3 of the smaller dimension for a square scan region
+    const smallerDimension = Math.min(video.videoWidth, video.videoHeight)
+    const scanRegionSize = Math.round((2 / 3) * smallerDimension)
+
+    return {
+        x: Math.round((video.videoWidth - scanRegionSize) / 2), // Centered horizontally
+        y: 0, // Top aligned
+        width: scanRegionSize,
+        height: scanRegionSize,
+        // Larger downscale for dense QR codes (default is 400x400)
+        downScaledWidth: Math.min(scanRegionSize, 800),
+        downScaledHeight: Math.min(scanRegionSize, 800),
+    }
+}
+
 const SCANNER_OPTIONS = {
     returnDetailedScanResult: true,
     highlightScanRegion: false,
-    highlightCodeOutline: false,
+    highlightCodeOutline: true,
     maxScansPerSecond: CONFIG.SCANNER_MAX_SCANS_PER_SECOND,
+    calculateScanRegion,
 } as const
 
 // Module-level deduplication to handle rapid-fire callbacks from qr-scanner
@@ -56,10 +80,14 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
     // Use ref for processingQR to avoid stale closure issues in scanner callback
     const processingQRRef = useRef(false)
 
+    // track isScanning in a ref to avoid stale closures in setTimeout callbacks
+    const isScanningRef = useRef(isScanning)
+
     // Refs declared individually (not in an object) to maintain stable references across renders
     const videoRef = useRef<HTMLVideoElement>(null)
     const scannerRef = useRef<QrScannerLib | null>(null)
     const retryCountRef = useRef<number>(0)
+    const videoElementRetryCountRef = useRef<number>(0)
 
     // -------------------------------------------------------------------------
     // Scanner Lifecycle
@@ -96,6 +124,9 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
     const handleQRScan = useCallback(
         async (data: string) => {
             const now = Date.now()
+
+            // debug: log when qr is decoded by library
+            console.log('[QR Scanner] QR decoded by library:', data.substring(0, 50) + '...')
 
             // Module-level deduplication: ignore if same data within debounce window
             if (lastScan && lastScan.data === data && now - lastScan.timestamp < SCAN_DEBOUNCE_MS) {
@@ -159,9 +190,21 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
             setError(null)
 
             if (!videoRef.current) {
+                // retry if video element not ready (react mounting race condition)
+                if (videoElementRetryCountRef.current < CONFIG.MAX_VIDEO_ELEMENT_RETRIES) {
+                    videoElementRetryCountRef.current++
+                    setTimeout(() => {
+                        if (isScanningRef.current) startCamera(preferredCamera)
+                    }, CONFIG.VIDEO_ELEMENT_RETRY_DELAY_MS)
+                    return
+                }
                 setError('Video element not available')
+                videoElementRetryCountRef.current = 0
                 return
             }
+
+            // reset retry counter on success
+            videoElementRetryCountRef.current = 0
 
             try {
                 cleanup()
@@ -176,8 +219,12 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                     preferredCamera,
                 })
 
+                // Enable scanning both normal and inverted QR codes (dark on light AND light on dark)
+                scanner.setInversionMode('both')
+
                 scannerRef.current = scanner
                 await scanner.start()
+                console.log('[QR Scanner] Camera started, ready to scan')
                 retryCountRef.current = 0
             } catch (err: any) {
                 console.error('Error accessing camera:', err)
@@ -190,7 +237,7 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                 if (shouldRetry) {
                     retryCountRef.current++
                     setTimeout(() => {
-                        if (isScanning) startCamera(preferredCamera)
+                        if (isScanningRef.current) startCamera(preferredCamera)
                     }, CONFIG.CAMERA_RETRY_DELAY_MS)
                 } else {
                     retryCountRef.current = 0
@@ -217,6 +264,11 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
     // -------------------------------------------------------------------------
     // Effects
     // -------------------------------------------------------------------------
+
+    // sync ref with isScanning state to avoid stale closures in setTimeout callbacks
+    useEffect(() => {
+        isScanningRef.current = isScanning
+    }, [isScanning])
 
     // Handle visibility change - pause camera when app goes to background
     useEffect(() => {
