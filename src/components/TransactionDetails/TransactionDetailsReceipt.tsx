@@ -506,9 +506,22 @@ export const TransactionDetailsReceipt = ({
                         value={formatDate(new Date(transaction.date))}
                         hideBottomBorder={false}
                     />
+                    {/*
+                     * HACK: Strip payment UUID from reason field.
+                     *
+                     * The backend stores the payment UUID in the reason field for idempotency
+                     * (e.g., "Alice became a Card Pioneer! (payment: uuid)") because PerkUsage
+                     * lacks a dedicated requestPaymentUuid field. The code in purchase-listener.ts
+                     * uses `reason: { contains: paymentUuid }` to prevent duplicate perk issuance.
+                     *
+                     * Proper fix (backend): Add requestPaymentUuid field to PerkUsage model with
+                     * a unique constraint @@unique([userId, perkId, requestPaymentUuid]), similar
+                     * to how mantecaTransferId/bridgeTransferId/simplefiTransferId are handled.
+                     * Then store clean reason text without the UUID suffix.
+                     */}
                     <PaymentInfoRow
                         label="Reason"
-                        value={perkRewardData.reason}
+                        value={perkRewardData.reason.replace(/\s*\(payment:\s*[a-f0-9-]+\)/i, '')}
                         // hideBottomBorder={!perkRewardData.originatingTxId}
                         hideBottomBorder={true}
                     />
