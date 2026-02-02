@@ -379,4 +379,65 @@ export const mantecaApi = {
             return { error: 'An unexpected error occurred.' }
         }
     },
+
+    /**
+     * Complete withdraw with signed UserOp (sign-then-broadcast pattern).
+     * This creates the Manteca order FIRST, then broadcasts the transaction.
+     * Prevents funds from being stuck if Manteca fails.
+     */
+    withdrawWithSignedTx: async (params: {
+        priceLockCode: string
+        amount: string
+        destinationAddress: string
+        currency: string
+        bankCode?: string
+        accountType?: string
+        signedUserOp: Pick<
+            SignUserOperationReturnType,
+            | 'sender'
+            | 'nonce'
+            | 'callData'
+            | 'signature'
+            | 'callGasLimit'
+            | 'verificationGasLimit'
+            | 'preVerificationGas'
+            | 'maxFeePerGas'
+            | 'maxPriorityFeePerGas'
+            | 'paymaster'
+            | 'paymasterData'
+            | 'paymasterVerificationGasLimit'
+            | 'paymasterPostOpGasLimit'
+            | 'factory'
+            | 'factoryData'
+        >
+        chainId: string
+        entryPointAddress: string
+    }): Promise<MantecaWithdrawResponse> => {
+        try {
+            const response = await fetchWithSentry(`${PEANUT_API_URL}/manteca/withdraw/complete-with-signed-tx`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+                },
+                body: jsonStringify(params),
+            })
+
+            const result = await response.json()
+            if (!response.ok) {
+                return {
+                    error: result.error || 'Failed to complete withdraw.',
+                    message: result.message,
+                }
+            }
+
+            return { data: result }
+        } catch (error) {
+            console.error('Error calling manteca withdraw complete-with-signed-tx API:', error)
+            if (error instanceof Error) {
+                return { error: error.message }
+            }
+            return { error: 'An unexpected error occurred.' }
+        }
+    },
 }

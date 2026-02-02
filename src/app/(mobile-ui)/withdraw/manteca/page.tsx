@@ -1,6 +1,7 @@
 'use client'
 
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { useSignUserOp } from '@/hooks/wallet/useSignUserOp'
 import { useState, useMemo, useContext, useEffect, useCallback, useId } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -75,6 +76,7 @@ export default function MantecaWithdrawFlow() {
     const [isLockingPrice, setIsLockingPrice] = useState(false)
     const router = useRouter()
     const { sendMoney, balance } = useWallet()
+    const { signTransferUserOp } = useSignUserOp()
     const { isLoading, loadingState, setLoadingState } = useContext(loadingStateContext)
     const { user, fetchUser } = useAuth()
     const { setIsSupportModalOpen } = useModalsContext()
@@ -253,18 +255,15 @@ export default function MantecaWithdrawFlow() {
     ])
 
     const handleWithdraw = async () => {
-        if (!destinationAddress || !usdAmount || !currencyCode) return
+        if (!destinationAddress || !usdAmount || !currencyCode || !priceLock) return
 
         try {
             setLoadingState('Preparing transaction')
-            let userOpHash: Hash
-            let receipt: TransactionReceipt | null
 
+            // Step 1: Sign the UserOp (but don't broadcast yet)
+            let signedUserOpData
             try {
-                // Send crypto to Manteca address
-                const result = await sendMoney(MANTECA_DEPOSIT_ADDRESS, usdAmount)
-                userOpHash = result.userOpHash
-                receipt = result.receipt
+                signedUserOpData = await signTransferUserOp(MANTECA_DEPOSIT_ADDRESS, usdAmount)
             } catch (error) {
                 if ((error as Error).toString().includes('not allowed')) {
                     setErrorMessage('Please confirm the transaction.')
@@ -276,25 +275,39 @@ export default function MantecaWithdrawFlow() {
                 return
             }
 
-            if (receipt !== null && isTxReverted(receipt)) {
-                setErrorMessage('Transaction reverted by the network.')
-                return
-            }
-
-            const txHash = receipt?.transactionHash ?? userOpHash
             setLoadingState('Withdrawing')
 
-            // call Manteca withdraw API with the locked price code
-            const result = await mantecaApi.withdraw({
+            // Step 2: Build signed UserOp payload for backend
+            const signedUserOp = {
+                sender: signedUserOpData.signedUserOp.sender,
+                nonce: signedUserOpData.signedUserOp.nonce,
+                callData: signedUserOpData.signedUserOp.callData,
+                signature: signedUserOpData.signedUserOp.signature,
+                callGasLimit: signedUserOpData.signedUserOp.callGasLimit,
+                verificationGasLimit: signedUserOpData.signedUserOp.verificationGasLimit,
+                preVerificationGas: signedUserOpData.signedUserOp.preVerificationGas,
+                factory: signedUserOpData.signedUserOp.factory,
+                factoryData: signedUserOpData.signedUserOp.factoryData,
+                maxFeePerGas: signedUserOpData.signedUserOp.maxFeePerGas,
+                maxPriorityFeePerGas: signedUserOpData.signedUserOp.maxPriorityFeePerGas,
+                paymaster: signedUserOpData.signedUserOp.paymaster,
+                paymasterData: signedUserOpData.signedUserOp.paymasterData,
+                paymasterVerificationGasLimit: signedUserOpData.signedUserOp.paymasterVerificationGasLimit,
+                paymasterPostOpGasLimit: signedUserOpData.signedUserOp.paymasterPostOpGasLimit,
+            }
+
+            // Step 3: Call backend with signed tx (sign-then-broadcast pattern)
+            // Backend creates Manteca order FIRST, then broadcasts. No stuck funds!
+            const result = await mantecaApi.withdrawWithSignedTx({
+                priceLockCode: priceLock.priceLockCode,
                 amount: usdAmount,
                 destinationAddress: destinationAddress.toLowerCase(),
                 bankCode: selectedBank?.code,
                 accountType: accountType ?? undefined,
-                txHash,
                 currency: currencyCode,
-                // pass the price lock code to use the locked price
-                // if not available (edge case), backend will create a new lock
-                priceLockCode: priceLock?.priceLockCode,
+                signedUserOp,
+                chainId: signedUserOpData.chainId,
+                entryPointAddress: signedUserOpData.entryPointAddress,
             })
 
             if (result.error) {
@@ -305,9 +318,6 @@ export default function MantecaWithdrawFlow() {
                     setErrorMessage('Withdraw failed unexpectedly. If problem persists contact support')
                     setStep('failure')
                 } else {
-                    // @dev TODO: Should this call setStep('failure')? Currently user sees error on review
-                    // screen but withdraw button is disabled and there's no "Contact Support" option.
-                    // Funds are already at Manteca's address at this point.
                     setErrorMessage(result.message ?? result.error)
                 }
                 return
