@@ -2,6 +2,31 @@ import * as Sentry from '@sentry/nextjs'
 
 import { type JSONValue } from '../interfaces/interfaces'
 
+/**
+ * Endpoint + status combinations to skip reporting.
+ * These are expected responses, not errors.
+ * Pattern can be a string (exact match) or regex.
+ */
+const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[] }> = [
+    // 400 on get-user-from-cookie is expected when no valid session
+    { pattern: /get-user-from-cookie/, statuses: [400, 401, 403, 404] },
+    { pattern: /users/, statuses: [400, 401, 403, 404] },
+]
+
+/**
+ * Check if this endpoint + status combo should skip Sentry reporting
+ */
+function shouldSkipReporting(url: string, status: number): boolean {
+    for (const rule of SKIP_REPORTING) {
+        const matches = typeof rule.pattern === 'string' ? url.includes(rule.pattern) : rule.pattern.test(url)
+
+        if (matches && rule.statuses.includes(status)) {
+            return true
+        }
+    }
+    return false
+}
+
 /** Use configured fetch timeout or default to 10s
  * We use 10s because vercel function timout is 15s and this function
  * can be called in that context, and we preffer to have control over
@@ -64,29 +89,33 @@ export const fetchWithSentry = async (
 
         if (!response.ok) {
             console.warn(`Request to ${url} failed with status ${response.status}`)
-            let errorContent: JSONValue
-            try {
-                errorContent = await response.clone().json()
-            } catch {
-                errorContent = await response.clone().text()
-            }
-            const method = options.method || 'GET'
-            Sentry.withScope((scope) => {
-                // Set fingerprint to group similar errors
-                scope.setFingerprint([method, sanitizeUrl(url), String(response.status)])
 
-                Sentry.captureMessage(`${method} to ${url} failed with status ${response.status}`, {
-                    level: getErrorLevelFromStatus(response.status),
-                    extra: {
-                        url,
-                        method,
-                        requestHeaders: sanitizeHeaders(options.headers || {}),
-                        requestBody: options.body || null,
-                        status: response.status,
-                        response: errorContent,
-                    },
+            // Skip Sentry reporting for expected error responses
+            if (!shouldSkipReporting(url, response.status)) {
+                let errorContent: JSONValue
+                try {
+                    errorContent = await response.clone().json()
+                } catch {
+                    errorContent = await response.clone().text()
+                }
+                const method = options.method || 'GET'
+                Sentry.withScope((scope) => {
+                    // Set fingerprint to group similar errors
+                    scope.setFingerprint([method, sanitizeUrl(url), String(response.status)])
+
+                    Sentry.captureMessage(`${method} to ${url} failed with status ${response.status}`, {
+                        level: getErrorLevelFromStatus(response.status),
+                        extra: {
+                            url,
+                            method,
+                            requestHeaders: sanitizeHeaders(options.headers || {}),
+                            requestBody: options.body || null,
+                            status: response.status,
+                            response: errorContent,
+                        },
+                    })
                 })
-            })
+            }
         }
 
         return response
