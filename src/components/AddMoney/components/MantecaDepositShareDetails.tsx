@@ -10,6 +10,7 @@ import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { Icon } from '@/components/Global/Icons/Icon'
 import Image from 'next/image'
 import { Card } from '@/components/0_Bruddle/Card'
+import InfoCard from '@/components/Global/InfoCard'
 import {
     MANTECA_ARG_DEPOSIT_CUIT,
     MANTECA_ARG_DEPOSIT_NAME,
@@ -110,6 +111,12 @@ const MantecaDepositShareDetails = ({
                         </div>
                     </div>
                 </Card>
+                <InfoCard
+                    variant="warning"
+                    icon="alert"
+                    title="Send only from your own account"
+                    description="Deposits from third-party accounts are not supported and funds may be lost."
+                />
                 <h2 className="font-bold">Account details</h2>
                 <Card className="space-y-0 rounded-sm px-4">
                     {depositAddress && (
