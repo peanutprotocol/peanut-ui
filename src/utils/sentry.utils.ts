@@ -9,7 +9,8 @@ import { type JSONValue } from '../interfaces/interfaces'
  */
 const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[] }> = [
     // 400 on get-user-from-cookie is expected when no valid session
-    { pattern: /get-user-from-cookie/, statuses: [400] },
+    { pattern: /get-user-from-cookie/, statuses: [400, 401, 403, 404] },
+    { pattern: /users/, statuses: [400, 401, 403, 404] },
 ]
 
 /**
