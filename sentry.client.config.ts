@@ -22,6 +22,8 @@ const IGNORED_ERRORS = {
         'The operation was aborted',
     ],
 
+    networkIssues: ['Network Error', 'Failed to fetch', 'Load failed'],
+
     // Browser/extension noise
     browserNoise: [
         'ResizeObserver loop',
