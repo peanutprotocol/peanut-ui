@@ -274,7 +274,7 @@ export default function WithdrawCryptoPage() {
                 txHash: finalTxHash,
                 tokenAddress: PEANUT_WALLET_TOKEN,
                 payerAddress: address as Address,
-                squidQuoteId: xChainRoute?.rawResponse?.quoteId,
+                squidQuoteId: xChainRoute?.rawResponse?.route?.quoteId,
             })
 
             setTransactionHash(finalTxHash)
