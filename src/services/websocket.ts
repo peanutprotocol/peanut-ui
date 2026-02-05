@@ -150,7 +150,6 @@ export class PeanutWebSocket {
     }
 
     private handleError(event: Event): void {
-        console.error('WebSocket error:', jsonStringify(event))
         this.emit('error', event)
     }
 
