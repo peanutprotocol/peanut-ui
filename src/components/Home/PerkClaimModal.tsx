@@ -6,6 +6,7 @@ import { perksApi, type PendingPerk } from '@/services/perks'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { useHoldToClaim } from '@/hooks/useHoldToClaim'
 import { getShakeClass } from '@/utils/perk.utils'
+import { extractInviteeName } from '@/utils/general.utils'
 import { shootDoubleStarConfetti } from '@/utils/confetti'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { useHaptic } from 'use-haptic'
@@ -130,7 +131,7 @@ interface SuccessMessageProps {
  * Success message shown after claiming - tapping anywhere dismisses
  */
 function SuccessMessage({ perk, isExiting, onDismiss }: SuccessMessageProps) {
-    const inviteeName = perk.reason?.split(' became')[0] || 'Your friend'
+    const inviteeName = extractInviteeName(perk.reason)
     const { triggerHaptic } = useHaptic()
     const [canDismiss, setCanDismiss] = useState(false)
 
@@ -207,7 +208,7 @@ function GiftBoxContent({ perk, onHoldComplete, claimPhase }: GiftBoxContentProp
         return ''
     }
 
-    const inviteeName = perk.reason?.split(' became')[0] || 'Your friend'
+    const inviteeName = extractInviteeName(perk.reason)
 
     return (
         <div className="flex flex-col items-center px-4 py-6">

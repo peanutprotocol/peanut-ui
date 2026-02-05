@@ -28,7 +28,7 @@ import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
 import { useNotifications } from '@/hooks/useNotifications'
 import useKycStatus from '@/hooks/useKycStatus'
 import { useCardPioneerInfo } from '@/hooks/useCardPioneerInfo'
-import HomePerkClaimSection from '@/components/Home/HomePerkClaimSection'
+import HomeCarouselCTA from '@/components/Home/HomeCarouselCTA'
 import InvitesIcon from '@/components/Home/InvitesIcon'
 import NavigationArrow from '@/components/Global/NavigationArrow'
 import { updateUserById } from '@/app/actions/users'
@@ -185,7 +185,7 @@ export default function Home() {
                 </div>
 
                 <div className="space-y-2">
-                    <HomePerkClaimSection />
+                    <HomeCarouselCTA />
                     <HomeHistory username={username ?? undefined} hideTxnAmount={isBalanceHidden} />
                 </div>
 

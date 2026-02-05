@@ -106,15 +106,16 @@ const CardPioneerPage: FC = () => {
             const { recipientAddress, chainId, tokenAmount, tokenSymbol, chargeUuid } = response
             const semanticUrl = `/${recipientAddress}@${chainId}/${tokenAmount}${tokenSymbol}?chargeId=${chargeUuid}&context=card-pioneer`
             router.push(semanticUrl)
-        } catch (err: any) {
-            if (err.code === 'ALREADY_PURCHASED') {
+        } catch (err) {
+            const error = err as { code?: string; message?: string }
+            if (error.code === 'ALREADY_PURCHASED') {
                 // User already purchased, redirect to success
                 handlePurchaseComplete()
                 return
             }
             // Show error to user
             console.error('Purchase initiation failed:', err)
-            setPurchaseError(err.message || 'Failed to initiate purchase. Please try again.')
+            setPurchaseError(error.message || 'Failed to initiate purchase. Please try again.')
         }
     }
 

@@ -3,14 +3,10 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
 import Card from '@/components/Global/Card'
-import ActionModal from '@/components/Global/ActionModal'
-import ShareButton from '@/components/Global/ShareButton'
-import CopyToClipboard from '@/components/Global/CopyToClipboard'
+import InviteFriendsModal from '@/components/Global/InviteFriendsModal'
 import { useEffect, useState } from 'react'
 import { shootStarConfetti } from '@/utils/confetti'
 import { useAuth } from '@/context/authContext'
-import { generateInviteCodeLink, generateInvitesShareText } from '@/utils/general.utils'
-import QRCode from 'react-qr-code'
 
 interface CardSuccessScreenProps {
     onViewBadges: () => void
@@ -20,7 +16,6 @@ const CardSuccessScreen = ({ onViewBadges }: CardSuccessScreenProps) => {
     const [showConfetti, setShowConfetti] = useState(false)
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
     const { user } = useAuth()
-    const inviteData = generateInviteCodeLink(user?.user?.username ?? '')
 
     // Trigger star confetti on mount
     useEffect(() => {
@@ -126,39 +121,10 @@ const CardSuccessScreen = ({ onViewBadges }: CardSuccessScreenProps) => {
                 </Button>
             </div>
 
-            <ActionModal
+            <InviteFriendsModal
                 visible={isInviteModalOpen}
                 onClose={() => setIsInviteModalOpen(false)}
-                title="Invite friends!"
-                description="Invite friends to Peanut and help them skip ahead on the waitlist. Once they're onboarded and start using the app, you'll earn rewards from their activity too."
-                icon="user-plus"
-                content={
-                    <>
-                        {inviteData.inviteLink && (
-                            <div className="my-2 size-44">
-                                <QRCode
-                                    value={inviteData.inviteLink}
-                                    size={120}
-                                    style={{ height: 'auto', maxWidth: '100%', width: '100%' }}
-                                    viewBox={`0 0 120 120`}
-                                    level="H"
-                                />
-                            </div>
-                        )}
-                        <div className="flex w-full items-center justify-between gap-3">
-                            <Card className="flex items-center justify-between py-2">
-                                <p className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-bold">{`${inviteData.inviteCode}`}</p>
-                                <CopyToClipboard textToCopy={`${inviteData.inviteCode}`} iconSize="4" />
-                            </Card>
-                        </div>
-                        <ShareButton
-                            generateText={() => Promise.resolve(generateInvitesShareText(inviteData.inviteLink))}
-                            title="Share your invite link"
-                        >
-                            Share Invite Link
-                        </ShareButton>
-                    </>
-                }
+                username={user?.user?.username ?? ''}
             />
         </div>
     )

@@ -9,6 +9,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { useHaptic } from 'use-haptic'
 import { shootDoubleStarConfetti } from '@/utils/confetti'
+import { extractInviteeName } from '@/utils/general.utils'
 
 type MockPerk = {
     id: string
@@ -84,7 +85,7 @@ export default function PerkSuccessTestPage() {
         }, 400)
     }
 
-    const inviteeName = currentPerk.reason?.split(' became')[0] || 'Your friend'
+    const inviteeName = extractInviteeName(currentPerk.reason)
 
     return (
         <div className="flex min-h-[inherit] flex-col gap-4 pb-8">

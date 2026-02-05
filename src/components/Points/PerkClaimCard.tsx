@@ -5,6 +5,7 @@ import Card from '@/components/Global/Card'
 import { useHoldToClaim } from '@/hooks/useHoldToClaim'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { getShakeClass } from '@/utils/perk.utils'
+import { extractInviteeName } from '@/utils/general.utils'
 import type { PendingPerk } from '@/services/perks'
 
 interface PerkClaimCardProps {
@@ -19,8 +20,7 @@ export function PerkClaimCard({ perk, onClaim, isClaiming }: PerkClaimCardProps)
         disabled: isClaiming,
     })
 
-    // Extract invitee name from reason (format: "Username became a Card Pioneer! (payment: uuid)")
-    const inviteeName = perk.reason?.split(' became')[0] || 'Your friend'
+    const inviteeName = extractInviteeName(perk.reason)
 
     return (
         <div className={getShakeClass(isShaking, shakeIntensity)}>

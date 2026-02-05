@@ -66,7 +66,6 @@ const CardPioneers = () => {
 
                     <div className="mt-8 flex flex-col items-center gap-4">
                         <Button
-                            variant="dark"
                             shadowSize="4"
                             onClick={handleCTA}
                             className="w-full px-10 py-4 text-lg font-extrabold md:w-auto"

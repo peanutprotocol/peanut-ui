@@ -9,6 +9,7 @@ import { useHomeCarouselCTAs, type CarouselCTA as CarouselCTAType } from '@/hook
 import { perksApi, type PendingPerk } from '@/services/perks'
 import { useAuth } from '@/context/authContext'
 import { useWebSocket } from '@/hooks/useWebSocket'
+import { extractInviteeName } from '@/utils/general.utils'
 import PerkClaimModal from '../PerkClaimModal'
 
 const HomeCarouselCTA = () => {
@@ -51,7 +52,7 @@ const HomeCarouselCTA = () => {
     // Convert perks to carousel CTAs (these come first!)
     const perkCTAs: CarouselCTAType[] = useMemo(() => {
         return cardPioneerPerks.map((perk) => {
-            const inviteeName = perk.reason?.split(' became')[0] || 'Your friend'
+            const inviteeName = extractInviteeName(perk.reason)
             return {
                 id: `perk-${perk.id}`,
                 title: (

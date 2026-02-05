@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { chargesApi } from '@/services/charges'
 import Loading from '@/components/Global/Loading'
@@ -17,7 +17,6 @@ import Loading from '@/components/Global/Loading'
 export default function CardPaymentPage() {
     const searchParams = useSearchParams()
     const router = useRouter()
-    const [isLoading, setIsLoading] = useState(true)
 
     useEffect(() => {
         const chargeId = searchParams.get('chargeId')

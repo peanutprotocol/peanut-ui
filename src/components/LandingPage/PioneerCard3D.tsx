@@ -52,23 +52,17 @@ const PioneerCard3D = ({ className }: PioneerCard3DProps) => {
     return (
         <div
             ref={cardRef}
-            className={`inline-block ${className || ''}`}
+            className={`inline-block w-full max-w-96 ${className || ''}`}
             onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
-            style={
-                {
-                    perspective: '1000px',
-                    '--card-scale': 'min(1, calc(100vw / 420))',
-                } as React.CSSProperties
-            }
+            style={{ perspective: '1000px' }}
         >
             <motion.div
-                className="relative h-60 w-96 cursor-pointer overflow-hidden rounded-xl border border-n-1 bg-primary-1 px-6 py-5"
+                className="relative aspect-[384/240] w-full cursor-pointer overflow-hidden rounded-xl border border-n-1 bg-primary-1 px-6 py-5"
                 style={{
                     rotateX: springRotateX as unknown as number,
                     rotateY: springRotateY as unknown as number,
                     transformStyle: 'preserve-3d',
-                    transform: 'scale(var(--card-scale, 1))',
                     boxShadow,
                 }}
             >

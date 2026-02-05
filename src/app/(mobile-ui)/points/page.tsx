@@ -3,17 +3,15 @@
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import Card from '@/components/Global/Card'
 import { getCardPosition } from '@/components/Global/Card/card.utils'
-import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import NavigationArrow from '@/components/Global/NavigationArrow'
 import PeanutLoading from '@/components/Global/PeanutLoading'
-import ShareButton from '@/components/Global/ShareButton'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
 import { VerifiedUserLabel } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
 import { invitesApi } from '@/services/invites'
-import { generateInviteCodeLink, getInitialsFromName, generateInvitesShareText } from '@/utils/general.utils'
+import { getInitialsFromName } from '@/utils/general.utils'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { STAR_STRAIGHT_ICON, TIER_0_BADGE, TIER_1_BADGE, TIER_2_BADGE, TIER_3_BADGE } from '@/assets'
@@ -25,8 +23,7 @@ import { useEffect, useState } from 'react'
 import InvitesGraph from '@/components/Global/InvitesGraph'
 import { CashCard } from '@/components/Points/CashCard'
 import { TRANSITIVITY_MULTIPLIER } from '@/constants/points.consts'
-import ActionModal from '@/components/Global/ActionModal'
-import QRCode from 'react-qr-code'
+import InviteFriendsModal from '@/components/Global/InviteFriendsModal'
 import { Button } from '@/components/0_Bruddle/Button'
 
 const PointsPage = () => {
@@ -75,7 +72,6 @@ const PointsPage = () => {
     })
 
     const username = user?.user.username
-    const { inviteCode, inviteLink } = generateInviteCodeLink(username ?? '')
 
     useEffect(() => {
         // Re-fetch user to get the latest invitees list for showing heart Icon
@@ -271,39 +267,10 @@ const PointsPage = () => {
                 )}
 
                 {/* Invite Modal */}
-                <ActionModal
+                <InviteFriendsModal
                     visible={isInviteModalOpen}
                     onClose={() => setIsInviteModalOpen(false)}
-                    title="Invite friends!"
-                    description="Invite friends to Peanut and help them skip ahead on the waitlist. Once they're onboarded and start using the app, you'll earn rewards from their activity too."
-                    icon="user-plus"
-                    content={
-                        <>
-                            {inviteLink && (
-                                <div className="my-2 size-44">
-                                    <QRCode
-                                        value={inviteLink}
-                                        size={120}
-                                        style={{ height: 'auto', maxWidth: '100%', width: '100%' }}
-                                        viewBox={`0 0 120 120`}
-                                        level="H"
-                                    />
-                                </div>
-                            )}
-                            <div className="flex w-full items-center justify-between gap-3">
-                                <Card className="flex items-center justify-between py-2">
-                                    <p className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-bold">{`${inviteCode}`}</p>
-                                    <CopyToClipboard textToCopy={`${inviteCode}`} iconSize="4" />
-                                </Card>
-                            </div>
-                            <ShareButton
-                                generateText={() => Promise.resolve(generateInvitesShareText(inviteLink))}
-                                title="Share your invite link"
-                            >
-                                Share Invite link
-                            </ShareButton>
-                        </>
-                    }
+                    username={username ?? ''}
                 />
             </section>
         </PageContainer>
