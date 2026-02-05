@@ -37,6 +37,12 @@ const IGNORED_ERRORS = {
 
     // Third-party scripts we don't control
     thirdParty: ['googletagmanager', 'gtag', 'analytics', 'hotjar', 'clarity', 'intercom', 'crisp'],
+
+    // Third-party SDK internal errors (not actionable)
+    thirdPartySdkErrors: [
+        'IndexedDB:Set:InternalError', // Vercel Analytics storage - fails in private browsing, not actionable
+        'Analytics SDK:', // Vercel Analytics errors
+    ],
 }
 
 /**
