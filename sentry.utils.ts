@@ -20,6 +20,7 @@ const IGNORED_ERRORS = {
         'AbortError',
         'The operation was aborted',
     ],
+    perks: ['This payment is not eligible for a perk'],
 
     networkIssues: ['Network Error', 'Failed to fetch', 'Load failed'],
 

@@ -39,7 +39,7 @@ const SetupPasskey = () => {
         // clear any previous inline errors
         setInlineError(null)
         setErrorName(null)
-        capturePasskeyDebugInfo('passkey-registration-started')
+        //capturePasskeyDebugInfo('passkey-registration-started')
 
         try {
             await withWebAuthnRetry(() => handleRegister(username), 'passkey-registration')
