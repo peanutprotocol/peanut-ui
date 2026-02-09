@@ -1,16 +1,10 @@
-[
-    {
-        "relation": ["delegate_permission/common.query_webapk"],
-        "target": {
-            "namespace": "web",
-            "site": "https://peanut.me/manifest.webmanifest"
-        }
-    },
-    {
-        "relation": ["delegate_permission/common.handle_all_urls"],
-        "target": {
-            "namespace": "web",
-            "site": "https://peanut.me"
-        }
-    }
-]
+[{
+  "relation": ["delegate_permission/common.handle_all_urls", "delegate_permission/common.get_login_creds"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.peanut.app",
+    "sha256_cert_fingerprints": [
+      "11:94:75:B7:2F:74:28:DC:D8:B2:FF:FF:A9:A0:6B:2D:78:13:17:F1:15:F6:24:BD:BE:F3:C8:16:38:92:0E:98"
+    ]
+  }
+}]

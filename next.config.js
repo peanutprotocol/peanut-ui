@@ -32,12 +32,24 @@ try {
     console.error('Error getting IP address:', error)
 }
 
+const isNativeBuild = process.env.NATIVE_BUILD === 'true'
+
 /** @type {import('next').NextConfig} */
 let nextConfig = {
+    // Static export for Capacitor native builds
+    ...(isNativeBuild && {
+        output: 'export',
+        trailingSlash: true,
+    }),
+
     env: {
         NEXT_PUBLIC_GIT_COMMIT_HASH: gitCommitHash,
+        NEXT_PUBLIC_IS_NATIVE_BUILD: isNativeBuild ? 'true' : 'false',
     },
+
     images: {
+        // Native builds need unoptimized images (no server)
+        ...(isNativeBuild && { unoptimized: true }),
         remotePatterns: [
             {
                 hostname: '*',
@@ -108,10 +120,11 @@ let nextConfig = {
                     source: '/.well-known/apple-app-site-association',
                     destination: '/api/apple-app-site-association',
                 },
-                {
-                    source: '/.well-known/assetLinks.json',
-                    destination: '/api/assetLinks',
-                },
+                // TEMP: Disabled for native PoC - using static public/.well-known/assetlinks.json
+                // {
+                //     source: '/.well-known/assetLinks.json',
+                //     destination: '/api/assetLinks',
+                // },
             ],
         }
     },

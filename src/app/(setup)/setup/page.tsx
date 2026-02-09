@@ -42,13 +42,9 @@ function SetupPageContent() {
             await new Promise((resolve) => setTimeout(resolve, 100)) // ensure other initializations can complete
 
             // check for native passkey support
+            // TEMPORARY POC BYPASS: Always assume passkey support
+            // TODO: Remove after native PoC testing
             let passkeySupport = true
-            try {
-                passkeySupport = await PublicKeyCredential.isConditionalMediationAvailable()
-            } catch (e) {
-                passkeySupport = false
-                console.error('Error checking passkey support:', e)
-            }
 
             const ua = typeof navigator !== 'undefined' ? navigator.userAgent : ''
             const localDeviceType = detectedDeviceType

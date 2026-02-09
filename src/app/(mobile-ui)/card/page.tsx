@@ -148,7 +148,7 @@ const CardPioneerPage: FC = () => {
                     <CardDetailsScreen
                         price={cardInfo?.price ?? 10}
                         currentTier={cardInfo?.currentTier ?? 0}
-                        onPurchaseComplete={handlePurchaseComplete}
+                        onContinue={handlePurchaseComplete}
                         onBack={() => goToPreviousStep()}
                     />
                 )

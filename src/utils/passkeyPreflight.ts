@@ -28,6 +28,18 @@ export interface PasskeyPreflightResult {
  * @returns preflight result with support status, warnings, and diagnostic data
  */
 export async function checkPasskeySupport(): Promise<PasskeyPreflightResult> {
+    // TEMPORARY POC BYPASS: Always return supported
+    // TODO: Remove after native PoC testing
+    return {
+        isSupported: true,
+        warning: null,
+        diagnostics: {
+            hasPublicKeyCredential: true,
+            isHttps: true,
+            isAndroid: true,
+        },
+    }
+
     // capture rpId for debugging - this is what will be used for passkey registration
     const rpId = window.location.hostname.replace(/^www\./, '')
 

@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import Layout from '@/components/Global/Layout'
 import {
     DropLink,
@@ -193,6 +194,14 @@ export default function LandingPage() {
 
     return (
         <Layout className="enable-select !m-0 w-full !p-0">
+            {/* TEMPORARY: Native PoC Link - Remove after testing */}
+            <Link
+                href="/native-poc"
+                className="fixed top-4 right-4 z-50 rounded-lg border-2 border-dashed border-purple-400 bg-purple-100 px-4 py-2 text-sm font-bold text-purple-700 shadow-lg"
+            >
+                🧪 Native PoC
+            </Link>
+
             <Hero primaryCta={hero.primaryCta} buttonVisible={buttonVisible} buttonScale={buttonScale} />
             <Marquee {...marqueeProps} />
             <Manteca />

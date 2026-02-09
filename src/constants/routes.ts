@@ -68,7 +68,7 @@ export const DEV_ONLY_PUBLIC_ROUTES = ['dev', 'dev/gift-test', 'dev/shake-test']
  * Note: Most dev tools routes are NOT public - they require both authentication and specific user authorization
  * Exception: /dev/payment-graph is public (uses API key instead of user auth)
  */
-export const PUBLIC_ROUTES_REGEX = /^\/(request\/pay|claim|pay\/.+|support|invite|qr|dev\/payment-graph)/
+export const PUBLIC_ROUTES_REGEX = /^\/(request\/pay|claim|pay\/.+|support|invite|qr|dev\/payment-graph|native-poc)/
 
 /**
  * Regex for dev-only public routes (dev index, gift-test, shake-test)

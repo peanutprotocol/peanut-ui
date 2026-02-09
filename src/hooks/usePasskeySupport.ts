@@ -30,6 +30,13 @@ export function usePasskeySupport(): PasskeySupportResult {
         setError(null)
 
         try {
+            // TEMPORARY POC BYPASS: Always assume passkey support
+            // TODO: Remove this after native PoC testing
+            setBrowserSupported(true)
+            setConditionalMediationSupported(true)
+            setIsSupported(true)
+            return
+
             // Check basic WebAuthn support first
             const basicWebAuthnSupport = browserSupportsWebAuthn()
             setBrowserSupported(basicWebAuthnSupport)

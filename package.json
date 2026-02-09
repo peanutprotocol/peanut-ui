@@ -21,9 +21,17 @@
         "test:e2e": "playwright test",
         "test:e2e:ui": "playwright test --ui",
         "test:e2e:headed": "playwright test --headed",
-        "script": "NODE_OPTIONS=\"--experimental-json-modules\" tsx"
+        "script": "NODE_OPTIONS=\"--experimental-json-modules\" tsx",
+        "build:native": "node scripts/native-build.js",
+        "cap:sync": "npx cap sync",
+        "cap:open:android": "npx cap open android",
+        "cap:run:android": "npx cap run android"
     },
     "dependencies": {
+        "@capacitor/android": "^8.0.2",
+        "@capacitor/cli": "^8.0.2",
+        "@capacitor/core": "^8.0.2",
+        "capacitor-webauthn": "^0.0.12",
         "@dicebear/collection": "^9.2.2",
         "@dicebear/core": "^9.2.2",
         "@emotion/react": "^11.14.0",
