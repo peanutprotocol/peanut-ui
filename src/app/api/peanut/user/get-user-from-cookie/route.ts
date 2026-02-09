@@ -21,11 +21,20 @@ export async function GET(_request: NextRequest) {
         })
 
         if (response.status !== 200) {
+            const headers: Record<string, string> = {
+                'Content-Type': 'application/json',
+            }
+
+            // on auth failure, clear the jwt cookie and sw cache so the client
+            // can recover even if running old cached code
+            if (response.status === 401) {
+                headers['Set-Cookie'] = 'jwt-token=; Path=/; Max-Age=0; SameSite=Lax'
+                headers['Clear-Site-Data'] = '"cache"'
+            }
+
             return new NextResponse('Error in get-from-cookie', {
                 status: response.status,
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers,
             })
         }
 
