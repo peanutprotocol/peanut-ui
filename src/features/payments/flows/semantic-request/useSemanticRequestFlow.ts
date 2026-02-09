@@ -515,6 +515,7 @@ export function useSemanticRequestFlow() {
                 sourceChainId: selectedChainID || undefined,
                 sourceTokenAddress: selectedTokenAddress || undefined,
                 sourceTokenSymbol: selectedTokenData?.symbol,
+                squidQuoteId: calculatedRoute?.rawResponse?.route?.quoteId,
             })
 
             setPayment(paymentResult)
