@@ -7,7 +7,6 @@ import WalletNavigation from '@/components/Global/WalletNavigation'
 import OfflineScreen from '@/components/Global/OfflineScreen'
 import { ThemeProvider } from '@/config'
 import { useAuth } from '@/context/authContext'
-import { hasValidJwtToken } from '@/utils/auth'
 import classNames from 'classnames'
 import { usePathname } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -32,7 +31,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
     const { isFetchingUser, user } = useAuth()
     const [isReady, setIsReady] = useState(false)
-    const [hasToken, setHasToken] = useState(false)
     const isUserLoggedIn = !!user?.user.userId || false
     const isHome = pathName === '/home'
     const isHistory = pathName === '/history'
@@ -48,9 +46,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const scrollableContentRef = useRef<Element | null>(null)
 
     useEffect(() => {
-        // check for JWT token
-        setHasToken(hasValidJwtToken())
-
         setIsReady(true)
     }, [])
 
@@ -80,9 +75,17 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     // enable pull-to-refresh for both ios and android
     usePullToRefresh({ shouldPullToRefresh })
 
+    const isRedirecting = useRef(false)
+
     useEffect(() => {
-        if (!isPublicPath && isReady && !isFetchingUser && !user) {
-            router.push('/setup')
+        if (!isPublicPath && isReady && !isFetchingUser && !user && !isRedirecting.current) {
+            isRedirecting.current = true
+            router.replace('/setup')
+            // hard navigation fallback in case soft navigation silently fails
+            const fallback = setTimeout(() => {
+                window.location.replace('/setup')
+            }, 3000)
+            return () => clearTimeout(fallback)
         }
     }, [user, isFetchingUser, isReady, isPublicPath, router])
 
@@ -106,8 +109,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             )
         }
     } else {
-        // for protected paths, wait for user auth and account setup check
-        if (!isReady || isFetchingUser || !hasToken || !user || needsRedirect || isCheckingAccount) {
+        // for protected paths, wait for auth to settle before rendering
+        if (!isReady || isFetchingUser || !user || isCheckingAccount || needsRedirect) {
             return (
                 <div className="flex h-[100dvh] w-full flex-col items-center justify-center">
                     <PeanutLoading />
