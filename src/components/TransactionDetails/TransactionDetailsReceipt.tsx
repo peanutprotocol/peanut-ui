@@ -332,12 +332,12 @@ export const TransactionDetailsReceipt = ({
 
     useEffect(() => {
         const getTokenDetails = async () => {
-            if (!transaction) {
+            if (!transaction?.tokenDisplayDetails) {
                 setIsTokenDataLoading(false)
                 return
             }
 
-            if (transaction.tokenDisplayDetails?.tokenIconUrl && transaction.tokenDisplayDetails.tokenSymbol) {
+            if (transaction.tokenDisplayDetails.tokenIconUrl && transaction.tokenDisplayDetails.tokenSymbol) {
                 setTokenData({
                     symbol: transaction.tokenDisplayDetails.tokenSymbol,
                     icon: transaction.tokenDisplayDetails.tokenIconUrl,
@@ -346,8 +346,13 @@ export const TransactionDetailsReceipt = ({
                 return
             }
 
+            if (!transaction.tokenDisplayDetails.chainName) {
+                setIsTokenDataLoading(false)
+                return
+            }
+
             try {
-                const chainName = slugify(transaction.tokenDisplayDetails?.chainName ?? '')
+                const chainName = slugify(transaction.tokenDisplayDetails.chainName)
                 const res = await fetch(
                     `https://api.coingecko.com/api/v3/coins/${chainName}/contract/${transaction.tokenAddress}`
                 )
@@ -370,7 +375,7 @@ export const TransactionDetailsReceipt = ({
         }
 
         getTokenDetails()
-    }, [])
+    }, [transaction?.tokenDisplayDetails])
 
     const convertedAmount = useMemo(() => {
         if (!transaction) return null

@@ -4,16 +4,22 @@
 
 import * as Sentry from '@sentry/nextjs'
 
+import { beforeSendHandler } from './sentry.utils'
+
 if (process.env.NODE_ENV !== 'development') {
     Sentry.init({
         dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
         enabled: true,
-
-        // Adjust this value in production, or use tracesSampler for greater control
         tracesSampleRate: 1,
-
-        // Setting this option to true will print useful information to the console while you're setting up Sentry.
         debug: false,
+
+        beforeSend: beforeSendHandler,
+
+        integrations: [
+            Sentry.captureConsoleIntegration({
+                levels: ['error', 'warn'],
+            }),
+        ],
 
         // Uncomment the line below to enable Spotlight (https://spotlightjs.com)
         spotlight: false,

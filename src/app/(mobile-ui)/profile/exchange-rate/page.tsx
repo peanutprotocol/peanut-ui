@@ -7,11 +7,10 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { printableUsdc } from '@/utils/balance.utils'
 import { getExchangeRateWidgetRedirectRoute } from '@/utils/exchangeRateWidget.utils'
 import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
 
 export default function ExchangeRatePage() {
     const router = useRouter()
-    const { fetchBalance, balance } = useWallet()
+    const { balance } = useWallet()
 
     const handleCtaAction = (sourceCurrency: string, destinationCurrency: string) => {
         const formattedBalance = parseFloat(printableUsdc(balance ?? 0n))
@@ -19,11 +18,6 @@ export default function ExchangeRatePage() {
         const redirectRoute = getExchangeRateWidgetRedirectRoute(sourceCurrency, destinationCurrency, formattedBalance)
         router.push(redirectRoute)
     }
-
-    useEffect(() => {
-        // Fetch latest balance
-        fetchBalance()
-    }, [])
 
     return (
         <PageContainer className="flex flex-col">

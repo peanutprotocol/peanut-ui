@@ -1,5 +1,5 @@
 'use client'
-import { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
+import { forwardRef, useEffect, useImperativeHandle } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import ErrorAlert from '@/components/Global/ErrorAlert'
@@ -18,8 +18,6 @@ interface UserDetailsFormProps {
 
 export const UserDetailsForm = forwardRef<{ handleSubmit: () => void }, UserDetailsFormProps>(
     ({ onSubmit, onValidChange, initialData }, ref) => {
-        const [submissionError, setSubmissionError] = useState<string | null>(null)
-
         const {
             control,
             handleSubmit,
@@ -36,13 +34,10 @@ export const UserDetailsForm = forwardRef<{ handleSubmit: () => void }, UserDeta
             onValidChange?.(isValid)
         }, [isValid, onValidChange])
 
+        // Note: Submission errors are handled by the parent component
         useImperativeHandle(ref, () => ({
             handleSubmit: handleSubmit(async (data) => {
-                setSubmissionError(null)
-                const result = await onSubmit(data)
-                if (result?.error) {
-                    setSubmissionError(result.error)
-                }
+                await onSubmit(data)
             }),
         }))
 
@@ -81,13 +76,6 @@ export const UserDetailsForm = forwardRef<{ handleSubmit: () => void }, UserDeta
                     <form
                         onSubmit={(e) => {
                             e.preventDefault()
-                            handleSubmit(async (data) => {
-                                setSubmissionError(null)
-                                const result = await onSubmit(data)
-                                if (result?.error) {
-                                    setSubmissionError(result.error)
-                                }
-                            })()
                         }}
                         className="space-y-4"
                     >
@@ -101,7 +89,6 @@ export const UserDetailsForm = forwardRef<{ handleSubmit: () => void }, UserDeta
                                 },
                             })}
                         </div>
-                        {submissionError && <ErrorAlert description={submissionError} />}
                     </form>
                 </div>
             </div>

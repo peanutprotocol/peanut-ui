@@ -441,11 +441,11 @@ export default function OnrampBankPage() {
                     {/* Warning for non-EUR SEPA countries */}
                     {!limitsValidation.isBlocking && isNonEuroSepa && (
                         <InfoCard
-                            variant="warning"
-                            icon="alert"
+                            variant="info"
+                            icon="info"
                             title="EUR accounts only"
                             description={
-                                !isUK
+                                isUK
                                     ? 'Only EUR accounts with IBAN work for onramps. Standard GBP accounts with Account Number + Sort Code are not supported.'
                                     : 'Only EUR accounts with IBAN work for onramps. Your local currency account may not work.'
                             }

@@ -62,16 +62,19 @@ const sniglet = Sniglet({
 const knerdOutline = localFont({
     src: '../assets/fonts/knerd-outline.ttf',
     variable: '--font-knerd-outline',
+    display: 'swap',
 })
 
 const knerdFilled = localFont({
     src: '../assets/fonts/knerd-filled.ttf',
     variable: '--font-knerd-filled',
+    display: 'swap',
 })
 
 const robotoFlexBold = localFont({
     src: '../assets/fonts/roboto-flex-bold.ttf',
     variable: '--font-roboto-flex-bold',
+    display: 'swap',
 })
 
 export const viewport: Viewport = {
