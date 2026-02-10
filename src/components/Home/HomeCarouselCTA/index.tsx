@@ -11,6 +11,7 @@ import { useAuth } from '@/context/authContext'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { extractInviteeName } from '@/utils/general.utils'
 import PerkClaimModal from '../PerkClaimModal'
+import underMaintenanceConfig from '@/config/underMaintenance.config'
 
 const HomeCarouselCTA = () => {
     const { carouselCTAs, setCarouselCTAs } = useHomeCarouselCTAs()
@@ -42,6 +43,7 @@ const HomeCarouselCTA = () => {
 
     // Filter for Card Pioneer inviter rewards that haven't been claimed
     const cardPioneerPerks = useMemo(() => {
+        if (underMaintenanceConfig.disableCardPioneers) return []
         return (
             pendingPerksData?.perks?.filter(
                 (p) => p.name === 'Card Pioneer Inviter Reward' && !claimedPerkIds.has(p.id)

@@ -27,6 +27,13 @@
  *    - shows info message explaining cross-chain is temporarily unavailable
  *    - same-chain operations continue to work
  *
+ * 6. disableCardPioneers: hides the card pioneers waitlist feature entirely
+ *    - /card page redirects to /home
+ *    - /lp/card marketing page redirects to /
+ *    - card pioneers section hidden from landing page
+ *    - card pioneer modal, carousel cta, and perk rewards hidden from home
+ *    - set to false to enable the feature
+ *
  * note: if either mode is enabled, the maintenance banner will show everywhere
  *
  * I HOPE WE NEVER NEED TO USE THIS...
@@ -41,6 +48,7 @@ interface MaintenanceConfig {
     disabledPaymentProviders: PaymentProvider[]
     disableSquidWithdraw: boolean
     disableSquidSend: boolean
+    disableCardPioneers: boolean
 }
 
 const underMaintenanceConfig: MaintenanceConfig = {
@@ -49,6 +57,7 @@ const underMaintenanceConfig: MaintenanceConfig = {
     disabledPaymentProviders: [], // set to ['MANTECA'] to disable Manteca QR payments
     disableSquidWithdraw: true, // set to true to disable cross-chain withdrawals (only allows USDC on Arbitrum)
     disableSquidSend: true, // set to true to disable cross-chain sends (claim, request payments - only allows USDC on Arbitrum)
+    disableCardPioneers: true, // set to false to enable the Card Pioneers waitlist feature
 }
 
 export default underMaintenanceConfig

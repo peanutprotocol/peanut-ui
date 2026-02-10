@@ -1,8 +1,11 @@
 'use client'
-import { motion, useMotionValue, useTransform, useSpring, useMotionTemplate } from 'framer-motion'
+import { motion, useMotionValue, useTransform, useSpring, useMotionTemplate, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
-import peanutLogo from '@/assets/peanut/peanutman-logo.svg'
-import { useRef } from 'react'
+import { CARD_GRADIENT_4, CARD_GRADIENT_5, CARD_GRADIENT_9, CARD_GRADIENT_10 } from '@/assets/cards'
+import { useRef, useState, useEffect, useCallback } from 'react'
+
+const CARD_BACKGROUNDS = [CARD_GRADIENT_4, CARD_GRADIENT_9, CARD_GRADIENT_10, CARD_GRADIENT_5]
+const CYCLE_INTERVAL = 3000
 
 interface PioneerCard3DProps {
     className?: string
@@ -10,6 +13,8 @@ interface PioneerCard3DProps {
 
 const PioneerCard3D = ({ className }: PioneerCard3DProps) => {
     const cardRef = useRef<HTMLDivElement>(null)
+    const [activeIndex, setActiveIndex] = useState(0)
+    const timerRef = useRef<NodeJS.Timeout | null>(null)
 
     const x = useMotionValue(0)
     const y = useMotionValue(0)
@@ -17,8 +22,6 @@ const PioneerCard3D = ({ className }: PioneerCard3DProps) => {
     const rotateX = useTransform(y, [-100, 100], [12, -12])
     const rotateY = useTransform(x, [-100, 100], [-12, 12])
 
-    // Shadow parallax - shadow moves opposite to card tilt
-    // Default: 6px right, 6px down (light source top-left)
     const shadowX = useTransform(x, [-100, 100], [14, -2])
     const shadowY = useTransform(y, [-100, 100], [14, -2])
 
@@ -27,8 +30,28 @@ const PioneerCard3D = ({ className }: PioneerCard3DProps) => {
     const springShadowX = useSpring(shadowX, { stiffness: 200, damping: 25 })
     const springShadowY = useSpring(shadowY, { stiffness: 200, damping: 25 })
 
-    // Create dynamic box shadow with motion template
     const boxShadow = useMotionTemplate`${springShadowX}px ${springShadowY}px 0 #000000`
+
+    const advance = useCallback(() => {
+        setActiveIndex((prev) => (prev + 1) % CARD_BACKGROUNDS.length)
+    }, [])
+
+    const resetTimer = useCallback(() => {
+        if (timerRef.current) clearInterval(timerRef.current)
+        timerRef.current = setInterval(advance, CYCLE_INTERVAL)
+    }, [advance])
+
+    useEffect(() => {
+        resetTimer()
+        return () => {
+            if (timerRef.current) clearInterval(timerRef.current)
+        }
+    }, [resetTimer])
+
+    const handleClick = () => {
+        advance()
+        resetTimer()
+    }
 
     const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
         if (!cardRef.current) return
@@ -58,36 +81,35 @@ const PioneerCard3D = ({ className }: PioneerCard3DProps) => {
             style={{ perspective: '1000px' }}
         >
             <motion.div
-                className="relative aspect-[384/240] w-full cursor-pointer overflow-hidden rounded-xl border border-n-1 bg-primary-1 px-6 py-5"
+                className="relative aspect-[384/240] w-full cursor-pointer overflow-hidden"
                 style={{
                     rotateX: springRotateX as unknown as number,
                     rotateY: springRotateY as unknown as number,
                     transformStyle: 'preserve-3d',
+                    borderRadius: '5.35%',
                     boxShadow,
                 }}
+                onClick={handleClick}
             >
-                {/* Logo in top right corner - mirrored */}
-                <div className="relative z-10 mb-8 flex justify-end">
-                    <Image src={peanutLogo} alt="Peanut" width={28} height={28} className="scale-x-[-1]" />
-                </div>
-
-                {/* Card number */}
-                <div className="relative z-10 mb-6 text-left">
-                    <div className="mb-1 text-h4 text-white">3400 5678 9804 3002</div>
-                    <div className="text-xs font-medium text-white">Card number</div>
-                </div>
-
-                {/* Cardholder and expiry */}
-                <div className="relative z-10 flex justify-between text-left">
-                    <div>
-                        <div className="mb-0.5 font-bold text-white">Pioneer Member</div>
-                        <div className="text-xs font-medium text-white">Cardholder</div>
-                    </div>
-                    <div className="text-right">
-                        <div className="mb-0.5 font-bold text-white">06 / 26</div>
-                        <div className="text-xs font-medium text-white">Valid</div>
-                    </div>
-                </div>
+                {/* Card background images with crossfade */}
+                <AnimatePresence mode="popLayout">
+                    <motion.div
+                        key={activeIndex}
+                        className="absolute -inset-px"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.6, ease: 'easeInOut' }}
+                    >
+                        <Image
+                            src={CARD_BACKGROUNDS[activeIndex]}
+                            alt="Card design"
+                            fill
+                            className="object-cover"
+                            priority
+                        />
+                    </motion.div>
+                </AnimatePresence>
             </motion.div>
         </div>
     )

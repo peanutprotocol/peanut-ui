@@ -87,7 +87,7 @@ const CardSuccessScreen = ({ onViewBadges }: CardSuccessScreenProps) => {
                         <div className="flex size-8 items-center justify-center rounded-full bg-purple-1">
                             <Icon name="bell" size={16} />
                         </div>
-                        <span className="text-sm text-grey-1">Priority notification when card launches</span>
+                        <span className="text-sm text-grey-1">Priority access during launch</span>
                     </Card>
                     <Card position="middle" className="flex items-center gap-3 py-3">
                         <div className="flex size-8 items-center justify-center rounded-full bg-purple-1">

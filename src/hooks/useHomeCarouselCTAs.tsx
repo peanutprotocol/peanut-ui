@@ -13,6 +13,7 @@ import { usePWAStatus } from './usePWAStatus'
 import { useGeoLocation } from './useGeoLocation'
 import { useCardPioneerInfo } from './useCardPioneerInfo'
 import { STAR_STRAIGHT_ICON } from '@/assets'
+import underMaintenanceConfig from '@/config/underMaintenance.config'
 
 export type CarouselCTA = {
     id: string
@@ -60,7 +61,7 @@ export const useHomeCarouselCTAs = () => {
         // Card Pioneer CTA - show to all users who haven't purchased yet
         // Eligibility check happens during the flow (geo screen)
         // Only show when we know for sure they haven't purchased (not while loading)
-        if (hasCardPioneerPurchased === false) {
+        if (!underMaintenanceConfig.disableCardPioneers && hasCardPioneerPurchased === false) {
             _carouselCTAs.push({
                 id: 'card-pioneer',
                 title: (

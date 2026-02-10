@@ -78,7 +78,7 @@ const CardPioneerModal = ({ hasPurchased }: CardPioneerModalProps) => {
                 </p>
 
                 {/* Card Hero - scaled down for popup */}
-                <div className="relative -my-12 origin-center scale-50">
+                <div className="w-full max-w-[240px]">
                     <PioneerCard3D />
                 </div>
 

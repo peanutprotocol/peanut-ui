@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { cardApi, type CardInfoResponse } from '@/services/card'
 import { useAuth } from '@/context/authContext'
+import underMaintenanceConfig from '@/config/underMaintenance.config'
 
 /**
  * Hook to fetch Card Pioneer info for the authenticated user.
@@ -14,7 +15,7 @@ export const useCardPioneerInfo = () => {
     const query = useQuery<CardInfoResponse>({
         queryKey: ['card-info', user?.user?.userId],
         queryFn: () => cardApi.getInfo(),
-        enabled: !!user?.user?.userId,
+        enabled: !!user?.user?.userId && !underMaintenanceConfig.disableCardPioneers,
         staleTime: 60_000, // 1 minute
         retry: 1,
     })

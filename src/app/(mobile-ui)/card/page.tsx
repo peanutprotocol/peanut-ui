@@ -5,6 +5,7 @@ import { useQueryStates, parseAsStringEnum } from 'nuqs'
 import { useQuery } from '@tanstack/react-query'
 import { cardApi, type CardInfoResponse } from '@/services/card'
 import { useAuth } from '@/context/authContext'
+import underMaintenanceConfig from '@/config/underMaintenance.config'
 
 // Screen components
 import CardInfoScreen from '@/components/Card/CardInfoScreen'
@@ -79,6 +80,17 @@ const CardPioneerPage: FC = () => {
             refetchCardInfo()
         }
     }, [currentStep, fetchUser, refetchCardInfo])
+
+    // feature flag: redirect to home if card pioneers is disabled
+    useEffect(() => {
+        if (underMaintenanceConfig.disableCardPioneers) {
+            router.replace('/home')
+        }
+    }, [router])
+
+    if (underMaintenanceConfig.disableCardPioneers) {
+        return null
+    }
 
     const goToNextStep = () => {
         const currentIndex = STEP_ORDER.indexOf(currentStep)

@@ -34,6 +34,7 @@ import NavigationArrow from '@/components/Global/NavigationArrow'
 import { updateUserById } from '@/app/actions/users'
 import { useHaptic } from 'use-haptic'
 import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
+import underMaintenanceConfig from '@/config/underMaintenance.config'
 
 // Lazy load heavy modal components (~20-30KB each) to reduce initial bundle size
 // Components are only loaded when user triggers them
@@ -266,17 +267,21 @@ export default function Home() {
             {/* Card Pioneer Modal - Show to all users who haven't purchased */}
             {/* Eligibility check happens during the flow (geo screen), not here */}
             {/* Only shows if no higher-priority modals are active */}
-            {!showBalanceWarningModal && !showPermissionModal && !showKycModal && !isPostSignupActionModalVisible && (
-                <LazyLoadErrorBoundary>
-                    <Suspense fallback={null}>
-                        <CardPioneerModal
-                            isEligible={isCardPioneerEligible ?? false}
-                            hasPurchased={hasCardPioneerPurchased ?? false}
-                            slotsRemaining={cardInfo?.slotsRemaining}
-                        />
-                    </Suspense>
-                </LazyLoadErrorBoundary>
-            )}
+            {!underMaintenanceConfig.disableCardPioneers &&
+                !showBalanceWarningModal &&
+                !showPermissionModal &&
+                !showKycModal &&
+                !isPostSignupActionModalVisible && (
+                    <LazyLoadErrorBoundary>
+                        <Suspense fallback={null}>
+                            <CardPioneerModal
+                                isEligible={isCardPioneerEligible ?? false}
+                                hasPurchased={hasCardPioneerPurchased ?? false}
+                                slotsRemaining={cardInfo?.slotsRemaining}
+                            />
+                        </Suspense>
+                    </LazyLoadErrorBoundary>
+                )}
 
             {/* Referral Campaign Modal - DISABLED FOR NOW */}
             {/* <ReferralCampaignModal

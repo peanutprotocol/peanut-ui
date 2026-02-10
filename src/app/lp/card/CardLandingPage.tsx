@@ -11,6 +11,7 @@ import { useAuth } from '@/context/authContext'
 import { useRouter } from 'next/navigation'
 import { Star, HandThumbsUp } from '@/assets'
 import { useState, useEffect } from 'react'
+import underMaintenanceConfig from '@/config/underMaintenance.config'
 
 const faqQuestions = [
     {
@@ -45,12 +46,23 @@ const CardLandingPage = () => {
     const router = useRouter()
     const [isMobile, setIsMobile] = useState(false)
 
+    // feature flag: redirect to landing if card pioneers is disabled
+    useEffect(() => {
+        if (underMaintenanceConfig.disableCardPioneers) {
+            router.replace('/')
+        }
+    }, [router])
+
     useEffect(() => {
         const checkMobile = () => setIsMobile(window.innerWidth < 768)
         checkMobile()
         window.addEventListener('resize', checkMobile)
         return () => window.removeEventListener('resize', checkMobile)
     }, [])
+
+    if (underMaintenanceConfig.disableCardPioneers) {
+        return null
+    }
 
     const handleCTA = () => {
         if (user) {
