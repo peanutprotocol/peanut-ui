@@ -57,7 +57,7 @@ const underMaintenanceConfig: MaintenanceConfig = {
     disabledPaymentProviders: [], // set to ['MANTECA'] to disable Manteca QR payments
     disableSquidWithdraw: false, // set to true to disable cross-chain withdrawals (only allows USDC on Arbitrum)
     disableSquidSend: false, // set to true to disable cross-chain sends (claim, request payments - only allows USDC on Arbitrum)
-    disableCardPioneers: true, // set to false to enable the Card Pioneers waitlist feature
+    disableCardPioneers: false, // set to false to enable the Card Pioneers waitlist feature
 }
 
 export default underMaintenanceConfig
