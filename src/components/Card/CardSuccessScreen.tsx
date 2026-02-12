@@ -108,7 +108,7 @@ const CardSuccessScreen = ({ onViewBadges }: CardSuccessScreenProps) => {
                         </Card>
                         <Card position="last" className="flex items-center gap-3 py-3">
                             <div className="flex size-8 items-center justify-center rounded-full bg-purple-1">
-                                <Icon name="gift" size={16} />
+                                <Icon name="dollar" size={16} />
                             </div>
                             <span className="text-sm text-black">Earn forever on every purchase</span>
                         </Card>

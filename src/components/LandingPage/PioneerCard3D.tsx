@@ -18,6 +18,8 @@ const PioneerCard3D = ({ className }: PioneerCard3DProps) => {
 
     const x = useMotionValue(0)
     const y = useMotionValue(0)
+    const isInteractingRef = useRef(false)
+    const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
     const rotateX = useTransform(y, [-100, 100], [12, -12])
     const rotateY = useTransform(x, [-100, 100], [-12, 12])
@@ -49,6 +51,7 @@ const PioneerCard3D = ({ className }: PioneerCard3DProps) => {
     }, [resetTimer])
 
     // Mobile auto-oscillation: slow sine wave to show off parallax without interaction
+    // Pauses when user touches/clicks the card and resumes 2s after release
     useEffect(() => {
         const isMobile = window.matchMedia('(max-width: 768px)').matches
         if (!isMobile) return
@@ -57,10 +60,12 @@ const PioneerCard3D = ({ className }: PioneerCard3DProps) => {
         const startTime = Date.now()
 
         const animate = () => {
-            const elapsed = (Date.now() - startTime) / 1000
-            // gentle figure-8 pattern using offset sine waves
-            x.set(Math.sin(elapsed * 0.4) * 60)
-            y.set(Math.sin(elapsed * 0.3 + 1) * 40)
+            if (!isInteractingRef.current) {
+                const elapsed = (Date.now() - startTime) / 1000
+                // gentle figure-8 pattern using offset sine waves
+                x.set(Math.sin(elapsed * 0.4) * 60)
+                y.set(Math.sin(elapsed * 0.3 + 1) * 40)
+            }
             frame = requestAnimationFrame(animate)
         }
 
@@ -68,36 +73,57 @@ const PioneerCard3D = ({ className }: PioneerCard3DProps) => {
         return () => cancelAnimationFrame(frame)
     }, [x, y])
 
+    const pauseOscillation = useCallback(() => {
+        isInteractingRef.current = true
+        if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current)
+    }, [])
+
+    const resumeOscillation = useCallback(() => {
+        if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current)
+        resumeTimerRef.current = setTimeout(() => {
+            isInteractingRef.current = false
+        }, 2000)
+    }, [])
+
+    useEffect(() => {
+        return () => {
+            if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current)
+        }
+    }, [])
+
     const handleClick = () => {
         advance()
         resetTimer()
     }
 
-    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+        pauseOscillation()
         if (!cardRef.current) return
-
         const rect = cardRef.current.getBoundingClientRect()
-        const centerX = rect.left + rect.width / 2
-        const centerY = rect.top + rect.height / 2
-
-        const mouseX = e.clientX - centerX
-        const mouseY = e.clientY - centerY
-
-        x.set(mouseX)
-        y.set(mouseY)
+        x.set(e.clientX - rect.left - rect.width / 2)
+        y.set(e.clientY - rect.top - rect.height / 2)
     }
 
-    const handleMouseLeave = () => {
+    const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+        if (!cardRef.current) return
+        const rect = cardRef.current.getBoundingClientRect()
+        x.set(e.clientX - rect.left - rect.width / 2)
+        y.set(e.clientY - rect.top - rect.height / 2)
+    }
+
+    const handlePointerLeave = () => {
         x.set(0)
         y.set(0)
+        resumeOscillation()
     }
 
     return (
         <div
             ref={cardRef}
             className={`inline-block w-full max-w-96 ${className || ''}`}
-            onMouseMove={handleMouseMove}
-            onMouseLeave={handleMouseLeave}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerLeave={handlePointerLeave}
             style={{ perspective: '1000px' }}
         >
             <motion.div
@@ -108,6 +134,7 @@ const PioneerCard3D = ({ className }: PioneerCard3DProps) => {
                     transformStyle: 'preserve-3d',
                     borderRadius: '5.35%',
                     border: '2px solid #000000',
+                    backgroundColor: '#000000',
                     boxShadow,
                 }}
                 onClick={handleClick}

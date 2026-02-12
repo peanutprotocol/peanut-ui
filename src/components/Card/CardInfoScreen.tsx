@@ -97,7 +97,13 @@ const CardInfoScreen = ({ onContinue, hasPurchased, slotsRemaining, recentPurcha
 
     // Realistic slot decrement: first tick after 4-12s, then every 15-40s
     useEffect(() => {
-        if (slotsRemaining === undefined || hasAnimated.current) return
+        if (slotsRemaining === undefined) return
+
+        // Update display value on refetch without re-triggering the animation
+        if (hasAnimated.current) {
+            setDisplayValue(slotsRemaining)
+            return
+        }
 
         hasAnimated.current = true
         setDisplayValue(slotsRemaining)
@@ -141,7 +147,7 @@ const CardInfoScreen = ({ onContinue, hasPurchased, slotsRemaining, recentPurcha
                         rel="noopener noreferrer"
                         className="mt-2 inline-block text-sm text-black underline"
                     >
-                        Have any question? Read the FAQ
+                        Have a question? Read the FAQ
                     </a>
                 </div>
 

@@ -10,9 +10,7 @@ const STORAGE_KEY = 'card-pioneer-modal-dismissed'
 const DISMISS_DURATION_DAYS = 3
 
 interface CardPioneerModalProps {
-    isEligible: boolean
     hasPurchased: boolean
-    slotsRemaining?: number
 }
 
 /**
@@ -84,13 +82,7 @@ const CardPioneerModal = ({ hasPurchased }: CardPioneerModalProps) => {
 
                 {/* CTA */}
                 <div className="w-full space-y-4">
-                    <Button
-                        variant="purple"
-                        size="large"
-                        shadowSize="4"
-                        onClick={handleJoinNow}
-                        className="w-full justify-center"
-                    >
+                    <Button variant="purple" shadowSize="4" onClick={handleJoinNow} className="w-full">
                         Get Early Access
                     </Button>
                 </div>

@@ -67,7 +67,7 @@ export default function Home() {
 
     const { isFetchingUser, fetchUser } = useAuth()
     const { isUserKycApproved } = useKycStatus()
-    const { isEligible: isCardPioneerEligible, hasPurchased: hasCardPioneerPurchased, cardInfo } = useCardPioneerInfo()
+    const { hasPurchased: hasCardPioneerPurchased } = useCardPioneerInfo()
     const username = user?.user.username
 
     const [showBalanceWarningModal, setShowBalanceWarningModal] = useState(false)
@@ -283,11 +283,7 @@ export default function Home() {
                 !isPostSignupSession && (
                     <LazyLoadErrorBoundary>
                         <Suspense fallback={null}>
-                            <CardPioneerModal
-                                isEligible={isCardPioneerEligible ?? false}
-                                hasPurchased={hasCardPioneerPurchased ?? false}
-                                slotsRemaining={cardInfo?.slotsRemaining}
-                            />
+                            <CardPioneerModal hasPurchased={hasCardPioneerPurchased ?? false} />
                         </Suspense>
                     </LazyLoadErrorBoundary>
                 )}

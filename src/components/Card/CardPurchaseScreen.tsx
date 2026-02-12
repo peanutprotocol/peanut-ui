@@ -70,7 +70,7 @@ const CardPurchaseScreen = ({
     // Open payment URL in new tab
     const openPaymentUrl = useCallback(() => {
         if (paymentUrl) {
-            window.open(paymentUrl, '_blank')
+            window.open(paymentUrl, '_blank', 'noopener,noreferrer')
         }
     }, [paymentUrl])
 
@@ -155,8 +155,7 @@ const CardPurchaseScreen = ({
                             <div className="text-center">
                                 <h2 className="text-xl font-bold">Complete Payment</h2>
                                 <p className="mt-2 text-sm text-black">
-                                    A payment page has been opened. Complete your payment to finish your Pioneer
-                                    reservation.
+                                    Click below to open the payment page and complete your Pioneer reservation.
                                 </p>
                             </div>
                         </Card>

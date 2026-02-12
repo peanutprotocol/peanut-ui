@@ -31,6 +31,16 @@ export function PerkClaimModal({ perk, visible, onClose, onClaimed }: PerkClaimM
     const [claimPhase, setClaimPhase] = useState<ClaimPhase>('idle')
     const [lastClaimedPerk, setLastClaimedPerk] = useState<PendingPerk | null>(null)
     const apiCallRef = useRef<Promise<void> | null>(null)
+    const revealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+    // Cleanup timers on unmount
+    useEffect(() => {
+        return () => {
+            if (revealTimerRef.current) clearTimeout(revealTimerRef.current)
+            if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current)
+        }
+    }, [])
 
     // Reset state when modal opens with new perk
     useEffect(() => {
@@ -60,7 +70,7 @@ export function PerkClaimModal({ perk, visible, onClose, onClaimed }: PerkClaimM
         })()
 
         // Phase 2: After 600ms of autonomous shaking, burst into confetti
-        setTimeout(() => {
+        revealTimerRef.current = setTimeout(() => {
             // Haptic burst feedback
             if ('vibrate' in navigator) {
                 navigator.vibrate([100, 50, 100, 50, 200])
@@ -78,7 +88,7 @@ export function PerkClaimModal({ perk, visible, onClose, onClaimed }: PerkClaimM
     // Handle dismissing the success message
     const handleDismissSuccess = useCallback(() => {
         setClaimPhase('exiting')
-        setTimeout(() => {
+        dismissTimerRef.current = setTimeout(() => {
             onClose()
         }, 400)
     }, [onClose])
