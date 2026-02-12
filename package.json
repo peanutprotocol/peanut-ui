@@ -15,6 +15,7 @@
         "knip": "knip",
         "format": "prettier --write .",
         "analyze": "ANALYZE=true next build",
+        "typecheck": "tsc --noEmit",
         "test": "jest",
         "test:watch": "jest --watch",
         "test:coverage": "jest --coverage",

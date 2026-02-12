@@ -935,7 +935,7 @@ export default function ComponentsPage() {
   title="Confirm Action"
   description="Are you sure?"
   icon="alert"
-  buttons={[
+  ctas={[
     { text: 'Confirm', variant: 'purple', onClick: handleConfirm },
     { text: 'Cancel', variant: 'stroke', onClick: () => setShow(false) },
   ]}
@@ -947,9 +947,17 @@ export default function ComponentsPage() {
                             title="Confirm Action"
                             description="are you sure you want to proceed?"
                             icon="alert"
-                            buttons={[
-                                { text: 'Confirm', variant: 'purple', onClick: () => setShowActionModal(false) },
-                                { text: 'Cancel', variant: 'stroke', onClick: () => setShowActionModal(false) },
+                            ctas={[
+                                {
+                                    text: 'Confirm',
+                                    variant: 'purple' as const,
+                                    onClick: () => setShowActionModal(false),
+                                },
+                                {
+                                    text: 'Cancel',
+                                    variant: 'stroke' as const,
+                                    onClick: () => setShowActionModal(false),
+                                },
                             ]}
                         />
                     </Section>
