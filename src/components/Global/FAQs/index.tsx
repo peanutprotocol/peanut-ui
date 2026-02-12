@@ -28,6 +28,29 @@ export function FAQsPanel({ heading, questions }: FAQsProps) {
         setOpenFaq((prevId) => (prevId === id ? null : id))
     }, [])
 
+    // helper to convert urls in text to clickable links
+    const linkifyText = useCallback((text: string) => {
+        const urlRegex = /(https?:\/\/[^\s]+)/g
+        const parts = text.split(urlRegex)
+
+        return parts.map((part, index) => {
+            if (part.match(urlRegex)) {
+                return (
+                    <a
+                        key={index}
+                        href={part}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-black underline hover:text-accent"
+                    >
+                        {part}
+                    </a>
+                )
+            }
+            return part
+        })
+    }, [])
+
     return (
         <div className="w-full overflow-x-hidden bg-background">
             <div className="relative px-6 py-20 md:px-8 md:py-36">
@@ -80,7 +103,7 @@ export function FAQsPanel({ heading, questions }: FAQsProps) {
                                             transition={{ duration: 0.2 }}
                                             className="mt-1 overflow-hidden whitespace-pre-line leading-6 text-n-1"
                                         >
-                                            {faq.answer}
+                                            {linkifyText(faq.answer)}
                                             {faq.calModal && (
                                                 <a
                                                     data-cal-link="kkonrad+hugo0/15min?duration=30"
