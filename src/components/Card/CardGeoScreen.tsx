@@ -96,9 +96,7 @@ const CardGeoScreen = ({
                             </div>
                             <div className="text-center">
                                 <h1 className="font-bold">Verification Required</h1>
-                                <p className="mt-2 text-sm text-black">
-                                    Card Purchare requires identity verification.
-                                    </p>
+                                <p className="mt-2 text-sm text-black">Card Purchare requires identity verification.</p>
                             </div>
                         </Card>
 
@@ -137,21 +135,11 @@ const CardGeoScreen = ({
 
                 {/* CTA Buttons */}
                 {isEligible || hasKycButNoCountry ? (
-                    <Button
-                        variant="purple"
-                        shadowSize="4"
-                        onClick={onInitiatePurchase}
-                        className="w-full"
-                    >
+                    <Button variant="purple" shadowSize="4" onClick={onInitiatePurchase} className="w-full">
                         Reserve my card
                     </Button>
                 ) : needsKycVerification ? (
-                    <Button
-                        variant="purple"
-                        shadowSize="4"
-                        onClick={handleStartVerification}
-                        className="w-full"
-                    >
+                    <Button variant="purple" shadowSize="4" onClick={handleStartVerification} className="w-full">
                         Start Verification
                     </Button>
                 ) : (

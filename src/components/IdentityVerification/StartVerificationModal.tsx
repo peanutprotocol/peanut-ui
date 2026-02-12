@@ -64,9 +64,7 @@ const StartVerificationModal = ({
         <ActionModal
             visible={visible}
             onClose={onClose}
-            title={
-                isSelectedCountryMantecaCountry ? `Unlock ${selectedCountry.title}` : 'Unlock Bank Payments'
-            }
+            title={isSelectedCountryMantecaCountry ? `Unlock ${selectedCountry.title}` : 'Unlock Bank Payments'}
             description={getDescription()}
             descriptionClassName="text-black"
             icon="shield"

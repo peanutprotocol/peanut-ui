@@ -19,7 +19,8 @@ export function Banner() {
     }
 
     // don't show beta feedback banner on landing pages, setup page, or quests pages
-    if (pathname === '/' || pathname === '/setup' || pathname.startsWith('/quests') || pathname.startsWith('/lp')) return null
+    if (pathname === '/' || pathname === '/setup' || pathname.startsWith('/quests') || pathname.startsWith('/lp'))
+        return null
 
     // show beta feedback banner when not in maintenance
     return <FeedbackBanner />

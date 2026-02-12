@@ -177,9 +177,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             const bigIntSafeStringify = (obj: unknown) =>
                 JSON.stringify(obj, (_, v) => (typeof v === 'bigint' ? v.toString() : v))
             setWebAuthnKey((prev) =>
-                prev && bigIntSafeStringify(prev) === bigIntSafeStringify(storedWebAuthnKey)
-                    ? prev
-                    : storedWebAuthnKey
+                prev && bigIntSafeStringify(prev) === bigIntSafeStringify(storedWebAuthnKey) ? prev : storedWebAuthnKey
             )
         } else {
             // avoid mixed state

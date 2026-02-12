@@ -46,9 +46,7 @@ const CardDetailsScreen = ({ price, currentTier, onContinue, onBack }: CardDetai
                             )}{' '}
                             now to reserve your card
                             {isDiscounted && (
-                                <span className="ml-1 text-xs text-purple-1">
-                                    (because you're tier {currentTier})
-                                </span>
+                                <span className="ml-1 text-xs text-purple-1">(because you're tier {currentTier})</span>
                             )}
                         </p>
                     </Card>

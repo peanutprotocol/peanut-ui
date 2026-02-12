@@ -58,7 +58,8 @@ export const QualityScore = ({ score, label }: { score: 1 | 2 | 3 | 4 | 5; label
     }
     return (
         <span className="inline-flex items-center gap-1 text-[10px] text-grey-1" title={label || descriptions[score]}>
-            {'★'.repeat(score)}{'☆'.repeat(5 - score)}
+            {'★'.repeat(score)}
+            {'☆'.repeat(5 - score)}
             {label && <span className="ml-0.5">{label}</span>}
         </span>
     )
@@ -66,7 +67,9 @@ export const QualityScore = ({ score, label }: { score: 1 | 2 | 3 | 4 | 5; label
 
 // usage count badge
 export const UsageCount = ({ count }: { count: number }) => (
-    <span className="text-[10px] text-grey-1">{count} usage{count !== 1 ? 's' : ''}</span>
+    <span className="text-[10px] text-grey-1">
+        {count} usage{count !== 1 ? 's' : ''}
+    </span>
 )
 
 // section wrapper with title, status, quality, and usage count

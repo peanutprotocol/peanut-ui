@@ -201,12 +201,7 @@ const CardPurchaseScreen = ({
 
                 {purchaseState === 'error' && (
                     <div className="space-y-3">
-                        <Button
-                            variant="purple"
-                            shadowSize="4"
-                            onClick={initiatePurchase}
-                            className="w-full"
-                        >
+                        <Button variant="purple" shadowSize="4" onClick={initiatePurchase} className="w-full">
                             Try Again
                         </Button>
                         <Button variant="stroke" onClick={onBack} className="w-full">

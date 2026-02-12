@@ -40,25 +40,81 @@ const TOC: { id: string; label: string; icon: IconName }[] = [
 ]
 
 const ALL_ICONS: IconName[] = [
-    'alert', 'alert-filled', 'arrow-down', 'arrow-down-left', 'arrow-up', 'arrow-up-right', 'arrow-exchange',
-    'badge', 'bank', 'bell', 'bulb',
-    'camera', 'camera-flip', 'cancel', 'check', 'check-circle', 'chevron-up', 'chevron-down',
-    'clip', 'clock', 'copy', 'currency',
-    'docs', 'dollar', 'double-check', 'download',
-    'error', 'exchange', 'external-link', 'eye', 'eye-slash',
-    'failed', 'fees',
-    'gift', 'globe-lock',
-    'history', 'home',
-    'info', 'info-filled', 'invite-heart',
-    'link', 'link-slash', 'lock', 'logout',
-    'meter', 'minus-circle', 'mobile-install',
-    'paperclip', 'paste', 'peanut-support', 'pending', 'plus', 'plus-circle', 'processing',
-    'qr-code', 'question-mark',
+    'alert',
+    'alert-filled',
+    'arrow-down',
+    'arrow-down-left',
+    'arrow-up',
+    'arrow-up-right',
+    'arrow-exchange',
+    'badge',
+    'bank',
+    'bell',
+    'bulb',
+    'camera',
+    'camera-flip',
+    'cancel',
+    'check',
+    'check-circle',
+    'chevron-up',
+    'chevron-down',
+    'clip',
+    'clock',
+    'copy',
+    'currency',
+    'docs',
+    'dollar',
+    'double-check',
+    'download',
+    'error',
+    'exchange',
+    'external-link',
+    'eye',
+    'eye-slash',
+    'failed',
+    'fees',
+    'gift',
+    'globe-lock',
+    'history',
+    'home',
+    'info',
+    'info-filled',
+    'invite-heart',
+    'link',
+    'link-slash',
+    'lock',
+    'logout',
+    'meter',
+    'minus-circle',
+    'mobile-install',
+    'paperclip',
+    'paste',
+    'peanut-support',
+    'pending',
+    'plus',
+    'plus-circle',
+    'processing',
+    'qr-code',
+    'question-mark',
     'retry',
-    'search', 'share', 'shield', 'smile', 'split', 'star', 'success', 'switch',
-    'trophy', 'txn-off',
-    'upload-cloud', 'user', 'user-id', 'user-plus',
-    'wallet', 'wallet-cancel', 'wallet-outline', 'achievements',
+    'search',
+    'share',
+    'shield',
+    'smile',
+    'split',
+    'star',
+    'success',
+    'switch',
+    'trophy',
+    'txn-off',
+    'upload-cloud',
+    'user',
+    'user-id',
+    'user-plus',
+    'wallet',
+    'wallet-cancel',
+    'wallet-outline',
+    'achievements',
 ]
 
 export default function ComponentsPage() {
@@ -126,9 +182,14 @@ export default function ComponentsPage() {
                         <div>
                             <p className="font-bold">buttons</p>
                             <ul className="mt-1 space-y-0.5 text-grey-1">
-                                <li>primary CTA: variant=&quot;purple&quot; shadowSize=&quot;4&quot; w-full — NO size prop</li>
+                                <li>
+                                    primary CTA: variant=&quot;purple&quot; shadowSize=&quot;4&quot; w-full — NO size
+                                    prop
+                                </li>
                                 <li>secondary CTA: variant=&quot;stroke&quot; w-full</li>
-                                <li>default h-13 is tallest. size=&quot;large&quot; is h-10 — never for primary CTAs</li>
+                                <li>
+                                    default h-13 is tallest. size=&quot;large&quot; is h-10 — never for primary CTAs
+                                </li>
                             </ul>
                         </div>
                         <div>
@@ -141,26 +202,38 @@ export default function ComponentsPage() {
                         <div>
                             <p className="font-bold">containers</p>
                             <ul className="mt-1 space-y-0.5 text-grey-1">
-                                <li>standalone: Bruddle Card (named export) | stacked lists: Global Card (default export)</li>
+                                <li>
+                                    standalone: Bruddle Card (named export) | stacked lists: Global Card (default
+                                    export)
+                                </li>
                                 <li>shadows: always black #000 | border radius: always rounded-sm</li>
                             </ul>
                         </div>
                         <div>
                             <p className="font-bold">modals</p>
                             <ul className="mt-1 space-y-0.5 text-grey-1">
-                                <li>informational: Modal | user action/confirmation: ActionModal | mobile interaction: Drawer</li>
+                                <li>
+                                    informational: Modal | user action/confirmation: ActionModal | mobile interaction:
+                                    Drawer
+                                </li>
                             </ul>
                         </div>
                         <div>
                             <p className="font-bold">loading</p>
                             <ul className="mt-1 space-y-0.5 text-grey-1">
-                                <li>inline spinner: Loading | page-level branded: PeanutLoading | with entertainment: PeanutFactsLoading</li>
+                                <li>
+                                    inline spinner: Loading | page-level branded: PeanutLoading | with entertainment:
+                                    PeanutFactsLoading
+                                </li>
                             </ul>
                         </div>
                         <div>
                             <p className="font-bold">messaging</p>
                             <ul className="mt-1 space-y-0.5 text-grey-1">
-                                <li>card deposits: &quot;starter balance&quot; — never &quot;card balance&quot; or &quot;Peanut rewards&quot;</li>
+                                <li>
+                                    card deposits: &quot;starter balance&quot; — never &quot;card balance&quot; or
+                                    &quot;Peanut rewards&quot;
+                                </li>
                             </ul>
                         </div>
                     </div>
@@ -169,9 +242,20 @@ export default function ComponentsPage() {
                     <div className="rounded-sm border border-n-1 p-3 text-xs">
                         <p className="font-bold">architecture (three tiers)</p>
                         <div className="mt-2 space-y-1.5 text-grey-1">
-                            <p><span className="font-bold text-n-1">Bruddle primitives</span> — src/components/0_Bruddle/ — Button, Card, BaseInput, BaseSelect, Checkbox, Divider, Title, Toast</p>
-                            <p><span className="font-bold text-n-1">Global shared</span> — src/components/Global/ — NavHeader, FlowHeader, Modal, ActionModal, Drawer, Loading, PeanutLoading, StatusBadge, EmptyState, CopyField, Icon, AddressLink, MoreInfo, etc.</p>
-                            <p><span className="font-bold text-n-1">Tailwind classes</span> — .row, .col, .shadow-2, .shadow-4, .label-*, .brutal-border, .bg-peanut-repeat-*</p>
+                            <p>
+                                <span className="font-bold text-n-1">Bruddle primitives</span> —
+                                src/components/0_Bruddle/ — Button, Card, BaseInput, BaseSelect, Checkbox, Divider,
+                                Title, Toast
+                            </p>
+                            <p>
+                                <span className="font-bold text-n-1">Global shared</span> — src/components/Global/ —
+                                NavHeader, FlowHeader, Modal, ActionModal, Drawer, Loading, PeanutLoading, StatusBadge,
+                                EmptyState, CopyField, Icon, AddressLink, MoreInfo, etc.
+                            </p>
+                            <p>
+                                <span className="font-bold text-n-1">Tailwind classes</span> — .row, .col, .shadow-2,
+                                .shadow-4, .label-*, .brutal-border, .bg-peanut-repeat-*
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -189,7 +273,11 @@ export default function ComponentsPage() {
                     >
                         <PropTable
                             rows={[
-                                ['variant', 'purple | stroke | primary-soft | transparent | dark | transparent-dark | transparent-light | green | yellow', 'purple'],
+                                [
+                                    'variant',
+                                    'purple | stroke | primary-soft | transparent | dark | transparent-dark | transparent-light | green | yellow',
+                                    'purple',
+                                ],
                                 ['size', 'small | medium | large', '(none = h-13)'],
                                 ['shadowSize', '3 | 4 | 6 | 8', '(none)'],
                                 ['icon', 'IconName | ReactNode', '(none)'],
@@ -200,20 +288,23 @@ export default function ComponentsPage() {
                         />
 
                         <div className="rounded-sm bg-yellow-1/30 p-2 text-xs font-bold">
-                            size=&quot;large&quot; is h-10 (SHORTER than default h-13). default = tallest button. primary CTAs should use NO size prop.
+                            size=&quot;large&quot; is h-10 (SHORTER than default h-13). default = tallest button.
+                            primary CTAs should use NO size prop.
                         </div>
                     </Section>
 
                     <Section title="Variants">
                         <div className="space-y-3">
-                            {([
-                                ['purple', '59 usages', 'production'],
-                                ['stroke', '27 usages', 'production'],
-                                ['primary-soft', '18 usages', 'production'],
-                                ['transparent', '12 usages', 'production'],
-                                ['dark', '2 usages', 'limited'],
-                                ['transparent-dark', '3 usages', 'limited'],
-                            ] as const).map(([variant, count, status]) => (
+                            {(
+                                [
+                                    ['purple', '59 usages', 'production'],
+                                    ['stroke', '27 usages', 'production'],
+                                    ['primary-soft', '18 usages', 'production'],
+                                    ['transparent', '12 usages', 'production'],
+                                    ['dark', '2 usages', 'limited'],
+                                    ['transparent-dark', '3 usages', 'limited'],
+                                ] as const
+                            ).map(([variant, count, status]) => (
                                 <div key={variant}>
                                     <div className="mb-1 flex items-center gap-2">
                                         <span className="text-xs font-bold">{variant}</span>
@@ -258,27 +349,39 @@ export default function ComponentsPage() {
                                 <p className="mt-1 text-[10px] text-grey-1">h-13 (52px)</p>
                             </div>
                             <div className="text-center">
-                                <Button variant="stroke" size="small">small</Button>
+                                <Button variant="stroke" size="small">
+                                    small
+                                </Button>
                                 <p className="mt-1 text-[10px] text-grey-1">h-8 · 29 usages</p>
                             </div>
                             <div className="text-center">
-                                <Button variant="stroke" size="medium">medium</Button>
+                                <Button variant="stroke" size="medium">
+                                    medium
+                                </Button>
                                 <p className="mt-1 text-[10px] text-grey-1">h-9 · 10 usages</p>
                             </div>
                             <div className="text-center">
-                                <Button variant="stroke" size="large">large</Button>
+                                <Button variant="stroke" size="large">
+                                    large
+                                </Button>
                                 <p className="mt-1 text-[10px] text-grey-1">h-10 · 5 usages</p>
                             </div>
                         </div>
                     </Section>
 
                     <Section title="Shadows">
-                        <p className="text-xs text-grey-1">shadowSize=&quot;4&quot; has 160 usages. everything else is negligible.</p>
+                        <p className="text-xs text-grey-1">
+                            shadowSize=&quot;4&quot; has 160 usages. everything else is negligible.
+                        </p>
                         <div className="flex flex-wrap gap-4">
                             {(['3', '4', '6', '8'] as const).map((s) => (
                                 <div key={s} className="text-center">
-                                    <Button variant="purple" shadowSize={s}>shadow {s}</Button>
-                                    <p className="mt-1 text-[10px] text-grey-1">{s === '4' ? '160 usages' : s === '8' ? '1 usage' : '0 usages'}</p>
+                                    <Button variant="purple" shadowSize={s}>
+                                        shadow {s}
+                                    </Button>
+                                    <p className="mt-1 text-[10px] text-grey-1">
+                                        {s === '4' ? '160 usages' : s === '8' ? '1 usage' : '0 usages'}
+                                    </p>
                                 </div>
                             ))}
                         </div>
@@ -286,24 +389,38 @@ export default function ComponentsPage() {
 
                     <Section title="Canonical Patterns">
                         <p className="text-xs font-bold">primary CTA (most common pattern)</p>
-                        <Button variant="purple" shadowSize="4" className="w-full">Continue</Button>
-                        <CopySnippet code={`<Button variant="purple" shadowSize="4" className="w-full">Continue</Button>`} />
+                        <Button variant="purple" shadowSize="4" className="w-full">
+                            Continue
+                        </Button>
+                        <CopySnippet
+                            code={`<Button variant="purple" shadowSize="4" className="w-full">Continue</Button>`}
+                        />
 
                         <p className="mt-4 text-xs font-bold">secondary CTA</p>
-                        <Button variant="stroke" className="w-full">Go Back</Button>
+                        <Button variant="stroke" className="w-full">
+                            Go Back
+                        </Button>
                         <CopySnippet code={`<Button variant="stroke" className="w-full">Go Back</Button>`} />
 
                         <p className="mt-4 text-xs font-bold">with icon</p>
                         <div className="flex flex-wrap gap-2">
-                            <Button variant="purple" icon="share">Share</Button>
-                            <Button variant="stroke" icon="copy">Copy</Button>
+                            <Button variant="purple" icon="share">
+                                Share
+                            </Button>
+                            <Button variant="stroke" icon="copy">
+                                Copy
+                            </Button>
                         </div>
                         <CopySnippet code={`<Button variant="purple" icon="share">Share</Button>`} />
 
                         <p className="mt-4 text-xs font-bold">states</p>
                         <div className="flex flex-wrap gap-2">
-                            <Button variant="purple" disabled>Disabled</Button>
-                            <Button variant="purple" loading>Loading</Button>
+                            <Button variant="purple" disabled>
+                                Disabled
+                            </Button>
+                            <Button variant="purple" loading>
+                                Loading
+                            </Button>
                         </div>
                     </Section>
                 </div>
@@ -326,14 +443,22 @@ export default function ComponentsPage() {
                             ]}
                         />
 
-                        <Card className="p-4"><p className="text-sm">no shadow</p></Card>
+                        <Card className="p-4">
+                            <p className="text-sm">no shadow</p>
+                        </Card>
                         <CopySnippet code={`<Card className="p-4">content</Card>`} />
 
-                        <Card shadowSize="4" className="p-4"><p className="text-sm">shadowSize=&quot;4&quot;</p></Card>
+                        <Card shadowSize="4" className="p-4">
+                            <p className="text-sm">shadowSize=&quot;4&quot;</p>
+                        </Card>
                         <CopySnippet code={`<Card shadowSize="4" className="p-4">content</Card>`} />
 
-                        <Card shadowSize="6" className="p-4"><p className="text-sm">shadowSize=&quot;6&quot;</p></Card>
-                        <Card shadowSize="8" className="p-4"><p className="text-sm">shadowSize=&quot;8&quot;</p></Card>
+                        <Card shadowSize="6" className="p-4">
+                            <p className="text-sm">shadowSize=&quot;6&quot;</p>
+                        </Card>
+                        <Card shadowSize="8" className="p-4">
+                            <p className="text-sm">shadowSize=&quot;8&quot;</p>
+                        </Card>
 
                         <p className="mt-2 text-xs font-bold">with sub-components</p>
                         <Card shadowSize="4" className="p-4">
@@ -341,15 +466,19 @@ export default function ComponentsPage() {
                                 <Card.Title>Card Title</Card.Title>
                                 <Card.Description>description text</Card.Description>
                             </Card.Header>
-                            <Card.Content><p className="text-sm">body content</p></Card.Content>
+                            <Card.Content>
+                                <p className="text-sm">body content</p>
+                            </Card.Content>
                         </Card>
-                        <CopySnippet code={`<Card shadowSize="4" className="p-4">
+                        <CopySnippet
+                            code={`<Card shadowSize="4" className="p-4">
   <Card.Header>
     <Card.Title>Title</Card.Title>
     <Card.Description>Description</Card.Description>
   </Card.Header>
   <Card.Content>Content</Card.Content>
-</Card>`} />
+</Card>`}
+                        />
                     </Section>
 
                     <Section
@@ -358,7 +487,10 @@ export default function ComponentsPage() {
                         status="production"
                         quality={4}
                     >
-                        <p className="text-xs text-grey-1">for stacked list items with position-aware borders. default export. heavily used across the app.</p>
+                        <p className="text-xs text-grey-1">
+                            for stacked list items with position-aware borders. default export. heavily used across the
+                            app.
+                        </p>
                         <PropTable
                             rows={[
                                 ['position', 'single | first | middle | last', 'single'],
@@ -367,24 +499,38 @@ export default function ComponentsPage() {
                             ]}
                         />
 
-                        <GlobalCard position="single" className="py-3"><p className="text-sm">position=&quot;single&quot;</p></GlobalCard>
+                        <GlobalCard position="single" className="py-3">
+                            <p className="text-sm">position=&quot;single&quot;</p>
+                        </GlobalCard>
                         <CopySnippet code={`<Card position="single" className="py-3">content</Card>`} />
 
                         <p className="mt-2 text-xs font-bold">stacked list</p>
                         <div className="space-y-0">
-                            <GlobalCard position="first" className="py-3"><p className="text-sm">position=&quot;first&quot;</p></GlobalCard>
-                            <GlobalCard position="middle" className="py-3"><p className="text-sm">position=&quot;middle&quot;</p></GlobalCard>
-                            <GlobalCard position="middle" className="py-3"><p className="text-sm">position=&quot;middle&quot;</p></GlobalCard>
-                            <GlobalCard position="last" className="py-3"><p className="text-sm">position=&quot;last&quot;</p></GlobalCard>
+                            <GlobalCard position="first" className="py-3">
+                                <p className="text-sm">position=&quot;first&quot;</p>
+                            </GlobalCard>
+                            <GlobalCard position="middle" className="py-3">
+                                <p className="text-sm">position=&quot;middle&quot;</p>
+                            </GlobalCard>
+                            <GlobalCard position="middle" className="py-3">
+                                <p className="text-sm">position=&quot;middle&quot;</p>
+                            </GlobalCard>
+                            <GlobalCard position="last" className="py-3">
+                                <p className="text-sm">position=&quot;last&quot;</p>
+                            </GlobalCard>
                         </div>
-                        <CopySnippet code={`<div className="space-y-0">
+                        <CopySnippet
+                            code={`<div className="space-y-0">
   <Card position="first" className="py-3">First</Card>
   <Card position="middle" className="py-3">Middle</Card>
   <Card position="last" className="py-3">Last</Card>
-</div>`} />
+</div>`}
+                        />
 
                         <p className="mt-2 text-xs font-bold">no border</p>
-                        <GlobalCard border={false} className="bg-primary-3/20 py-3"><p className="text-sm">border=false</p></GlobalCard>
+                        <GlobalCard border={false} className="bg-primary-3/20 py-3">
+                            <p className="text-sm">border=false</p>
+                        </GlobalCard>
                     </Section>
                 </div>
 
@@ -398,12 +544,26 @@ export default function ComponentsPage() {
                         status="production"
                         quality={3}
                     >
-                        <PropTable rows={[['variant', 'sm | md | lg', 'md'], ['rightContent', 'ReactNode', '(none)']]} />
-                        <BaseInput placeholder="default (md)" value={inputValue} onChange={(e) => setInputValue(e.target.value)} />
-                        <CopySnippet code={`<BaseInput placeholder="Amount" value={value} onChange={(e) => setValue(e.target.value)} />`} />
+                        <PropTable
+                            rows={[
+                                ['variant', 'sm | md | lg', 'md'],
+                                ['rightContent', 'ReactNode', '(none)'],
+                            ]}
+                        />
+                        <BaseInput
+                            placeholder="default (md)"
+                            value={inputValue}
+                            onChange={(e) => setInputValue(e.target.value)}
+                        />
+                        <CopySnippet
+                            code={`<BaseInput placeholder="Amount" value={value} onChange={(e) => setValue(e.target.value)} />`}
+                        />
                         <BaseInput variant="sm" placeholder="small (sm)" />
                         <BaseInput variant="lg" placeholder="large (lg)" />
-                        <BaseInput placeholder="with right content" rightContent={<span className="text-sm text-grey-1">USD</span>} />
+                        <BaseInput
+                            placeholder="with right content"
+                            rightContent={<span className="text-sm text-grey-1">USD</span>}
+                        />
                     </Section>
 
                     <Section
@@ -423,12 +583,18 @@ export default function ComponentsPage() {
                             ]}
                         />
                         <BaseSelect
-                            options={[{ label: 'Option 1', value: '1' }, { label: 'Option 2', value: '2' }, { label: 'Option 3', value: '3' }]}
+                            options={[
+                                { label: 'Option 1', value: '1' },
+                                { label: 'Option 2', value: '2' },
+                                { label: 'Option 3', value: '3' },
+                            ]}
                             placeholder="Select an option"
                             value={selectValue}
                             onValueChange={setSelectValue}
                         />
-                        <CopySnippet code={`<BaseSelect options={[{ label: 'Option 1', value: '1' }]} value={value} onValueChange={setValue} />`} />
+                        <CopySnippet
+                            code={`<BaseSelect options={[{ label: 'Option 1', value: '1' }]} value={value} onValueChange={setValue} />`}
+                        />
                         <div className="flex gap-2">
                             <BaseSelect options={[{ label: 'Disabled', value: 'd' }]} placeholder="disabled" disabled />
                             <BaseSelect options={[{ label: 'Error', value: 'e' }]} placeholder="error" error />
@@ -441,8 +607,14 @@ export default function ComponentsPage() {
                         status="production"
                         quality={3}
                     >
-                        <Checkbox label="I agree to the terms" value={checkboxValue} onChange={(e) => setCheckboxValue(e.target.checked)} />
-                        <CopySnippet code={`<Checkbox label="I agree" value={checked} onChange={(e) => setChecked(e.target.checked)} />`} />
+                        <Checkbox
+                            label="I agree to the terms"
+                            value={checkboxValue}
+                            onChange={(e) => setCheckboxValue(e.target.checked)}
+                        />
+                        <CopySnippet
+                            code={`<Checkbox label="I agree" value={checked} onChange={(e) => setChecked(e.target.checked)} />`}
+                        />
                     </Section>
 
                     <Section
@@ -451,7 +623,9 @@ export default function ComponentsPage() {
                         status="production"
                         quality={4}
                     >
-                        <p className="text-xs text-grey-1">input + copy button combo. used for addresses, codes, links.</p>
+                        <p className="text-xs text-grey-1">
+                            input + copy button combo. used for addresses, codes, links.
+                        </p>
                         <CopyField text="0x1234...abcd" />
                         <CopySnippet code={`<CopyField text="0x1234...abcd" />`} />
                         <CopyField text="peanut.me/invite/abc123" shadowSize="4" />
@@ -459,13 +633,26 @@ export default function ComponentsPage() {
 
                     <Section title="Other Input Components (reference)">
                         <div className="space-y-2 rounded-sm border border-n-1 p-3 text-xs">
-                            <p><span className="font-bold">ValidatedInput</span> — async validation with debounce, loading state, check/error icons. used in setup flows.</p>
+                            <p>
+                                <span className="font-bold">ValidatedInput</span> — async validation with debounce,
+                                loading state, check/error icons. used in setup flows.
+                            </p>
                             <CopySnippet code={`import ValidatedInput from '@/components/Global/ValidatedInput'`} />
-                            <p className="mt-2"><span className="font-bold">AmountInput</span> — large currency input with conversion, slider, balance display. used in payment flows.</p>
+                            <p className="mt-2">
+                                <span className="font-bold">AmountInput</span> — large currency input with conversion,
+                                slider, balance display. used in payment flows.
+                            </p>
                             <CopySnippet code={`import AmountInput from '@/components/Global/AmountInput'`} />
-                            <p className="mt-2"><span className="font-bold">GeneralRecipientInput</span> — multi-type recipient input (address, username, etc).</p>
-                            <CopySnippet code={`import GeneralRecipientInput from '@/components/Global/GeneralRecipientInput'`} />
-                            <p className="mt-2"><span className="font-bold">FileUploadInput</span> — file upload with drag-and-drop.</p>
+                            <p className="mt-2">
+                                <span className="font-bold">GeneralRecipientInput</span> — multi-type recipient input
+                                (address, username, etc).
+                            </p>
+                            <CopySnippet
+                                code={`import GeneralRecipientInput from '@/components/Global/GeneralRecipientInput'`}
+                            />
+                            <p className="mt-2">
+                                <span className="font-bold">FileUploadInput</span> — file upload with drag-and-drop.
+                            </p>
                             <CopySnippet code={`import FileUploadInput from '@/components/Global/FileUploadInput'`} />
                         </div>
                     </Section>
@@ -481,7 +668,9 @@ export default function ComponentsPage() {
                         status="production"
                         quality={5}
                     >
-                        <p className="text-xs text-grey-1">simple css spinner. default h-4 w-4. clean, minimal, no deps.</p>
+                        <p className="text-xs text-grey-1">
+                            simple css spinner. default h-4 w-4. clean, minimal, no deps.
+                        </p>
                         <div className="flex items-center gap-6">
                             {['h-4 w-4', 'h-8 w-8', 'h-12 w-12'].map((size) => (
                                 <div key={size} className="flex flex-col items-center gap-1">
@@ -499,12 +688,26 @@ export default function ComponentsPage() {
                         status="production"
                         quality={4}
                     >
-                        <p className="text-xs text-grey-1">branded loading with animated peanutman logo. optional fullscreen overlay and message.</p>
-                        <PropTable rows={[['coverFullScreen', 'boolean', 'false'], ['message', 'string', '(none)']]} />
+                        <p className="text-xs text-grey-1">
+                            branded loading with animated peanutman logo. optional fullscreen overlay and message.
+                        </p>
+                        <PropTable
+                            rows={[
+                                ['coverFullScreen', 'boolean', 'false'],
+                                ['message', 'string', '(none)'],
+                            ]}
+                        />
                         <PeanutLoading message="loading your data..." />
                         <CopySnippet code={`<PeanutLoading message="loading..." />`} />
                         {showPeanutLoading && <PeanutLoading coverFullScreen />}
-                        <Button variant="stroke" size="small" onClick={() => { setShowPeanutLoading(true); setTimeout(() => setShowPeanutLoading(false), 2000) }}>
+                        <Button
+                            variant="stroke"
+                            size="small"
+                            onClick={() => {
+                                setShowPeanutLoading(true)
+                                setTimeout(() => setShowPeanutLoading(false), 2000)
+                            }}
+                        >
                             test fullscreen (2s)
                         </Button>
                     </Section>
@@ -515,14 +718,26 @@ export default function ComponentsPage() {
                         status="production"
                         quality={5}
                     >
-                        <p className="text-xs text-grey-1">context-based toast system. 4 types. auto-dismiss. clean API.</p>
+                        <p className="text-xs text-grey-1">
+                            context-based toast system. 4 types. auto-dismiss. clean API.
+                        </p>
                         <div className="flex flex-wrap gap-2">
-                            <Button variant="stroke" size="small" onClick={() => success('Operation successful!')}>success</Button>
-                            <Button variant="stroke" size="small" onClick={() => error('Something went wrong')}>error</Button>
-                            <Button variant="stroke" size="small" onClick={() => info('Did you know?')}>info</Button>
-                            <Button variant="stroke" size="small" onClick={() => warning('Check this out')}>warning</Button>
+                            <Button variant="stroke" size="small" onClick={() => success('Operation successful!')}>
+                                success
+                            </Button>
+                            <Button variant="stroke" size="small" onClick={() => error('Something went wrong')}>
+                                error
+                            </Button>
+                            <Button variant="stroke" size="small" onClick={() => info('Did you know?')}>
+                                info
+                            </Button>
+                            <Button variant="stroke" size="small" onClick={() => warning('Check this out')}>
+                                warning
+                            </Button>
                         </div>
-                        <CopySnippet code={`const { success, error, info, warning } = useToast()\nsuccess('Done!')\nerror('Failed!')`} />
+                        <CopySnippet
+                            code={`const { success, error, info, warning } = useToast()\nsuccess('Done!')\nerror('Failed!')`}
+                        />
                     </Section>
 
                     <Section
@@ -531,9 +746,22 @@ export default function ComponentsPage() {
                         status="production"
                         quality={4}
                     >
-                        <p className="text-xs text-grey-1">color-coded text badge. 9 status types. 3 sizes. well-structured.</p>
+                        <p className="text-xs text-grey-1">
+                            color-coded text badge. 9 status types. 3 sizes. well-structured.
+                        </p>
                         <div className="flex flex-wrap gap-2">
-                            {(['completed', 'pending', 'processing', 'failed', 'cancelled', 'refunded', 'soon', 'closed'] as const).map((s) => (
+                            {(
+                                [
+                                    'completed',
+                                    'pending',
+                                    'processing',
+                                    'failed',
+                                    'cancelled',
+                                    'refunded',
+                                    'soon',
+                                    'closed',
+                                ] as const
+                            ).map((s) => (
                                 <StatusBadge key={s} status={s} />
                             ))}
                         </div>
@@ -552,9 +780,22 @@ export default function ComponentsPage() {
                         status="production"
                         quality={4}
                     >
-                        <p className="text-xs text-grey-1">compact circular icon indicator. smaller than StatusBadge.</p>
+                        <p className="text-xs text-grey-1">
+                            compact circular icon indicator. smaller than StatusBadge.
+                        </p>
                         <div className="flex flex-wrap gap-3">
-                            {(['completed', 'pending', 'processing', 'failed', 'cancelled', 'refunded', 'soon', 'closed'] as const).map((s) => (
+                            {(
+                                [
+                                    'completed',
+                                    'pending',
+                                    'processing',
+                                    'failed',
+                                    'cancelled',
+                                    'refunded',
+                                    'soon',
+                                    'closed',
+                                ] as const
+                            ).map((s) => (
                                 <div key={s} className="flex flex-col items-center gap-1">
                                     <StatusPill status={s} />
                                     <span className="text-[9px] text-grey-1">{s}</span>
@@ -581,7 +822,9 @@ export default function ComponentsPage() {
                         status="production"
                         quality={4}
                     >
-                        <p className="text-xs text-grey-1">structured empty state with icon, title, description, optional CTA.</p>
+                        <p className="text-xs text-grey-1">
+                            structured empty state with icon, title, description, optional CTA.
+                        </p>
                         <EmptyState icon="search" title="No results found" description="try a different search term" />
                         <CopySnippet code={`<EmptyState icon="search" title="No results" description="Try again" />`} />
                     </Section>
@@ -608,7 +851,9 @@ export default function ComponentsPage() {
                         status="production"
                         quality={4}
                     >
-                        <p className="text-xs text-grey-1">primary navigation header. used on nearly every mobile screen.</p>
+                        <p className="text-xs text-grey-1">
+                            primary navigation header. used on nearly every mobile screen.
+                        </p>
                         <PropTable
                             rows={[
                                 ['title', 'string', '(none)'],
@@ -634,9 +879,14 @@ export default function ComponentsPage() {
                         status="production"
                         quality={4}
                     >
-                        <p className="text-xs text-grey-1">minimal header for multi-step flows. back button + optional right element.</p>
+                        <p className="text-xs text-grey-1">
+                            minimal header for multi-step flows. back button + optional right element.
+                        </p>
                         <div className="rounded-sm border border-n-1 p-2">
-                            <FlowHeader onPrev={() => {}} rightElement={<span className="text-sm text-grey-1">Step 2/3</span>} />
+                            <FlowHeader
+                                onPrev={() => {}}
+                                rightElement={<span className="text-sm text-grey-1">Step 2/3</span>}
+                            />
                         </div>
                         <CopySnippet code={`<FlowHeader onPrev={handleBack} rightElement={<span>Step 2/3</span>} />`} />
                     </Section>
@@ -647,13 +897,21 @@ export default function ComponentsPage() {
                         status="production"
                         quality={4}
                     >
-                        <p className="text-xs text-grey-1">base dialog wrapper using @headlessui. backdrop, transitions, close button.</p>
-                        <Button variant="stroke" size="small" onClick={() => setShowModal(true)}>open modal</Button>
-                        <CopySnippet code={`<Modal visible={show} onClose={() => setShow(false)} title="Modal Title">
+                        <p className="text-xs text-grey-1">
+                            base dialog wrapper using @headlessui. backdrop, transitions, close button.
+                        </p>
+                        <Button variant="stroke" size="small" onClick={() => setShowModal(true)}>
+                            open modal
+                        </Button>
+                        <CopySnippet
+                            code={`<Modal visible={show} onClose={() => setShow(false)} title="Modal Title">
   <p>Content here</p>
-</Modal>`} />
+</Modal>`}
+                        />
                         <Modal visible={showModal} onClose={() => setShowModal(false)} title="Example Modal">
-                            <p className="text-sm text-grey-1">base modal component. has backdrop overlay, animated transitions, and close button.</p>
+                            <p className="text-sm text-grey-1">
+                                base modal component. has backdrop overlay, animated transitions, and close button.
+                            </p>
                         </Modal>
                     </Section>
 
@@ -663,9 +921,15 @@ export default function ComponentsPage() {
                         status="production"
                         quality={5}
                     >
-                        <p className="text-xs text-grey-1">enhanced modal with structured layout: icon + title + description + buttons + optional checkbox.</p>
-                        <Button variant="stroke" size="small" onClick={() => setShowActionModal(true)}>open action modal</Button>
-                        <CopySnippet code={`<ActionModal
+                        <p className="text-xs text-grey-1">
+                            enhanced modal with structured layout: icon + title + description + buttons + optional
+                            checkbox.
+                        </p>
+                        <Button variant="stroke" size="small" onClick={() => setShowActionModal(true)}>
+                            open action modal
+                        </Button>
+                        <CopySnippet
+                            code={`<ActionModal
   visible={show}
   onClose={() => setShow(false)}
   title="Confirm Action"
@@ -675,7 +939,8 @@ export default function ComponentsPage() {
     { text: 'Confirm', variant: 'purple', onClick: handleConfirm },
     { text: 'Cancel', variant: 'stroke', onClick: () => setShow(false) },
   ]}
-/>`} />
+/>`}
+                        />
                         <ActionModal
                             visible={showActionModal}
                             onClose={() => setShowActionModal(false)}
@@ -695,8 +960,11 @@ export default function ComponentsPage() {
                         status="production"
                         quality={5}
                     >
-                        <p className="text-xs text-grey-1">vaul-based bottom drawer. compound component API. mobile-optimized with snap points.</p>
-                        <CopySnippet code={`<Drawer>
+                        <p className="text-xs text-grey-1">
+                            vaul-based bottom drawer. compound component API. mobile-optimized with snap points.
+                        </p>
+                        <CopySnippet
+                            code={`<Drawer>
   <DrawerTrigger asChild>
     <Button>Open</Button>
   </DrawerTrigger>
@@ -704,20 +972,42 @@ export default function ComponentsPage() {
     <DrawerTitle>Title</DrawerTitle>
     <p>Content</p>
   </DrawerContent>
-</Drawer>`} />
+</Drawer>`}
+                        />
                     </Section>
 
                     <Section title="All Modal Types (reference)">
                         <div className="space-y-1 rounded-sm border border-n-1 p-3 text-xs text-grey-1">
-                            <p><span className="font-bold text-n-1">Modal</span> — base dialog (informational content)</p>
-                            <p><span className="font-bold text-n-1">ActionModal</span> — structured confirmations/actions</p>
-                            <p><span className="font-bold text-n-1">Drawer</span> — bottom sheet (mobile-first interactions)</p>
-                            <p><span className="font-bold text-n-1">InviteFriendsModal</span> — referral sharing</p>
-                            <p><span className="font-bold text-n-1">ConfirmInviteModal</span> — invite confirmation</p>
-                            <p><span className="font-bold text-n-1">GuestLoginModal</span> — guest auth flow</p>
-                            <p><span className="font-bold text-n-1">KycVerifiedOrReviewModal</span> — KYC status</p>
-                            <p><span className="font-bold text-n-1">BalanceWarningModal</span> — low balance warning</p>
-                            <p><span className="font-bold text-n-1">TokenAndNetworkConfirmationModal</span> — tx confirmation</p>
+                            <p>
+                                <span className="font-bold text-n-1">Modal</span> — base dialog (informational content)
+                            </p>
+                            <p>
+                                <span className="font-bold text-n-1">ActionModal</span> — structured
+                                confirmations/actions
+                            </p>
+                            <p>
+                                <span className="font-bold text-n-1">Drawer</span> — bottom sheet (mobile-first
+                                interactions)
+                            </p>
+                            <p>
+                                <span className="font-bold text-n-1">InviteFriendsModal</span> — referral sharing
+                            </p>
+                            <p>
+                                <span className="font-bold text-n-1">ConfirmInviteModal</span> — invite confirmation
+                            </p>
+                            <p>
+                                <span className="font-bold text-n-1">GuestLoginModal</span> — guest auth flow
+                            </p>
+                            <p>
+                                <span className="font-bold text-n-1">KycVerifiedOrReviewModal</span> — KYC status
+                            </p>
+                            <p>
+                                <span className="font-bold text-n-1">BalanceWarningModal</span> — low balance warning
+                            </p>
+                            <p>
+                                <span className="font-bold text-n-1">TokenAndNetworkConfirmationModal</span> — tx
+                                confirmation
+                            </p>
                         </div>
                     </Section>
                 </div>
@@ -728,8 +1018,8 @@ export default function ComponentsPage() {
                 <div id="layouts" className="scroll-mt-16 space-y-6">
                     <Section title="Page Layout Recipes">
                         <p className="text-xs text-grey-1">
-                            all mobile screens use <span className="font-mono">min-h-[inherit]</span> from the app shell.
-                            these are the standard patterns for arranging NavHeader + content + CTA.
+                            all mobile screens use <span className="font-mono">min-h-[inherit]</span> from the app
+                            shell. these are the standard patterns for arranging NavHeader + content + CTA.
                         </p>
 
                         <div className="rounded-sm bg-yellow-1/30 p-2 text-xs font-bold">
@@ -739,7 +1029,10 @@ export default function ComponentsPage() {
                     </Section>
 
                     <Section title="Centered Content + CTA (default)">
-                        <p className="text-xs text-grey-1">most common layout. content + CTA grouped and vertically centered. used in card flow, confirmation screens, empty states.</p>
+                        <p className="text-xs text-grey-1">
+                            most common layout. content + CTA grouped and vertically centered. used in card flow,
+                            confirmation screens, empty states.
+                        </p>
 
                         {/* live demo */}
                         <div className="flex h-72 flex-col gap-8 rounded-sm border border-n-1 bg-primary-3/10 p-4">
@@ -754,7 +1047,8 @@ export default function ComponentsPage() {
                             </div>
                         </div>
 
-                        <CopySnippet code={`<div className="flex min-h-[inherit] flex-col gap-8">
+                        <CopySnippet
+                            code={`<div className="flex min-h-[inherit] flex-col gap-8">
   <NavHeader title="Title" onPrev={onBack} />
   <div className="my-auto flex flex-col gap-6">
     {/* content */}
@@ -764,11 +1058,15 @@ export default function ComponentsPage() {
       Continue
     </Button>
   </div>
-</div>`} />
+</div>`}
+                        />
                     </Section>
 
                     <Section title="Pinned Footer CTA">
-                        <p className="text-xs text-grey-1">CTA pinned to bottom, content centered above. used for success screens, landing pages where CTA should always be visible.</p>
+                        <p className="text-xs text-grey-1">
+                            CTA pinned to bottom, content centered above. used for success screens, landing pages where
+                            CTA should always be visible.
+                        </p>
 
                         {/* live demo */}
                         <div className="flex h-72 flex-col justify-between gap-8 rounded-sm border border-n-1 bg-primary-3/10 p-4">
@@ -781,7 +1079,8 @@ export default function ComponentsPage() {
                             <div className="h-10 w-full rounded-sm bg-purple-1/60" />
                         </div>
 
-                        <CopySnippet code={`<div className="flex min-h-[inherit] flex-col justify-between gap-8">
+                        <CopySnippet
+                            code={`<div className="flex min-h-[inherit] flex-col justify-between gap-8">
   <NavHeader title="Title" onPrev={onBack} />
   <div className="my-auto flex flex-col items-center gap-4">
     {/* content centers itself */}
@@ -790,17 +1089,21 @@ export default function ComponentsPage() {
   <Button variant="purple" shadowSize="4" className="w-full">
     Done
   </Button>
-</div>`} />
+</div>`}
+                        />
                     </Section>
 
                     <Section title="Scrollable List">
-                        <p className="text-xs text-grey-1">for long lists. CTA at bottom after content, no forced centering. used in history, settings, transaction lists.</p>
+                        <p className="text-xs text-grey-1">
+                            for long lists. CTA at bottom after content, no forced centering. used in history, settings,
+                            transaction lists.
+                        </p>
 
                         {/* live demo */}
                         <div className="flex h-72 flex-col gap-4 overflow-hidden rounded-sm border border-n-1 bg-primary-3/10 p-4">
                             <div className="h-6 w-24 rounded-sm bg-n-1/10" />
                             <div className="flex flex-col gap-2 overflow-y-auto">
-                                {[1,2,3,4,5].map((i) => (
+                                {[1, 2, 3, 4, 5].map((i) => (
                                     <div key={i} className="h-12 shrink-0 rounded-sm border border-n-1/20 bg-white p-2">
                                         <div className="h-2 w-24 rounded-sm bg-n-1/10" />
                                     </div>
@@ -808,12 +1111,14 @@ export default function ComponentsPage() {
                             </div>
                         </div>
 
-                        <CopySnippet code={`<div className="flex min-h-[inherit] flex-col gap-4">
+                        <CopySnippet
+                            code={`<div className="flex min-h-[inherit] flex-col gap-4">
   <NavHeader title="Title" onPrev={onBack} />
   <div className="flex flex-col gap-3">
     {items.map(item => <Card key={item.id}>...</Card>)}
   </div>
-</div>`} />
+</div>`}
+                        />
                     </Section>
 
                     <Section title="Common Mistakes">
@@ -822,14 +1127,18 @@ export default function ComponentsPage() {
                                 <Icon name="cancel" size={14} className="mt-0.5 shrink-0 text-error-1" />
                                 <div>
                                     <p className="font-bold">CTA as sibling of my-auto div</p>
-                                    <p className="text-grey-1">button gets pushed to bottom by gap, not grouped with content</p>
+                                    <p className="text-grey-1">
+                                        button gets pushed to bottom by gap, not grouped with content
+                                    </p>
                                 </div>
                             </div>
                             <div className="flex items-start gap-2 rounded-sm border border-error-1/40 bg-error-1/10 p-2">
                                 <Icon name="cancel" size={14} className="mt-0.5 shrink-0 text-error-1" />
                                 <div>
                                     <p className="font-bold">justify-between when you want grouped centering</p>
-                                    <p className="text-grey-1">pins CTA to bottom instead of keeping it close to content</p>
+                                    <p className="text-grey-1">
+                                        pins CTA to bottom instead of keeping it close to content
+                                    </p>
                                 </div>
                             </div>
                             <div className="flex items-start gap-2 rounded-sm border border-error-1/40 bg-error-1/10 p-2">
@@ -877,7 +1186,9 @@ export default function ComponentsPage() {
                     </Section>
 
                     <Section title="Color Tokens">
-                        <p className="text-xs text-grey-1">from tailwind.config.js — names can be misleading. tap to copy class name.</p>
+                        <p className="text-xs text-grey-1">
+                            from tailwind.config.js — names can be misleading. tap to copy class name.
+                        </p>
                         <div className="grid grid-cols-2 gap-2">
                             {[
                                 ['purple-1', 'bg-purple-1', '#FF90E8', 'pink!'],
@@ -901,7 +1212,9 @@ export default function ComponentsPage() {
                                     <div className={`size-8 shrink-0 rounded-sm border border-n-1 ${bg}`} />
                                     <div>
                                         <p className="text-xs font-bold">{name}</p>
-                                        <p className="text-[9px] text-grey-1">{hex} · {note}</p>
+                                        <p className="text-[9px] text-grey-1">
+                                            {hex} · {note}
+                                        </p>
                                     </div>
                                 </button>
                             ))}
@@ -910,14 +1223,14 @@ export default function ComponentsPage() {
 
                     <Section title="Background Patterns">
                         <div className="space-y-2">
-                            <div className="h-20 rounded-sm border border-n-1 bg-peanut-repeat-normal bg-primary-3 p-2">
+                            <div className="bg-peanut-repeat-normal h-20 rounded-sm border border-n-1 bg-primary-3 p-2">
                                 <span className="font-mono text-[10px]">.bg-peanut-repeat-normal</span>
                             </div>
                             <CopySnippet code={`className="bg-peanut-repeat-normal bg-primary-3"`} />
-                            <div className="h-20 rounded-sm border border-n-1 bg-peanut-repeat-large bg-primary-3 p-2">
+                            <div className="bg-peanut-repeat-large h-20 rounded-sm border border-n-1 bg-primary-3 p-2">
                                 <span className="font-mono text-[10px]">.bg-peanut-repeat-large</span>
                             </div>
-                            <div className="h-20 rounded-sm border border-n-1 bg-peanut-repeat-small bg-primary-3 p-2">
+                            <div className="bg-peanut-repeat-small h-20 rounded-sm border border-n-1 bg-primary-3 p-2">
                                 <span className="font-mono text-[10px]">.bg-peanut-repeat-small</span>
                             </div>
                         </div>
@@ -929,9 +1242,13 @@ export default function ComponentsPage() {
                         status="production"
                         quality={3}
                     >
-                        <div className="rounded-sm bg-purple-1 p-4"><Title text="PEANUT" /></div>
+                        <div className="rounded-sm bg-purple-1 p-4">
+                            <Title text="PEANUT" />
+                        </div>
                         <CopySnippet code={`<Title text="PEANUT" />`} />
-                        <div className="rounded-sm bg-purple-1 p-4"><Title text="NO OFFSET" offset={false} /></div>
+                        <div className="rounded-sm bg-purple-1 p-4">
+                            <Title text="NO OFFSET" offset={false} />
+                        </div>
                     </Section>
 
                     <Section title="Copy & Share Utilities">
@@ -946,15 +1263,21 @@ export default function ComponentsPage() {
                                     <CopyToClipboard textToCopy="copied text!" />
                                     <span className="text-xs text-grey-1">icon mode (default)</span>
                                 </div>
-                                <CopySnippet code={`import CopyToClipboard from '@/components/Global/CopyToClipboard'\n<CopyToClipboard textToCopy="text" />`} />
+                                <CopySnippet
+                                    code={`import CopyToClipboard from '@/components/Global/CopyToClipboard'\n<CopyToClipboard textToCopy="text" />`}
+                                />
                             </div>
                             <div>
                                 <div className="mb-1 flex items-center gap-2">
                                     <span className="text-xs font-bold">ShareButton</span>
                                     <StatusTag status="production" />
                                 </div>
-                                <p className="text-xs text-grey-1">web share API with clipboard fallback. async URL generation.</p>
-                                <CopySnippet code={`import ShareButton from '@/components/Global/ShareButton'\n<ShareButton url="https://peanut.me/..." title="Share" />`} />
+                                <p className="text-xs text-grey-1">
+                                    web share API with clipboard fallback. async URL generation.
+                                </p>
+                                <CopySnippet
+                                    code={`import ShareButton from '@/components/Global/ShareButton'\n<ShareButton url="https://peanut.me/..." title="Share" />`}
+                                />
                             </div>
                         </div>
                     </Section>
@@ -966,34 +1289,56 @@ export default function ComponentsPage() {
                                     <span className="text-xs font-bold">AddressLink</span>
                                     <StatusTag status="production" />
                                 </div>
-                                <p className="text-xs text-grey-1">shortened address with ENS resolution and profile link.</p>
+                                <p className="text-xs text-grey-1">
+                                    shortened address with ENS resolution and profile link.
+                                </p>
                                 <AddressLink address="0x1234567890abcdef1234567890abcdef12345678" />
-                                <CopySnippet code={`import AddressLink from '@/components/Global/AddressLink'\n<AddressLink address="0x1234..." />`} />
+                                <CopySnippet
+                                    code={`import AddressLink from '@/components/Global/AddressLink'\n<AddressLink address="0x1234..." />`}
+                                />
                             </div>
                             <div>
                                 <div className="mb-1 flex items-center gap-2">
                                     <span className="text-xs font-bold">MoreInfo (Tooltip)</span>
                                     <StatusTag status="production" />
                                 </div>
-                                <p className="text-xs text-grey-1">info icon with smart-positioned tooltip. portal-rendered.</p>
+                                <p className="text-xs text-grey-1">
+                                    info icon with smart-positioned tooltip. portal-rendered.
+                                </p>
                                 <div className="flex items-center gap-2">
                                     <span className="text-sm">some label</span>
                                     <MoreInfo text="this explains what the label means" />
                                 </div>
-                                <CopySnippet code={`import MoreInfo from '@/components/Global/MoreInfo'\n<MoreInfo text="Explanation here" />`} />
+                                <CopySnippet
+                                    code={`import MoreInfo from '@/components/Global/MoreInfo'\n<MoreInfo text="Explanation here" />`}
+                                />
                             </div>
                         </div>
                     </Section>
 
                     <Section title="Country Representation">
-                        <p className="text-xs text-grey-1">countries are represented using flagcdn.com images + country data from AddMoney/consts.</p>
+                        <p className="text-xs text-grey-1">
+                            countries are represented using flagcdn.com images + country data from AddMoney/consts.
+                        </p>
                         <div className="space-y-2 rounded-sm border border-n-1 p-3 text-xs">
-                            <p><span className="font-bold">CountryList</span> — searchable country list with geolocation sorting, flag images, and status badges.</p>
+                            <p>
+                                <span className="font-bold">CountryList</span> — searchable country list with
+                                geolocation sorting, flag images, and status badges.
+                            </p>
                             <CopySnippet code={`import { CountryList } from '@/components/Common/CountryList'`} />
-                            <p className="mt-2"><span className="font-bold">CountryFlagAndName</span> — single country display with flag. supports multi-flag for bridge regions.</p>
-                            <CopySnippet code={`import { CountryFlagAndName } from '@/components/Kyc/CountryFlagAndName'`} />
-                            <p className="mt-2"><span className="font-bold">flag images pattern</span></p>
-                            <CopySnippet code={`<img src={\`https://flagcdn.com/w160/\${countryCode}.png\`} alt="flag" className="h-6 w-6 rounded-full object-cover" />`} />
+                            <p className="mt-2">
+                                <span className="font-bold">CountryFlagAndName</span> — single country display with
+                                flag. supports multi-flag for bridge regions.
+                            </p>
+                            <CopySnippet
+                                code={`import { CountryFlagAndName } from '@/components/Kyc/CountryFlagAndName'`}
+                            />
+                            <p className="mt-2">
+                                <span className="font-bold">flag images pattern</span>
+                            </p>
+                            <CopySnippet
+                                code={`<img src={\`https://flagcdn.com/w160/\${countryCode}.png\`} alt="flag" className="h-6 w-6 rounded-full object-cover" />`}
+                            />
                         </div>
                     </Section>
 
@@ -1017,18 +1362,23 @@ export default function ComponentsPage() {
                             <div className="rounded-sm border border-n-1 p-3">
                                 <p className="font-bold">shadows</p>
                                 <div className="mt-2 flex gap-3">
-                                    <div className="rounded-sm border border-n-1 px-3 py-2 shadow-2">.shadow-2</div>
-                                    <div className="rounded-sm border border-n-1 px-3 py-2 shadow-4">.shadow-4</div>
+                                    <div className="shadow-2 rounded-sm border border-n-1 px-3 py-2">.shadow-2</div>
+                                    <div className="shadow-4 rounded-sm border border-n-1 px-3 py-2">.shadow-4</div>
                                 </div>
                             </div>
                             <div className="rounded-sm border border-n-1 p-3">
                                 <p className="font-bold">labels</p>
                                 <div className="mt-2 flex flex-wrap gap-2">
-                                    {['label-stroke', 'label-purple', 'label-yellow', 'label-black', 'label-teal'].map((cls) => (
-                                        <span key={cls} className={`${cls} inline-block rounded-full px-3 py-1 text-xs font-bold`}>
-                                            {cls.replace('label-', '')}
-                                        </span>
-                                    ))}
+                                    {['label-stroke', 'label-purple', 'label-yellow', 'label-black', 'label-teal'].map(
+                                        (cls) => (
+                                            <span
+                                                key={cls}
+                                                className={`${cls} inline-block rounded-full px-3 py-1 text-xs font-bold`}
+                                            >
+                                                {cls.replace('label-', '')}
+                                            </span>
+                                        )
+                                    )}
                                 </div>
                             </div>
                             <div className="rounded-sm border border-n-1 p-3">
@@ -1039,7 +1389,9 @@ export default function ComponentsPage() {
                             </div>
                             <div className="rounded-sm border border-n-1 p-3">
                                 <p className="font-bold">icon sizes</p>
-                                <p className="mt-1 font-mono text-grey-1">.icon-16 .icon-18 .icon-20 .icon-22 .icon-24 .icon-28</p>
+                                <p className="mt-1 font-mono text-grey-1">
+                                    .icon-16 .icon-18 .icon-20 .icon-22 .icon-24 .icon-28
+                                </p>
                             </div>
                         </div>
                     </Section>

@@ -183,7 +183,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                                     alignStart && 'items-start',
                                     isSupport && 'h-full',
                                     isUserLoggedIn ? 'min-h-[calc(100dvh-160px)]' : 'min-h-[calc(100dvh-64px)]',
-                                    isDev && 'items-start justify-start md:ml-0 md:w-full min-h-[100dvh]'
+                                    isDev && 'min-h-[100dvh] items-start justify-start md:ml-0 md:w-full'
                                 )}
                             >
                                 {children}

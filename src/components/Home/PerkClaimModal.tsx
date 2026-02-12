@@ -115,9 +115,7 @@ export function PerkClaimModal({ perk, visible, onClose, onClaimed }: PerkClaimM
             onClose={handleModalClose}
             title=""
             preventClose={claimPhase === 'opening'}
-            content={
-                <GiftBoxContent perk={perk} onHoldComplete={handleHoldComplete} claimPhase={claimPhase} />
-            }
+            content={<GiftBoxContent perk={perk} onHoldComplete={handleHoldComplete} claimPhase={claimPhase} />}
         />
     )
 }
