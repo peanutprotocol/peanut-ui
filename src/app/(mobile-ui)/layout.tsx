@@ -40,6 +40,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const isHome = pathName === '/home'
     const isHistory = pathName === '/history'
     const isSupport = pathName === '/support'
+    const isDev = pathName?.startsWith('/dev') ?? false
     const alignStart = isHome || isHistory || isSupport
     const router = useRouter()
     const { showIosPwaInstallScreen } = useSetupStore()
@@ -141,22 +142,26 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             <div className="flex w-full">
                 {/* Sidebar - Fixed on desktop */}
 
-                <div className="hidden md:block">
-                    <div className="fixed left-0 top-0 z-20 h-screen w-64">
-                        <WalletNavigation />
+                {!isDev && (
+                    <div className="hidden md:block">
+                        <div className="fixed left-0 top-0 z-20 h-screen w-64">
+                            <WalletNavigation />
+                        </div>
                     </div>
-                </div>
+                )}
 
                 {/* Main content area */}
                 <div className="flex w-full flex-1 flex-col">
                     {/* Banner component handles maintenance and feedback banners */}
-                    <Banner />
+                    {!isDev && <Banner />}
 
                     {/* Fixed top navbar */}
 
-                    <div className="sticky top-0 z-10 w-full">
-                        <TopNavbar />
-                    </div>
+                    {!isDev && (
+                        <div className="sticky top-0 z-10 w-full">
+                            <TopNavbar />
+                        </div>
+                    )}
 
                     {/* Scrollable content area */}
                     <div
@@ -166,7 +171,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                                 'relative flex-1 overflow-y-auto bg-background p-6 pb-24 md:pb-6',
                                 !!isSupport && 'p-0 pb-20 md:p-6',
                                 !!isHome && 'p-0 md:p-6 md:pr-0',
-                                isUserLoggedIn ? 'pb-24' : 'pb-4'
+                                isUserLoggedIn ? 'pb-24' : 'pb-4',
+                                isDev && 'p-0 pb-0'
                             )
                         )}
                     >
@@ -176,7 +182,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                                     'flex w-full items-center justify-center md:ml-auto md:w-[calc(100%-160px)]',
                                     alignStart && 'items-start',
                                     isSupport && 'h-full',
-                                    isUserLoggedIn ? 'min-h-[calc(100dvh-160px)]' : 'min-h-[calc(100dvh-64px)]'
+                                    isUserLoggedIn ? 'min-h-[calc(100dvh-160px)]' : 'min-h-[calc(100dvh-64px)]',
+                                    isDev && 'items-start justify-start md:ml-0 md:w-full min-h-[100dvh]'
                                 )}
                             >
                                 {children}
@@ -185,9 +192,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     </div>
 
                     {/* Mobile navigation */}
-                    <div className="fixed bottom-0 left-0 right-0 z-10 bg-background md:hidden">
-                        <WalletNavigation />
-                    </div>
+                    {!isDev && (
+                        <div className="fixed bottom-0 left-0 right-0 z-10 bg-background md:hidden">
+                            <WalletNavigation />
+                        </div>
+                    )}
                 </div>
             </div>
 

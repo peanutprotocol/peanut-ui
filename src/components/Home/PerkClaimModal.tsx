@@ -97,81 +97,77 @@ export function PerkClaimModal({ perk, visible, onClose, onClaimed }: PerkClaimM
 
     const isSuccessPhase = (claimPhase === 'revealed' || claimPhase === 'exiting') && !!lastClaimedPerk
 
-    // Use ActionModal for consistent styling
+    // Use ActionModal's native props for success phase, custom content for gift box phase
+    if (isSuccessPhase) {
+        return (
+            <SuccessModal
+                perk={lastClaimedPerk!}
+                claimPhase={claimPhase}
+                onClose={handleModalClose}
+                onDismiss={handleDismissSuccess}
+            />
+        )
+    }
+
     return (
         <ActionModal
             visible={visible}
             onClose={handleModalClose}
             title=""
-            hideModalCloseButton={isSuccessPhase}
-            preventClose={claimPhase === 'opening' || claimPhase === 'exiting'}
-            contentContainerClassName="!p-0"
+            preventClose={claimPhase === 'opening'}
             content={
-                isSuccessPhase ? (
-                    <SuccessMessage
-                        perk={lastClaimedPerk!}
-                        isExiting={claimPhase === 'exiting'}
-                        onDismiss={handleDismissSuccess}
-                    />
-                ) : (
-                    <GiftBoxContent perk={perk} onHoldComplete={handleHoldComplete} claimPhase={claimPhase} />
-                )
+                <GiftBoxContent perk={perk} onHoldComplete={handleHoldComplete} claimPhase={claimPhase} />
             }
         />
     )
 }
 
-interface SuccessMessageProps {
+interface SuccessModalProps {
     perk: PendingPerk
-    isExiting: boolean
+    claimPhase: ClaimPhase
+    onClose: () => void
     onDismiss: () => void
 }
 
 /**
- * Success message shown after claiming - tapping anywhere dismisses
+ * Success modal using ActionModal's native layout for consistent design system styling.
+ * Uses icon/title/description props for standard vertical centered layout.
  */
-function SuccessMessage({ perk, isExiting, onDismiss }: SuccessMessageProps) {
+function SuccessModal({ perk, claimPhase, onClose, onDismiss }: SuccessModalProps) {
     const inviteeName = extractInviteeName(perk.reason)
     const { triggerHaptic } = useHaptic()
     const [canDismiss, setCanDismiss] = useState(false)
+    const isExiting = claimPhase === 'exiting'
 
-    // Trigger haptic on mount + start dismiss cooldown timer
     useEffect(() => {
         triggerHaptic()
-        // Prevent accidental dismissal for 2 seconds
         const dismissTimer = setTimeout(() => setCanDismiss(true), 2000)
         return () => clearTimeout(dismissTimer)
     }, [triggerHaptic])
 
-    const handleDismiss = () => {
-        if (canDismiss) {
-            onDismiss()
-        }
-    }
-
     return (
-        <div
-            className={`flex items-center gap-4 p-6 ${canDismiss ? 'cursor-pointer' : ''} ${isExiting ? 'animate-gift-exit' : 'animate-gift-revealed'}`}
-            onClick={handleDismiss}
-        >
-            <SoundPlayer sound="success" />
-
-            {/* Check icon */}
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-success-3">
-                <Icon name="check" size={28} className="text-white" />
-            </div>
-
-            {/* Text content */}
-            <div>
-                <p className="text-sm text-grey-1">You received</p>
-                <p className="text-3xl font-extrabold">+${perk.amountUsd}</p>
-                <p className="mt-1 flex items-center gap-1 text-sm text-grey-1">
-                    <Icon name="invite-heart" size={14} />
-                    <span className="font-medium">{inviteeName}</span>
-                    <span>joined Pioneers</span>
-                </p>
-            </div>
-        </div>
+        <ActionModal
+            visible={true}
+            onClose={onClose}
+            hideModalCloseButton
+            preventClose={isExiting}
+            icon="check"
+            iconProps={{ className: 'text-white' }}
+            iconContainerClassName="bg-success-3"
+            title=""
+            description={
+                <div className={isExiting ? 'animate-gift-exit' : 'animate-gift-revealed'}>
+                    <p className="text-3xl font-extrabold text-black">+${perk.amountUsd}</p>
+                    <p className="mt-1 flex items-center justify-center gap-1 text-sm text-grey-1">
+                        <Icon name="invite-heart" size={14} />
+                        <span className="font-medium">{inviteeName}</span>
+                        <span>joined Pioneers</span>
+                    </p>
+                </div>
+            }
+            ctas={canDismiss ? [{ text: 'Done', onClick: onDismiss, variant: 'purple' as const }] : undefined}
+            content={<SoundPlayer sound="success" />}
+        />
     )
 }
 
@@ -211,7 +207,7 @@ function GiftBoxContent({ perk, onHoldComplete, claimPhase }: GiftBoxContentProp
     const inviteeName = extractInviteeName(perk.reason)
 
     return (
-        <div className="flex flex-col items-center px-4 py-6">
+        <div className="flex flex-col items-center">
             {/* Title */}
             <p className="mb-6 text-center text-sm text-grey-1">
                 <Icon name="invite-heart" size={14} className="mr-1 inline" />

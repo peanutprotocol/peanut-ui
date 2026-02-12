@@ -2,14 +2,13 @@
 import { motion } from 'framer-motion'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Star } from '@/assets'
-import { useAuth } from '@/context/authContext'
+
 import { useRouter } from 'next/navigation'
 import PioneerCard3D from './PioneerCard3D'
 import { useEffect, useState } from 'react'
 import { Icon } from '@/components/Global/Icons/Icon'
 
 const CardPioneers = () => {
-    const { user } = useAuth()
     const router = useRouter()
     const [screenWidth, setScreenWidth] = useState(1200)
 
@@ -23,11 +22,7 @@ const CardPioneers = () => {
     const isMobile = screenWidth < 768
 
     const handleCTA = () => {
-        if (user) {
-            router.push('/card')
-        } else {
-            router.push('/setup?redirect_uri=/card')
-        }
+        router.push('/lp/card')
     }
 
     return (
@@ -72,12 +67,6 @@ const CardPioneers = () => {
                         >
                             GET MY CARD
                         </Button>
-                        <a
-                            href="/lp/card"
-                            className="font-roboto-flex text-sm font-medium text-n-1 underline underline-offset-2 hover:no-underline"
-                        >
-                            Learn more about Card Pioneers →
-                        </a>
                     </div>
                 </div>
             </div>

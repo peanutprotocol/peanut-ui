@@ -27,7 +27,7 @@ const faqQuestions = [
     {
         id: '2',
         question: 'Is the $10 refundable?',
-        answer: "Your $10 becomes card balance when your card launches. If you're found not eligible at launch (for example: your region isn't supported, or you can't complete required verification), you can request a refund.",
+        answer: "Your $10 becomes starter balance when your card launches. If you're found not eligible at launch (for example: your region isn't supported, or you can't complete required verification), you can request a refund.",
     },
     {
         id: '3',
@@ -110,7 +110,7 @@ const CardLandingPage = () => {
                         </motion.p>
 
                         <motion.div
-                            className="my-10"
+                            className="my-10 w-full max-w-96"
                             initial={{ opacity: 0, scale: 0.9, rotateY: -15 }}
                             animate={{ opacity: 1, scale: 1, rotateY: 0 }}
                             transition={{ duration: 0.8, delay: 0.3 }}
@@ -162,7 +162,7 @@ const CardLandingPage = () => {
                         <StepCard
                             num="01"
                             title="RESERVE"
-                            desc="Add $10 starter balance. It becomes spendable when your card activates."
+                            desc="Add $10 starter balance. It's yours to spend when your card activates."
                             color="bg-yellow-1"
                             delay={0}
                         />
@@ -170,7 +170,7 @@ const CardLandingPage = () => {
                             num="02"
                             title="INVITE"
                             desc="Share your link. Earn $5 instantly, and earn more forever for every friend you invite."
-                            color="bg-green-1"
+                            color="bg-secondary-3"
                             delay={0.1}
                         />
                         <StepCard
@@ -373,7 +373,7 @@ const CardLandingPage = () => {
 
                                 {/* L1: Top primary - center (170,70), top-left (146,46) */}
                                 <div
-                                    className="absolute flex h-12 w-12 items-center justify-center rounded-full border-2 border-n-1 bg-green-1"
+                                    className="absolute flex h-12 w-12 items-center justify-center rounded-full border-2 border-n-1 bg-secondary-3"
                                     style={{ top: 46, left: 146 }}
                                 >
                                     <motion.img
@@ -387,7 +387,7 @@ const CardLandingPage = () => {
 
                                 {/* L1: Bottom-left primary - center (70,310), top-left (46,286) */}
                                 <div
-                                    className="absolute flex h-12 w-12 items-center justify-center rounded-full border-2 border-n-1 bg-green-1"
+                                    className="absolute flex h-12 w-12 items-center justify-center rounded-full border-2 border-n-1 bg-secondary-3"
                                     style={{ top: 286, left: 46 }}
                                 >
                                     <motion.img
@@ -401,7 +401,7 @@ const CardLandingPage = () => {
 
                                 {/* L1: Bottom-right primary - center (270,310), top-left (246,286) */}
                                 <div
-                                    className="absolute flex h-12 w-12 items-center justify-center rounded-full border-2 border-n-1 bg-green-1"
+                                    className="absolute flex h-12 w-12 items-center justify-center rounded-full border-2 border-n-1 bg-secondary-3"
                                     style={{ top: 286, left: 246 }}
                                 >
                                     <motion.img
@@ -610,7 +610,7 @@ const CardLandingPage = () => {
                                 EARN FOREVER.
                             </h2>
 
-                            <div className="mt-8 space-y-4">
+                            <div className="mx-auto mt-8 w-fit space-y-4 md:mx-0">
                                 <RewardItem amount="$5" label="per Pioneer signup" />
                                 <RewardItem amount="%" label="from their card spending" />
                                 <RewardItem amount="+" label="from their invites too" />
@@ -619,7 +619,7 @@ const CardLandingPage = () => {
                             <Button
                                 shadowSize="4"
                                 onClick={handleCTA}
-                                className="mt-8 bg-white px-10 py-4 text-lg font-extrabold hover:bg-white/90"
+                                className="mx-auto mt-8 bg-white px-10 py-4 text-lg font-extrabold hover:bg-white/90 md:mx-0"
                             >
                                 START EARNING
                             </Button>

@@ -86,7 +86,7 @@ export default function BackendErrorScreen() {
                 <h1 className="text-2xl font-bold text-gray-800">Something went wrong</h1>
                 <p className="max-w-md text-sm text-gray-600">We&apos;re having trouble connecting to our servers.</p>
             </div>
-            <div className="flex flex-col items-center gap-3">
+            <div className="flex flex-col items-center gap-6">
                 <Button shadowSize="4" icon="retry" size="medium" className="w-fit rounded-full" onClick={handleRetry}>
                     Try Again
                 </Button>
@@ -95,7 +95,7 @@ export default function BackendErrorScreen() {
                     disabled={isLoggingOut}
                     className="text-sm text-gray-600 underline hover:text-gray-800 disabled:opacity-50"
                 >
-                    {isLoggingOut ? 'Logging out...' : 'Log out and start fresh'}
+                    {isLoggingOut ? 'Logging out...' : 'Log out'}
                 </button>
             </div>
         </div>

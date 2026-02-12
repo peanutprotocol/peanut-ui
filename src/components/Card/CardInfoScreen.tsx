@@ -4,7 +4,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import NavHeader from '@/components/Global/NavHeader'
 import PioneerCard3D from '@/components/LandingPage/PioneerCard3D'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef } from 'react'
 
 interface CardInfoScreenProps {
     onContinue: () => void
@@ -95,57 +95,37 @@ const CardInfoScreen = ({ onContinue, hasPurchased, slotsRemaining, recentPurcha
     const timeoutRef = useRef<NodeJS.Timeout | null>(null)
     const hasAnimated = useRef(false)
 
-    // Countdown animation: 50 numbers over ~30s with random variance (0.5-5s between ticks)
-    const startCountdown = useCallback((from: number, to: number) => {
-        let current = from
-        setDisplayValue(current)
-
-        const tick = () => {
-            if (current <= to) {
-                setDisplayValue(to)
-                return
-            }
-
-            current--
-            setDisplayValue(current)
-
-            // Random delay between 500ms and 5000ms
-            const delay = 500 + Math.random() * 4500
-            timeoutRef.current = setTimeout(tick, delay)
-        }
-
-        // Start after brief initial delay
-        timeoutRef.current = setTimeout(tick, 800)
-    }, [])
-
-    // TODO: hasAnimated blocks updates on refetch - consider updating displayValue without re-animating
+    // Realistic slot decrement: first tick after 4-12s, then every 15-40s
     useEffect(() => {
         if (slotsRemaining === undefined || hasAnimated.current) return
 
         hasAnimated.current = true
+        setDisplayValue(slotsRemaining)
 
-        // Edge case: if slots <= 50, start from slots + smaller amount to avoid going too high
-        // Edge case: if slots < 10, no animation at all
-        if (slotsRemaining < 10) {
-            setDisplayValue(slotsRemaining)
-            return
+        const scheduleTick = (isFirst: boolean) => {
+            const delay = isFirst
+                ? 2000 + Math.random() * 3000 // 2-5 seconds for first tick
+                : 8000 + Math.random() * 12000 // 8-20 seconds for subsequent ticks
+            timeoutRef.current = setTimeout(() => {
+                setDisplayValue((prev) => {
+                    if (prev === null || prev <= 1) return prev
+                    return prev - 1
+                })
+                scheduleTick(false)
+            }, delay)
         }
 
-        // Calculate start value: aim for 50 numbers countdown, but cap at reasonable amount
-        const countdownAmount = Math.min(50, slotsRemaining)
-        const startValue = slotsRemaining + countdownAmount
-
-        startCountdown(startValue, slotsRemaining)
+        scheduleTick(true)
 
         return () => {
             if (timeoutRef.current) {
                 clearTimeout(timeoutRef.current)
             }
         }
-    }, [slotsRemaining, startCountdown])
+    }, [slotsRemaining])
 
     return (
-        <div className="flex min-h-[inherit] flex-col space-y-8">
+        <div className="flex min-h-[inherit] flex-col gap-8">
             <NavHeader title="Join Peanut Pioneers" onPrev={() => router.back()} />
 
             <div className="my-auto flex flex-col gap-6">
@@ -159,9 +139,9 @@ const CardInfoScreen = ({ onContinue, hasPurchased, slotsRemaining, recentPurcha
                         href="https://peanut.to/card/faq"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="mt-2 inline-block text-sm text-purple-1 underline"
+                        className="mt-2 inline-block text-sm text-black underline"
                     >
-                        Have any question? Read the FAQ here
+                        Have any question? Read the FAQ
                     </a>
                 </div>
 
@@ -177,23 +157,21 @@ const CardInfoScreen = ({ onContinue, hasPurchased, slotsRemaining, recentPurcha
                             <RollingNumber value={displayValue} duration={350} />
                             <span className="ml-1">slots left</span>
                         </div>
-                        <p className="text-xs text-grey-1">
+                        <p className="text-xs text-black">
                             {recentPurchases && recentPurchases > 0
                                 ? `${recentPurchases} ${recentPurchases === 1 ? 'person' : 'people'} joined in the last 24h`
                                 : 'Join the pioneers today'}
                         </p>
                     </div>
                 )}
-            </div>
 
-            {/* CTA Button */}
-            <div className="mt-auto space-y-3">
+                {/* CTA Button */}
                 {hasPurchased ? (
-                    <Button variant="purple" size="large" shadowSize="4" disabled className="w-full">
+                    <Button variant="purple" shadowSize="4" disabled className="w-full">
                         Already a Pioneer
                     </Button>
                 ) : (
-                    <Button variant="purple" size="large" shadowSize="4" onClick={onContinue} className="w-full">
+                    <Button variant="purple" shadowSize="4" onClick={onContinue} className="w-full">
                         Join Now
                     </Button>
                 )}

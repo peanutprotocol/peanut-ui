@@ -73,7 +73,7 @@ const CardPioneerModal = ({ hasPurchased }: CardPioneerModalProps) => {
                 <h3 className="text-base font-bold text-black dark:text-white">Become a Pioneer</h3>
 
                 {/* Description */}
-                <p className="text-sm text-grey-1 dark:text-white">
+                <p className="text-sm text-black dark:text-white">
                     Join the Peanut Card Pioneers now to earn rewards for every purchase of you and your friends!
                 </p>
 

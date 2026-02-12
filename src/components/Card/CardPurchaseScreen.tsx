@@ -110,7 +110,7 @@ const CardPurchaseScreen = ({
         <div className="flex min-h-[inherit] flex-col gap-6">
             <NavHeader title="Complete Purchase" onPrev={onBack} />
 
-            <div className="flex flex-col gap-6">
+            <div className="my-auto flex flex-col gap-6">
                 {purchaseState === 'idle' && (
                     <>
                         <Card className="flex flex-col items-center gap-4 p-6">
@@ -119,7 +119,7 @@ const CardPurchaseScreen = ({
                             </div>
                             <div className="text-center">
                                 <h2 className="text-xl font-bold">Confirm Purchase</h2>
-                                <p className="mt-2 text-sm text-grey-1">
+                                <p className="mt-2 text-sm text-black">
                                     You're about to reserve your Card Pioneer spot for ${price}. This amount will become
                                     your starter balance when the card launches.
                                 </p>
@@ -129,7 +129,7 @@ const CardPurchaseScreen = ({
                         {/* Price Summary */}
                         <Card className="p-4">
                             <div className="flex items-center justify-between">
-                                <span className="text-grey-1">Pioneer Reservation</span>
+                                <span className="text-black">Pioneer Reservation</span>
                                 <span className="text-xl font-bold">${price}</span>
                             </div>
                         </Card>
@@ -141,7 +141,7 @@ const CardPurchaseScreen = ({
                         <Loading className="size-12" />
                         <div className="text-center">
                             <h2 className="text-xl font-bold">Creating Payment...</h2>
-                            <p className="mt-2 text-sm text-grey-1">Setting up your purchase. Please wait.</p>
+                            <p className="mt-2 text-sm text-black">Setting up your purchase. Please wait.</p>
                         </div>
                     </Card>
                 )}
@@ -154,7 +154,7 @@ const CardPurchaseScreen = ({
                             </div>
                             <div className="text-center">
                                 <h2 className="text-xl font-bold">Complete Payment</h2>
-                                <p className="mt-2 text-sm text-grey-1">
+                                <p className="mt-2 text-sm text-black">
                                     A payment page has been opened. Complete your payment to finish your Pioneer
                                     reservation.
                                 </p>
@@ -171,7 +171,7 @@ const CardPurchaseScreen = ({
                             Open Payment Page
                         </Button>
 
-                        <div className="flex items-center justify-center gap-2 text-sm text-grey-1">
+                        <div className="flex items-center justify-center gap-2 text-sm text-black">
                             <Loading className="size-4" />
                             <span>Waiting for payment confirmation...</span>
                         </div>
@@ -185,27 +185,24 @@ const CardPurchaseScreen = ({
                         </div>
                         <div className="text-center">
                             <h2 className="text-xl font-bold">Something Went Wrong</h2>
-                            <p className="mt-2 text-sm text-grey-1">
+                            <p className="mt-2 text-sm text-black">
                                 {error || 'An error occurred while processing your purchase.'}
                             </p>
                         </div>
                     </Card>
                 )}
-            </div>
 
-            {/* CTA Buttons */}
-            <div className="mt-auto space-y-3">
+                {/* CTA Buttons */}
                 {purchaseState === 'idle' && (
-                    <Button variant="purple" size="large" shadowSize="4" onClick={initiatePurchase} className="w-full">
+                    <Button variant="purple" shadowSize="4" onClick={initiatePurchase} className="w-full">
                         Pay ${price}
                     </Button>
                 )}
 
                 {purchaseState === 'error' && (
-                    <>
+                    <div className="space-y-3">
                         <Button
                             variant="purple"
-                            size="large"
                             shadowSize="4"
                             onClick={initiatePurchase}
                             className="w-full"
@@ -215,7 +212,7 @@ const CardPurchaseScreen = ({
                         <Button variant="stroke" onClick={onBack} className="w-full">
                             Go Back
                         </Button>
-                    </>
+                    </div>
                 )}
             </div>
         </div>

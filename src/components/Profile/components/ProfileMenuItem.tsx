@@ -48,9 +48,7 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
                     </div>
                 )}
                 <span className="text-base font-medium">{label}</span>
-                {badge && (
-                    <span className="rounded-full bg-purple-1 px-2 py-0.5 text-xs font-medium text-white">{badge}</span>
-                )}
+                {badge && <StatusBadge status="custom" customText={badge} />}
                 {showTooltip && (
                     <Tooltip content={toolTipText}>
                         <Icon name="info" size={14} fill="black" />

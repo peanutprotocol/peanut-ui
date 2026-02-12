@@ -184,7 +184,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
     const {
         width,
         height,
-        backgroundColor = '#f9fafb',
+        backgroundColor = '#FAF4F0',
         showUsernames: initialShowUsernames = true,
         topNodes: initialTopNodes = DEFAULT_TOP_NODES,
         activityFilter: initialActivityFilter = DEFAULT_ACTIVITY_FILTER,
@@ -987,11 +987,11 @@ export default function InvitesGraph(props: InvitesGraphProps) {
 
                 // Colors by type
                 const colors: Record<string, string> = {
-                    WALLET: '#f59e0b', // Orange/amber
-                    BANK: '#3b82f6', // Blue
-                    MERCHANT: '#10b981', // Green/emerald
+                    WALLET: '#FFC900', // secondary-1 (yellow)
+                    BANK: '#90A8ED', // secondary-3 (blue)
+                    MERCHANT: '#BA8BFF', // primary-4 (purple)
                 }
-                const fillColor = colors[node.externalType] || '#6b7280'
+                const fillColor = colors[node.externalType] || '#9CA3AF'
 
                 ctx.globalAlpha = 0.8
                 ctx.fillStyle = fillColor
@@ -1083,23 +1083,23 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             const { p2pActiveNodes: p2pNodes } = displaySettingsRef.current
 
             if (currentMode === 'user') {
-                // User mode: all nodes same pleasant purple, fully opaque
-                fillColor = 'rgb(139, 92, 246)' // Solid purple for all
+                // User mode: all nodes same pink (primary-1 #FF90E8), fully opaque
+                fillColor = 'rgb(255, 144, 232)' // primary-1
             } else if (currentMode === 'payment') {
                 // Payment mode: color by P2P participation (sending or receiving)
                 const hasP2PActivity = p2pNodes.has(node.id)
                 fillColor = hasP2PActivity
-                    ? 'rgba(139, 92, 246, 0.85)' // Purple for P2P active
+                    ? 'rgba(255, 144, 232, 0.85)' // primary-1 for P2P active
                     : 'rgba(156, 163, 175, 0.5)' // Grey for no P2P
             } else if (!filter.enabled) {
                 // No filter - simple active/inactive by access
-                fillColor = hasAccess ? 'rgba(139, 92, 246, 0.85)' : 'rgba(156, 163, 175, 0.85)'
+                fillColor = hasAccess ? 'rgba(255, 144, 232, 0.85)' : 'rgba(156, 163, 175, 0.85)'
             } else {
                 // Activity filter enabled - three states
                 if (activityStatus === 'new') {
-                    fillColor = 'rgba(16, 185, 129, 0.85)' // Green for new signups
+                    fillColor = 'rgba(144, 168, 237, 0.85)' // secondary-3 #90A8ED for new signups
                 } else if (activityStatus === 'active') {
-                    fillColor = 'rgba(139, 92, 246, 0.85)' // Purple for active
+                    fillColor = 'rgba(255, 144, 232, 0.85)' // primary-1 for active
                 } else {
                     // Inactive - exponential time bands with distinct shades
                     const now = Date.now()
@@ -1140,7 +1140,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             ctx.globalAlpha = 1
             if (isSelected) {
                 // Selected: golden outline
-                ctx.strokeStyle = '#fbbf24'
+                ctx.strokeStyle = '#FFC900'
                 ctx.lineWidth = 3
                 ctx.stroke()
             } else if (!hasAccess) {
@@ -1296,14 +1296,14 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                 // Get target node type for color
                 const extType = target.externalType || 'WALLET'
                 const lineColors: Record<string, string> = {
-                    WALLET: 'rgba(245, 158, 11, 0.25)', // Orange
-                    BANK: 'rgba(59, 130, 246, 0.25)', // Blue
-                    MERCHANT: 'rgba(16, 185, 129, 0.25)', // Green
+                    WALLET: 'rgba(255, 201, 0, 0.25)', // secondary-1
+                    BANK: 'rgba(144, 168, 237, 0.25)', // secondary-3
+                    MERCHANT: 'rgba(186, 139, 255, 0.25)', // primary-4
                 }
                 const particleColors: Record<string, string> = {
-                    WALLET: 'rgba(245, 158, 11, 0.8)', // Orange
-                    BANK: 'rgba(59, 130, 246, 0.8)', // Blue
-                    MERCHANT: 'rgba(16, 185, 129, 0.8)', // Green
+                    WALLET: 'rgba(255, 201, 0, 0.8)', // secondary-1
+                    BANK: 'rgba(144, 168, 237, 0.8)', // secondary-3
+                    MERCHANT: 'rgba(186, 139, 255, 0.8)', // primary-4
                 }
 
                 // Convert frequency/volume labels to numeric values for rendering
@@ -1318,7 +1318,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                 const lineWidth = Math.min(0.4 + txCount * 0.25, 3.0)
 
                 // Draw base line
-                ctx.strokeStyle = lineColors[extType] || 'rgba(107, 114, 128, 0.25)'
+                ctx.strokeStyle = lineColors[extType] || 'rgba(156, 163, 175, 0.25)'
                 ctx.lineWidth = lineWidth
                 ctx.beginPath()
                 ctx.moveTo(source.x, source.y)
@@ -1365,7 +1365,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                 // P2P: Draw line with animated particles (scaled by activity & volume)
                 // Supports both full mode (count/totalUsd) and anonymized mode (frequency/volume labels)
                 const baseAlpha = inactive ? 0.08 : 0.25
-                ctx.strokeStyle = `rgba(6, 182, 212, ${baseAlpha})`
+                ctx.strokeStyle = `rgba(144, 168, 237, ${baseAlpha})`
 
                 // Convert frequency/volume labels to numeric values for rendering
                 // Full mode: use actual values; Anonymized mode: map labels to ranges
@@ -1399,7 +1399,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                     const particleSize = 1.5 + logUsd * 2.25
                     const isBidirectional = link.bidirectional === true
 
-                    ctx.fillStyle = 'rgba(6, 182, 212, 0.85)'
+                    ctx.fillStyle = 'rgba(144, 168, 237, 0.85)'
 
                     for (let i = 0; i < particleCount; i++) {
                         // Forward direction (source → target)
@@ -1424,7 +1424,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             } else {
                 // Invite: Draw line with multiple arrows along the edge
                 const isDirect = link.type === 'DIRECT'
-                const baseColor = isDirect ? [139, 92, 246] : [236, 72, 153]
+                const baseColor = isDirect ? [255, 144, 232] : [186, 139, 255]
                 const alpha = inactive ? 0.12 : 0.35
                 const arrowAlpha = inactive ? 0.2 : 0.6
                 const { mode: currentMode } = displaySettingsRef.current
@@ -1447,7 +1447,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                     const particleSize = 3
 
                     // Gold color for points
-                    ctx.fillStyle = 'rgba(251, 191, 36, 0.9)' // #fbbf24 with alpha
+                    ctx.fillStyle = 'rgba(255, 201, 0, 0.9)' // secondary-1 #FFC900 with alpha
 
                     for (let i = 0; i < particleCount; i++) {
                         // Flow direction: source → target (invitee → inviter)
@@ -2481,7 +2481,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                     d3VelocityDecay={0.6}
                     d3AlphaMin={0.001}
                     onEngineStop={handleEngineStop}
-                    backgroundColor="#f9fafb"
+                    backgroundColor="#FAF4F0"
                     width={graphWidth}
                     height={graphHeight}
                     autoPauseRedraw={false}

@@ -45,7 +45,7 @@ const CardGeoScreen = ({
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col space-y-8">
+        <div className="flex min-h-[inherit] flex-col gap-8">
             <NavHeader title="Eligibility" onPrev={onBack} />
 
             <div className="my-auto flex flex-col gap-6">
@@ -58,7 +58,7 @@ const CardGeoScreen = ({
                             </div>
                             <div className="text-center">
                                 <h2 className="font-bold">You're Eligible!</h2>
-                                <p className="mt-2 text-sm text-grey-1">
+                                <p className="mt-2 text-sm text-black">
                                     Great news! Card Pioneers is available in your region. Continue to see how the
                                     program works.
                                 </p>
@@ -74,7 +74,7 @@ const CardGeoScreen = ({
                             </div>
                             <div className="text-center">
                                 <h2 className="font-bold">Verification Complete</h2>
-                                <p className="mt-2 text-sm text-grey-1">
+                                <p className="mt-2 text-sm text-black">
                                     Your identity has been verified. You can proceed with your card reservation.
                                 </p>
                             </div>
@@ -96,16 +96,16 @@ const CardGeoScreen = ({
                             </div>
                             <div className="text-center">
                                 <h1 className="font-bold">Verification Required</h1>
-                                <p className="mt-2 text-sm text-grey-1">
-                                    Complete identity verification to check your eligibility for Card Pioneers.
-                                </p>
+                                <p className="mt-2 text-sm text-black">
+                                    Card Purchare requires identity verification.
+                                    </p>
                             </div>
                         </Card>
 
-                        <div className="flex items-center gap-2">
+                        {/* <div className="flex items-center gap-2">
                             <Icon name="info" className="size-4 flex-shrink-0" />
                             <p className="text-sm">Verification helps us determine your region eligibility.</p>
-                        </div>
+                        </div> */}
                     </>
                 ) : (
                     <>
@@ -116,7 +116,7 @@ const CardGeoScreen = ({
                             </div>
                             <div className="text-center">
                                 <h1 className="font-bold">Not Available Yet</h1>
-                                <p className="mt-2 text-sm text-grey-1">
+                                <p className="mt-2 text-sm text-black">
                                     Card Pioneers isn't available in your region yet. We're working hard to expand
                                     coverage.
                                 </p>
@@ -132,16 +132,13 @@ const CardGeoScreen = ({
                         </div>
                     </>
                 )}
-            </div>
 
-            {purchaseError && <InfoCard variant="error" icon="alert" description={purchaseError} />}
+                {purchaseError && <InfoCard variant="error" icon="alert" description={purchaseError} />}
 
-            {/* CTA Buttons */}
-            <div className="mt-auto space-y-3">
+                {/* CTA Buttons */}
                 {isEligible || hasKycButNoCountry ? (
                     <Button
                         variant="purple"
-                        size="large"
                         shadowSize="4"
                         onClick={onInitiatePurchase}
                         className="w-full"
@@ -149,20 +146,14 @@ const CardGeoScreen = ({
                         Reserve my card
                     </Button>
                 ) : needsKycVerification ? (
-                    <>
-                        <Button
-                            variant="purple"
-                            size="large"
-                            shadowSize="4"
-                            onClick={handleStartVerification}
-                            className="w-full"
-                        >
-                            Start Verification
-                        </Button>
-                        <Button variant="stroke" onClick={onBack} className="w-full">
-                            Maybe Later
-                        </Button>
-                    </>
+                    <Button
+                        variant="purple"
+                        shadowSize="4"
+                        onClick={handleStartVerification}
+                        className="w-full"
+                    >
+                        Start Verification
+                    </Button>
                 ) : (
                     <Button variant="stroke" onClick={onBack} className="w-full">
                         Go Back

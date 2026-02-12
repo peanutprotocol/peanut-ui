@@ -48,6 +48,26 @@ const PioneerCard3D = ({ className }: PioneerCard3DProps) => {
         }
     }, [resetTimer])
 
+    // Mobile auto-oscillation: slow sine wave to show off parallax without interaction
+    useEffect(() => {
+        const isMobile = window.matchMedia('(max-width: 768px)').matches
+        if (!isMobile) return
+
+        let frame: number
+        const startTime = Date.now()
+
+        const animate = () => {
+            const elapsed = (Date.now() - startTime) / 1000
+            // gentle figure-8 pattern using offset sine waves
+            x.set(Math.sin(elapsed * 0.4) * 60)
+            y.set(Math.sin(elapsed * 0.3 + 1) * 40)
+            frame = requestAnimationFrame(animate)
+        }
+
+        frame = requestAnimationFrame(animate)
+        return () => cancelAnimationFrame(frame)
+    }, [x, y])
+
     const handleClick = () => {
         advance()
         resetTimer()
@@ -87,6 +107,7 @@ const PioneerCard3D = ({ className }: PioneerCard3DProps) => {
                     rotateY: springRotateY as unknown as number,
                     transformStyle: 'preserve-3d',
                     borderRadius: '5.35%',
+                    border: '2px solid #000000',
                     boxShadow,
                 }}
                 onClick={handleClick}

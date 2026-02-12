@@ -79,6 +79,50 @@
 - **Service Worker cache version** - only bump `NEXT_PUBLIC_API_VERSION` for breaking API changes (see JSDoc in `src/app/sw.ts`). Users auto-migrate.
 - **Gate heavy features in dev** - prefetching, precompiling, or eager loading of routes can add 5-10s to dev cold starts. wrap with `process.env.NODE_ENV !== 'development'` (e.g. `<link rel="prefetch" href="/qr-pay" />` in layout.tsx).
 
+## 🎨 Design System
+
+- **Live showcase**: visit `/dev/components` to see all components rendered with all variants and copy-paste code
+- **Three layers**: Bruddle primitives (`src/components/0_Bruddle/`), Global shared components (`src/components/Global/`), and Tailwind custom classes (`tailwind.config.js`)
+
+### Bruddle Primitives (`0_Bruddle/`)
+- Button, Card (named export), BaseInput, BaseSelect, Checkbox, Divider, Title, Toast, PageContainer, CloudsBackground
+
+### Global Shared Components (`Global/`)
+- **Navigation**: NavHeader (back button + title), TopNavbar, Footer
+- **Modals**: Modal (base @headlessui Dialog), ActionModal (with buttons/checkboxes/icons), Drawer (vaul bottom sheet)
+- **Loading**: Loading (spinner), PeanutLoading (branded), PeanutFactsLoading (with fun facts)
+- **Cards**: Card (with position prop for stacked lists), InfoCard, PeanutActionCard
+- **Status**: StatusPill, StatusBadge, ErrorAlert, ProgressBar
+- **Icons**: Icon component with 50+ icons — `<Icon name="check" size={20} />`
+- **Inputs**: AmountInput, ValidatedInput, CopyField, GeneralRecipientInput, TokenSelector
+- **Utilities**: CopyToClipboard, AddressLink, ExternalWalletButton, ShareButton, Banner, MarqueeWrapper
+
+### Color Names (misleading!)
+- `purple-1` / `primary-1` = `#FF90E8` (pink, not purple)
+- `primary-3` = `#EFE4FF` (lavender)
+- `yellow-1` / `secondary-1` = `#FFC900`
+- `green-1` = `#98E9AB`
+
+### Key Rules
+- **Button sizing trap**: `size="large"` is `h-10` (40px) — SHORTER than default `h-13` (52px). never use for primary CTAs
+- **Primary CTA**: `<Button variant="purple" shadowSize="4" className="w-full">` — no size prop
+- **Secondary CTA**: `<Button variant="stroke" className="w-full">`
+- **Shadows**: always black `#000000`. use `shadowSize="4"` for action buttons
+- **Border radius**: always `rounded-sm` (not rounded-lg or rounded-md)
+- **Border stroke**: `border border-n-1` (1px black)
+- **Links**: `text-black underline` — never `text-purple-1` (pink)
+- **Text hierarchy**: `text-n-1` primary, `text-grey-1` secondary
+- **Two Card components**: `0_Bruddle/Card` (standalone containers, named export) vs `Global/Card` (stacked list items, default export)
+- **Backgrounds**: `bg-peanut-repeat-normal` for waving peanut pattern
+- **Messaging**: use "starter balance" for card deposits — never "card balance" or "Peanut rewards"
+
+### Page Layouts
+
+- **Outer shell**: `flex min-h-[inherit] flex-col gap-8` — NavHeader is first child
+- **Centered content + CTA** (default): wrap content AND CTA in `<div className="my-auto flex flex-col gap-6">`. CTA must be INSIDE this div, never a sibling
+- **Pinned footer CTA**: add `justify-between` to outer div, CTA as last child outside content
+- **Never** use `space-y-*` on the outer flex div (conflicts with centering) — use `gap-*` instead
+
 ## 📝 Commits
 
 - **Be descriptive**

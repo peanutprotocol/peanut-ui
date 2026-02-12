@@ -65,14 +65,14 @@ export const useHomeCarouselCTAs = () => {
             _carouselCTAs.push({
                 id: 'card-pioneer',
                 title: (
-                    <p>
+                    <span>
                         Get your <b>Peanut Card</b>
-                    </p>
+                    </span>
                 ),
                 description: (
-                    <p>
+                    <span>
                         Join Card Pioneers for <b>early access</b> and earn <b>$5</b> per referral.
-                    </p>
+                    </span>
                 ),
                 iconContainerClassName: 'bg-purple-1',
                 icon: 'wallet',
@@ -133,14 +133,14 @@ export const useHomeCarouselCTAs = () => {
             _carouselCTAs.push({
                 id: 'qr-payment',
                 title: (
-                    <p>
+                    <span>
                         Pay with <b>QR code payments</b>
-                    </p>
+                    </span>
                 ),
                 description: (
-                    <p>
+                    <span>
                         Get the best exchange rate, pay like a <b>local</b> and earn <b>points</b>.
-                    </p>
+                    </span>
                 ),
                 iconContainerClassName: 'bg-secondary-1',
                 icon: 'qr-code',
@@ -158,14 +158,14 @@ export const useHomeCarouselCTAs = () => {
             _carouselCTAs.push({
                 id: 'latam-cashback-invite',
                 title: (
-                    <p>
+                    <span>
                         Earn <b>20% cashback</b> on QR payments
-                    </p>
+                    </span>
                 ),
                 description: (
-                    <p>
+                    <span>
                         Invite friends to <b>unlock more rewards</b>. The more they use, the more you earn!
-                    </p>
+                    </span>
                 ),
                 iconContainerClassName: 'bg-secondary-1',
                 icon: 'gift',

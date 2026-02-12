@@ -75,6 +75,13 @@ export default function Home() {
     const [isPostSignupActionModalVisible, setIsPostSignupActionModalVisible] = useState(false)
     const [showKycModal, setShowKycModal] = useState(user?.user.showKycCompletedModal ?? false)
 
+    // Track if this is a fresh signup session - captured once on mount so it persists
+    // even after NoMoreJailModal clears the sessionStorage key
+    const [isPostSignupSession] = useState(() => {
+        if (typeof window === 'undefined') return false
+        return sessionStorage.getItem('showNoMoreJailModal') === 'true'
+    })
+
     // sync modal state with user data when it changes
     useEffect(() => {
         if (user?.user.showKycCompletedModal !== undefined) {
@@ -271,7 +278,9 @@ export default function Home() {
                 !showBalanceWarningModal &&
                 !showPermissionModal &&
                 !showKycModal &&
-                !isPostSignupActionModalVisible && (
+                !isPostSignupActionModalVisible &&
+                !user?.showEarlyUserModal &&
+                !isPostSignupSession && (
                     <LazyLoadErrorBoundary>
                         <Suspense fallback={null}>
                             <CardPioneerModal
