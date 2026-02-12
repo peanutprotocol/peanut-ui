@@ -123,6 +123,12 @@
 - **Pinned footer CTA**: add `justify-between` to outer div, CTA as last child outside content
 - **Never** use `space-y-*` on the outer flex div (conflicts with centering) — use `gap-*` instead
 
+## ✅ Before Pushing
+
+- **Format**: `pnpm prettier --write <changed-files>` then verify with `pnpm prettier --check .`
+- **Test**: `npm test` (fast, ~5s) — all 17 suites must pass
+- **Build** (if touching imports/types): `npm run build` to catch compile errors
+
 ## 📝 Commits
 
 - **Be descriptive**
