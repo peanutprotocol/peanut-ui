@@ -37,7 +37,8 @@ export const initiateSumsubKyc = async (params?: {
                 status: responseJson.status,
             },
         }
-    } catch (e: any) {
-        return { error: e.message || 'An unexpected error occurred' }
+    } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : 'An unexpected error occurred'
+        return { error: message }
     }
 }
