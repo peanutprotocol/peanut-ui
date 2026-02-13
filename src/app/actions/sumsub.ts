@@ -1,6 +1,6 @@
 'use server'
 
-import { type InitiateSumsubKycResponse } from './types/sumsub.types'
+import { type InitiateSumsubKycResponse, type KYCRegionIntent } from './types/sumsub.types'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import { getJWTCookie } from '@/utils/cookie-migration.utils'
@@ -9,7 +9,7 @@ const API_KEY = process.env.PEANUT_API_KEY!
 
 // initiate kyc flow (using sumsub) and get websdk access token
 export const initiateSumsubKyc = async (params?: {
-    regionIntent?: string
+    regionIntent?: KYCRegionIntent
 }): Promise<{ data?: InitiateSumsubKycResponse; error?: string }> => {
     const jwtToken = (await getJWTCookie())?.value
 
@@ -37,8 +37,7 @@ export const initiateSumsubKyc = async (params?: {
                 status: responseJson.status,
             },
         }
-    } catch (e: unknown) {
-        const message = e instanceof Error ? e.message : 'An unexpected error occurred'
-        return { error: message }
+    } catch (e: any) {
+        return { error: e.message || 'An unexpected error occurred' }
     }
 }

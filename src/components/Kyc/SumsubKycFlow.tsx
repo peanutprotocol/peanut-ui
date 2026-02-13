@@ -24,7 +24,7 @@ export const SumsubKycFlow = ({ onKycSuccess, onManualClose, ...buttonProps }: S
         refreshToken,
         isVerificationProgressModalOpen,
         closeVerificationProgressModal,
-    } = useSumsubKycFlow({ onKycSuccess, onManualClose })
+    } = useSumsubKycFlow({ onKycSuccess, onManualClose }) // todo: pass region intent param
 
     return (
         <>

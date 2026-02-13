@@ -182,7 +182,7 @@ export const SumsubKycWrapper = ({
     return (
         <Modal
             visible={visible}
-            onClose={() => { }} // todo: implement close modal logic that also stops the sdk and resets state
+            onClose={() => {}} // todo: implement close modal logic that also stops the sdk and resets state
             classWrap="h-full w-full !max-w-none sm:!max-w-[600px] border-none sm:m-auto m-0"
             classOverlay={`bg-black bg-opacity-50 ${isHelpModalOpen ? 'pointer-events-none' : ''}`}
             video={false}
@@ -194,7 +194,7 @@ export const SumsubKycWrapper = ({
             {!isVerificationStarted ? (
                 // start verification view (provider-agnostic, not reusing StartVerificationView which references "Persona")
                 <StartVerificationView
-                    onClose={() => { }} // todo: handle kyc cancellation by user
+                    onClose={() => {}} // todo: handle kyc cancellation by user
                     onStartVerification={() => setIsVerificationStarted(true)}
                 />
             ) : sdkLoadError ? (
@@ -211,9 +211,9 @@ export const SumsubKycWrapper = ({
             ) : (
                 // SDK container + controls
                 <div className="flex h-full flex-col gap-2 p-0">
-                    <div className="h-full w-full flex-grow relative">
-                        <div ref={sdkContainerRef} className="w-full p-4 overflow-auto" style={{ height: '85%' }} />
-                        <div className="flex absolute bottom-0 h-[12%] shadow-md w-full flex-col items-center justify-center gap-2 px-5">
+                    <div className="relative h-full w-full flex-grow">
+                        <div ref={sdkContainerRef} className="w-full overflow-auto p-4" style={{ height: '85%' }} />
+                        <div className="absolute bottom-0 flex h-[12%] w-full flex-col items-center justify-center gap-2 px-5 shadow-md">
                             <Button
                                 variant="transparent"
                                 className="h-8 max-w-md font-normal underline"

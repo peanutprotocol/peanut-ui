@@ -3,12 +3,12 @@ import { useRouter } from 'next/navigation'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useUserStore } from '@/redux/hooks'
 import { initiateSumsubKyc } from '@/app/actions/sumsub'
-import { type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
+import { type KYCRegionIntent, type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
 
 interface UseSumsubKycFlowOptions {
     onKycSuccess?: () => void
     onManualClose?: () => void
-    regionIntent?: string
+    regionIntent?: KYCRegionIntent
 }
 
 export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: UseSumsubKycFlowOptions = {}) => {
