@@ -92,8 +92,9 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             } else {
                 setError('Could not initate verification. Please try again.')
             }
-        } catch (e: any) {
-            setError(e.message || 'An unexpected error occurred')
+        } catch (e: unknown) {
+            const message = e instanceof Error ? e.message : 'An unexpected error occurred'
+            setError(message)
         } finally {
             setIsLoading(false)
         }

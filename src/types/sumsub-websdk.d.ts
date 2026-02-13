@@ -10,6 +10,7 @@ declare global {
     interface SnsWebSdkBuilderChain {
         withConf(conf: { lang?: string; theme?: string }): SnsWebSdkBuilderChain
         withOptions(opts: { addViewportTag?: boolean; adaptIframeHeight?: boolean }): SnsWebSdkBuilderChain
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- sumsub sdk event handlers have varying untyped signatures
         on(event: string, handler: (...args: any[]) => void): SnsWebSdkBuilderChain
         build(): SnsWebSdkInstance
     }
