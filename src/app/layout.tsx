@@ -8,6 +8,7 @@ import { PEANUT_API_URL, BASE_URL } from '@/constants/general.consts'
 import { type Metadata } from 'next'
 
 const baseUrl = BASE_URL || 'https://peanut.me'
+const IS_PRODUCTION_DOMAIN = baseUrl === 'https://peanut.me'
 
 export const metadata: Metadata = {
     title: 'Peanut - Instant Global P2P Payments in Digital Dollars',
@@ -15,8 +16,11 @@ export const metadata: Metadata = {
         'Send and receive money instantly with Peanut - a fast, peer-to-peer payments app powered by digital dollars. Easily transfer funds across borders. Enjoy cheap, instant remittances and cash out to local banks without technical hassle.',
     metadataBase: new URL(baseUrl),
     icons: { icon: '/favicon.ico' },
+    alternates: { canonical: '/' },
     keywords:
         'peer-to-peer payments, send money instantly, request money, fast global transfers, remittances, digital dollar transfers, Latin America, Argentina, Brazil, P2P payments, crypto payments, stablecoin, digital dollars',
+    // Block staging/preview deploys from indexing (belt-and-suspenders with robots.ts)
+    robots: IS_PRODUCTION_DOMAIN ? { index: true, follow: true } : { index: false, follow: false },
     openGraph: {
         type: 'website',
         title: 'Peanut - Instant Global P2P Payments in Digital Dollars',
@@ -36,6 +40,51 @@ export const metadata: Metadata = {
         site: '@PeanutProtocol',
     },
     applicationName: process.env.NODE_ENV === 'development' ? 'Peanut Dev' : 'Peanut',
+}
+
+// JSON-LD structured data — site-wide schemas (Organization, WebApplication, WebSite)
+// FAQPage schema moved to page.tsx (homepage) where it belongs
+const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+        {
+            '@type': 'Organization',
+            '@id': `${baseUrl}/#organization`,
+            name: 'Peanut',
+            url: baseUrl,
+            logo: {
+                '@type': 'ImageObject',
+                url: `${baseUrl}/metadata-img.png`,
+            },
+            sameAs: [
+                'https://twitter.com/PeanutProtocol',
+                'https://github.com/peanutprotocol',
+                'https://www.linkedin.com/company/peanut-trade/',
+            ],
+        },
+        {
+            '@type': 'WebApplication',
+            '@id': `${baseUrl}/#app`,
+            name: 'Peanut',
+            url: baseUrl,
+            applicationCategory: 'FinanceApplication',
+            operatingSystem: 'Web',
+            offers: {
+                '@type': 'Offer',
+                price: '0',
+                priceCurrency: 'USD',
+            },
+            description:
+                'Send and receive money instantly with Peanut — a fast, peer-to-peer payments app powered by digital dollars.',
+        },
+        {
+            '@type': 'WebSite',
+            '@id': `${baseUrl}/#website`,
+            name: 'Peanut',
+            url: baseUrl,
+            publisher: { '@id': `${baseUrl}/#organization` },
+        },
+    ],
 }
 
 const roboto = Roboto_Flex({
@@ -93,6 +142,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <html lang="en" style={{ colorScheme: 'light' }} data-theme="light">
             <head>
                 <meta name="color-scheme" content="light" />
+
+                {/* JSON-LD structured data */}
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+                />
+
+                {/* AI-readable product description (llms.txt spec) */}
+                <link rel="author" type="text/markdown" href="/llms.txt" />
 
                 {/* DNS prefetch for API */}
                 <link rel="dns-prefetch" href={apiHostname} />

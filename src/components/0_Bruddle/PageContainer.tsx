@@ -19,4 +19,7 @@ const PageContainer = (props: PageContainerProps) => {
     )
 }
 
+PageContainer.displayName = 'PageContainer'
+
+export { PageContainer }
 export default PageContainer

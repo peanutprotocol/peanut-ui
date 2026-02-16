@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { Card } from '@/components/0_Bruddle/Card'
 import { COUNTRIES_SEO, getCountryName } from '@/data/seo'
-import countryCurrencyMappings, { getFlagUrl } from '@/constants/countryCurrencyMapping'
+import { getFlagUrl, findMappingBySlug } from '@/constants/countryCurrencyMapping'
 import { localizedPath } from '@/i18n/config'
 import type { Locale } from '@/i18n/types'
 
@@ -23,9 +23,7 @@ export function DestinationGrid({ countries, title = 'Send money to', locale = '
                     const seo = COUNTRIES_SEO[slug]
                     if (!seo) return null
 
-                    const mapping = countryCurrencyMappings.find(
-                        (m) => m.path === slug || m.country.toLowerCase().replace(/ /g, '-') === slug
-                    )
+                    const mapping = findMappingBySlug(slug)
 
                     const countryName = getCountryName(slug, locale)
                     const flagCode = mapping?.flagCode

@@ -275,7 +275,7 @@ export default function ComponentsPage() {
                             rows={[
                                 [
                                     'variant',
-                                    'purple | stroke | primary-soft | transparent | dark | transparent-dark | transparent-light | green | yellow',
+                                    'purple | stroke | primary-soft | transparent | dark | transparent-dark | transparent-light',
                                     'purple',
                                 ],
                                 ['size', 'small | medium | large', '(none = h-13)'],
@@ -328,21 +328,10 @@ export default function ComponentsPage() {
                                 <CopySnippet code={`<Button variant="transparent-light">Label</Button>`} />
                             </div>
 
-                            {(['green', 'yellow'] as const).map((variant) => (
-                                <div key={variant}>
-                                    <div className="mb-1 flex items-center gap-2">
-                                        <span className="text-xs font-bold">{variant}</span>
-                                        <span className="text-[10px] text-grey-1">0 production usages</span>
-                                        <StatusTag status="unused" />
-                                    </div>
-                                    <Button variant={variant}>{variant}</Button>
-                                </div>
-                            ))}
                         </div>
                     </Section>
 
                     <Section title="Sizes">
-                        <p className="text-xs text-grey-1">xl and xl-fixed exist in code but have 0 usages anywhere</p>
                         <div className="flex flex-wrap items-end gap-2">
                             <div className="text-center">
                                 <Button variant="stroke">default</Button>

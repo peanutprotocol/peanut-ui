@@ -1,16 +1,14 @@
 'use client'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
-import Layout from '@/components/Global/Layout'
 import { Button } from '@/components/0_Bruddle/Button'
 import { FAQsPanel } from '@/components/Global/FAQs'
 import PioneerCard3D from '@/components/LandingPage/PioneerCard3D'
-import Footer from '@/components/LandingPage/Footer'
 import { Marquee } from '@/components/LandingPage'
 import { useAuth } from '@/context/authContext'
 import { useRouter } from 'next/navigation'
 import { Star, HandThumbsUp } from '@/assets'
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 
 const faqQuestions = [
@@ -44,21 +42,12 @@ const faqQuestions = [
 const CardLandingPage = () => {
     const { user } = useAuth()
     const router = useRouter()
-    const [isMobile, setIsMobile] = useState(false)
-
     // feature flag: redirect to landing if card pioneers is disabled
     useEffect(() => {
         if (underMaintenanceConfig.disableCardPioneers) {
             router.replace('/')
         }
     }, [router])
-
-    useEffect(() => {
-        const checkMobile = () => setIsMobile(window.innerWidth < 768)
-        checkMobile()
-        window.addEventListener('resize', checkMobile)
-        return () => window.removeEventListener('resize', checkMobile)
-    }, [])
 
     if (underMaintenanceConfig.disableCardPioneers) {
         return null
@@ -79,10 +68,10 @@ const CardLandingPage = () => {
     }
 
     return (
-        <Layout className="enable-select !m-0 w-full !p-0">
+        <>
             {/* Hero Section - Yellow with card */}
             <section id="hero" className="relative overflow-hidden bg-yellow-1 py-16 md:py-24">
-                {!isMobile && <FloatingStars />}
+                <FloatingStars />
 
                 <div className="relative mx-auto max-w-6xl px-4">
                     <div className="flex flex-col items-center text-center">
@@ -146,7 +135,7 @@ const CardLandingPage = () => {
                 className="relative overflow-hidden py-20"
                 style={{ backgroundColor: '#F9F4F0' }}
             >
-                {!isMobile && <FloatingStars />}
+                <FloatingStars />
 
                 <div className="relative mx-auto max-w-5xl px-4">
                     <motion.h2
@@ -193,7 +182,7 @@ const CardLandingPage = () => {
                 className="relative overflow-hidden py-20"
                 style={{ backgroundColor: '#F9F4F0' }}
             >
-                {!isMobile && <FloatingStars />}
+                <FloatingStars />
                 <div className="mx-auto max-w-5xl px-4">
                     <div className="flex flex-col items-center gap-12 md:flex-row">
                         {/* Visual - Simplified Invite Visual */}
@@ -632,7 +621,7 @@ const CardLandingPage = () => {
 
             {/* Coverage - Yellow */}
             <section id="coverage" className="relative overflow-hidden bg-yellow-1 py-20">
-                {!isMobile && <FloatingStars />}
+                <FloatingStars />
 
                 <div className="relative mx-auto max-w-4xl px-4 text-center">
                     <motion.h2
@@ -722,7 +711,7 @@ const CardLandingPage = () => {
 
             {/* FAQ - Cream */}
             <section id="faq" className="relative overflow-hidden py-12" style={{ backgroundColor: '#F9F4F0' }}>
-                {!isMobile && <FloatingStars />}
+                <FloatingStars />
 
                 <div className="relative mx-auto max-w-3xl px-4">
                     <FAQsPanel heading="FAQ" questions={faqQuestions} />
@@ -744,7 +733,7 @@ const CardLandingPage = () => {
 
             {/* Final CTA - Secondary Yellow */}
             <section id="join" className="relative overflow-hidden bg-secondary-1 py-24 text-center text-n-1">
-                {!isMobile && <FloatingStars />}
+                <FloatingStars />
 
                 <div className="relative mx-auto max-w-2xl px-4">
                     <motion.div
@@ -794,14 +783,12 @@ const CardLandingPage = () => {
 
             <Marquee {...marqueeProps} />
 
-            <Footer />
-        </Layout>
+        </>
     )
 }
 
-// Floating stars component - matches Manteca.tsx pattern exactly
+// Floating stars component
 const FloatingStars = () => {
-    // Match Manteca's star configuration pattern
     const starConfigs = [
         { className: 'absolute left-12 top-10', delay: 0.2 },
         { className: 'absolute left-56 top-1/2', delay: 0.2 },
@@ -820,7 +807,6 @@ const FloatingStars = () => {
                     width={50}
                     height={50}
                     className={`${config.className} hidden md:block`}
-                    // Exact Manteca animation pattern
                     initial={{ opacity: 0, translateY: 20, translateX: 5, rotate: 22 }}
                     whileInView={{ opacity: 1, translateY: 0, translateX: 0, rotate: 22 }}
                     transition={{ type: 'spring', damping: 5, delay: config.delay }}

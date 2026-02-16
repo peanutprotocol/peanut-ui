@@ -685,3 +685,72 @@ input::placeholder {
     z-index: 5;
     border-radius: inherit;
 }
+
+/* ── Landing page: CSS cloud drift animations ── */
+@keyframes cloud-drift-ltr {
+    from {
+        transform: translateX(-300px);
+    }
+    to {
+        transform: translateX(100vw);
+    }
+}
+
+@keyframes cloud-drift-rtl {
+    from {
+        transform: translateX(100vw);
+    }
+    to {
+        transform: translateX(-300px);
+    }
+}
+
+.cloud-ltr {
+    animation: cloud-drift-ltr var(--cloud-speed, 35s) linear infinite;
+    animation-delay: var(--cloud-delay, 0s);
+}
+
+.cloud-rtl {
+    animation: cloud-drift-rtl var(--cloud-speed, 35s) linear infinite;
+    animation-delay: var(--cloud-delay, 0s);
+}
+
+/* ── Landing page: entrance animations (replaces framer-motion whileInView) ── */
+/* Spring animation approximating framer-motion { type: 'spring', damping: 5, stiffness: 100 }
+   damping:5 is heavily underdamped — large overshoot, multiple visible oscillations.
+   Sampled from spring physics: e^(-ζωt) * cos(ωd*t) with ζ=0.25, ω=10 */
+@keyframes fade-in-up-spring {
+    0% {
+        opacity: 0;
+        transform: translateY(var(--aov-y, 20px)) translateX(var(--aov-x, 0px)) rotate(var(--aov-rotate, 0deg));
+    }
+    15% {
+        opacity: 1;
+        transform: translateY(calc(var(--aov-y, 20px) * -0.6)) translateX(calc(var(--aov-x, 0px) * -0.6)) rotate(var(--aov-rotate, 0deg));
+    }
+    30% {
+        transform: translateY(calc(var(--aov-y, 20px) * 0.35)) translateX(calc(var(--aov-x, 0px) * 0.35)) rotate(var(--aov-rotate, 0deg));
+    }
+    45% {
+        transform: translateY(calc(var(--aov-y, 20px) * -0.2)) translateX(calc(var(--aov-x, 0px) * -0.2)) rotate(var(--aov-rotate, 0deg));
+    }
+    60% {
+        transform: translateY(calc(var(--aov-y, 20px) * 0.1)) translateX(calc(var(--aov-x, 0px) * 0.1)) rotate(var(--aov-rotate, 0deg));
+    }
+    75% {
+        transform: translateY(calc(var(--aov-y, 20px) * -0.05)) translateX(calc(var(--aov-x, 0px) * -0.05)) rotate(var(--aov-rotate, 0deg));
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) translateX(0) rotate(var(--aov-rotate, 0deg));
+    }
+}
+
+.animate-on-view {
+    opacity: 0;
+}
+
+.animate-on-view.in-view {
+    animation: fade-in-up-spring 1.4s linear forwards;
+    animation-delay: var(--aov-delay, 0s);
+}

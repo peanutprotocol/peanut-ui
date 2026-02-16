@@ -1,4 +1,3 @@
-import classNames from 'classnames'
 import { twMerge } from 'tailwind-merge'
 
 type ShadowSize = '4' | '6' | '8'
@@ -59,7 +58,7 @@ const Description = ({ children, className, ...props }: React.HTMLAttributes<HTM
 )
 
 const Content = ({ children, className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-    <div className={classNames('card-content', className)} {...props}>
+    <div className={twMerge('card-content', className)} {...props}>
         {children}
     </div>
 )

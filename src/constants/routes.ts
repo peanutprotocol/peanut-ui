@@ -10,6 +10,7 @@
  * These should not be handled by catch-all routes
  */
 export const DEDICATED_ROUTES = [
+    // App routes (auth-gated)
     'qr',
     'api',
     'setup',
@@ -23,6 +24,41 @@ export const DEDICATED_ROUTES = [
     'invite',
     'support',
     'dev',
+    'send',
+    'profile',
+    'kyc',
+    'maintenance',
+    'quests',
+    'receipt',
+    'crisp-proxy',
+    'card-payment',
+    'add-money',
+    'withdraw',
+    'sdk',
+    'qr-pay',
+
+    // Public pages (existing)
+    'careers',
+    'privacy',
+    'terms',
+    'lp',
+    'exchange',
+
+    // Future SEO routes (pre-register so catch-all doesn't intercept)
+    'send-money-to',
+    'receive-money-from',
+    'deposit',
+    'pay-with',
+    'convert',
+    'compare',
+    'blog',
+    'help',
+    'faq',
+    'how-it-works',
+
+    // Future locale prefixes
+    'es',
+    'pt',
 ] as const
 
 /**
