@@ -84,6 +84,7 @@ export default async function ComparisonPageLocalized({ params }: PageProps) {
             <MarketingHero
                 title={`Peanut vs ${competitor.name} [${year}]`}
                 subtitle={`${competitor.tagline} — ${year}`}
+                image={competitor.image}
             />
 
             <MarketingShell>

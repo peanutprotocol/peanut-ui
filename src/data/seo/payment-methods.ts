@@ -1,7 +1,7 @@
 // Typed wrapper for payment method data.
 // Raw data lives in peanut-content/payment-methods/{slug}/. Types and logic live here.
 
-import { readEntitySeo, readEntityContent, readEntityIndex } from '@/lib/content'
+import { readEntitySeo, readEntityContent, readEntityIndex, isPublished } from '@/lib/content'
 
 export interface PaymentMethod {
     slug: string
@@ -25,7 +25,7 @@ interface PaymentMethodFrontmatter {
 }
 
 interface PaymentMethodIndex {
-    methods: Array<{ slug: string; name: string; locales: string[] }>
+    methods: Array<{ slug: string; name: string; status?: string; locales: string[] }>
 }
 
 function loadPaymentMethods(): Record<string, PaymentMethod> {
@@ -35,6 +35,7 @@ function loadPaymentMethods(): Record<string, PaymentMethod> {
     const result: Record<string, PaymentMethod> = {}
 
     for (const entry of index.methods) {
+        if (!isPublished(entry)) continue
         const data = readEntitySeo<PaymentMethodDataJson>('payment-methods', entry.slug)
         const content = readEntityContent<PaymentMethodFrontmatter>('payment-methods', entry.slug, 'en')
 

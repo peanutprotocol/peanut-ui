@@ -5,7 +5,7 @@
 import fs from 'fs'
 import path from 'path'
 import matter from 'gray-matter'
-import { readEntitySeo, readEntityContent, readEntityIndex } from '@/lib/content'
+import { readEntitySeo, readEntityContent, readEntityIndex, isPublished } from '@/lib/content'
 import type { Locale } from '@/i18n/types'
 
 const yaml = matter.engines.yaml
@@ -41,7 +41,7 @@ interface CountryFrontmatter {
 }
 
 interface CountryIndex {
-    countries: Array<{ slug: string; region: string; locales: string[] }>
+    countries: Array<{ slug: string; region: string; status?: string; locales: string[] }>
     corridors: Corridor[]
 }
 
@@ -51,7 +51,11 @@ function loadAll() {
 
     const countries: Record<string, CountrySEO> = {}
 
-    for (const { slug } of index.countries) {
+    const publishedSlugs = new Set(index.countries.filter(isPublished).map((c) => c.slug))
+
+    for (const entry of index.countries) {
+        if (!isPublished(entry)) continue
+        const { slug } = entry
         const seo = readEntitySeo<CountrySeoJson>('countries', slug)
         const content = readEntityContent<CountryFrontmatter>('countries', slug, 'en')
         if (!seo || !content) continue
@@ -65,7 +69,10 @@ function loadAll() {
         }
     }
 
-    return { countries, corridors: index.corridors }
+    // Only include corridors where both endpoints are published
+    const corridors = index.corridors.filter((c) => publishedSlugs.has(c.from) && publishedSlugs.has(c.to))
+
+    return { countries, corridors }
 }
 
 const _loaded = loadAll()

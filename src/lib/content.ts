@@ -56,11 +56,18 @@ export function readEntityIndex<T>(entityType: string): T | null {
     return readYamlFile<T>(path.join(CONTENT_ROOT, entityType, '_index.yaml'))
 }
 
-/** List all entity slugs by reading _index.yaml */
+/** List all entity slugs by reading _index.yaml (published only) */
 export function listEntitySlugs(entityType: string, key: string): string[] {
-    const index = readEntityIndex<Record<string, Array<{ slug: string }>>>(entityType)
+    const index = readEntityIndex<Record<string, Array<{ slug: string; status?: string }>>>(entityType)
     if (!index?.[key]) return []
-    return index[key].map((item) => item.slug)
+    return index[key]
+        .filter((item) => (item.status ?? 'published') === 'published')
+        .map((item) => item.slug)
+}
+
+/** Check if an entity is published (missing status = published) */
+export function isPublished(entry: { status?: string }): boolean {
+    return (entry.status ?? 'published') === 'published'
 }
 
 /** Check if a locale file exists for an entity */

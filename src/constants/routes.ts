@@ -56,7 +56,8 @@ export const DEDICATED_ROUTES = [
     'faq',
     'how-it-works',
 
-    // Future locale prefixes
+    // Locale prefixes
+    'en',
     'es',
     'pt',
 ] as const

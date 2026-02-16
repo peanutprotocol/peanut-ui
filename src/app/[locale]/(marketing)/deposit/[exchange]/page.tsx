@@ -89,6 +89,7 @@ export default async function DepositPageLocalized({ params }: PageProps) {
             <MarketingHero
                 title={t(i18n.depositFrom, { exchange: ex.name })}
                 subtitle={`${ex.processingTime} · ${ex.recommendedNetwork}`}
+                image={ex.image}
             />
 
             <MarketingShell>

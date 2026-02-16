@@ -2,7 +2,7 @@
 // Reads from per-competitor directories: peanut-content/competitors/<slug>/
 // Public API unchanged from the previous monolithic JSON version.
 
-import { readEntitySeo, readEntityContent, readEntityIndex } from '@/lib/content'
+import { readEntitySeo, readEntityContent, readEntityIndex, isPublished } from '@/lib/content'
 
 export interface Competitor {
     name: string
@@ -12,6 +12,7 @@ export interface Competitor {
     consCompetitor: string[]
     verdict: string
     faqs: Array<{ q: string; a: string }>
+    image?: string
 }
 
 interface CompetitorSeoJson {
@@ -26,11 +27,12 @@ interface CompetitorSeoJson {
 interface CompetitorFrontmatter {
     title: string
     description: string
+    image?: string
     faqs: Array<{ q: string; a: string }>
 }
 
 interface CompetitorIndex {
-    competitors: Array<{ slug: string; name: string; locales: string[] }>
+    competitors: Array<{ slug: string; name: string; status?: string; locales: string[] }>
 }
 
 function loadCompetitors(): Record<string, Competitor> {
@@ -39,7 +41,9 @@ function loadCompetitors(): Record<string, Competitor> {
 
     const result: Record<string, Competitor> = {}
 
-    for (const { slug } of index.competitors) {
+    for (const entry of index.competitors) {
+        if (!isPublished(entry)) continue
+        const { slug } = entry
         const seo = readEntitySeo<CompetitorSeoJson>('competitors', slug)
         const content = readEntityContent<CompetitorFrontmatter>('competitors', slug, 'en')
         if (!seo || !content) continue
@@ -47,6 +51,7 @@ function loadCompetitors(): Record<string, Competitor> {
         result[slug] = {
             ...seo,
             faqs: content.frontmatter.faqs ?? [],
+            image: content.frontmatter.image,
         }
     }
 
