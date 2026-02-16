@@ -10,6 +10,12 @@ import { twMerge } from 'tailwind-merge'
 import { type IUserKycVerification } from '@/interfaces'
 import StatusPill from '../Global/StatusPill'
 import { KYCStatusIcon } from './KYCStatusIcon'
+import {
+    isKycStatusApproved,
+    isKycStatusPending,
+    isKycStatusFailed,
+    isKycStatusNotStarted,
+} from '@/constants/kyc.consts'
 
 // this component shows the current kyc status and opens a drawer with more details on click
 export const KycStatusItem = ({
@@ -45,23 +51,18 @@ export const KycStatusItem = ({
     const finalBridgeKycStatus = wsBridgeKycStatus || bridgeKycStatus || user?.user?.bridgeKycStatus
     const kycStatus = verification ? verification.status : finalBridgeKycStatus
 
-    // Check if KYC is approved to show points earned
-    const isApproved = kycStatus === 'approved' || kycStatus === 'ACTIVE'
-
-    const isPending = kycStatus === 'under_review' || kycStatus === 'incomplete' || kycStatus === 'ONBOARDING'
-    const isRejected = kycStatus === 'rejected' || kycStatus === 'INACTIVE'
+    const isApproved = isKycStatusApproved(kycStatus)
+    const isPending = isKycStatusPending(kycStatus)
+    const isRejected = isKycStatusFailed(kycStatus)
 
     const subtitle = useMemo(() => {
-        if (isPending) {
-            return 'Under review'
-        }
-        if (isApproved) {
-            return 'Approved'
-        }
-        return 'Rejected'
+        if (isPending) return 'Under review'
+        if (isApproved) return 'Approved'
+        if (isRejected) return 'Rejected'
+        return 'Unknown'
     }, [isPending, isApproved, isRejected])
 
-    if (!kycStatus || kycStatus === 'not_started') {
+    if (isKycStatusNotStarted(kycStatus)) {
         return null
     }
 
@@ -88,12 +89,14 @@ export const KycStatusItem = ({
                 </div>
             </Card>
 
-            <KycStatusDrawer
-                isOpen={isDrawerOpen}
-                onClose={handleCloseDrawer}
-                verification={verification}
-                bridgeKycStatus={finalBridgeKycStatus}
-            />
+            {isDrawerOpen && (
+                <KycStatusDrawer
+                    isOpen={isDrawerOpen}
+                    onClose={handleCloseDrawer}
+                    verification={verification}
+                    bridgeKycStatus={finalBridgeKycStatus}
+                />
+            )}
         </>
     )
 }
