@@ -63,7 +63,6 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
             onError,
         }
     }, [
-
         onHistoryEntry,
 
         onKycStatusUpdate,
