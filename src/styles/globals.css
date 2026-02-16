@@ -486,3 +486,202 @@ input::placeholder {
     flex: 0 0 100%;
     min-width: 0;
 }
+
+/* Slide animations for perk claim transitions */
+@keyframes slideOutLeft {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(-100%);
+        opacity: 0;
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.animate-slide-out-left {
+    animation: slideOutLeft 0.3s ease-out forwards;
+}
+
+.animate-slide-in-right {
+    animation: slideInRight 0.3s ease-out forwards;
+}
+
+/* Gift box opening animations */
+@keyframes giftOpening {
+    0%,
+    100% {
+        transform: translateY(0) rotate(0deg) scale(1);
+    }
+    10%,
+    30%,
+    50%,
+    70%,
+    90% {
+        transform: translateY(-4px) rotate(-2deg) scale(1.02);
+    }
+    20%,
+    40%,
+    60%,
+    80% {
+        transform: translateY(-4px) rotate(2deg) scale(1.02);
+    }
+}
+
+@keyframes giftRevealed {
+    0% {
+        transform: scale(1.05);
+        opacity: 0.8;
+    }
+    50% {
+        transform: scale(1.02);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes giftExit {
+    0% {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(0.95) translateY(-10px);
+        opacity: 0;
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-gift-opening {
+    animation: giftOpening 0.12s ease-in-out infinite;
+    transform-origin: center center;
+}
+
+.animate-gift-revealed {
+    animation: giftRevealed 0.4s ease-out forwards;
+}
+
+.animate-gift-exit {
+    animation: giftExit 0.4s ease-out forwards;
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+}
+
+/* Gift arrival animation - gentle fade in with subtle scale (for initial page load) */
+@keyframes giftArriveGentle {
+    0% {
+        transform: scale(0.95);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.animate-gift-arrive-gentle {
+    animation: giftArriveGentle 0.4s ease-out forwards;
+}
+
+/* Gift arrival animation - drops in from above with a bounce (for WebSocket real-time) */
+@keyframes giftArrive {
+    0% {
+        transform: translateY(-50px) scale(0.9);
+        opacity: 0;
+    }
+    60% {
+        transform: translateY(5px) scale(1.02);
+        opacity: 1;
+    }
+    80% {
+        transform: translateY(-3px) scale(0.99);
+    }
+    100% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+.animate-gift-arrive {
+    animation: giftArrive 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Gift attention animation - very subtle pulse to draw attention after idle */
+@keyframes giftAttention {
+    /* Gentle pulsate - very subtle */
+    0% {
+        transform: scale(1);
+    }
+    15% {
+        transform: scale(1.02);
+    }
+    30% {
+        transform: scale(1);
+    }
+    45% {
+        transform: scale(1.02);
+    }
+    60% {
+        transform: scale(1);
+    }
+    /* Rest before loop */
+    100% {
+        transform: scale(1);
+    }
+}
+
+.animate-gift-attention {
+    animation: giftAttention 4s ease-in-out infinite;
+    transform-origin: center center;
+}
+
+/* Gift box holographic shine effect */
+@keyframes giftShine {
+    0% {
+        left: -100%;
+    }
+    50%,
+    100% {
+        left: 150%;
+    }
+}
+
+.gift-box-shine::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    animation: giftShine 3s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 5;
+    border-radius: inherit;
+}

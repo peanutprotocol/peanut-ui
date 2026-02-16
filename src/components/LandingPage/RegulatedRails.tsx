@@ -59,7 +59,11 @@ export function RegulatedRails() {
         }
     }
     return (
-        <section className="relative overflow-hidden py-20 text-n-1" style={{ backgroundColor: bgColor }}>
+        <section
+            id="regulated-rails"
+            className="relative overflow-hidden py-20 text-n-1"
+            style={{ backgroundColor: bgColor }}
+        >
             <div className="absolute left-0 top-0 h-full w-full overflow-hidden">
                 {/* Animated clouds */}
                 <motion.img

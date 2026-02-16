@@ -23,6 +23,8 @@ interface CarouselCTAProps {
     isPermissionDenied?: boolean
     secondaryIcon?: StaticImageData | string
     iconSize?: number
+    // Perk claim indicator - shows pink dot instead of X close button
+    isPerkClaim?: boolean
 }
 
 const CarouselCTA = ({
@@ -37,6 +39,7 @@ const CarouselCTA = ({
     secondaryIcon,
     iconSize = 22,
     logoSize = 36,
+    isPerkClaim,
 }: CarouselCTAProps) => {
     const [showPermissionDeniedModal, setShowPermissionDeniedModal] = useState(false)
     const { triggerHaptic } = useHaptic()
@@ -80,18 +83,24 @@ const CarouselCTA = ({
                 onClick={handleClick}
                 className="embla__slide relative flex flex-row items-center justify-around px-2 py-2 md:py-3"
             >
-                {/* Close button - consistent positioning and size */}
-                <button
-                    type="button"
-                    aria-label={getAriaLabel()}
-                    onClick={handleClose}
-                    className={twMerge(
-                        CAROUSEL_CLOSE_BUTTON_POSITION,
-                        'z-10 cursor-pointer p-0 text-black outline-none'
-                    )}
-                >
-                    <Icon name="cancel" size={CAROUSEL_CLOSE_ICON_SIZE} />
-                </button>
+                {/* Close button or pink dot indicator for perk claims */}
+                {isPerkClaim ? (
+                    <div className={twMerge(CAROUSEL_CLOSE_BUTTON_POSITION, 'z-10')} aria-label="Claimable perk">
+                        <div className="h-2.5 w-2.5 rounded-full bg-primary-1" />
+                    </div>
+                ) : (
+                    <button
+                        type="button"
+                        aria-label={getAriaLabel()}
+                        onClick={handleClose}
+                        className={twMerge(
+                            CAROUSEL_CLOSE_BUTTON_POSITION,
+                            'z-10 cursor-pointer p-0 text-black outline-none'
+                        )}
+                    >
+                        <Icon name="cancel" size={CAROUSEL_CLOSE_ICON_SIZE} />
+                    </button>
+                )}
 
                 {/* Icon container */}
                 <div

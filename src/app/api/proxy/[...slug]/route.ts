@@ -26,8 +26,6 @@ export async function POST(request: NextRequest) {
         })
     }
 
-    jsonToPass.apiKey = process.env.PEANUT_API_KEY!
-
     const userIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip')
     const headersToPass = {
         'Content-Type': 'application/json',

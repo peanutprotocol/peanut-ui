@@ -3,17 +3,15 @@
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import Card from '@/components/Global/Card'
 import { getCardPosition } from '@/components/Global/Card/card.utils'
-import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import NavigationArrow from '@/components/Global/NavigationArrow'
 import PeanutLoading from '@/components/Global/PeanutLoading'
-import ShareButton from '@/components/Global/ShareButton'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
 import { VerifiedUserLabel } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
 import { invitesApi } from '@/services/invites'
-import { generateInviteCodeLink, generateInvitesShareText, getInitialsFromName } from '@/utils/general.utils'
+import { getInitialsFromName } from '@/utils/general.utils'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { STAR_STRAIGHT_ICON, TIER_0_BADGE, TIER_1_BADGE, TIER_2_BADGE, TIER_3_BADGE } from '@/assets'
@@ -21,13 +19,17 @@ import Image from 'next/image'
 import { pointsApi } from '@/services/points'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { type PointsInvite } from '@/services/services.types'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import InvitesGraph from '@/components/Global/InvitesGraph'
-import { IS_DEV } from '@/constants/general.consts'
+import { CashCard } from '@/components/Points/CashCard'
+import { TRANSITIVITY_MULTIPLIER } from '@/constants/points.consts'
+import InviteFriendsModal from '@/components/Global/InviteFriendsModal'
+import { Button } from '@/components/0_Bruddle/Button'
 
 const PointsPage = () => {
     const router = useRouter()
     const { user, fetchUser } = useAuth()
+    const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
 
     const getTierBadge = (tier: number) => {
         const badges = [TIER_0_BADGE, TIER_1_BADGE, TIER_2_BADGE, TIER_3_BADGE]
@@ -55,15 +57,21 @@ const PointsPage = () => {
         enabled: !!user?.user.userId,
     })
 
-    // In dev mode, show graph for all users. In production, only for Seedling badge holders.
-    const hasSeedlingBadge = user?.user?.badges?.some((badge) => badge.code === 'SEEDLING_DEVCONNECT_BA_2025')
+    // Referral graph is now available for all users
     const { data: myGraphResult } = useQuery({
         queryKey: ['myInviteGraph', user?.user.userId],
         queryFn: () => pointsApi.getUserInvitesGraph(),
-        enabled: !!user?.user.userId && (IS_DEV || hasSeedlingBadge),
+        enabled: !!user?.user.userId,
     })
+
+    // Cash status (comprehensive earnings tracking)
+    const { data: cashStatus } = useQuery({
+        queryKey: ['cashStatus', user?.user.userId],
+        queryFn: () => pointsApi.getCashStatus(),
+        enabled: !!user?.user.userId,
+    })
+
     const username = user?.user.username
-    const { inviteCode, inviteLink } = generateInviteCodeLink(username ?? '')
 
     useEffect(() => {
         // Re-fetch user to get the latest invitees list for showing heart Icon
@@ -89,95 +97,73 @@ const PointsPage = () => {
             <NavHeader title="Points" onPrev={() => router.back()} />
 
             <section className="mx-auto mb-auto mt-10 w-full space-y-4">
-                <Card className="flex flex-col items-center justify-center gap-3 p-6">
-                    <div className="flex items-center gap-2">
+                {/* consolidated points and cash card */}
+                <Card className="flex flex-col gap-4 p-6">
+                    {/* points section */}
+                    <div className="flex items-center justify-center gap-2">
                         <Image src={STAR_STRAIGHT_ICON} alt="star" width={24} height={24} />
                         <h2 className="text-4xl font-black text-black">
                             {tierInfo.data.totalPoints} {tierInfo.data.totalPoints === 1 ? 'Point' : 'Points'}
                         </h2>
                     </div>
 
-                    {/* Progressive progress bar */}
-                    <div className="flex w-full items-center gap-3">
-                        <Image
-                            src={getTierBadge(tierInfo?.data.currentTier)}
-                            alt={`Tier ${tierInfo?.data.currentTier}`}
-                            width={32}
-                            height={32}
-                        />
-                        <div className="relative h-2 w-full overflow-hidden rounded-full bg-grey-2">
-                            <div
-                                className="h-full rounded-full bg-gradient-to-r from-primary-1 to-primary-2 transition-all duration-500"
-                                style={{
-                                    width: `${
-                                        tierInfo?.data.currentTier >= 2
-                                            ? 100
-                                            : Math.pow(
-                                                  Math.min(
-                                                      1,
-                                                      tierInfo.data.nextTierThreshold > 0
-                                                          ? tierInfo.data.totalPoints / tierInfo.data.nextTierThreshold
-                                                          : 0
-                                                  ),
-                                                  0.6
-                                              ) * 100
-                                    }%`,
-                                }}
+                    {/* de-emphasized tier progress - smaller and flatter */}
+                    <div className="flex flex-col gap-0.5 pb-1">
+                        <div className="flex items-center gap-2">
+                            <Image
+                                src={getTierBadge(tierInfo?.data.currentTier)}
+                                alt={`Tier ${tierInfo?.data.currentTier}`}
+                                width={24}
+                                height={24}
                             />
+                            <div className="relative h-1 flex-1 overflow-hidden rounded-full bg-grey-2">
+                                <div
+                                    className="h-full rounded-full bg-gradient-to-r from-primary-1 to-primary-2 transition-all duration-500"
+                                    style={{
+                                        width: `${
+                                            tierInfo?.data.currentTier >= 2
+                                                ? 100
+                                                : Math.pow(
+                                                      Math.min(
+                                                          1,
+                                                          tierInfo.data.nextTierThreshold > 0
+                                                              ? tierInfo.data.totalPoints /
+                                                                    tierInfo.data.nextTierThreshold
+                                                              : 0
+                                                      ),
+                                                      0.6
+                                                  ) * 100
+                                        }%`,
+                                    }}
+                                />
+                            </div>
+                            {tierInfo?.data.currentTier < 2 && (
+                                <Image
+                                    src={getTierBadge(tierInfo?.data.currentTier + 1)}
+                                    alt={`Tier ${tierInfo?.data.currentTier + 1}`}
+                                    width={24}
+                                    height={24}
+                                />
+                            )}
                         </div>
                         {tierInfo?.data.currentTier < 2 && (
-                            <Image
-                                src={getTierBadge(tierInfo?.data.currentTier + 1)}
-                                alt={`Tier ${tierInfo?.data.currentTier + 1}`}
-                                width={32}
-                                height={32}
-                            />
-                        )}
-                    </div>
-
-                    <div className="text-center">
-                        <p className="text-base text-grey-1">You&apos;re at tier {tierInfo?.data.currentTier}.</p>
-                        {tierInfo?.data.currentTier < 2 ? (
-                            <p className="text-sm text-grey-1">
+                            <p className="text-center text-sm text-grey-1">
                                 {tierInfo.data.pointsToNextTier}{' '}
-                                {tierInfo.data.pointsToNextTier === 1 ? 'point' : 'points'} needed to level up
+                                {tierInfo.data.pointsToNextTier === 1 ? 'point' : 'points'} to next tier
                             </p>
-                        ) : (
-                            <p className="text-sm text-grey-1">You&apos;ve reached the max tier!</p>
                         )}
                     </div>
+
+                    {/* cash section */}
+                    {cashStatus?.success && cashStatus.data && (
+                        <CashCard cashLeft={cashStatus.data.cashLeft} lifetimeEarned={cashStatus.data.lifetimeEarned} />
+                    )}
                 </Card>
-                {user?.invitedBy ? (
-                    <p className="text-center text-sm">
-                        <span
-                            onClick={() => router.push(`/${user.invitedBy}`)}
-                            className="inline-flex cursor-pointer items-center gap-1 font-bold"
-                        >
-                            {user.invitedBy} <Icon name="invite-heart" size={14} />
-                        </span>{' '}
-                        invited you and earned points. Now it's your turn! Invite friends and get 20% of their points.
-                    </p>
-                ) : (
-                    <div className="mx-3 flex items-center gap-2">
-                        <Icon name="info" className="size-4 flex-shrink-0 text-black" />
-                        <p className="text-sm text-black">
-                            Do stuff on Peanut and get points. Invite friends and pocket 20% of their points, too.
-                        </p>
-                    </div>
-                )}
 
-                <h1 className="font-bold">Invite friends with your code</h1>
-                <div className="flex w-full items-center justify-between gap-3">
-                    <Card className="flex w-full items-center justify-between py-3.5">
-                        <p className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-bold md:text-base">{`${inviteCode}`}</p>
-                        <CopyToClipboard textToCopy={inviteCode} iconSize="4" />
-                    </Card>
-                </div>
-
-                {/* User Graph - shows user, their inviter, and points flow regardless of invites */}
+                {/* invite graph with consolidated explanation */}
                 {myGraphResult?.data && (
                     <>
-                        <Card className="overflow-hidden p-0">
+                        <Card className="!mt-8 overflow-hidden p-0">
                             <InvitesGraph
                                 minimal
                                 data={myGraphResult.data}
@@ -186,27 +172,33 @@ const PointsPage = () => {
                                 showUsernames
                             />
                         </Card>
-                        <div className="flex items-center gap-2">
-                            <Icon name="info" className="size-4 flex-shrink-0 text-black" />
-                            <p className="text-sm text-black">
-                                {IS_DEV
-                                    ? 'Experimental. Enabled for all users in dev mode.'
-                                    : 'Experimental. Only available for Seedlings badge holders.'}
-                            </p>
-                        </div>
+                        <p className="text-center text-sm">
+                            {user?.invitedBy && (
+                                <>
+                                    <span
+                                        onClick={() => router.push(`/${user.invitedBy}`)}
+                                        className="inline-flex cursor-pointer items-center gap-1 font-bold"
+                                    >
+                                        {user.invitedBy} <Icon name="invite-heart" size={14} />
+                                    </span>{' '}
+                                    invited you.{' '}
+                                </>
+                            )}
+                            You earn rewards whenever friends you invite use Peanut!
+                        </p>
                     </>
                 )}
 
-                {invites && invites?.invitees && invites.invitees.length > 0 && (
+                {/* if user has invites: show button above people list */}
+                {invites && invites?.invitees && invites.invitees.length > 0 ? (
                     <>
-                        <ShareButton
-                            generateText={() => Promise.resolve(generateInvitesShareText(inviteLink))}
-                            title="Share your invite link"
-                        >
+                        <Button onClick={() => setIsInviteModalOpen(true)} className="!mt-8 w-full">
                             Share Invite link
-                        </ShareButton>
+                        </Button>
+
+                        {/* people you invited */}
                         <div
-                            className="!mt-8 flex cursor-pointer items-center justify-between"
+                            className="flex cursor-pointer items-center justify-between"
                             onClick={() => router.push('/points/invites')}
                         >
                             <h2 className="font-bold">People you invited</h2>
@@ -214,17 +206,17 @@ const PointsPage = () => {
                         </div>
 
                         <div>
-                            {invites.invitees?.map((invite: PointsInvite, i: number) => {
+                            {invites.invitees?.slice(0, 5).map((invite: PointsInvite, i: number) => {
                                 const username = invite.username
                                 const fullName = invite.fullName
                                 const isVerified = invite.kycStatus === 'approved'
-                                const pointsEarned = Math.floor(invite.totalPoints * 0.2)
+                                const pointsEarned = Math.floor(invite.totalPoints * TRANSITIVITY_MULTIPLIER)
                                 // respect user's showFullName preference for avatar and display name
                                 const displayName = invite.showFullName && fullName ? fullName : username
                                 return (
                                     <Card
                                         key={invite.inviteeId}
-                                        position={getCardPosition(i, invites.invitees.length)}
+                                        position={getCardPosition(i, Math.min(5, invites.invitees.length))}
                                         onClick={() => router.push(`/${username}`)}
                                         className="cursor-pointer"
                                     >
@@ -255,26 +247,31 @@ const PointsPage = () => {
                             })}
                         </div>
                     </>
+                ) : (
+                    <>
+                        {/* if user has no invites: show empty state with modal button */}
+                        <Card className="!mt-8 flex flex-col items-center justify-center gap-4 py-4">
+                            <div className="flex items-center justify-center rounded-full bg-primary-1 p-2">
+                                <Icon name="trophy" />
+                            </div>
+                            <h2 className="font-medium">No invites yet</h2>
+
+                            <p className="text-center text-sm text-grey-1">
+                                Send your invite link to start earning more rewards
+                            </p>
+                            <Button onClick={() => setIsInviteModalOpen(true)} className="w-full">
+                                Share Invite link
+                            </Button>
+                        </Card>
+                    </>
                 )}
 
-                {invites?.invitees?.length === 0 && (
-                    <Card className="flex flex-col items-center justify-center gap-4 py-4">
-                        <div className="flex items-center justify-center rounded-full bg-primary-1 p-2">
-                            <Icon name="trophy" />
-                        </div>
-                        <h2 className="font-medium">No invites yet</h2>
-
-                        <p className="text-center text-sm text-grey-1">
-                            Send your invite link to start earning more rewards
-                        </p>
-                        <ShareButton
-                            generateText={() => Promise.resolve(generateInvitesShareText(inviteLink))}
-                            title="Share your invite link"
-                        >
-                            Share Invite link
-                        </ShareButton>
-                    </Card>
-                )}
+                {/* Invite Modal */}
+                <InviteFriendsModal
+                    visible={isInviteModalOpen}
+                    onClose={() => setIsInviteModalOpen(false)}
+                    username={username ?? ''}
+                />
             </section>
         </PageContainer>
     )

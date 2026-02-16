@@ -43,6 +43,19 @@ export function SemanticRequestPageWrapper({ recipient }: SemanticRequestPageWra
             return
         }
 
+        // If we have a chargeId, skip URL parsing - charge will provide all needed data
+        // Use a dummy parsedUrl to satisfy the component contract
+        if (chargeIdFromUrl) {
+            setParsedUrl({
+                recipient: null, // Will be populated from charge
+                amount: undefined,
+                token: undefined,
+                chain: undefined,
+            })
+            setIsLoading(false)
+            return
+        }
+
         setIsLoading(true)
         setError(null)
 
@@ -66,7 +79,7 @@ export function SemanticRequestPageWrapper({ recipient }: SemanticRequestPageWra
             .finally(() => {
                 setIsLoading(false)
             })
-    }, [recipient])
+    }, [recipient, chargeIdFromUrl])
 
     // loading state
     if (isLoading) {

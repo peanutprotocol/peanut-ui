@@ -12,6 +12,7 @@ const businessBgColor = '#90A8ED'
 export function DropLink() {
     return (
         <section
+            id="drop-link"
             className="flex min-h-[500px] items-center justify-center px-4 py-16 text-n-1 md:min-h-[700px]"
             style={{ backgroundColor: businessBgColor }}
         >

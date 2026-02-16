@@ -11,10 +11,12 @@ import {
     SendInSeconds,
     YourMoney,
     RegulatedRails,
+    CardPioneers,
 } from '@/components/LandingPage'
 import Footer from '@/components/LandingPage/Footer'
 import Manteca from '@/components/LandingPage/Manteca'
 import TweetCarousel from '@/components/LandingPage/TweetCarousel'
+import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { useFooterVisibility } from '@/context/footerVisibility'
 import { useEffect, useState, useRef } from 'react'
 
@@ -196,6 +198,12 @@ export default function LandingPage() {
             <Marquee {...marqueeProps} />
             <Manteca />
             <Marquee {...marqueeProps} />
+            {!underMaintenanceConfig.disableCardPioneers && (
+                <>
+                    <CardPioneers />
+                    <Marquee {...marqueeProps} />
+                </>
+            )}
             <TweetCarousel />
             <Marquee {...marqueeProps} />
             <RegulatedRails />

@@ -14,6 +14,7 @@ type LocalFAQsProps = FAQsProps & {
 export function FAQs({ heading, questions, marquee = { visible: false } }: LocalFAQsProps) {
     return (
         <div
+            id="faq"
             className="bg-secondary overflow-x-hidden"
             style={{
                 backgroundImage: `url(${PeanutsBG.src})`,

@@ -9,7 +9,7 @@ export interface ParsedURL {
         identifier: string
         recipientType: RecipientType
         resolvedAddress: string
-    }
+    } | null
     amount?: string
     token?: interfaces.ISquidToken
     chain?: interfaces.ISquidChain & { tokens: interfaces.ISquidToken[] }

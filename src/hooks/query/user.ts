@@ -8,6 +8,16 @@ import { usePWAStatus } from '../usePWAStatus'
 import { useDeviceType } from '../useGetDeviceType'
 import { USER } from '@/constants/query.consts'
 
+// custom error class for backend errors (5xx) that should trigger retry
+export class BackendError extends Error {
+    status: number
+    constructor(message: string, status: number) {
+        super(message)
+        this.name = 'BackendError'
+        this.status = status
+    }
+}
+
 export const useUserQuery = (dependsOn: boolean = true) => {
     const isPwa = usePWAStatus()
     const { deviceType } = useDeviceType()
@@ -28,23 +38,30 @@ export const useUserQuery = (dependsOn: boolean = true) => {
             }
 
             return userData
-        } else {
-            // RECOVERY FIX: Log error status for debugging
-            if (userResponse.status === 400 || userResponse.status === 500) {
-                console.error('Failed to fetch user with error status:', userResponse.status)
-                // This indicates a backend issue - user might be in broken state
-                // The KernelClientProvider recovery logic will handle cleanup
-            } else {
-                console.warn('Failed to fetch user. Probably not logged in.')
-            }
-            return null
         }
+
+        // 5xx = backend error, throw so tanstack retries
+        if (userResponse.status >= 500) {
+            console.error('Backend error fetching user:', userResponse.status)
+            throw new BackendError('Backend error fetching user', userResponse.status)
+        }
+
+        // 4xx = auth failure (not logged in, invalid token, etc), return null
+        console.warn('Failed to fetch user (status %d). Probably not logged in.', userResponse.status)
+        return null
     }
 
     return useQuery({
         queryKey: [USER],
         queryFn: fetchUser,
-        retry: 0,
+        // retry 5xx errors up to 2 times with 1s delay
+        retry: (failureCount, error) => {
+            if (error instanceof BackendError && failureCount < 2) {
+                return true
+            }
+            return false
+        },
+        retryDelay: 1000,
         // Enable if dependsOn is true (defaults to true) and no Redux user exists yet
         enabled: dependsOn && !authUser?.user.userId,
         // Two-tier caching strategy for optimal performance:
