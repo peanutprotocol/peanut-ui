@@ -93,6 +93,15 @@ export const SumsubKycWrapper = ({
                 .withOptions({ addViewportTag: false, adaptIframeHeight: true })
                 .on('onApplicantSubmitted', () => stableOnComplete())
                 .on('onApplicantResubmitted', () => stableOnComplete())
+                .on(
+                    'onApplicantStatusChanged',
+                    (payload: { reviewStatus?: string; reviewResult?: { reviewAnswer?: string } }) => {
+                        // auto-close when sumsub shows success screen
+                        if (payload?.reviewStatus === 'completed' && payload?.reviewResult?.reviewAnswer === 'GREEN') {
+                            stableOnComplete()
+                        }
+                    }
+                )
                 .on('onError', (error: unknown) => {
                     console.error('[sumsub] sdk error', error)
                     stableOnError(error)
@@ -182,7 +191,7 @@ export const SumsubKycWrapper = ({
     return (
         <Modal
             visible={visible}
-            onClose={() => {}} // todo: implement close modal logic that also stops the sdk and resets state
+            onClose={onClose}
             classWrap="h-full w-full !max-w-none sm:!max-w-[600px] border-none sm:m-auto m-0"
             classOverlay={`bg-black bg-opacity-50 ${isHelpModalOpen ? 'pointer-events-none' : ''}`}
             video={false}
@@ -193,10 +202,7 @@ export const SumsubKycWrapper = ({
         >
             {!isVerificationStarted ? (
                 // start verification view (provider-agnostic, not reusing StartVerificationView which references "Persona")
-                <StartVerificationView
-                    onClose={() => {}} // todo: handle kyc cancellation by user
-                    onStartVerification={() => setIsVerificationStarted(true)}
-                />
+                <StartVerificationView onClose={onClose} onStartVerification={() => setIsVerificationStarted(true)} />
             ) : sdkLoadError ? (
                 // script failed to load — show user-facing error
                 <div className="flex h-full flex-col items-center justify-center gap-4 p-8">

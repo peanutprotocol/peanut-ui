@@ -4,6 +4,7 @@ import { type InitiateSumsubKycResponse, type KYCRegionIntent } from './types/su
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import { getJWTCookie } from '@/utils/cookie-migration.utils'
+import { getSumsubLevelName } from '@/constants/kyc.consts'
 
 const API_KEY = process.env.PEANUT_API_KEY!
 
@@ -13,6 +14,16 @@ export const initiateSumsubKyc = async (params?: {
 }): Promise<{ data?: InitiateSumsubKycResponse; error?: string }> => {
     const jwtToken = (await getJWTCookie())?.value
 
+    const body: Record<string, string | undefined> = {
+        regionIntent: params?.regionIntent,
+    }
+
+    // resolve level name from region intent so the backend uses the correct sumsub template
+    // todo: this should be handled in backend
+    if (params?.regionIntent) {
+        body.levelName = getSumsubLevelName(params.regionIntent)
+    }
+
     try {
         const response = await fetchWithSentry(`${PEANUT_API_URL}/users/identity`, {
             method: 'POST',
@@ -21,7 +32,7 @@ export const initiateSumsubKyc = async (params?: {
                 Authorization: `Bearer ${jwtToken}`,
                 'api-key': API_KEY,
             },
-            body: JSON.stringify(params || {}),
+            body: JSON.stringify(body),
         })
 
         const responseJson = await response.json()
@@ -37,7 +48,8 @@ export const initiateSumsubKyc = async (params?: {
                 status: responseJson.status,
             },
         }
-    } catch (e: any) {
-        return { error: e.message || 'An unexpected error occurred' }
+    } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : 'An unexpected error occurred'
+        return { error: message }
     }
 }

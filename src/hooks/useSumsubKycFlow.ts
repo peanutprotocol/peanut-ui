@@ -47,8 +47,12 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         }
     }, [liveKycStatus, onKycSuccess])
 
-    // fetch current status on mount to recover from missed websocket events
+    // fetch current status to recover from missed websocket events.
+    // skip when regionIntent is undefined to avoid creating an applicant with the wrong template
+    // (e.g. RegionsVerification mounts with no region selected yet).
     useEffect(() => {
+        if (!regionIntent) return
+
         const fetchCurrentStatus = async () => {
             try {
                 const response = await initiateSumsubKyc({ regionIntent })
@@ -61,7 +65,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         }
 
         fetchCurrentStatus()
-    }, [])
+    }, [regionIntent])
 
     const handleInitiateKyc = useCallback(async () => {
         setIsLoading(true)
@@ -90,7 +94,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 setAccessToken(response.data.token)
                 setShowWrapper(true)
             } else {
-                setError('Could not initate verification. Please try again.')
+                setError('Could not initiate verification. Please try again.')
             }
         } catch (e: unknown) {
             const message = e instanceof Error ? e.message : 'An unexpected error occurred'
