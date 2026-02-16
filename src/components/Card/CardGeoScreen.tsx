@@ -143,7 +143,7 @@ const CardGeoScreen = ({
                         Start Verification
                     </Button>
                 ) : (
-                    <Button variant="stroke" onClick={onBack} className="w-full">
+                    <Button variant="stroke" shadowSize="4" onClick={onBack} className="w-full">
                         Go Back
                     </Button>
                 )}

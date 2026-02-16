@@ -1,5 +1,5 @@
 'use client'
-import { motion, useMotionValue, useTransform, useSpring, useMotionTemplate, AnimatePresence } from 'framer-motion'
+import { motion, useMotionValue, useTransform, useSpring, useMotionTemplate } from 'framer-motion'
 import Image from 'next/image'
 import { CARD_GRADIENT_4, CARD_GRADIENT_5, CARD_GRADIENT_9, CARD_GRADIENT_10 } from '@/assets/cards'
 import { useRef, useState, useEffect, useCallback } from 'react'
@@ -139,25 +139,17 @@ const PioneerCard3D = ({ className }: PioneerCard3DProps) => {
                 }}
                 onClick={handleClick}
             >
-                {/* Card background images with crossfade */}
-                <AnimatePresence mode="popLayout">
+                {/* All card images layered, only the active one is visible */}
+                {CARD_BACKGROUNDS.map((bg, i) => (
                     <motion.div
-                        key={activeIndex}
+                        key={i}
                         className="absolute -inset-px"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
+                        animate={{ opacity: i === activeIndex ? 1 : 0 }}
                         transition={{ duration: 0.6, ease: 'easeInOut' }}
                     >
-                        <Image
-                            src={CARD_BACKGROUNDS[activeIndex]}
-                            alt="Card design"
-                            fill
-                            className="object-cover"
-                            priority
-                        />
+                        <Image src={bg} alt="Card design" fill className="object-cover" priority />
                     </motion.div>
-                </AnimatePresence>
+                ))}
             </motion.div>
         </div>
     )

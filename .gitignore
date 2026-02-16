@@ -73,3 +73,6 @@ public/sw*
 public/swe-worker*
 
 .idea
+
+# mobile POC
+android/

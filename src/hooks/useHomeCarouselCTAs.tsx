@@ -75,7 +75,7 @@ export const useHomeCarouselCTAs = () => {
                     </span>
                 ),
                 iconContainerClassName: 'bg-purple-1',
-                icon: 'wallet',
+                icon: 'credit-card',
                 onClick: () => {
                     router.push('/card')
                 },

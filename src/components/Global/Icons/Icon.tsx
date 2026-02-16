@@ -18,6 +18,7 @@ import {
     CurrencyExchangeRounded,
     LocalOfferOutlined,
     CardGiftcardRounded,
+    CreditCardRounded,
     HomeRounded,
     SearchRounded,
     AccountBalanceWalletRounded,
@@ -150,6 +151,7 @@ export type IconName =
     | 'upload-cloud'
     | 'alert-filled'
     | 'paste'
+    | 'credit-card'
 export interface IconProps extends SVGProps<SVGSVGElement> {
     name: IconName
     size?: number | string
@@ -290,6 +292,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     'invite-heart': InviteHeartIcon,
     'alert-filled': (props) => <MaterialIconWrapper Icon={WarningRounded} {...props} />,
     paste: (props) => <MaterialIconWrapper Icon={ContentPasteRounded} {...props} />,
+    'credit-card': (props) => <MaterialIconWrapper Icon={CreditCardRounded} {...props} />,
 }
 
 export const Icon: FC<IconProps> = ({ name, size = 24, width, height, ...props }) => {
