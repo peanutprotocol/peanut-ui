@@ -2,13 +2,20 @@ import { AccountType } from '@/interfaces'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import useGetExchangeRate, { type IExchangeRate } from '@/hooks/useGetExchangeRate'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
+import { SYMBOLS_BY_CURRENCY_CODE } from '@/hooks/useCurrency'
 
 interface IExchangeRateProps extends Omit<IExchangeRate, 'enabled'> {
     nonEuroCurrency?: string
     sourceCurrency?: string
+    amountToConvert?: string
 }
 
-const ExchangeRate = ({ accountType, nonEuroCurrency, sourceCurrency = 'USD' }: IExchangeRateProps) => {
+const ExchangeRate = ({
+    accountType,
+    nonEuroCurrency,
+    sourceCurrency = 'USD',
+    amountToConvert,
+}: IExchangeRateProps) => {
     const { exchangeRate, isFetchingRate } = useGetExchangeRate({ accountType, enabled: !nonEuroCurrency })
     const { exchangeRate: nonEruoExchangeRate, isLoading } = useExchangeRate({
         sourceCurrency,
@@ -26,27 +33,47 @@ const ExchangeRate = ({ accountType, nonEuroCurrency, sourceCurrency = 'USD' }: 
     let displayValue = '-'
     let isLoadingRate = false
     let moreInfoText = ''
+    let rate: number | null = null
 
     if (nonEuroCurrency) {
         displayValue = nonEruoExchangeRate
             ? `1 ${sourceCurrency} = ${parseFloat(nonEruoExchangeRate.toString()).toFixed(4)} ${nonEuroCurrency}`
             : '-'
         isLoadingRate = isLoading
+        rate = nonEruoExchangeRate
         moreInfoText =
             "This is an approximate value. The actual amount received may vary based on your bank's exchange rate"
     } else {
         displayValue = exchangeRate ? `1 USD = ${parseFloat(exchangeRate).toFixed(4)} ${toCurrency}` : '-'
         isLoadingRate = isFetchingRate
+        rate = exchangeRate ? parseFloat(exchangeRate) : null
         moreInfoText = `Exchange rates apply when converting to ${toCurrency}`
     }
 
+    // calculate local currency amount if provided
+    const localCurrencyAmount =
+        amountToConvert && rate && rate > 0 ? (parseFloat(amountToConvert) * rate).toFixed(2) : null
+
+    const currency = nonEuroCurrency || toCurrency
+    const currencySymbol = SYMBOLS_BY_CURRENCY_CODE[currency] || currency
+
     return (
-        <PaymentInfoRow
-            loading={isLoadingRate}
-            label="Exchange Rate"
-            moreInfoText={moreInfoText}
-            value={displayValue}
-        />
+        <>
+            <PaymentInfoRow
+                loading={isLoadingRate}
+                label="Exchange Rate"
+                moreInfoText={moreInfoText}
+                value={displayValue}
+            />
+            {localCurrencyAmount && (
+                <PaymentInfoRow
+                    loading={isLoadingRate}
+                    label={`Amount you will receive`}
+                    value={`~ ${currencySymbol}${localCurrencyAmount}`}
+                    moreInfoText="This is an approximate value. The actual amount received may vary based on your bank's exchange rate"
+                />
+            )}
+        </>
     )
 }
 
