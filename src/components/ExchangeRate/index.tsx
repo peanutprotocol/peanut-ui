@@ -4,6 +4,11 @@ import useGetExchangeRate, { type IExchangeRate } from '@/hooks/useGetExchangeRa
 import { useExchangeRate } from '@/hooks/useExchangeRate'
 import { SYMBOLS_BY_CURRENCY_CODE } from '@/hooks/useCurrency'
 
+// constants for exchange rate messages, specific to ExchangeRate component
+const APPROXIMATE_VALUE_MESSAGE =
+    "This is an approximate value. The actual amount received may vary based on your bank's exchange rate"
+const LOCAL_CURRENCY_LABEL = 'Amount you will receive'
+
 interface IExchangeRateProps extends Omit<IExchangeRate, 'enabled'> {
     nonEuroCurrency?: string
     sourceCurrency?: string
@@ -41,8 +46,7 @@ const ExchangeRate = ({
             : '-'
         isLoadingRate = isLoading
         rate = nonEruoExchangeRate
-        moreInfoText =
-            "This is an approximate value. The actual amount received may vary based on your bank's exchange rate"
+        moreInfoText = APPROXIMATE_VALUE_MESSAGE
     } else {
         displayValue = exchangeRate ? `1 USD = ${parseFloat(exchangeRate).toFixed(4)} ${toCurrency}` : '-'
         isLoadingRate = isFetchingRate
@@ -51,8 +55,13 @@ const ExchangeRate = ({
     }
 
     // calculate local currency amount if provided
-    const localCurrencyAmount =
-        amountToConvert && rate && rate > 0 ? (parseFloat(amountToConvert) * rate).toFixed(2) : null
+    let localCurrencyAmount: string | null = null
+    if (amountToConvert && rate && rate > 0) {
+        const amount = parseFloat(amountToConvert)
+        if (!isNaN(amount) && amount > 0) {
+            localCurrencyAmount = (amount * rate).toFixed(2)
+        }
+    }
 
     const currency = nonEuroCurrency || toCurrency
     const currencySymbol = SYMBOLS_BY_CURRENCY_CODE[currency] || currency
@@ -68,9 +77,9 @@ const ExchangeRate = ({
             {localCurrencyAmount && (
                 <PaymentInfoRow
                     loading={isLoadingRate}
-                    label={`Amount you will receive`}
+                    label={LOCAL_CURRENCY_LABEL}
                     value={`~ ${currencySymbol}${localCurrencyAmount}`}
-                    moreInfoText="This is an approximate value. The actual amount received may vary based on your bank's exchange rate"
+                    moreInfoText={APPROXIMATE_VALUE_MESSAGE}
                 />
             )}
         </>
