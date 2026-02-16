@@ -1,4 +1,5 @@
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import { type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
 
 export type RecipientType = 'address' | 'ens' | 'iban' | 'us' | 'username'
 
@@ -230,13 +231,15 @@ export enum MantecaKycStatus {
 }
 
 export interface IUserKycVerification {
-    provider: 'MANTECA' | 'BRIDGE'
+    provider: 'MANTECA' | 'BRIDGE' | 'SUMSUB'
     mantecaGeo?: string | null
     bridgeGeo?: string | null
-    status: MantecaKycStatus
+    status: MantecaKycStatus | SumsubKycStatus | string
     approvedAt?: string | null
     providerUserId?: string | null
     providerRawStatus?: string | null
+    sumsubApplicantId?: string | null
+    rejectLabels?: string[] | null
     createdAt: string
     updatedAt: string
 }
