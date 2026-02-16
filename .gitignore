@@ -16,6 +16,9 @@ PR.md
 
 # testing
 /coverage
+/test-results/
+/playwright-report/
+/playwright/.cache/
 
 # next.js
 /.next/
@@ -70,3 +73,6 @@ public/sw*
 public/swe-worker*
 
 .idea
+
+# mobile POC
+android/

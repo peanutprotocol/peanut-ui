@@ -9,17 +9,24 @@ import { getCardPosition } from '../Global/Card/card.utils'
 import EmptyState from '../Global/EmptyStates/EmptyState'
 import { Icon } from '../Global/Icons/Icon'
 import ActionModal from '../Global/ActionModal'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useUserStore } from '@/redux/hooks'
 import { ActionListCard } from '../ActionListCard'
+import { useAuth } from '@/context/authContext'
 
 type BadgeView = { title: string; description: string; logo: string | StaticImageData }
 
 export const Badges = () => {
     const router = useRouter()
     const { user: authUser } = useUserStore()
+    const { fetchUser } = useAuth()
     const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false)
     const [selectedBadge, setSelectedBadge] = useState<BadgeView | null>(null)
+
+    // TODO: fetchUser from context may not be memoized - could cause unnecessary re-renders
+    useEffect(() => {
+        fetchUser()
+    }, [fetchUser])
 
     // map api badges to view badges
     const badges: BadgeView[] = useMemo(() => {

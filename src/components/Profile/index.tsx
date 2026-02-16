@@ -7,18 +7,15 @@ import NavHeader from '../Global/NavHeader'
 import ProfileHeader from './components/ProfileHeader'
 import ProfileMenuItem from './components/ProfileMenuItem'
 import { useRouter } from 'next/navigation'
-import { checkIfInternalNavigation, generateInviteCodeLink, generateInvitesShareText } from '@/utils/general.utils'
-import ActionModal from '../Global/ActionModal'
+import { checkIfInternalNavigation } from '@/utils/general.utils'
 import { useState } from 'react'
 import useKycStatus from '@/hooks/useKycStatus'
 import Card from '../Global/Card'
 import ShowNameToggle from './components/ShowNameToggle'
-import ShareButton from '../Global/ShareButton'
-import CopyToClipboard from '../Global/CopyToClipboard'
 import KycVerifiedOrReviewModal from '../Global/KycVerifiedOrReviewModal'
+import InviteFriendsModal from '../Global/InviteFriendsModal'
 import { STAR_STRAIGHT_ICON } from '@/assets'
 import Image from 'next/image'
-import QRCode from 'react-qr-code'
 
 export const Profile = () => {
     const { logoutUser, isLoggingOut, user } = useAuth()
@@ -34,8 +31,6 @@ export const Profile = () => {
     const username = user?.user.username || 'anonymous'
     // respect user's showFullName preference: use fullName only if showFullName is true, otherwise use username
     const displayName = user?.user.showFullName && user?.user.fullName ? user.user.fullName : username
-
-    const inviteData = generateInviteCodeLink(user?.user.username ?? '')
 
     return (
         <div className="h-full w-full bg-background">
@@ -63,6 +58,8 @@ export const Profile = () => {
                         href="/dummy" // Dummy link, wont be called
                         position="single"
                     />
+                    {/* Card Pioneer Entry */}
+                    <ProfileMenuItem icon="wallet" label="My Card" href="/card" position="single" badge="NEW" />
                     {/* Menu Items - First Group */}
                     <div>
                         <ProfileMenuItem icon="achievements" label="Your Badges" href="/badges" position="first" />
@@ -141,40 +138,10 @@ export const Profile = () => {
                 onClose={() => setIsKycApprovedModalOpen(false)}
             />
 
-            <ActionModal
+            <InviteFriendsModal
                 visible={isInviteFriendsModalOpen}
                 onClose={() => setIsInviteFriendsModalOpen(false)}
-                title="Invite friends!"
-                description="Invite friends to Peanut and help them skip ahead on the waitlist. Once they're onboarded and start using the app, you'll earn rewards from their activity too."
-                icon="user-plus"
-                content={
-                    <>
-                        {inviteData.inviteLink && (
-                            <div className="my-2 size-44">
-                                <QRCode
-                                    value={inviteData.inviteLink}
-                                    size={120}
-                                    style={{ height: 'auto', maxWidth: '100%', width: '100%' }}
-                                    viewBox={`0 0 120 120`}
-                                    level="H" // Highest error correction level to allow for logo
-                                />
-                            </div>
-                        )}
-                        <div className="flex w-full items-center justify-between gap-3">
-                            <Card className="flex items-center justify-between py-2">
-                                <p className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-bold ">{`${inviteData.inviteCode}`}</p>
-
-                                <CopyToClipboard textToCopy={`${inviteData.inviteCode}`} iconSize="4" />
-                            </Card>
-                        </div>
-                        <ShareButton
-                            generateText={() => Promise.resolve(generateInvitesShareText(inviteData.inviteLink))}
-                            title="Share your invite link"
-                        >
-                            Share Invite link
-                        </ShareButton>
-                    </>
-                }
+                username={user?.user.username ?? ''}
             />
         </div>
     )

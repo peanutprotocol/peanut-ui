@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { PeanutWebSocket, getWebSocketInstance } from '@/services/websocket'
+import { PeanutWebSocket, getWebSocketInstance, type PendingPerk } from '@/services/websocket'
 import { type HistoryEntry } from './useTransactionHistory'
 
 type WebSocketStatus = 'connecting' | 'connected' | 'disconnected' | 'error'
@@ -12,6 +12,7 @@ interface UseWebSocketOptions {
     onMantecaKycStatusUpdate?: (status: string) => void
     onSumsubKycStatusUpdate?: (status: string, rejectLabels?: string[]) => void
     onTosUpdate?: (data: { accepted: boolean }) => void
+    onPendingPerk?: (perk: PendingPerk) => void
     onConnect?: () => void
     onDisconnect?: () => void
     onError?: (error: Event) => void
@@ -26,6 +27,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         onMantecaKycStatusUpdate,
         onSumsubKycStatusUpdate,
         onTosUpdate,
+        onPendingPerk,
         onConnect,
         onDisconnect,
         onError,
@@ -41,6 +43,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         onMantecaKycStatusUpdate,
         onSumsubKycStatusUpdate,
         onTosUpdate,
+        onPendingPerk,
         onConnect,
         onDisconnect,
         onError,
@@ -54,19 +57,29 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
             onMantecaKycStatusUpdate,
             onSumsubKycStatusUpdate,
             onTosUpdate,
+            onPendingPerk,
             onConnect,
             onDisconnect,
             onError,
         }
     }, [
+
         onHistoryEntry,
+
         onKycStatusUpdate,
+
         onMantecaKycStatusUpdate,
+
         onSumsubKycStatusUpdate,
         onTosUpdate,
+        onPendingPerk,
+
         onConnect,
+
         onDisconnect,
+
         onError,
+        ,
     ])
 
     // Connect to WebSocket
@@ -170,6 +183,12 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
             }
         }
 
+        const handlePendingPerk = (perk: PendingPerk) => {
+            if (callbacksRef.current.onPendingPerk) {
+                callbacksRef.current.onPendingPerk(perk)
+            }
+        }
+
         // Register event handlers
         ws.on('connect', handleConnect)
         ws.on('disconnect', handleDisconnect)
@@ -179,6 +198,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         ws.on('manteca_kyc_status_update', handleMantecaKycStatusUpdate)
         ws.on('sumsub_kyc_status_update', handleSumsubKycStatusUpdate)
         ws.on('persona_tos_status_update', handleTosUpdate)
+        ws.on('pending_perk', handlePendingPerk)
 
         // Auto-connect if enabled
         if (autoConnect) {
@@ -195,6 +215,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
             ws.off('manteca_kyc_status_update', handleMantecaKycStatusUpdate)
             ws.off('sumsub_kyc_status_update', handleSumsubKycStatusUpdate)
             ws.off('persona_tos_status_update', handleTosUpdate)
+            ws.off('pending_perk', handlePendingPerk)
         }
     }, [autoConnect, connect, username])
 

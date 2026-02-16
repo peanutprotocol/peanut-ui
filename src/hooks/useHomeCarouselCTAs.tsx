@@ -11,7 +11,9 @@ import { useModalsContext } from '@/context/ModalsContext'
 import { DeviceType, useDeviceType } from './useGetDeviceType'
 import { usePWAStatus } from './usePWAStatus'
 import { useGeoLocation } from './useGeoLocation'
+import { useCardPioneerInfo } from './useCardPioneerInfo'
 import { STAR_STRAIGHT_ICON } from '@/assets'
+import underMaintenanceConfig from '@/config/underMaintenance.config'
 
 export type CarouselCTA = {
     id: string
@@ -27,6 +29,8 @@ export type CarouselCTA = {
     iconContainerClassName?: string
     secondaryIcon?: StaticImageData | string
     iconSize?: number
+    // perk claim indicator - shows pink dot instead of X close button
+    isPerkClaim?: boolean
 }
 
 export const useHomeCarouselCTAs = () => {
@@ -41,6 +45,11 @@ export const useHomeCarouselCTAs = () => {
 
     const { setIsQRScannerOpen } = useModalsContext()
     const { countryCode: userCountryCode } = useGeoLocation()
+    const {
+        isEligible: isCardPioneerEligible,
+        hasPurchased: hasCardPioneerPurchased,
+        isLoading: isCardPioneerLoading,
+    } = useCardPioneerInfo()
 
     const generateCarouselCTAs = useCallback(() => {
         const _carouselCTAs: CarouselCTA[] = []
@@ -48,6 +57,31 @@ export const useHomeCarouselCTAs = () => {
         // DRY: Check KYC approval status once
         const hasKycApproval = isUserKycApproved || isUserMantecaKycApproved
         const isLatamUser = userCountryCode === 'AR' || userCountryCode === 'BR'
+
+        // Card Pioneer CTA - show to all users who haven't purchased yet
+        // Eligibility check happens during the flow (geo screen)
+        // Only show when we know for sure they haven't purchased (not while loading)
+        if (!underMaintenanceConfig.disableCardPioneers && hasCardPioneerPurchased === false) {
+            _carouselCTAs.push({
+                id: 'card-pioneer',
+                title: (
+                    <span>
+                        Get your <b>Peanut Card</b>
+                    </span>
+                ),
+                description: (
+                    <span>
+                        Join Card Pioneers for <b>early access</b> and earn <b>$5</b> per referral.
+                    </span>
+                ),
+                iconContainerClassName: 'bg-purple-1',
+                icon: 'credit-card',
+                onClick: () => {
+                    router.push('/card')
+                },
+                iconSize: 16,
+            })
+        }
 
         // Generic invite CTA for non-LATAM users
         if (!isLatamUser) {
@@ -99,14 +133,14 @@ export const useHomeCarouselCTAs = () => {
             _carouselCTAs.push({
                 id: 'qr-payment',
                 title: (
-                    <p>
+                    <span>
                         Pay with <b>QR code payments</b>
-                    </p>
+                    </span>
                 ),
                 description: (
-                    <p>
+                    <span>
                         Get the best exchange rate, pay like a <b>local</b> and earn <b>points</b>.
-                    </p>
+                    </span>
                 ),
                 iconContainerClassName: 'bg-secondary-1',
                 icon: 'qr-code',
@@ -124,14 +158,14 @@ export const useHomeCarouselCTAs = () => {
             _carouselCTAs.push({
                 id: 'latam-cashback-invite',
                 title: (
-                    <p>
+                    <span>
                         Earn <b>20% cashback</b> on QR payments
-                    </p>
+                    </span>
                 ),
                 description: (
-                    <p>
+                    <span>
                         Invite friends to <b>unlock more rewards</b>. The more they use, the more you earn!
-                    </p>
+                    </span>
                 ),
                 iconContainerClassName: 'bg-secondary-1',
                 icon: 'gift',
@@ -178,6 +212,9 @@ export const useHomeCarouselCTAs = () => {
         deviceType,
         isPwa,
         userCountryCode,
+        isCardPioneerEligible,
+        hasCardPioneerPurchased,
+        isCardPioneerLoading,
     ])
 
     useEffect(() => {

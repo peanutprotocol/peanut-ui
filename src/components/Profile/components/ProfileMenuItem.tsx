@@ -20,6 +20,7 @@ interface ProfileMenuItemProps {
     endIconClassName?: string
     showTooltip?: boolean
     toolTipText?: string
+    badge?: string
 }
 
 const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
@@ -34,6 +35,7 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
     endIconClassName,
     showTooltip = false,
     toolTipText,
+    badge,
 }) => {
     const content = (
         <div className="flex items-center justify-between py-1">
@@ -46,6 +48,7 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
                     </div>
                 )}
                 <span className="text-base font-medium">{label}</span>
+                {badge && <StatusBadge status="custom" customText={badge} />}
                 {showTooltip && (
                     <Tooltip content={toolTipText}>
                         <Icon name="info" size={14} fill="black" />

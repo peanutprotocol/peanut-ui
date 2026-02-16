@@ -62,7 +62,7 @@ const NavHeader = ({
 
             {showLogoutBtn && (
                 <Button
-                    onClick={logoutUser}
+                    onClick={() => logoutUser()}
                     loading={isLoggingOut}
                     variant="stroke"
                     icon="logout"

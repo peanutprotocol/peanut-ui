@@ -54,8 +54,8 @@ const StartVerificationModal = ({
 
         return (
             <p>
-                To make <b>international</b> money transfers, you must verify your identity using a government-issued
-                ID.
+                To send money to and from <b>bank accounts</b> and local payment methods, verify your identity with a
+                government-issued ID.
             </p>
         )
     }
@@ -64,9 +64,7 @@ const StartVerificationModal = ({
         <ActionModal
             visible={visible}
             onClose={onClose}
-            title={
-                isSelectedCountryMantecaCountry ? `Unlock ${selectedCountry.title}` : 'Unlock International Transfers'
-            }
+            title={isSelectedCountryMantecaCountry ? `Unlock ${selectedCountry.title}` : 'Unlock Bank Payments'}
             description={getDescription()}
             descriptionClassName="text-black"
             icon="shield"
