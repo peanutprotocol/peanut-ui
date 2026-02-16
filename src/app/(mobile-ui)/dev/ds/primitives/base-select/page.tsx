@@ -14,18 +14,24 @@ export default function BaseSelectPage() {
 
     return (
         <DocPage>
-            <DocHeader title="BaseSelect" description="Radix-based dropdown select with error and disabled states." status="production" />
+            <DocHeader
+                title="BaseSelect"
+                description="Radix-based dropdown select with error and disabled states."
+                status="production"
+            />
 
             <SectionDivider />
 
-            <PropsTable rows={[
-                { name: 'options', type: 'Array<{label, value}>', default: '(required)', required: true },
-                { name: 'placeholder', type: 'string', default: "'Select...'" },
-                { name: 'value', type: 'string', default: '(none)' },
-                { name: 'onValueChange', type: '(value: string) => void', default: '(none)' },
-                { name: 'disabled', type: 'boolean', default: 'false' },
-                { name: 'error', type: 'boolean', default: 'false' },
-            ]} />
+            <PropsTable
+                rows={[
+                    { name: 'options', type: 'Array<{label, value}>', default: '(required)', required: true },
+                    { name: 'placeholder', type: 'string', default: "'Select...'" },
+                    { name: 'value', type: 'string', default: '(none)' },
+                    { name: 'onValueChange', type: '(value: string) => void', default: '(none)' },
+                    { name: 'disabled', type: 'boolean', default: 'false' },
+                    { name: 'error', type: 'boolean', default: 'false' },
+                ]}
+            />
 
             <DocSection title="Default">
                 <DocSection.Content>
@@ -41,10 +47,7 @@ export default function BaseSelectPage() {
                     />
                 </DocSection.Content>
                 <DocSection.Code>
-                    <CodeBlock
-                        label="Import"
-                        code={`import BaseSelect from '@/components/0_Bruddle/BaseSelect'`}
-                    />
+                    <CodeBlock label="Import" code={`import BaseSelect from '@/components/0_Bruddle/BaseSelect'`} />
                     <CodeBlock
                         label="Basic Usage"
                         code={`<BaseSelect

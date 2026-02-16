@@ -13,7 +13,8 @@ export default function BordersPage() {
             {/* Border radius */}
             <DocSection title="Border Radius">
                 <p className="text-sm text-grey-1">
-                    Always use <code className="font-mono font-bold text-n-1">rounded-sm</code>. This is the standard across all components.
+                    Always use <code className="font-mono font-bold text-n-1">rounded-sm</code>. This is the standard
+                    across all components.
                 </p>
                 <div className="mt-4 flex gap-4">
                     <div className="flex flex-col items-center gap-1">
@@ -42,24 +43,24 @@ export default function BordersPage() {
                             <p className="mt-1 text-xs text-grey-1">2px solid black. For emphasis.</p>
                         </div>
                         <div>
-                            <div className="rounded-sm border border-n-1/20 p-4 text-xs font-bold">border border-n-1/20</div>
-                            <p className="mt-1 text-xs text-grey-1">Subtle border. For code snippets, secondary containers.</p>
+                            <div className="rounded-sm border border-n-1/20 p-4 text-xs font-bold">
+                                border border-n-1/20
+                            </div>
+                            <p className="mt-1 text-xs text-grey-1">
+                                Subtle border. For code snippets, secondary containers.
+                            </p>
                         </div>
                         <div>
-                            <div className="rounded-sm border border-dashed border-n-1/30 p-4 text-xs font-bold">border-dashed border-n-1/30</div>
+                            <div className="rounded-sm border border-dashed border-n-1/30 p-4 text-xs font-bold">
+                                border-dashed border-n-1/30
+                            </div>
                             <p className="mt-1 text-xs text-grey-1">Dashed border. For drop zones, placeholders.</p>
                         </div>
                     </div>
                 </DocSection.Content>
                 <DocSection.Code>
-                    <CodeBlock
-                        label="border-n-1"
-                        code='className="rounded-sm border border-n-1"'
-                    />
-                    <CodeBlock
-                        label="brutal-border"
-                        code='className="brutal-border rounded-sm"'
-                    />
+                    <CodeBlock label="border-n-1" code='className="rounded-sm border border-n-1"' />
+                    <CodeBlock label="brutal-border" code='className="brutal-border rounded-sm"' />
                 </DocSection.Code>
             </DocSection>
 
@@ -68,10 +69,7 @@ export default function BordersPage() {
                 <DocSection.Content>
                     <div className="flex flex-wrap gap-2">
                         {['label-stroke', 'label-purple', 'label-yellow', 'label-black', 'label-teal'].map((cls) => (
-                            <span
-                                key={cls}
-                                className={`${cls} inline-block rounded-full px-3 py-1 text-xs font-bold`}
-                            >
+                            <span key={cls} className={`${cls} inline-block rounded-full px-3 py-1 text-xs font-bold`}>
                                 {cls.replace('label-', '')}
                             </span>
                         ))}

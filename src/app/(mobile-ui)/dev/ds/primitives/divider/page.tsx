@@ -15,11 +15,13 @@ export default function DividerPage() {
 
             <SectionDivider />
 
-            <PropsTable rows={[
-                { name: 'text', type: 'string', default: '(none)', description: 'Center text label' },
-                { name: 'dividerClassname', type: 'string', default: '(none)' },
-                { name: 'textClassname', type: 'string', default: '(none)' },
-            ]} />
+            <PropsTable
+                rows={[
+                    { name: 'text', type: 'string', default: '(none)', description: 'Center text label' },
+                    { name: 'dividerClassname', type: 'string', default: '(none)' },
+                    { name: 'textClassname', type: 'string', default: '(none)' },
+                ]}
+            />
 
             <DocSection title="Examples">
                 <DocSection.Content>
@@ -35,18 +37,9 @@ export default function DividerPage() {
                     </div>
                 </DocSection.Content>
                 <DocSection.Code>
-                    <CodeBlock
-                        label="Import"
-                        code={`import Divider from '@/components/0_Bruddle/Divider'`}
-                    />
-                    <CodeBlock
-                        label="Default"
-                        code={`<Divider />`}
-                    />
-                    <CodeBlock
-                        label="With Text"
-                        code={`<Divider text="or" />`}
-                    />
+                    <CodeBlock label="Import" code={`import Divider from '@/components/0_Bruddle/Divider'`} />
+                    <CodeBlock label="Default" code={`<Divider />`} />
+                    <CodeBlock label="With Text" code={`<Divider text="or" />`} />
                 </DocSection.Code>
             </DocSection>
         </DocPage>

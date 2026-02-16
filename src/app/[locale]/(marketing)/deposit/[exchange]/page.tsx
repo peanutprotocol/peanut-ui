@@ -20,8 +20,11 @@ interface PageProps {
 
 export async function generateStaticParams() {
     const exchanges = Object.keys(EXCHANGES)
-    return SUPPORTED_LOCALES.flatMap((locale) => exchanges.map((exchange) => ({ locale, exchange: `from-${exchange}` })))
+    return SUPPORTED_LOCALES.flatMap((locale) =>
+        exchanges.map((exchange) => ({ locale, exchange: `from-${exchange}` }))
+    )
 }
+export const dynamicParams = false
 
 /** Strip the "from-" URL prefix to get the data key. Returns null if prefix missing. */
 function parseExchange(raw: string): string | null {
@@ -117,7 +120,7 @@ export default async function DepositPageLocalized({ params }: PageProps) {
                         <div className="flex flex-col gap-3">
                             {ex.troubleshooting.map((item, i) => (
                                 <Card key={i} className="p-4">
-                                    <h3 className="font-semibold text-red-700">{item.issue}</h3>
+                                    <h3 className="text-red-700 font-semibold">{item.issue}</h3>
                                     <p className="mt-1 text-sm text-gray-600">{item.fix}</p>
                                 </Card>
                             ))}

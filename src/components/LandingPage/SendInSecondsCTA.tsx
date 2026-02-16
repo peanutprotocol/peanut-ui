@@ -9,7 +9,14 @@ export function SendInSecondsCTA() {
             <motion.div
                 className="relative"
                 initial={{ opacity: 0, translateY: 4, translateX: 0, rotate: 0.75 }}
-                animate={{ opacity: 1, translateY: 0, translateX: 0, rotate: 0, scale: 1, pointerEvents: 'auto' as const }}
+                animate={{
+                    opacity: 1,
+                    translateY: 0,
+                    translateX: 0,
+                    rotate: 0,
+                    scale: 1,
+                    pointerEvents: 'auto' as const,
+                }}
                 whileHover={{ translateY: 6, translateX: 0, rotate: 0.75 }}
                 transition={{ type: 'spring', damping: 15 }}
             >

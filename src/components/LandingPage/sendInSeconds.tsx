@@ -15,9 +15,23 @@ const sendInSecondsClouds = [
 ]
 
 const starConfigs = [
-    { className: 'absolute right-10 top-10 md:right-1/4 md:top-20', width: 50, height: 50, delay: '0.2s', x: '5px', rotate: '45deg' },
+    {
+        className: 'absolute right-10 top-10 md:right-1/4 md:top-20',
+        width: 50,
+        height: 50,
+        delay: '0.2s',
+        x: '5px',
+        rotate: '45deg',
+    },
     { className: 'absolute bottom-16 left-1/3', width: 40, height: 40, delay: '0.4s', x: '-5px', rotate: '-10deg' },
-    { className: 'absolute bottom-20 left-[2rem] md:bottom-72 md:right-[14rem]', width: 50, height: 50, delay: '0.6s', x: '5px', rotate: '-22deg' },
+    {
+        className: 'absolute bottom-20 left-[2rem] md:bottom-72 md:right-[14rem]',
+        width: 50,
+        height: 50,
+        delay: '0.6s',
+        x: '5px',
+        rotate: '-22deg',
+    },
     { className: 'absolute left-[20rem] top-72', width: 60, height: 60, delay: '0.8s', x: '-5px', rotate: '12deg' },
 ]
 

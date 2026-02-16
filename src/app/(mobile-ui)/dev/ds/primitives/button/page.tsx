@@ -42,7 +42,7 @@ export default function ButtonPage() {
                         Continue
                     </Button>
                 }
-                doLabel='Default height (no size prop) for primary CTAs'
+                doLabel="Default height (no size prop) for primary CTAs"
                 dontExample={
                     <Button variant="purple" size="large" className="w-full">
                         Continue
@@ -172,15 +172,21 @@ export default function ButtonPage() {
                             <p className="mt-2 text-xs text-grey-1">h-13 (52px)</p>
                         </div>
                         <div className="text-center">
-                            <Button variant="stroke" size="small">small</Button>
+                            <Button variant="stroke" size="small">
+                                small
+                            </Button>
                             <p className="mt-2 text-xs text-grey-1">h-8 · 29 usages</p>
                         </div>
                         <div className="text-center">
-                            <Button variant="stroke" size="medium">medium</Button>
+                            <Button variant="stroke" size="medium">
+                                medium
+                            </Button>
                             <p className="mt-2 text-xs text-grey-1">h-9 · 10 usages</p>
                         </div>
                         <div className="text-center">
-                            <Button variant="stroke" size="large">large</Button>
+                            <Button variant="stroke" size="large">
+                                large
+                            </Button>
                             <p className="mt-2 text-xs text-grey-1">h-10 · 5 usages</p>
                         </div>
                     </div>
@@ -205,15 +211,35 @@ export default function ButtonPage() {
                 <PropsTable
                     rows={[
                         { name: 'variant', type: 'ButtonVariant', default: "'purple'", description: 'Visual style' },
-                        { name: 'size', type: "'small' | 'medium' | 'large'", default: '(none = h-13)', description: 'Height override. Default is tallest.' },
+                        {
+                            name: 'size',
+                            type: "'small' | 'medium' | 'large'",
+                            default: '(none = h-13)',
+                            description: 'Height override. Default is tallest.',
+                        },
                         { name: 'shape', type: "'default' | 'square'", default: "'default'" },
-                        { name: 'shadowSize', type: "'3' | '4' | '6' | '8'", default: '(none)', description: "'4' is standard (160+ usages)" },
+                        {
+                            name: 'shadowSize',
+                            type: "'3' | '4' | '6' | '8'",
+                            default: '(none)',
+                            description: "'4' is standard (160+ usages)",
+                        },
                         { name: 'shadowType', type: "'primary' | 'secondary'", default: "'primary'" },
-                        { name: 'loading', type: 'boolean', default: 'false', description: 'Shows spinner, hides icon' },
+                        {
+                            name: 'loading',
+                            type: 'boolean',
+                            default: 'false',
+                            description: 'Shows spinner, hides icon',
+                        },
                         { name: 'icon', type: 'IconName | ReactNode', default: '(none)' },
                         { name: 'iconPosition', type: "'left' | 'right'", default: "'left'" },
                         { name: 'iconSize', type: 'number', default: '(auto)' },
-                        { name: 'longPress', type: '{ duration, onLongPress, ... }', default: '(none)', description: 'Hold-to-confirm with progress bar' },
+                        {
+                            name: 'longPress',
+                            type: '{ duration, onLongPress, ... }',
+                            default: '(none)',
+                            description: 'Hold-to-confirm with progress bar',
+                        },
                         { name: 'disableHaptics', type: 'boolean', default: 'false' },
                     ]}
                 />
@@ -224,12 +250,12 @@ export default function ButtonPage() {
             <DocSection title="Design Rules">
                 <div className="space-y-4">
                     <DesignNote type="warning">
-                        size=&quot;large&quot; is h-10 — SHORTER than default h-13. Default is the tallest button. Primary
-                        CTAs should use NO size prop.
+                        size=&quot;large&quot; is h-10 — SHORTER than default h-13. Default is the tallest button.
+                        Primary CTAs should use NO size prop.
                     </DesignNote>
                     <DesignNote type="info">
-                        Primary CTA pattern: variant=&quot;purple&quot; shadowSize=&quot;4&quot; className=&quot;w-full&quot;
-                        — no size prop.
+                        Primary CTA pattern: variant=&quot;purple&quot; shadowSize=&quot;4&quot;
+                        className=&quot;w-full&quot; — no size prop.
                     </DesignNote>
                 </div>
             </DocSection>
@@ -239,33 +265,42 @@ export default function ButtonPage() {
                     <div className="space-y-6">
                         <div>
                             <p className="text-sm font-bold">Primary CTA (most common)</p>
-                            <Button variant="purple" shadowSize="4" className="mt-2 w-full">Continue</Button>
+                            <Button variant="purple" shadowSize="4" className="mt-2 w-full">
+                                Continue
+                            </Button>
                         </div>
                         <div>
                             <p className="text-sm font-bold">Secondary CTA</p>
-                            <Button variant="stroke" className="mt-2 w-full">Go Back</Button>
+                            <Button variant="stroke" className="mt-2 w-full">
+                                Go Back
+                            </Button>
                         </div>
                         <div>
                             <p className="text-sm font-bold">With icon</p>
                             <div className="mt-2 flex flex-wrap gap-2">
-                                <Button variant="purple" icon="share">Share</Button>
-                                <Button variant="stroke" icon="copy">Copy</Button>
+                                <Button variant="purple" icon="share">
+                                    Share
+                                </Button>
+                                <Button variant="stroke" icon="copy">
+                                    Copy
+                                </Button>
                             </div>
                         </div>
                         <div>
                             <p className="text-sm font-bold">States</p>
                             <div className="mt-2 flex flex-wrap gap-2">
-                                <Button variant="purple" disabled>Disabled</Button>
-                                <Button variant="purple" loading>Loading</Button>
+                                <Button variant="purple" disabled>
+                                    Disabled
+                                </Button>
+                                <Button variant="purple" loading>
+                                    Loading
+                                </Button>
                             </div>
                         </div>
                     </div>
                 </DocSection.Content>
                 <DocSection.Code>
-                    <CodeBlock
-                        label="Import"
-                        code={`import { Button } from '@/components/0_Bruddle/Button'`}
-                    />
+                    <CodeBlock label="Import" code={`import { Button } from '@/components/0_Bruddle/Button'`} />
                     <CodeBlock
                         label="Primary CTA"
                         code={`<Button variant="purple" shadowSize="4" className="w-full">

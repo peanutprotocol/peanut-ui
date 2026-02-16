@@ -12,16 +12,7 @@ type AnimateOnViewProps = {
     style?: CSSProperties
 } & React.HTMLAttributes<HTMLElement>
 
-export function AnimateOnView({
-    children,
-    className,
-    delay,
-    y,
-    x,
-    rotate,
-    style,
-    ...rest
-}: AnimateOnViewProps) {
+export function AnimateOnView({ children, className, delay, y, x, rotate, style, ...rest }: AnimateOnViewProps) {
     const ref = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
@@ -44,13 +35,15 @@ export function AnimateOnView({
         <div
             ref={ref}
             className={`animate-on-view ${className || ''}`}
-            style={{
-                '--aov-delay': delay || '0s',
-                '--aov-y': y || '20px',
-                '--aov-x': x || '0px',
-                '--aov-rotate': rotate || '0deg',
-                ...style,
-            } as CSSProperties}
+            style={
+                {
+                    '--aov-delay': delay || '0s',
+                    '--aov-y': y || '20px',
+                    '--aov-x': x || '0px',
+                    '--aov-rotate': rotate || '0deg',
+                    ...style,
+                } as CSSProperties
+            }
             {...rest}
         >
             {children}

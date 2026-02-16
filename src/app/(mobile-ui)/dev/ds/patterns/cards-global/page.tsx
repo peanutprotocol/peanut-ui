@@ -21,8 +21,8 @@ export default function CardsGlobalPage() {
             {/* Import */}
             <DocSection title="Import">
                 <DesignNote type="warning">
-                    This is the default export from Global/Card. The Bruddle Card is a named export:
-                    import {'{ Card }'} from &apos;@/components/0_Bruddle/Card&apos;. They are different components.
+                    This is the default export from Global/Card. The Bruddle Card is a named export: import {'{ Card }'}{' '}
+                    from &apos;@/components/0_Bruddle/Card&apos;. They are different components.
                 </DesignNote>
             </DocSection>
 
@@ -39,9 +39,12 @@ export default function CardsGlobalPage() {
                 <DocSection.Code>
                     <CodeBlock label="Import" code={`import Card from '@/components/Global/Card'`} />
 
-                    <CodeBlock label="Usage" code={`<Card position="single">
+                    <CodeBlock
+                        label="Usage"
+                        code={`<Card position="single">
   <div>Content</div>
-</Card>`} />
+</Card>`}
+                    />
                 </DocSection.Code>
             </DocSection>
 
@@ -50,8 +53,8 @@ export default function CardsGlobalPage() {
                 <DocSection.Content>
                     <p className="text-sm text-grey-1">
                         Cards stack seamlessly by using position props: first, middle, last. Only the first card has top
-                        border-radius, only the last has bottom, and middle cards have no border-radius. Border-top is removed
-                        on middle and last to avoid double borders.
+                        border-radius, only the last has bottom, and middle cards have no border-radius. Border-top is
+                        removed on middle and last to avoid double borders.
                     </p>
 
                     <div>
@@ -66,7 +69,9 @@ export default function CardsGlobalPage() {
                     </div>
                 </DocSection.Content>
                 <DocSection.Code>
-                    <CodeBlock label="Usage" code={`{items.map((item, index) => {
+                    <CodeBlock
+                        label="Usage"
+                        code={`{items.map((item, index) => {
   const position =
     items.length === 1 ? 'single' :
     index === 0 ? 'first' :
@@ -78,7 +83,8 @@ export default function CardsGlobalPage() {
       {/* Item content */}
     </Card>
   )
-})}`} />
+})}`}
+                    />
                 </DocSection.Code>
             </DocSection>
 
@@ -101,9 +107,12 @@ export default function CardsGlobalPage() {
                     </div>
                 </DocSection.Content>
                 <DocSection.Code>
-                    <CodeBlock label="Usage" code={`<Card position="single" onClick={() => router.push('/detail')}>
+                    <CodeBlock
+                        label="Usage"
+                        code={`<Card position="single" onClick={() => router.push('/detail')}>
   <div>Clickable card content</div>
-</Card>`} />
+</Card>`}
+                    />
                 </DocSection.Code>
             </DocSection>
 
@@ -127,10 +136,20 @@ export default function CardsGlobalPage() {
             <DocSection title="Props">
                 <PropsTable
                     rows={[
-                        { name: 'position', type: "'single' | 'first' | 'middle' | 'last'", default: "'single'", description: 'Controls border-radius for stacking' },
+                        {
+                            name: 'position',
+                            type: "'single' | 'first' | 'middle' | 'last'",
+                            default: "'single'",
+                            description: 'Controls border-radius for stacking',
+                        },
                         { name: 'border', type: 'boolean', default: 'true', description: 'Show/hide border' },
                         { name: 'onClick', type: '() => void', default: '(none)', description: 'Makes card clickable' },
-                        { name: 'className', type: 'string', default: "''", description: 'Override styles (base: w-full bg-white px-4 py-2)' },
+                        {
+                            name: 'className',
+                            type: 'string',
+                            default: "''",
+                            description: 'Override styles (base: w-full bg-white px-4 py-2)',
+                        },
                         { name: 'children', type: 'ReactNode', default: '-', required: true },
                         { name: 'ref', type: 'Ref<HTMLDivElement>', default: '(none)' },
                     ]}

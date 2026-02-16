@@ -35,19 +35,43 @@ export default function CopySharePage() {
 
                     <PropsTable
                         rows={[
-                            { name: 'text', type: 'string', default: '-', required: true, description: 'Text to display and copy' },
-                            { name: 'variant', type: 'ButtonVariant', default: "'stroke'", description: 'Copy button variant' },
-                            { name: 'shadowSize', type: "'4' | '6' | '8'", default: '(none)', description: 'Copy button shadow' },
+                            {
+                                name: 'text',
+                                type: 'string',
+                                default: '-',
+                                required: true,
+                                description: 'Text to display and copy',
+                            },
+                            {
+                                name: 'variant',
+                                type: 'ButtonVariant',
+                                default: "'stroke'",
+                                description: 'Copy button variant',
+                            },
+                            {
+                                name: 'shadowSize',
+                                type: "'4' | '6' | '8'",
+                                default: '(none)',
+                                description: 'Copy button shadow',
+                            },
                             { name: 'disabled', type: 'boolean', default: 'false', description: 'Disables copying' },
-                            { name: 'onDisabledClick', type: '() => void', default: '(none)', description: 'Handler when clicking disabled button' },
+                            {
+                                name: 'onDisabledClick',
+                                type: '() => void',
+                                default: '(none)',
+                                description: 'Handler when clicking disabled button',
+                            },
                         ]}
                     />
                 </DocSection.Content>
                 <DocSection.Code>
                     <CodeBlock label="Import" code={`import CopyField from '@/components/Global/CopyField'`} />
 
-                    <CodeBlock label="Usage" code={`<CopyField text="https://peanut.to/claim/abc123" />
-<CopyField text={linkUrl} variant="purple" shadowSize="4" />`} />
+                    <CodeBlock
+                        label="Usage"
+                        code={`<CopyField text="https://peanut.to/claim/abc123" />
+<CopyField text={linkUrl} variant="purple" shadowSize="4" />`}
+                    />
                 </DocSection.Code>
             </DocSection>
 
@@ -55,8 +79,8 @@ export default function CopySharePage() {
             <DocSection title="CopyToClipboard">
                 <DocSection.Content>
                     <p className="text-sm text-grey-1">
-                        Icon-only or button-style copy trigger. Shows check icon for 2 seconds after copying.
-                        Supports imperative copy via ref.
+                        Icon-only or button-style copy trigger. Shows check icon for 2 seconds after copying. Supports
+                        imperative copy via ref.
                     </p>
 
                     <div className="space-y-4">
@@ -79,19 +103,45 @@ export default function CopySharePage() {
 
                     <PropsTable
                         rows={[
-                            { name: 'textToCopy', type: 'string', default: '-', required: true, description: 'Text to copy to clipboard' },
-                            { name: 'type', type: "'icon' | 'button'", default: "'icon'", description: 'Render as icon or Button component' },
-                            { name: 'iconSize', type: "'2' | '3' | '4' | '6' | '8'", default: "'6'", description: 'Icon size (Tailwind scale)' },
+                            {
+                                name: 'textToCopy',
+                                type: 'string',
+                                default: '-',
+                                required: true,
+                                description: 'Text to copy to clipboard',
+                            },
+                            {
+                                name: 'type',
+                                type: "'icon' | 'button'",
+                                default: "'icon'",
+                                description: 'Render as icon or Button component',
+                            },
+                            {
+                                name: 'iconSize',
+                                type: "'2' | '3' | '4' | '6' | '8'",
+                                default: "'6'",
+                                description: 'Icon size (Tailwind scale)',
+                            },
                             { name: 'fill', type: 'string', default: "'black'", description: 'Icon fill color' },
-                            { name: 'buttonSize', type: 'ButtonSize', default: '(none)', description: 'Button size when type="button"' },
+                            {
+                                name: 'buttonSize',
+                                type: 'ButtonSize',
+                                default: '(none)',
+                                description: 'Button size when type="button"',
+                            },
                             { name: 'className', type: 'string', default: "''", description: 'Override styles' },
                         ]}
                     />
                 </DocSection.Content>
                 <DocSection.Code>
-                    <CodeBlock label="Import" code={`import CopyToClipboard from '@/components/Global/CopyToClipboard'`} />
+                    <CodeBlock
+                        label="Import"
+                        code={`import CopyToClipboard from '@/components/Global/CopyToClipboard'`}
+                    />
 
-                    <CodeBlock label="Usage" code={`{/* Icon (default) */}
+                    <CodeBlock
+                        label="Usage"
+                        code={`{/* Icon (default) */}
 <CopyToClipboard textToCopy={address} />
 
 {/* Button */}
@@ -100,7 +150,8 @@ export default function CopySharePage() {
 {/* Imperative */}
 const copyRef = useRef<CopyToClipboardRef>(null)
 <CopyToClipboard ref={copyRef} textToCopy={text} />
-copyRef.current?.copy()`} />
+copyRef.current?.copy()`}
+                    />
                 </DocSection.Code>
             </DocSection>
 
@@ -108,12 +159,14 @@ copyRef.current?.copy()`} />
             <DocSection title="ShareButton">
                 <DocSection.Content>
                     <p className="text-sm text-grey-1">
-                        Reference only. Uses the Web Share API (navigator.share) with clipboard fallback.
-                        Typically composed inline rather than imported as a standalone component.
+                        Reference only. Uses the Web Share API (navigator.share) with clipboard fallback. Typically
+                        composed inline rather than imported as a standalone component.
                     </p>
                 </DocSection.Content>
                 <DocSection.Code>
-                    <CodeBlock label="Pattern" code={`<Button
+                    <CodeBlock
+                        label="Pattern"
+                        code={`<Button
   variant="purple"
   icon="share"
   onClick={() => {
@@ -125,7 +178,8 @@ copyRef.current?.copy()`} />
   }}
 >
   Share
-</Button>`} />
+</Button>`}
+                    />
                 </DocSection.Code>
             </DocSection>
 
@@ -133,8 +187,8 @@ copyRef.current?.copy()`} />
             <DocSection title="AddressLink">
                 <DocSection.Content>
                     <p className="text-sm text-grey-1">
-                        Displays a shortened crypto address as a link. Resolves ENS names for Ethereum addresses.
-                        Links to the user profile page.
+                        Displays a shortened crypto address as a link. Resolves ENS names for Ethereum addresses. Links
+                        to the user profile page.
                     </p>
 
                     <DesignNote type="warning">
@@ -144,8 +198,19 @@ copyRef.current?.copy()`} />
 
                     <PropsTable
                         rows={[
-                            { name: 'address', type: 'string', default: '-', required: true, description: 'Crypto address or ENS name' },
-                            { name: 'isLink', type: 'boolean', default: 'true', description: 'Render as link or plain text' },
+                            {
+                                name: 'address',
+                                type: 'string',
+                                default: '-',
+                                required: true,
+                                description: 'Crypto address or ENS name',
+                            },
+                            {
+                                name: 'isLink',
+                                type: 'boolean',
+                                default: 'true',
+                                description: 'Render as link or plain text',
+                            },
                             { name: 'className', type: 'string', default: "''", description: 'Override styles' },
                         ]}
                     />
@@ -153,8 +218,11 @@ copyRef.current?.copy()`} />
                 <DocSection.Code>
                     <CodeBlock label="Import" code={`import AddressLink from '@/components/Global/AddressLink'`} />
 
-                    <CodeBlock label="Usage" code={`<AddressLink address="0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18" />
-<AddressLink address={senderAddress} isLink={false} />`} />
+                    <CodeBlock
+                        label="Usage"
+                        code={`<AddressLink address="0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18" />
+<AddressLink address={senderAddress} isLink={false} />`}
+                    />
                 </DocSection.Code>
             </DocSection>
 
@@ -173,16 +241,30 @@ copyRef.current?.copy()`} />
 
                     <PropsTable
                         rows={[
-                            { name: 'text', type: 'string | ReactNode', default: '-', required: true, description: 'Tooltip content' },
-                            { name: 'html', type: 'boolean', default: 'false', description: 'Render text as HTML (dangerouslySetInnerHTML)' },
+                            {
+                                name: 'text',
+                                type: 'string | ReactNode',
+                                default: '-',
+                                required: true,
+                                description: 'Tooltip content',
+                            },
+                            {
+                                name: 'html',
+                                type: 'boolean',
+                                default: 'false',
+                                description: 'Render text as HTML (dangerouslySetInnerHTML)',
+                            },
                         ]}
                     />
                 </DocSection.Content>
                 <DocSection.Code>
                     <CodeBlock label="Import" code={`import MoreInfo from '@/components/Global/MoreInfo'`} />
 
-                    <CodeBlock label="Usage" code={`<span>Network fee</span>
-<MoreInfo text="Gas fee for processing the transaction." />`} />
+                    <CodeBlock
+                        label="Usage"
+                        code={`<span>Network fee</span>
+<MoreInfo text="Gas fee for processing the transaction." />`}
+                    />
                 </DocSection.Code>
             </DocSection>
 
@@ -191,8 +273,8 @@ copyRef.current?.copy()`} />
             {/* Design Notes */}
             <DocSection title="Design Rules">
                 <DesignNote type="info">
-                    CopyField for displaying + copying full strings (links, codes). CopyToClipboard for inline copy icons
-                    next to existing text.
+                    CopyField for displaying + copying full strings (links, codes). CopyToClipboard for inline copy
+                    icons next to existing text.
                 </DesignNote>
                 <DesignNote type="info">
                     MoreInfo tooltip is portaled to document.body and auto-positions to avoid viewport edges. Preferred

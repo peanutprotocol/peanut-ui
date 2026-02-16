@@ -18,7 +18,13 @@ interface MarketingHeroProps {
     image?: string
 }
 
-export function MarketingHero({ title, subtitle, ctaText = 'Get Started', ctaHref = '/home', image }: MarketingHeroProps) {
+export function MarketingHero({
+    title,
+    subtitle,
+    ctaText = 'Get Started',
+    ctaHref = '/home',
+    image,
+}: MarketingHeroProps) {
     return (
         <>
             <section className="relative overflow-hidden bg-primary-1 px-4 py-16 text-center md:px-8 md:py-20">
@@ -29,7 +35,9 @@ export function MarketingHero({ title, subtitle, ctaText = 'Get Started', ctaHre
                             src={image}
                             alt=""
                             className="mx-auto mb-4 h-16 w-16 rounded-xl object-contain"
-                            onError={(e) => { e.currentTarget.style.display = 'none' }}
+                            onError={(e) => {
+                                e.currentTarget.style.display = 'none'
+                            }}
                         />
                     )}
                     <h1>

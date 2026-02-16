@@ -48,7 +48,9 @@ export default function TypographyPage() {
                         </div>
                         <div className="rounded-sm bg-purple-1 p-3">
                             <Title text="KNERD FONT" />
-                            <p className="mt-1 text-sm text-n-1">Display font with filled+outline double-render effect.</p>
+                            <p className="mt-1 text-sm text-n-1">
+                                Display font with filled+outline double-render effect.
+                            </p>
                         </div>
                     </div>
                 </DocSection.Content>
@@ -74,7 +76,8 @@ export default function TypographyPage() {
                     ))}
                 </div>
                 <p className="text-sm text-grey-1">
-                    font-bold dominates (304 usages). Use font-bold for labels and headings, font-medium for secondary text.
+                    font-bold dominates (304 usages). Use font-bold for labels and headings, font-medium for secondary
+                    text.
                 </p>
             </DocSection>
 

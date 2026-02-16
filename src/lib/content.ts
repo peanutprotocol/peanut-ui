@@ -10,12 +10,19 @@ const CONTENT_ROOT = path.join(process.cwd(), 'src/content')
 
 const yaml = matter.engines.yaml
 
-// --- Low-level readers ---
+// --- Low-level readers (cached per filepath for the lifetime of the process) ---
+
+const yamlCache = new Map<string, unknown>()
+const mdCache = new Map<string, unknown>()
 
 function readYamlFile<T>(filePath: string): T | null {
+    if (yamlCache.has(filePath)) return yamlCache.get(filePath) as T | null
     try {
-        return yaml.parse(fs.readFileSync(filePath, 'utf8')) as T
+        const result = yaml.parse(fs.readFileSync(filePath, 'utf8')) as T
+        yamlCache.set(filePath, result)
+        return result
     } catch {
+        yamlCache.set(filePath, null)
         return null
     }
 }
@@ -26,11 +33,15 @@ interface MarkdownContent<T = Record<string, unknown>> {
 }
 
 function readMarkdownFile<T = Record<string, unknown>>(filePath: string): MarkdownContent<T> | null {
+    if (mdCache.has(filePath)) return mdCache.get(filePath) as MarkdownContent<T> | null
     try {
         const raw = fs.readFileSync(filePath, 'utf8')
         const { data, content } = matter(raw)
-        return { frontmatter: data as T, body: content.trim() }
+        const result: MarkdownContent<T> = { frontmatter: data as T, body: content.trim() }
+        mdCache.set(filePath, result)
+        return result
     } catch {
+        mdCache.set(filePath, null)
         return null
     }
 }
@@ -60,9 +71,7 @@ export function readEntityIndex<T>(entityType: string): T | null {
 export function listEntitySlugs(entityType: string, key: string): string[] {
     const index = readEntityIndex<Record<string, Array<{ slug: string; status?: string }>>>(entityType)
     if (!index?.[key]) return []
-    return index[key]
-        .filter((item) => (item.status ?? 'published') === 'published')
-        .map((item) => item.slug)
+    return index[key].filter((item) => (item.status ?? 'published') === 'published').map((item) => item.slug)
 }
 
 /** Check if an entity is published (missing status = published) */

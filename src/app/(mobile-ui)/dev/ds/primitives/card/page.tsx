@@ -12,7 +12,11 @@ import { CodeBlock } from '../../_components/CodeBlock'
 export default function CardPage() {
     return (
         <DocPage>
-            <DocHeader title="Card" description="Standalone container with optional shadow. Compound component with Header, Title, Description, Content sub-components." status="production" />
+            <DocHeader
+                title="Card"
+                description="Standalone container with optional shadow. Compound component with Header, Title, Description, Content sub-components."
+                status="production"
+            />
 
             <Playground
                 name="Card"
@@ -38,32 +42,42 @@ export default function CardPage() {
                     if (props.shadowSize) parts.push(`shadowSize="${props.shadowSize}"`)
                     if (props.color && props.color !== 'primary') parts.push(`color="${props.color}"`)
                     parts.push('className="p-4">')
-                    return parts.join(' ') + '\n  <Card.Header>\n    <Card.Title>Title</Card.Title>\n    <Card.Description>Description</Card.Description>\n  </Card.Header>\n  <Card.Content>Content</Card.Content>\n</Card>'
+                    return (
+                        parts.join(' ') +
+                        '\n  <Card.Header>\n    <Card.Title>Title</Card.Title>\n    <Card.Description>Description</Card.Description>\n  </Card.Header>\n  <Card.Content>Content</Card.Content>\n</Card>'
+                    )
                 }}
             />
 
             <SectionDivider />
 
-            <PropsTable rows={[
-                { name: 'shadowSize', type: "'4' | '6' | '8'", default: '(none)' },
-                { name: 'color', type: "'primary' | 'secondary'", default: "'primary'" },
-                { name: 'className', type: 'string', default: '(none)' },
-            ]} />
+            <PropsTable
+                rows={[
+                    { name: 'shadowSize', type: "'4' | '6' | '8'", default: '(none)' },
+                    { name: 'color', type: "'primary' | 'secondary'", default: "'primary'" },
+                    { name: 'className', type: 'string', default: '(none)' },
+                ]}
+            />
 
             <DocSection title="Shadow Variants">
                 <DocSection.Content>
                     <div className="space-y-3">
-                        <Card className="p-4"><p className="text-sm">No shadow</p></Card>
-                        <Card shadowSize="4" className="p-4"><p className="text-sm">shadowSize=&quot;4&quot;</p></Card>
-                        <Card shadowSize="6" className="p-4"><p className="text-sm">shadowSize=&quot;6&quot;</p></Card>
-                        <Card shadowSize="8" className="p-4"><p className="text-sm">shadowSize=&quot;8&quot;</p></Card>
+                        <Card className="p-4">
+                            <p className="text-sm">No shadow</p>
+                        </Card>
+                        <Card shadowSize="4" className="p-4">
+                            <p className="text-sm">shadowSize=&quot;4&quot;</p>
+                        </Card>
+                        <Card shadowSize="6" className="p-4">
+                            <p className="text-sm">shadowSize=&quot;6&quot;</p>
+                        </Card>
+                        <Card shadowSize="8" className="p-4">
+                            <p className="text-sm">shadowSize=&quot;8&quot;</p>
+                        </Card>
                     </div>
                 </DocSection.Content>
                 <DocSection.Code>
-                    <CodeBlock
-                        label="Import"
-                        code={`import { Card } from '@/components/0_Bruddle/Card'`}
-                    />
+                    <CodeBlock label="Import" code={`import { Card } from '@/components/0_Bruddle/Card'`} />
                 </DocSection.Code>
             </DocSection>
 

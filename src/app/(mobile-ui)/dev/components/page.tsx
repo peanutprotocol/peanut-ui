@@ -327,7 +327,6 @@ export default function ComponentsPage() {
                                 </div>
                                 <CopySnippet code={`<Button variant="transparent-light">Label</Button>`} />
                             </div>
-
                         </div>
                     </Section>
 

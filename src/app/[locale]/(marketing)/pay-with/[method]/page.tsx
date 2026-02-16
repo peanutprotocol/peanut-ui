@@ -12,10 +12,9 @@ interface PageProps {
 }
 
 export async function generateStaticParams() {
-    return SUPPORTED_LOCALES.flatMap((locale) =>
-        PAYMENT_METHOD_SLUGS.map((method) => ({ locale, method }))
-    )
+    return SUPPORTED_LOCALES.flatMap((locale) => PAYMENT_METHOD_SLUGS.map((method) => ({ locale, method })))
 }
+export const dynamicParams = false
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
     const { locale, method } = await params

@@ -15,6 +15,7 @@ export async function generateStaticParams() {
     const countries = Object.keys(COUNTRIES_SEO)
     return SUPPORTED_LOCALES.flatMap((locale) => countries.map((country) => ({ locale, country })))
 }
+export const dynamicParams = false
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
     const { locale, country } = await params

@@ -144,10 +144,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <meta name="color-scheme" content="light" />
 
                 {/* JSON-LD structured data */}
-                <script
-                    type="application/ld+json"
-                    dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-                />
+                <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
                 {/* AI-readable product description (llms.txt spec) */}
                 <link rel="author" type="text/markdown" href="/llms.txt" />

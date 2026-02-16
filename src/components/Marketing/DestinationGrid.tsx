@@ -30,7 +30,10 @@ export function DestinationGrid({ countries, title = 'Send money to', locale = '
 
                     return (
                         <Link key={slug} href={localizedPath('send-money-to', locale, slug)}>
-                            <Card shadowSize="4" className="flex-row items-center gap-3 p-4 transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-primary-6">
+                            <Card
+                                shadowSize="4"
+                                className="flex-row items-center gap-3 p-4 transition-all hover:shadow-primary-6 hover:-translate-x-1 hover:-translate-y-1"
+                            >
                                 {flagCode && (
                                     <img
                                         src={getFlagUrl(flagCode)}

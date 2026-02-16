@@ -10,18 +10,23 @@ import { CodeBlock } from '../../_components/CodeBlock'
 export default function PageContainerPage() {
     return (
         <DocPage>
-            <DocHeader title="PageContainer" description="Responsive page wrapper with max-width centering. On desktop, applies left padding for sidebar offset." status="production" />
+            <DocHeader
+                title="PageContainer"
+                description="Responsive page wrapper with max-width centering. On desktop, applies left padding for sidebar offset."
+                status="production"
+            />
 
             <SectionDivider />
 
-            <PropsTable rows={[
-                { name: 'alignItems', type: "'start' | 'center'", default: "'start'" },
-            ]} />
+            <PropsTable rows={[{ name: 'alignItems', type: "'start' | 'center'", default: "'start'" }]} />
 
             <DocSection title="Usage">
                 <DocSection.Content>
                     <p className="text-sm text-grey-1">
-                        Wraps mobile screens with responsive width constraints. Children inherit full width via the <code className="font-mono">*:w-full</code> selector. On desktop (md+), content is offset with <code className="font-mono">md:pl-24</code> and capped at <code className="font-mono">md:*:max-w-xl</code>.
+                        Wraps mobile screens with responsive width constraints. Children inherit full width via the{' '}
+                        <code className="font-mono">*:w-full</code> selector. On desktop (md+), content is offset with{' '}
+                        <code className="font-mono">md:pl-24</code> and capped at{' '}
+                        <code className="font-mono">md:*:max-w-xl</code>.
                     </p>
                 </DocSection.Content>
                 <DocSection.Code>

@@ -22,7 +22,14 @@ export default function robots(): MetadataRoute.Robots {
 
             // AI search engine crawlers — explicitly welcome
             {
-                userAgent: ['GPTBot', 'ChatGPT-User', 'PerplexityBot', 'ClaudeBot', 'Google-Extended', 'Applebot-Extended'],
+                userAgent: [
+                    'GPTBot',
+                    'ChatGPT-User',
+                    'PerplexityBot',
+                    'ClaudeBot',
+                    'Google-Extended',
+                    'Applebot-Extended',
+                ],
                 allow: ['/'],
                 disallow: ['/api/', '/home', '/profile', '/settings', '/setup', '/dev/'],
             },

@@ -13,6 +13,7 @@ interface LayoutProps {
 export async function generateStaticParams() {
     return SUPPORTED_LOCALES.map((locale) => ({ locale }))
 }
+export const dynamicParams = false
 
 export default async function LocalizedMarketingLayout({ children, params }: LayoutProps) {
     const { locale } = await params

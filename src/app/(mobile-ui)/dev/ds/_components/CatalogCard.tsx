@@ -18,7 +18,7 @@ interface CatalogCardProps {
 export function CatalogCard({ title, description, href, icon, status, quality, usages }: CatalogCardProps) {
     return (
         <Link href={href}>
-            <Card className="h-full cursor-pointer p-4 transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-4">
+            <Card className="h-full cursor-pointer p-4 transition-all hover:shadow-4 hover:-translate-x-1 hover:-translate-y-1">
                 <div className="flex items-start gap-3">
                     {icon && (
                         <div className="flex size-9 shrink-0 items-center justify-center rounded-sm border border-n-1 bg-primary-3">

@@ -159,7 +159,7 @@ export function HubPageContent({ country, locale }: HubPageContentProps) {
                     <div className="grid gap-4 md:grid-cols-2">
                         {links.map((link) => (
                             <Link key={link.href} href={link.href}>
-                                <Card className="h-full gap-2 p-5 transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-4">
+                                <Card className="h-full gap-2 p-5 transition-all hover:shadow-4 hover:-translate-x-1 hover:-translate-y-1">
                                     <span className="text-2xl">{link.emoji}</span>
                                     <h3 className="text-lg font-semibold">{link.title}</h3>
                                     <p className="text-sm text-gray-600">{link.description}</p>
@@ -184,7 +184,7 @@ export function HubPageContent({ country, locale }: HubPageContentProps) {
                                         key={fromSlug}
                                         href={localizedPath('send-money-from', locale, `${fromSlug}/to/${country}`)}
                                     >
-                                        <Card className="flex-row items-center gap-2 p-3 transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-4">
+                                        <Card className="flex-row items-center gap-2 p-3 transition-all hover:shadow-4 hover:-translate-x-1 hover:-translate-y-1">
                                             {fromMapping?.flagCode && (
                                                 <img
                                                     src={getFlagUrl(fromMapping.flagCode)}
@@ -217,7 +217,7 @@ export function HubPageContent({ country, locale }: HubPageContentProps) {
                                         key={toSlug}
                                         href={localizedPath('send-money-from', locale, `${country}/to/${toSlug}`)}
                                     >
-                                        <Card className="flex-row items-center gap-2 p-3 transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-4">
+                                        <Card className="flex-row items-center gap-2 p-3 transition-all hover:shadow-4 hover:-translate-x-1 hover:-translate-y-1">
                                             {toMapping?.flagCode && (
                                                 <img
                                                     src={getFlagUrl(toMapping.flagCode)}
@@ -254,16 +254,10 @@ export function HubPageContent({ country, locale }: HubPageContentProps) {
                 )}
 
                 {/* FAQs */}
-                {seo.faqs.length > 0 && (
-                    <FAQSection faqs={seo.faqs} title={i18n.frequentlyAskedQuestions} />
-                )}
+                {seo.faqs.length > 0 && <FAQSection faqs={seo.faqs} title={i18n.frequentlyAskedQuestions} />}
 
                 {/* Other countries grid */}
-                <DestinationGrid
-                    countries={otherCountries}
-                    title={i18n.hubExploreCountries}
-                    locale={locale}
-                />
+                <DestinationGrid countries={otherCountries} title={i18n.hubExploreCountries} locale={locale} />
 
                 {/* Last updated */}
                 <p className="py-4 text-xs text-gray-400">

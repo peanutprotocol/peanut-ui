@@ -18,11 +18,13 @@ export default function CheckboxPage() {
 
             <SectionDivider />
 
-            <PropsTable rows={[
-                { name: 'value', type: 'boolean', default: '(required)', required: true },
-                { name: 'onChange', type: '(e: ChangeEvent) => void', default: '(required)', required: true },
-                { name: 'label', type: 'string', default: '(none)' },
-            ]} />
+            <PropsTable
+                rows={[
+                    { name: 'value', type: 'boolean', default: '(required)', required: true },
+                    { name: 'onChange', type: '(e: ChangeEvent) => void', default: '(required)', required: true },
+                    { name: 'label', type: 'string', default: '(none)' },
+                ]}
+            />
 
             <DocSection title="Examples">
                 <DocSection.Content>
@@ -38,10 +40,7 @@ export default function CheckboxPage() {
                     </div>
                 </DocSection.Content>
                 <DocSection.Code>
-                    <CodeBlock
-                        label="Import"
-                        code={`import Checkbox from '@/components/0_Bruddle/Checkbox'`}
-                    />
+                    <CodeBlock label="Import" code={`import Checkbox from '@/components/0_Bruddle/Checkbox'`} />
                     <CodeBlock
                         label="With Label"
                         code={`<Checkbox
@@ -50,10 +49,7 @@ export default function CheckboxPage() {
   onChange={(e) => setChecked(e.target.checked)}
 />`}
                     />
-                    <CodeBlock
-                        label="Without Label"
-                        code={`<Checkbox value={checked} onChange={() => {}} />`}
-                    />
+                    <CodeBlock label="Without Label" code={`<Checkbox value={checked} onChange={() => {}} />`} />
                 </DocSection.Code>
             </DocSection>
         </DocPage>

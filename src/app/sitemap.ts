@@ -50,7 +50,11 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
         // Corridor index + country pages
         pages.push({ path: `/${locale}/send-money-to`, priority: 0.9 * basePriority, changeFrequency: 'weekly' })
         for (const country of Object.keys(COUNTRIES_SEO)) {
-            pages.push({ path: `/${locale}/send-money-to/${country}`, priority: 0.8 * basePriority, changeFrequency: 'weekly' })
+            pages.push({
+                path: `/${locale}/send-money-to/${country}`,
+                priority: 0.8 * basePriority,
+                changeFrequency: 'weekly',
+            })
         }
 
         // From-to corridor pages
@@ -79,17 +83,29 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
 
         // Comparison pages
         for (const slug of Object.keys(COMPETITORS)) {
-            pages.push({ path: `/${locale}/compare/peanut-vs-${slug}`, priority: 0.7 * basePriority, changeFrequency: 'monthly' })
+            pages.push({
+                path: `/${locale}/compare/peanut-vs-${slug}`,
+                priority: 0.7 * basePriority,
+                changeFrequency: 'monthly',
+            })
         }
 
         // Deposit pages
         for (const exchange of Object.keys(EXCHANGES)) {
-            pages.push({ path: `/${locale}/deposit/from-${exchange}`, priority: 0.7 * basePriority, changeFrequency: 'monthly' })
+            pages.push({
+                path: `/${locale}/deposit/from-${exchange}`,
+                priority: 0.7 * basePriority,
+                changeFrequency: 'monthly',
+            })
         }
 
         // Pay-with pages
         for (const method of PAYMENT_METHODS) {
-            pages.push({ path: `/${locale}/pay-with/${method}`, priority: 0.7 * basePriority, changeFrequency: 'monthly' })
+            pages.push({
+                path: `/${locale}/pay-with/${method}`,
+                priority: 0.7 * basePriority,
+                changeFrequency: 'monthly',
+            })
         }
 
         // Blog — only include posts that actually exist for this locale (avoid duplicate content)
@@ -99,7 +115,11 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
 
         pages.push({ path: `/${locale}/blog`, priority: 0.8 * basePriority, changeFrequency: 'weekly' })
         for (const post of postsToInclude) {
-            pages.push({ path: `/${locale}/blog/${post.slug}`, priority: 0.6 * basePriority, changeFrequency: 'monthly' })
+            pages.push({
+                path: `/${locale}/blog/${post.slug}`,
+                priority: 0.6 * basePriority,
+                changeFrequency: 'monthly',
+            })
         }
 
         // Team page

@@ -36,9 +36,7 @@ export function PropsTable({ rows }: { rows: PropsTableRow[] }) {
                             <td className="px-4 py-2.5 font-mono text-grey-1">{row.type}</td>
                             <td className="px-4 py-2.5 font-mono text-grey-1">{row.default}</td>
                             {row.description && (
-                                <td className="hidden px-4 py-2.5 text-grey-1 sm:table-cell">
-                                    {row.description}
-                                </td>
+                                <td className="hidden px-4 py-2.5 text-grey-1 sm:table-cell">{row.description}</td>
                             )}
                         </tr>
                     ))}

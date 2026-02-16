@@ -21,6 +21,7 @@ interface PageProps {
 export async function generateStaticParams() {
     return SUPPORTED_LOCALES.flatMap((locale) => CONVERT_PAIRS.map((pair) => ({ locale, pair })))
 }
+export const dynamicParams = false
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
     const { locale, pair } = await params

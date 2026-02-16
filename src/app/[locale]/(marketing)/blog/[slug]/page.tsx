@@ -19,6 +19,7 @@ export async function generateStaticParams() {
         return posts.map((post) => ({ locale, slug: post.slug }))
     })
 }
+export const dynamicParams = false
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
     const { locale, slug } = await params
@@ -75,7 +76,7 @@ export default async function BlogPostPageLocalized({ params }: PageProps) {
                     <time className="mt-3 block text-sm text-gray-400">{post.frontmatter.date}</time>
                 </header>
                 <article
-                    className="prose prose-lg max-w-none prose-headings:font-bold prose-a:text-black prose-a:underline prose-pre:border prose-pre:border-n-1 prose-pre:bg-white"
+                    className="prose prose-lg prose-headings:font-bold prose-a:text-black prose-a:underline prose-pre:border prose-pre:border-n-1 prose-pre:bg-white max-w-none"
                     dangerouslySetInnerHTML={{ __html: post.html }}
                 />
             </MarketingShell>

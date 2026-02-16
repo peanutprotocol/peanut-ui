@@ -2,14 +2,7 @@
 
 import { useFooterVisibility } from '@/context/footerVisibility'
 import { useEffect, useState, useRef, type ReactNode } from 'react'
-import {
-    DropLink,
-    FAQs,
-    Hero,
-    Marquee,
-    NoFees,
-    CardPioneers,
-} from '@/components/LandingPage'
+import { DropLink, FAQs, Hero, Marquee, NoFees, CardPioneers } from '@/components/LandingPage'
 import TweetCarousel from '@/components/LandingPage/TweetCarousel'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 
@@ -116,7 +109,6 @@ export function LandingPageClient({
                     setButtonScale(1)
                     setHasGrown(false)
                 }
-
             }
         }
 
@@ -176,9 +168,7 @@ export function LandingPageClient({
             <Marquee {...marqueeProps} />
             {securitySlot}
             <Marquee {...marqueeProps} />
-            <div ref={sendInSecondsRef}>
-                {sendInSecondsSlot}
-            </div>
+            <div ref={sendInSecondsRef}>{sendInSecondsSlot}</div>
             <Marquee {...marqueeProps} />
             <NoFees />
             <Marquee {...marqueeProps} />

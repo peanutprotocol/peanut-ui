@@ -69,9 +69,17 @@ export default function SpacingPage() {
             {/* Page padding */}
             <DocSection title="Page Padding">
                 <div className="space-y-1 text-sm text-grey-1">
-                    <p>Standard page content padding: <code className="font-mono font-bold text-n-1">px-4</code> (16px)</p>
-                    <p>Card internal padding: <code className="font-mono font-bold text-n-1">p-4</code> (16px) or <code className="font-mono font-bold text-n-1">p-6</code> (24px)</p>
-                    <p>Section spacing: <code className="font-mono font-bold text-n-1">space-y-6</code> or <code className="font-mono font-bold text-n-1">gap-6</code></p>
+                    <p>
+                        Standard page content padding: <code className="font-mono font-bold text-n-1">px-4</code> (16px)
+                    </p>
+                    <p>
+                        Card internal padding: <code className="font-mono font-bold text-n-1">p-4</code> (16px) or{' '}
+                        <code className="font-mono font-bold text-n-1">p-6</code> (24px)
+                    </p>
+                    <p>
+                        Section spacing: <code className="font-mono font-bold text-n-1">space-y-6</code> or{' '}
+                        <code className="font-mono font-bold text-n-1">gap-6</code>
+                    </p>
                 </div>
             </DocSection>
         </DocPage>

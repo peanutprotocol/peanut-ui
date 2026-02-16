@@ -25,6 +25,27 @@ Fill in real team member data in `src/data/team.ts`:
 
 ## Engineering Tasks
 
+### Content Submodule Migration (BLOCKING — do first)
+CI build fails because `src/content` is a local symlink. Once `0xkkonrad/peanut` PR #1
+(`reorganize-for-peanut-ui`) merges to `master`, run these steps:
+```bash
+# 1. Remove the symlink from git
+git rm --cached src/content
+rm src/content
+
+# 2. Add as submodule (same pattern as src/assets/animations)
+git submodule add https://github.com/0xkkonrad/peanut.git src/content
+
+# 3. Verify structure matches what code expects
+ls src/content/countries/argentina/  # should have data.yaml + en.md
+
+# 4. Commit and push
+git add .gitmodules src/content
+git commit -m "chore: add peanut-content as git submodule"
+git push
+```
+CI already has `submodules: true` in `.github/workflows/tests.yml`, so it will fetch automatically.
+
 ### Scroll-Depth CTAs
 TODO: Add mid-content CTA cards on long editorial pages (blog posts, corridor pages).
 Trigger: Insert CTA after 50% scroll or after the 3rd section.

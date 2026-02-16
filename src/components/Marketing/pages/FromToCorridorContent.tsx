@@ -112,7 +112,11 @@ export function FromToCorridorContent({ from, to, locale }: FromToCorridorConten
     if (toCurrency) {
         relatedPages.push({
             title: t(i18n.convertTitle, { from: fromCurrency || 'USD', to: toCurrency }),
-            href: localizedPath('convert', locale, `${(fromCurrency || 'usd').toLowerCase()}-to-${toCurrency.toLowerCase()}`),
+            href: localizedPath(
+                'convert',
+                locale,
+                `${(fromCurrency || 'usd').toLowerCase()}-to-${toCurrency.toLowerCase()}`
+            ),
         })
     }
 
@@ -160,7 +164,9 @@ export function FromToCorridorContent({ from, to, locale }: FromToCorridorConten
                                 />
                             )}
                             <div>
-                                <span className="text-sm text-gray-500">{t(i18n.receiveMoneyFrom, { country: '' }).trim()}</span>
+                                <span className="text-sm text-gray-500">
+                                    {t(i18n.receiveMoneyFrom, { country: '' }).trim()}
+                                </span>
                                 <p className="font-semibold">{toName}</p>
                                 {toCurrency && <span className="text-xs text-gray-400">{toCurrency}</span>}
                             </div>
@@ -170,12 +176,8 @@ export function FromToCorridorContent({ from, to, locale }: FromToCorridorConten
 
                 {/* Context paragraph */}
                 <Section title={t(i18n.sendMoneyFromTo, { from: fromName, to: toName })}>
-                    <p className="text-gray-700">
-                        {t(i18n.fromToContext, { from: fromName, to: toName })}
-                    </p>
-                    {toSeo?.context && (
-                        <p className="mt-3 text-gray-700">{toSeo.context}</p>
-                    )}
+                    <p className="text-gray-700">{t(i18n.fromToContext, { from: fromName, to: toName })}</p>
+                    {toSeo?.context && <p className="mt-3 text-gray-700">{toSeo.context}</p>}
                 </Section>
 
                 {/* How it works */}
@@ -189,7 +191,9 @@ export function FromToCorridorContent({ from, to, locale }: FromToCorridorConten
                         <div className="flex flex-col gap-3">
                             {fromSeo?.instantPayment && (
                                 <Card className="p-4">
-                                    <h3 className="font-semibold">{fromSeo.instantPayment} ({fromName})</h3>
+                                    <h3 className="font-semibold">
+                                        {fromSeo.instantPayment} ({fromName})
+                                    </h3>
                                     <p className="mt-1 text-sm text-gray-600">
                                         {t(i18n.instantDeposits, { method: fromSeo.instantPayment, country: fromName })}
                                     </p>
@@ -197,7 +201,9 @@ export function FromToCorridorContent({ from, to, locale }: FromToCorridorConten
                             )}
                             {toSeo?.instantPayment && (
                                 <Card className="p-4">
-                                    <h3 className="font-semibold">{toSeo.instantPayment} ({toName})</h3>
+                                    <h3 className="font-semibold">
+                                        {toSeo.instantPayment} ({toName})
+                                    </h3>
                                     <p className="mt-1 text-sm text-gray-600">
                                         {t(i18n.instantDeposits, { method: toSeo.instantPayment, country: toName })}
                                     </p>
@@ -225,7 +231,7 @@ export function FromToCorridorContent({ from, to, locale }: FromToCorridorConten
                                         key={c.to}
                                         href={localizedPath('send-money-from', locale, `${c.from}/to/${c.to}`)}
                                     >
-                                        <Card className="flex-row items-center gap-2 p-3 transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-4">
+                                        <Card className="flex-row items-center gap-2 p-3 transition-all hover:shadow-4 hover:-translate-x-1 hover:-translate-y-1">
                                             {destMapping?.flagCode && (
                                                 <img
                                                     src={getFlagUrl(destMapping.flagCode)}
@@ -253,9 +259,7 @@ export function FromToCorridorContent({ from, to, locale }: FromToCorridorConten
                 <RelatedPages pages={relatedPages} title={i18n.relatedPages} />
 
                 {/* Last updated */}
-                <p className="py-4 text-xs text-gray-400">
-                    {t(i18n.lastUpdated, { date: today })}
-                </p>
+                <p className="py-4 text-xs text-gray-400">{t(i18n.lastUpdated, { date: today })}</p>
             </MarketingShell>
         </>
     )

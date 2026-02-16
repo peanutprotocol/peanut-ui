@@ -15,7 +15,11 @@ export default function BaseInputPage() {
 
     return (
         <DocPage>
-            <DocHeader title="BaseInput" description="Text input with sm/md/lg size variants and optional right content slot." status="production" />
+            <DocHeader
+                title="BaseInput"
+                description="Text input with sm/md/lg size variants and optional right content slot."
+                status="production"
+            />
 
             <Playground
                 name="BaseInput"
@@ -46,11 +50,23 @@ export default function BaseInputPage() {
 
             <SectionDivider />
 
-            <PropsTable rows={[
-                { name: 'variant', type: "'sm' | 'md' | 'lg'", default: "'md'", description: 'Height: sm=h-10, md=h-16, lg=h-20' },
-                { name: 'rightContent', type: 'ReactNode', default: '(none)', description: 'Content in the right side of the input' },
-                { name: 'className', type: 'string', default: '(none)' },
-            ]} />
+            <PropsTable
+                rows={[
+                    {
+                        name: 'variant',
+                        type: "'sm' | 'md' | 'lg'",
+                        default: "'md'",
+                        description: 'Height: sm=h-10, md=h-16, lg=h-20',
+                    },
+                    {
+                        name: 'rightContent',
+                        type: 'ReactNode',
+                        default: '(none)',
+                        description: 'Content in the right side of the input',
+                    },
+                    { name: 'className', type: 'string', default: '(none)' },
+                ]}
+            />
 
             <DocSection title="Sizes">
                 <DocSection.Content>
@@ -59,14 +75,8 @@ export default function BaseInputPage() {
                     <BaseInput variant="lg" placeholder="large (lg)" />
                 </DocSection.Content>
                 <DocSection.Code>
-                    <CodeBlock
-                        label="Import"
-                        code={`import BaseInput from '@/components/0_Bruddle/BaseInput'`}
-                    />
-                    <CodeBlock
-                        label="Basic Usage"
-                        code={`<BaseInput placeholder="Enter text..." />`}
-                    />
+                    <CodeBlock label="Import" code={`import BaseInput from '@/components/0_Bruddle/BaseInput'`} />
+                    <CodeBlock label="Basic Usage" code={`<BaseInput placeholder="Enter text..." />`} />
                     <CodeBlock
                         label="Size Variants"
                         code={`<BaseInput variant="sm" placeholder="Small" />

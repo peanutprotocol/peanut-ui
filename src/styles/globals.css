@@ -726,19 +726,24 @@ input::placeholder {
     }
     15% {
         opacity: 1;
-        transform: translateY(calc(var(--aov-y, 20px) * -0.6)) translateX(calc(var(--aov-x, 0px) * -0.6)) rotate(var(--aov-rotate, 0deg));
+        transform: translateY(calc(var(--aov-y, 20px) * -0.6)) translateX(calc(var(--aov-x, 0px) * -0.6))
+            rotate(var(--aov-rotate, 0deg));
     }
     30% {
-        transform: translateY(calc(var(--aov-y, 20px) * 0.35)) translateX(calc(var(--aov-x, 0px) * 0.35)) rotate(var(--aov-rotate, 0deg));
+        transform: translateY(calc(var(--aov-y, 20px) * 0.35)) translateX(calc(var(--aov-x, 0px) * 0.35))
+            rotate(var(--aov-rotate, 0deg));
     }
     45% {
-        transform: translateY(calc(var(--aov-y, 20px) * -0.2)) translateX(calc(var(--aov-x, 0px) * -0.2)) rotate(var(--aov-rotate, 0deg));
+        transform: translateY(calc(var(--aov-y, 20px) * -0.2)) translateX(calc(var(--aov-x, 0px) * -0.2))
+            rotate(var(--aov-rotate, 0deg));
     }
     60% {
-        transform: translateY(calc(var(--aov-y, 20px) * 0.1)) translateX(calc(var(--aov-x, 0px) * 0.1)) rotate(var(--aov-rotate, 0deg));
+        transform: translateY(calc(var(--aov-y, 20px) * 0.1)) translateX(calc(var(--aov-x, 0px) * 0.1))
+            rotate(var(--aov-rotate, 0deg));
     }
     75% {
-        transform: translateY(calc(var(--aov-y, 20px) * -0.05)) translateX(calc(var(--aov-x, 0px) * -0.05)) rotate(var(--aov-rotate, 0deg));
+        transform: translateY(calc(var(--aov-y, 20px) * -0.05)) translateX(calc(var(--aov-x, 0px) * -0.05))
+            rotate(var(--aov-rotate, 0deg));
     }
     100% {
         opacity: 1;

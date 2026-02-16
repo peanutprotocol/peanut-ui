@@ -79,7 +79,7 @@ export async function getPostBySlug(
         }
     }
 
-    const html = await marked(content, { renderer }) as string
+    const html = (await marked(content, { renderer })) as string
 
     return { frontmatter: data as BlogPost['frontmatter'], html }
 }

@@ -8,26 +8,88 @@ import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
 
 const ALL_ICONS: IconName[] = [
-    'alert', 'alert-filled', 'arrow-down', 'arrow-down-left', 'arrow-up', 'arrow-up-right',
-    'arrow-exchange', 'badge', 'bank', 'bell', 'bulb', 'camera', 'camera-flip', 'cancel',
-    'check', 'check-circle', 'chevron-up', 'chevron-down', 'clip', 'clock', 'copy', 'currency',
-    'docs', 'dollar', 'double-check', 'download', 'error', 'exchange', 'external-link',
-    'eye', 'eye-slash', 'failed', 'fees', 'gift', 'globe-lock', 'history', 'home',
-    'info', 'info-filled', 'invite-heart', 'link', 'link-slash', 'lock', 'logout', 'meter',
-    'minus-circle', 'mobile-install', 'paperclip', 'paste', 'peanut-support', 'pending',
-    'plus', 'plus-circle', 'processing', 'qr-code', 'question-mark', 'retry', 'search',
-    'share', 'shield', 'smile', 'split', 'star', 'success', 'switch', 'trophy',
-    'txn-off', 'upload-cloud', 'user', 'user-id', 'user-plus', 'wallet', 'wallet-cancel',
-    'wallet-outline', 'achievements',
+    'alert',
+    'alert-filled',
+    'arrow-down',
+    'arrow-down-left',
+    'arrow-up',
+    'arrow-up-right',
+    'arrow-exchange',
+    'badge',
+    'bank',
+    'bell',
+    'bulb',
+    'camera',
+    'camera-flip',
+    'cancel',
+    'check',
+    'check-circle',
+    'chevron-up',
+    'chevron-down',
+    'clip',
+    'clock',
+    'copy',
+    'currency',
+    'docs',
+    'dollar',
+    'double-check',
+    'download',
+    'error',
+    'exchange',
+    'external-link',
+    'eye',
+    'eye-slash',
+    'failed',
+    'fees',
+    'gift',
+    'globe-lock',
+    'history',
+    'home',
+    'info',
+    'info-filled',
+    'invite-heart',
+    'link',
+    'link-slash',
+    'lock',
+    'logout',
+    'meter',
+    'minus-circle',
+    'mobile-install',
+    'paperclip',
+    'paste',
+    'peanut-support',
+    'pending',
+    'plus',
+    'plus-circle',
+    'processing',
+    'qr-code',
+    'question-mark',
+    'retry',
+    'search',
+    'share',
+    'shield',
+    'smile',
+    'split',
+    'star',
+    'success',
+    'switch',
+    'trophy',
+    'txn-off',
+    'upload-cloud',
+    'user',
+    'user-id',
+    'user-plus',
+    'wallet',
+    'wallet-cancel',
+    'wallet-outline',
+    'achievements',
 ]
 
 export default function IconsPage() {
     const [search, setSearch] = useState('')
     const [copiedIcon, setCopiedIcon] = useState<string | null>(null)
 
-    const filtered = search
-        ? ALL_ICONS.filter((name) => name.includes(search.toLowerCase()))
-        : ALL_ICONS
+    const filtered = search ? ALL_ICONS.filter((name) => name.includes(search.toLowerCase())) : ALL_ICONS
 
     const copyIcon = (name: string) => {
         navigator.clipboard.writeText(name)
@@ -37,7 +99,10 @@ export default function IconsPage() {
 
     return (
         <DocPage>
-            <DocHeader title={`Icons (${ALL_ICONS.length})`} description="Material design icons. Tap any icon to copy its name." />
+            <DocHeader
+                title={`Icons (${ALL_ICONS.length})`}
+                description="Material design icons. Tap any icon to copy its name."
+            />
 
             {/* Search */}
             <input

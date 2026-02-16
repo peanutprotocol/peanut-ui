@@ -54,15 +54,23 @@ export default function LoadingPage() {
 
                     <PropsTable
                         rows={[
-                            { name: 'className', type: 'string', default: "'h-4 w-4'", description: 'Controls size via Tailwind width/height' },
+                            {
+                                name: 'className',
+                                type: 'string',
+                                default: "'h-4 w-4'",
+                                description: 'Controls size via Tailwind width/height',
+                            },
                         ]}
                     />
                 </DocSection.Content>
                 <DocSection.Code>
                     <CodeBlock label="Import" code={`import Loading from '@/components/Global/Loading'`} />
 
-                    <CodeBlock label="Usage" code={`<Loading />                     {/* default 16px */}
-<Loading className="h-8 w-8" /> {/* 32px */}`} />
+                    <CodeBlock
+                        label="Usage"
+                        code={`<Loading />                     {/* default 16px */}
+<Loading className="h-8 w-8" /> {/* 32px */}`}
+                    />
                 </DocSection.Code>
             </DocSection>
 
@@ -90,19 +98,32 @@ export default function LoadingPage() {
 
                     <PropsTable
                         rows={[
-                            { name: 'coverFullScreen', type: 'boolean', default: 'false', description: 'Fixed overlay covering entire viewport' },
-                            { name: 'message', type: 'string', default: '(none)', description: 'Text shown below the spinner' },
+                            {
+                                name: 'coverFullScreen',
+                                type: 'boolean',
+                                default: 'false',
+                                description: 'Fixed overlay covering entire viewport',
+                            },
+                            {
+                                name: 'message',
+                                type: 'string',
+                                default: '(none)',
+                                description: 'Text shown below the spinner',
+                            },
                         ]}
                     />
                 </DocSection.Content>
                 <DocSection.Code>
                     <CodeBlock label="Import" code={`import PeanutLoading from '@/components/Global/PeanutLoading'`} />
 
-                    <CodeBlock label="Usage" code={`{/* Inline */}
+                    <CodeBlock
+                        label="Usage"
+                        code={`{/* Inline */}
 <PeanutLoading message="Loading your wallet..." />
 
 {/* Full screen overlay */}
-<PeanutLoading coverFullScreen message="Please wait..." />`} />
+<PeanutLoading coverFullScreen message="Please wait..." />`}
+                    />
                 </DocSection.Code>
             </DocSection>
 
@@ -111,12 +132,12 @@ export default function LoadingPage() {
             {/* Design Notes */}
             <DocSection title="Design Rules">
                 <DesignNote type="info">
-                    Use Loading (CSS spinner) inside buttons, inline indicators, and small containers. Use PeanutLoading for
-                    page-level or section-level loading states where brand presence matters.
+                    Use Loading (CSS spinner) inside buttons, inline indicators, and small containers. Use PeanutLoading
+                    for page-level or section-level loading states where brand presence matters.
                 </DesignNote>
                 <DesignNote type="warning">
-                    PeanutLoading with coverFullScreen renders a fixed z-50 overlay. Make sure to conditionally render it
-                    only when loading is active to avoid blocking the UI.
+                    PeanutLoading with coverFullScreen renders a fixed z-50 overlay. Make sure to conditionally render
+                    it only when loading is active to avoid blocking the UI.
                 </DesignNote>
             </DocSection>
         </DocPage>

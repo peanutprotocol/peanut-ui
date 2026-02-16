@@ -43,7 +43,12 @@ export default function ModalPage() {
                                     optional title bar. You supply the children.
                                 </p>
                                 <div className="mt-4">
-                                    <Button variant="purple" shadowSize="4" className="w-full" onClick={() => setShowModal(false)}>
+                                    <Button
+                                        variant="purple"
+                                        shadowSize="4"
+                                        className="w-full"
+                                        onClick={() => setShowModal(false)}
+                                    >
                                         Got it
                                     </Button>
                                 </div>
@@ -53,16 +58,63 @@ export default function ModalPage() {
 
                     <PropsTable
                         rows={[
-                            { name: 'visible', type: 'boolean', default: '-', required: true, description: 'Controls modal visibility' },
-                            { name: 'onClose', type: '() => void', default: '-', required: true, description: 'Called when overlay or close button clicked' },
-                            { name: 'title', type: 'string', default: '(none)', description: 'Renders title bar with border' },
-                            { name: 'className', type: 'string', default: "''", description: 'Class for the Dialog root' },
+                            {
+                                name: 'visible',
+                                type: 'boolean',
+                                default: '-',
+                                required: true,
+                                description: 'Controls modal visibility',
+                            },
+                            {
+                                name: 'onClose',
+                                type: '() => void',
+                                default: '-',
+                                required: true,
+                                description: 'Called when overlay or close button clicked',
+                            },
+                            {
+                                name: 'title',
+                                type: 'string',
+                                default: '(none)',
+                                description: 'Renders title bar with border',
+                            },
+                            {
+                                name: 'className',
+                                type: 'string',
+                                default: "''",
+                                description: 'Class for the Dialog root',
+                            },
                             { name: 'classWrap', type: 'string', default: "''", description: 'Class for Dialog.Panel' },
-                            { name: 'classOverlay', type: 'string', default: "''", description: 'Class for the backdrop overlay' },
-                            { name: 'classButtonClose', type: 'string', default: "''", description: 'Class for the close button' },
-                            { name: 'preventClose', type: 'boolean', default: 'false', description: 'Disables closing via overlay click' },
-                            { name: 'hideOverlay', type: 'boolean', default: 'false', description: 'Hides close button and title, renders children directly' },
-                            { name: 'video', type: 'boolean', default: 'false', description: 'Aspect-ratio video mode' },
+                            {
+                                name: 'classOverlay',
+                                type: 'string',
+                                default: "''",
+                                description: 'Class for the backdrop overlay',
+                            },
+                            {
+                                name: 'classButtonClose',
+                                type: 'string',
+                                default: "''",
+                                description: 'Class for the close button',
+                            },
+                            {
+                                name: 'preventClose',
+                                type: 'boolean',
+                                default: 'false',
+                                description: 'Disables closing via overlay click',
+                            },
+                            {
+                                name: 'hideOverlay',
+                                type: 'boolean',
+                                default: 'false',
+                                description: 'Hides close button and title, renders children directly',
+                            },
+                            {
+                                name: 'video',
+                                type: 'boolean',
+                                default: 'false',
+                                description: 'Aspect-ratio video mode',
+                            },
                             { name: 'children', type: 'ReactNode', default: '-', required: true },
                         ]}
                     />
@@ -70,11 +122,14 @@ export default function ModalPage() {
                 <DocSection.Code>
                     <CodeBlock label="Import" code={`import Modal from '@/components/Global/Modal'`} />
 
-                    <CodeBlock label="Usage" code={`<Modal visible={visible} onClose={() => setVisible(false)} title="Example">
+                    <CodeBlock
+                        label="Usage"
+                        code={`<Modal visible={visible} onClose={() => setVisible(false)} title="Example">
   <div className="p-5">
     {/* Your content */}
   </div>
-</Modal>`} />
+</Modal>`}
+                    />
                 </DocSection.Code>
             </DocSection>
 
@@ -82,8 +137,8 @@ export default function ModalPage() {
             <DocSection title="ActionModal">
                 <DocSection.Content>
                     <p className="text-sm text-grey-1">
-                        Pre-composed modal with icon, title, description, CTA buttons, and optional checkbox. Built on top of
-                        Base Modal.
+                        Pre-composed modal with icon, title, description, CTA buttons, and optional checkbox. Built on
+                        top of Base Modal.
                     </p>
 
                     <div>
@@ -131,15 +186,60 @@ export default function ModalPage() {
                             { name: 'visible', type: 'boolean', default: '-', required: true },
                             { name: 'onClose', type: '() => void', default: '-', required: true },
                             { name: 'title', type: 'string | ReactNode', default: '-', required: true },
-                            { name: 'description', type: 'string | ReactNode', default: '(none)', description: 'Subtitle text' },
-                            { name: 'icon', type: 'IconName | ReactNode', default: '(none)', description: 'Displayed in pink circle above title' },
-                            { name: 'iconProps', type: 'Partial<IconProps>', default: '(none)', description: 'Override icon size/color' },
-                            { name: 'isLoadingIcon', type: 'boolean', default: 'false', description: 'Replace icon with spinner' },
-                            { name: 'ctas', type: 'ActionModalButtonProps[]', default: '[]', description: 'Array of {text, variant, onClick, ...ButtonProps}' },
-                            { name: 'checkbox', type: 'ActionModalCheckboxProps', default: '(none)', description: '{text, checked, onChange}' },
-                            { name: 'preventClose', type: 'boolean', default: 'false', description: 'Block overlay-click dismiss' },
-                            { name: 'hideModalCloseButton', type: 'boolean', default: 'false', description: 'Hides the X button' },
-                            { name: 'content', type: 'ReactNode', default: '(none)', description: 'Custom content between description and CTAs' },
+                            {
+                                name: 'description',
+                                type: 'string | ReactNode',
+                                default: '(none)',
+                                description: 'Subtitle text',
+                            },
+                            {
+                                name: 'icon',
+                                type: 'IconName | ReactNode',
+                                default: '(none)',
+                                description: 'Displayed in pink circle above title',
+                            },
+                            {
+                                name: 'iconProps',
+                                type: 'Partial<IconProps>',
+                                default: '(none)',
+                                description: 'Override icon size/color',
+                            },
+                            {
+                                name: 'isLoadingIcon',
+                                type: 'boolean',
+                                default: 'false',
+                                description: 'Replace icon with spinner',
+                            },
+                            {
+                                name: 'ctas',
+                                type: 'ActionModalButtonProps[]',
+                                default: '[]',
+                                description: 'Array of {text, variant, onClick, ...ButtonProps}',
+                            },
+                            {
+                                name: 'checkbox',
+                                type: 'ActionModalCheckboxProps',
+                                default: '(none)',
+                                description: '{text, checked, onChange}',
+                            },
+                            {
+                                name: 'preventClose',
+                                type: 'boolean',
+                                default: 'false',
+                                description: 'Block overlay-click dismiss',
+                            },
+                            {
+                                name: 'hideModalCloseButton',
+                                type: 'boolean',
+                                default: 'false',
+                                description: 'Hides the X button',
+                            },
+                            {
+                                name: 'content',
+                                type: 'ReactNode',
+                                default: '(none)',
+                                description: 'Custom content between description and CTAs',
+                            },
                             { name: 'footer', type: 'ReactNode', default: '(none)', description: 'Content below CTAs' },
                         ]}
                     />
@@ -147,7 +247,9 @@ export default function ModalPage() {
                 <DocSection.Code>
                     <CodeBlock label="Import" code={`import ActionModal from '@/components/Global/ActionModal'`} />
 
-                    <CodeBlock label="Usage" code={`<ActionModal
+                    <CodeBlock
+                        label="Usage"
+                        code={`<ActionModal
   visible={visible}
   onClose={() => setVisible(false)}
   title="Confirm Action"
@@ -162,7 +264,8 @@ export default function ModalPage() {
     { text: 'Cancel', variant: 'stroke', onClick: handleCancel },
     { text: 'Confirm', variant: 'purple', onClick: handleConfirm },
   ]}
-/>`} />
+/>`}
+                    />
                 </DocSection.Code>
             </DocSection>
 
@@ -171,12 +274,12 @@ export default function ModalPage() {
             {/* Design Notes */}
             <DocSection title="Design Rules">
                 <DesignNote type="info">
-                    ActionModal is the preferred pattern for confirmations and simple actions. Use Base Modal only when you
-                    need fully custom content.
+                    ActionModal is the preferred pattern for confirmations and simple actions. Use Base Modal only when
+                    you need fully custom content.
                 </DesignNote>
                 <DesignNote type="warning">
-                    ActionModal icon renders in a pink (primary-1) circle by default. Override with iconContainerClassName
-                    if needed.
+                    ActionModal icon renders in a pink (primary-1) circle by default. Override with
+                    iconContainerClassName if needed.
                 </DesignNote>
             </DocSection>
 

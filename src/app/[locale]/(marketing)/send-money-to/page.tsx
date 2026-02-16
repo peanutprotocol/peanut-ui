@@ -59,10 +59,7 @@ export default async function SendMoneyToIndexPageLocalized({ params }: PageProp
     return (
         <>
             <JsonLd data={breadcrumbSchema} />
-            <MarketingHero
-                title={i18n.sendMoney}
-                subtitle={i18n.sendMoneyToOtherCountries}
-            />
+            <MarketingHero title={i18n.sendMoney} subtitle={i18n.sendMoneyToOtherCountries} />
             <MarketingShell>
                 <DestinationGrid title={i18n.sendMoneyToOtherCountries} locale={locale as Locale} />
             </MarketingShell>

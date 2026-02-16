@@ -21,8 +21,8 @@ export default function LayoutsPage() {
             <DocSection title="1. Centered Content + CTA (Most Common)">
                 <DocSection.Content>
                     <p className="text-sm text-grey-1">
-                        Content vertically centered in viewport, CTA button pinned to the bottom.
-                        Used for: claim pages, success states, amount input, confirmations.
+                        Content vertically centered in viewport, CTA button pinned to the bottom. Used for: claim pages,
+                        success states, amount input, confirmations.
                     </p>
 
                     {/* Wireframe */}
@@ -48,7 +48,9 @@ export default function LayoutsPage() {
                     </div>
                 </DocSection.Content>
                 <DocSection.Code>
-                    <CodeBlock label="Pattern 1: Centered Content + CTA" code={`<div className="flex h-full flex-col">
+                    <CodeBlock
+                        label="Pattern 1: Centered Content + CTA"
+                        code={`<div className="flex h-full flex-col">
   <FlowHeader onPrev={handleBack} />
 
   {/* Centered content */}
@@ -62,7 +64,8 @@ export default function LayoutsPage() {
   <Button variant="purple" shadowSize="4" className="w-full">
     Continue
   </Button>
-</div>`} />
+</div>`}
+                    />
                 </DocSection.Code>
             </DocSection>
 
@@ -99,7 +102,9 @@ export default function LayoutsPage() {
                     </div>
                 </DocSection.Content>
                 <DocSection.Code>
-                    <CodeBlock label="Pattern 2: Pinned Footer CTA" code={`<div className="flex h-full flex-col">
+                    <CodeBlock
+                        label="Pattern 2: Pinned Footer CTA"
+                        code={`<div className="flex h-full flex-col">
   <NavHeader title="Settings" />
 
   {/* Top-aligned content */}
@@ -115,7 +120,8 @@ export default function LayoutsPage() {
   <Button variant="purple" shadowSize="4" className="w-full">
     Save Changes
   </Button>
-</div>`} />
+</div>`}
+                    />
                 </DocSection.Code>
             </DocSection>
 
@@ -148,7 +154,9 @@ export default function LayoutsPage() {
                     </div>
                 </DocSection.Content>
                 <DocSection.Code>
-                    <CodeBlock label="Pattern 3: Scrollable List" code={`<div className="flex h-full flex-col">
+                    <CodeBlock
+                        label="Pattern 3: Scrollable List"
+                        code={`<div className="flex h-full flex-col">
   <NavHeader title="History" />
 
   {/* Fixed search bar */}
@@ -164,7 +172,8 @@ export default function LayoutsPage() {
       </Card>
     ))}
   </div>
-</div>`} />
+</div>`}
+                    />
                 </DocSection.Code>
             </DocSection>
 
@@ -180,8 +189,8 @@ export default function LayoutsPage() {
                             <span className="text-xs font-bold text-error">Wrong</span>
                         </div>
                         <p className="text-xs text-grey-1">
-                            Without h-full the flex container collapses to content height. The CTA sits right below content
-                            instead of at the bottom.
+                            Without h-full the flex container collapses to content height. The CTA sits right below
+                            content instead of at the bottom.
                         </p>
                     </div>
 
@@ -192,8 +201,8 @@ export default function LayoutsPage() {
                             <span className="text-xs font-bold text-success-4">Correct</span>
                         </div>
                         <p className="text-xs text-grey-1">
-                            h-full ensures the flex column fills the available height from PageContainer. flex-1 on the content
-                            area pushes the CTA to the bottom.
+                            h-full ensures the flex column fills the available height from PageContainer. flex-1 on the
+                            content area pushes the CTA to the bottom.
                         </p>
                     </div>
 
@@ -204,8 +213,8 @@ export default function LayoutsPage() {
                             <span className="text-xs font-bold text-error">Wrong</span>
                         </div>
                         <p className="text-xs text-grey-1">
-                            overflow-y-auto alone does nothing unless the element has a bounded height. Use flex-1 inside a
-                            flex-col container, or set an explicit max-height.
+                            overflow-y-auto alone does nothing unless the element has a bounded height. Use flex-1
+                            inside a flex-col container, or set an explicit max-height.
                         </p>
                     </div>
 
@@ -216,35 +225,47 @@ export default function LayoutsPage() {
                             <span className="text-xs font-bold text-success-4">Correct</span>
                         </div>
                         <p className="text-xs text-grey-1">
-                            Inside a flex column with h-full, flex-1 fills remaining space and provides the bounded height
-                            that overflow-y-auto needs to actually scroll.
+                            Inside a flex column with h-full, flex-1 fills remaining space and provides the bounded
+                            height that overflow-y-auto needs to actually scroll.
                         </p>
                     </div>
                 </DocSection.Content>
                 <DocSection.Code>
-                    <CodeBlock label="Wrong: Missing h-full" code={`{/* Missing h-full on container - CTA won't pin to bottom */}
+                    <CodeBlock
+                        label="Wrong: Missing h-full"
+                        code={`{/* Missing h-full on container - CTA won't pin to bottom */}
 <div className="flex flex-col">
   <div className="flex-1">Content</div>
   <Button>Submit</Button>
-</div>`} />
+</div>`}
+                    />
 
-                    <CodeBlock label="Correct: With h-full" code={`{/* h-full makes container fill PageContainer */}
+                    <CodeBlock
+                        label="Correct: With h-full"
+                        code={`{/* h-full makes container fill PageContainer */}
 <div className="flex h-full flex-col">
   <div className="flex-1">Content</div>
   <Button>Submit</Button>
-</div>`} />
+</div>`}
+                    />
 
-                    <CodeBlock label="Wrong: Scrollable without bounded height" code={`{/* Scrollable area without bounded height */}
+                    <CodeBlock
+                        label="Wrong: Scrollable without bounded height"
+                        code={`{/* Scrollable area without bounded height */}
 <div className="overflow-y-auto">
   {items.map(...)}
-</div>`} />
+</div>`}
+                    />
 
-                    <CodeBlock label="Correct: flex-1 provides bounded height" code={`{/* flex-1 gives the scroll area a bounded height */}
+                    <CodeBlock
+                        label="Correct: flex-1 provides bounded height"
+                        code={`{/* flex-1 gives the scroll area a bounded height */}
 <div className="flex h-full flex-col">
   <div className="flex-1 overflow-y-auto">
     {items.map(...)}
   </div>
-</div>`} />
+</div>`}
+                    />
                 </DocSection.Code>
             </DocSection>
 

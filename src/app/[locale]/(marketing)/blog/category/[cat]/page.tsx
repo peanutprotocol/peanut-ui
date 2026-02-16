@@ -22,6 +22,7 @@ export async function generateStaticParams() {
         return fallbackCats.map((cat) => ({ locale, cat }))
     })
 }
+export const dynamicParams = false
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
     const { locale, cat } = await params

@@ -99,9 +99,7 @@ export function PayWithContent({ method, locale }: PayWithContentProps) {
                 <RelatedPages pages={relatedPages} title={i18n.relatedPages} />
 
                 {/* Last updated */}
-                <p className="py-4 text-xs text-gray-400">
-                    {t(i18n.lastUpdated, { date: today })}
-                </p>
+                <p className="py-4 text-xs text-gray-400">{t(i18n.lastUpdated, { date: today })}</p>
             </MarketingShell>
         </>
     )

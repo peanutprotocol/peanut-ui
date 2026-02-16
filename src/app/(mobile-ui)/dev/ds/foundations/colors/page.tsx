@@ -39,10 +39,14 @@ export default function ColorsPage() {
 
     return (
         <DocPage>
-            <DocHeader title="Colors" description="Color tokens from tailwind.config.js. Tap any swatch to copy the class name." />
+            <DocHeader
+                title="Colors"
+                description="Color tokens from tailwind.config.js. Tap any swatch to copy the class name."
+            />
 
             <DesignNote type="warning">
-                purple-1 / primary-1 = #FF90E8 — this is PINK, not purple. The naming is misleading but too widely used to rename.
+                purple-1 / primary-1 = #FF90E8 — this is PINK, not purple. The naming is misleading but too widely used
+                to rename.
             </DesignNote>
 
             {/* Color grid */}
@@ -64,7 +68,11 @@ export default function ColorsPage() {
                             {copiedColor === color.bg ? (
                                 <Icon name="check" size={14} className="shrink-0 text-success-3" />
                             ) : (
-                                <Icon name="copy" size={12} className="shrink-0 text-grey-1 opacity-0 group-hover:opacity-100" />
+                                <Icon
+                                    name="copy"
+                                    size={12}
+                                    className="shrink-0 text-grey-1 opacity-0 group-hover:opacity-100"
+                                />
                             )}
                         </button>
                     ))}
@@ -93,7 +101,9 @@ export default function ColorsPage() {
                 </div>
 
                 <DesignNote type="info">
-                    Inline links: always use <code className="rounded bg-white px-1 font-mono text-[10px]">text-black underline</code> — never text-purple-1.
+                    Inline links: always use{' '}
+                    <code className="rounded bg-white px-1 font-mono text-[10px]">text-black underline</code> — never
+                    text-purple-1.
                 </DesignNote>
             </DocSection>
 
@@ -101,11 +111,7 @@ export default function ColorsPage() {
             <DocSection title="Background Patterns">
                 <div className="space-y-2">
                     {BACKGROUNDS.map((bg) => (
-                        <button
-                            key={bg.name}
-                            onClick={() => copyClass(bg.name)}
-                            className="w-full text-left"
-                        >
+                        <button key={bg.name} onClick={() => copyClass(bg.name)} className="w-full text-left">
                             <div className={`${bg.name} h-20 rounded-sm border border-n-1 bg-primary-3 p-2`}>
                                 <span className="font-mono text-[10px]">.{bg.name}</span>
                             </div>

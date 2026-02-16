@@ -21,6 +21,7 @@ export async function generateStaticParams() {
     const slugs = Object.keys(COMPETITORS)
     return SUPPORTED_LOCALES.flatMap((locale) => slugs.map((slug) => ({ locale, slug: `peanut-vs-${slug}` })))
 }
+export const dynamicParams = false
 
 /** Strip the "peanut-vs-" URL prefix to get the data key. Returns null if prefix missing. */
 function parseSlug(raw: string): string | null {

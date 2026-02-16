@@ -13,7 +13,10 @@ interface BlogCardProps {
 export function BlogCard({ slug, title, excerpt, date, category, hrefPrefix = '/blog' }: BlogCardProps) {
     return (
         <Link href={`${hrefPrefix}/${slug}`}>
-            <Card shadowSize="4" className="h-full p-5 transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-primary-6">
+            <Card
+                shadowSize="4"
+                className="h-full p-5 transition-all hover:shadow-primary-6 hover:-translate-x-1 hover:-translate-y-1"
+            >
                 {category && (
                     <span className="mb-2 inline-block rounded-sm bg-primary-1/20 px-2 py-0.5 text-xs font-semibold">
                         {category}

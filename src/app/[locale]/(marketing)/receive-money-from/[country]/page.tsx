@@ -20,6 +20,7 @@ export async function generateStaticParams() {
     const sources = getReceiveSources()
     return SUPPORTED_LOCALES.flatMap((locale) => sources.map((country) => ({ locale, country })))
 }
+export const dynamicParams = false
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
     const { locale, country } = await params

@@ -13,10 +13,9 @@ interface PageProps {
 }
 
 export async function generateStaticParams() {
-    return SUPPORTED_LOCALES.flatMap((locale) =>
-        CORRIDORS.map((c) => ({ locale, from: c.from, to: c.to }))
-    )
+    return SUPPORTED_LOCALES.flatMap((locale) => CORRIDORS.map((c) => ({ locale, from: c.from, to: c.to })))
 }
+export const dynamicParams = false
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
     const { locale, from, to } = await params

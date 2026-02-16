@@ -145,10 +145,12 @@ export function CorridorPageContent({ country, locale }: CorridorPageContentProp
                             href: localizedBarePath(locale, country),
                         },
                         ...(currencyCode
-                            ? [{
-                                title: t(i18n.convertTitle, { from: 'USD', to: currencyCode }),
-                                href: localizedPath('convert', locale, `usd-to-${currencyCode.toLowerCase()}`),
-                            }]
+                            ? [
+                                  {
+                                      title: t(i18n.convertTitle, { from: 'USD', to: currencyCode }),
+                                      href: localizedPath('convert', locale, `usd-to-${currencyCode.toLowerCase()}`),
+                                  },
+                              ]
                             : []),
                         {
                             title: t(i18n.receiveMoneyFrom, { country: countryName }),
@@ -157,11 +159,7 @@ export function CorridorPageContent({ country, locale }: CorridorPageContentProp
                     ]}
                 />
 
-                <DestinationGrid
-                    countries={otherCountries}
-                    title={i18n.sendMoneyToOtherCountries}
-                    locale={locale}
-                />
+                <DestinationGrid countries={otherCountries} title={i18n.sendMoneyToOtherCountries} locale={locale} />
 
                 {/* Last updated */}
                 <p className="py-4 text-xs text-gray-400">

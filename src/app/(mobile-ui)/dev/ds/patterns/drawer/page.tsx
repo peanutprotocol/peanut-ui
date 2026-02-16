@@ -1,7 +1,16 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
-import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger, DrawerHeader, DrawerFooter, DrawerDescription, DrawerClose } from '@/components/Global/Drawer'
+import {
+    Drawer,
+    DrawerContent,
+    DrawerTitle,
+    DrawerTrigger,
+    DrawerHeader,
+    DrawerFooter,
+    DrawerDescription,
+    DrawerClose,
+} from '@/components/Global/Drawer'
 import { PropsTable } from '../../_components/PropsTable'
 import { DesignNote } from '../../_components/DesignNote'
 import { DocHeader } from '../../_components/DocHeader'
@@ -29,7 +38,9 @@ export default function DrawerPage() {
                         <DrawerContent>
                             <DrawerHeader>
                                 <DrawerTitle>Example Drawer</DrawerTitle>
-                                <DrawerDescription>This is a vaul-based bottom sheet. Swipe down to dismiss.</DrawerDescription>
+                                <DrawerDescription>
+                                    This is a vaul-based bottom sheet. Swipe down to dismiss.
+                                </DrawerDescription>
                             </DrawerHeader>
                             <div className="px-4 pb-4">
                                 <p className="text-sm text-grey-1">
@@ -48,7 +59,9 @@ export default function DrawerPage() {
                     </Drawer>
                 </DocSection.Content>
                 <DocSection.Code>
-                    <CodeBlock label="Import" code={`import {
+                    <CodeBlock
+                        label="Import"
+                        code={`import {
   Drawer,
   DrawerContent,
   DrawerTitle,
@@ -57,9 +70,12 @@ export default function DrawerPage() {
   DrawerFooter,
   DrawerDescription,
   DrawerClose,
-} from '@/components/Global/Drawer'`} />
+} from '@/components/Global/Drawer'`}
+                    />
 
-                    <CodeBlock label="Basic Usage" code={`<Drawer>
+                    <CodeBlock
+                        label="Basic Usage"
+                        code={`<Drawer>
   <DrawerTrigger asChild>
     <Button variant="stroke">Open</Button>
   </DrawerTrigger>
@@ -79,15 +95,19 @@ export default function DrawerPage() {
       </DrawerClose>
     </DrawerFooter>
   </DrawerContent>
-</Drawer>`} />
+</Drawer>`}
+                    />
 
-                    <CodeBlock label="Controlled" code={`const [open, setOpen] = useState(false)
+                    <CodeBlock
+                        label="Controlled"
+                        code={`const [open, setOpen] = useState(false)
 
 <Drawer open={open} onOpenChange={setOpen}>
   <DrawerContent>
     {/* Content */}
   </DrawerContent>
-</Drawer>`} />
+</Drawer>`}
+                    />
                 </DocSection.Code>
             </DocSection>
 
@@ -97,14 +117,44 @@ export default function DrawerPage() {
             <DocSection title="Compound Components">
                 <PropsTable
                     rows={[
-                        { name: 'Drawer', type: 'Root', default: '-', description: 'Vaul root. Accepts open, onOpenChange, snapPoints, etc.' },
-                        { name: 'DrawerTrigger', type: 'Trigger', default: '-', description: 'Element that opens the drawer. Use asChild.' },
-                        { name: 'DrawerContent', type: 'Content', default: '-', description: 'Panel with overlay, drag handle, max-h-[80vh]' },
-                        { name: 'DrawerHeader', type: 'Header', default: '-', description: 'Grid layout for title area' },
-                        { name: 'DrawerTitle', type: 'Title', default: '-', description: 'Accessible title (required for a11y)' },
+                        {
+                            name: 'Drawer',
+                            type: 'Root',
+                            default: '-',
+                            description: 'Vaul root. Accepts open, onOpenChange, snapPoints, etc.',
+                        },
+                        {
+                            name: 'DrawerTrigger',
+                            type: 'Trigger',
+                            default: '-',
+                            description: 'Element that opens the drawer. Use asChild.',
+                        },
+                        {
+                            name: 'DrawerContent',
+                            type: 'Content',
+                            default: '-',
+                            description: 'Panel with overlay, drag handle, max-h-[80vh]',
+                        },
+                        {
+                            name: 'DrawerHeader',
+                            type: 'Header',
+                            default: '-',
+                            description: 'Grid layout for title area',
+                        },
+                        {
+                            name: 'DrawerTitle',
+                            type: 'Title',
+                            default: '-',
+                            description: 'Accessible title (required for a11y)',
+                        },
                         { name: 'DrawerDescription', type: 'Description', default: '-', description: 'Subtitle text' },
                         { name: 'DrawerFooter', type: 'Footer', default: '-', description: 'Bottom area for CTAs' },
-                        { name: 'DrawerClose', type: 'Close', default: '-', description: 'Closes the drawer. Use asChild.' },
+                        {
+                            name: 'DrawerClose',
+                            type: 'Close',
+                            default: '-',
+                            description: 'Closes the drawer. Use asChild.',
+                        },
                     ]}
                 />
             </DocSection>
@@ -119,7 +169,8 @@ export default function DrawerPage() {
                     rounded bar at the top.
                 </DesignNote>
                 <DesignNote type="warning">
-                    Content is capped at max-h-[80vh] with overflow-auto. For long lists, scrolling works inside the drawer.
+                    Content is capped at max-h-[80vh] with overflow-auto. For long lists, scrolling works inside the
+                    drawer.
                 </DesignNote>
             </DocSection>
         </DocPage>

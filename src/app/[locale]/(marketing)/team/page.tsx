@@ -87,17 +87,32 @@ export default async function TeamPage({ params }: PageProps) {
                             {member.social && (
                                 <div className="flex gap-3">
                                     {member.social.linkedin && (
-                                        <a href={member.social.linkedin} className="text-black underline text-sm" target="_blank" rel="noopener noreferrer">
+                                        <a
+                                            href={member.social.linkedin}
+                                            className="text-sm text-black underline"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                        >
                                             LinkedIn
                                         </a>
                                     )}
                                     {member.social.twitter && (
-                                        <a href={member.social.twitter} className="text-black underline text-sm" target="_blank" rel="noopener noreferrer">
+                                        <a
+                                            href={member.social.twitter}
+                                            className="text-sm text-black underline"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                        >
                                             X / Twitter
                                         </a>
                                     )}
                                     {member.social.github && (
-                                        <a href={member.social.github} className="text-black underline text-sm" target="_blank" rel="noopener noreferrer">
+                                        <a
+                                            href={member.social.github}
+                                            className="text-sm text-black underline"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                        >
                                             GitHub
                                         </a>
                                     )}

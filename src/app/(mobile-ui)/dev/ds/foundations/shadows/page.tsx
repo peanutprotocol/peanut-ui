@@ -11,7 +11,10 @@ import { CodeBlock } from '../../_components/CodeBlock'
 export default function ShadowsPage() {
     return (
         <DocPage>
-            <DocHeader title="Shadows" description="Shadow tokens for buttons and cards. All shadows are solid black (#000)." />
+            <DocHeader
+                title="Shadows"
+                description="Shadow tokens for buttons and cards. All shadows are solid black (#000)."
+            />
 
             <DesignNote type="info">
                 shadowSize=&quot;4&quot; has 160+ usages. It is the standard. All others are negligible.
@@ -23,19 +26,24 @@ export default function ShadowsPage() {
                     <div className="flex flex-wrap gap-4">
                         {(['3', '4', '6', '8'] as const).map((s) => (
                             <div key={s} className="text-center">
-                                <Button variant="purple" shadowSize={s}>shadow {s}</Button>
+                                <Button variant="purple" shadowSize={s}>
+                                    shadow {s}
+                                </Button>
                                 <p className="mt-1 text-xs text-grey-1">
-                                    {s === '4' ? '160 usages' : s === '3' ? '2 usages' : s === '6' ? '1 usage' : '1 usage'}
+                                    {s === '4'
+                                        ? '160 usages'
+                                        : s === '3'
+                                          ? '2 usages'
+                                          : s === '6'
+                                            ? '1 usage'
+                                            : '1 usage'}
                                 </p>
                             </div>
                         ))}
                     </div>
                 </DocSection.Content>
                 <DocSection.Code>
-                    <CodeBlock
-                        label="Button Shadows"
-                        code={`<Button variant="purple" shadowSize="4">Label</Button>`}
-                    />
+                    <CodeBlock label="Button Shadows" code={`<Button variant="purple" shadowSize="4">Label</Button>`} />
                 </DocSection.Code>
             </DocSection>
 
@@ -51,10 +59,7 @@ export default function ShadowsPage() {
                     </div>
                 </DocSection.Content>
                 <DocSection.Code>
-                    <CodeBlock
-                        label="Card Shadows"
-                        code={`<Card shadowSize="4" className="p-4">content</Card>`}
-                    />
+                    <CodeBlock label="Card Shadows" code={`<Card shadowSize="4" className="p-4">content</Card>`} />
                 </DocSection.Code>
             </DocSection>
 

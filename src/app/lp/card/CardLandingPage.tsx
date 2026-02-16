@@ -782,7 +782,6 @@ const CardLandingPage = () => {
             </section>
 
             <Marquee {...marqueeProps} />
-
         </>
     )
 }

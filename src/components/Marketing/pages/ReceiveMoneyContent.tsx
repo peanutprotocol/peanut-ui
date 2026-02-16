@@ -104,7 +104,7 @@ export function ReceiveMoneyContent({ sourceCountry, locale }: ReceiveMoneyConte
                                     key={destSlug}
                                     href={localizedPath('send-money-from', locale, `${sourceCountry}/to/${destSlug}`)}
                                 >
-                                    <Card className="flex-row items-center gap-2 p-3 transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-4">
+                                    <Card className="flex-row items-center gap-2 p-3 transition-all hover:shadow-4 hover:-translate-x-1 hover:-translate-y-1">
                                         {destMapping?.flagCode && (
                                             <img
                                                 src={getFlagUrl(destMapping.flagCode)}
@@ -136,9 +136,7 @@ export function ReceiveMoneyContent({ sourceCountry, locale }: ReceiveMoneyConte
                 <RelatedPages pages={relatedPages} title={i18n.relatedPages} />
 
                 {/* Last updated */}
-                <p className="py-4 text-xs text-gray-400">
-                    {t(i18n.lastUpdated, { date: today })}
-                </p>
+                <p className="py-4 text-xs text-gray-400">{t(i18n.lastUpdated, { date: today })}</p>
             </MarketingShell>
         </>
     )

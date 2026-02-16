@@ -11,9 +11,7 @@ import { faqSchema, JsonLd } from '@/lib/seo/schemas'
 import { heroConfig, faqData, marqueeMessages } from '@/components/LandingPage/landingPageData'
 
 export default function LandingPage() {
-    const faqJsonLd = faqSchema(
-        faqData.questions.map((q) => ({ question: q.question, answer: q.answer }))
-    )
+    const faqJsonLd = faqSchema(faqData.questions.map((q) => ({ question: q.question, answer: q.answer })))
 
     return (
         <LandingPageShell>

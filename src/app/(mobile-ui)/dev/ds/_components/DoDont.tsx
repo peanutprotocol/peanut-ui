@@ -7,12 +7,7 @@ interface DoDontProps {
     dontLabel?: string
 }
 
-export function DoDont({
-    doExample,
-    doLabel = 'Do',
-    dontExample,
-    dontLabel = "Don't",
-}: DoDontProps) {
+export function DoDont({ doExample, doLabel = 'Do', dontExample, dontLabel = "Don't" }: DoDontProps) {
     return (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
