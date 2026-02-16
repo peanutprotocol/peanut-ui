@@ -175,7 +175,7 @@ const LockedRegionsList = ({ regions, isBridgeKycPending }: LockedRegionsListPro
                         title={region.name}
                         onClick={() => {
                             if (!isPending) {
-                                router.push(`/profile/identity-verification/${region.path}`)
+                                router.push('/profile/identity-verification')
                             }
                         }}
                         isDisabled={isPending}

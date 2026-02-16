@@ -5,13 +5,51 @@ import { getCardPosition } from '@/components/Global/Card/card.utils'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
-import { useIdentityVerification, type Region } from '@/hooks/useIdentityVerification'
+import ActionModal from '@/components/Global/ActionModal'
+import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
+import { KycVerificationInProgressModal } from '@/components/Kyc/KycVerificationInProgressModal'
+import { useIdentityVerification, getRegionIntent, type Region } from '@/hooks/useIdentityVerification'
+import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
+import { useState, useCallback } from 'react'
 
 const RegionsVerification = () => {
     const router = useRouter()
     const { unlockedRegions, lockedRegions } = useIdentityVerification()
+    const [selectedRegion, setSelectedRegion] = useState<Region | null>(null)
+
+    const regionIntent = selectedRegion ? getRegionIntent(selectedRegion.path) : undefined
+
+    const {
+        isLoading,
+        error,
+        showWrapper,
+        accessToken,
+        handleInitiateKyc,
+        handleSdkComplete,
+        handleClose: handleSumsubClose,
+        refreshToken,
+        isVerificationProgressModalOpen,
+        closeVerificationProgressModal,
+    } = useSumsubKycFlow({
+        regionIntent,
+        onKycSuccess: () => setSelectedRegion(null),
+        onManualClose: () => setSelectedRegion(null),
+    })
+
+    const handleRegionClick = useCallback((region: Region) => {
+        setSelectedRegion(region)
+    }, [])
+
+    const handleModalClose = useCallback(() => {
+        setSelectedRegion(null)
+    }, [])
+
+    const handleStartKyc = useCallback(async () => {
+        setSelectedRegion(null)
+        await handleInitiateKyc()
+    }, [handleInitiateKyc])
 
     return (
         <div className="flex min-h-[inherit] flex-col space-y-8">
@@ -37,11 +75,50 @@ const RegionsVerification = () => {
 
                 <RegionsList regions={unlockedRegions} isLocked={false} />
 
-                <h1 className="mt-5 font-bold">Locked regions</h1>
-                <p className="mt-2 text-sm">Where do you want to send and receive money?</p>
+                {lockedRegions.length > 0 && (
+                    <>
+                        <h1 className="mt-5 font-bold">Locked regions</h1>
+                        <p className="mt-2 text-sm">Where do you want to send and receive money?</p>
 
-                <RegionsList regions={lockedRegions} isLocked={true} />
+                        <RegionsList regions={lockedRegions} isLocked={true} onRegionClick={handleRegionClick} />
+                    </>
+                )}
             </div>
+
+            <ActionModal
+                //  todo: update modal ui to reflect benifits of unlocking a region
+                visible={!!selectedRegion}
+                onClose={handleModalClose}
+                title={`Unlock ${selectedRegion?.name ?? ''}`}
+                description="To send and receive money in this region, verify your identity using a government-issued ID."
+                icon="shield"
+                iconContainerClassName="bg-primary-1"
+                iconProps={{ className: 'text-black' }}
+                ctas={[
+                    {
+                        text: isLoading ? 'Loading...' : 'Start verification',
+                        shadowSize: '4',
+                        icon: 'check-circle',
+                        onClick: handleStartKyc,
+                        disabled: isLoading,
+                    },
+                ]}
+            />
+
+            {error && <p className="text-red-500 mt-2 text-sm">{error}</p>}
+
+            <SumsubKycWrapper
+                visible={showWrapper}
+                accessToken={accessToken}
+                onClose={handleSumsubClose}
+                onComplete={handleSdkComplete}
+                onRefreshToken={refreshToken}
+            />
+
+            <KycVerificationInProgressModal
+                isOpen={isVerificationProgressModalOpen}
+                onClose={closeVerificationProgressModal}
+            />
         </div>
     )
 }
@@ -51,9 +128,9 @@ export default RegionsVerification
 interface RegionsListProps {
     regions: Region[]
     isLocked: boolean
+    onRegionClick?: (region: Region) => void
 }
-const RegionsList = ({ regions, isLocked }: RegionsListProps) => {
-    const router = useRouter()
+const RegionsList = ({ regions, isLocked, onRegionClick }: RegionsListProps) => {
     return (
         <div className="mt-3">
             {regions.map((region, index) => (
@@ -71,8 +148,8 @@ const RegionsList = ({ regions, isLocked }: RegionsListProps) => {
                     position={getCardPosition(index, regions.length)}
                     title={region.name}
                     onClick={() => {
-                        if (isLocked) {
-                            router.push(`/profile/identity-verification/${region.path}`)
+                        if (isLocked && onRegionClick) {
+                            onRegionClick(region)
                         }
                     }}
                     isDisabled={!isLocked}

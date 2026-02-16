@@ -13,14 +13,17 @@ const KycCompletedModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =
     const { user } = useAuth()
     const [approvedCountryData, setApprovedCountryData] = useState<CountryData | null>(null)
 
-    const { isUserBridgeKycApproved, isUserMantecaKycApproved } = useKycStatus()
+    const { isUserBridgeKycApproved, isUserMantecaKycApproved, isUserSumsubKycApproved } = useKycStatus()
     const { getVerificationUnlockItems } = useIdentityVerification()
 
     const kycApprovalType = useMemo(() => {
+        // sumsub covers all regions, treat as 'all'
+        if (isUserSumsubKycApproved) {
+            return 'all'
+        }
         if (isUserBridgeKycApproved && isUserMantecaKycApproved) {
             return 'all'
         }
-
         if (isUserBridgeKycApproved) {
             return 'bridge'
         }
@@ -28,7 +31,7 @@ const KycCompletedModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =
             return 'manteca'
         }
         return 'none'
-    }, [isUserBridgeKycApproved, isUserMantecaKycApproved])
+    }, [isUserBridgeKycApproved, isUserMantecaKycApproved, isUserSumsubKycApproved])
 
     const items = useMemo(() => {
         return getVerificationUnlockItems(approvedCountryData?.title)
