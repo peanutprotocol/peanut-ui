@@ -5,6 +5,7 @@ import { useMemo, useCallback } from 'react'
 import { useAuth } from '@/context/authContext'
 import { MantecaKycStatus } from '@/interfaces'
 import { BRIDGE_ALPHA3_TO_ALPHA2, MantecaSupportedExchanges, countryData } from '@/components/AddMoney/consts'
+import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import React from 'react'
 
 /** Represents a geographic region with its display information */
@@ -75,6 +76,11 @@ const BRIDGE_SUPPORTED_LATAM_COUNTRIES: Region[] = [
     },
 ]
 
+/** maps a region path to the sumsub kyc template intent */
+export const getRegionIntent = (regionPath: string): KYCRegionIntent => {
+    return regionPath === 'latam' ? 'LATAM' : 'STANDARD'
+}
+
 /**
  * Hook for managing identity verification (KYC) status and region access.
  *
@@ -96,7 +102,7 @@ const BRIDGE_SUPPORTED_LATAM_COUNTRIES: Region[] = [
  */
 export const useIdentityVerification = () => {
     const { user } = useAuth()
-    const { isUserBridgeKycApproved, isUserMantecaKycApproved } = useKycStatus()
+    const { isUserBridgeKycApproved, isUserMantecaKycApproved, isUserSumsubKycApproved } = useKycStatus()
 
     /**
      * Check if a country is supported by Manteca (LATAM countries).
@@ -149,9 +155,13 @@ export const useIdentityVerification = () => {
     const { lockedRegions, unlockedRegions } = useMemo(() => {
         const isBridgeApproved = isUserBridgeKycApproved
         const isMantecaApproved = isUserMantecaKycApproved
+        const isSumsubApproved = isUserSumsubKycApproved
 
-        // Helper to check if a region should be unlocked
+        // helper to check if a region should be unlocked
         const isRegionUnlocked = (regionName: string) => {
+            // sumsub approval unlocks all regions (one verification per user).
+            // backend enforces per-rail access separately — frontend only gates on identity verification.
+            if (isSumsubApproved) return true
             return (
                 (isBridgeApproved && BRIDGE_SUPPORTED_REGIONS.includes(regionName)) ||
                 (isMantecaApproved && MANTECA_SUPPORTED_REGIONS.includes(regionName))
@@ -161,8 +171,8 @@ export const useIdentityVerification = () => {
         const unlocked = SUPPORTED_REGIONS.filter((region) => isRegionUnlocked(region.name))
         const locked = SUPPORTED_REGIONS.filter((region) => !isRegionUnlocked(region.name))
 
-        // Bridge users get QR payment access in Argentina & Brazil
-        // even without full Manteca KYC (which unlocks bank transfers too)
+        // bridge users get qr payment access in argentina & brazil
+        // even without full manteca kyc (which unlocks bank transfers too)
         if (isBridgeApproved && !isMantecaApproved) {
             unlocked.push(...MANTECA_QR_ONLY_REGIONS, ...BRIDGE_SUPPORTED_LATAM_COUNTRIES)
         }
@@ -171,7 +181,7 @@ export const useIdentityVerification = () => {
             lockedRegions: locked,
             unlockedRegions: unlocked,
         }
-    }, [isUserBridgeKycApproved, isUserMantecaKycApproved])
+    }, [isUserBridgeKycApproved, isUserMantecaKycApproved, isUserSumsubKycApproved])
 
     /**
      * Check if a region is already unlocked by comparing region paths.
