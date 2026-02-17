@@ -239,9 +239,17 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             }
 
             if (isMounted) {
-                fetchUser()
                 setClientsByChain(newClientsByChain)
-                dispatch(zerodevActions.setIsKernelClientReady(true))
+
+                const hasPrimaryClient = !!newClientsByChain[PEANUT_WALLET_CHAIN.id]
+                if (hasPrimaryClient) {
+                    fetchUser()
+                    dispatch(zerodevActions.setIsKernelClientReady(true))
+                } else {
+                    console.error('[KernelClient] Primary chain client failed to initialize — forcing logout')
+                    logoutUser()
+                }
+
                 dispatch(zerodevActions.setIsRegistering(false))
                 dispatch(zerodevActions.setIsLoggingIn(false))
             }
