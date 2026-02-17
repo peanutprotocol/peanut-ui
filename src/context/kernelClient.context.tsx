@@ -239,27 +239,26 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
                 }
             }
 
-            if (isMounted) {
-                setClientsByChain(newClientsByChain)
-
-                const hasPrimaryClient = !!newClientsByChain[PEANUT_WALLET_CHAIN.id]
-                if (hasPrimaryClient) {
-                    fetchUser()
-                    dispatch(zerodevActions.setIsKernelClientReady(true))
-                }
-
-                dispatch(zerodevActions.setIsRegistering(false))
-                dispatch(zerodevActions.setIsLoggingIn(false))
-            }
-
             if (!newClientsByChain[PEANUT_WALLET_CHAIN.id]) {
                 throw new Error('Primary chain client failed to initialize')
+            }
+
+            // only update state after primary client check passes —
+            // avoids UI flicker (registering→not registering→registering) between retries
+            if (isMounted) {
+                setClientsByChain(newClientsByChain)
+                fetchUser()
+                dispatch(zerodevActions.setIsKernelClientReady(true))
+                dispatch(zerodevActions.setIsRegistering(false))
+                dispatch(zerodevActions.setIsLoggingIn(false))
             }
         }
 
         retryAsync(initializeClients, { maxRetries: 2, baseDelay: 1000, maxDelay: 5000 }).catch(() => {
             if (isMounted) {
                 console.error('[KernelClient] Primary chain client failed after retries — forcing logout')
+                dispatch(zerodevActions.setIsRegistering(false))
+                dispatch(zerodevActions.setIsLoggingIn(false))
                 logoutUser()
             }
         })
