@@ -23,8 +23,12 @@ export default function useUnifiedKycStatus() {
         [user]
     )
 
+    // pick the most recently updated sumsub verification in case of retries
     const sumsubVerification = useMemo(
-        () => user?.user.kycVerifications?.find((v) => v.provider === 'SUMSUB') ?? null,
+        () =>
+            user?.user.kycVerifications
+                ?.filter((v) => v.provider === 'SUMSUB')
+                .sort((a, b) => new Date(b.updatedAt ?? 0).getTime() - new Date(a.updatedAt ?? 0).getTime())[0] ?? null,
         [user]
     )
 

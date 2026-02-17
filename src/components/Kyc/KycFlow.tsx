@@ -4,10 +4,19 @@ import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 
 interface KycFlowProps extends ButtonProps {
     regionIntent?: KYCRegionIntent
+    onKycSuccess?: () => void
+    onManualClose?: () => void
 }
 
 // main entry point for the kyc flow.
 // renders SumsubKycFlow with an optional region intent for context-aware verification.
-export const KycFlow = ({ regionIntent, ...buttonProps }: KycFlowProps) => {
-    return <SumsubKycFlow regionIntent={regionIntent} {...buttonProps} />
+export const KycFlow = ({ regionIntent, onKycSuccess, onManualClose, ...buttonProps }: KycFlowProps) => {
+    return (
+        <SumsubKycFlow
+            regionIntent={regionIntent}
+            onKycSuccess={onKycSuccess}
+            onManualClose={onManualClose}
+            {...buttonProps}
+        />
+    )
 }

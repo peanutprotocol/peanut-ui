@@ -33,9 +33,12 @@ const StartVerificationView = ({
                 <h1 className="text-3xl font-extrabold">Secure Verification. Limited Data Use.</h1>
                 <div>
                     <p className="mt-2 text-lg font-medium">
-                        The verification is done using a trusted provider, which only shares a yes/no with Peanut.
+                        The verification is done using a trusted provider, which shares your verification status with
+                        Peanut.
                     </p>
-                    <p className="text-lg font-medium">It operates under strict security and privacy standards.</p>
+                    <p className="text-lg font-medium">
+                        It operates under industry-standard security and privacy practices.
+                    </p>
                     <p className="text-lg font-bold">Peanut never sees or stores your verification data.</p>
                 </div>
                 <Button onClick={onStartVerification} className="my-auto" variant="purple" shadowSize="4">

@@ -173,7 +173,7 @@ export const useIdentityVerification = () => {
 
         // bridge users get qr payment access in argentina & brazil
         // even without full manteca kyc (which unlocks bank transfers too)
-        if (isBridgeApproved && !isMantecaApproved) {
+        if (isBridgeApproved && !isMantecaApproved && !isSumsubApproved) {
             unlocked.push(...MANTECA_QR_ONLY_REGIONS, ...BRIDGE_SUPPORTED_LATAM_COUNTRIES)
         }
 

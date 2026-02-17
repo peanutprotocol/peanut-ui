@@ -16,7 +16,7 @@ export const getSumsubLevelName = (regionIntent: KYCRegionIntent): string => SUM
  */
 export type KycVerificationStatus = MantecaKycStatus | SumsubKycStatus | string
 
-export type KycStatusCategory = 'approved' | 'pending' | 'failed'
+export type KycStatusCategory = 'completed' | 'processing' | 'failed'
 
 // sets of status values by category — single source of truth
 const APPROVED_STATUSES: ReadonlySet<string> = new Set(['approved', 'ACTIVE', 'APPROVED'])
@@ -53,7 +53,7 @@ export const isSumsubStatusInProgress = (status: string | undefined | null): boo
     !!status && SUMSUB_IN_PROGRESS_STATUSES.has(status)
 
 /** categorize any provider's kyc status into a display category */
-export const getKycStatusCategory = (status: string): 'processing' | 'completed' | 'failed' => {
+export const getKycStatusCategory = (status: string): KycStatusCategory => {
     if (APPROVED_STATUSES.has(status)) return 'completed'
     if (FAILED_STATUSES.has(status)) return 'failed'
     return 'processing'

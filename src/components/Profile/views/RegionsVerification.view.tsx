@@ -13,13 +13,15 @@ import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useState, useCallback } from 'react'
+import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 
 const RegionsVerification = () => {
     const router = useRouter()
     const { unlockedRegions, lockedRegions } = useIdentityVerification()
     const [selectedRegion, setSelectedRegion] = useState<Region | null>(null)
-
-    const regionIntent = selectedRegion ? getRegionIntent(selectedRegion.path) : undefined
+    // persist region intent for the duration of the kyc session so token refresh
+    // and status checks use the correct template after the confirmation modal closes
+    const [activeRegionIntent, setActiveRegionIntent] = useState<KYCRegionIntent | undefined>(undefined)
 
     const {
         isLoading,
@@ -33,9 +35,15 @@ const RegionsVerification = () => {
         isVerificationProgressModalOpen,
         closeVerificationProgressModal,
     } = useSumsubKycFlow({
-        regionIntent,
-        onKycSuccess: () => setSelectedRegion(null),
-        onManualClose: () => setSelectedRegion(null),
+        regionIntent: activeRegionIntent,
+        onKycSuccess: () => {
+            setSelectedRegion(null)
+            setActiveRegionIntent(undefined)
+        },
+        onManualClose: () => {
+            setSelectedRegion(null)
+            setActiveRegionIntent(undefined)
+        },
     })
 
     const handleRegionClick = useCallback((region: Region) => {
@@ -47,9 +55,12 @@ const RegionsVerification = () => {
     }, [])
 
     const handleStartKyc = useCallback(async () => {
+        if (selectedRegion) {
+            setActiveRegionIntent(getRegionIntent(selectedRegion.path))
+        }
         setSelectedRegion(null)
         await handleInitiateKyc()
-    }, [handleInitiateKyc])
+    }, [handleInitiateKyc, selectedRegion])
 
     return (
         <div className="flex min-h-[inherit] flex-col space-y-8">

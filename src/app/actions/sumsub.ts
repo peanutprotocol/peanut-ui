@@ -14,6 +14,10 @@ export const initiateSumsubKyc = async (params?: {
 }): Promise<{ data?: InitiateSumsubKycResponse; error?: string }> => {
     const jwtToken = (await getJWTCookie())?.value
 
+    if (!jwtToken) {
+        return { error: 'Authentication required' }
+    }
+
     const body: Record<string, string | undefined> = {
         regionIntent: params?.regionIntent,
     }

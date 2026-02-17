@@ -64,21 +64,14 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         }
     }, [
         onHistoryEntry,
-
         onKycStatusUpdate,
-
         onMantecaKycStatusUpdate,
-
         onSumsubKycStatusUpdate,
         onTosUpdate,
         onPendingPerk,
-
         onConnect,
-
         onDisconnect,
-
         onError,
-        ,
     ])
 
     // Connect to WebSocket
