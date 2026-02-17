@@ -30,7 +30,7 @@ export const SumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent, ...bu
 
     return (
         <>
-            <Button onClick={handleInitiateKyc} disabled={isLoading} {...buttonProps}>
+            <Button onClick={() => handleInitiateKyc()} disabled={isLoading} {...buttonProps}>
                 {isLoading ? 'Loading...' : (buttonProps.children ?? 'Start Verification')}
             </Button>
 

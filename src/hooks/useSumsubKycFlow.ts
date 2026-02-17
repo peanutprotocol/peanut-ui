@@ -23,6 +23,12 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const [liveKycStatus, setLiveKycStatus] = useState<SumsubKycStatus | undefined>(undefined)
     const [rejectLabels, setRejectLabels] = useState<string[] | undefined>(undefined)
     const prevStatusRef = useRef(liveKycStatus)
+    // tracks the effective region intent across initiate + refresh so the correct template is always used
+    const regionIntentRef = useRef<KYCRegionIntent | undefined>(regionIntent)
+
+    useEffect(() => {
+        regionIntentRef.current = regionIntent
+    }, [regionIntent])
 
     // listen for sumsub kyc status updates via websocket
     useWebSocket({
@@ -85,8 +91,14 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     setLiveKycStatus(response.data.status)
                 }
 
-                // if already approved, no token is returned
+                // update effective intent for token refresh
+                const effectiveIntent = overrideIntent ?? regionIntent
+                if (effectiveIntent) regionIntentRef.current = effectiveIntent
+
+                // if already approved, no token is returned.
+                // set prevStatusRef so the transition effect doesn't fire onKycSuccess a second time.
                 if (response.data?.status === 'APPROVED') {
+                    prevStatusRef.current = 'APPROVED'
                     onKycSuccess?.()
                     return
                 }
@@ -119,9 +131,10 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         onManualClose?.()
     }, [onManualClose])
 
-    // token refresh function passed to the sdk for when the token expires
+    // token refresh function passed to the sdk for when the token expires.
+    // uses regionIntentRef so refresh always matches the template used during initiation.
     const refreshToken = useCallback(async (): Promise<string> => {
-        const response = await initiateSumsubKyc({ regionIntent })
+        const response = await initiateSumsubKyc({ regionIntent: regionIntentRef.current })
 
         if (response.error || !response.data?.token) {
             throw new Error(response.error || 'Failed to refresh token')
@@ -129,7 +142,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
 
         setAccessToken(response.data.token)
         return response.data.token
-    }, [regionIntent])
+    }, [])
 
     const closeVerificationProgressModal = useCallback(() => {
         setIsVerificationProgressModalOpen(false)
