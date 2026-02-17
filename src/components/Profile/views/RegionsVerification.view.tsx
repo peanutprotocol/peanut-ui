@@ -5,20 +5,23 @@ import { getCardPosition } from '@/components/Global/Card/card.utils'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
-import ActionModal from '@/components/Global/ActionModal'
+import StartVerificationModal from '@/components/IdentityVerification/StartVerificationModal'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { KycVerificationInProgressModal } from '@/components/Kyc/KycVerificationInProgressModal'
 import { useIdentityVerification, getRegionIntent, type Region } from '@/hooks/useIdentityVerification'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 
 const RegionsVerification = () => {
     const router = useRouter()
     const { unlockedRegions, lockedRegions } = useIdentityVerification()
     const [selectedRegion, setSelectedRegion] = useState<Region | null>(null)
+    // keeps the region display stable during modal close animation
+    const displayRegionRef = useRef<Region | null>(null)
+    if (selectedRegion) displayRegionRef.current = selectedRegion
     // persist region intent for the duration of the kyc session so token refresh
     // and status checks use the correct template after the confirmation modal closes
     const [activeRegionIntent, setActiveRegionIntent] = useState<KYCRegionIntent | undefined>(undefined)
@@ -55,11 +58,10 @@ const RegionsVerification = () => {
     }, [])
 
     const handleStartKyc = useCallback(async () => {
-        if (selectedRegion) {
-            setActiveRegionIntent(getRegionIntent(selectedRegion.path))
-        }
+        const intent = selectedRegion ? getRegionIntent(selectedRegion.path) : undefined
+        if (intent) setActiveRegionIntent(intent)
         setSelectedRegion(null)
-        await handleInitiateKyc()
+        await handleInitiateKyc(intent)
     }, [handleInitiateKyc, selectedRegion])
 
     return (
@@ -96,24 +98,12 @@ const RegionsVerification = () => {
                 )}
             </div>
 
-            <ActionModal
-                //  todo: update modal ui to reflect benifits of unlocking a region
+            <StartVerificationModal
                 visible={!!selectedRegion}
                 onClose={handleModalClose}
-                title={`Unlock ${selectedRegion?.name ?? ''}`}
-                description="To send and receive money in this region, verify your identity using a government-issued ID."
-                icon="shield"
-                iconContainerClassName="bg-primary-1"
-                iconProps={{ className: 'text-black' }}
-                ctas={[
-                    {
-                        text: isLoading ? 'Loading...' : 'Start verification',
-                        shadowSize: '4',
-                        icon: 'check-circle',
-                        onClick: handleStartKyc,
-                        disabled: isLoading,
-                    },
-                ]}
+                onStartVerification={handleStartKyc}
+                selectedRegion={displayRegionRef.current}
+                isLoading={isLoading}
             />
 
             {error && <p className="text-red-500 mt-2 text-sm">{error}</p>}

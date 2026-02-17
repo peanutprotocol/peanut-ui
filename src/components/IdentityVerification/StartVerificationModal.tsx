@@ -3,69 +3,76 @@
 import ActionModal from '../Global/ActionModal'
 import InfoCard from '../Global/InfoCard'
 import { Icon } from '../Global/Icons/Icon'
-import { MantecaSupportedExchanges } from '../AddMoney/consts'
-import { useMemo } from 'react'
-import { useIdentityVerification } from '@/hooks/useIdentityVerification'
+import { type Region } from '@/hooks/useIdentityVerification'
+import React from 'react'
+
+// unlock benefits shown per region
+const REGION_UNLOCK_ITEMS: Record<string, Array<string | React.ReactNode>> = {
+    latam: [
+        <p key="bank">
+            Bank transfers to your own accounts in <b>LATAM</b>
+        </p>,
+        <p key="qr">
+            QR Payments in <b>Argentina and Brazil</b>
+        </p>,
+    ],
+    europe: [
+        <p key="sepa">
+            <b>Europe</b> SEPA transfers (+30 countries)
+        </p>,
+        <p key="qr">
+            QR Payments in <b>Argentina and Brazil</b>
+        </p>,
+    ],
+    'north-america': [
+        <p key="ach">
+            <b>United States</b> ACH and Wire transfers
+        </p>,
+        <p key="mx">
+            <b>Mexico</b> SPEI transfers
+        </p>,
+        <p key="qr">
+            QR Payments in <b>Argentina and Brazil</b>
+        </p>,
+    ],
+    'rest-of-the-world': [
+        <p key="qr">
+            QR Payments in <b>Argentina and Brazil</b>
+        </p>,
+    ],
+}
+
+const DEFAULT_UNLOCK_ITEMS = [<p key="bank">Bank transfers and local payment methods</p>]
 
 interface StartVerificationModalProps {
     visible: boolean
     onClose: () => void
     onStartVerification: () => void
-    selectedIdentityCountry: { id: string; title: string }
-    selectedCountry: { id: string; title: string }
+    selectedRegion: Region | null
+    isLoading?: boolean
 }
 
 const StartVerificationModal = ({
     visible,
     onClose,
     onStartVerification,
-    selectedIdentityCountry,
-    selectedCountry,
+    selectedRegion,
+    isLoading,
 }: StartVerificationModalProps) => {
-    const { getVerificationUnlockItems } = useIdentityVerification()
-
-    const items = useMemo(() => {
-        return getVerificationUnlockItems(selectedIdentityCountry.title)
-    }, [getVerificationUnlockItems, selectedIdentityCountry.title])
-
-    const isIdentityMantecaCountry = useMemo(
-        () => Object.prototype.hasOwnProperty.call(MantecaSupportedExchanges, selectedIdentityCountry.id.toUpperCase()),
-        [selectedIdentityCountry.id]
-    )
-
-    const isSelectedCountryMantecaCountry = useMemo(
-        () => Object.prototype.hasOwnProperty.call(MantecaSupportedExchanges, selectedCountry.id.toUpperCase()),
-        [selectedCountry]
-    )
-
-    const getDescription = () => {
-        if (isSelectedCountryMantecaCountry && isIdentityMantecaCountry) {
-            return (
-                <p>
-                    To send and receive money <b>locally,</b> you'll need to verify your identity with a
-                    government-issued ID from <b>{selectedCountry.title}.</b>
-                </p>
-            )
-        }
-
-        if (isSelectedCountryMantecaCountry && !isIdentityMantecaCountry) {
-            return `Without an ${selectedCountry.title} Issued ID, you can still pay in stores using QR codes but you won't be able to transfer money directly to bank accounts.`
-        }
-
-        return (
-            <p>
-                To send money to and from <b>bank accounts</b> and local payment methods, verify your identity with a
-                government-issued ID.
-            </p>
-        )
-    }
+    const unlockItems = selectedRegion
+        ? (REGION_UNLOCK_ITEMS[selectedRegion.path] ?? DEFAULT_UNLOCK_ITEMS)
+        : DEFAULT_UNLOCK_ITEMS
 
     return (
         <ActionModal
             visible={visible}
             onClose={onClose}
-            title={isSelectedCountryMantecaCountry ? `Unlock ${selectedCountry.title}` : 'Unlock Bank Payments'}
-            description={getDescription()}
+            title={`Unlock ${selectedRegion?.name ?? 'Region'}`}
+            description={
+                <p>
+                    To send and receive money in this region, verify your identity with a <b>government-issued ID.</b>
+                </p>
+            }
             descriptionClassName="text-black"
             icon="shield"
             iconContainerClassName="bg-primary-1"
@@ -74,8 +81,9 @@ const StartVerificationModal = ({
                 {
                     shadowSize: '4',
                     icon: 'check-circle',
-                    text: 'Verify now',
+                    text: isLoading ? 'Loading...' : 'Verify now',
                     onClick: onStartVerification,
+                    disabled: isLoading,
                 },
             ]}
             content={
@@ -86,11 +94,8 @@ const StartVerificationModal = ({
                         itemIcon="check"
                         itemIconSize={12}
                         itemIconClassName="text-secondary-7"
-                        items={items
-                            .filter((item) => item.type === (isIdentityMantecaCountry ? 'manteca' : 'bridge'))
-                            .map((item) => item.title)}
+                        items={unlockItems}
                     />
-
                     <div className="flex items-center gap-2">
                         <Icon name="info" size={12} className="text-gray-1" />
                         <p className="text-xs text-gray-1">Peanut doesn't store any of your documents.</p>
