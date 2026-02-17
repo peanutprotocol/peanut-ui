@@ -67,7 +67,7 @@ export default function LandingPage() {
             {
                 id: '3',
                 question: 'Could a thief drain my wallet if they stole my phone?',
-                answer: 'Not without your face or fingerprint. The passkey is sealed in the Secure Enclave of your phone and never exported. It’s secured by NIST‑recommended P‑256 Elliptic Curve cryptography. Defeating that would be tougher than guessing all 10¹⁰¹⁰ combinations of a 30‑character password made of emoji.\nThis means that neither Peanut or even regulators could freeze, us or you to hand over your account, because we can’t hand over what we don’t have. Your key never touches our servers; compliance requests only see cryptographic and encrypted signatures. Cracking those signatures would demand more energy than the Sun outputs in a full century.',
+                answer: 'Not without your face or fingerprint. The passkey is sealed in the Secure Enclave of your phone and never exported. It’s secured by NIST‑recommended P‑256 Elliptic Curve cryptography. Defeating that would be tougher than guessing all 10¹⁰¹⁰ combinations of a 30‑character password made of emoji.\n This means your account is yours alone. Neither Peanut nor anyone else can freeze or seize it — because we never hold your keys. Your key never touches our servers; compliance requests only see cryptographic and encrypted signatures. Cracking those signatures would demand more energy than the Sun outputs in a full century.',
             },
             {
                 id: '4',

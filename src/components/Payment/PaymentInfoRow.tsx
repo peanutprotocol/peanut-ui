@@ -1,8 +1,8 @@
-import { useId, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Icon } from '../Global/Icons/Icon'
 import Loading from '../Global/Loading'
 import CopyToClipboard from '../Global/CopyToClipboard'
+import { Tooltip } from '../Tooltip'
 
 export interface PaymentInfoRowProps {
     label: string | React.ReactNode
@@ -25,9 +25,6 @@ export const PaymentInfoRow = ({
     copyValue,
     onClick,
 }: PaymentInfoRowProps) => {
-    const [showMoreInfo, setShowMoreInfo] = useState(false)
-    const tooltipId = useId()
-
     return (
         <div
             className={twMerge(
@@ -41,34 +38,10 @@ export const PaymentInfoRow = ({
             <div className="relative flex items-center">
                 <label className={twMerge('text-xs font-semibold')}>{label}</label>
                 {moreInfoText && (
-                    <div
-                        className="relative z-20 flex items-center justify-center px-2"
-                        role="button"
-                        tabIndex={0}
-                        aria-describedby={tooltipId}
-                        onFocus={() => setShowMoreInfo(true)}
-                        onBlur={() => setShowMoreInfo(false)}
-                    >
-                        <Icon
-                            name="info"
-                            size={12}
-                            className="cursor-pointer"
-                            onClick={() => setShowMoreInfo(!showMoreInfo)}
-                        />
-                        {showMoreInfo && (
-                            <div
-                                className="absolute left-5 top-1/2 z-30 ml-2 w-max max-w-[210px] -translate-y-1/2 transform rounded-sm border border-black bg-white p-3 text-xs font-normal shadow-sm md:max-w-xs"
-                                id={tooltipId}
-                                role="tooltip"
-                                aria-hidden={!showMoreInfo}
-                            >
-                                <div className="relative">
-                                    <div className="absolute -left-5 top-1/2 h-0 w-0 -translate-y-1/2 transform border-b-[9px] border-r-[8px] border-t-[9px] border-b-transparent border-r-black border-t-transparent"></div>
-                                    <div className="absolute -left-[19px] top-1/2 z-20 h-0 w-0 -translate-y-1/2 transform border-b-[9px] border-r-[8px] border-t-[9px] border-b-transparent border-r-white border-t-transparent"></div>
-                                    {moreInfoText}
-                                </div>
-                            </div>
-                        )}
+                    <div className="relative z-20 flex items-center justify-center px-2">
+                        <Tooltip content={moreInfoText} position="right">
+                            <Icon name="info" size={12} />
+                        </Tooltip>
                     </div>
                 )}
             </div>

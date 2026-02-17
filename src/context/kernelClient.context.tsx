@@ -16,6 +16,7 @@ import { createContext, type ReactNode, useCallback, useContext, useEffect, useS
 import { type Chain, http, type PublicClient, type Transport } from 'viem'
 import type { Address } from 'viem'
 import { captureException } from '@sentry/nextjs'
+import { retryAsync } from '@/utils/retry.utils'
 import { PUBLIC_CLIENTS_BY_CHAIN } from '@/app/actions/clients'
 
 interface KernelClientContextType {
@@ -238,16 +239,29 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
                 }
             }
 
+            if (!newClientsByChain[PEANUT_WALLET_CHAIN.id]) {
+                throw new Error('Primary chain client failed to initialize')
+            }
+
+            // only update state after primary client check passes —
+            // avoids UI flicker (registering→not registering→registering) between retries
             if (isMounted) {
-                fetchUser()
                 setClientsByChain(newClientsByChain)
+                fetchUser()
                 dispatch(zerodevActions.setIsKernelClientReady(true))
                 dispatch(zerodevActions.setIsRegistering(false))
                 dispatch(zerodevActions.setIsLoggingIn(false))
             }
         }
 
-        initializeClients()
+        retryAsync(initializeClients, { maxRetries: 2, baseDelay: 1000, maxDelay: 5000 }).catch(() => {
+            if (isMounted) {
+                console.error('[KernelClient] Primary chain client failed after retries — forcing logout')
+                dispatch(zerodevActions.setIsRegistering(false))
+                dispatch(zerodevActions.setIsLoggingIn(false))
+                logoutUser()
+            }
+        })
 
         return () => {
             isMounted = false
