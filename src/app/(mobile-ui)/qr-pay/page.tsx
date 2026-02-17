@@ -717,6 +717,10 @@ export default function QRPayPage() {
                 )
             } else if (errorMsg.toLowerCase().includes('expired') || errorMsg.toLowerCase().includes('stale')) {
                 setErrorMessage('Payment session expired. Please scan the QR code again.')
+            } else if (qrType === EQrType.PIX) {
+                setErrorMessage(
+                    'This specific QR code or merchant is not supported. Please try again with a different QR code.'
+                )
             } else {
                 setErrorMessage(
                     'Could not complete payment. Please scan the QR code again. If problem persists contact support'
@@ -726,7 +730,7 @@ export default function QRPayPage() {
         } finally {
             setLoadingState('Idle')
         }
-    }, [paymentLock?.code, signTransferUserOp, qrCode, currencyAmount, setLoadingState])
+    }, [paymentLock?.code, signTransferUserOp, qrCode, currencyAmount, setLoadingState, qrType])
 
     const payQR = useCallback(async () => {
         if (paymentProcessor === 'SIMPLEFI') {

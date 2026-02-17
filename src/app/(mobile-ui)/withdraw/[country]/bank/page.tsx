@@ -320,7 +320,11 @@ export default function WithdrawBankPage() {
                                 <PaymentInfoRow label={'Routing Number'} value={getBicAndRoutingNumber()} />
                             </>
                         )}
-                        <ExchangeRate accountType={bankAccount.type} nonEuroCurrency={nonEuroCurrency} />
+                        <ExchangeRate
+                            accountType={bankAccount.type}
+                            nonEuroCurrency={nonEuroCurrency}
+                            amountToConvert={amountToWithdraw}
+                        />
                         <PaymentInfoRow hideBottomBorder label="Fee" value={`$ 0.00`} />
                     </Card>
 
