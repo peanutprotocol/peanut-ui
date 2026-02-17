@@ -11,13 +11,14 @@ export type KycStatusCategory = 'completed' | 'processing' | 'failed'
 
 // sets of status values by category — single source of truth
 const APPROVED_STATUSES: ReadonlySet<string> = new Set(['approved', 'ACTIVE', 'APPROVED'])
-const FAILED_STATUSES: ReadonlySet<string> = new Set(['rejected', 'INACTIVE', 'REJECTED', 'ACTION_REQUIRED'])
+const FAILED_STATUSES: ReadonlySet<string> = new Set(['rejected', 'INACTIVE', 'REJECTED'])
 const PENDING_STATUSES: ReadonlySet<string> = new Set([
     'under_review',
     'incomplete',
     'ONBOARDING',
     'PENDING',
     'IN_REVIEW',
+    'ACTION_REQUIRED',
 ])
 const NOT_STARTED_STATUSES: ReadonlySet<string> = new Set(['not_started', 'NOT_STARTED'])
 

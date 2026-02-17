@@ -67,42 +67,45 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         fetchCurrentStatus()
     }, [regionIntent])
 
-    const handleInitiateKyc = useCallback(async () => {
-        setIsLoading(true)
-        setError(null)
+    const handleInitiateKyc = useCallback(
+        async (overrideIntent?: KYCRegionIntent) => {
+            setIsLoading(true)
+            setError(null)
 
-        try {
-            const response = await initiateSumsubKyc({ regionIntent })
+            try {
+                const response = await initiateSumsubKyc({ regionIntent: overrideIntent ?? regionIntent })
 
-            if (response.error) {
-                setError(response.error)
-                return
+                if (response.error) {
+                    setError(response.error)
+                    return
+                }
+
+                // sync status from api response
+                if (response.data?.status) {
+                    setLiveKycStatus(response.data.status)
+                }
+
+                // if already approved, no token is returned
+                if (response.data?.status === 'APPROVED') {
+                    onKycSuccess?.()
+                    return
+                }
+
+                if (response.data?.token) {
+                    setAccessToken(response.data.token)
+                    setShowWrapper(true)
+                } else {
+                    setError('Could not initiate verification. Please try again.')
+                }
+            } catch (e: unknown) {
+                const message = e instanceof Error ? e.message : 'An unexpected error occurred'
+                setError(message)
+            } finally {
+                setIsLoading(false)
             }
-
-            // sync status from api response
-            if (response.data?.status) {
-                setLiveKycStatus(response.data.status)
-            }
-
-            // if already approved, no token is returned
-            if (response.data?.status === 'APPROVED') {
-                onKycSuccess?.()
-                return
-            }
-
-            if (response.data?.token) {
-                setAccessToken(response.data.token)
-                setShowWrapper(true)
-            } else {
-                setError('Could not initiate verification. Please try again.')
-            }
-        } catch (e: unknown) {
-            const message = e instanceof Error ? e.message : 'An unexpected error occurred'
-            setError(message)
-        } finally {
-            setIsLoading(false)
-        }
-    }, [regionIntent, onKycSuccess])
+        },
+        [regionIntent, onKycSuccess]
+    )
 
     // called when sdk signals applicant submitted
     const handleSdkComplete = useCallback(() => {
