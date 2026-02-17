@@ -1,14 +1,5 @@
-import { type SumsubKycStatus, type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
+import { type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
 import { type MantecaKycStatus } from '@/interfaces'
-
-// sumsub level names configured in the sumsub dashboard
-const SUMSUB_LEVEL_NAMES: Record<KYCRegionIntent, string> = {
-    STANDARD: 'peanut-kyc-standard',
-    LATAM: 'peanut-kyc-latam',
-}
-
-/** resolve a region intent to the corresponding sumsub level name */
-export const getSumsubLevelName = (regionIntent: KYCRegionIntent): string => SUMSUB_LEVEL_NAMES[regionIntent]
 
 /**
  * unified kyc status type across all providers.
