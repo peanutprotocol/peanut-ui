@@ -54,3 +54,43 @@ export const RETRY_STRATEGIES = {
         retry: false,
     },
 } as const
+
+/**
+ * Generic async retry wrapper with exponential backoff.
+ * Use for imperative code outside of React Query (e.g. kernel client init).
+ *
+ * @param fn - Async function to retry. Return value is forwarded on success.
+ * @param options.maxRetries - Total retry attempts after the first failure (default: 2)
+ * @param options.baseDelay - Initial delay in ms before first retry (default: 1000)
+ * @param options.maxDelay - Cap on delay in ms (default: 5000)
+ * @param options.shouldRetry - Optional predicate; return false to bail early
+ * @returns The resolved value of `fn`
+ */
+export async function retryAsync<T>(
+    fn: () => Promise<T>,
+    {
+        maxRetries = 2,
+        baseDelay = 1000,
+        maxDelay = 5000,
+        shouldRetry,
+    }: {
+        maxRetries?: number
+        baseDelay?: number
+        maxDelay?: number
+        shouldRetry?: (error: unknown, attempt: number) => boolean
+    } = {}
+): Promise<T> {
+    const backoff = createExponentialBackoff(baseDelay, maxDelay)
+    let lastError: unknown
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+            return await fn()
+        } catch (error) {
+            lastError = error
+            if (attempt === maxRetries) break
+            if (shouldRetry && !shouldRetry(error, attempt)) break
+            await new Promise((r) => setTimeout(r, backoff(attempt)))
+        }
+    }
+    throw lastError
+}
