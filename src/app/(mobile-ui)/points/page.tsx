@@ -156,7 +156,7 @@ const PointsPage = () => {
 
                     {/* cash section */}
                     {cashStatus?.success && cashStatus.data && (
-                        <CashCard cashLeft={cashStatus.data.cashLeft} lifetimeEarned={cashStatus.data.lifetimeEarned} />
+                        <CashCard cashbackAllowance={cashStatus.data.cashbackAllowance} lifetimeEarned={cashStatus.data.lifetimeEarned} />
                     )}
                 </Card>
 

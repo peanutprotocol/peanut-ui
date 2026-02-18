@@ -341,15 +341,8 @@ export const pointsApi = {
     getCashStatus: async (): Promise<{
         success: boolean
         data: {
-            cashLeft: number
+            cashbackAllowance: number | null
             lifetimeEarned: number
-            pendingBreakdown: {
-                cashback: number
-                inviterRewards: number
-                withdrawPerks: number
-                depositPerks: number
-                other: number
-            }
             lifetimeBreakdown: {
                 cashback: number
                 inviterRewards: number
@@ -357,8 +350,6 @@ export const pointsApi = {
                 depositPerks: number
                 other: number
             }
-            totalEarned: number
-            pendingCount: number
         } | null
     }> => {
         try {
