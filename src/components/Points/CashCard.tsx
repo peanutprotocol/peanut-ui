@@ -12,7 +12,9 @@ export const CashCard = ({ hasCashbackLeft, lifetimeEarned }: CashCardProps) => 
     return (
         <div className="flex flex-col gap-1.5">
             <div className="flex items-center gap-1.5">
-                <h2 className="text-xl font-bold text-black">Lifetime cashback claimed: ${lifetimeEarned.toFixed(2)}</h2>
+                <h2 className="text-xl font-bold text-black">
+                    Lifetime cashback claimed: ${lifetimeEarned.toFixed(2)}
+                </h2>
                 <Tooltip
                     content="You earn cashback on payments and withdrawals. Use Peanut more and invite friends to unlock a higher cashback allowance."
                     position="bottom"
