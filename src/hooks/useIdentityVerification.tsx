@@ -1,6 +1,7 @@
 import { EUROPE_GLOBE_ICON, LATAM_GLOBE_ICON, NORTH_AMERICA_GLOBE_ICON, REST_OF_WORLD_GLOBE_ICON } from '@/assets'
 import type { StaticImageData } from 'next/image'
 import useKycStatus from './useKycStatus'
+import useUnifiedKycStatus from './useUnifiedKycStatus'
 import { useMemo, useCallback } from 'react'
 import { useAuth } from '@/context/authContext'
 import { MantecaKycStatus } from '@/interfaces'
@@ -103,6 +104,7 @@ export const getRegionIntent = (regionPath: string): KYCRegionIntent => {
 export const useIdentityVerification = () => {
     const { user } = useAuth()
     const { isUserBridgeKycApproved, isUserMantecaKycApproved, isUserSumsubKycApproved } = useKycStatus()
+    const { sumsubVerificationRegionIntent } = useUnifiedKycStatus()
 
     /**
      * Check if a country is supported by Manteca (LATAM countries).
@@ -159,9 +161,16 @@ export const useIdentityVerification = () => {
 
         // helper to check if a region should be unlocked
         const isRegionUnlocked = (regionName: string) => {
-            // sumsub approval unlocks all regions (one verification per user).
-            // backend enforces per-rail access separately — frontend only gates on identity verification.
-            if (isSumsubApproved) return true
+            // sumsub approval scoped by the regionIntent used during verification.
+            // 'LATAM' intent → unlocks LATAM. 'STANDARD' intent → unlocks Bridge regions + rest of world.
+            // no intent (or rest-of-world) → unlocks rest of world only.
+            if (isSumsubApproved) {
+                if (sumsubVerificationRegionIntent === 'LATAM') {
+                    return MANTECA_SUPPORTED_REGIONS.includes(regionName) || regionName === 'Rest of the world'
+                }
+                // STANDARD intent covers bridge regions + rest of world
+                return BRIDGE_SUPPORTED_REGIONS.includes(regionName) || regionName === 'Rest of the world'
+            }
             return (
                 (isBridgeApproved && BRIDGE_SUPPORTED_REGIONS.includes(regionName)) ||
                 (isMantecaApproved && MANTECA_SUPPORTED_REGIONS.includes(regionName))
@@ -181,7 +190,7 @@ export const useIdentityVerification = () => {
             lockedRegions: locked,
             unlockedRegions: unlocked,
         }
-    }, [isUserBridgeKycApproved, isUserMantecaKycApproved, isUserSumsubKycApproved])
+    }, [isUserBridgeKycApproved, isUserMantecaKycApproved, isUserSumsubKycApproved, sumsubVerificationRegionIntent])
 
     /**
      * Check if a region is already unlocked by comparing region paths.

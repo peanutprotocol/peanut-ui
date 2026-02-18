@@ -38,6 +38,12 @@ export default function useUnifiedKycStatus() {
 
     const sumsubRejectLabels = useMemo(() => sumsubVerification?.rejectLabels ?? null, [sumsubVerification])
 
+    // region intent used during the sumsub verification (stored in metadata by initiate-kyc)
+    const sumsubVerificationRegionIntent = useMemo(
+        () => (sumsubVerification?.metadata?.regionIntent as string) ?? null,
+        [sumsubVerification]
+    )
+
     const isKycApproved = useMemo(
         () => isBridgeApproved || isMantecaApproved || isSumsubApproved,
         [isBridgeApproved, isMantecaApproved, isSumsubApproved]
@@ -47,6 +53,8 @@ export default function useUnifiedKycStatus() {
         () => user?.user.bridgeKycStatus === 'under_review' || user?.user.bridgeKycStatus === 'incomplete',
         [user]
     )
+
+    const isSumsubActionRequired = useMemo(() => sumsubStatus === 'ACTION_REQUIRED', [sumsubStatus])
 
     const isSumsubInProgress = useMemo(() => isSumsubStatusInProgress(sumsubStatus), [sumsubStatus])
 
@@ -66,7 +74,9 @@ export default function useUnifiedKycStatus() {
         isMantecaApproved,
         // sumsub
         isSumsubApproved,
+        isSumsubActionRequired,
         sumsubStatus,
         sumsubRejectLabels,
+        sumsubVerificationRegionIntent,
     }
 }
