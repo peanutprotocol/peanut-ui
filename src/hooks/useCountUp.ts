@@ -33,7 +33,9 @@ export function useCountUp(target: number, options: UseCountUpOptions = {}): num
     })
 
     const hasAnimated = useRef(false)
+    const isAnimating = useRef(false)
     const controlsRef = useRef<ReturnType<typeof animate> | null>(null)
+    const prevTargetRef = useRef(target)
 
     useEffect(() => {
         if (!enabled || hasAnimated.current) return
@@ -41,7 +43,7 @@ export function useCountUp(target: number, options: UseCountUpOptions = {}): num
         const from = display
         const to = target
 
-        // Nothing to animate
+        // nothing to animate
         if (from === to) {
             hasAnimated.current = true
             if (storageKey) {
@@ -51,14 +53,16 @@ export function useCountUp(target: number, options: UseCountUpOptions = {}): num
         }
 
         hasAnimated.current = true
+        isAnimating.current = true
 
         controlsRef.current = animate(from, to, {
             duration,
-            ease: [0.25, 0.1, 0.25, 1], // cubic-bezier — fast start, smooth decel
+            ease: [0.25, 0.1, 0.25, 1],
             onUpdate(value) {
                 setDisplay(Math.round(value))
             },
             onComplete() {
+                isAnimating.current = false
                 setDisplay(to)
                 if (storageKey) {
                     localStorage.setItem(STORAGE_PREFIX + storageKey, String(to))
@@ -68,19 +72,21 @@ export function useCountUp(target: number, options: UseCountUpOptions = {}): num
 
         return () => {
             controlsRef.current?.stop()
+            isAnimating.current = false
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps -- display intentionally excluded to avoid re-triggering
     }, [enabled, target, duration, storageKey])
 
-    // if target changes after animation completed (e.g. refetch), update immediately
+    // if target changes after animation completed (e.g. refetch), snap to new value
     useEffect(() => {
-        if (hasAnimated.current && display !== target) {
+        if (prevTargetRef.current !== target && hasAnimated.current && !isAnimating.current) {
             setDisplay(target)
             if (storageKey) {
                 localStorage.setItem(STORAGE_PREFIX + storageKey, String(target))
             }
         }
-    }, [target, display, storageKey])
+        prevTargetRef.current = target
+    }, [target, storageKey])
 
     return display
 }
