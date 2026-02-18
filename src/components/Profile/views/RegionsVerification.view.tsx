@@ -8,8 +8,10 @@ import NavHeader from '@/components/Global/NavHeader'
 import StartVerificationModal from '@/components/IdentityVerification/StartVerificationModal'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { KycVerificationInProgressModal } from '@/components/Kyc/KycVerificationInProgressModal'
+import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { useIdentityVerification, getRegionIntent, type Region } from '@/hooks/useIdentityVerification'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
+import { useAuth } from '@/context/authContext'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useState, useCallback, useRef } from 'react'
@@ -17,6 +19,7 @@ import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 
 const RegionsVerification = () => {
     const router = useRouter()
+    const { fetchUser } = useAuth()
     const { unlockedRegions, lockedRegions } = useIdentityVerification()
     const [selectedRegion, setSelectedRegion] = useState<Region | null>(null)
     // keeps the region display stable during modal close animation
@@ -25,6 +28,28 @@ const RegionsVerification = () => {
     // persist region intent for the duration of the kyc session so token refresh
     // and status checks use the correct template after the confirmation modal closes
     const [activeRegionIntent, setActiveRegionIntent] = useState<KYCRegionIntent | undefined>(undefined)
+    const [showBridgeTos, setShowBridgeTos] = useState(false)
+
+    const handleFinalKycSuccess = useCallback(() => {
+        setSelectedRegion(null)
+        setActiveRegionIntent(undefined)
+        setShowBridgeTos(false)
+    }, [])
+
+    // intercept sumsub approval to check for bridge ToS
+    const handleKycApproved = useCallback(async () => {
+        const updatedUser = await fetchUser()
+        const rails = updatedUser?.rails ?? []
+        const bridgeNeedsTos = rails.some(
+            (r) => r.rail.provider.code === 'BRIDGE' && r.status === 'REQUIRES_INFORMATION'
+        )
+
+        if (bridgeNeedsTos) {
+            setShowBridgeTos(true)
+        } else {
+            handleFinalKycSuccess()
+        }
+    }, [fetchUser, handleFinalKycSuccess])
 
     const {
         isLoading,
@@ -39,10 +64,7 @@ const RegionsVerification = () => {
         closeVerificationProgressModal,
     } = useSumsubKycFlow({
         regionIntent: activeRegionIntent,
-        onKycSuccess: () => {
-            setSelectedRegion(null)
-            setActiveRegionIntent(undefined)
-        },
+        onKycSuccess: handleKycApproved,
         onManualClose: () => {
             setSelectedRegion(null)
             setActiveRegionIntent(undefined)
@@ -120,6 +142,8 @@ const RegionsVerification = () => {
                 isOpen={isVerificationProgressModalOpen}
                 onClose={closeVerificationProgressModal}
             />
+
+            <BridgeTosStep visible={showBridgeTos} onComplete={handleFinalKycSuccess} onSkip={handleFinalKycSuccess} />
         </div>
     )
 }
