@@ -240,6 +240,8 @@ export interface IUserKycVerification {
     providerRawStatus?: string | null
     sumsubApplicantId?: string | null
     rejectLabels?: string[] | null
+    rejectType?: 'RETRY' | 'FINAL' | null
+    metadata?: { regionIntent?: string; [key: string]: unknown } | null
     createdAt: string
     updatedAt: string
 }
@@ -321,6 +323,26 @@ interface userInvites {
     inviteeUsername: string
 }
 
+export type UserRailStatus =
+    | 'PENDING'
+    | 'ENABLED'
+    | 'REQUIRES_INFORMATION'
+    | 'REQUIRES_EXTRA_INFORMATION'
+    | 'REJECTED'
+    | 'FAILED'
+
+export interface IUserRail {
+    id: string
+    railId: string
+    status: UserRailStatus
+    metadata?: { bridgeCustomerId?: string; [key: string]: unknown } | null
+    rail: {
+        id: string
+        provider: { code: string; name: string }
+        method: { code: string; name: string; country: string; currency: string }
+    }
+}
+
 export interface IUserProfile {
     // OLD Points V1 fields removed - use pointsV2 in stats instead
     // Points V2: Use stats.pointsV2.totalPoints, pointsV2.inviteCount, etc.
@@ -331,6 +353,7 @@ export interface IUserProfile {
     totalPoints: number // Kept for backward compatibility - same as pointsV2.totalPoints
     hasPwaInstalled: boolean
     user: User
+    rails: IUserRail[]
     invitesSent: userInvites[]
     showEarlyUserModal: boolean
     invitedBy: string | null // Username of the person who invited this user
