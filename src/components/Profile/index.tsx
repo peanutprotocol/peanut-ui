@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation'
 import { checkIfInternalNavigation } from '@/utils/general.utils'
 import { useState } from 'react'
 import useKycStatus from '@/hooks/useKycStatus'
+import underMaintenanceConfig from '@/config/underMaintenance.config'
 import Card from '../Global/Card'
 import ShowNameToggle from './components/ShowNameToggle'
 import KycVerifiedOrReviewModal from '../Global/KycVerifiedOrReviewModal'
@@ -59,7 +60,9 @@ export const Profile = () => {
                         position="single"
                     />
                     {/* Card Pioneer Entry */}
-                    <ProfileMenuItem icon="wallet" label="My Card" href="/card" position="single" badge="NEW" />
+                    {!underMaintenanceConfig.disableCardPioneers && (
+                        <ProfileMenuItem icon="wallet" label="My Card" href="/card" position="single" badge="NEW" />
+                    )}
                     {/* Menu Items - First Group */}
                     <div>
                         <ProfileMenuItem icon="achievements" label="Your Badges" href="/badges" position="first" />
