@@ -1,3 +1,4 @@
+import { KycActionRequired } from './states/KycActionRequired'
 import { KycCompleted } from './states/KycCompleted'
 import { KycFailed } from './states/KycFailed'
 import { KycProcessing } from './states/KycProcessing'
@@ -76,6 +77,13 @@ export const KycStatusDrawer = ({ isOpen, onClose, verification, bridgeKycStatus
 
     const isLoadingKyc = isBridgeLoading || isMantecaLoading || isSumsubLoading
 
+    // count sumsub rejections for failure lockout.
+    // counts total REJECTED entries — accurate if backend creates a new row per attempt.
+    // if backend updates in-place (single row), this will be 0 or 1 and the lockout
+    // won't trigger from count alone (terminal labels and rejectType still work).
+    const sumsubFailureCount =
+        user?.user?.kycVerifications?.filter((v) => v.provider === 'SUMSUB' && v.status === 'REJECTED').length ?? 0
+
     const renderContent = () => {
         switch (statusCategory) {
             case 'processing':
@@ -94,15 +102,16 @@ export const KycStatusDrawer = ({ isOpen, onClose, verification, bridgeKycStatus
                         isBridge={isBridgeKyc}
                     />
                 )
-            case 'failed': {
-                // for sumsub, use reject labels as the reason
-                const reason =
-                    provider === 'SUMSUB'
-                        ? (verification?.rejectLabels?.join(', ') ?? '')
-                        : (user?.user?.bridgeKycRejectionReasonString ?? '')
+            case 'action_required':
+                return <KycActionRequired onResume={onRetry} isLoading={isLoadingKyc} />
+            case 'failed':
                 return (
                     <KycFailed
-                        reason={reason}
+                        rejectLabels={verification?.rejectLabels}
+                        bridgeReason={user?.user?.bridgeKycRejectionReasonString}
+                        isSumsub={provider === 'SUMSUB'}
+                        rejectType={verification?.rejectType}
+                        failureCount={sumsubFailureCount}
                         bridgeKycRejectedAt={verification?.updatedAt ?? user?.user?.bridgeKycRejectedAt}
                         countryCode={countryCode ?? undefined}
                         isBridge={isBridgeKyc}
@@ -110,14 +119,14 @@ export const KycStatusDrawer = ({ isOpen, onClose, verification, bridgeKycStatus
                         isLoading={isLoadingKyc}
                     />
                 )
-            }
             default:
                 return null
         }
     }
 
-    // don't render the drawer if the kyc status is unknown or not started
-    if (isKycStatusNotStarted(status)) {
+    // don't render the drawer if the kyc status is unknown or not started.
+    // if a verification record exists, the user has initiated KYC — show the drawer.
+    if (!verification && isKycStatusNotStarted(status)) {
         return null
     }
 
