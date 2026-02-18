@@ -2,7 +2,7 @@
  * Points System Constants
  *
  * Shared constants for points display and calculations.
- * Should match backend values in peanut-api-ts/src/points-v2/constants.ts
+ * Should match backend values in peanut-api-ts/src/points/constants.ts
  */
 
 /**

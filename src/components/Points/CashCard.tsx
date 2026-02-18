@@ -15,7 +15,7 @@ export const CashCard = ({ cashLeft, lifetimeEarned }: CashCardProps) => {
             <div className="flex items-center gap-1.5">
                 <h2 className="text-xl font-bold text-black">Cashback left: ${cashLeft.toFixed(2)}</h2>
                 <Tooltip
-                    content="Every time you make a transaction, you get 10% of cashback. You can get more cashback from the activity of the friends you've invited."
+                    content="You earn cashback on payments and withdrawals. Use Peanut more and invite friends to unlock a higher cashback allowance."
                     position="bottom"
                 >
                     <Icon name="info" className="size-4 flex-shrink-0 text-grey-1" />
