@@ -18,6 +18,7 @@ import { useUserStore } from '@/redux/hooks'
 import { chargesApi } from '@/services/charges'
 import useClaimLink from '@/components/Claim/useClaimLink'
 import { formatAmount, formatDate, isStableCoin, formatCurrency } from '@/utils/general.utils'
+import { formatPoints } from '@/utils/format.utils'
 import { getAvatarUrl } from '@/utils/history.utils'
 import {
     formatIban,
@@ -1131,7 +1132,7 @@ export const TransactionDetailsReceipt = ({
                             value={
                                 <div className="flex items-center gap-2">
                                     <Image src={STAR_STRAIGHT_ICON} alt="star" width={16} height={16} />
-                                    <span>{transaction.points}</span>
+                                    <span>{formatPoints(transaction.points)}</span>
                                 </div>
                             }
                             hideBottomBorder={shouldHideBorder('points')}
