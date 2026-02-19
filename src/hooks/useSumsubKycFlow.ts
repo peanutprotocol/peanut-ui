@@ -46,7 +46,6 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         prevStatusRef.current = liveKycStatus
 
         if (prevStatus !== 'APPROVED' && liveKycStatus === 'APPROVED') {
-            setIsVerificationProgressModalOpen(false)
             onKycSuccess?.()
         } else if (prevStatus !== 'REJECTED' && liveKycStatus === 'REJECTED') {
             setIsVerificationProgressModalOpen(false)
