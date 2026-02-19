@@ -87,21 +87,36 @@ export const SumsubKycWrapper = ({
         }
 
         try {
+            const handleSubmitted = () => {
+                console.log('[sumsub] onApplicantSubmitted fired')
+                stableOnComplete()
+            }
+            const handleResubmitted = () => {
+                console.log('[sumsub] onApplicantResubmitted fired')
+                stableOnComplete()
+            }
+            const handleStatusChanged = (payload: {
+                reviewStatus?: string
+                reviewResult?: { reviewAnswer?: string }
+            }) => {
+                console.log('[sumsub] onApplicantStatusChanged fired', payload)
+                // auto-close when sumsub shows success screen
+                if (payload?.reviewStatus === 'completed' && payload?.reviewResult?.reviewAnswer === 'GREEN') {
+                    stableOnComplete()
+                }
+            }
+
             const sdk = window.snsWebSdk
                 .init(accessToken, stableOnRefreshToken)
                 .withConf({ lang: 'en', theme: 'light' })
                 .withOptions({ addViewportTag: false, adaptIframeHeight: true })
-                .on('onApplicantSubmitted', () => stableOnComplete())
-                .on('onApplicantResubmitted', () => stableOnComplete())
-                .on(
-                    'onApplicantStatusChanged',
-                    (payload: { reviewStatus?: string; reviewResult?: { reviewAnswer?: string } }) => {
-                        // auto-close when sumsub shows success screen
-                        if (payload?.reviewStatus === 'completed' && payload?.reviewResult?.reviewAnswer === 'GREEN') {
-                            stableOnComplete()
-                        }
-                    }
-                )
+                .on('onApplicantSubmitted', handleSubmitted)
+                .on('onApplicantResubmitted', handleResubmitted)
+                .on('onApplicantStatusChanged', handleStatusChanged)
+                // also listen for idCheck-prefixed events (some sdk versions use these)
+                .on('idCheck.onApplicantSubmitted', handleSubmitted)
+                .on('idCheck.onApplicantResubmitted', handleResubmitted)
+                .on('idCheck.onApplicantStatusChanged', handleStatusChanged)
                 .on('onError', (error: unknown) => {
                     console.error('[sumsub] sdk error', error)
                     stableOnError(error)
