@@ -2,6 +2,12 @@ import { type HistoryEntry } from '@/hooks/useTransactionHistory'
 import { type PendingPerk } from '@/services/perks'
 export type { PendingPerk }
 
+export interface RailStatusUpdate {
+    railId: string
+    status: string
+    provider?: string
+}
+
 export type WebSocketMessage = {
     type:
         | 'ping'
@@ -12,7 +18,8 @@ export type WebSocketMessage = {
         | 'sumsub_kyc_status_update'
         | 'persona_tos_status_update'
         | 'pending_perk'
-    data?: HistoryEntry | PendingPerk
+        | 'user_rail_status_changed'
+    data?: HistoryEntry | PendingPerk | RailStatusUpdate
 }
 
 export class PeanutWebSocket {
@@ -141,6 +148,12 @@ export class PeanutWebSocket {
                 case 'pending_perk':
                     if (message.data && 'id' in (message.data as object)) {
                         this.emit('pending_perk', message.data)
+                    }
+                    break
+
+                case 'user_rail_status_changed':
+                    if (message.data && 'railId' in (message.data as object)) {
+                        this.emit('user_rail_status_changed', message.data)
                     }
                     break
 
