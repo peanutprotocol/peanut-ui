@@ -86,10 +86,8 @@ export function useTransactionHistory({
     // Two-tier caching: TQ in-memory (30s) → SW disk cache (1 week) → Network
     // Balance: Fresh enough for home page + reduces redundant SW cache hits
     if (mode === 'latest') {
-        // if filterMutualTxs is true, we need to add the username to the query key to invalidate the query when the username changes
-        const queryKeyTxn = TRANSACTIONS + (filterMutualTxs ? username : '')
         return useQuery({
-            queryKey: [queryKeyTxn, 'latest', { limit }],
+            queryKey: [TRANSACTIONS, 'latest', { limit, targetUsername: filterMutualTxs ? username : undefined }],
             queryFn: () => fetchHistory({ limit }),
             enabled,
             // 30s cache: Fresh enough for home page widget
