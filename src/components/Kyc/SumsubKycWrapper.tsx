@@ -18,6 +18,8 @@ interface SumsubKycWrapperProps {
     onComplete: () => void
     onError?: (error: unknown) => void
     onRefreshToken: () => Promise<string>
+    /** skip StartVerificationView and launch SDK immediately (for re-submissions) */
+    autoStart?: boolean
 }
 
 export const SumsubKycWrapper = ({
@@ -27,6 +29,7 @@ export const SumsubKycWrapper = ({
     onComplete,
     onError,
     onRefreshToken,
+    autoStart,
 }: SumsubKycWrapperProps) => {
     const [isVerificationStarted, setIsVerificationStarted] = useState(false)
     const [sdkLoaded, setSdkLoaded] = useState(false)
@@ -142,7 +145,7 @@ export const SumsubKycWrapper = ({
         }
     }, [isVerificationStarted, accessToken, sdkLoaded, stableOnComplete, stableOnError, stableOnRefreshToken])
 
-    // reset state when modal closes
+    // reset state when modal closes, auto-start on re-submission
     useEffect(() => {
         if (!visible) {
             setIsVerificationStarted(false)
@@ -155,8 +158,11 @@ export const SumsubKycWrapper = ({
                 }
                 sdkInstanceRef.current = null
             }
+        } else if (autoStart) {
+            // skip StartVerificationView on re-submission (user already consented)
+            setIsVerificationStarted(true)
         }
-    }, [visible])
+    }, [visible, autoStart])
 
     const modalDetails = useMemo(() => {
         if (modalVariant === 'trouble') {
@@ -204,62 +210,65 @@ export const SumsubKycWrapper = ({
     }, [modalVariant, onClose, setIsSupportModalOpen])
 
     return (
-        <Modal
-            visible={visible}
-            onClose={onClose}
-            classWrap="h-full w-full !max-w-none sm:!max-w-[600px] border-none sm:m-auto m-0"
-            classOverlay={`bg-black bg-opacity-50 ${isHelpModalOpen ? 'pointer-events-none' : ''}`}
-            video={false}
-            className={`z-[100] !p-0 md:!p-6 ${isHelpModalOpen ? 'pointer-events-none' : ''}`}
-            classButtonClose="hidden"
-            preventClose={true}
-            hideOverlay={false}
-        >
-            {!isVerificationStarted ? (
-                // start verification view (provider-agnostic, not reusing StartVerificationView which references "Persona")
-                <StartVerificationView onClose={onClose} onStartVerification={() => setIsVerificationStarted(true)} />
-            ) : sdkLoadError ? (
-                // script failed to load — show user-facing error
-                <div className="flex h-full flex-col items-center justify-center gap-4 p-8">
-                    <Icon name="alert" className="text-red-500 h-12 w-12" />
-                    <p className="text-center text-lg font-medium">
-                        Failed to load verification. Please check your connection and try again.
-                    </p>
-                    <Button variant="purple" shadowSize="4" onClick={onClose}>
-                        Close
-                    </Button>
-                </div>
-            ) : (
-                // SDK container + controls
-                <div className="flex h-full flex-col gap-2 p-0">
-                    <div className="relative h-full w-full flex-grow">
-                        <div ref={sdkContainerRef} className="w-full overflow-auto p-4" style={{ height: '85%' }} />
-                        <div className="absolute bottom-0 flex h-[12%] w-full flex-col items-center justify-center gap-2 px-5 shadow-md">
-                            <Button
-                                variant="transparent"
-                                className="h-8 max-w-md font-normal underline"
-                                onClick={() => {
-                                    setModalVariant('stop-verification')
-                                    setIsHelpModalOpen(true)
-                                }}
-                                shadowType="primary"
-                            >
-                                Stop verification process
-                            </Button>
-                            <button
-                                onClick={() => {
-                                    setModalVariant('trouble')
-                                    setIsHelpModalOpen(true)
-                                }}
-                                className="flex items-center gap-1"
-                            >
-                                <Icon name="peanut-support" size={16} className="text-grey-1" />
-                                <p className="text-xs font-medium text-grey-1 underline">Having trouble?</p>
-                            </button>
+        <>
+            <Modal
+                visible={visible}
+                onClose={onClose}
+                classWrap="h-full w-full !max-w-none sm:!max-w-[600px] border-none sm:m-auto m-0"
+                classOverlay={`bg-black bg-opacity-50 ${isHelpModalOpen ? 'pointer-events-none' : ''}`}
+                video={false}
+                className={`z-[100] !p-0 md:!p-6 ${isHelpModalOpen ? 'pointer-events-none' : ''}`}
+                classButtonClose="hidden"
+                preventClose={true}
+                hideOverlay={false}
+            >
+                {!isVerificationStarted ? (
+                    <StartVerificationView
+                        onClose={onClose}
+                        onStartVerification={() => setIsVerificationStarted(true)}
+                    />
+                ) : sdkLoadError ? (
+                    <div className="flex h-full flex-col items-center justify-center gap-4 p-8">
+                        <Icon name="alert" className="text-red-500 h-12 w-12" />
+                        <p className="text-center text-lg font-medium">
+                            Failed to load verification. Please check your connection and try again.
+                        </p>
+                        <Button variant="purple" shadowSize="4" onClick={onClose}>
+                            Close
+                        </Button>
+                    </div>
+                ) : (
+                    <div className="flex h-full flex-col gap-2 p-0">
+                        <div className="relative h-full w-full flex-grow">
+                            <div ref={sdkContainerRef} className="w-full overflow-auto p-4" style={{ height: '85%' }} />
+                            <div className="absolute bottom-0 flex h-[12%] w-full flex-col items-center justify-center gap-2 px-5 shadow-md">
+                                <Button
+                                    variant="transparent"
+                                    className="h-8 max-w-md font-normal underline"
+                                    onClick={() => {
+                                        setModalVariant('stop-verification')
+                                        setIsHelpModalOpen(true)
+                                    }}
+                                    shadowType="primary"
+                                >
+                                    Stop verification process
+                                </Button>
+                                <button
+                                    onClick={() => {
+                                        setModalVariant('trouble')
+                                        setIsHelpModalOpen(true)
+                                    }}
+                                    className="flex items-center gap-1"
+                                >
+                                    <Icon name="peanut-support" size={16} className="text-grey-1" />
+                                    <p className="text-xs font-medium text-grey-1 underline">Having trouble?</p>
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
+            </Modal>
+            {/* rendered outside the outer Modal to avoid pointer-events-none blocking clicks */}
             <ActionModal
                 visible={isHelpModalOpen}
                 onClose={() => setIsHelpModalOpen(false)}
@@ -267,13 +276,13 @@ export const SumsubKycWrapper = ({
                 description={modalDetails.description}
                 icon={modalDetails.icon}
                 iconContainerClassName={modalDetails.iconContainerClassName}
-                modalPanelClassName="max-w-full pointer-events-auto"
+                modalPanelClassName="max-w-full"
                 ctaClassName="grid grid-cols-1 gap-3"
                 contentContainerClassName="px-6 py-6"
-                modalClassName="!z-[10001] pointer-events-auto"
+                modalClassName="!z-[10001]"
                 preventClose={true}
                 ctas={modalDetails.ctas}
             />
-        </Modal>
+        </>
     )
 }

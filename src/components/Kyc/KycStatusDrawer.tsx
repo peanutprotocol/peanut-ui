@@ -14,6 +14,7 @@ import IFrameWrapper from '@/components/Global/IframeWrapper'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { KycVerificationInProgressModal } from '@/components/Kyc/KycVerificationInProgressModal'
 import { getKycStatusCategory, isKycStatusNotStarted } from '@/constants/kyc.consts'
+import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 
 interface KycStatusDrawerProps {
     isOpen: boolean
@@ -31,6 +32,10 @@ export const KycStatusDrawer = ({ isOpen, onClose, verification, bridgeKycStatus
     const countryCode = verification ? verification.mantecaGeo || verification.bridgeGeo : null
     const isBridgeKyc = !verification && !!bridgeKycStatus
     const provider = verification ? verification.provider : 'BRIDGE'
+    // derive region intent from sumsub verification metadata so token uses correct level
+    const sumsubRegionIntent = (
+        verification?.provider === 'SUMSUB' ? verification?.metadata?.regionIntent : undefined
+    ) as KYCRegionIntent | undefined
 
     const {
         handleInitiateKyc: initiateBridgeKyc,
@@ -63,7 +68,8 @@ export const KycStatusDrawer = ({ isOpen, onClose, verification, bridgeKycStatus
         isLoading: isSumsubLoading,
         isVerificationProgressModalOpen: isSumsubProgressModalOpen,
         closeVerificationProgressModal: closeSumsubProgressModal,
-    } = useSumsubKycFlow({ onKycSuccess: onClose, onManualClose: onClose })
+        error: sumsubError,
+    } = useSumsubKycFlow({ onKycSuccess: onClose, onManualClose: onClose, regionIntent: sumsubRegionIntent })
 
     const onRetry = async () => {
         if (provider === 'SUMSUB') {
@@ -103,7 +109,13 @@ export const KycStatusDrawer = ({ isOpen, onClose, verification, bridgeKycStatus
                     />
                 )
             case 'action_required':
-                return <KycActionRequired onResume={onRetry} isLoading={isLoadingKyc} />
+                return (
+                    <KycActionRequired
+                        onResume={onRetry}
+                        isLoading={isLoadingKyc}
+                        rejectLabels={verification?.rejectLabels}
+                    />
+                )
             case 'failed':
                 return (
                     <KycFailed
@@ -136,6 +148,9 @@ export const KycStatusDrawer = ({ isOpen, onClose, verification, bridgeKycStatus
                 <DrawerContent className="p-5 pb-12">
                     <DrawerTitle className="sr-only">KYC Status</DrawerTitle>
                     {renderContent()}
+                    {sumsubError && provider === 'SUMSUB' && (
+                        <p className="text-red-500 mt-3 text-center text-sm">{sumsubError}</p>
+                    )}
                 </DrawerContent>
             </Drawer>
             <IFrameWrapper {...bridgeIframeOptions} onClose={handleBridgeIframeClose} />
@@ -146,6 +161,7 @@ export const KycStatusDrawer = ({ isOpen, onClose, verification, bridgeKycStatus
                 onClose={handleSumsubClose}
                 onComplete={handleSumsubComplete}
                 onRefreshToken={sumsubRefreshToken}
+                autoStart
             />
             <KycVerificationInProgressModal isOpen={isSumsubProgressModalOpen} onClose={closeSumsubProgressModal} />
         </>
