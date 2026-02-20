@@ -1,15 +1,14 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { KYCStatusDrawerItem } from '../KYCStatusDrawerItem'
+import { RejectLabelsList } from '../RejectLabelsList'
 import Card from '@/components/Global/Card'
 import InfoCard from '@/components/Global/InfoCard'
 import { useMemo } from 'react'
 import { formatDate } from '@/utils/general.utils'
 import { CountryRegionRow } from '../CountryRegionRow'
-import { getRejectLabelInfo, hasTerminalRejectLabel } from '@/constants/sumsub-reject-labels.consts'
+import { isTerminalRejection } from '@/constants/sumsub-reject-labels.consts'
 import { useModalsContext } from '@/context/ModalsContext'
-
-const MAX_RETRY_COUNT = 2
 
 // this component shows the kyc status when it's failed/rejected.
 // for sumsub: maps reject labels to human-readable reasons, handles terminal vs retryable states.
@@ -49,26 +48,10 @@ export const KycFailed = ({
         }
     }, [bridgeKycRejectedAt])
 
-    // determine if this is a terminal (permanent) rejection
-    const isTerminal = useMemo(() => {
-        if (rejectType === 'FINAL') return true
-        if (failureCount && failureCount >= MAX_RETRY_COUNT) return true
-        if (rejectLabels?.length && hasTerminalRejectLabel(rejectLabels)) return true
-        return false
-    }, [rejectType, failureCount, rejectLabels])
-
-    // map sumsub labels to human-readable items for InfoCard
-    const reasonItems = useMemo(() => {
-        if (!isSumsub || !rejectLabels?.length) return null
-        return rejectLabels.map((label) => {
-            const info = getRejectLabelInfo(label)
-            return (
-                <span key={label}>
-                    <strong>{info.title}:</strong> {info.description}
-                </span>
-            )
-        })
-    }, [isSumsub, rejectLabels])
+    const isTerminal = useMemo(
+        () => isTerminalRejection({ rejectType, failureCount, rejectLabels }),
+        [rejectType, failureCount, rejectLabels]
+    )
 
     // formatted bridge reason (legacy display)
     const formattedBridgeReason = useMemo(() => {
@@ -94,9 +77,7 @@ export const KycFailed = ({
                 {!isSumsub && <PaymentInfoRow label="Reason" value={formattedBridgeReason} hideBottomBorder />}
             </Card>
 
-            {isSumsub && reasonItems && (
-                <InfoCard variant="error" icon="alert" title="Why your verification was rejected" items={reasonItems} />
-            )}
+            {isSumsub && <RejectLabelsList rejectLabels={rejectLabels} />}
 
             {isTerminal ? (
                 <div className="space-y-3">
