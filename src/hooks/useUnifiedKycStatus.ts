@@ -38,6 +38,11 @@ export default function useUnifiedKycStatus() {
 
     const sumsubRejectLabels = useMemo(() => sumsubVerification?.rejectLabels ?? null, [sumsubVerification])
 
+    const sumsubRejectType = useMemo(
+        () => (sumsubVerification?.rejectType as 'RETRY' | 'FINAL' | null) ?? null,
+        [sumsubVerification]
+    )
+
     // region intent used during the sumsub verification (stored in metadata by initiate-kyc)
     const sumsubVerificationRegionIntent = useMemo(
         () => (sumsubVerification?.metadata?.regionIntent as string) ?? null,
@@ -77,6 +82,7 @@ export default function useUnifiedKycStatus() {
         isSumsubActionRequired,
         sumsubStatus,
         sumsubRejectLabels,
+        sumsubRejectType,
         sumsubVerificationRegionIntent,
     }
 }

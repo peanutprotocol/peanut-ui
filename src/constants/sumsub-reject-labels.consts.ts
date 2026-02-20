@@ -81,3 +81,21 @@ export const getRejectLabelInfo = (label: string): RejectLabelInfo => {
 export const hasTerminalRejectLabel = (labels: string[]): boolean => {
     return labels.some((label) => TERMINAL_REJECT_LABELS.has(label))
 }
+
+const MAX_RETRY_COUNT = 2
+
+/** determine if a rejection is terminal (permanent, cannot be retried) */
+export const isTerminalRejection = ({
+    rejectType,
+    failureCount,
+    rejectLabels,
+}: {
+    rejectType?: 'RETRY' | 'FINAL' | null
+    failureCount?: number
+    rejectLabels?: string[] | null
+}): boolean => {
+    if (rejectType === 'FINAL') return true
+    if (failureCount && failureCount >= MAX_RETRY_COUNT) return true
+    if (rejectLabels?.length && hasTerminalRejectLabel(rejectLabels)) return true
+    return false
+}
