@@ -109,6 +109,7 @@ export const SumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent, ...bu
         error,
         showWrapper,
         accessToken,
+        liveKycStatus,
         handleInitiateKyc: originalHandleInitiateKyc,
         handleSdkComplete: originalHandleSdkComplete,
         handleClose,
@@ -121,6 +122,14 @@ export const SumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent, ...bu
     useEffect(() => {
         closeVerificationModalRef.current = closeVerificationProgressModal
     }, [closeVerificationProgressModal])
+
+    // refresh user store when kyc status transitions to a non-success state
+    // so the drawer/status item reads the updated verification record
+    useEffect(() => {
+        if (liveKycStatus === 'ACTION_REQUIRED' || liveKycStatus === 'REJECTED') {
+            fetchUser()
+        }
+    }, [liveKycStatus, fetchUser])
 
     // wrap handleSdkComplete to track real-time flow
     const handleSdkComplete = useCallback(() => {
