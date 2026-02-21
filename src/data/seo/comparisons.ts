@@ -1,8 +1,39 @@
 // Typed wrappers for competitor comparison data.
-// Reads from per-competitor directories: peanut-content/competitors/<slug>/
-// Public API unchanged from the previous monolithic JSON version.
+// Reads from peanut-content: input/data/competitors/ + content/compare/
+// Public API unchanged from previous version.
 
-import { readEntitySeo, readEntityContent, readEntityIndex, isPublished } from '@/lib/content'
+import { readEntityData, readPageContent, listEntitySlugs, listContentSlugs, isPublished } from '@/lib/content'
+
+// --- Entity frontmatter (input/data/competitors/{slug}.md) ---
+
+interface CompetitorEntityFrontmatter {
+    slug: string
+    name: string
+    type: string
+    fee_model: string
+    speed: string
+    rate_type: string
+    supports_mercadopago: boolean
+    supports_pix: boolean
+    local_spending_argentina: boolean
+    local_spending_brazil: boolean
+    global_availability: boolean
+}
+
+// --- Content frontmatter (content/compare/{slug}/{lang}.md) ---
+
+interface CompareContentFrontmatter {
+    title: string
+    description: string
+    slug: string
+    lang: string
+    published: boolean
+    competitor: string
+    schema_types: string[]
+    alternates?: Record<string, string>
+}
+
+// --- Public types (unchanged) ---
 
 export interface Competitor {
     name: string
@@ -15,47 +46,128 @@ export interface Competitor {
     image?: string
 }
 
-interface CompetitorSeoJson {
-    name: string
-    tagline: string
-    rows: Array<{ feature: string; peanut: string; competitor: string }>
-    prosCompetitor: string[]
-    consCompetitor: string[]
-    verdict: string
-}
-
-interface CompetitorFrontmatter {
-    title: string
-    description: string
-    image?: string
-    faqs: Array<{ q: string; a: string }>
-}
-
-interface CompetitorIndex {
-    competitors: Array<{ slug: string; name: string; status?: string; locales: string[] }>
-}
+// --- Loader ---
 
 function loadCompetitors(): Record<string, Competitor> {
-    const index = readEntityIndex<CompetitorIndex>('competitors')
-    if (!index) return {}
-
     const result: Record<string, Competitor> = {}
 
-    for (const entry of index.competitors) {
-        if (!isPublished(entry)) continue
-        const { slug } = entry
-        const seo = readEntitySeo<CompetitorSeoJson>('competitors', slug)
-        const content = readEntityContent<CompetitorFrontmatter>('competitors', slug, 'en')
-        if (!seo || !content) continue
+    // Get competitor slugs from content directory (content/compare/)
+    const contentSlugs = listContentSlugs('compare')
+    // Also check entity data for completeness
+    const entitySlugs = listEntitySlugs('competitors')
+    const allSlugs = [...new Set([...contentSlugs, ...entitySlugs])]
 
+    for (const slug of allSlugs) {
+        const entity = readEntityData<CompetitorEntityFrontmatter>('competitors', slug)
+        if (!entity) continue
+
+        const content = readPageContent<CompareContentFrontmatter>('compare', slug, 'en')
+
+        // During transition: include if entity exists and content exists (even if unpublished)
+        if (!content) continue
+
+        const fm = entity.frontmatter
+        const body = content.body
+
+        // Extract structured data from entity + generated content
         result[slug] = {
-            ...seo,
-            faqs: content.frontmatter.faqs ?? [],
-            image: content.frontmatter.image,
+            name: fm.name,
+            tagline: buildTagline(fm),
+            rows: buildComparisonRows(fm),
+            prosCompetitor: buildPros(fm),
+            consCompetitor: buildCons(fm),
+            verdict: buildVerdict(fm),
+            faqs: extractFaqs(body),
         }
     }
 
     return result
+}
+
+function buildTagline(fm: CompetitorEntityFrontmatter): string {
+    return `Compare Peanut with ${fm.name} for sending money to Latin America.`
+}
+
+function buildComparisonRows(
+    fm: CompetitorEntityFrontmatter
+): Array<{ feature: string; peanut: string; competitor: string }> {
+    return [
+        { feature: 'Fee Model', peanut: 'Free deposits & payments', competitor: fm.fee_model },
+        { feature: 'Speed', peanut: 'Instant local payments', competitor: fm.speed },
+        { feature: 'Rate Type', peanut: 'Cripto dólar / market rate', competitor: fm.rate_type },
+        {
+            feature: 'Mercado Pago',
+            peanut: 'Yes',
+            competitor: fm.supports_mercadopago ? 'Yes' : 'No',
+        },
+        { feature: 'Pix', peanut: 'Yes', competitor: fm.supports_pix ? 'Yes' : 'No' },
+        {
+            feature: 'Local Spending (Argentina)',
+            peanut: 'Yes — QR + ATM',
+            competitor: fm.local_spending_argentina ? 'Yes' : 'No',
+        },
+        {
+            feature: 'Local Spending (Brazil)',
+            peanut: 'Yes — Pix QR',
+            competitor: fm.local_spending_brazil ? 'Yes' : 'No',
+        },
+    ]
+}
+
+function buildPros(fm: CompetitorEntityFrontmatter): string[] {
+    const pros: string[] = []
+    if (fm.global_availability) pros.push('Available globally')
+    if (fm.speed.includes('instant') || fm.speed.includes('Instant')) pros.push('Fast transfers')
+    pros.push('Well-known brand')
+    return pros
+}
+
+function buildCons(fm: CompetitorEntityFrontmatter): string[] {
+    const cons: string[] = []
+    if (!fm.supports_mercadopago) cons.push('No Mercado Pago support')
+    if (!fm.supports_pix) cons.push('No Pix support')
+    if (!fm.local_spending_argentina) cons.push('No local spending in Argentina')
+    if (!fm.local_spending_brazil) cons.push('No local spending in Brazil')
+    if (fm.rate_type !== 'cripto-dolar') cons.push('Uses less favorable exchange rate')
+    return cons
+}
+
+function buildVerdict(fm: CompetitorEntityFrontmatter): string {
+    if (!fm.supports_mercadopago && !fm.supports_pix) {
+        return `${fm.name} is a solid choice for international transfers, but if you need to pay locally in Argentina or Brazil, Peanut offers better rates and direct local payment access.`
+    }
+    return `Both services have their strengths. Peanut excels for local payments in Latin America with better exchange rates.`
+}
+
+/** Extract FAQ items from markdown body (## FAQ or ## Frequently Asked Questions section) */
+function extractFaqs(body: string): Array<{ q: string; a: string }> {
+    const faqs: Array<{ q: string; a: string }> = []
+
+    // Look for ### headings after a FAQ section header
+    const faqSection = body.match(/## (?:FAQ|Frequently Asked Questions)\s*\n([\s\S]*?)(?=\n## [^#]|$)/i)
+    if (!faqSection) return faqs
+
+    const lines = faqSection[1].split('\n')
+    let currentQ = ''
+    let currentA = ''
+
+    for (const line of lines) {
+        if (line.startsWith('### ')) {
+            if (currentQ && currentA.trim()) {
+                faqs.push({ q: currentQ, a: currentA.trim() })
+            }
+            currentQ = line.replace(/^### /, '').replace(/\*\*/g, '').trim()
+            currentA = ''
+        } else if (currentQ) {
+            currentA += line + '\n'
+        }
+    }
+
+    if (currentQ && currentA.trim()) {
+        faqs.push({ q: currentQ, a: currentA.trim() })
+    }
+
+    return faqs
 }
 
 export const COMPETITORS: Record<string, Competitor> = loadCompetitors()

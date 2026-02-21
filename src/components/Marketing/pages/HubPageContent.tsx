@@ -2,7 +2,6 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { getFlagUrl, findMappingBySlug } from '@/constants/countryCurrencyMapping'
 import { COUNTRIES_SEO, getLocalizedSEO, getCountryName, CORRIDORS, COMPETITORS, EXCHANGES } from '@/data/seo'
-import { readEntitySeo } from '@/lib/content'
 import { getTranslations, t, localizedPath } from '@/i18n'
 import type { Locale } from '@/i18n/types'
 import { MarketingHero } from '@/components/Marketing/MarketingHero'
@@ -16,14 +15,6 @@ import { Card } from '@/components/0_Bruddle/Card'
 interface HubPageContentProps {
     country: string
     locale: Locale
-}
-
-interface CountrySeoJson {
-    region: string
-    instantPayment: string | null
-    payMerchants: boolean
-    corridorsFrom: string[]
-    corridorsTo: string[]
 }
 
 interface HubLink {
@@ -43,9 +34,6 @@ export function HubPageContent({ country, locale }: HubPageContentProps) {
     const mapping = findMappingBySlug(country)
     const currencyCode = mapping?.currencyCode ?? ''
     const flagCode = mapping?.flagCode
-
-    // Load structured data for corridor relationships
-    const countrySeo = readEntitySeo<CountrySeoJson>('countries', country)
 
     // Build hub spoke links
     const links: HubLink[] = []

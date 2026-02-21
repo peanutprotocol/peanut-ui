@@ -1,6 +1,11 @@
-// Unified content loader for per-entity content directories.
-// Reads from peanut-content/{countries,exchanges,competitors}/<slug>/ structure.
-// Parses YAML for data files and YAML frontmatter + Markdown body from .md files.
+// Unified content loader for peanutprotocol/peanut-content.
+//
+// Two read paths:
+//   readEntityData(category, slug)      → input/data/{category}/{slug}.md (frontmatter only)
+//   readPageContent(intent, slug, lang) → content/{intent}/{slug}/{lang}.md (frontmatter + body)
+//
+// Discovers entities by scanning directories. No _index.yaml dependency.
+// Implements locale fallback chains per BCP 47 codes.
 
 import fs from 'fs'
 import path from 'path'
@@ -8,78 +13,198 @@ import matter from 'gray-matter'
 
 const CONTENT_ROOT = path.join(process.cwd(), 'src/content')
 
-const yaml = matter.engines.yaml
+// --- Locale fallback chains ---
+// es-ar → es-419 → en
+// es-es → en
+// pt-br → en
+// es-419 → en
 
-// --- Low-level readers (cached per filepath for the lifetime of the process) ---
-
-const yamlCache = new Map<string, unknown>()
-const mdCache = new Map<string, unknown>()
-
-function readYamlFile<T>(filePath: string): T | null {
-    if (yamlCache.has(filePath)) return yamlCache.get(filePath) as T | null
-    try {
-        const result = yaml.parse(fs.readFileSync(filePath, 'utf8')) as T
-        yamlCache.set(filePath, result)
-        return result
-    } catch {
-        yamlCache.set(filePath, null)
-        return null
-    }
+const FALLBACK_CHAINS: Record<string, string[]> = {
+    en: [],
+    'es-419': ['en'],
+    'es-ar': ['es-419', 'en'],
+    'es-es': ['en'],
+    'pt-br': ['en'],
 }
 
-interface MarkdownContent<T = Record<string, unknown>> {
+/** Get ordered list of locales to try (requested locale first, then fallbacks) */
+export function getLocaleFallbacks(locale: string): string[] {
+    return [locale, ...(FALLBACK_CHAINS[locale] ?? ['en'])]
+}
+
+// --- Caches ---
+// In development, skip caching so content changes are picked up without restart.
+
+const isDev = process.env.NODE_ENV === 'development'
+
+const entityCache = new Map<string, unknown>()
+const pageCache = new Map<string, unknown>()
+
+// --- Core types ---
+
+export interface MarkdownContent<T = Record<string, unknown>> {
     frontmatter: T
     body: string
 }
 
-function readMarkdownFile<T = Record<string, unknown>>(filePath: string): MarkdownContent<T> | null {
-    if (mdCache.has(filePath)) return mdCache.get(filePath) as MarkdownContent<T> | null
+// --- Low-level readers ---
+
+function parseMarkdownFile<T = Record<string, unknown>>(filePath: string): MarkdownContent<T> | null {
     try {
         const raw = fs.readFileSync(filePath, 'utf8')
         const { data, content } = matter(raw)
-        const result: MarkdownContent<T> = { frontmatter: data as T, body: content.trim() }
-        mdCache.set(filePath, result)
-        return result
+        return { frontmatter: data as T, body: content.trim() }
     } catch {
-        mdCache.set(filePath, null)
         return null
     }
 }
 
-// --- Entity directory readers ---
+// --- Entity data readers (input/data/{category}/{slug}.md) ---
 
-/** Read data.yaml from an entity directory */
-export function readEntitySeo<T>(entityType: string, slug: string): T | null {
-    return readYamlFile<T>(path.join(CONTENT_ROOT, entityType, slug, 'data.yaml'))
+/** Read structured entity data from input/data/{category}/{slug}.md */
+export function readEntityData<T = Record<string, unknown>>(category: string, slug: string): MarkdownContent<T> | null {
+    const key = `entity:${category}/${slug}`
+    if (!isDev && entityCache.has(key)) return entityCache.get(key) as MarkdownContent<T> | null
+
+    const filePath = path.join(CONTENT_ROOT, 'input/data', category, `${slug}.md`)
+    const result = parseMarkdownFile<T>(filePath)
+    entityCache.set(key, result)
+    return result
 }
 
-/** Read a locale .md file from an entity directory */
-export function readEntityContent<T = Record<string, unknown>>(
-    entityType: string,
+// --- Page content readers (content/{intent}/{slug}/{lang}.md) ---
+
+/** Read generated page content from content/{intent}/{slug}/{lang}.md */
+export function readPageContent<T = Record<string, unknown>>(
+    intent: string,
     slug: string,
-    locale: string
+    lang: string
 ): MarkdownContent<T> | null {
-    return readMarkdownFile<T>(path.join(CONTENT_ROOT, entityType, slug, `${locale}.md`))
+    const key = `page:${intent}/${slug}/${lang}`
+    if (!isDev && pageCache.has(key)) return pageCache.get(key) as MarkdownContent<T> | null
+
+    const filePath = path.join(CONTENT_ROOT, 'content', intent, slug, `${lang}.md`)
+    const result = parseMarkdownFile<T>(filePath)
+    pageCache.set(key, result)
+    return result
 }
 
-/** Read the _index.yaml manifest for an entity type */
-export function readEntityIndex<T>(entityType: string): T | null {
-    return readYamlFile<T>(path.join(CONTENT_ROOT, entityType, '_index.yaml'))
+/** Read page content with locale fallback */
+export function readPageContentLocalized<T = Record<string, unknown>>(
+    intent: string,
+    slug: string,
+    lang: string
+): MarkdownContent<T> | null {
+    for (const locale of getLocaleFallbacks(lang)) {
+        const content = readPageContent<T>(intent, slug, locale)
+        if (content) return content
+    }
+    return null
 }
 
-/** List all entity slugs by reading _index.yaml (published only) */
-export function listEntitySlugs(entityType: string, key: string): string[] {
-    const index = readEntityIndex<Record<string, Array<{ slug: string; status?: string }>>>(entityType)
-    if (!index?.[key]) return []
-    return index[key].filter((item) => (item.status ?? 'published') === 'published').map((item) => item.slug)
+/** Read corridor content: content/send-to/{destination}/from/{origin}/{lang}.md */
+export function readCorridorContent<T = Record<string, unknown>>(
+    destination: string,
+    origin: string,
+    lang: string
+): MarkdownContent<T> | null {
+    const key = `corridor:${destination}/from/${origin}/${lang}`
+    if (!isDev && pageCache.has(key)) return pageCache.get(key) as MarkdownContent<T> | null
+
+    const filePath = path.join(CONTENT_ROOT, 'content/send-to', destination, 'from', origin, `${lang}.md`)
+    const result = parseMarkdownFile<T>(filePath)
+    pageCache.set(key, result)
+    return result
 }
 
-/** Check if an entity is published (missing status = published) */
-export function isPublished(entry: { status?: string }): boolean {
-    return (entry.status ?? 'published') === 'published'
+/** Read corridor content with locale fallback */
+export function readCorridorContentLocalized<T = Record<string, unknown>>(
+    destination: string,
+    origin: string,
+    lang: string
+): MarkdownContent<T> | null {
+    for (const locale of getLocaleFallbacks(lang)) {
+        const content = readCorridorContent<T>(destination, origin, locale)
+        if (content) return content
+    }
+    return null
 }
 
-/** Check if a locale file exists for an entity */
-export function entityLocaleExists(entityType: string, slug: string, locale: string): boolean {
-    return fs.existsSync(path.join(CONTENT_ROOT, entityType, slug, `${locale}.md`))
+// --- Directory scanners (replaces _index.yaml) ---
+
+/** List all entity slugs in a category by scanning input/data/{category}/ */
+export function listEntitySlugs(category: string): string[] {
+    const dir = path.join(CONTENT_ROOT, 'input/data', category)
+    try {
+        return fs
+            .readdirSync(dir)
+            .filter((f) => f.endsWith('.md') && f !== 'README.md')
+            .map((f) => f.replace('.md', ''))
+    } catch {
+        return []
+    }
+}
+
+/** List all content slugs for an intent by scanning content/{intent}/ */
+export function listContentSlugs(intent: string): string[] {
+    const dir = path.join(CONTENT_ROOT, 'content', intent)
+    try {
+        return fs.readdirSync(dir).filter((f) => {
+            const stat = fs.statSync(path.join(dir, f))
+            return stat.isDirectory()
+        })
+    } catch {
+        return []
+    }
+}
+
+/** List corridor origins for a destination: content/send-to/{destination}/from/ */
+export function listCorridorOrigins(destination: string): string[] {
+    const dir = path.join(CONTENT_ROOT, 'content/send-to', destination, 'from')
+    try {
+        return fs.readdirSync(dir).filter((f) => {
+            const stat = fs.statSync(path.join(dir, f))
+            return stat.isDirectory()
+        })
+    } catch {
+        return []
+    }
+}
+
+/** List available locales for a content page */
+export function listPageLocales(intent: string, slug: string): string[] {
+    const dir = path.join(CONTENT_ROOT, 'content', intent, slug)
+    try {
+        return fs
+            .readdirSync(dir)
+            .filter((f) => f.endsWith('.md'))
+            .map((f) => f.replace('.md', ''))
+    } catch {
+        return []
+    }
+}
+
+/** Check if a page content file exists for the given locale (no fallback) */
+export function pageLocaleExists(intent: string, slug: string, locale: string): boolean {
+    return fs.existsSync(path.join(CONTENT_ROOT, 'content', intent, slug, `${locale}.md`))
+}
+
+// --- Publication status ---
+
+interface PublishableContent {
+    published?: boolean
+}
+
+/** Check if content is published (defaults to false if field missing) */
+export function isPublished(content: MarkdownContent<PublishableContent> | null): boolean {
+    if (!content) return false
+    return content.frontmatter.published === true
+}
+
+/** List published content slugs for an intent */
+export function listPublishedSlugs(intent: string): string[] {
+    return listContentSlugs(intent).filter((slug) => {
+        const content = readPageContent<PublishableContent>(intent, slug, 'en')
+        return isPublished(content)
+    })
 }

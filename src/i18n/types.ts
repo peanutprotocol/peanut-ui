@@ -1,6 +1,6 @@
-export type Locale = 'en' | 'es' | 'pt'
+export type Locale = 'en' | 'es-419' | 'es-ar' | 'es-es' | 'pt-br'
 
-export const SUPPORTED_LOCALES: Locale[] = ['en', 'es', 'pt']
+export const SUPPORTED_LOCALES: Locale[] = ['en', 'es-419', 'es-ar', 'es-es', 'pt-br']
 export const DEFAULT_LOCALE: Locale = 'en'
 
 export interface Translations {

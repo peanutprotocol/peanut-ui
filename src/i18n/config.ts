@@ -15,6 +15,15 @@ export const ROUTE_SLUGS = [
 
 export type RouteSlug = (typeof ROUTE_SLUGS)[number]
 
+/** Map locale codes to hreflang values */
+const HREFLANG_MAP: Record<Locale, string> = {
+    en: 'en',
+    'es-419': 'es-419',
+    'es-ar': 'es-AR',
+    'es-es': 'es-ES',
+    'pt-br': 'pt-BR',
+}
+
 /** Build a localized path: all locales get /{locale}/ prefix */
 export function localizedPath(route: RouteSlug, locale: Locale, ...segments: string[]): string {
     const suffix = segments.length > 0 ? `/${segments.join('/')}` : ''
@@ -31,7 +40,7 @@ export function localizedBarePath(locale: Locale, ...segments: string[]): string
 export function getAlternates(route: RouteSlug, ...segments: string[]): Record<string, string> {
     const alternates: Record<string, string> = {}
     for (const locale of SUPPORTED_LOCALES) {
-        const langCode = locale === 'en' ? 'x-default' : locale
+        const langCode = locale === 'en' ? 'x-default' : HREFLANG_MAP[locale]
         alternates[langCode] = `https://peanut.me${localizedPath(route, locale, ...segments)}`
     }
     // Also add 'en' explicitly alongside x-default
@@ -43,7 +52,7 @@ export function getAlternates(route: RouteSlug, ...segments: string[]): Record<s
 export function getBareAlternates(...segments: string[]): Record<string, string> {
     const alternates: Record<string, string> = {}
     for (const locale of SUPPORTED_LOCALES) {
-        const langCode = locale === 'en' ? 'x-default' : locale
+        const langCode = locale === 'en' ? 'x-default' : HREFLANG_MAP[locale]
         alternates[langCode] = `https://peanut.me${localizedBarePath(locale, ...segments)}`
     }
     alternates['en'] = `https://peanut.me${localizedBarePath('en', ...segments)}`

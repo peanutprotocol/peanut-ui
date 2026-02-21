@@ -3,17 +3,21 @@ import { Card } from '@/components/0_Bruddle/Card'
 import { COUNTRIES_SEO, getCountryName } from '@/data/seo'
 import { getFlagUrl, findMappingBySlug } from '@/constants/countryCurrencyMapping'
 import { localizedPath } from '@/i18n/config'
+import { CARD_HOVER } from '@/components/Marketing/mdx/constants'
 import type { Locale } from '@/i18n/types'
 
 interface DestinationGridProps {
     /** If provided, only show these country slugs */
     countries?: string[]
+    /** Country slug to exclude from the grid */
+    exclude?: string
     title?: string
     locale?: Locale
 }
 
-export function DestinationGrid({ countries, title = 'Send money to', locale = 'en' }: DestinationGridProps) {
-    const slugs = countries ?? Object.keys(COUNTRIES_SEO)
+export function DestinationGrid({ countries, exclude, title = 'Send money to', locale = 'en' }: DestinationGridProps) {
+    let slugs = countries ?? Object.keys(COUNTRIES_SEO)
+    if (exclude) slugs = slugs.filter((s) => s !== exclude)
 
     return (
         <section className="py-10 md:py-14">
@@ -32,7 +36,7 @@ export function DestinationGrid({ countries, title = 'Send money to', locale = '
                         <Link key={slug} href={localizedPath('send-money-to', locale, slug)}>
                             <Card
                                 shadowSize="4"
-                                className="flex-row items-center gap-3 p-4 transition-all hover:shadow-primary-6 hover:-translate-x-1 hover:-translate-y-1"
+                                className={`flex-row items-center gap-3 p-4 ${CARD_HOVER}`}
                             >
                                 {flagCode && (
                                     <img

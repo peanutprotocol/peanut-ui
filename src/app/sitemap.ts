@@ -1,6 +1,6 @@
 import { type MetadataRoute } from 'next'
 import { BASE_URL } from '@/constants/general.consts'
-import { COUNTRIES_SEO, CORRIDORS, CONVERT_PAIRS, COMPETITORS, EXCHANGES } from '@/data/seo'
+import { COUNTRIES_SEO, CORRIDORS, CONVERT_PAIRS, COMPETITORS, EXCHANGES, PAYMENT_METHOD_SLUGS } from '@/data/seo'
 import { getAllPosts } from '@/lib/blog'
 import { SUPPORTED_LOCALES } from '@/i18n/config'
 import type { Locale } from '@/i18n/types'
@@ -10,9 +10,6 @@ import type { Locale } from '@/i18n/types'
 // TODO (infra): Update GitHub org, Twitter bio, LinkedIn, npm package.json → peanut.me
 // TODO (infra): Add peanut.me to Google Search Console and submit this sitemap
 // TODO (GA4): Create data filter to exclude trafficheap.com referral traffic
-
-/** Payment methods with dedicated pages */
-const PAYMENT_METHODS = ['pix', 'mercadopago', 'spei', 'bank-transfer'] as const
 
 async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
     type SitemapEntry = {
@@ -100,7 +97,7 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
         }
 
         // Pay-with pages
-        for (const method of PAYMENT_METHODS) {
+        for (const method of PAYMENT_METHOD_SLUGS) {
             pages.push({
                 path: `/${locale}/pay-with/${method}`,
                 priority: 0.7 * basePriority,

@@ -1,24 +1,68 @@
 // Typed wrappers for corridor/country SEO data.
-// Reads from per-country directories: peanut-content/countries/<slug>/
-// Public API unchanged from the previous monolithic JSON version.
+// Reads from peanut-content: input/data/countries/ + content/countries/ + content/send-to/
+// Public API unchanged from previous version.
 
-import fs from 'fs'
-import path from 'path'
-import matter from 'gray-matter'
-import { readEntitySeo, readEntityContent, readEntityIndex, isPublished } from '@/lib/content'
+import {
+    readEntityData,
+    readPageContent,
+    readPageContentLocalized,
+    listEntitySlugs,
+    listContentSlugs,
+    listCorridorOrigins,
+    isPublished,
+} from '@/lib/content'
 import type { Locale } from '@/i18n/types'
 
-const yaml = matter.engines.yaml
-const countryNamesData = yaml.parse(
-    fs.readFileSync(path.join(process.cwd(), 'src/content/i18n/country-names.yaml'), 'utf8')
-) as Record<string, Record<string, string>>
+// --- Entity frontmatter schema (input/data/countries/{slug}.md) ---
+
+interface CountryEntityFrontmatter {
+    slug: string
+    name: string
+    currency: string
+    local_id: string
+    local_payment_methods: string[]
+    corridors: Array<{
+        origin: string
+        priority: 'high' | 'medium' | 'low'
+        common_use_cases: string[]
+    }>
+}
+
+// --- Content frontmatter schema (content/countries/{slug}/{lang}.md) ---
+
+interface CountryContentFrontmatter {
+    title: string
+    description: string
+    slug: string
+    lang: string
+    published: boolean
+    schema_types: string[]
+    alternates?: Record<string, string>
+}
+
+// --- Spending method entity frontmatter ---
+
+interface SpendingMethodFrontmatter {
+    slug: string
+    name: string
+    type: string
+}
+
+// --- Public types (matches fields consumed by page components) ---
 
 export interface CountrySEO {
-    region: 'latam' | 'north-america' | 'europe' | 'asia-oceania'
+    name: string
+    region: string
+    currency: string
+    localPaymentMethods: string[]
     context: string
     instantPayment?: string
     payMerchants: boolean
     faqs: Array<{ q: string; a: string }>
+    corridors: Array<{
+        origin: string
+        priority: 'high' | 'medium' | 'low'
+    }>
 }
 
 export interface Corridor {
@@ -26,53 +70,159 @@ export interface Corridor {
     to: string
 }
 
-interface CountrySeoJson {
-    region: 'latam' | 'north-america' | 'europe' | 'asia-oceania'
-    instantPayment: string | null
-    payMerchants: boolean
-    corridorsFrom: string[]
-    corridorsTo: string[]
+// --- Helpers ---
+
+/** Extract FAQ items from markdown body (## FAQ section with ### question headings) */
+function extractFaqsFromBody(body: string): Array<{ q: string; a: string }> {
+    const faqs: Array<{ q: string; a: string }> = []
+    const faqSection = body.match(/## (?:FAQ|Frequently Asked Questions)\s*\n([\s\S]*?)(?=\n## [^#]|$)/i)
+    if (!faqSection) return faqs
+
+    const lines = faqSection[1].split('\n')
+    let currentQ = ''
+    let currentA = ''
+
+    for (const line of lines) {
+        if (line.startsWith('### ')) {
+            if (currentQ && currentA.trim()) faqs.push({ q: currentQ, a: currentA.trim() })
+            currentQ = line.replace(/^### /, '').replace(/\*\*/g, '').trim()
+            currentA = ''
+        } else if (currentQ) {
+            currentA += line + '\n'
+        }
+    }
+    if (currentQ && currentA.trim()) faqs.push({ q: currentQ, a: currentA.trim() })
+
+    return faqs
 }
 
-interface CountryFrontmatter {
-    title: string
-    description: string
-    faqs: Array<{ q: string; a: string }>
-}
-
-interface CountryIndex {
-    countries: Array<{ slug: string; region: string; status?: string; locales: string[] }>
-    corridors: Corridor[]
-}
+// --- Loader ---
 
 function loadAll() {
-    const index = readEntityIndex<CountryIndex>('countries')
-    if (!index) return { countries: {} as Record<string, CountrySEO>, corridors: [] as Corridor[] }
-
+    const countrySlugs = listEntitySlugs('countries')
     const countries: Record<string, CountrySEO> = {}
+    const corridors: Corridor[] = []
+    const publishedCountries = new Set<string>()
 
-    const publishedSlugs = new Set(index.countries.filter(isPublished).map((c) => c.slug))
-
-    for (const entry of index.countries) {
-        if (!isPublished(entry)) continue
-        const { slug } = entry
-        const seo = readEntitySeo<CountrySeoJson>('countries', slug)
-        const content = readEntityContent<CountryFrontmatter>('countries', slug, 'en')
-        if (!seo || !content) continue
-
-        countries[slug] = {
-            region: seo.region,
-            context: content.body,
-            instantPayment: seo.instantPayment ?? undefined,
-            payMerchants: seo.payMerchants,
-            faqs: content.frontmatter.faqs ?? [],
+    // First pass: determine which countries have published content pages
+    const contentSlugs = listContentSlugs('countries')
+    for (const slug of contentSlugs) {
+        const content = readPageContent<CountryContentFrontmatter>('countries', slug, 'en')
+        if (content && isPublished(content)) {
+            publishedCountries.add(slug)
         }
     }
 
-    // Only include corridors where both endpoints are published
-    const corridors = index.corridors.filter((c) => publishedSlugs.has(c.from) && publishedSlugs.has(c.to))
+    // If no published content yet, treat all countries with entity data + content as available
+    // This allows the site to work during the transition period when published: false
+    if (publishedCountries.size === 0) {
+        for (const slug of contentSlugs) {
+            const content = readPageContent<CountryContentFrontmatter>('countries', slug, 'en')
+            if (content) publishedCountries.add(slug)
+        }
+    }
 
-    return { countries, corridors }
+    for (const slug of countrySlugs) {
+        if (!publishedCountries.has(slug)) continue
+
+        const entity = readEntityData<CountryEntityFrontmatter>('countries', slug)
+        if (!entity) continue
+
+        const content = readPageContent<CountryContentFrontmatter>('countries', slug, 'en')
+        const fm = entity.frontmatter
+
+        // Resolve the first local payment method name for instantPayment display
+        const paymentMethods = fm.local_payment_methods ?? []
+        let instantPayment: string | undefined
+        let payMerchants = false
+
+        if (paymentMethods.length > 0) {
+            const methodEntity = readEntityData<SpendingMethodFrontmatter>('spending-methods', paymentMethods[0])
+            instantPayment = methodEntity?.frontmatter.name ?? paymentMethods[0]
+            // QR-type methods support merchant payments
+            payMerchants = methodEntity?.frontmatter.type === 'qr'
+        }
+
+        // Extract FAQs from the content body
+        const faqs = content ? extractFaqsFromBody(content.body) : []
+
+        countries[slug] = {
+            name: fm.name,
+            region: inferRegion(slug),
+            currency: fm.currency,
+            localPaymentMethods: paymentMethods,
+            context: content?.body ?? '',
+            instantPayment,
+            payMerchants,
+            faqs,
+            corridors: fm.corridors?.map((c) => ({ origin: c.origin, priority: c.priority })) ?? [],
+        }
+
+        // Build corridors from entity data
+        if (fm.corridors) {
+            for (const corridor of fm.corridors) {
+                corridors.push({ from: corridor.origin, to: slug })
+            }
+        }
+    }
+
+    // Also add corridors discovered from content/send-to/{dest}/from/{origin}/
+    for (const dest of listContentSlugs('send-to')) {
+        for (const origin of listCorridorOrigins(dest)) {
+            if (!corridors.some((c) => c.from === origin && c.to === dest)) {
+                corridors.push({ from: origin, to: dest })
+            }
+        }
+    }
+
+    // Deduplicate corridors
+    const seen = new Set<string>()
+    const uniqueCorridors = corridors.filter((c) => {
+        const key = `${c.from}→${c.to}`
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+    })
+
+    return { countries, corridors: uniqueCorridors }
+}
+
+/** Infer region from slug — simple heuristic based on known country lists */
+function inferRegion(slug: string): string {
+    const latam = [
+        'argentina',
+        'brazil',
+        'mexico',
+        'colombia',
+        'chile',
+        'peru',
+        'costa-rica',
+        'panama',
+        'bolivia',
+        'guatemala',
+    ]
+    const northAmerica = ['united-states', 'canada']
+    const asiaOceania = [
+        'australia',
+        'philippines',
+        'japan',
+        'india',
+        'indonesia',
+        'malaysia',
+        'singapore',
+        'thailand',
+        'vietnam',
+        'pakistan',
+        'saudi-arabia',
+        'united-arab-emirates',
+    ]
+    const africa = ['kenya', 'nigeria', 'south-africa', 'tanzania']
+
+    if (latam.includes(slug)) return 'latam'
+    if (northAmerica.includes(slug)) return 'north-america'
+    if (asiaOceania.includes(slug)) return 'asia-oceania'
+    if (africa.includes(slug)) return 'africa'
+    return 'europe'
 }
 
 const _loaded = loadAll()
@@ -80,24 +230,30 @@ const _loaded = loadAll()
 export const COUNTRIES_SEO: Record<string, CountrySEO> = _loaded.countries
 export const CORRIDORS: Corridor[] = _loaded.corridors
 
-/** Get country SEO data with locale-specific content (falls back to English) */
+/** Get country SEO data with locale-specific content (falls back via chain) */
 export function getLocalizedSEO(country: string, locale: Locale): CountrySEO | null {
     const base = COUNTRIES_SEO[country]
     if (!base) return null
     if (locale === 'en') return base
 
-    const localized = readEntityContent<CountryFrontmatter>('countries', country, locale)
+    const localized = readPageContentLocalized<CountryContentFrontmatter>('countries', country, locale)
     if (!localized) return base
+
+    const localizedFaqs = extractFaqsFromBody(localized.body)
 
     return {
         ...base,
         context: localized.body,
-        faqs: localized.frontmatter.faqs ?? base.faqs,
+        faqs: localizedFaqs.length > 0 ? localizedFaqs : base.faqs,
     }
 }
 
 /** Get localized country display name */
-export function getCountryName(slug: string, locale: Locale): string {
-    const names = countryNamesData[slug]
-    return names?.[locale] ?? slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+export function getCountryName(slug: string, _locale: Locale): string {
+    // Read name from entity data
+    const entity = readEntityData<CountryEntityFrontmatter>('countries', slug)
+    if (entity) return entity.frontmatter.name
+
+    // Fallback: title-case the slug
+    return slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
