@@ -6,6 +6,9 @@ import { SUPPORTED_LOCALES, getAlternates, isValidLocale } from '@/i18n/config'
 import type { Locale } from '@/i18n/types'
 import { getTranslations, t } from '@/i18n'
 import { ReceiveMoneyContent } from '@/components/Marketing/pages/ReceiveMoneyContent'
+import { ContentPage } from '@/components/Marketing/ContentPage'
+import { readPageContentLocalized } from '@/lib/content'
+import { renderContent } from '@/lib/mdx'
 
 interface PageProps {
     params: Promise<{ locale: string; country: string }>
@@ -48,5 +51,24 @@ export default async function ReceiveMoneyPage({ params }: PageProps) {
     if (!isValidLocale(locale)) notFound()
     if (!getReceiveSources().includes(country)) notFound()
 
+    // Try MDX content first (future-proofing — no content files exist yet)
+    const mdxSource = readPageContentLocalized('receive-from', country, locale)
+    if (mdxSource && mdxSource.frontmatter.published !== false) {
+        const { content } = await renderContent(mdxSource.body)
+        const i18n = getTranslations(locale)
+        const countryName = getCountryName(country, locale)
+        return (
+            <ContentPage
+                breadcrumbs={[
+                    { name: i18n.home, href: '/' },
+                    { name: countryName, href: `/${locale}/receive-money-from/${country}` },
+                ]}
+            >
+                {content}
+            </ContentPage>
+        )
+    }
+
+    // Fallback: old React-driven page
     return <ReceiveMoneyContent sourceCountry={country} locale={locale as Locale} />
 }

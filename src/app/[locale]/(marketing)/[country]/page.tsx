@@ -3,9 +3,10 @@ import { type Metadata } from 'next'
 import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { COUNTRIES_SEO, getCountryName } from '@/data/seo'
 import { SUPPORTED_LOCALES, isValidLocale, getBareAlternates } from '@/i18n/config'
-import type { Locale } from '@/i18n/types'
-import { getTranslations, t } from '@/i18n'
-import { HubPageContent } from '@/components/Marketing/pages/HubPageContent'
+import { getTranslations } from '@/i18n'
+import { ContentPage } from '@/components/Marketing/ContentPage'
+import { readPageContentLocalized } from '@/lib/content'
+import { renderContent } from '@/lib/mdx'
 
 interface PageProps {
     params: Promise<{ locale: string; country: string }>
@@ -24,13 +25,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const seo = COUNTRIES_SEO[country]
     if (!seo) return {}
 
-    const i18n = getTranslations(locale as Locale)
-    const countryName = getCountryName(country, locale as Locale)
+    const mdxContent = readPageContentLocalized<{ title: string; description: string; published?: boolean }>(
+        'countries',
+        country,
+        locale
+    )
+    if (!mdxContent || mdxContent.frontmatter.published === false) return {}
 
     return {
         ...metadataHelper({
-            title: `${t(i18n.hubTitle, { country: countryName })} | Peanut`,
-            description: t(i18n.hubSubtitle, { country: countryName }),
+            title: mdxContent.frontmatter.title,
+            description: mdxContent.frontmatter.description,
             canonical: `/${locale}/${country}`,
         }),
         alternates: {
@@ -45,5 +50,21 @@ export default async function CountryHubPage({ params }: PageProps) {
     if (!isValidLocale(locale)) notFound()
     if (!COUNTRIES_SEO[country]) notFound()
 
-    return <HubPageContent country={country} locale={locale as Locale} />
+    const mdxSource = readPageContentLocalized('countries', country, locale)
+    if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
+
+    const { content } = await renderContent(mdxSource.body)
+    const i18n = getTranslations(locale)
+    const countryName = getCountryName(country, locale)
+
+    return (
+        <ContentPage
+            breadcrumbs={[
+                { name: i18n.home, href: '/' },
+                { name: countryName, href: `/${locale}/${country}` },
+            ]}
+        >
+            {content}
+        </ContentPage>
+    )
 }

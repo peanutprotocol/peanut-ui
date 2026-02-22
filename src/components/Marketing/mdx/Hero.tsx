@@ -54,6 +54,8 @@ export function Hero({ title, subtitle, cta, ctaHref, currency }: HeroProps) {
                 backgroundColor="bg-secondary-1"
             />
             {currency && <ExchangeWidget destinationCurrency={currency} />}
+            {/* Spacer ensures consistent gap between Hero block and prose content */}
+            <div className="h-10 md:h-14" />
         </>
     )
 }

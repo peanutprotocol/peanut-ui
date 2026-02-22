@@ -3,9 +3,10 @@ import { type Metadata } from 'next'
 import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { PAYMENT_METHODS, PAYMENT_METHOD_SLUGS } from '@/data/seo'
 import { SUPPORTED_LOCALES, getAlternates, isValidLocale } from '@/i18n/config'
-import type { Locale } from '@/i18n/types'
-import { getTranslations, t } from '@/i18n'
-import { PayWithContent } from '@/components/Marketing/pages/PayWithContent'
+import { getTranslations } from '@/i18n'
+import { ContentPage } from '@/components/Marketing/ContentPage'
+import { readPageContentLocalized } from '@/lib/content'
+import { renderContent } from '@/lib/mdx'
 
 interface PageProps {
     params: Promise<{ locale: string; method: string }>
@@ -23,12 +24,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const pm = PAYMENT_METHODS[method]
     if (!pm) return {}
 
-    const i18n = getTranslations(locale as Locale)
+    const mdxContent = readPageContentLocalized<{ title: string; description: string; published?: boolean }>(
+        'pay-with',
+        method,
+        locale
+    )
+    if (!mdxContent || mdxContent.frontmatter.published === false) return {}
 
     return {
         ...metadataHelper({
-            title: `${t(i18n.payWith, { method: pm.name })} | Peanut`,
-            description: t(i18n.payWithDesc, { method: pm.name }),
+            title: mdxContent.frontmatter.title,
+            description: mdxContent.frontmatter.description,
             canonical: `/${locale}/pay-with/${method}`,
         }),
         alternates: {
@@ -45,5 +51,20 @@ export default async function PayWithPage({ params }: PageProps) {
     const pm = PAYMENT_METHODS[method]
     if (!pm) notFound()
 
-    return <PayWithContent method={method} locale={locale as Locale} />
+    const mdxSource = readPageContentLocalized('pay-with', method, locale)
+    if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
+
+    const { content } = await renderContent(mdxSource.body)
+    const i18n = getTranslations(locale)
+
+    return (
+        <ContentPage
+            breadcrumbs={[
+                { name: i18n.home, href: '/' },
+                { name: pm.name, href: `/${locale}/pay-with/${method}` },
+            ]}
+        >
+            {content}
+        </ContentPage>
+    )
 }

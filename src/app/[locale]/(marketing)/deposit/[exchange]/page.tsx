@@ -13,6 +13,9 @@ import { SUPPORTED_LOCALES, getAlternates, isValidLocale } from '@/i18n/config'
 import type { Locale } from '@/i18n/types'
 import { getTranslations, t, localizedPath } from '@/i18n'
 import { RelatedPages } from '@/components/Marketing/RelatedPages'
+import { ContentPage } from '@/components/Marketing/ContentPage'
+import { readPageContentLocalized } from '@/lib/content'
+import { renderContent } from '@/lib/mdx'
 
 interface PageProps {
     params: Promise<{ locale: string; exchange: string }>
@@ -41,6 +44,27 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const ex = EXCHANGES[exchange]
     if (!ex) return {}
 
+    // Try MDX content frontmatter first
+    const mdxContent = readPageContentLocalized<{ title: string; description: string; published?: boolean }>(
+        'deposit',
+        exchange,
+        locale
+    )
+    if (mdxContent && mdxContent.frontmatter.published !== false) {
+        return {
+            ...metadataHelper({
+                title: mdxContent.frontmatter.title,
+                description: mdxContent.frontmatter.description,
+                canonical: `/${locale}/deposit/from-${exchange}`,
+            }),
+            alternates: {
+                canonical: `/${locale}/deposit/from-${exchange}`,
+                languages: getAlternates('deposit', `from-${exchange}`),
+            },
+        }
+    }
+
+    // Fallback: i18n-based metadata
     const i18n = getTranslations(locale as Locale)
 
     return {
@@ -65,6 +89,24 @@ export default async function DepositPageLocalized({ params }: PageProps) {
     const ex = EXCHANGES[exchange]
     if (!ex) notFound()
 
+    // Try MDX content first
+    const mdxSource = readPageContentLocalized('deposit', exchange, locale)
+    if (mdxSource && mdxSource.frontmatter.published !== false) {
+        const { content } = await renderContent(mdxSource.body)
+        const i18n = getTranslations(locale)
+        return (
+            <ContentPage
+                breadcrumbs={[
+                    { name: i18n.home, href: '/' },
+                    { name: ex.name, href: `/${locale}/deposit/from-${exchange}` },
+                ]}
+            >
+                {content}
+            </ContentPage>
+        )
+    }
+
+    // Fallback: old React-driven page
     const i18n = getTranslations(locale as Locale)
 
     const steps = ex.steps.map((step, i) => ({
