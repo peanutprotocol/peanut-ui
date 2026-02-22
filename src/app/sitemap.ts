@@ -11,11 +11,15 @@ import type { Locale } from '@/i18n/types'
 // TODO (infra): Add peanut.me to Google Search Console and submit this sitemap
 // TODO (GA4): Create data filter to exclude trafficheap.com referral traffic
 
+/** Build date used for non-content pages that don't have their own date. */
+const BUILD_DATE = new Date()
+
 async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
     type SitemapEntry = {
         path: string
         priority: number
         changeFrequency: MetadataRoute.Sitemap[number]['changeFrequency']
+        lastModified?: Date
     }
 
     const pages: SitemapEntry[] = [
@@ -116,6 +120,7 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
                 path: `/${locale}/blog/${post.slug}`,
                 priority: 0.6 * basePriority,
                 changeFrequency: 'monthly',
+                lastModified: new Date(post.frontmatter.date),
             })
         }
 
@@ -125,7 +130,7 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
 
     return pages.map((page) => ({
         url: `${BASE_URL}${page.path}`,
-        lastModified: new Date(),
+        lastModified: page.lastModified ?? BUILD_DATE,
         changeFrequency: page.changeFrequency,
         priority: page.priority,
     }))

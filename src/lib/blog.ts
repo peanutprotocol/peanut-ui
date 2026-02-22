@@ -18,6 +18,7 @@ export interface BlogPost {
         date: string
         category?: string
         author?: string
+        faqs?: Array<{ question: string; answer: string }>
     }
     content: string
 }

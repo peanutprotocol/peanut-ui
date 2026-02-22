@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation'
+import Link from 'next/link'
 import { type Metadata } from 'next'
 import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { getAllPosts, getPostBySlug } from '@/lib/blog'
@@ -6,6 +7,7 @@ import { MarketingShell } from '@/components/Marketing/MarketingShell'
 import { JsonLd } from '@/components/Marketing/JsonLd'
 import { SUPPORTED_LOCALES, getAlternates, isValidLocale } from '@/i18n/config'
 import type { Locale } from '@/i18n/types'
+import { getTranslations } from '@/i18n'
 
 interface PageProps {
     params: Promise<{ locale: string; slug: string }>
@@ -49,6 +51,8 @@ export default async function BlogPostPageLocalized({ params }: PageProps) {
     const post = (await getPostBySlug(slug, locale as Locale)) ?? (await getPostBySlug(slug, 'en'))
     if (!post) notFound()
 
+    const i18n = getTranslations(locale)
+
     const blogPostSchema = {
         '@context': 'https://schema.org',
         '@type': 'BlogPosting',
@@ -61,10 +65,59 @@ export default async function BlogPostPageLocalized({ params }: PageProps) {
         mainEntityOfPage: `https://peanut.me/${locale}/blog/${slug}`,
     }
 
+    // FAQ schema from frontmatter (optional)
+    const faqs = post.frontmatter.faqs
+    const faqSchema = faqs?.length
+        ? {
+              '@context': 'https://schema.org',
+              '@type': 'FAQPage',
+              mainEntity: faqs.map((faq) => ({
+                  '@type': 'Question',
+                  name: faq.question,
+                  acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+              })),
+          }
+        : null
+
+    const breadcrumbs = [
+        { name: i18n.home, href: '/' },
+        { name: i18n.blog, href: `/${locale}/blog` },
+        { name: post.frontmatter.title, href: `/${locale}/blog/${slug}` },
+    ]
+
+    const breadcrumbSchema = {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: breadcrumbs.map((crumb, i) => ({
+            '@type': 'ListItem',
+            position: i + 1,
+            name: crumb.name,
+            item: crumb.href.startsWith('http') ? crumb.href : `https://peanut.me${crumb.href}`,
+        })),
+    }
+
     return (
         <>
             <JsonLd data={blogPostSchema} />
+            <JsonLd data={breadcrumbSchema} />
+            {faqSchema && <JsonLd data={faqSchema} />}
             <MarketingShell className="max-w-2xl">
+                <nav aria-label="Breadcrumb" className="mb-4 -mt-2">
+                    <ol className="flex flex-wrap items-center gap-1 text-xs text-grey-1">
+                        {breadcrumbs.map((crumb, i) => (
+                            <li key={crumb.href} className="flex items-center gap-1">
+                                {i > 0 && <span aria-hidden>/</span>}
+                                {i < breadcrumbs.length - 1 ? (
+                                    <Link href={crumb.href} className="underline decoration-n-1/30 underline-offset-2 hover:text-n-1">
+                                        {crumb.name}
+                                    </Link>
+                                ) : (
+                                    <span className="text-n-1 font-medium truncate max-w-[200px]">{crumb.name}</span>
+                                )}
+                            </li>
+                        ))}
+                    </ol>
+                </nav>
                 <header className="mb-8 border-b border-n-1 pb-6">
                     {post.frontmatter.category && (
                         <span className="mb-2 inline-block rounded-sm bg-primary-1/20 px-2 py-0.5 text-xs font-semibold">
