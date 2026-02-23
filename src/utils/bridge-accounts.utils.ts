@@ -130,11 +130,11 @@ export function isValidSortCode(sortCode: string): boolean {
 }
 
 /**
- * Validates a UK bank account number (typically 8 digits)
+ * Validates a UK bank account number (6-8 digits, zero-padded to 8 for processing)
  */
 export function isValidUKAccountNumber(accountNumber: string): boolean {
     // remove spaces
     const cleaned = accountNumber.replace(/\s/g, '')
-    // uk account numbers are typically 8 digits
-    return /^\d{8}$/.test(cleaned)
+    // uk account numbers are 6-8 digits (legacy accounts may have 6-7, padded to 8 downstream)
+    return /^\d{6,8}$/.test(cleaned)
 }

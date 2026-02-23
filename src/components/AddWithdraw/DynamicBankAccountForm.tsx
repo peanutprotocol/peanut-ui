@@ -204,9 +204,14 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 let bic = data.bic || getValues('bic')
                 const iban = data.iban || getValues('iban')
 
+                // uk account numbers may be 6-7 digits, pad to 8 for bridge api
+                const cleanedAccountNumber = isUk
+                    ? accountNumber.replace(/\s/g, '').padStart(8, '0')
+                    : accountNumber.replace(/\s/g, '')
+
                 const payload: Partial<AddBankAccountPayload> = {
                     accountType,
-                    accountNumber: accountNumber.replace(/\s/g, ''),
+                    accountNumber: cleanedAccountNumber,
                     countryCode: isUs ? 'USA' : country.toUpperCase(),
                     countryName: selectedCountry,
                     accountOwnerType: BridgeAccountOwnerType.INDIVIDUAL,
@@ -481,7 +486,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                       {
                                           required: 'Account number is required',
                                           validate: (value: string) =>
-                                              isValidUKAccountNumber(value) || 'Account number must be 8 digits',
+                                              isValidUKAccountNumber(value) || 'Account number must be 6-8 digits',
                                       },
                                       'text'
                                   )
