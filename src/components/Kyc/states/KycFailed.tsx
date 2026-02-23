@@ -48,9 +48,10 @@ export const KycFailed = ({
         }
     }, [bridgeKycRejectedAt])
 
+    // only sumsub verifications can be terminal — bridge rejections always allow retry
     const isTerminal = useMemo(
-        () => isTerminalRejection({ rejectType, failureCount, rejectLabels }),
-        [rejectType, failureCount, rejectLabels]
+        () => (isSumsub ? isTerminalRejection({ rejectType, failureCount, rejectLabels }) : false),
+        [isSumsub, rejectType, failureCount, rejectLabels]
     )
 
     // formatted bridge reason (legacy display)

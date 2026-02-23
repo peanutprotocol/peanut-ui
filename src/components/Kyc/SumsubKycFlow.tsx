@@ -220,9 +220,12 @@ export const SumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent, ...bu
                 const result = await confirmBridgeTos()
 
                 if (!result.data?.accepted) {
-                    // retry after short delay
+                    // bridge may not have registered acceptance yet — retry after short delay
                     await new Promise((resolve) => setTimeout(resolve, 2000))
-                    await confirmBridgeTos()
+                    const retryResult = await confirmBridgeTos()
+                    if (!retryResult.data?.accepted) {
+                        console.warn('[SumsubKycFlow] bridge ToS confirmation failed after retry')
+                    }
                 }
 
                 // refetch user — the phase-transition effect will handle moving to 'complete'
