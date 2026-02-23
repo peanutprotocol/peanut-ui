@@ -118,3 +118,23 @@ export function isValidRoutingNumber(routingNumber: string): boolean {
 
     return sum % 10 === 0
 }
+
+/**
+ * Validates a UK sort code (6 digits, optionally formatted as XX-XX-XX)
+ */
+export function isValidSortCode(sortCode: string): boolean {
+    // remove dashes and spaces
+    const cleaned = sortCode.replace(/[-\s]/g, '')
+    // must be exactly 6 digits
+    return /^\d{6}$/.test(cleaned)
+}
+
+/**
+ * Validates a UK bank account number (typically 8 digits)
+ */
+export function isValidUKAccountNumber(accountNumber: string): boolean {
+    // remove spaces
+    const cleaned = accountNumber.replace(/\s/g, '')
+    // uk account numbers are typically 8 digits
+    return /^\d{8}$/.test(cleaned)
+}

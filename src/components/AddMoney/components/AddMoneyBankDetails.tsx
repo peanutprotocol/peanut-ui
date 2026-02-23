@@ -135,11 +135,12 @@ export default function AddMoneyBankDetails({ flow = 'add-money' }: IAddMoneyBan
         return formatCurrencyAmount(amount, onrampCurrency)
     }, [amount, onrampCurrency, flow])
 
+    const isUk = currentCountryDetails?.id === 'GB' || currentCountryDetails?.iso3 === 'GBR'
+
     const generateBankDetails = async () => {
         const formattedAmount = formattedCurrencyAmount
         const isMexico = currentCountryDetails?.id === 'MX'
         const isUs = currentCountryDetails?.id === 'US'
-        const isEuro = !isUs && !isMexico
 
         let bankDetails = `Bank Transfer Details:
 Amount: ${formattedAmount}
@@ -152,7 +153,7 @@ Beneficiary Address: ${onrampData?.depositInstructions?.bankBeneficiaryAddress}
             `
         }
 
-        if (isEuro || isMexico) {
+        if (!isUs && !isMexico && !isUk) {
             bankDetails += `
 Account Holder Name: ${onrampData?.depositInstructions?.accountHolderName}
             `
@@ -161,11 +162,19 @@ Account Holder Name: ${onrampData?.depositInstructions?.accountHolderName}
         // for mexico, include clabe
         if (isMexico) {
             bankDetails += `
+Account Holder Name: ${onrampData?.depositInstructions?.accountHolderName}
 CLABE: ${onrampData?.depositInstructions?.clabe || 'Loading...'}`
         }
 
-        // only include bank address and account details for non-mexico countries
-        if (!isMexico) {
+        // uk faster payments
+        if (isUk) {
+            bankDetails += `
+Sort Code: ${onrampData?.depositInstructions?.sortCode || 'Loading...'}
+Account Number: ${onrampData?.depositInstructions?.accountNumber || 'Loading...'}`
+        }
+
+        // us and sepa countries
+        if (!isMexico && !isUk) {
             bankDetails += `
 Bank Address: ${onrampData?.depositInstructions?.bankAddress || 'Loading...'}`
 
@@ -297,45 +306,60 @@ Please use these details to complete your bank transfer.`
                             allowCopy={!!onrampData?.depositInstructions?.clabe}
                             hideBottomBorder
                         />
+                    ) : isUk ? (
+                        <>
+                            <PaymentInfoRow
+                                label="Sort Code"
+                                value={onrampData?.depositInstructions?.sortCode || 'N/A'}
+                                allowCopy={!!onrampData?.depositInstructions?.sortCode}
+                                hideBottomBorder
+                            />
+                            <PaymentInfoRow
+                                label="Account Number"
+                                value={onrampData?.depositInstructions?.accountNumber || 'N/A'}
+                                allowCopy={!!onrampData?.depositInstructions?.accountNumber}
+                                hideBottomBorder
+                            />
+                        </>
                     ) : (
-                        <PaymentInfoRow
-                            label={onrampData?.depositInstructions?.bankAccountNumber ? 'Account Number' : 'IBAN'}
-                            value={
-                                onrampData?.depositInstructions?.bankAccountNumber ||
-                                (onrampData?.depositInstructions?.iban
-                                    ? formatBankAccountDisplay(onrampData.depositInstructions.iban, 'iban')
-                                    : null) ||
-                                'N/A'
-                            }
-                            allowCopy={
-                                !!(
+                        <>
+                            <PaymentInfoRow
+                                label={onrampData?.depositInstructions?.bankAccountNumber ? 'Account Number' : 'IBAN'}
+                                value={
+                                    onrampData?.depositInstructions?.bankAccountNumber ||
+                                    (onrampData?.depositInstructions?.iban
+                                        ? formatBankAccountDisplay(onrampData.depositInstructions.iban, 'iban')
+                                        : null) ||
+                                    'N/A'
+                                }
+                                allowCopy={
+                                    !!(
+                                        onrampData?.depositInstructions?.bankAccountNumber ||
+                                        onrampData?.depositInstructions?.iban
+                                    )
+                                }
+                                copyValue={
                                     onrampData?.depositInstructions?.bankAccountNumber ||
                                     onrampData?.depositInstructions?.iban
-                                )
-                            }
-                            copyValue={
-                                onrampData?.depositInstructions?.bankAccountNumber ||
-                                onrampData?.depositInstructions?.iban
-                            }
-                            hideBottomBorder
-                        />
-                    )}
-                    {currentCountryDetails?.id !== 'MX' && (
-                        <PaymentInfoRow
-                            label={onrampData?.depositInstructions?.bankRoutingNumber ? 'Routing Number' : 'BIC'}
-                            value={
-                                onrampData?.depositInstructions?.bankRoutingNumber ||
-                                onrampData?.depositInstructions?.bic ||
-                                'N/A'
-                            }
-                            allowCopy={
-                                !!(
+                                }
+                                hideBottomBorder
+                            />
+                            <PaymentInfoRow
+                                label={onrampData?.depositInstructions?.bankRoutingNumber ? 'Routing Number' : 'BIC'}
+                                value={
                                     onrampData?.depositInstructions?.bankRoutingNumber ||
-                                    onrampData?.depositInstructions?.bic
-                                )
-                            }
-                            hideBottomBorder
-                        />
+                                    onrampData?.depositInstructions?.bic ||
+                                    'N/A'
+                                }
+                                allowCopy={
+                                    !!(
+                                        onrampData?.depositInstructions?.bankRoutingNumber ||
+                                        onrampData?.depositInstructions?.bic
+                                    )
+                                }
+                                hideBottomBorder
+                            />
+                        </>
                     )}
                     {isNonUsdCurrency && (
                         <PaymentInfoRow

@@ -12,12 +12,14 @@ export const getCurrencyPrice = async (currencyCode: string): Promise<{ buy: num
     if (currencyCode === 'USD') {
         buy = 1
         sell = 1
-    } else if (['EUR', 'MXN'].includes(currencyCode)) {
+    } else if (['EUR', 'MXN', 'GBP'].includes(currencyCode)) {
         let accountType: AccountType
         if (currencyCode === 'EUR') {
             accountType = AccountType.IBAN
         } else if (currencyCode === 'MXN') {
             accountType = AccountType.CLABE
+        } else if (currencyCode === 'GBP') {
+            accountType = AccountType.GB
         } else {
             throw new Error('Invalid currency code')
         }

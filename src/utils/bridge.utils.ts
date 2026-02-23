@@ -28,6 +28,13 @@ export const getCurrencyConfig = (countryId: string, operationType: BridgeOperat
         }
     }
 
+    if (countryId === 'GB' || countryId === 'GBR') {
+        return {
+            currency: 'gbp',
+            paymentRail: 'faster_payments', // UK Faster Payments
+        }
+    }
+
     // All other countries use EUR/SEPA
     return {
         currency: 'eur',
@@ -50,6 +57,7 @@ export const getCurrencySymbol = (currency: string): string => {
         usd: '$',
         eur: '€',
         mxn: 'MX$',
+        gbp: '£',
     }
     return symbols[currency.toLowerCase()] || currency.toUpperCase()
 }
@@ -60,6 +68,11 @@ export const getCurrencySymbol = (currency: string): string => {
 export const getMinimumAmount = (countryId: string): number => {
     if (countryId === 'MX') {
         return 50
+    }
+
+    // UK has a minimum of 3 GBP
+    if (countryId === 'GB' || countryId === 'GBR') {
+        return 3
     }
 
     // Default minimum for all other countries (including US and EU)
@@ -76,6 +89,7 @@ export const getPaymentRailDisplayName = (paymentRail: string): string => {
         sepa: 'SEPA Transfer',
         spei: 'SPEI Transfer',
         wire: 'Wire Transfer',
+        faster_payments: 'Faster Payments',
     }
     return displayNames[paymentRail] || paymentRail.toUpperCase()
 }
@@ -154,6 +168,11 @@ export const inferBankAccountType = (accountId: string): string => {
     // ACH (US): typically 9-15 digits (routing + account)
     if (/^\d{9,10}$/.test(accountId) || /^\d{12,13}$/.test(accountId) || /^\d{15}$/.test(accountId)) {
         return 'ACH'
+    }
+
+    // UK Faster Payments: 8-digit account number (sort code stored separately)
+    if (/^\d{8}$/.test(accountId)) {
+        return 'Faster Payments (UK)'
     }
 
     // Fallback for other numeric formats

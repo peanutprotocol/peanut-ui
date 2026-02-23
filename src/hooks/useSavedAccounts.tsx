@@ -16,7 +16,11 @@ export default function useSavedAccounts() {
     const savedAccounts = useMemo(() => {
         return (
             user?.accounts.filter(
-                (acc) => acc.type === AccountType.IBAN || acc.type === AccountType.US || acc.type === AccountType.CLABE
+                (acc) =>
+                    acc.type === AccountType.IBAN ||
+                    acc.type === AccountType.US ||
+                    acc.type === AccountType.CLABE ||
+                    acc.type === AccountType.GB
             ) ?? []
         )
     }, [user])

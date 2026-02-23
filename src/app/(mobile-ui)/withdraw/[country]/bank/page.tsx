@@ -100,6 +100,9 @@ export default function WithdrawBankPage() {
             case AccountType.CLABE:
                 countryId = 'MX'
                 break
+            case AccountType.GB:
+                countryId = 'GB'
+                break
             default:
                 return {
                     currency: '',
@@ -124,6 +127,8 @@ export default function WithdrawBankPage() {
             return bankAccount.routingNumber?.toUpperCase() ?? 'N/A'
         } else if (bankAccount && bankAccount.type === AccountType.CLABE) {
             return bankAccount.identifier?.toUpperCase() ?? 'N/A'
+        } else if (bankAccount && bankAccount.type === AccountType.GB) {
+            return bankAccount.sortCode ?? 'N/A'
         }
 
         return 'N/A'
@@ -281,8 +286,8 @@ export default function WithdrawBankPage() {
                         tokenSymbol={PEANUT_WALLET_TOKEN_SYMBOL}
                     />
 
-                    {/* Warning for non-EUR SEPA countries */}
-                    {isNonEuroSepa && (
+                    {/* Warning for non-EUR SEPA countries (not UK — UK uses Faster Payments with GBP) */}
+                    {isNonEuroSepa && bankAccount?.type !== AccountType.GB && (
                         <InfoCard
                             variant="info"
                             icon="info"
@@ -313,6 +318,11 @@ export default function WithdrawBankPage() {
                         ) : bankAccount?.type === AccountType.CLABE ? (
                             <>
                                 <PaymentInfoRow label={'CLABE'} value={bankAccount?.identifier.toUpperCase()} />
+                            </>
+                        ) : bankAccount?.type === AccountType.GB ? (
+                            <>
+                                <PaymentInfoRow label={'Account Number'} value={bankAccount?.identifier} />
+                                <PaymentInfoRow label={'Sort Code'} value={getBicAndRoutingNumber()} />
                             </>
                         ) : (
                             <>
