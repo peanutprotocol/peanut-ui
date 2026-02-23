@@ -35,8 +35,30 @@ describe('bridge.utils', () => {
             })
         })
 
+        it('should return GBP with Faster Payments for UK', () => {
+            const onrampConfig = getCurrencyConfig('GB', 'onramp')
+            expect(onrampConfig).toEqual({
+                currency: 'gbp',
+                paymentRail: 'faster_payments',
+            })
+
+            const offrampConfig = getCurrencyConfig('GB', 'offramp')
+            expect(offrampConfig).toEqual({
+                currency: 'gbp',
+                paymentRail: 'faster_payments',
+            })
+        })
+
+        it('should handle GBR country code for UK', () => {
+            const config = getCurrencyConfig('GBR', 'onramp')
+            expect(config).toEqual({
+                currency: 'gbp',
+                paymentRail: 'faster_payments',
+            })
+        })
+
         it('should return EUR with SEPA for other countries', () => {
-            const countries = ['DE', 'FR', 'IT', 'ES', 'NL', 'CA', 'GB', 'AU', 'JP']
+            const countries = ['DE', 'FR', 'IT', 'ES', 'NL', 'CA', 'AU', 'JP']
 
             countries.forEach((country) => {
                 const onrampConfig = getCurrencyConfig(country, 'onramp')
@@ -124,6 +146,16 @@ describe('bridge.utils', () => {
                 expect(minimum).toBe(1)
             })
 
+            it('should return 3 for UK', () => {
+                const minimum = getMinimumAmount('GB')
+                expect(minimum).toBe(3)
+            })
+
+            it('should return 3 for GBR country code', () => {
+                const minimum = getMinimumAmount('GBR')
+                expect(minimum).toBe(3)
+            })
+
             it('should return 1 for other countries', () => {
                 const minimum = getMinimumAmount('DE')
                 expect(minimum).toBe(1)
@@ -156,6 +188,7 @@ describe('bridge.utils', () => {
             expect(getPaymentRailDisplayName('sepa')).toBe('SEPA Transfer')
             expect(getPaymentRailDisplayName('spei')).toBe('SPEI Transfer')
             expect(getPaymentRailDisplayName('wire')).toBe('Wire Transfer')
+            expect(getPaymentRailDisplayName('faster_payments')).toBe('Faster Payments')
         })
 
         it('should return uppercase payment rail for unsupported rails', () => {
@@ -184,6 +217,15 @@ describe('bridge.utils', () => {
 
             expect(onrampConfig.paymentRail).toBe('spei')
             expect(offrampConfig.paymentRail).toBe('spei')
+            expect(onrampConfig.currency).toBe(offrampConfig.currency)
+        })
+
+        it('should use same payment rails for UK onramp vs offramp', () => {
+            const onrampConfig = getCurrencyConfig('GB', 'onramp')
+            const offrampConfig = getCurrencyConfig('GB', 'offramp')
+
+            expect(onrampConfig.paymentRail).toBe('faster_payments')
+            expect(offrampConfig.paymentRail).toBe('faster_payments')
             expect(onrampConfig.currency).toBe(offrampConfig.currency)
         })
 

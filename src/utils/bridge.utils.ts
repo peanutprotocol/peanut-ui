@@ -94,6 +94,10 @@ export const getPaymentRailDisplayName = (paymentRail: string): string => {
     return displayNames[paymentRail] || paymentRail.toUpperCase()
 }
 
+export function getCountryFromPath(countryPath: string): CountryData | undefined {
+    return ALL_METHODS_DATA.find((c) => c.path.toLowerCase() === countryPath.toLowerCase())
+}
+
 export function getCountryFromAccount(account: Account): CountryData | undefined {
     const threeLetterCountryCode = (account.details.countryCode ?? '').toUpperCase()
 
