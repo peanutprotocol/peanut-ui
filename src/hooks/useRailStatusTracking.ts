@@ -9,6 +9,7 @@ interface RailStatusTrackingResult {
     providers: ProviderStatus[]
     allSettled: boolean
     needsBridgeTos: boolean
+    needsAdditionalDocs: boolean
     startTracking: () => void
     stopTracking: () => void
 }
@@ -35,8 +36,9 @@ function deriveStatus(rail: IUserRail): ProviderDisplayStatus {
     switch (rail.status) {
         case 'ENABLED':
             return 'enabled'
-        case 'REQUIRES_INFORMATION':
         case 'REQUIRES_EXTRA_INFORMATION':
+            return 'requires_documents'
+        case 'REQUIRES_INFORMATION':
             return 'requires_tos'
         case 'FAILED':
         case 'REJECTED':
@@ -50,7 +52,8 @@ function deriveStatus(rail: IUserRail): ProviderDisplayStatus {
 // pick the "most advanced" status for a provider group
 function deriveGroupStatus(rails: IUserRail[]): ProviderDisplayStatus {
     const statuses = rails.map(deriveStatus)
-    // priority: requires_tos > enabled > failed > setting_up
+    // priority: requires_documents > requires_tos > enabled > failed > setting_up
+    if (statuses.includes('requires_documents')) return 'requires_documents'
     if (statuses.includes('requires_tos')) return 'requires_tos'
     if (statuses.includes('enabled')) return 'enabled'
     if (statuses.includes('failed')) return 'failed'
@@ -110,6 +113,10 @@ export const useRailStatusTracking = (): RailStatusTrackingResult => {
         return providers.some((p) => p.providerCode === 'BRIDGE' && p.status === 'requires_tos')
     }, [providers])
 
+    const needsAdditionalDocs = useMemo(() => {
+        return providers.some((p) => p.status === 'requires_documents')
+    }, [providers])
+
     // stop polling when all settled
     useEffect(() => {
         if (allSettled && isTracking) {
@@ -156,6 +163,7 @@ export const useRailStatusTracking = (): RailStatusTrackingResult => {
         providers,
         allSettled,
         needsBridgeTos,
+        needsAdditionalDocs,
         startTracking,
         stopTracking,
     }

@@ -25,6 +25,8 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const prevStatusRef = useRef(liveKycStatus)
     // tracks the effective region intent across initiate + refresh so the correct template is always used
     const regionIntentRef = useRef<KYCRegionIntent | undefined>(regionIntent)
+    // tracks the level name across initiate + refresh (e.g. 'peanut-additional-docs')
+    const levelNameRef = useRef<string | undefined>(undefined)
 
     useEffect(() => {
         regionIntentRef.current = regionIntent
@@ -79,12 +81,15 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     }, [regionIntent])
 
     const handleInitiateKyc = useCallback(
-        async (overrideIntent?: KYCRegionIntent) => {
+        async (overrideIntent?: KYCRegionIntent, levelName?: string) => {
             setIsLoading(true)
             setError(null)
 
             try {
-                const response = await initiateSumsubKyc({ regionIntent: overrideIntent ?? regionIntent })
+                const response = await initiateSumsubKyc({
+                    regionIntent: overrideIntent ?? regionIntent,
+                    levelName,
+                })
 
                 if (response.error) {
                     setError(response.error)
@@ -96,9 +101,10 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     setLiveKycStatus(response.data.status)
                 }
 
-                // update effective intent for token refresh
+                // update effective intent + level for token refresh
                 const effectiveIntent = overrideIntent ?? regionIntent
                 if (effectiveIntent) regionIntentRef.current = effectiveIntent
+                levelNameRef.current = levelName
 
                 // if already approved, no token is returned.
                 // set prevStatusRef so the transition effect doesn't fire onKycSuccess a second time.
@@ -137,9 +143,12 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     }, [onManualClose])
 
     // token refresh function passed to the sdk for when the token expires.
-    // uses regionIntentRef so refresh always matches the template used during initiation.
+    // uses regionIntentRef + levelNameRef so refresh always matches the template used during initiation.
     const refreshToken = useCallback(async (): Promise<string> => {
-        const response = await initiateSumsubKyc({ regionIntent: regionIntentRef.current })
+        const response = await initiateSumsubKyc({
+            regionIntent: regionIntentRef.current,
+            levelName: levelNameRef.current,
+        })
 
         if (response.error || !response.data?.token) {
             throw new Error(response.error || 'Failed to refresh token')

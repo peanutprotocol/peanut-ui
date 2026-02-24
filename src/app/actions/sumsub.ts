@@ -10,6 +10,7 @@ const API_KEY = process.env.PEANUT_API_KEY!
 // initiate kyc flow (using sumsub) and get websdk access token
 export const initiateSumsubKyc = async (params?: {
     regionIntent?: KYCRegionIntent
+    levelName?: string
 }): Promise<{ data?: InitiateSumsubKycResponse; error?: string }> => {
     const jwtToken = (await getJWTCookie())?.value
 
@@ -19,6 +20,7 @@ export const initiateSumsubKyc = async (params?: {
 
     const body: Record<string, string | undefined> = {
         regionIntent: params?.regionIntent,
+        levelName: params?.levelName,
     }
 
     try {

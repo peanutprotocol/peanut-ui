@@ -7,7 +7,7 @@ export type RecipientType = 'address' | 'ens' | 'iban' | 'us' | 'username'
 export type KycModalPhase = 'verifying' | 'preparing' | 'bridge_tos' | 'complete'
 
 // per-provider rail status for tracking after kyc approval
-export type ProviderDisplayStatus = 'setting_up' | 'requires_tos' | 'enabled' | 'failed'
+export type ProviderDisplayStatus = 'setting_up' | 'requires_tos' | 'requires_documents' | 'enabled' | 'failed'
 
 export interface ProviderStatus {
     providerCode: string
@@ -348,7 +348,7 @@ export interface IUserRail {
     id: string
     railId: string
     status: UserRailStatus
-    metadata?: { bridgeCustomerId?: string; [key: string]: unknown } | null
+    metadata?: { bridgeCustomerId?: string; additionalRequirements?: string[]; [key: string]: unknown } | null
     rail: {
         id: string
         provider: { code: string; name: string }
