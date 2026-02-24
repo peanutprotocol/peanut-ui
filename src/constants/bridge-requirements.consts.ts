@@ -31,11 +31,11 @@ const FALLBACK_LABEL: RequirementLabelInfo = {
 
 /** get human-readable label for a bridge additional requirement */
 export function getRequirementLabel(requirement: string): RequirementLabelInfo {
-    return BRIDGE_REQUIREMENT_LABELS[requirement] ?? {
-        // auto-format unknown requirement codes as title case
-        title: requirement
-            .replace(/_/g, ' ')
-            .replace(/\b\w/g, (c) => c.toUpperCase()),
-        description: FALLBACK_LABEL.description,
-    }
+    return (
+        BRIDGE_REQUIREMENT_LABELS[requirement] ?? {
+            // auto-format unknown requirement codes as title case
+            title: requirement.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+            description: FALLBACK_LABEL.description,
+        }
+    )
 }

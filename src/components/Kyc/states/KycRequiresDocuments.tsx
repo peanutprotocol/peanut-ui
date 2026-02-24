@@ -19,15 +19,13 @@ export const KycRequiresDocuments = ({
             <KYCStatusDrawerItem status="pending" customText="Additional documents needed" />
 
             <div className="space-y-3">
-                <p className="text-sm text-gray-1">
-                    Your payment provider requires additional verification documents.
-                </p>
+                <p className="text-sm text-gray-1">Your payment provider requires additional verification documents.</p>
                 {requirements.map((req) => {
                     const label = getRequirementLabel(req)
                     return (
                         <div key={req} className="border border-n-1 p-3">
                             <p className="text-sm font-bold">{label.title}</p>
-                            <p className="text-xs text-gray-1 mt-1">{label.description}</p>
+                            <p className="mt-1 text-xs text-gray-1">{label.description}</p>
                         </div>
                     )
                 })}
