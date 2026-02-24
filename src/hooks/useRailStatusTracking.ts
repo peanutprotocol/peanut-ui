@@ -18,7 +18,7 @@ const POLL_INTERVAL_MS = 4000
 // human-readable labels for provider groups
 const PROVIDER_LABELS: Record<string, string> = {
     BRIDGE: 'Bank transfers',
-    MANTECA: 'QR payments',
+    MANTECA: 'QR payments and bank transfers',
 }
 
 function deriveProviderDisplayName(providerCode: string, rails: IUserRail[]): string {
