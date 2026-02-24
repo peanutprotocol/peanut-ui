@@ -41,6 +41,10 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className, size = 'sm
     }
 
     const getStatusText = () => {
+        // customText overrides the default label for any status type,
+        // allowing callers to use a specific status style with custom text
+        if (customText) return customText
+
         switch (status) {
             case 'completed':
                 return 'Completed'
@@ -59,7 +63,7 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className, size = 'sm
             case 'closed':
                 return 'Closed'
             case 'custom':
-                return customText
+                return 'Custom'
             default:
                 return status
         }

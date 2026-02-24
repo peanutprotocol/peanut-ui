@@ -15,6 +15,7 @@ import {
     isKycStatusPending,
     isKycStatusFailed,
     isKycStatusNotStarted,
+    isKycStatusActionRequired,
 } from '@/constants/kyc.consts'
 
 // this component shows the current kyc status and opens a drawer with more details on click
@@ -54,15 +55,23 @@ export const KycStatusItem = ({
     const isApproved = isKycStatusApproved(kycStatus)
     const isPending = isKycStatusPending(kycStatus)
     const isRejected = isKycStatusFailed(kycStatus)
+    const isActionRequired = isKycStatusActionRequired(kycStatus)
+    // if a verification record exists with NOT_STARTED, the user has initiated KYC
+    // (backend creates the record on initiation). only hide for bridge's default state.
+    const isInitiatedButNotStarted = !!verification && isKycStatusNotStarted(kycStatus)
 
     const subtitle = useMemo(() => {
+        if (isInitiatedButNotStarted) return 'In progress'
+        if (isActionRequired) return 'Action needed'
         if (isPending) return 'Under review'
         if (isApproved) return 'Approved'
         if (isRejected) return 'Rejected'
         return 'Unknown'
-    }, [isPending, isApproved, isRejected])
+    }, [isInitiatedButNotStarted, isActionRequired, isPending, isApproved, isRejected])
 
-    if (isKycStatusNotStarted(kycStatus)) {
+    // only hide for bridge's default "not_started" state.
+    // if a verification record exists, the user has initiated KYC — show it.
+    if (!verification && isKycStatusNotStarted(kycStatus)) {
         return null
     }
 
@@ -82,7 +91,15 @@ export const KycStatusItem = ({
                             <p className="font-semibold">Identity verification</p>
                             <div className="flex items-center gap-2">
                                 <p className="text-sm text-grey-1">{subtitle}</p>
-                                <StatusPill status={isPending ? 'pending' : isRejected ? 'cancelled' : 'completed'} />
+                                <StatusPill
+                                    status={
+                                        isInitiatedButNotStarted || isActionRequired || isPending
+                                            ? 'pending'
+                                            : isRejected
+                                              ? 'cancelled'
+                                              : 'completed'
+                                    }
+                                />
                             </div>
                         </div>
                     </div>

@@ -6,7 +6,7 @@ import { type IconName } from '@/components/Global/Icons/Icon'
 import { useMantecaKycFlow } from '@/hooks/useMantecaKycFlow'
 import { type CountryData } from '@/components/AddMoney/consts'
 import { Button } from '@/components/0_Bruddle/Button'
-import { PeanutDoesntStoreAnyPersonalInformation } from './KycVerificationInProgressModal'
+import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
 import { useEffect } from 'react'
 
 interface Props {

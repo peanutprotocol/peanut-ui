@@ -8,16 +8,52 @@ import NavHeader from '@/components/Global/NavHeader'
 import StartVerificationModal from '@/components/IdentityVerification/StartVerificationModal'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { KycVerificationInProgressModal } from '@/components/Kyc/KycVerificationInProgressModal'
+import { KycProcessingModal } from '@/components/Kyc/modals/KycProcessingModal'
+import { KycActionRequiredModal } from '@/components/Kyc/modals/KycActionRequiredModal'
+import { KycRejectedModal } from '@/components/Kyc/modals/KycRejectedModal'
+import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { useIdentityVerification, getRegionIntent, type Region } from '@/hooks/useIdentityVerification'
+import useUnifiedKycStatus from '@/hooks/useUnifiedKycStatus'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
+import { useAuth } from '@/context/authContext'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useMemo } from 'react'
 import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
+
+type ModalVariant = 'start' | 'processing' | 'action_required' | 'rejected'
+
+// determine which modal to show based on sumsub status and clicked region intent
+function getModalVariant(
+    sumsubStatus: string | null,
+    clickedRegionIntent: KYCRegionIntent | undefined,
+    existingRegionIntent: string | null
+): ModalVariant {
+    // no verification or not started → start fresh
+    if (!sumsubStatus || sumsubStatus === 'NOT_STARTED') return 'start'
+
+    // different region intent → allow new verification
+    if (existingRegionIntent && clickedRegionIntent && clickedRegionIntent !== existingRegionIntent) return 'start'
+
+    switch (sumsubStatus) {
+        case 'PENDING':
+        case 'IN_REVIEW':
+            return 'processing'
+        case 'ACTION_REQUIRED':
+            return 'action_required'
+        case 'REJECTED':
+        case 'FAILED':
+            return 'rejected'
+        default:
+            return 'start'
+    }
+}
 
 const RegionsVerification = () => {
     const router = useRouter()
+    const { user, fetchUser } = useAuth()
     const { unlockedRegions, lockedRegions } = useIdentityVerification()
+    const { sumsubStatus, sumsubRejectLabels, sumsubRejectType, sumsubVerificationRegionIntent } = useUnifiedKycStatus()
     const [selectedRegion, setSelectedRegion] = useState<Region | null>(null)
     // keeps the region display stable during modal close animation
     const displayRegionRef = useRef<Region | null>(null)
@@ -25,6 +61,42 @@ const RegionsVerification = () => {
     // persist region intent for the duration of the kyc session so token refresh
     // and status checks use the correct template after the confirmation modal closes
     const [activeRegionIntent, setActiveRegionIntent] = useState<KYCRegionIntent | undefined>(undefined)
+    const [showBridgeTos, setShowBridgeTos] = useState(false)
+    // skip StartVerificationView when re-submitting (user already consented)
+    const [autoStartSdk, setAutoStartSdk] = useState(false)
+
+    const sumsubFailureCount = useMemo(
+        () =>
+            user?.user?.kycVerifications?.filter((v) => v.provider === 'SUMSUB' && v.status === 'REJECTED').length ?? 0,
+        [user]
+    )
+
+    const clickedRegionIntent = selectedRegion ? getRegionIntent(selectedRegion.path) : undefined
+    const modalVariant = selectedRegion
+        ? getModalVariant(sumsubStatus, clickedRegionIntent, sumsubVerificationRegionIntent)
+        : null
+
+    const handleFinalKycSuccess = useCallback(() => {
+        setSelectedRegion(null)
+        setActiveRegionIntent(undefined)
+        setShowBridgeTos(false)
+        setAutoStartSdk(false)
+    }, [])
+
+    // intercept sumsub approval to check for bridge ToS
+    const handleKycApproved = useCallback(async () => {
+        const updatedUser = await fetchUser()
+        const rails = updatedUser?.rails ?? []
+        const bridgeNeedsTos = rails.some(
+            (r) => r.rail.provider.code === 'BRIDGE' && r.status === 'REQUIRES_INFORMATION'
+        )
+
+        if (bridgeNeedsTos) {
+            setShowBridgeTos(true)
+        } else {
+            handleFinalKycSuccess()
+        }
+    }, [fetchUser, handleFinalKycSuccess])
 
     const {
         isLoading,
@@ -39,13 +111,11 @@ const RegionsVerification = () => {
         closeVerificationProgressModal,
     } = useSumsubKycFlow({
         regionIntent: activeRegionIntent,
-        onKycSuccess: () => {
-            setSelectedRegion(null)
-            setActiveRegionIntent(undefined)
-        },
+        onKycSuccess: handleKycApproved,
         onManualClose: () => {
             setSelectedRegion(null)
             setActiveRegionIntent(undefined)
+            setAutoStartSdk(false)
         },
     })
 
@@ -63,6 +133,12 @@ const RegionsVerification = () => {
         setSelectedRegion(null)
         await handleInitiateKyc(intent)
     }, [handleInitiateKyc, selectedRegion])
+
+    // re-submission: skip StartVerificationView since user already consented
+    const handleResubmitKyc = useCallback(async () => {
+        setAutoStartSdk(true)
+        await handleStartKyc()
+    }, [handleStartKyc])
 
     return (
         <div className="flex min-h-[inherit] flex-col space-y-8">
@@ -99,11 +175,31 @@ const RegionsVerification = () => {
             </div>
 
             <StartVerificationModal
-                visible={!!selectedRegion}
+                visible={modalVariant === 'start'}
                 onClose={handleModalClose}
                 onStartVerification={handleStartKyc}
                 selectedRegion={displayRegionRef.current}
                 isLoading={isLoading}
+            />
+
+            <KycProcessingModal visible={modalVariant === 'processing'} onClose={handleModalClose} />
+
+            <KycActionRequiredModal
+                visible={modalVariant === 'action_required'}
+                onClose={handleModalClose}
+                onResubmit={handleResubmitKyc}
+                isLoading={isLoading}
+                rejectLabels={sumsubRejectLabels}
+            />
+
+            <KycRejectedModal
+                visible={modalVariant === 'rejected'}
+                onClose={handleModalClose}
+                onRetry={handleResubmitKyc}
+                isLoading={isLoading}
+                rejectLabels={sumsubRejectLabels}
+                rejectType={sumsubRejectType}
+                failureCount={sumsubFailureCount}
             />
 
             {error && <p className="text-red-500 mt-2 text-sm">{error}</p>}
@@ -114,12 +210,15 @@ const RegionsVerification = () => {
                 onClose={handleSumsubClose}
                 onComplete={handleSdkComplete}
                 onRefreshToken={refreshToken}
+                autoStart={autoStartSdk}
             />
 
             <KycVerificationInProgressModal
                 isOpen={isVerificationProgressModalOpen}
                 onClose={closeVerificationProgressModal}
             />
+
+            <BridgeTosStep visible={showBridgeTos} onComplete={handleFinalKycSuccess} onSkip={handleFinalKycSuccess} />
         </div>
     )
 }

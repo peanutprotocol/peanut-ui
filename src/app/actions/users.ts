@@ -160,3 +160,47 @@ export async function getContacts(params: {
         return { error: e instanceof Error ? e.message : 'An unexpected error occurred' }
     }
 }
+
+// fetch bridge ToS acceptance link for users with pending ToS
+export const getBridgeTosLink = async (): Promise<{ data?: { tosLink: string }; error?: string }> => {
+    const jwtToken = (await getJWTCookie())?.value
+    try {
+        const response = await fetchWithSentry(`${PEANUT_API_URL}/users/bridge-tos-link`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${jwtToken}`,
+                'api-key': API_KEY,
+            },
+        })
+        const responseJson = await response.json()
+        if (!response.ok) {
+            return { error: responseJson.error || 'Failed to fetch Bridge ToS link' }
+        }
+        return { data: responseJson }
+    } catch (e: unknown) {
+        return { error: e instanceof Error ? e.message : 'An unexpected error occurred' }
+    }
+}
+
+// confirm bridge ToS acceptance after user closes the ToS iframe
+export const confirmBridgeTos = async (): Promise<{ data?: { accepted: boolean }; error?: string }> => {
+    const jwtToken = (await getJWTCookie())?.value
+    try {
+        const response = await fetchWithSentry(`${PEANUT_API_URL}/users/bridge-tos-confirm`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${jwtToken}`,
+                'api-key': API_KEY,
+            },
+        })
+        const responseJson = await response.json()
+        if (!response.ok) {
+            return { error: responseJson.error || 'Failed to confirm Bridge ToS' }
+        }
+        return { data: responseJson }
+    } catch (e: unknown) {
+        return { error: e instanceof Error ? e.message : 'An unexpected error occurred' }
+    }
+}
