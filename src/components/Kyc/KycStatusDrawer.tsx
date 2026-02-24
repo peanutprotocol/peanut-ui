@@ -2,6 +2,7 @@ import { KycActionRequired } from './states/KycActionRequired'
 import { KycCompleted } from './states/KycCompleted'
 import { KycFailed } from './states/KycFailed'
 import { KycProcessing } from './states/KycProcessing'
+import { KycRequiresDocuments } from './states/KycRequiresDocuments'
 import { Drawer, DrawerContent, DrawerTitle } from '../Global/Drawer'
 import { type BridgeKycStatus } from '@/utils/bridge-accounts.utils'
 import { type IUserKycVerification } from '@/interfaces'
@@ -83,6 +84,16 @@ export const KycStatusDrawer = ({ isOpen, onClose, verification, bridgeKycStatus
 
     const isLoadingKyc = isBridgeLoading || isMantecaLoading || isSumsubLoading
 
+    // check if any bridge rail needs additional documents
+    const bridgeRailsNeedingDocs = (user?.rails ?? []).filter(
+        (r) => r.status === 'REQUIRES_EXTRA_INFORMATION' && r.rail.provider.code === 'BRIDGE'
+    )
+    const additionalRequirements: string[] =
+        bridgeRailsNeedingDocs.length > 0
+            ? ((bridgeRailsNeedingDocs[0].metadata?.additionalRequirements as string[]) ?? [])
+            : []
+    const needsAdditionalDocs = additionalRequirements.length > 0
+
     // count sumsub rejections for failure lockout.
     // counts total REJECTED entries — accurate if backend creates a new row per attempt.
     // if backend updates in-place (single row), this will be 0 or 1 and the lockout
@@ -90,7 +101,22 @@ export const KycStatusDrawer = ({ isOpen, onClose, verification, bridgeKycStatus
     const sumsubFailureCount =
         user?.user?.kycVerifications?.filter((v) => v.provider === 'SUMSUB' && v.status === 'REJECTED').length ?? 0
 
+    const handleSubmitAdditionalDocs = async () => {
+        await initiateSumsub(undefined, 'peanut-additional-docs')
+    }
+
     const renderContent = () => {
+        // bridge additional document requirement takes priority over verification status
+        if (needsAdditionalDocs) {
+            return (
+                <KycRequiresDocuments
+                    requirements={additionalRequirements}
+                    onSubmitDocuments={handleSubmitAdditionalDocs}
+                    isLoading={isLoadingKyc}
+                />
+            )
+        }
+
         switch (statusCategory) {
             case 'processing':
                 return (

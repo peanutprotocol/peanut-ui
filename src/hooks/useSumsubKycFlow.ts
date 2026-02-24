@@ -79,12 +79,15 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     }, [regionIntent])
 
     const handleInitiateKyc = useCallback(
-        async (overrideIntent?: KYCRegionIntent) => {
+        async (overrideIntent?: KYCRegionIntent, levelName?: string) => {
             setIsLoading(true)
             setError(null)
 
             try {
-                const response = await initiateSumsubKyc({ regionIntent: overrideIntent ?? regionIntent })
+                const response = await initiateSumsubKyc({
+                    regionIntent: overrideIntent ?? regionIntent,
+                    levelName,
+                })
 
                 if (response.error) {
                     setError(response.error)
