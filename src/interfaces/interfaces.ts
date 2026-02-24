@@ -348,7 +348,7 @@ export interface IUserRail {
     id: string
     railId: string
     status: UserRailStatus
-    metadata?: { bridgeCustomerId?: string; [key: string]: unknown } | null
+    metadata?: { bridgeCustomerId?: string; additionalRequirements?: string[]; [key: string]: unknown } | null
     rail: {
         id: string
         provider: { code: string; name: string }

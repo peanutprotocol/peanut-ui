@@ -88,11 +88,10 @@ export const KycStatusDrawer = ({ isOpen, onClose, verification, bridgeKycStatus
     const bridgeRailsNeedingDocs = (user?.rails ?? []).filter(
         (r) => r.status === 'REQUIRES_EXTRA_INFORMATION' && r.rail.provider.code === 'BRIDGE'
     )
-    const additionalRequirements: string[] =
-        bridgeRailsNeedingDocs.length > 0
-            ? ((bridgeRailsNeedingDocs[0].metadata?.additionalRequirements as string[]) ?? [])
-            : []
-    const needsAdditionalDocs = additionalRequirements.length > 0
+    const needsAdditionalDocs = bridgeRailsNeedingDocs.length > 0
+    const additionalRequirements: string[] = needsAdditionalDocs
+        ? (bridgeRailsNeedingDocs[0].metadata?.additionalRequirements ?? [])
+        : []
 
     // count sumsub rejections for failure lockout.
     // counts total REJECTED entries — accurate if backend creates a new row per attempt.
