@@ -10,6 +10,13 @@ import { twMerge } from 'tailwind-merge'
 import { type IUserKycVerification } from '@/interfaces'
 import StatusPill from '../Global/StatusPill'
 import { KYCStatusIcon } from './KYCStatusIcon'
+import {
+    isKycStatusApproved,
+    isKycStatusPending,
+    isKycStatusFailed,
+    isKycStatusNotStarted,
+    isKycStatusActionRequired,
+} from '@/constants/kyc.consts'
 
 // this component shows the current kyc status and opens a drawer with more details on click
 export const KycStatusItem = ({
@@ -45,23 +52,26 @@ export const KycStatusItem = ({
     const finalBridgeKycStatus = wsBridgeKycStatus || bridgeKycStatus || user?.user?.bridgeKycStatus
     const kycStatus = verification ? verification.status : finalBridgeKycStatus
 
-    // Check if KYC is approved to show points earned
-    const isApproved = kycStatus === 'approved' || kycStatus === 'ACTIVE'
-
-    const isPending = kycStatus === 'under_review' || kycStatus === 'incomplete' || kycStatus === 'ONBOARDING'
-    const isRejected = kycStatus === 'rejected' || kycStatus === 'INACTIVE'
+    const isApproved = isKycStatusApproved(kycStatus)
+    const isPending = isKycStatusPending(kycStatus)
+    const isRejected = isKycStatusFailed(kycStatus)
+    const isActionRequired = isKycStatusActionRequired(kycStatus)
+    // if a verification record exists with NOT_STARTED, the user has initiated KYC
+    // (backend creates the record on initiation). only hide for bridge's default state.
+    const isInitiatedButNotStarted = !!verification && isKycStatusNotStarted(kycStatus)
 
     const subtitle = useMemo(() => {
-        if (isPending) {
-            return 'Under review'
-        }
-        if (isApproved) {
-            return 'Approved'
-        }
-        return 'Rejected'
-    }, [isPending, isApproved, isRejected])
+        if (isInitiatedButNotStarted) return 'In progress'
+        if (isActionRequired) return 'Action needed'
+        if (isPending) return 'Under review'
+        if (isApproved) return 'Approved'
+        if (isRejected) return 'Rejected'
+        return 'Unknown'
+    }, [isInitiatedButNotStarted, isActionRequired, isPending, isApproved, isRejected])
 
-    if (!kycStatus || kycStatus === 'not_started') {
+    // only hide for bridge's default "not_started" state.
+    // if a verification record exists, the user has initiated KYC — show it.
+    if (!verification && isKycStatusNotStarted(kycStatus)) {
         return null
     }
 
@@ -81,19 +91,29 @@ export const KycStatusItem = ({
                             <p className="font-semibold">Identity verification</p>
                             <div className="flex items-center gap-2">
                                 <p className="text-sm text-grey-1">{subtitle}</p>
-                                <StatusPill status={isPending ? 'pending' : isRejected ? 'cancelled' : 'completed'} />
+                                <StatusPill
+                                    status={
+                                        isInitiatedButNotStarted || isActionRequired || isPending
+                                            ? 'pending'
+                                            : isRejected
+                                              ? 'cancelled'
+                                              : 'completed'
+                                    }
+                                />
                             </div>
                         </div>
                     </div>
                 </div>
             </Card>
 
-            <KycStatusDrawer
-                isOpen={isDrawerOpen}
-                onClose={handleCloseDrawer}
-                verification={verification}
-                bridgeKycStatus={finalBridgeKycStatus}
-            />
+            {isDrawerOpen && (
+                <KycStatusDrawer
+                    isOpen={isDrawerOpen}
+                    onClose={handleCloseDrawer}
+                    verification={verification}
+                    bridgeKycStatus={finalBridgeKycStatus}
+                />
+            )}
         </>
     )
 }

@@ -1,0 +1,294 @@
+import { useState, useCallback, useEffect, useRef } from 'react'
+import { Button, type ButtonProps } from '@/components/0_Bruddle/Button'
+import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
+import { KycVerificationInProgressModal } from '@/components/Kyc/KycVerificationInProgressModal'
+import IframeWrapper from '@/components/Global/IframeWrapper'
+import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
+import { useRailStatusTracking } from '@/hooks/useRailStatusTracking'
+import { useAuth } from '@/context/authContext'
+import { getBridgeTosLink, confirmBridgeTos } from '@/app/actions/users'
+import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
+import { type KycModalPhase } from '@/interfaces'
+
+const PREPARING_TIMEOUT_MS = 30000
+
+interface SumsubKycFlowProps extends ButtonProps {
+    onKycSuccess?: () => void
+    onManualClose?: () => void
+    regionIntent?: KYCRegionIntent
+}
+
+/**
+ * entry point for the kyc flow.
+ * renders a button that initiates kyc, the sumsub sdk wrapper modal,
+ * and a multi-phase verification modal that handles:
+ *   verifying → preparing → bridge_tos (if applicable) → complete
+ */
+export const SumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent, ...buttonProps }: SumsubKycFlowProps) => {
+    const { fetchUser } = useAuth()
+
+    // multi-phase modal state
+    const [modalPhase, setModalPhase] = useState<KycModalPhase>('verifying')
+    const [forceShowModal, setForceShowModal] = useState(false)
+    const [preparingTimedOut, setPreparingTimedOut] = useState(false)
+    const preparingTimerRef = useRef<NodeJS.Timeout | null>(null)
+    const isRealtimeFlowRef = useRef(false)
+
+    // bridge ToS state
+    const [tosLink, setTosLink] = useState<string | null>(null)
+    const [showTosIframe, setShowTosIframe] = useState(false)
+    const [tosError, setTosError] = useState<string | null>(null)
+    const [isLoadingTos, setIsLoadingTos] = useState(false)
+
+    // ref for closeVerificationProgressModal (avoids circular dep with completeFlow)
+    const closeVerificationModalRef = useRef<() => void>(() => {})
+
+    // rail tracking
+    const { allSettled, needsBridgeTos, startTracking, stopTracking } = useRailStatusTracking()
+
+    const clearPreparingTimer = useCallback(() => {
+        if (preparingTimerRef.current) {
+            clearTimeout(preparingTimerRef.current)
+            preparingTimerRef.current = null
+        }
+    }, [])
+
+    // complete the flow — close everything, call original onKycSuccess
+    const completeFlow = useCallback(() => {
+        isRealtimeFlowRef.current = false
+        setForceShowModal(false)
+        setModalPhase('verifying')
+        setPreparingTimedOut(false)
+        setTosLink(null)
+        setShowTosIframe(false)
+        setTosError(null)
+        clearPreparingTimer()
+        stopTracking()
+        closeVerificationModalRef.current()
+        onKycSuccess?.()
+    }, [onKycSuccess, clearPreparingTimer, stopTracking])
+
+    // called by useSumsubKycFlow when sumsub status transitions to APPROVED
+    const handleSumsubApproved = useCallback(async () => {
+        // for real-time flow, optimistically show "Identity verified!" while we check rails
+        if (isRealtimeFlowRef.current) {
+            setModalPhase('preparing')
+            setForceShowModal(true)
+        }
+
+        const updatedUser = await fetchUser()
+        const rails = updatedUser?.rails ?? []
+
+        const bridgeNeedsTos = rails.some(
+            (r) => r.rail.provider.code === 'BRIDGE' && r.status === 'REQUIRES_INFORMATION'
+        )
+
+        if (bridgeNeedsTos) {
+            setModalPhase('bridge_tos')
+            setForceShowModal(true)
+            clearPreparingTimer()
+            return
+        }
+
+        const anyPending = rails.some((r) => r.status === 'PENDING')
+
+        if (anyPending || (rails.length === 0 && isRealtimeFlowRef.current)) {
+            // rails still being set up — show preparing and start tracking
+            setModalPhase('preparing')
+            setForceShowModal(true)
+            startTracking()
+            return
+        }
+
+        // all settled — done
+        completeFlow()
+    }, [fetchUser, startTracking, clearPreparingTimer, completeFlow])
+
+    const {
+        isLoading,
+        error,
+        showWrapper,
+        accessToken,
+        liveKycStatus,
+        handleInitiateKyc: originalHandleInitiateKyc,
+        handleSdkComplete: originalHandleSdkComplete,
+        handleClose,
+        refreshToken,
+        isVerificationProgressModalOpen,
+        closeVerificationProgressModal,
+    } = useSumsubKycFlow({ onKycSuccess: handleSumsubApproved, onManualClose, regionIntent })
+
+    // keep ref in sync
+    useEffect(() => {
+        closeVerificationModalRef.current = closeVerificationProgressModal
+    }, [closeVerificationProgressModal])
+
+    // refresh user store when kyc status transitions to a non-success state
+    // so the drawer/status item reads the updated verification record
+    useEffect(() => {
+        if (liveKycStatus === 'ACTION_REQUIRED' || liveKycStatus === 'REJECTED') {
+            fetchUser()
+        }
+    }, [liveKycStatus, fetchUser])
+
+    // wrap handleSdkComplete to track real-time flow
+    const handleSdkComplete = useCallback(() => {
+        isRealtimeFlowRef.current = true
+        originalHandleSdkComplete()
+    }, [originalHandleSdkComplete])
+
+    // wrap handleInitiateKyc to reset state for new attempts
+    const handleInitiateKyc = useCallback(
+        async (overrideIntent?: KYCRegionIntent) => {
+            setModalPhase('verifying')
+            setForceShowModal(false)
+            setPreparingTimedOut(false)
+            setTosLink(null)
+            setShowTosIframe(false)
+            setTosError(null)
+            isRealtimeFlowRef.current = false
+            clearPreparingTimer()
+
+            await originalHandleInitiateKyc(overrideIntent)
+        },
+        [originalHandleInitiateKyc, clearPreparingTimer]
+    )
+
+    // 30s timeout for preparing phase
+    useEffect(() => {
+        if (modalPhase === 'preparing' && !preparingTimedOut) {
+            clearPreparingTimer()
+            preparingTimerRef.current = setTimeout(() => {
+                setPreparingTimedOut(true)
+            }, PREPARING_TIMEOUT_MS)
+        } else {
+            clearPreparingTimer()
+        }
+    }, [modalPhase, preparingTimedOut, clearPreparingTimer])
+
+    // phase transitions driven by rail tracking
+    useEffect(() => {
+        if (modalPhase === 'preparing') {
+            if (needsBridgeTos) {
+                setModalPhase('bridge_tos')
+                clearPreparingTimer()
+            } else if (allSettled) {
+                setModalPhase('complete')
+                clearPreparingTimer()
+                stopTracking()
+            }
+        } else if (modalPhase === 'bridge_tos') {
+            // after ToS accepted, rails transition to ENABLED
+            if (allSettled && !needsBridgeTos) {
+                setModalPhase('complete')
+                stopTracking()
+            }
+        }
+    }, [modalPhase, needsBridgeTos, allSettled, clearPreparingTimer, stopTracking])
+
+    // handle "Accept Terms" click in bridge_tos phase
+    const handleAcceptTerms = useCallback(async () => {
+        setIsLoadingTos(true)
+        setTosError(null)
+
+        try {
+            const response = await getBridgeTosLink()
+
+            if (response.error || !response.data?.tosLink) {
+                setTosError(
+                    response.error || 'Could not load terms. You can accept them later from your activity feed.'
+                )
+                return
+            }
+
+            setTosLink(response.data.tosLink)
+            setShowTosIframe(true)
+        } catch {
+            setTosError('Something went wrong. You can accept terms later from your activity feed.')
+        } finally {
+            setIsLoadingTos(false)
+        }
+    }, [])
+
+    // handle ToS iframe close
+    const handleTosIframeClose = useCallback(
+        async (source?: 'manual' | 'completed' | 'tos_accepted') => {
+            setShowTosIframe(false)
+
+            if (source === 'tos_accepted') {
+                // confirm with backend
+                const result = await confirmBridgeTos()
+
+                if (!result.data?.accepted) {
+                    // bridge may not have registered acceptance yet — retry after short delay
+                    await new Promise((resolve) => setTimeout(resolve, 2000))
+                    const retryResult = await confirmBridgeTos()
+                    if (!retryResult.data?.accepted) {
+                        console.warn('[SumsubKycFlow] bridge ToS confirmation failed after retry')
+                    }
+                }
+
+                // refetch user — the phase-transition effect will handle moving to 'complete'
+                await fetchUser()
+            }
+            // if manual close, stay on bridge_tos phase (user can try again or skip)
+        },
+        [fetchUser]
+    )
+
+    // handle "Skip for now" in bridge_tos phase
+    const handleSkipTerms = useCallback(() => {
+        completeFlow()
+    }, [completeFlow])
+
+    // handle modal close (Go to Home, etc.)
+    const handleModalClose = useCallback(() => {
+        isRealtimeFlowRef.current = false
+        setForceShowModal(false)
+        clearPreparingTimer()
+        stopTracking()
+        closeVerificationProgressModal()
+    }, [clearPreparingTimer, stopTracking, closeVerificationProgressModal])
+
+    // cleanup on unmount
+    useEffect(() => {
+        return () => {
+            clearPreparingTimer()
+            stopTracking()
+        }
+    }, [clearPreparingTimer, stopTracking])
+
+    const isModalOpen = isVerificationProgressModalOpen || forceShowModal
+
+    return (
+        <>
+            <Button onClick={() => handleInitiateKyc()} disabled={isLoading} {...buttonProps}>
+                {isLoading ? 'Loading...' : (buttonProps.children ?? 'Start Verification')}
+            </Button>
+
+            {error && <p className="text-red-500 mt-2 text-sm">{error}</p>}
+
+            <SumsubKycWrapper
+                visible={showWrapper}
+                accessToken={accessToken}
+                onClose={handleClose}
+                onComplete={handleSdkComplete}
+                onRefreshToken={refreshToken}
+            />
+
+            <KycVerificationInProgressModal
+                isOpen={isModalOpen}
+                onClose={handleModalClose}
+                phase={modalPhase}
+                onAcceptTerms={handleAcceptTerms}
+                onSkipTerms={handleSkipTerms}
+                onContinue={completeFlow}
+                tosError={tosError}
+                isLoadingTos={isLoadingTos}
+                preparingTimedOut={preparingTimedOut}
+            />
+
+            {tosLink && <IframeWrapper src={tosLink} visible={showTosIframe} onClose={handleTosIframeClose} />}
+        </>
+    )
+}

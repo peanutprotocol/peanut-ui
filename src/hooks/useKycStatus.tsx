@@ -1,36 +1,20 @@
 'use client'
 
-import { useAuth } from '@/context/authContext'
-import { MantecaKycStatus } from '@/interfaces'
-import { useMemo } from 'react'
+import useUnifiedKycStatus from './useUnifiedKycStatus'
 
 /**
- * Used to get the user's KYC status for all providers - currently only bridge and manteca
- * NOTE: This hook can be extended to support more providers in the future based on requirements
- * @returns {object} An object with the user's KYC status for all providers and a combined status for all providers, if user is verified for any provider, return true
+ * thin wrapper around useUnifiedKycStatus for backward compatibility.
+ * existing consumers keep the same api shape.
  */
 export default function useKycStatus() {
-    const { user } = useAuth()
+    const { isBridgeApproved, isMantecaApproved, isSumsubApproved, isKycApproved, isBridgeUnderReview } =
+        useUnifiedKycStatus()
 
-    const isUserBridgeKycApproved = useMemo(() => user?.user.bridgeKycStatus === 'approved', [user])
-
-    const isUserMantecaKycApproved = useMemo(
-        () =>
-            user?.user.kycVerifications?.some((verification) => verification.status === MantecaKycStatus.ACTIVE) ??
-            false,
-        [user]
-    )
-
-    const isUserKycApproved = useMemo(
-        () => isUserBridgeKycApproved || isUserMantecaKycApproved,
-        [isUserBridgeKycApproved, isUserMantecaKycApproved]
-    )
-
-    const isUserBridgeKycUnderReview = useMemo(
-        // Bridge kyc status is incomplete/under_review when user has started the kyc process
-        () => user?.user.bridgeKycStatus === 'under_review' || user?.user.bridgeKycStatus === 'incomplete',
-        [user]
-    )
-
-    return { isUserBridgeKycApproved, isUserMantecaKycApproved, isUserKycApproved, isUserBridgeKycUnderReview }
+    return {
+        isUserBridgeKycApproved: isBridgeApproved,
+        isUserMantecaKycApproved: isMantecaApproved,
+        isUserSumsubKycApproved: isSumsubApproved,
+        isUserKycApproved: isKycApproved,
+        isUserBridgeKycUnderReview: isBridgeUnderReview,
+    }
 }

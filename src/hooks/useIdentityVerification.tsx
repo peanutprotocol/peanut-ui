@@ -1,10 +1,12 @@
 import { EUROPE_GLOBE_ICON, LATAM_GLOBE_ICON, NORTH_AMERICA_GLOBE_ICON, REST_OF_WORLD_GLOBE_ICON } from '@/assets'
 import type { StaticImageData } from 'next/image'
 import useKycStatus from './useKycStatus'
+import useUnifiedKycStatus from './useUnifiedKycStatus'
 import { useMemo, useCallback } from 'react'
 import { useAuth } from '@/context/authContext'
 import { MantecaKycStatus } from '@/interfaces'
 import { BRIDGE_ALPHA3_TO_ALPHA2, MantecaSupportedExchanges, countryData } from '@/components/AddMoney/consts'
+import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import React from 'react'
 
 /** Represents a geographic region with its display information */
@@ -75,6 +77,11 @@ const BRIDGE_SUPPORTED_LATAM_COUNTRIES: Region[] = [
     },
 ]
 
+/** maps a region path to the sumsub kyc template intent */
+export const getRegionIntent = (regionPath: string): KYCRegionIntent => {
+    return regionPath === 'latam' ? 'LATAM' : 'STANDARD'
+}
+
 /**
  * Hook for managing identity verification (KYC) status and region access.
  *
@@ -96,7 +103,8 @@ const BRIDGE_SUPPORTED_LATAM_COUNTRIES: Region[] = [
  */
 export const useIdentityVerification = () => {
     const { user } = useAuth()
-    const { isUserBridgeKycApproved, isUserMantecaKycApproved } = useKycStatus()
+    const { isUserBridgeKycApproved, isUserMantecaKycApproved, isUserSumsubKycApproved } = useKycStatus()
+    const { sumsubVerificationRegionIntent } = useUnifiedKycStatus()
 
     /**
      * Check if a country is supported by Manteca (LATAM countries).
@@ -149,9 +157,20 @@ export const useIdentityVerification = () => {
     const { lockedRegions, unlockedRegions } = useMemo(() => {
         const isBridgeApproved = isUserBridgeKycApproved
         const isMantecaApproved = isUserMantecaKycApproved
+        const isSumsubApproved = isUserSumsubKycApproved
 
-        // Helper to check if a region should be unlocked
+        // helper to check if a region should be unlocked
         const isRegionUnlocked = (regionName: string) => {
+            // sumsub approval scoped by the regionIntent used during verification.
+            // 'LATAM' intent → unlocks LATAM. 'STANDARD' intent → unlocks Bridge regions + rest of world.
+            // no intent (or rest-of-world) → unlocks rest of world only.
+            if (isSumsubApproved) {
+                if (sumsubVerificationRegionIntent === 'LATAM') {
+                    return MANTECA_SUPPORTED_REGIONS.includes(regionName) || regionName === 'Rest of the world'
+                }
+                // STANDARD intent covers bridge regions + rest of world
+                return BRIDGE_SUPPORTED_REGIONS.includes(regionName) || regionName === 'Rest of the world'
+            }
             return (
                 (isBridgeApproved && BRIDGE_SUPPORTED_REGIONS.includes(regionName)) ||
                 (isMantecaApproved && MANTECA_SUPPORTED_REGIONS.includes(regionName))
@@ -161,9 +180,9 @@ export const useIdentityVerification = () => {
         const unlocked = SUPPORTED_REGIONS.filter((region) => isRegionUnlocked(region.name))
         const locked = SUPPORTED_REGIONS.filter((region) => !isRegionUnlocked(region.name))
 
-        // Bridge users get QR payment access in Argentina & Brazil
-        // even without full Manteca KYC (which unlocks bank transfers too)
-        if (isBridgeApproved && !isMantecaApproved) {
+        // bridge users get qr payment access in argentina & brazil
+        // even without full manteca kyc (which unlocks bank transfers too)
+        if (isBridgeApproved && !isMantecaApproved && !isSumsubApproved) {
             unlocked.push(...MANTECA_QR_ONLY_REGIONS, ...BRIDGE_SUPPORTED_LATAM_COUNTRIES)
         }
 
@@ -171,7 +190,7 @@ export const useIdentityVerification = () => {
             lockedRegions: locked,
             unlockedRegions: unlocked,
         }
-    }, [isUserBridgeKycApproved, isUserMantecaKycApproved])
+    }, [isUserBridgeKycApproved, isUserMantecaKycApproved, isUserSumsubKycApproved, sumsubVerificationRegionIntent])
 
     /**
      * Check if a region is already unlocked by comparing region paths.
