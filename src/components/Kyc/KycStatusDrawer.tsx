@@ -89,8 +89,16 @@ export const KycStatusDrawer = ({ isOpen, onClose, verification, bridgeKycStatus
         (r) => r.status === 'REQUIRES_EXTRA_INFORMATION' && r.rail.provider.code === 'BRIDGE'
     )
     const needsAdditionalDocs = bridgeRailsNeedingDocs.length > 0
+    // aggregate requirements across all rails and deduplicate
     const additionalRequirements: string[] = needsAdditionalDocs
-        ? (bridgeRailsNeedingDocs[0].metadata?.additionalRequirements ?? [])
+        ? [
+              ...new Set(
+                  bridgeRailsNeedingDocs.flatMap((r) => {
+                      const reqs = r.metadata?.additionalRequirements
+                      return Array.isArray(reqs) ? reqs : []
+                  })
+              ),
+          ]
         : []
 
     // count sumsub rejections for failure lockout.
@@ -105,8 +113,8 @@ export const KycStatusDrawer = ({ isOpen, onClose, verification, bridgeKycStatus
     }
 
     const renderContent = () => {
-        // bridge additional document requirement takes priority over verification status
-        if (needsAdditionalDocs) {
+        // bridge additional document requirement — but don't mask terminal kyc states
+        if (needsAdditionalDocs && statusCategory !== 'failed' && statusCategory !== 'action_required') {
             return (
                 <KycRequiresDocuments
                     requirements={additionalRequirements}

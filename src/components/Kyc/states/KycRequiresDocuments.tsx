@@ -37,13 +37,7 @@ export const KycRequiresDocuments = ({
                 )}
             </div>
 
-            <Button
-                icon="docs"
-                className="w-full"
-                shadowSize="4"
-                onClick={onSubmitDocuments}
-                disabled={isLoading}
-            >
+            <Button icon="docs" className="w-full" shadowSize="4" onClick={onSubmitDocuments} disabled={isLoading}>
                 {isLoading ? 'Loading...' : 'Submit documents'}
             </Button>
         </div>
