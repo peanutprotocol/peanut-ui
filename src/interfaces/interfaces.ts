@@ -165,12 +165,12 @@ export interface IBridgeAccount {
     id: string
     customer_id: string
     last_4: string
-    currency?: 'usd' | 'eur' | 'mxn'
+    currency?: 'usd' | 'eur' | 'mxn' | 'gbp'
     bank_name?: string
     account_owner_name: string
     account_number?: string
     routing_number?: string
-    account_type: 'iban' | 'us' | 'clabe'
+    account_type: 'iban' | 'us' | 'clabe' | 'gb'
     iban?: {
         account_number: string
         bic?: string
@@ -181,7 +181,8 @@ export interface IBridgeAccount {
     }
     account?: {
         account_number: string
-        routing_number: string
+        routing_number?: string
+        sort_code?: string // uk bank accounts
         checking_or_savings?: string
     }
     account_owner_type: 'individual' | 'business'
@@ -280,6 +281,7 @@ export enum AccountType {
     IBAN = 'iban',
     US = 'us',
     CLABE = 'clabe',
+    GB = 'gb', // uk bank accounts (sort code + account number)
     EVM_ADDRESS = 'evm-address',
     PEANUT_WALLET = 'peanut-wallet',
     BRIDGE = 'bridgeBankAccount',
@@ -305,6 +307,7 @@ export interface Account {
     connectorUuid: string | null
     bic?: string
     routingNumber?: string
+    sortCode?: string // uk bank accounts
     connector?: {
         iconUrl: string
         name: string

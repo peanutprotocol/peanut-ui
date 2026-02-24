@@ -156,7 +156,10 @@ const PointsPage = () => {
 
                     {/* cash section */}
                     {cashStatus?.success && cashStatus.data && (
-                        <CashCard cashbackAllowance={cashStatus.data.cashbackAllowance} lifetimeEarned={cashStatus.data.lifetimeEarned} />
+                        <CashCard
+                            cashbackAllowance={cashStatus.data.cashbackAllowance}
+                            lifetimeEarned={cashStatus.data.lifetimeEarned}
+                        />
                     )}
                 </Card>
 
@@ -192,7 +195,12 @@ const PointsPage = () => {
                 {/* if user has invites: show button above people list */}
                 {invites && invites?.invitees && invites.invitees.length > 0 ? (
                     <>
-                        <Button variant="purple" shadowSize="4" onClick={() => setIsInviteModalOpen(true)} className="!mt-8 w-full">
+                        <Button
+                            variant="purple"
+                            shadowSize="4"
+                            onClick={() => setIsInviteModalOpen(true)}
+                            className="!mt-8 w-full"
+                        >
                             Share Invite link
                         </Button>
 
@@ -259,7 +267,12 @@ const PointsPage = () => {
                             <p className="text-center text-sm text-grey-1">
                                 Send your invite link to start earning more rewards
                             </p>
-                            <Button variant="purple" shadowSize="4" onClick={() => setIsInviteModalOpen(true)} className="w-full">
+                            <Button
+                                variant="purple"
+                                shadowSize="4"
+                                onClick={() => setIsInviteModalOpen(true)}
+                                className="w-full"
+                            >
                                 Share Invite link
                             </Button>
                         </Card>

@@ -8,7 +8,13 @@ import BaseInput from '@/components/0_Bruddle/BaseInput'
 import BaseSelect from '@/components/0_Bruddle/BaseSelect'
 import { BRIDGE_ALPHA3_TO_ALPHA2, ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
 import { useParams, useRouter } from 'next/navigation'
-import { validateIban, validateBic, isValidRoutingNumber } from '@/utils/bridge-accounts.utils'
+import {
+    validateIban,
+    validateBic,
+    isValidRoutingNumber,
+    isValidSortCode,
+    isValidUKAccountNumber,
+} from '@/utils/bridge-accounts.utils'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { getBicFromIban } from '@/app/actions/ibanToBic'
 import PeanutActionDetailsCard, { type PeanutActionDetailsCardProps } from '../Global/PeanutActionDetailsCard'
@@ -35,6 +41,7 @@ export type IBankAccountDetails = {
     accountNumber: string
     bic: string
     routingNumber: string
+    sortCode: string // uk bank accounts
     clabe: string
     street: string
     city: string
@@ -71,7 +78,8 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
     ) => {
         const isMx = country.toUpperCase() === 'MX'
         const isUs = country.toUpperCase() === 'USA'
-        const isIban = isUs || isMx ? false : isIBANCountry(country)
+        const isUk = country.toUpperCase() === 'GB' || country.toUpperCase() === 'GBR'
+        const isIban = isUs || isMx || isUk ? false : isIBANCountry(country)
         const { user } = useAuth()
         const dispatch = useAppDispatch()
         const [isSubmitting, setIsSubmitting] = useState(false)
@@ -107,6 +115,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 accountNumber: '',
                 bic: '',
                 routingNumber: '',
+                sortCode: '', // uk bank accounts
                 clabe: '',
                 street: '',
                 city: '',
@@ -162,12 +171,14 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
 
                 const isUs = country.toUpperCase() === 'USA'
                 const isMx = country.toUpperCase() === 'MX'
-                const isIban = isUs || isMx ? false : isIBANCountry(country)
+                const isUk = country.toUpperCase() === 'GB' || country.toUpperCase() === 'GBR'
+                const isIban = isUs || isMx || isUk ? false : isIBANCountry(country)
 
                 let accountType: BridgeAccountType
                 if (isIban) accountType = BridgeAccountType.IBAN
                 else if (isUs) accountType = BridgeAccountType.US
                 else if (isMx) accountType = BridgeAccountType.CLABE
+                else if (isUk) accountType = BridgeAccountType.GB
                 else throw new Error('Unsupported country')
 
                 const accountNumber = isMx ? data.clabe : data.accountNumber
@@ -193,9 +204,14 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 let bic = data.bic || getValues('bic')
                 const iban = data.iban || getValues('iban')
 
+                // uk account numbers may be 6-7 digits, pad to 8 for bridge api
+                const cleanedAccountNumber = isUk
+                    ? accountNumber.replace(/\s/g, '').padStart(8, '0')
+                    : accountNumber.replace(/\s/g, '')
+
                 const payload: Partial<AddBankAccountPayload> = {
                     accountType,
-                    accountNumber: accountNumber.replace(/\s/g, ''),
+                    accountNumber: cleanedAccountNumber,
                     countryCode: isUs ? 'USA' : country.toUpperCase(),
                     countryName: selectedCountry,
                     accountOwnerType: BridgeAccountOwnerType.INDIVIDUAL,
@@ -217,11 +233,16 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                     payload.routingNumber = data.routingNumber
                 }
 
+                if (isUk && data.sortCode) {
+                    payload.sortCode = data.sortCode.replace(/[-\s]/g, '')
+                }
+
                 const result = await onSuccess(payload as AddBankAccountPayload, {
                     ...data,
                     iban: isIban ? data.accountNumber || iban || '' : '',
                     accountNumber: isIban ? '' : data.accountNumber,
                     bic: bic,
+                    sortCode: isUk ? data.sortCode : '',
                     country,
                     firstName: firstName.trim(),
                     lastName: lastName.trim(),
@@ -458,16 +479,27 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                         }
                                     }
                                 )
-                              : renderInput(
-                                    'accountNumber',
-                                    'Account Number',
-                                    {
-                                        required: 'Account number is required',
-                                        validate: async (value: string) =>
-                                            validateUSBankAccount(value).isValid || 'Invalid account number',
-                                    },
-                                    'text'
-                                )}
+                              : isUk
+                                ? renderInput(
+                                      'accountNumber',
+                                      'Account Number',
+                                      {
+                                          required: 'Account number is required',
+                                          validate: (value: string) =>
+                                              isValidUKAccountNumber(value) || 'Account number must be 6-8 digits',
+                                      },
+                                      'text'
+                                  )
+                                : renderInput(
+                                      'accountNumber',
+                                      'Account Number',
+                                      {
+                                          required: 'Account number is required',
+                                          validate: async (value: string) =>
+                                              validateUSBankAccount(value).isValid || 'Invalid account number',
+                                      },
+                                      'text'
+                                  )}
 
                         {isIban &&
                             renderInput(
@@ -503,8 +535,13 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                 validate: async (value: string) =>
                                     (await isValidRoutingNumber(value)) || 'Invalid routing number',
                             })}
+                        {isUk &&
+                            renderInput('sortCode', 'Sort Code', {
+                                required: 'Sort code is required',
+                                validate: (value: string) => isValidSortCode(value) || 'Sort code must be 6 digits',
+                            })}
 
-                        {!isIban && (
+                        {!isIban && !isUk && (
                             <>
                                 {renderInput(
                                     'street',

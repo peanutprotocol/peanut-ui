@@ -98,6 +98,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                         acc.type === AccountType.IBAN ||
                         acc.type === AccountType.US ||
                         acc.type === AccountType.CLABE ||
+                        acc.type === AccountType.GB ||
                         acc.type === AccountType.MANTECA
                 ) ?? []
 

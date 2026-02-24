@@ -286,7 +286,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                                 ? addBankAccountResponse.data.identifier || ''
                                 : '',
                         accountNumber:
-                            addBankAccountResponse.data.type === 'us'
+                            addBankAccountResponse.data.type === 'us' || addBankAccountResponse.data.type === 'gb'
                                 ? addBankAccountResponse.data.identifier || ''
                                 : '',
                         country: addBankAccountResponse.data.details.countryCode,
@@ -294,6 +294,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                         bridgeAccountId: addBankAccountResponse.data.bridgeAccountId,
                         bic: addBankAccountResponse.data.bic ?? '',
                         routingNumber: addBankAccountResponse.data.routingNumber ?? '',
+                        sortCode: addBankAccountResponse.data.sortCode ?? '',
                         firstName: addBankAccountResponse.data.firstName || rawData.firstName,
                         lastName: addBankAccountResponse.data.lastName || rawData.lastName,
                         email: user?.user.email ?? '',
@@ -365,6 +366,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                     accountNumber: externalAccountResponse.account_number ?? rawData.accountNumber,
                     bic: externalAccountResponse?.iban?.bic ?? rawData.bic,
                     routingNumber: externalAccountResponse?.account?.routing_number ?? rawData.routingNumber,
+                    sortCode: externalAccountResponse?.account?.sort_code ?? rawData.sortCode ?? '',
                     clabe: externalAccountResponse?.clabe?.account_number ?? rawData.clabe,
                     street: externalAccountResponse?.address?.street_line_1 ?? rawData.street,
                     city: externalAccountResponse?.address?.city ?? rawData.city,
@@ -420,12 +422,14 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                             name: account.details.accountOwnerName || user?.user.fullName || '',
                             iban: account.type === 'iban' ? account.identifier || '' : '',
                             clabe: account.type === 'clabe' ? account.identifier || '' : '',
-                            accountNumber: account.type === 'us' ? account.identifier || '' : '',
+                            accountNumber:
+                                account.type === 'us' || account.type === 'gb' ? account.identifier || '' : '',
                             country: account.details.countryCode,
                             id: account.id,
                             bridgeAccountId: account.bridgeAccountId,
                             bic: account.bic ?? '',
                             routingNumber: account.routingNumber ?? '',
+                            sortCode: account.sortCode ?? '',
                             firstName: firstName,
                             lastName: lastName,
                             email: user?.user.email ?? '',

@@ -10,7 +10,9 @@ import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { formatAmount } from '@/utils/general.utils'
-import { getCountryFromAccount } from '@/utils/bridge.utils'
+import { getCountryFromAccount, getCountryFromPath, getMinimumAmount } from '@/utils/bridge.utils'
+import useGetExchangeRate from '@/hooks/useGetExchangeRate'
+import { AccountType } from '@/interfaces'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState, useRef, useContext } from 'react'
 import { formatUnits } from 'viem'
@@ -82,6 +84,43 @@ export default function WithdrawPage() {
         return balance !== undefined ? formatAmount(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS)) : ''
     }, [balance])
 
+    // derive country and account type for minimum amount validation
+    const { countryIso2, rateAccountType } = useMemo(() => {
+        if (selectedBankAccount) {
+            const country = getCountryFromAccount(selectedBankAccount)
+            return { countryIso2: country?.iso2 || '', rateAccountType: selectedBankAccount.type as AccountType }
+        }
+        if (selectedMethod?.countryPath) {
+            const country = getCountryFromPath(selectedMethod.countryPath)
+            const iso2 = country?.iso2 || ''
+            let accountType: AccountType = AccountType.IBAN
+            if (iso2 === 'US') accountType = AccountType.US
+            else if (iso2 === 'GB') accountType = AccountType.GB
+            else if (iso2 === 'MX') accountType = AccountType.CLABE
+            return { countryIso2: iso2, rateAccountType: accountType }
+        }
+        return { countryIso2: '', rateAccountType: AccountType.US }
+    }, [selectedBankAccount, selectedMethod])
+
+    // fetch exchange rate for non-USD countries to convert local minimum to USD
+    const { exchangeRate } = useGetExchangeRate({
+        accountType: rateAccountType,
+        enabled: rateAccountType !== AccountType.US && countryIso2 !== '',
+    })
+
+    // compute minimum withdrawal in USD using the exchange rate
+    const minUsdAmount = useMemo(() => {
+        const localMin = getMinimumAmount(countryIso2)
+        // for US or unknown, minimum is already in USD
+        if (!countryIso2 || countryIso2 === 'US') return localMin
+        // for EUR countries, €1 ≈ $1
+        if (localMin === 1) return 1
+        // convert local minimum to USD: sellRate = local currency per 1 USD
+        const rate = parseFloat(exchangeRate || '0')
+        if (rate <= 0) return 1 // fallback while rate is loading
+        return Math.ceil(localMin / rate)
+    }, [countryIso2, exchangeRate])
+
     // validate against user's limits for bank withdrawals
     // note: crypto withdrawals don't have fiat limits
     const limitsValidation = useLimitsValidation({
@@ -136,19 +175,22 @@ export default function WithdrawPage() {
                 return false
             }
 
-            // convert the entered token amount to USD to enforce the $1 min rule
+            // convert the entered token amount to USD
             const price = selectedTokenData?.price ?? 0 // 0 for safety; will fail below
             const usdEquivalent = price ? amount * price : amount // if no price assume token pegged 1 USD
 
-            if (usdEquivalent >= 1 && amount <= maxDecimalAmount) {
+            if (usdEquivalent >= minUsdAmount && amount <= maxDecimalAmount) {
                 setError({ showError: false, errorMessage: '' })
                 return true
             }
 
             // determine message
             let message = ''
-            if (usdEquivalent < 1) {
-                message = isFromSendFlow ? 'Minimum send amount is $1.' : 'Minimum withdrawal is $1.'
+            if (usdEquivalent < minUsdAmount) {
+                const minDisplay = minUsdAmount % 1 === 0 ? `$${minUsdAmount}` : `$${minUsdAmount.toFixed(2)}`
+                message = isFromSendFlow
+                    ? `Minimum send amount is ${minDisplay}.`
+                    : `Minimum withdrawal is ${minDisplay}.`
             } else if (amount > maxDecimalAmount) {
                 message = 'Amount exceeds your wallet balance.'
             } else {
@@ -157,7 +199,7 @@ export default function WithdrawPage() {
             setError({ showError: true, errorMessage: message })
             return false
         },
-        [maxDecimalAmount, setError, selectedTokenData?.price, isFromSendFlow]
+        [maxDecimalAmount, setError, selectedTokenData?.price, isFromSendFlow, minUsdAmount]
     )
 
     const handleTokenAmountChange = useCallback(
@@ -252,10 +294,10 @@ export default function WithdrawPage() {
         if (!Number.isFinite(numericAmount) || numericAmount <= 0) return true
 
         const usdEq = (selectedTokenData?.price ?? 1) * numericAmount
-        if (usdEq < 1) return true // below $1 min
+        if (usdEq < minUsdAmount) return true // below country-specific minimum
 
         return numericAmount > maxDecimalAmount || error.showError
-    }, [rawTokenAmount, maxDecimalAmount, error.showError, selectedTokenData?.price])
+    }, [rawTokenAmount, maxDecimalAmount, error.showError, selectedTokenData?.price, minUsdAmount])
 
     if (step === 'inputAmount') {
         // only show limits card for bank/manteca withdrawals, not crypto

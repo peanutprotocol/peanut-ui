@@ -3,6 +3,8 @@ export enum BridgeEndorsementType {
     BASE = 'base',
     SEPA = 'sepa',
     SPEI = 'spei',
+    PIX = 'pix',
+    FASTER_PAYMENTS = 'faster_payments',
 }
 
 // this type represents the detailed response from our initiate-kyc endpoint
@@ -24,6 +26,7 @@ export enum BridgeAccountType {
     IBAN = 'iban',
     US = 'us',
     CLABE = 'clabe',
+    GB = 'gb', // uk bank accounts (sort code + account number)
 }
 
 // matches the BridgeAccountOwnerType enum on the backend
@@ -53,4 +56,5 @@ export interface AddBankAccountPayload {
     }
     bic?: string
     routingNumber?: string
+    sortCode?: string // uk bank accounts
 }
