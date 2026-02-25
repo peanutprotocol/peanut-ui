@@ -31,8 +31,9 @@ import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
 import { useAppDispatch } from '@/redux/hooks'
 import { bankFormActions } from '@/redux/slices/bank-form-slice'
 import { sendLinksApi } from '@/services/sendLinks'
-import { InitiateBridgeKYCModal } from '@/components/Kyc/InitiateBridgeKYCModal'
 import { useSearchParams } from 'next/navigation'
+import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
+import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 
 type BankAccountWithId = IBankAccountDetails &
     (
@@ -75,6 +76,19 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
     const { isLoading, setLoadingState } = useContext(loadingStateContext)
     const { claimLink } = useClaimLink()
     const dispatch = useAppDispatch()
+
+    // inline sumsub kyc flow for users who need verification
+    const sumsubFlow = useMultiPhaseKycFlow({
+        regionIntent: 'STANDARD',
+        onKycSuccess: async () => {
+            if (justCompletedKyc) return
+            setIsKycModalOpen(false)
+            await fetchUser()
+            setJustCompletedKyc(true)
+            setClaimBankFlowStep(ClaimBankFlowStep.BankDetailsForm)
+        },
+        onManualClose: () => setIsKycModalOpen(false),
+    })
 
     // local states for this component
     const [localBankDetails, setLocalBankDetails] = useState<BankAccountWithId | null>(null)
@@ -257,7 +271,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                 }
             }
 
-            setIsKycModalOpen(true)
+            await sumsubFlow.handleInitiateKyc()
             return {}
         }
 
@@ -391,19 +405,6 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
         return {}
     }
 
-    /**
-     * @name handleKycSuccess
-     * @description callback for when the KYC process is successfully completed.
-     */
-    const handleKycSuccess = useCallback(async () => {
-        if (justCompletedKyc) return
-
-        setIsKycModalOpen(false)
-        await fetchUser()
-        setJustCompletedKyc(true)
-        setClaimBankFlowStep(ClaimBankFlowStep.BankDetailsForm)
-    }, [fetchUser, setClaimBankFlowStep, setIsKycModalOpen, setJustCompletedKyc, justCompletedKyc])
-
     // main render logic based on the current flow step
     switch (claimBankFlowStep) {
         case ClaimBankFlowStep.SavedAccountsList:
@@ -492,11 +493,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                         initialData={{}}
                         error={error}
                     />
-                    <InitiateBridgeKYCModal
-                        isOpen={isKycModalOpen}
-                        onClose={() => setIsKycModalOpen(false)}
-                        onKycSuccess={handleKycSuccess}
-                    />
+                    <SumsubKycModals flow={sumsubFlow} />
                 </div>
             )
         case ClaimBankFlowStep.BankConfirmClaim:

@@ -12,9 +12,8 @@ import MantecaReviewStep from './views/MantecaReviewStep'
 import { Button } from '@/components/0_Bruddle/Button'
 import { useRouter } from 'next/navigation'
 import useKycStatus from '@/hooks/useKycStatus'
-import { MantecaGeoSpecificKycModal } from '@/components/Kyc/InitiateMantecaKYCModal'
-import { useAuth } from '@/context/authContext'
-import { type CountryData } from '@/components/AddMoney/consts'
+import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
+import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 
 interface MantecaFlowManagerProps {
     claimLinkData: ClaimLinkData
@@ -27,35 +26,24 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
     const [currentStep, setCurrentStep] = useState<MercadoPagoStep>(MercadoPagoStep.DETAILS)
     const router = useRouter()
     const [destinationAddress, setDestinationAddress] = useState('')
-    const [isKYCModalOpen, setIsKYCModalOpen] = useState(false)
-    const argentinaCountryData = {
-        id: 'AR',
-        type: 'country',
-        title: 'Argentina',
-        currency: 'ARS',
-        path: 'argentina',
-        iso2: 'AR',
-        iso3: 'ARG',
-    } as CountryData
+    const { isUserMantecaKycApproved } = useKycStatus()
 
-    const { isUserMantecaKycApproved, isUserBridgeKycApproved } = useKycStatus()
-    const { fetchUser } = useAuth()
+    // inline sumsub kyc flow for manteca users who need LATAM verification
+    const sumsubFlow = useMultiPhaseKycFlow({
+        regionIntent: 'LATAM',
+    })
 
     const isSuccess = currentStep === MercadoPagoStep.SUCCESS
     const selectedCurrency = selectedCountry?.currency || 'ARS'
     const regionalMethodLogo = regionalMethodType === 'mercadopago' ? MERCADO_PAGO : PIX
     const logo = selectedCountry?.id ? undefined : regionalMethodLogo
 
-    const handleKycCancel = () => {
-        setIsKYCModalOpen(false)
-        onPrev()
-    }
-
+    // auto-start KYC if user hasn't completed manteca verification
     useEffect(() => {
         if (!isUserMantecaKycApproved) {
-            setIsKYCModalOpen(true)
+            sumsubFlow.handleInitiateKyc()
         }
-    }, [isUserMantecaKycApproved])
+    }, [isUserMantecaKycApproved]) // eslint-disable-line react-hooks/exhaustive-deps
 
     const renderStepDetails = () => {
         if (currentStep === MercadoPagoStep.DETAILS) {
@@ -125,23 +113,8 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                 />
 
                 {renderStepDetails()}
-
-                {isKYCModalOpen && (
-                    <MantecaGeoSpecificKycModal
-                        isUserBridgeKycApproved={isUserBridgeKycApproved}
-                        isMantecaModalOpen={isKYCModalOpen}
-                        setIsMantecaModalOpen={setIsKYCModalOpen}
-                        onClose={handleKycCancel}
-                        onManualClose={handleKycCancel}
-                        onKycSuccess={() => {
-                            // close the modal and let the user continue with amount input
-                            setIsKYCModalOpen(false)
-                            fetchUser()
-                        }}
-                        selectedCountry={selectedCountry || argentinaCountryData}
-                    />
-                )}
             </div>
+            <SumsubKycModals flow={sumsubFlow} />
         </div>
     )
 }

@@ -18,6 +18,19 @@ import {
     isKycStatusActionRequired,
 } from '@/constants/kyc.consts'
 
+// kyc history entry type + type guard — used by HomeHistory and history page
+export interface KycHistoryEntry {
+    isKyc: true
+    uuid: string
+    timestamp: string
+    verification?: IUserKycVerification
+    bridgeKycStatus?: BridgeKycStatus
+}
+
+export const isKycStatusItem = (entry: object): entry is KycHistoryEntry => {
+    return 'isKyc' in entry && entry.isKyc === true
+}
+
 // this component shows the current kyc status and opens a drawer with more details on click
 export const KycStatusItem = ({
     position = 'first',

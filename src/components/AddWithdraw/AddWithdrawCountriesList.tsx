@@ -22,11 +22,12 @@ import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useAppDispatch } from '@/redux/hooks'
 import { bankFormActions } from '@/redux/slices/bank-form-slice'
-import { InitiateBridgeKYCModal } from '../Kyc/InitiateBridgeKYCModal'
 import useKycStatus from '@/hooks/useKycStatus'
 import KycVerifiedOrReviewModal from '../Global/KycVerifiedOrReviewModal'
 import { ActionListCard } from '@/components/ActionListCard'
 import TokenAndNetworkConfirmationModal from '../Global/TokenAndNetworkConfirmationModal'
+import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
+import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 
 interface AddWithdrawCountriesListProps {
     flow: 'add' | 'withdraw'
@@ -47,6 +48,16 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const { user, fetchUser } = useAuth()
     const { setSelectedBankAccount, amountToWithdraw, setSelectedMethod, setAmountToWithdraw } = useWithdrawFlow()
     const dispatch = useAppDispatch()
+
+    // inline sumsub kyc flow for bridge bank users who need verification
+    const sumsubFlow = useMultiPhaseKycFlow({
+        regionIntent: 'STANDARD',
+        onKycSuccess: () => {
+            setIsKycModalOpen(false)
+            setView('form')
+        },
+        onManualClose: () => setIsKycModalOpen(false),
+    })
 
     // component level states
     const [view, setView] = useState<'list' | 'form'>(flow === 'withdraw' && amountToWithdraw ? 'form' : 'list')
@@ -168,18 +179,10 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 }
             }
 
-            setIsKycModalOpen(true)
+            await sumsubFlow.handleInitiateKyc()
         }
 
         return {}
-    }
-
-    const handleKycSuccess = () => {
-        // only transition to form if this component initiated the KYC modal
-        if (isKycModalOpen) {
-            setIsKycModalOpen(false)
-            setView('form')
-        }
     }
 
     const handleWithdrawMethodClick = (method: SpecificPaymentMethod) => {
@@ -312,11 +315,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                     initialData={{}}
                     error={null}
                 />
-                <InitiateBridgeKYCModal
-                    isOpen={isKycModalOpen}
-                    onClose={() => setIsKycModalOpen(false)}
-                    onKycSuccess={handleKycSuccess}
-                />
+                <SumsubKycModals flow={sumsubFlow} />
             </div>
         )
     }
@@ -431,11 +430,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 isKycApprovedModalOpen={showKycStatusModal}
                 onClose={() => setShowKycStatusModal(false)}
             />
-            <InitiateBridgeKYCModal
-                isOpen={isKycModalOpen}
-                onClose={() => setIsKycModalOpen(false)}
-                onKycSuccess={handleKycSuccess}
-            />
+            <SumsubKycModals flow={sumsubFlow} />
         </div>
     )
 }

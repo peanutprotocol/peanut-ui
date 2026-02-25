@@ -24,13 +24,14 @@ import { updateUserById } from '@/app/actions/users'
 import AddMoneyBankDetails from '@/components/AddMoney/components/AddMoneyBankDetails'
 import { getCurrencyConfig, getCurrencySymbol, getMinimumAmount } from '@/utils/bridge.utils'
 import { OnrampConfirmationModal } from '@/components/AddMoney/components/OnrampConfirmationModal'
-import { InitiateBridgeKYCModal } from '@/components/Kyc/InitiateBridgeKYCModal'
 import InfoCard from '@/components/Global/InfoCard'
 import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
 import { getLimitsWarningCardProps } from '@/features/limits/utils'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
+import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
+import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 
 // Step type for URL state
 type BridgeBankStep = 'inputAmount' | 'kyc' | 'collectUserDetails' | 'showDetails'
@@ -67,6 +68,18 @@ export default function OnrampBankPage() {
     const { balance } = useWallet()
     const { user, fetchUser } = useAuth()
     const { createOnramp, isLoading: isCreatingOnramp, error: onrampError } = useCreateOnramp()
+
+    // inline sumsub kyc flow for bridge bank onramp
+    const sumsubFlow = useMultiPhaseKycFlow({
+        regionIntent: 'STANDARD',
+        onKycSuccess: () => {
+            setIsKycModalOpen(false)
+            setUrlState({ step: 'inputAmount' })
+        },
+        onManualClose: () => {
+            setIsKycModalOpen(false)
+        },
+    })
 
     const selectedCountryPath = params.country as string
 
@@ -312,7 +325,7 @@ export default function OnrampBankPage() {
 
     useEffect(() => {
         if (urlState.step === 'kyc') {
-            setIsKycModalOpen(true)
+            sumsubFlow.handleInitiateKyc()
         }
     }, [urlState.step])
 
@@ -374,13 +387,8 @@ export default function OnrampBankPage() {
     if (urlState.step === 'kyc') {
         return (
             <div className="flex flex-col justify-start space-y-8">
-                <InitiateBridgeKYCModal
-                    isOpen={isKycModalOpen}
-                    onClose={handleKycModalClose}
-                    onKycSuccess={handleKycSuccess}
-                    onManualClose={() => router.push(`/add-money/${selectedCountry.path}`)}
-                    flow="add"
-                />
+                <NavHeader title="Identity Verification" onPrev={() => setUrlState({ step: 'collectUserDetails' })} />
+                <SumsubKycModals flow={sumsubFlow} autoStartSdk />
             </div>
         )
     }
