@@ -169,7 +169,14 @@ const MantecaAddMoney: FC = () => {
         } finally {
             setIsCreatingDeposit(false)
         }
-    }, [currentDenomination, selectedCountry, displayedAmount, isUserMantecaKycApproved, isCreatingDeposit, setUrlState])
+    }, [
+        currentDenomination,
+        selectedCountry,
+        displayedAmount,
+        isUserMantecaKycApproved,
+        isCreatingDeposit,
+        setUrlState,
+    ])
 
     // Redirect to inputAmount if depositDetails is accessed without required data (deep link / back navigation)
     useEffect(() => {
