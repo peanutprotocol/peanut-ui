@@ -26,7 +26,8 @@ export function groupKycByRegion(user: User): RegionKycEntry[] {
             isKyc: true,
             region: 'STANDARD',
             uuid: 'region-STANDARD',
-            timestamp: standardVerification.approvedAt ?? standardVerification.updatedAt ?? standardVerification.createdAt,
+            timestamp:
+                standardVerification.approvedAt ?? standardVerification.updatedAt ?? standardVerification.createdAt,
             verification: standardVerification,
             bridgeKycStatus: user.bridgeKycStatus as BridgeKycStatus | undefined,
         })

@@ -252,28 +252,30 @@ const HomeHistory = ({ username, hideTxnAmount = false }: { username?: string; h
             <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
                 <h2 className="text-base font-bold">Activity</h2>
                 {isViewingOwnHistory && needsBridgeTos && <BridgeTosReminder />}
-                {isViewingOwnHistory && user?.user && (() => {
-                    const regionEntries = groupKycByRegion(user.user)
-                    return regionEntries.length > 0 ? (
-                        <div className="space-y-3">
-                            {regionEntries.map((entry) => (
-                                <KycStatusItem
-                                    key={entry.uuid}
-                                    position="single"
-                                    verification={entry.verification}
-                                    bridgeKycStatus={entry.bridgeKycStatus}
-                                    region={entry.region}
-                                />
-                            ))}
-                        </div>
-                    ) : (
-                        <EmptyState
-                            icon="txn-off"
-                            title="No activity yet!"
-                            description="Start by sending or requesting money"
-                        />
-                    )
-                })()}
+                {isViewingOwnHistory &&
+                    user?.user &&
+                    (() => {
+                        const regionEntries = groupKycByRegion(user.user)
+                        return regionEntries.length > 0 ? (
+                            <div className="space-y-3">
+                                {regionEntries.map((entry) => (
+                                    <KycStatusItem
+                                        key={entry.uuid}
+                                        position="single"
+                                        verification={entry.verification}
+                                        bridgeKycStatus={entry.bridgeKycStatus}
+                                        region={entry.region}
+                                    />
+                                ))}
+                            </div>
+                        ) : (
+                            <EmptyState
+                                icon="txn-off"
+                                title="No activity yet!"
+                                description="Start by sending or requesting money"
+                            />
+                        )
+                    })()}
 
                 {!isViewingOwnHistory && (
                     <EmptyState
