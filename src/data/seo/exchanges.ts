@@ -3,6 +3,7 @@
 // Public API unchanged from previous version.
 
 import { readEntityData, readPageContent, listEntitySlugs, listContentSlugs } from '@/lib/content'
+import { extractFaqs, extractSteps, extractTroubleshooting } from './utils'
 
 // --- Entity frontmatter (input/data/exchanges/{slug}.md) ---
 
@@ -58,7 +59,7 @@ function loadExchanges(): Record<string, Exchange> {
         const fm = entity.frontmatter
 
         // Extract steps from entity body (numbered list under ## Deposit to Peanut Flow)
-        const steps = extractSteps(entity.body)
+        const steps = extractSteps(entity.body, /Deposit to Peanut Flow|Step-by-Step|How to Deposit/)
         const troubleshooting = extractTroubleshooting(entity.body)
         const faqs = extractFaqs(entity.body)
 
@@ -102,64 +103,6 @@ function estimateProcessingTime(network: string): string {
         ethereum: '~5 minutes',
     }
     return times[network] ?? '1-10 minutes'
-}
-
-/** Extract numbered steps from markdown body */
-function extractSteps(body: string): string[] {
-    const steps: string[] = []
-    const stepSection = body.match(
-        /## (?:Deposit to Peanut Flow|Step-by-Step|How to Deposit)\s*\n([\s\S]*?)(?=\n## [^#]|$)/i
-    )
-    if (!stepSection) return steps
-
-    const lines = stepSection[1].split('\n')
-    for (const line of lines) {
-        const match = line.match(/^\d+\.\s+(.+)/)
-        if (match) {
-            steps.push(match[1].replace(/\*\*/g, '').trim())
-        }
-    }
-    return steps
-}
-
-/** Extract troubleshooting items from markdown body */
-function extractTroubleshooting(body: string): Array<{ issue: string; fix: string }> {
-    const items: Array<{ issue: string; fix: string }> = []
-    const section = body.match(/## (?:Troubleshooting|Common Issues)\s*\n([\s\S]*?)(?=\n## [^#]|$)/i)
-    if (!section) return items
-
-    const lines = section[1].split('\n')
-    for (const line of lines) {
-        const match = line.match(/^[-*]\s+\*\*(.+?)\*\*[:\s]+(.+)/)
-        if (match) {
-            items.push({ issue: match[1], fix: match[2].trim() })
-        }
-    }
-    return items
-}
-
-/** Extract FAQ items from markdown body */
-function extractFaqs(body: string): Array<{ q: string; a: string }> {
-    const faqs: Array<{ q: string; a: string }> = []
-    const faqSection = body.match(/## (?:FAQ|Frequently Asked Questions)\s*\n([\s\S]*?)(?=\n## [^#]|$)/i)
-    if (!faqSection) return faqs
-
-    const lines = faqSection[1].split('\n')
-    let currentQ = ''
-    let currentA = ''
-
-    for (const line of lines) {
-        if (line.startsWith('### ')) {
-            if (currentQ && currentA.trim()) faqs.push({ q: currentQ, a: currentA.trim() })
-            currentQ = line.replace(/^### /, '').replace(/\*\*/g, '').trim()
-            currentA = ''
-        } else if (currentQ) {
-            currentA += line + '\n'
-        }
-    }
-    if (currentQ && currentA.trim()) faqs.push({ q: currentQ, a: currentA.trim() })
-
-    return faqs
 }
 
 export const EXCHANGES: Record<string, Exchange> = loadExchanges()

@@ -22,7 +22,8 @@
         "test:e2e": "playwright test",
         "test:e2e:ui": "playwright test --ui",
         "test:e2e:headed": "playwright test --headed",
-        "script": "NODE_OPTIONS=\"--experimental-json-modules\" tsx"
+        "script": "NODE_OPTIONS=\"--experimental-json-modules\" tsx",
+        "validate-content": "tsx scripts/validate-content.ts"
     },
     "dependencies": {
         "@dicebear/collection": "^9.2.2",

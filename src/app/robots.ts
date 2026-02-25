@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next'
 import { BASE_URL } from '@/constants/general.consts'
+import { SUPPORTED_LOCALES } from '@/i18n/types'
 
 const IS_PRODUCTION_DOMAIN = BASE_URL === 'https://peanut.me'
 
@@ -44,10 +45,8 @@ export default function robots(): MetadataRoute.Robots {
                     '/terms',
                     '/exchange',
                     '/lp/card',
-                    // SEO routes (all locale-prefixed: /en/, /es/, /pt/)
-                    '/en/',
-                    '/es/',
-                    '/pt/',
+                    // SEO routes (all locale-prefixed)
+                    ...SUPPORTED_LOCALES.map((l) => `/${l}/`),
                 ],
                 disallow: [
                     '/api/',

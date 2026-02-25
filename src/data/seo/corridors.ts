@@ -12,6 +12,7 @@ import {
     isPublished,
 } from '@/lib/content'
 import type { Locale } from '@/i18n/types'
+import { extractFaqs } from './utils'
 
 // --- Entity frontmatter schema (input/data/countries/{slug}.md) ---
 
@@ -70,32 +71,6 @@ export interface Corridor {
     to: string
 }
 
-// --- Helpers ---
-
-/** Extract FAQ items from markdown body (## FAQ section with ### question headings) */
-function extractFaqsFromBody(body: string): Array<{ q: string; a: string }> {
-    const faqs: Array<{ q: string; a: string }> = []
-    const faqSection = body.match(/## (?:FAQ|Frequently Asked Questions)\s*\n([\s\S]*?)(?=\n## [^#]|$)/i)
-    if (!faqSection) return faqs
-
-    const lines = faqSection[1].split('\n')
-    let currentQ = ''
-    let currentA = ''
-
-    for (const line of lines) {
-        if (line.startsWith('### ')) {
-            if (currentQ && currentA.trim()) faqs.push({ q: currentQ, a: currentA.trim() })
-            currentQ = line.replace(/^### /, '').replace(/\*\*/g, '').trim()
-            currentA = ''
-        } else if (currentQ) {
-            currentA += line + '\n'
-        }
-    }
-    if (currentQ && currentA.trim()) faqs.push({ q: currentQ, a: currentA.trim() })
-
-    return faqs
-}
-
 // --- Loader ---
 
 function loadAll() {
@@ -144,7 +119,7 @@ function loadAll() {
         }
 
         // Extract FAQs from the content body
-        const faqs = content ? extractFaqsFromBody(content.body) : []
+        const faqs = content ? extractFaqs(content.body) : []
 
         countries[slug] = {
             name: fm.name,
@@ -241,7 +216,7 @@ export function getLocalizedSEO(country: string, locale: Locale): CountrySEO | n
     const localized = readPageContentLocalized<CountryContentFrontmatter>('countries', country, locale)
     if (!localized) return base
 
-    const localizedFaqs = extractFaqsFromBody(localized.body)
+    const localizedFaqs = extractFaqs(localized.body)
 
     return {
         ...base,

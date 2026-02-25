@@ -4,6 +4,7 @@
 // Public API unchanged from previous version.
 
 import { readEntityData, readPageContent, listEntitySlugs, listContentSlugs } from '@/lib/content'
+import { extractFaqs, extractSteps } from './utils'
 
 // --- Entity frontmatter (input/data/spending-methods/{slug}.md) ---
 
@@ -67,55 +68,19 @@ function loadPaymentMethods(): Record<string, PaymentMethod> {
             name: fm.name,
             countries: fm.countries ?? [],
             description: content.body,
-            steps: extractSteps(content.body),
+            steps: extractSteps(
+                content.body,
+                /Merchant QR Payments|How to Pay|Steps|How It Works/,
+                (line) => {
+                    const match = line.match(/^\d+\.\s+\*\*(.+?)\*\*/)
+                    return match ? match[1].trim() : null
+                }
+            ),
             faqs: extractFaqs(content.body),
         }
     }
 
     return result
-}
-
-/** Extract numbered steps from markdown body */
-function extractSteps(body: string): string[] {
-    const steps: string[] = []
-    // Look for numbered lists in "How to" or step sections
-    const section = body.match(
-        /###?\s+(?:Merchant QR Payments|How to Pay|Steps|How It Works)\s*\n([\s\S]*?)(?=\n###?\s|$)/i
-    )
-    if (!section) return steps
-
-    const lines = section[1].split('\n')
-    for (const line of lines) {
-        const match = line.match(/^\d+\.\s+\*\*(.+?)\*\*/)
-        if (match) {
-            steps.push(match[1].trim())
-        }
-    }
-    return steps
-}
-
-/** Extract FAQ items from markdown body */
-function extractFaqs(body: string): Array<{ q: string; a: string }> {
-    const faqs: Array<{ q: string; a: string }> = []
-    const faqSection = body.match(/## (?:FAQ|Frequently Asked Questions)\s*\n([\s\S]*?)(?=\n## [^#]|$)/i)
-    if (!faqSection) return faqs
-
-    const lines = faqSection[1].split('\n')
-    let currentQ = ''
-    let currentA = ''
-
-    for (const line of lines) {
-        if (line.startsWith('### ')) {
-            if (currentQ && currentA.trim()) faqs.push({ q: currentQ, a: currentA.trim() })
-            currentQ = line.replace(/^### /, '').replace(/\*\*/g, '').trim()
-            currentA = ''
-        } else if (currentQ) {
-            currentA += line + '\n'
-        }
-    }
-    if (currentQ && currentA.trim()) faqs.push({ q: currentQ, a: currentA.trim() })
-
-    return faqs
 }
 
 export const PAYMENT_METHODS = loadPaymentMethods()

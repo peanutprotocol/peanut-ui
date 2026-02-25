@@ -3,6 +3,7 @@
 // Public API unchanged from previous version.
 
 import { readEntityData, readPageContent, listEntitySlugs, listContentSlugs, isPublished } from '@/lib/content'
+import { extractFaqs } from './utils'
 
 // --- Entity frontmatter (input/data/competitors/{slug}.md) ---
 
@@ -63,8 +64,7 @@ function loadCompetitors(): Record<string, Competitor> {
 
         const content = readPageContent<CompareContentFrontmatter>('compare', slug, 'en')
 
-        // During transition: include if entity exists and content exists (even if unpublished)
-        if (!content) continue
+        if (!content || !isPublished(content)) continue
 
         const fm = entity.frontmatter
         const body = content.body
@@ -137,37 +137,6 @@ function buildVerdict(fm: CompetitorEntityFrontmatter): string {
         return `${fm.name} is a solid choice for international transfers, but if you need to pay locally in Argentina or Brazil, Peanut offers better rates and direct local payment access.`
     }
     return `Both services have their strengths. Peanut excels for local payments in Latin America with better exchange rates.`
-}
-
-/** Extract FAQ items from markdown body (## FAQ or ## Frequently Asked Questions section) */
-function extractFaqs(body: string): Array<{ q: string; a: string }> {
-    const faqs: Array<{ q: string; a: string }> = []
-
-    // Look for ### headings after a FAQ section header
-    const faqSection = body.match(/## (?:FAQ|Frequently Asked Questions)\s*\n([\s\S]*?)(?=\n## [^#]|$)/i)
-    if (!faqSection) return faqs
-
-    const lines = faqSection[1].split('\n')
-    let currentQ = ''
-    let currentA = ''
-
-    for (const line of lines) {
-        if (line.startsWith('### ')) {
-            if (currentQ && currentA.trim()) {
-                faqs.push({ q: currentQ, a: currentA.trim() })
-            }
-            currentQ = line.replace(/^### /, '').replace(/\*\*/g, '').trim()
-            currentA = ''
-        } else if (currentQ) {
-            currentA += line + '\n'
-        }
-    }
-
-    if (currentQ && currentA.trim()) {
-        faqs.push({ q: currentQ, a: currentA.trim() })
-    }
-
-    return faqs
 }
 
 export const COMPETITORS: Record<string, Competitor> = loadCompetitors()

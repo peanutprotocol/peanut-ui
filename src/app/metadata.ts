@@ -25,7 +25,7 @@ export function generateMetadata({
             type: 'website',
             title,
             description,
-            url: BASE_URL,
+            url: canonical ? `${BASE_URL}${canonical}` : BASE_URL,
             siteName: 'Peanut',
             images: [{ url: image, width: 1200, height: 630, alt: title }],
         },
