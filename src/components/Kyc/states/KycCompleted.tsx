@@ -6,6 +6,7 @@ import { formatDate } from '@/utils/general.utils'
 import { CountryRegionRow } from '../CountryRegionRow'
 import Image from 'next/image'
 import { STAR_STRAIGHT_ICON } from '@/assets'
+import { type IUserRail } from '@/interfaces'
 
 // @dev TODO: Remove hardcoded KYC points - this should come from backend
 // See comment in KycStatusItem.tsx for proper implementation plan
@@ -16,10 +17,12 @@ export const KycCompleted = ({
     bridgeKycApprovedAt,
     countryCode,
     isBridge,
+    rails,
 }: {
     bridgeKycApprovedAt?: string
     countryCode?: string | null
     isBridge?: boolean
+    rails?: IUserRail[]
 }) => {
     const verifiedOn = useMemo(() => {
         if (!bridgeKycApprovedAt) return 'N/A'
@@ -30,6 +33,8 @@ export const KycCompleted = ({
             return 'N/A'
         }
     }, [bridgeKycApprovedAt])
+
+    const enabledRails = useMemo(() => (rails ?? []).filter((r) => r.status === 'ENABLED'), [rails])
 
     return (
         <div className="space-y-4">
@@ -48,6 +53,23 @@ export const KycCompleted = ({
                 />
                 <PaymentInfoRow label="Status" value="You are now verified. Enjoy Peanut!" hideBottomBorder />
             </Card>
+            {enabledRails.length > 0 && (
+                <Card position="single">
+                    <PaymentInfoRow
+                        label="Payment methods"
+                        value={
+                            <div className="flex flex-col gap-1">
+                                {enabledRails.map((r) => (
+                                    <span key={r.id} className="text-sm">
+                                        {r.rail.method.name} ({r.rail.method.currency})
+                                    </span>
+                                ))}
+                            </div>
+                        }
+                        hideBottomBorder
+                    />
+                </Card>
+            )}
         </div>
     )
 }

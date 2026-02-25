@@ -226,12 +226,13 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
                     }
                 }
 
-                // refetch user — the phase-transition effect will handle moving to 'complete'
+                // optimistically complete — don't wait for rail status WebSocket
                 await fetchUser()
+                completeFlow()
             }
-            // if manual close, stay on bridge_tos phase (user can try again or skip)
+            // if manual close, stay on bridge_tos phase (user can try again)
         },
-        [fetchUser]
+        [fetchUser, completeFlow]
     )
 
     // handle "Skip for now" in bridge_tos phase

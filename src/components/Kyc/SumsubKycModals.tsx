@@ -40,7 +40,12 @@ export const SumsubKycModals = ({ flow, autoStartSdk }: SumsubKycModalsProps) =>
             />
 
             {flow.tosLink && (
-                <IframeWrapper src={flow.tosLink} visible={flow.showTosIframe} onClose={flow.handleTosIframeClose} />
+                <IframeWrapper
+                    src={flow.tosLink}
+                    visible={flow.showTosIframe}
+                    onClose={flow.handleTosIframeClose}
+                    skipStartView
+                />
             )}
         </>
     )

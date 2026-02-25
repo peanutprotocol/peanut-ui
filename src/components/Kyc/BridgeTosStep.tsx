@@ -122,7 +122,7 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip }: BridgeTosStepProp
                 />
             )}
 
-            {tosLink && <IframeWrapper src={tosLink} visible={showIframe} onClose={handleIframeClose} />}
+            {tosLink && <IframeWrapper src={tosLink} visible={showIframe} onClose={handleIframeClose} skipStartView />}
         </>
     )
 }
