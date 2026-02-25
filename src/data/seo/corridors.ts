@@ -158,10 +158,12 @@ function loadAll() {
             corridors: fm.corridors?.map((c) => ({ origin: c.origin, priority: c.priority })) ?? [],
         }
 
-        // Build corridors from entity data
+        // Build corridors from entity data (some entities use destination: instead of origin:, skip those)
         if (fm.corridors) {
             for (const corridor of fm.corridors) {
-                corridors.push({ from: corridor.origin, to: slug })
+                if (corridor.origin) {
+                    corridors.push({ from: corridor.origin, to: slug })
+                }
             }
         }
     }
