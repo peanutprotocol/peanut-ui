@@ -18,7 +18,7 @@ import { type TCreateOfframpRequest, type TCreateOfframpResponse } from '@/servi
 import { getOfframpCurrencyConfig } from '@/utils/bridge.utils'
 import { getBridgeChainName, getBridgeTokenName } from '@/utils/bridge-accounts.utils'
 import peanut from '@squirrel-labs/peanut-sdk'
-import { addBankAccount, getUserById, updateUserById } from '@/app/actions/users'
+import { addBankAccount, getUserById } from '@/app/actions/users'
 import SavedAccountsView from '../../../Common/SavedAccountsView'
 import { BankClaimType, useDetermineBankClaimType } from '@/hooks/useDetermineBankClaimType'
 import useSavedAccounts from '@/hooks/useSavedAccounts'
@@ -256,22 +256,8 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
         setError(null)
 
         // scenario 1: receiver needs KYC
+        // name and email are now collected by sumsub sdk — no need to save them beforehand
         if (bankClaimType === BankClaimType.ReceiverKycNeeded && !justCompletedKyc) {
-            // update user's name and email if they are not present
-            const hasNameOnLoad = !!user?.user.fullName
-            const hasEmailOnLoad = !!user?.user.email
-            if (!hasNameOnLoad || !hasEmailOnLoad) {
-                if (user?.user.userId && rawData.firstName && rawData.lastName && rawData.email) {
-                    const result = await updateUserById({
-                        userId: user.user.userId,
-                        fullName: `${rawData.firstName} ${rawData.lastName}`.trim(),
-                        email: rawData.email,
-                    })
-                    if (result.error) return { error: result.error }
-                    await fetchUser()
-                }
-            }
-
             await sumsubFlow.handleInitiateKyc('STANDARD')
             return {}
         }
