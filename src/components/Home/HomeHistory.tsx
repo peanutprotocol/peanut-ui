@@ -14,6 +14,7 @@ import Card from '../Global/Card'
 import { type CardPosition, getCardPosition } from '../Global/Card/card.utils'
 import EmptyState from '../Global/EmptyStates/EmptyState'
 import { KycStatusItem, isKycStatusItem, type KycHistoryEntry } from '../Kyc/KycStatusItem'
+import { groupKycByRegion } from '@/utils/kyc-grouping.utils'
 import { BridgeTosReminder } from '../Kyc/BridgeTosReminder'
 import { useBridgeTosStatus } from '@/hooks/useBridgeTosStatus'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -179,32 +180,10 @@ const HomeHistory = ({ username, hideTxnAmount = false }: { username?: string; h
                     }
                 }
 
-                // Add KYC status item if applicable and the user is
-                // viewing their own history
-                if (isViewingOwnHistory) {
-                    if (user?.user?.bridgeKycStatus && user.user.bridgeKycStatus !== 'not_started') {
-                        // Use appropriate timestamp based on KYC status
-                        const bridgeKycTimestamp = (() => {
-                            const status = user.user.bridgeKycStatus
-                            if (status === 'approved') return user.user.bridgeKycApprovedAt
-                            if (status === 'rejected') return user.user.bridgeKycRejectedAt
-                            return user.user.bridgeKycStartedAt
-                        })()
-                        entries.push({
-                            isKyc: true,
-                            timestamp: bridgeKycTimestamp ?? user.user.createdAt ?? new Date().toISOString(),
-                            uuid: 'bridge-kyc-status-item',
-                            bridgeKycStatus: user.user.bridgeKycStatus,
-                        })
-                    }
-                    user?.user.kycVerifications?.forEach((verification) => {
-                        entries.push({
-                            isKyc: true,
-                            timestamp: verification.approvedAt ?? verification.updatedAt ?? verification.createdAt,
-                            uuid: verification.providerUserId ?? `${verification.provider}-${verification.mantecaGeo}`,
-                            verification,
-                        })
-                    })
+                // add one kyc entry per region (STANDARD, LATAM)
+                if (isViewingOwnHistory && user?.user) {
+                    const regionEntries = groupKycByRegion(user.user)
+                    entries.push(...regionEntries)
                 }
 
                 // Check cancellation before setting state
@@ -273,39 +252,28 @@ const HomeHistory = ({ username, hideTxnAmount = false }: { username?: string; h
             <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
                 <h2 className="text-base font-bold">Activity</h2>
                 {isViewingOwnHistory && needsBridgeTos && <BridgeTosReminder />}
-                {isViewingOwnHistory &&
-                    ((user?.user.bridgeKycStatus && user?.user.bridgeKycStatus !== 'not_started') ||
-                        (user?.user.kycVerifications && user?.user.kycVerifications.length > 0)) && (
+                {isViewingOwnHistory && user?.user && (() => {
+                    const regionEntries = groupKycByRegion(user.user)
+                    return regionEntries.length > 0 ? (
                         <div className="space-y-3">
-                            {user?.user.bridgeKycStatus && user?.user.bridgeKycStatus !== 'not_started' && (
+                            {regionEntries.map((entry) => (
                                 <KycStatusItem
+                                    key={entry.uuid}
                                     position="single"
-                                    bridgeKycStatus={user.user.bridgeKycStatus}
-                                    bridgeKycStartedAt={user.user.bridgeKycStartedAt}
-                                />
-                            )}
-                            {user?.user.kycVerifications?.map((verification) => (
-                                <KycStatusItem
-                                    key={
-                                        verification.providerUserId ??
-                                        `${verification.provider}-${verification.mantecaGeo}`
-                                    }
-                                    position="single"
-                                    verification={verification}
+                                    verification={entry.verification}
+                                    bridgeKycStatus={entry.bridgeKycStatus}
+                                    region={entry.region}
                                 />
                             ))}
                         </div>
-                    )}
-
-                {isViewingOwnHistory &&
-                    !user?.user.bridgeKycStatus &&
-                    (!user?.user.kycVerifications || user?.user.kycVerifications.length === 0) && (
+                    ) : (
                         <EmptyState
                             icon="txn-off"
                             title="No activity yet!"
                             description="Start by sending or requesting money"
                         />
-                    )}
+                    )
+                })()}
 
                 {!isViewingOwnHistory && (
                     <EmptyState
@@ -386,6 +354,7 @@ const HomeHistory = ({ username, hideTxnAmount = false }: { username?: string; h
                                     bridgeKycStartedAt={
                                         item.bridgeKycStatus ? user?.user.bridgeKycStartedAt : undefined
                                     }
+                                    region={item.region}
                                 />
                             )
                         }

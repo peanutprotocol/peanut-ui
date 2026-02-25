@@ -17,10 +17,11 @@ interface KycStatusDrawerProps {
     onClose: () => void
     verification?: IUserKycVerification
     bridgeKycStatus?: BridgeKycStatus
+    region?: 'STANDARD' | 'LATAM'
 }
 
 // this component determines which kyc state to show inside the drawer and fetches rejection reasons if the kyc has failed.
-export const KycStatusDrawer = ({ isOpen, onClose, verification, bridgeKycStatus }: KycStatusDrawerProps) => {
+export const KycStatusDrawer = ({ isOpen, onClose, verification, bridgeKycStatus, region }: KycStatusDrawerProps) => {
     const { user } = useUserStore()
 
     const status = verification ? verification.status : bridgeKycStatus

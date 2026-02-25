@@ -1,8 +1,6 @@
 import Card from '@/components/Global/Card'
 import { KYCStatusDrawerItem } from '../KYCStatusDrawerItem'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
-import { BridgeTosReminder } from '../BridgeTosReminder'
-import { useBridgeTosStatus } from '@/hooks/useBridgeTosStatus'
 import { useMemo } from 'react'
 import { formatDate } from '@/utils/general.utils'
 import { CountryRegionRow } from '../CountryRegionRow'
@@ -23,8 +21,6 @@ export const KycCompleted = ({
     countryCode?: string | null
     isBridge?: boolean
 }) => {
-    const { needsBridgeTos } = useBridgeTosStatus()
-
     const verifiedOn = useMemo(() => {
         if (!bridgeKycApprovedAt) return 'N/A'
         try {
@@ -38,7 +34,6 @@ export const KycCompleted = ({
     return (
         <div className="space-y-4">
             <KYCStatusDrawerItem status="completed" />
-            {needsBridgeTos && <BridgeTosReminder />}
             <Card position="single">
                 <PaymentInfoRow label="Verified on" value={verifiedOn} />
                 <CountryRegionRow countryCode={countryCode} isBridge={isBridge} />

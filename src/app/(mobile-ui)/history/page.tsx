@@ -13,6 +13,7 @@ import { useUserStore } from '@/redux/hooks'
 import { formatGroupHeaderDate, getDateGroup, getDateGroupKey } from '@/utils/dateGrouping.utils'
 import * as Sentry from '@sentry/nextjs'
 import { isKycStatusItem } from '@/components/Kyc/KycStatusItem'
+import { groupKycByRegion } from '@/utils/kyc-grouping.utils'
 import { useAuth } from '@/context/authContext'
 import { BadgeStatusItem } from '@/components/Badges/BadgeStatusItem'
 import { isBadgeHistoryItem } from '@/components/Badges/badge.types'
@@ -165,30 +166,10 @@ const HistoryPage = () => {
             })
         })
 
-        if (user) {
-            if (user.user?.bridgeKycStatus && user.user.bridgeKycStatus !== 'not_started') {
-                // Use appropriate timestamp based on KYC status
-                const bridgeKycTimestamp = (() => {
-                    const status = user.user.bridgeKycStatus
-                    if (status === 'approved') return user.user.bridgeKycApprovedAt
-                    if (status === 'rejected') return user.user.bridgeKycRejectedAt
-                    return user.user.bridgeKycStartedAt
-                })()
-                entries.push({
-                    isKyc: true,
-                    timestamp: bridgeKycTimestamp ?? user.user.createdAt ?? new Date().toISOString(),
-                    uuid: 'bridge-kyc-status-item',
-                    bridgeKycStatus: user.user.bridgeKycStatus,
-                })
-            }
-            user.user.kycVerifications?.forEach((verification) => {
-                entries.push({
-                    isKyc: true,
-                    timestamp: verification.approvedAt ?? verification.updatedAt ?? verification.createdAt,
-                    uuid: verification.providerUserId ?? `${verification.provider}-${verification.mantecaGeo}`,
-                    verification,
-                })
-            })
+        // add one kyc entry per region (STANDARD, LATAM)
+        if (user?.user) {
+            const regionEntries = groupKycByRegion(user.user)
+            entries.push(...regionEntries)
         }
 
         entries.sort((a, b) => {
@@ -272,6 +253,7 @@ const HistoryPage = () => {
                                     bridgeKycStartedAt={
                                         item.bridgeKycStatus ? user?.user.bridgeKycStartedAt : undefined
                                     }
+                                    region={item.region}
                                 />
                             ) : isBadgeHistoryItem(item) ? (
                                 <BadgeStatusItem position={position} entry={item} />
