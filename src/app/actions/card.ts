@@ -4,7 +4,10 @@ import { PEANUT_API_URL } from '@/constants/general.consts'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { getJWTCookie } from '@/utils/cookie-migration.utils'
 
-const API_KEY = process.env.PEANUT_API_KEY!
+const API_KEY = process.env.PEANUT_API_KEY
+if (!API_KEY) {
+    throw new Error('PEANUT_API_KEY environment variable is not set')
+}
 
 export interface CardInfoResponse {
     hasPurchased: boolean

@@ -41,7 +41,7 @@ const InvitesPage = () => {
 
     const totalPointsEarned =
         invites?.invitees?.reduce((sum: number, invite: PointsInvite) => {
-            return sum + invite.contributedPoints
+            return sum + (invite.contributedPoints ?? 0)
         }, 0) || 0
 
     const animatedTotal = useCountUp(totalPointsEarned, {
@@ -87,7 +87,7 @@ const InvitesPage = () => {
                         const username = invite.username
                         const fullName = invite.fullName
                         const isVerified = invite.kycStatus === 'approved'
-                        const pointsEarned = invite.contributedPoints
+                        const pointsEarned = invite.contributedPoints ?? 0
                         // respect user's showFullName preference for avatar and display name
                         const displayName = invite.showFullName && fullName ? fullName : username
                         return (

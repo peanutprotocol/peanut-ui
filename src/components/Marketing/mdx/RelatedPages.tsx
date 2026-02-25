@@ -10,11 +10,7 @@ interface RelatedLinkProps {
 
 /** Individual related page link. Used as a child of <RelatedPages>. */
 export function RelatedLink({ href, children }: RelatedLinkProps) {
-    return (
-        <div data-href={href}>
-            {children}
-        </div>
-    )
+    return <div data-href={href}>{children}</div>
 }
 
 interface RelatedPagesProps {
@@ -40,9 +36,10 @@ export function RelatedPages({ title = 'Related Pages', children }: RelatedPages
         if (child.type === RelatedLink || child.props?.href) {
             links.push({
                 href: child.props.href,
-                text: typeof child.props.children === 'string'
-                    ? child.props.children
-                    : String(child.props.children ?? ''),
+                text:
+                    typeof child.props.children === 'string'
+                        ? child.props.children
+                        : String(child.props.children ?? ''),
             })
         }
     })
@@ -55,10 +52,7 @@ export function RelatedPages({ title = 'Related Pages', children }: RelatedPages
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {links.map((link) => (
                     <Link key={link.href} href={link.href}>
-                        <Card
-                            shadowSize="4"
-                            className={`flex-row items-center gap-3 p-4 ${CARD_HOVER}`}
-                        >
+                        <Card shadowSize="4" className={`flex-row items-center gap-3 p-4 ${CARD_HOVER}`}>
                             <span className="font-semibold">{link.text}</span>
                             <span className="ml-auto text-sm text-black/50">&rarr;</span>
                         </Card>
