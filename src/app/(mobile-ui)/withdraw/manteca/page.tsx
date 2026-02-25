@@ -631,7 +631,6 @@ export default function MantecaWithdrawFlow() {
 
                         {errorMessage && <ErrorAlert description={errorMessage} />}
                     </div>
-
                 </div>
             )}
 

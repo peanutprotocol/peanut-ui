@@ -22,11 +22,7 @@ interface UseMultiPhaseKycFlowOptions {
  * use this hook anywhere kyc is initiated. pair with SumsubKycModals
  * for the modal rendering.
  */
-export const useMultiPhaseKycFlow = ({
-    onKycSuccess,
-    onManualClose,
-    regionIntent,
-}: UseMultiPhaseKycFlowOptions) => {
+export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: UseMultiPhaseKycFlowOptions) => {
     const { fetchUser } = useAuth()
 
     // multi-phase modal state

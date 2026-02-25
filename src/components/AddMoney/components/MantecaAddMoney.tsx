@@ -167,7 +167,15 @@ const MantecaAddMoney: FC = () => {
         } finally {
             setIsCreatingDeposit(false)
         }
-    }, [currentDenomination, selectedCountry, displayedAmount, isUserMantecaKycApproved, isCreatingDeposit, setUrlState, sumsubFlow.handleInitiateKyc])
+    }, [
+        currentDenomination,
+        selectedCountry,
+        displayedAmount,
+        isUserMantecaKycApproved,
+        isCreatingDeposit,
+        setUrlState,
+        sumsubFlow.handleInitiateKyc,
+    ])
 
     // auto-start KYC if user hasn't completed manteca verification
     useEffect(() => {
