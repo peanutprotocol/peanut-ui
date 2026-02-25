@@ -15,6 +15,7 @@ interface PageProps {
 }
 
 export async function generateStaticParams() {
+    if (process.env.NODE_ENV === 'production') return []
     return SUPPORTED_LOCALES.flatMap((locale) => {
         // Use English categories as fallback
         const cats = getAllCategories(locale as Locale)

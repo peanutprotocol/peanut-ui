@@ -1,9 +1,7 @@
 import { type MetadataRoute } from 'next'
 import { BASE_URL } from '@/constants/general.consts'
-import { COUNTRIES_SEO, CORRIDORS, CONVERT_PAIRS, COMPETITORS, EXCHANGES, PAYMENT_METHOD_SLUGS } from '@/data/seo'
-import { getAllPosts } from '@/lib/blog'
+import { COUNTRIES_SEO, CORRIDORS, COMPETITORS, EXCHANGES, PAYMENT_METHOD_SLUGS } from '@/data/seo'
 import { SUPPORTED_LOCALES } from '@/i18n/config'
-import type { Locale } from '@/i18n/types'
 
 // TODO (infra): Set up 301 redirect peanut.to/* → peanut.me/ at Vercel/Cloudflare level
 // TODO (infra): Set up 301 redirect docs.peanut.to/* → peanut.me/help
@@ -48,8 +46,7 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
             pages.push({ path: `/${locale}/${country}`, priority: 0.9 * basePriority, changeFrequency: 'weekly' })
         }
 
-        // Corridor index + country pages
-        pages.push({ path: `/${locale}/send-money-to`, priority: 0.9 * basePriority, changeFrequency: 'weekly' })
+        // Send-money-to country pages
         for (const country of Object.keys(COUNTRIES_SEO)) {
             pages.push({
                 path: `/${locale}/send-money-to/${country}`,
@@ -75,11 +72,6 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
                 priority: 0.7 * basePriority,
                 changeFrequency: 'weekly',
             })
-        }
-
-        // Convert pages
-        for (const pair of CONVERT_PAIRS) {
-            pages.push({ path: `/${locale}/convert/${pair}`, priority: 0.7 * basePriority, changeFrequency: 'daily' })
         }
 
         // Comparison pages
@@ -109,23 +101,7 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
             })
         }
 
-        // Blog — only include posts that actually exist for this locale (avoid duplicate content)
-        const localePosts = getAllPosts(locale as Locale)
-        const enPosts = getAllPosts('en')
-        const postsToInclude = localePosts.length > 0 ? localePosts : isDefault ? enPosts : []
-
-        pages.push({ path: `/${locale}/blog`, priority: 0.8 * basePriority, changeFrequency: 'weekly' })
-        for (const post of postsToInclude) {
-            pages.push({
-                path: `/${locale}/blog/${post.slug}`,
-                priority: 0.6 * basePriority,
-                changeFrequency: 'monthly',
-                lastModified: new Date(post.frontmatter.date),
-            })
-        }
-
-        // Team page
-        pages.push({ path: `/${locale}/team`, priority: 0.5 * basePriority, changeFrequency: 'monthly' })
+        // Blog and team pages excluded from production sitemap (not yet launched)
     }
 
     return pages.map((page) => ({

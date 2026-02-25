@@ -14,6 +14,7 @@ interface PageProps {
 }
 
 export async function generateStaticParams() {
+    if (process.env.NODE_ENV === 'production') return []
     // Generate params for locales that have blog content (fall back to en slugs)
     return SUPPORTED_LOCALES.flatMap((locale) => {
         let posts = getAllPosts(locale as Locale)

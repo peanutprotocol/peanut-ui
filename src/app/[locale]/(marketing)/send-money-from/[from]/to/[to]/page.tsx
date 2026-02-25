@@ -59,7 +59,6 @@ export default async function FromToCorridorPage({ params }: PageProps) {
         <ContentPage
             breadcrumbs={[
                 { name: i18n.home, href: '/' },
-                { name: i18n.sendMoney, href: `/${locale}/send-money-to` },
                 { name: `${fromName} → ${toName}`, href: `/${locale}/send-money-from/${from}/to/${to}` },
             ]}
         >
