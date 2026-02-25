@@ -32,6 +32,7 @@ import { captureException } from '@sentry/nextjs'
 import useKycStatus from '@/hooks/useKycStatus'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
+import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 import { PointsAction } from '@/services/services.types'
 import { usePointsConfetti } from '@/hooks/usePointsConfetti'
@@ -83,9 +84,10 @@ export default function MantecaWithdrawFlow() {
     const { hasPendingTransactions } = usePendingTransactions()
 
     // inline sumsub kyc flow for manteca users who need LATAM verification
-    const sumsubFlow = useMultiPhaseKycFlow({
-        regionIntent: 'LATAM',
-    })
+    // regionIntent is NOT passed here to avoid creating a backend record on mount.
+    // intent is passed at call time: handleInitiateKyc('LATAM')
+    const sumsubFlow = useMultiPhaseKycFlow({})
+    const [showKycModal, setShowKycModal] = useState(false)
     // Get method and country from URL parameters
     const selectedMethodType = searchParams.get('method') // mercadopago, pix, bank-transfer, etc.
     const countryFromUrl = searchParams.get('country') // argentina, brazil, etc.
@@ -188,7 +190,7 @@ export default function MantecaWithdrawFlow() {
         setErrorMessage(null)
 
         if (!isUserMantecaKycApproved) {
-            await sumsubFlow.handleInitiateKyc()
+            setShowKycModal(true)
             return
         }
 
@@ -233,7 +235,6 @@ export default function MantecaWithdrawFlow() {
         currencyAmount,
         isUserMantecaKycApproved,
         isLockingPrice,
-        sumsubFlow.handleInitiateKyc,
     ])
 
     const handleWithdraw = async () => {
@@ -449,6 +450,15 @@ export default function MantecaWithdrawFlow() {
     }
     return (
         <div className="flex min-h-[inherit] flex-col gap-8">
+            <InitiateKycModal
+                visible={showKycModal}
+                onClose={() => setShowKycModal(false)}
+                onVerify={async () => {
+                    setShowKycModal(false)
+                    await sumsubFlow.handleInitiateKyc('LATAM')
+                }}
+                isLoading={sumsubFlow.isLoading}
+            />
             <SumsubKycModals flow={sumsubFlow} />
             <NavHeader
                 title="Withdraw"

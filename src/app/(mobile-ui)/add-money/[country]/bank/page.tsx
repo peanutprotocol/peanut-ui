@@ -70,8 +70,9 @@ export default function OnrampBankPage() {
     const { createOnramp, isLoading: isCreatingOnramp, error: onrampError } = useCreateOnramp()
 
     // inline sumsub kyc flow for bridge bank onramp
+    // regionIntent is NOT passed here to avoid creating a backend record on mount.
+    // intent is passed at call time: handleInitiateKyc('STANDARD')
     const sumsubFlow = useMultiPhaseKycFlow({
-        regionIntent: 'STANDARD',
         onKycSuccess: () => {
             setIsKycModalOpen(false)
             setUrlState({ step: 'inputAmount' })
@@ -325,9 +326,9 @@ export default function OnrampBankPage() {
 
     useEffect(() => {
         if (urlState.step === 'kyc') {
-            sumsubFlow.handleInitiateKyc()
+            sumsubFlow.handleInitiateKyc('STANDARD')
         }
-    }, [urlState.step])
+    }, [urlState.step]) // eslint-disable-line react-hooks/exhaustive-deps
 
     // Redirect to inputAmount if showDetails is accessed without required data (deep link / back navigation)
     useEffect(() => {

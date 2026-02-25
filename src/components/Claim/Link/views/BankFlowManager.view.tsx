@@ -78,8 +78,9 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
     const dispatch = useAppDispatch()
 
     // inline sumsub kyc flow for users who need verification
+    // regionIntent is NOT passed here to avoid creating a backend record on mount.
+    // intent is passed at call time: handleInitiateKyc('STANDARD')
     const sumsubFlow = useMultiPhaseKycFlow({
-        regionIntent: 'STANDARD',
         onKycSuccess: async () => {
             if (justCompletedKyc) return
             setIsKycModalOpen(false)
@@ -271,7 +272,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                 }
             }
 
-            await sumsubFlow.handleInitiateKyc()
+            await sumsubFlow.handleInitiateKyc('STANDARD')
             return {}
         }
 

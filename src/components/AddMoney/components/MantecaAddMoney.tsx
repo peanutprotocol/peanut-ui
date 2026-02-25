@@ -13,6 +13,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import useKycStatus from '@/hooks/useKycStatus'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
+import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import { MIN_MANTECA_DEPOSIT_AMOUNT } from '@/constants/payment.consts'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
@@ -65,9 +66,10 @@ const MantecaAddMoney: FC = () => {
     const { user } = useAuth()
 
     // inline sumsub kyc flow for manteca users who need LATAM verification
-    const sumsubFlow = useMultiPhaseKycFlow({
-        regionIntent: 'LATAM',
-    })
+    // regionIntent is NOT passed here to avoid creating a backend record on mount.
+    // intent is passed at call time: handleInitiateKyc('LATAM')
+    const sumsubFlow = useMultiPhaseKycFlow({})
+    const [showKycModal, setShowKycModal] = useState(false)
 
     // validates deposit amount against user's limits
     // currency comes from country config - hook normalizes it internally
@@ -139,7 +141,7 @@ const MantecaAddMoney: FC = () => {
         if (isCreatingDeposit) return
 
         if (!isUserMantecaKycApproved) {
-            await sumsubFlow.handleInitiateKyc()
+            setShowKycModal(true)
             return
         }
 
@@ -167,22 +169,7 @@ const MantecaAddMoney: FC = () => {
         } finally {
             setIsCreatingDeposit(false)
         }
-    }, [
-        currentDenomination,
-        selectedCountry,
-        displayedAmount,
-        isUserMantecaKycApproved,
-        isCreatingDeposit,
-        setUrlState,
-        sumsubFlow.handleInitiateKyc,
-    ])
-
-    // auto-start KYC if user hasn't completed manteca verification
-    useEffect(() => {
-        if (!isUserMantecaKycApproved) {
-            sumsubFlow.handleInitiateKyc()
-        }
-    }, [isUserMantecaKycApproved]) // eslint-disable-line react-hooks/exhaustive-deps
+    }, [currentDenomination, selectedCountry, displayedAmount, isUserMantecaKycApproved, isCreatingDeposit, setUrlState])
 
     // Redirect to inputAmount if depositDetails is accessed without required data (deep link / back navigation)
     useEffect(() => {
@@ -196,6 +183,15 @@ const MantecaAddMoney: FC = () => {
     if (step === 'inputAmount') {
         return (
             <>
+                <InitiateKycModal
+                    visible={showKycModal}
+                    onClose={() => setShowKycModal(false)}
+                    onVerify={async () => {
+                        setShowKycModal(false)
+                        await sumsubFlow.handleInitiateKyc('LATAM')
+                    }}
+                    isLoading={sumsubFlow.isLoading}
+                />
                 <SumsubKycModals flow={sumsubFlow} />
                 <InputAmountStep
                     tokenAmount={displayedAmount}

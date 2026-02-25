@@ -50,8 +50,9 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const dispatch = useAppDispatch()
 
     // inline sumsub kyc flow for bridge bank users who need verification
+    // regionIntent is NOT passed here to avoid creating a backend record on mount.
+    // intent is passed at call time: handleInitiateKyc('STANDARD')
     const sumsubFlow = useMultiPhaseKycFlow({
-        regionIntent: 'STANDARD',
         onKycSuccess: () => {
             setIsKycModalOpen(false)
             setView('form')
@@ -179,7 +180,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 }
             }
 
-            await sumsubFlow.handleInitiateKyc()
+            await sumsubFlow.handleInitiateKyc('STANDARD')
         }
 
         return {}

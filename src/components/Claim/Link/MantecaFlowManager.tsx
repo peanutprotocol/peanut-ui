@@ -14,6 +14,7 @@ import { useRouter } from 'next/navigation'
 import useKycStatus from '@/hooks/useKycStatus'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
+import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 
 interface MantecaFlowManagerProps {
     claimLinkData: ClaimLinkData
@@ -29,21 +30,22 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
     const { isUserMantecaKycApproved } = useKycStatus()
 
     // inline sumsub kyc flow for manteca users who need LATAM verification
-    const sumsubFlow = useMultiPhaseKycFlow({
-        regionIntent: 'LATAM',
-    })
+    // regionIntent is NOT passed here to avoid creating a backend record on mount.
+    // intent is passed at call time: handleInitiateKyc('LATAM')
+    const sumsubFlow = useMultiPhaseKycFlow({})
+    const [showKycModal, setShowKycModal] = useState(false)
 
     const isSuccess = currentStep === MercadoPagoStep.SUCCESS
     const selectedCurrency = selectedCountry?.currency || 'ARS'
     const regionalMethodLogo = regionalMethodType === 'mercadopago' ? MERCADO_PAGO : PIX
     const logo = selectedCountry?.id ? undefined : regionalMethodLogo
 
-    // auto-start KYC if user hasn't completed manteca verification
+    // show confirmation modal if user hasn't completed manteca verification
     useEffect(() => {
         if (!isUserMantecaKycApproved) {
-            sumsubFlow.handleInitiateKyc()
+            setShowKycModal(true)
         }
-    }, [isUserMantecaKycApproved]) // eslint-disable-line react-hooks/exhaustive-deps
+    }, [isUserMantecaKycApproved])
 
     const renderStepDetails = () => {
         if (currentStep === MercadoPagoStep.DETAILS) {
@@ -114,6 +116,15 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
 
                 {renderStepDetails()}
             </div>
+            <InitiateKycModal
+                visible={showKycModal}
+                onClose={() => setShowKycModal(false)}
+                onVerify={async () => {
+                    setShowKycModal(false)
+                    await sumsubFlow.handleInitiateKyc('LATAM')
+                }}
+                isLoading={sumsubFlow.isLoading}
+            />
             <SumsubKycModals flow={sumsubFlow} />
         </div>
     )
