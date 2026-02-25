@@ -37,7 +37,10 @@ export const KycStatusDrawer = ({ isOpen, onClose, verification, bridgeKycStatus
     const sumsubFlow = useMultiPhaseKycFlow({
         onKycSuccess: onClose,
         onManualClose: onClose,
-        regionIntent: sumsubRegionIntent,
+        // don't pass regionIntent for completed kyc — prevents the mount effect
+        // in useSumsubKycFlow from calling initiateSumsubKyc(), which triggers
+        // the undefined->APPROVED transition that auto-closes the drawer
+        regionIntent: statusCategory === 'completed' ? undefined : sumsubRegionIntent,
     })
 
     // all kyc retries now go through sumsub

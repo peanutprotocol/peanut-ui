@@ -78,10 +78,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [user])
 
-    const legacy_fetchUser = async () => {
+    const legacy_fetchUser = useCallback(async () => {
         const { data: fetchedUser } = await fetchUser()
         return fetchedUser ?? null
-    }
+    }, [fetchUser])
 
     const [isLoggingOut, setIsLoggingOut] = useState(false)
 

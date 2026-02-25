@@ -27,6 +27,9 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const regionIntentRef = useRef<KYCRegionIntent | undefined>(regionIntent)
     // tracks the level name across initiate + refresh (e.g. 'peanut-additional-docs')
     const levelNameRef = useRef<string | undefined>(undefined)
+    // guard: only fire onKycSuccess when the user initiated a kyc flow in this session.
+    // prevents stale websocket events or mount-time fetches from auto-closing the drawer.
+    const userInitiatedRef = useRef(false)
 
     useEffect(() => {
         regionIntentRef.current = regionIntent
@@ -48,7 +51,9 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         prevStatusRef.current = liveKycStatus
 
         if (prevStatus !== 'APPROVED' && liveKycStatus === 'APPROVED') {
-            onKycSuccess?.()
+            if (userInitiatedRef.current) {
+                onKycSuccess?.()
+            }
         } else if (
             liveKycStatus &&
             liveKycStatus !== prevStatus &&
@@ -106,6 +111,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
 
     const handleInitiateKyc = useCallback(
         async (overrideIntent?: KYCRegionIntent, levelName?: string) => {
+            userInitiatedRef.current = true
             setIsLoading(true)
             setError(null)
 
@@ -156,6 +162,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
 
     // called when sdk signals applicant submitted
     const handleSdkComplete = useCallback(() => {
+        userInitiatedRef.current = true
         setShowWrapper(false)
         setIsVerificationProgressModalOpen(true)
     }, [])

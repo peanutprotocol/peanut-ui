@@ -7,6 +7,7 @@ import { CountryRegionRow } from '../CountryRegionRow'
 import Image from 'next/image'
 import { STAR_STRAIGHT_ICON } from '@/assets'
 import { type IUserRail } from '@/interfaces'
+import { getCurrencyFlagUrl } from '@/constants/countryCurrencyMapping'
 
 // @dev TODO: Remove hardcoded KYC points - this should come from backend
 // See comment in KycStatusItem.tsx for proper implementation plan
@@ -55,19 +56,28 @@ export const KycCompleted = ({
             </Card>
             {enabledRails.length > 0 && (
                 <Card position="single">
-                    <PaymentInfoRow
-                        label="Payment methods"
-                        value={
-                            <div className="flex flex-col gap-1">
-                                {enabledRails.map((r) => (
-                                    <span key={r.id} className="text-sm">
-                                        {r.rail.method.name} ({r.rail.method.currency})
-                                    </span>
-                                ))}
-                            </div>
-                        }
-                        hideBottomBorder
-                    />
+                    {enabledRails.map((r, index) => (
+                        <PaymentInfoRow
+                            key={r.id}
+                            label={
+                                <div className="flex items-center gap-2">
+                                    {getCurrencyFlagUrl(r.rail.method.currency) && (
+                                        <Image
+                                            src={getCurrencyFlagUrl(r.rail.method.currency)!}
+                                            alt={`${r.rail.method.currency} flag`}
+                                            width={80}
+                                            height={80}
+                                            className="h-4 w-4 rounded-full object-cover object-center"
+                                            loading="lazy"
+                                        />
+                                    )}
+                                    <span>{r.rail.method.name}</span>
+                                </div>
+                            }
+                            value={r.rail.method.currency}
+                            hideBottomBorder={index === enabledRails.length - 1}
+                        />
+                    ))}
                 </Card>
             )}
         </div>
