@@ -8,6 +8,7 @@ import { ExchangeWidget } from './ExchangeWidget'
 import { RelatedPages, RelatedLink } from './RelatedPages'
 import { CountryGrid } from './CountryGrid'
 import { ProseStars } from './ProseStars'
+import { Tabs, TabPanel } from './Tabs'
 import { PROSE_WIDTH } from './constants'
 
 /**
@@ -33,8 +34,16 @@ export const mdxComponents: Record<string, React.ComponentType<any>> = {
     RelatedPages,
     RelatedLink,
     CountryGrid,
+    Tabs,
+    TabPanel,
 
     // Element overrides — prose styling
+    h1: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
+        <h1
+            className={`mx-auto mt-10 mb-5 ${PROSE_WIDTH} px-6 text-2xl font-extrabold text-n-1 md:mt-12 md:px-4 md:text-3xl`}
+            {...props}
+        />
+    ),
     h2: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
         <div className="relative">
             <ProseStars />

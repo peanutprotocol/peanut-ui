@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { JsonLd } from './JsonLd'
 import { BASE_URL } from '@/constants/general.consts'
+import { MarketingErrorBoundary } from './MarketingErrorBoundary'
 
 interface ContentPageProps {
     /** Compiled MDX content element */
@@ -30,23 +31,30 @@ export function ContentPage({ children, breadcrumbs }: ContentPageProps) {
     return (
         <>
             <JsonLd data={breadcrumbSchema} />
-            <nav aria-label="Breadcrumb" className="mx-auto max-w-[640px] px-6 pt-4 pb-2 md:px-4">
-                <ol className="flex flex-wrap items-center gap-1 text-xs text-grey-1">
-                    {breadcrumbs.map((crumb, i) => (
-                        <li key={crumb.href} className="flex items-center gap-1">
-                            {i > 0 && <span aria-hidden>/</span>}
-                            {i < breadcrumbs.length - 1 ? (
-                                <Link href={crumb.href} className="underline decoration-n-1/30 underline-offset-2 hover:text-n-1">
-                                    {crumb.name}
-                                </Link>
-                            ) : (
-                                <span className="text-n-1 font-medium">{crumb.name}</span>
-                            )}
-                        </li>
-                    ))}
-                </ol>
-            </nav>
-            <article className="content-page select-text bg-background">{children}</article>
+            <MarketingErrorBoundary>
+                <article className="content-page select-text bg-background">
+                    {children}
+                    <nav aria-label="Breadcrumb" className="mx-auto max-w-[640px] px-6 pb-8 pt-4 md:px-4">
+                        <ol className="flex flex-wrap items-center gap-1 text-xs text-grey-1">
+                            {breadcrumbs.map((crumb, i) => (
+                                <li key={crumb.href} className="flex items-center gap-1">
+                                    {i > 0 && <span aria-hidden>/</span>}
+                                    {i < breadcrumbs.length - 1 ? (
+                                        <Link
+                                            href={crumb.href}
+                                            className="underline decoration-n-1/30 underline-offset-2 hover:text-n-1"
+                                        >
+                                            {crumb.name}
+                                        </Link>
+                                    ) : (
+                                        <span className="text-n-1 font-medium">{crumb.name}</span>
+                                    )}
+                                </li>
+                            ))}
+                        </ol>
+                    </nav>
+                </article>
+            </MarketingErrorBoundary>
         </>
     )
 }

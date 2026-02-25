@@ -57,7 +57,7 @@ export function MarketingHero({
                 </div>
             </section>
             <MarqueeComp
-                message={['No fees', 'Instant', '24/7', 'Dollars', 'Fiat / Crypto']}
+                message={['No fees', 'Instant', '24/7', 'Dollars', 'USDT/USDC']}
                 imageSrc={HandThumbsUp.src}
                 backgroundColor="bg-secondary-1"
             />

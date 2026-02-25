@@ -1,10 +1,21 @@
 import Link from 'next/link'
 import { Card } from '@/components/0_Bruddle/Card'
 import { COUNTRIES_SEO, getCountryName } from '@/data/seo'
-import { getFlagUrl, findMappingBySlug } from '@/constants/countryCurrencyMapping'
+import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { localizedPath } from '@/i18n/config'
 import { CARD_HOVER } from '@/components/Marketing/mdx/constants'
 import type { Locale } from '@/i18n/types'
+
+const SLUG_TO_ISO2: Record<string, string> = {
+    argentina: 'ar', australia: 'au', brazil: 'br', canada: 'ca',
+    colombia: 'co', 'costa-rica': 'cr', indonesia: 'id', japan: 'jp',
+    kenya: 'ke', malaysia: 'my', mexico: 'mx', pakistan: 'pk',
+    peru: 'pe', philippines: 'ph', poland: 'pl', portugal: 'pt',
+    singapore: 'sg', 'south-africa': 'za', spain: 'es', sweden: 'se',
+    tanzania: 'tz', thailand: 'th', turkey: 'tr',
+    'united-arab-emirates': 'ae', 'united-kingdom': 'gb',
+    'united-states': 'us', vietnam: 'vn',
+}
 
 interface DestinationGridProps {
     /** If provided, only show these country slugs */
@@ -27,10 +38,8 @@ export function DestinationGrid({ countries, exclude, title = 'Send money to', l
                     const seo = COUNTRIES_SEO[slug]
                     if (!seo) return null
 
-                    const mapping = findMappingBySlug(slug)
-
                     const countryName = getCountryName(slug, locale)
-                    const flagCode = mapping?.flagCode
+                    const flagCode = SLUG_TO_ISO2[slug]
 
                     return (
                         <Link key={slug} href={localizedPath('send-money-to', locale, slug)}>
