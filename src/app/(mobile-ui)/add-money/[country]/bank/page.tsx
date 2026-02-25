@@ -14,26 +14,25 @@ import { useWebSocket } from '@/hooks/useWebSocket'
 import { useAuth } from '@/context/authContext'
 import { useCreateOnramp } from '@/hooks/useCreateOnramp'
 import { useRouter, useParams } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import countryCurrencyMappings, { isNonEuroSepaCountry, isUKCountry } from '@/constants/countryCurrencyMapping'
 import { formatUnits } from 'viem'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
-import { UserDetailsForm, type UserDetailsFormData } from '@/components/AddMoney/UserDetailsForm'
-import { updateUserById } from '@/app/actions/users'
 import AddMoneyBankDetails from '@/components/AddMoney/components/AddMoneyBankDetails'
 import { getCurrencyConfig, getCurrencySymbol, getMinimumAmount } from '@/utils/bridge.utils'
 import { OnrampConfirmationModal } from '@/components/AddMoney/components/OnrampConfirmationModal'
-import { InitiateBridgeKYCModal } from '@/components/Kyc/InitiateBridgeKYCModal'
 import InfoCard from '@/components/Global/InfoCard'
 import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
 import { getLimitsWarningCardProps } from '@/features/limits/utils'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
+import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
+import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 
 // Step type for URL state
-type BridgeBankStep = 'inputAmount' | 'kyc' | 'collectUserDetails' | 'showDetails'
+type BridgeBankStep = 'inputAmount' | 'kyc' | 'showDetails'
 
 export default function OnrampBankPage() {
     const router = useRouter()
@@ -43,7 +42,7 @@ export default function OnrampBankPage() {
     // Example: /add-money/mexico/bank?step=inputAmount&amount=500
     const [urlState, setUrlState] = useQueryStates(
         {
-            step: parseAsStringEnum<BridgeBankStep>(['inputAmount', 'kyc', 'collectUserDetails', 'showDetails']),
+            step: parseAsStringEnum<BridgeBankStep>(['inputAmount', 'kyc', 'showDetails']),
             amount: parseAsString,
         },
         { history: 'push' }
@@ -55,18 +54,21 @@ export default function OnrampBankPage() {
     // Local UI state (not URL-appropriate - transient)
     const [showWarningModal, setShowWarningModal] = useState<boolean>(false)
     const [isRiskAccepted, setIsRiskAccepted] = useState<boolean>(false)
-    const [isKycModalOpen, setIsKycModalOpen] = useState(false)
     const [liveKycStatus, setLiveKycStatus] = useState<BridgeKycStatus | undefined>(undefined)
-    const [isUpdatingUser, setIsUpdatingUser] = useState(false)
-    const [userUpdateError, setUserUpdateError] = useState<string | null>(null)
-    const [isUserDetailsFormValid, setIsUserDetailsFormValid] = useState(false)
-
     const { setError, error, setOnrampData, onrampData } = useOnrampFlow()
-    const formRef = useRef<{ handleSubmit: () => void }>(null)
 
     const { balance } = useWallet()
     const { user, fetchUser } = useAuth()
     const { createOnramp, isLoading: isCreatingOnramp, error: onrampError } = useCreateOnramp()
+
+    // inline sumsub kyc flow for bridge bank onramp
+    // regionIntent is NOT passed here to avoid creating a backend record on mount.
+    // intent is passed at call time: handleInitiateKyc('STANDARD')
+    const sumsubFlow = useMultiPhaseKycFlow({
+        onKycSuccess: () => {
+            setUrlState({ step: 'inputAmount' })
+        },
+    })
 
     const selectedCountryPath = params.country as string
 
@@ -162,7 +164,7 @@ export default function OnrampBankPage() {
         const isUserKycVerified = currentKycStatus === 'approved'
 
         if (!isUserKycVerified) {
-            setUrlState({ step: 'collectUserDetails' })
+            setUrlState({ step: 'kyc' })
         } else {
             setUrlState({ step: 'inputAmount' })
         }
@@ -261,39 +263,6 @@ export default function OnrampBankPage() {
         setIsRiskAccepted(false)
     }
 
-    const handleKycSuccess = () => {
-        setIsKycModalOpen(false)
-        setUrlState({ step: 'inputAmount' })
-    }
-
-    const handleKycModalClose = () => {
-        setIsKycModalOpen(false)
-    }
-
-    const handleUserDetailsSubmit = async (data: UserDetailsFormData) => {
-        setIsUpdatingUser(true)
-        setUserUpdateError(null)
-        try {
-            if (!user?.user.userId) throw new Error('User not found')
-            const result = await updateUserById({
-                userId: user.user.userId,
-                fullName: data.fullName,
-                email: data.email,
-            })
-            if (result.error) {
-                throw new Error(result.error)
-            }
-            await fetchUser()
-            setUrlState({ step: 'kyc' })
-        } catch (error: any) {
-            setUserUpdateError(error.message)
-            return { error: error.message }
-        } finally {
-            setIsUpdatingUser(false)
-        }
-        return {}
-    }
-
     const handleBack = () => {
         if (selectedCountry) {
             router.push(`/add-money/${selectedCountry.path}`)
@@ -302,19 +271,11 @@ export default function OnrampBankPage() {
         }
     }
 
-    const initialUserDetails: Partial<UserDetailsFormData> = useMemo(
-        () => ({
-            fullName: user?.user.fullName ?? '',
-            email: user?.user.email ?? '',
-        }),
-        [user?.user.fullName, user?.user.email]
-    )
-
     useEffect(() => {
         if (urlState.step === 'kyc') {
-            setIsKycModalOpen(true)
+            sumsubFlow.handleInitiateKyc('STANDARD')
         }
-    }, [urlState.step])
+    }, [urlState.step]) // eslint-disable-line react-hooks/exhaustive-deps
 
     // Redirect to inputAmount if showDetails is accessed without required data (deep link / back navigation)
     useEffect(() => {
@@ -342,45 +303,11 @@ export default function OnrampBankPage() {
         return <PeanutLoading />
     }
 
-    if (urlState.step === 'collectUserDetails') {
-        return (
-            <div className="flex flex-col justify-start space-y-8">
-                <NavHeader onPrev={handleBack} title="Identity Verification" />
-                <div className="flex flex-grow flex-col justify-center space-y-4">
-                    <h3 className="text-sm font-bold">Verify your details</h3>
-                    <UserDetailsForm
-                        ref={formRef}
-                        onSubmit={handleUserDetailsSubmit}
-                        isSubmitting={isUpdatingUser}
-                        onValidChange={setIsUserDetailsFormValid}
-                        initialData={initialUserDetails}
-                    />
-                    <Button
-                        onClick={() => formRef.current?.handleSubmit()}
-                        loading={isUpdatingUser}
-                        variant="purple"
-                        shadowSize="4"
-                        className="w-full"
-                        disabled={!isUserDetailsFormValid || isUpdatingUser}
-                    >
-                        Continue
-                    </Button>
-                    {userUpdateError && <ErrorAlert description={userUpdateError} />}
-                </div>
-            </div>
-        )
-    }
-
     if (urlState.step === 'kyc') {
         return (
             <div className="flex flex-col justify-start space-y-8">
-                <InitiateBridgeKYCModal
-                    isOpen={isKycModalOpen}
-                    onClose={handleKycModalClose}
-                    onKycSuccess={handleKycSuccess}
-                    onManualClose={() => router.push(`/add-money/${selectedCountry.path}`)}
-                    flow="add"
-                />
+                <NavHeader title="Identity Verification" onPrev={handleBack} />
+                <SumsubKycModals flow={sumsubFlow} autoStartSdk />
             </div>
         )
     }

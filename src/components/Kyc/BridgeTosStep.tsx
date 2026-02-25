@@ -22,14 +22,17 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip }: BridgeTosStepProp
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    // reset state when visibility changes
+    // auto-fetch ToS link when step becomes visible so the iframe opens directly
+    // (skips the intermediate "Accept Terms" confirmation modal)
     useEffect(() => {
-        if (!visible) {
+        if (visible) {
+            handleAcceptTerms()
+        } else {
             setShowIframe(false)
             setTosLink(null)
             setError(null)
         }
-    }, [visible])
+    }, [visible]) // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleAcceptTerms = useCallback(async () => {
         setIsLoading(true)
@@ -92,41 +95,34 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip }: BridgeTosStepProp
 
     return (
         <>
-            {!showIframe && (
+            {/* only show modal on error — normal flow goes straight to iframe */}
+            {error && !showIframe && (
                 <ActionModal
-                    visible={visible && !showIframe}
+                    visible={true}
                     onClose={onSkip}
-                    icon={'check' as IconName}
-                    iconContainerClassName="bg-success-1 text-white"
-                    title="Identity verified!"
-                    description={
-                        error ||
-                        'One more step: accept terms of service to enable bank transfers in the US, Europe, and Mexico.'
-                    }
+                    icon={'alert' as IconName}
+                    title="Could not load terms"
+                    description={error}
                     ctas={[
                         {
-                            text: error ? 'Continue' : 'Accept Terms',
-                            onClick: error ? onSkip : handleAcceptTerms,
+                            text: 'Try again',
+                            onClick: handleAcceptTerms,
                             disabled: isLoading,
                             variant: 'purple',
                             className: 'w-full',
                             shadowSize: '4',
                         },
-                        ...(!error
-                            ? [
-                                  {
-                                      text: 'Skip for now',
-                                      onClick: onSkip,
-                                      variant: 'transparent' as const,
-                                      className: 'underline text-sm font-medium w-full h-fit mt-3',
-                                  },
-                              ]
-                            : []),
+                        {
+                            text: 'Skip for now',
+                            onClick: onSkip,
+                            variant: 'transparent' as const,
+                            className: 'underline text-sm font-medium w-full h-fit mt-3',
+                        },
                     ]}
                 />
             )}
 
-            {tosLink && <IframeWrapper src={tosLink} visible={showIframe} onClose={handleIframeClose} />}
+            {tosLink && <IframeWrapper src={tosLink} visible={showIframe} onClose={handleIframeClose} skipStartView />}
         </>
     )
 }

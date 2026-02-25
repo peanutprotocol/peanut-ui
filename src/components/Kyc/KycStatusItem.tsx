@@ -18,6 +18,20 @@ import {
     isKycStatusActionRequired,
 } from '@/constants/kyc.consts'
 
+// kyc history entry type + type guard — used by HomeHistory and history page
+export interface KycHistoryEntry {
+    isKyc: true
+    uuid: string
+    timestamp: string
+    verification?: IUserKycVerification
+    bridgeKycStatus?: BridgeKycStatus
+    region?: 'STANDARD' | 'LATAM'
+}
+
+export const isKycStatusItem = (entry: object): entry is KycHistoryEntry => {
+    return 'isKyc' in entry && entry.isKyc === true
+}
+
 // this component shows the current kyc status and opens a drawer with more details on click
 export const KycStatusItem = ({
     position = 'first',
@@ -25,12 +39,14 @@ export const KycStatusItem = ({
     verification,
     bridgeKycStatus,
     bridgeKycStartedAt,
+    region,
 }: {
     position?: CardPosition
     className?: HTMLAttributes<HTMLDivElement>['className']
     verification?: IUserKycVerification
     bridgeKycStatus?: BridgeKycStatus
     bridgeKycStartedAt?: string
+    region?: 'STANDARD' | 'LATAM'
 }) => {
     const { user } = useUserStore()
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
@@ -69,6 +85,11 @@ export const KycStatusItem = ({
         return 'Unknown'
     }, [isInitiatedButNotStarted, isActionRequired, isPending, isApproved, isRejected])
 
+    const title = useMemo(() => {
+        if (region === 'LATAM') return 'LATAM verification'
+        return 'Identity verification'
+    }, [region])
+
     // only hide for bridge's default "not_started" state.
     // if a verification record exists, the user has initiated KYC — show it.
     if (!verification && isKycStatusNotStarted(kycStatus)) {
@@ -88,7 +109,7 @@ export const KycStatusItem = ({
                     <div className="flex items-center gap-4">
                         <KYCStatusIcon />
                         <div className="flex-1">
-                            <p className="font-semibold">Identity verification</p>
+                            <p className="font-semibold">{title}</p>
                             <div className="flex items-center gap-2">
                                 <p className="text-sm text-grey-1">{subtitle}</p>
                                 <StatusPill
@@ -112,6 +133,7 @@ export const KycStatusItem = ({
                     onClose={handleCloseDrawer}
                     verification={verification}
                     bridgeKycStatus={finalBridgeKycStatus}
+                    region={region}
                 />
             )}
         </>

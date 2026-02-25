@@ -12,14 +12,15 @@ export type IFrameWrapperProps = {
     visible: boolean
     onClose: (source?: 'manual' | 'completed' | 'tos_accepted') => void
     closeConfirmMessage?: string
+    skipStartView?: boolean
 }
 
-const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWrapperProps) => {
+const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage, skipStartView }: IFrameWrapperProps) => {
     const enableConfirmationPrompt = closeConfirmMessage !== undefined
     const [isHelpModalOpen, setIsHelpModalOpen] = useState(false)
     const [modalVariant, setModalVariant] = useState<'stop-verification' | 'trouble'>('trouble')
     const [copied, setCopied] = useState(false)
-    const [isVerificationStarted, setIsVerificationStarted] = useState(false)
+    const [isVerificationStarted, setIsVerificationStarted] = useState(skipStartView ?? false)
     const router = useRouter()
     const { setIsSupportModalOpen } = useModalsContext()
 

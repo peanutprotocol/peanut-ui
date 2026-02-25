@@ -1,13 +1,13 @@
 import Card from '@/components/Global/Card'
 import { KYCStatusDrawerItem } from '../KYCStatusDrawerItem'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
-import { BridgeTosReminder } from '../BridgeTosReminder'
-import { useBridgeTosStatus } from '@/hooks/useBridgeTosStatus'
 import { useMemo } from 'react'
 import { formatDate } from '@/utils/general.utils'
 import { CountryRegionRow } from '../CountryRegionRow'
 import Image from 'next/image'
 import { STAR_STRAIGHT_ICON } from '@/assets'
+import { type IUserRail } from '@/interfaces'
+import { getCurrencyFlagUrl } from '@/constants/countryCurrencyMapping'
 
 // @dev TODO: Remove hardcoded KYC points - this should come from backend
 // See comment in KycStatusItem.tsx for proper implementation plan
@@ -18,13 +18,13 @@ export const KycCompleted = ({
     bridgeKycApprovedAt,
     countryCode,
     isBridge,
+    rails,
 }: {
     bridgeKycApprovedAt?: string
     countryCode?: string | null
     isBridge?: boolean
+    rails?: IUserRail[]
 }) => {
-    const { needsBridgeTos } = useBridgeTosStatus()
-
     const verifiedOn = useMemo(() => {
         if (!bridgeKycApprovedAt) return 'N/A'
         try {
@@ -35,10 +35,11 @@ export const KycCompleted = ({
         }
     }, [bridgeKycApprovedAt])
 
+    const enabledRails = useMemo(() => (rails ?? []).filter((r) => r.status === 'ENABLED'), [rails])
+
     return (
         <div className="space-y-4">
             <KYCStatusDrawerItem status="completed" />
-            {needsBridgeTos && <BridgeTosReminder />}
             <Card position="single">
                 <PaymentInfoRow label="Verified on" value={verifiedOn} />
                 <CountryRegionRow countryCode={countryCode} isBridge={isBridge} />
@@ -53,6 +54,32 @@ export const KycCompleted = ({
                 />
                 <PaymentInfoRow label="Status" value="You are now verified. Enjoy Peanut!" hideBottomBorder />
             </Card>
+            {enabledRails.length > 0 && (
+                <Card position="single">
+                    {enabledRails.map((r, index) => (
+                        <PaymentInfoRow
+                            key={r.id}
+                            label={
+                                <div className="flex items-center gap-2">
+                                    {getCurrencyFlagUrl(r.rail.method.currency) && (
+                                        <Image
+                                            src={getCurrencyFlagUrl(r.rail.method.currency)!}
+                                            alt={`${r.rail.method.currency} flag`}
+                                            width={80}
+                                            height={80}
+                                            className="h-4 w-4 rounded-full object-cover object-center"
+                                            loading="lazy"
+                                        />
+                                    )}
+                                    <span>{r.rail.method.name}</span>
+                                </div>
+                            }
+                            value={r.rail.method.currency}
+                            hideBottomBorder={index === enabledRails.length - 1}
+                        />
+                    ))}
+                </Card>
+            )}
         </div>
     )
 }

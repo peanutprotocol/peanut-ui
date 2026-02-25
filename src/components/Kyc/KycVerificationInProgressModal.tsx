@@ -113,22 +113,12 @@ export const KycVerificationInProgressModal = ({
                 ctas={[
                     {
                         text: tosError ? 'Continue' : 'Accept Terms',
-                        onClick: tosError ? (onSkipTerms ?? onClose) : (onAcceptTerms ?? onClose),
+                        onClick: tosError ? onClose : (onAcceptTerms ?? onClose),
                         disabled: isLoadingTos,
                         variant: 'purple',
                         className: 'w-full',
                         shadowSize: '4',
                     },
-                    ...(!tosError
-                        ? [
-                              {
-                                  text: 'Skip for now',
-                                  onClick: onSkipTerms ?? onClose,
-                                  variant: 'transparent' as const,
-                                  className: 'underline text-sm font-medium w-full h-fit mt-3',
-                              },
-                          ]
-                        : []),
                 ]}
                 preventClose
                 hideModalCloseButton

@@ -16,6 +16,7 @@ interface BridgeTosReminderProps {
 export const BridgeTosReminder = ({ position = 'single' }: BridgeTosReminderProps) => {
     const { fetchUser } = useAuth()
     const [showTosStep, setShowTosStep] = useState(false)
+    const [tosJustAccepted, setTosJustAccepted] = useState(false)
 
     const handleClick = useCallback(() => {
         setShowTosStep(true)
@@ -23,12 +24,15 @@ export const BridgeTosReminder = ({ position = 'single' }: BridgeTosReminderProp
 
     const handleComplete = useCallback(async () => {
         setShowTosStep(false)
+        setTosJustAccepted(true) // optimistically hide — backend rail transition is async
         await fetchUser()
     }, [fetchUser])
 
     const handleSkip = useCallback(() => {
         setShowTosStep(false)
     }, [])
+
+    if (tosJustAccepted) return null
 
     return (
         <>

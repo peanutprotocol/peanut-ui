@@ -2,18 +2,18 @@
 import { type FC, useEffect, useMemo, useState, useCallback } from 'react'
 import MantecaDepositShareDetails from '@/components/AddMoney/components/MantecaDepositShareDetails'
 import InputAmountStep from '@/components/AddMoney/components/InputAmountStep'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { type CountryData, countryData } from '@/components/AddMoney/consts'
 import { type MantecaDepositResponseData } from '@/types/manteca.types'
-import { MantecaGeoSpecificKycModal } from '@/components/Kyc/InitiateMantecaKYCModal'
-import { useMantecaKycFlow } from '@/hooks/useMantecaKycFlow'
 import { useCurrency } from '@/hooks/useCurrency'
 import { useAuth } from '@/context/authContext'
-import { useWebSocket } from '@/hooks/useWebSocket'
 import { mantecaApi } from '@/services/manteca'
 import { parseUnits } from 'viem'
 import { useQueryClient } from '@tanstack/react-query'
 import useKycStatus from '@/hooks/useKycStatus'
+import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
+import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
+import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import { MIN_MANTECA_DEPOSIT_AMOUNT } from '@/constants/payment.consts'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
@@ -28,7 +28,6 @@ type CurrencyDenomination = 'USD' | 'ARS' | 'BRL' | 'MXN' | 'EUR'
 
 const MantecaAddMoney: FC = () => {
     const params = useParams()
-    const router = useRouter()
     const queryClient = useQueryClient()
 
     // URL state - persisted in query params
@@ -57,16 +56,20 @@ const MantecaAddMoney: FC = () => {
     const [isCreatingDeposit, setIsCreatingDeposit] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [depositDetails, setDepositDetails] = useState<MantecaDepositResponseData>()
-    const [isKycModalOpen, setIsKycModalOpen] = useState(false)
 
     const selectedCountryPath = params.country as string
     const selectedCountry = useMemo(() => {
         return countryData.find((country) => country.type === 'country' && country.path === selectedCountryPath)
     }, [selectedCountryPath])
-    const { isMantecaKycRequired } = useMantecaKycFlow({ country: selectedCountry as CountryData })
-    const { isUserBridgeKycApproved } = useKycStatus()
+    const { isUserMantecaKycApproved } = useKycStatus()
     const currencyData = useCurrency(selectedCountry?.currency ?? 'ARS')
-    const { user, fetchUser } = useAuth()
+    const { user } = useAuth()
+
+    // inline sumsub kyc flow for manteca users who need LATAM verification
+    // regionIntent is NOT passed here to avoid creating a backend record on mount.
+    // intent is passed at call time: handleInitiateKyc('LATAM')
+    const sumsubFlow = useMultiPhaseKycFlow({})
+    const [showKycModal, setShowKycModal] = useState(false)
 
     // validates deposit amount against user's limits
     // currency comes from country config - hook normalizes it internally
@@ -74,18 +77,6 @@ const MantecaAddMoney: FC = () => {
         flowType: 'onramp',
         amount: usdAmount,
         currency: selectedCountry?.currency,
-    })
-
-    useWebSocket({
-        username: user?.user.username ?? undefined,
-        autoConnect: !!user?.user.username,
-        onMantecaKycStatusUpdate: (newStatus) => {
-            // listen for manteca kyc status updates, either when the user is approved or when the widget is finished to continue with the flow
-            if (newStatus === 'ACTIVE' || newStatus === 'WIDGET_FINISHED') {
-                fetchUser()
-                setIsKycModalOpen(false)
-            }
-        },
     })
 
     // Validate USD amount (min check only - max is handled by limits validation)
@@ -118,13 +109,6 @@ const MantecaAddMoney: FC = () => {
         }
     }, [step, queryClient])
 
-    const handleKycCancel = () => {
-        setIsKycModalOpen(false)
-        if (selectedCountry?.path) {
-            router.push(`/add-money/${selectedCountry.path}`)
-        }
-    }
-
     // Handle displayed amount change - save to URL
     // This is called by AmountInput with the currently DISPLAYED value
     const handleDisplayedAmountChange = useCallback(
@@ -156,14 +140,8 @@ const MantecaAddMoney: FC = () => {
         if (!selectedCountry?.currency) return
         if (isCreatingDeposit) return
 
-        // check if we still need to determine KYC status
-        if (isMantecaKycRequired === null) {
-            // still loading/determining KYC status, don't proceed yet
-            return
-        }
-
-        if (isMantecaKycRequired === true) {
-            setIsKycModalOpen(true)
+        if (!isUserMantecaKycApproved) {
+            setShowKycModal(true)
             return
         }
 
@@ -191,14 +169,14 @@ const MantecaAddMoney: FC = () => {
         } finally {
             setIsCreatingDeposit(false)
         }
-    }, [currentDenomination, selectedCountry, displayedAmount, isMantecaKycRequired, isCreatingDeposit, setUrlState])
-
-    // handle verification modal opening
-    useEffect(() => {
-        if (isMantecaKycRequired) {
-            setIsKycModalOpen(true)
-        }
-    }, [isMantecaKycRequired])
+    }, [
+        currentDenomination,
+        selectedCountry,
+        displayedAmount,
+        isUserMantecaKycApproved,
+        isCreatingDeposit,
+        setUrlState,
+    ])
 
     // Redirect to inputAmount if depositDetails is accessed without required data (deep link / back navigation)
     useEffect(() => {
@@ -212,6 +190,16 @@ const MantecaAddMoney: FC = () => {
     if (step === 'inputAmount') {
         return (
             <>
+                <InitiateKycModal
+                    visible={showKycModal}
+                    onClose={() => setShowKycModal(false)}
+                    onVerify={async () => {
+                        setShowKycModal(false)
+                        await sumsubFlow.handleInitiateKyc('LATAM')
+                    }}
+                    isLoading={sumsubFlow.isLoading}
+                />
+                <SumsubKycModals flow={sumsubFlow} />
                 <InputAmountStep
                     tokenAmount={displayedAmount}
                     setTokenAmount={handleUsdAmountChange}
@@ -226,21 +214,6 @@ const MantecaAddMoney: FC = () => {
                     limitsValidation={limitsValidation}
                     limitsCurrency={limitsValidation.currency}
                 />
-                {isKycModalOpen && (
-                    <MantecaGeoSpecificKycModal
-                        isUserBridgeKycApproved={isUserBridgeKycApproved}
-                        isMantecaModalOpen={isKycModalOpen}
-                        setIsMantecaModalOpen={setIsKycModalOpen}
-                        onClose={handleKycCancel}
-                        onManualClose={handleKycCancel}
-                        onKycSuccess={() => {
-                            // close the modal and let the user continue with amount input
-                            setIsKycModalOpen(false)
-                            fetchUser()
-                        }}
-                        selectedCountry={selectedCountry}
-                    />
-                )}
             </>
         )
     }

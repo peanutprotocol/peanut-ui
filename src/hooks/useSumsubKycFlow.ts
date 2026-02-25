@@ -27,6 +27,9 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const regionIntentRef = useRef<KYCRegionIntent | undefined>(regionIntent)
     // tracks the level name across initiate + refresh (e.g. 'peanut-additional-docs')
     const levelNameRef = useRef<string | undefined>(undefined)
+    // guard: only fire onKycSuccess when the user initiated a kyc flow in this session.
+    // prevents stale websocket events or mount-time fetches from auto-closing the drawer.
+    const userInitiatedRef = useRef(false)
 
     useEffect(() => {
         regionIntentRef.current = regionIntent
@@ -48,7 +51,9 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         prevStatusRef.current = liveKycStatus
 
         if (prevStatus !== 'APPROVED' && liveKycStatus === 'APPROVED') {
-            onKycSuccess?.()
+            if (userInitiatedRef.current) {
+                onKycSuccess?.()
+            }
         } else if (
             liveKycStatus &&
             liveKycStatus !== prevStatus &&
@@ -80,8 +85,33 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         fetchCurrentStatus()
     }, [regionIntent])
 
+    // polling fallback for missed websocket events.
+    // when the verification progress modal is open, poll status every 5s
+    // so the flow can transition even if the websocket event never arrives.
+    useEffect(() => {
+        if (!isVerificationProgressModalOpen) return
+
+        const pollStatus = async () => {
+            try {
+                const response = await initiateSumsubKyc({
+                    regionIntent: regionIntentRef.current,
+                    levelName: levelNameRef.current,
+                })
+                if (response.data?.status) {
+                    setLiveKycStatus(response.data.status)
+                }
+            } catch {
+                // silent — polling is a best-effort fallback
+            }
+        }
+
+        const interval = setInterval(pollStatus, 5000)
+        return () => clearInterval(interval)
+    }, [isVerificationProgressModalOpen])
+
     const handleInitiateKyc = useCallback(
         async (overrideIntent?: KYCRegionIntent, levelName?: string) => {
+            userInitiatedRef.current = true
             setIsLoading(true)
             setError(null)
 
@@ -132,6 +162,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
 
     // called when sdk signals applicant submitted
     const handleSdkComplete = useCallback(() => {
+        userInitiatedRef.current = true
         setShowWrapper(false)
         setIsVerificationProgressModalOpen(true)
     }, [])
