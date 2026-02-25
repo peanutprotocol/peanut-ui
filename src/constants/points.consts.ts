@@ -1,15 +1,9 @@
 /**
  * Points System Constants
  *
- * Shared constants for points display and calculations.
- * Should match backend values in peanut-api-ts/src/points/constants.ts
+ * Shared constants for points display.
+ * Transitivity multiplier is no longer hardcoded — use `contributedPoints` from API.
  */
-
-/**
- * Transitivity multiplier for referral points
- * Users earn this percentage of their invitees' points
- */
-export const TRANSITIVITY_MULTIPLIER = 0.5 // 50% of invitees' points
 
 /**
  * Tier thresholds for display purposes
