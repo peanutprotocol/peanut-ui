@@ -51,8 +51,8 @@ export function RelatedPages({ title = 'Related Pages', children }: RelatedPages
             <h2 className="mb-5 text-xl font-bold text-n-1 md:text-2xl">{title}</h2>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {links.map((link) => (
-                    <Link key={link.href} href={link.href}>
-                        <Card shadowSize="4" className={`flex-row items-center gap-3 p-4 ${CARD_HOVER}`}>
+                    <Link key={link.href} href={link.href} className="flex">
+                        <Card shadowSize="4" className={`flex-1 flex-row items-center gap-3 p-4 ${CARD_HOVER}`}>
                             <span className="font-semibold">{link.text}</span>
                             <span className="ml-auto text-sm text-black/50">&rarr;</span>
                         </Card>
