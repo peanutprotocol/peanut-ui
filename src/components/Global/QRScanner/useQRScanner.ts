@@ -33,7 +33,7 @@ const calculateScanRegion = (video: HTMLVideoElement) => {
 
     return {
         x: Math.round((video.videoWidth - regionW) / 2),
-        y: Math.round((video.videoHeight - regionH) / 2 * 0.7),
+        y: Math.round(((video.videoHeight - regionH) / 2) * 0.7),
         width: regionW,
         height: regionH,
         downScaledWidth: Math.min(regionW, 800),

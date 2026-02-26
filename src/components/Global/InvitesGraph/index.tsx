@@ -278,7 +278,12 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                 nodes: limitedNodes,
                 edges: filteredEdges,
                 p2pEdges: [],
-                stats: { ...data.stats, totalNodes: limitedNodes.length, totalEdges: filteredEdges.length, totalP2PEdges: 0 },
+                stats: {
+                    ...data.stats,
+                    totalNodes: limitedNodes.length,
+                    totalEdges: filteredEdges.length,
+                    totalP2PEdges: 0,
+                },
             }
         }
 
