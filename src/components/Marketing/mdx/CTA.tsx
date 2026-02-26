@@ -20,7 +20,7 @@ interface CTAProps {
  * - secondary: subtle inline text link with arrow — for mid-content CTAs
  * - card: bordered card with button + subtitle — for final/end-of-page CTAs
  *
- * Special: href="#chat" renders as a button that opens Crisp chat (no navigation).
+ * Special: href="#chat" opens Crisp chat via click interceptor (no navigation).
  */
 export function CTA({ text, href, subtitle, variant = 'primary' }: CTAProps) {
     if (variant === 'secondary') {

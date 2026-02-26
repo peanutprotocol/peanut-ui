@@ -70,6 +70,7 @@ export default function HelpLanding({ articles, categories, locale, strings }: H
                     </div>
                     <input
                         type="text"
+                        aria-label={strings?.searchPlaceholder ?? 'Search help articles'}
                         placeholder={strings?.searchPlaceholder ?? 'Search help articles...'}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
