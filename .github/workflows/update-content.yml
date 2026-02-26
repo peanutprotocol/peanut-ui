@@ -1,0 +1,42 @@
+name: Update content submodule
+
+on:
+    repository_dispatch:
+        types: [content-updated]
+    workflow_dispatch:
+
+permissions:
+    contents: write
+
+jobs:
+    update:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  submodules: true
+                  token: ${{ secrets.SUBMODULE_TOKEN }}
+
+            - name: Update content submodule to latest main
+              run: |
+                  cd src/content
+                  git fetch origin main
+                  git checkout origin/main
+
+            - name: Check for changes
+              id: check
+              run: |
+                  if git diff --quiet src/content; then
+                    echo "changed=false" >> "$GITHUB_OUTPUT"
+                  else
+                    echo "changed=true" >> "$GITHUB_OUTPUT"
+                  fi
+
+            - name: Commit and push
+              if: steps.check.outputs.changed == 'true'
+              run: |
+                  git config user.name "github-actions[bot]"
+                  git config user.email "github-actions[bot]@users.noreply.github.com"
+                  git add src/content
+                  git commit -m "Update content submodule to latest main"
+                  git push
