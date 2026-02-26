@@ -1,8 +1,7 @@
 # Peanut UI
 
-[![Tests](https://github.com/peanutprotocol/peanut-ui/actions/workflows/tests.yml/badge.svg)](https://github.com/peanutprotocol/peanut-ui/actions/workflows/tests.yml)
-[![Code Formatting](https://github.com/peanutprotocol/peanut-ui/actions/workflows/prettier.yml/badge.svg)](https://github.com/peanutprotocol/peanut-ui/actions/workflows/prettier.yml)
-[![CodeQL](https://github.com/peanutprotocol/peanut-ui/actions/workflows/codeql.yml/badge.svg)](https://github.com/peanutprotocol/peanut-ui/actions/workflows/codeql.yml)
+[![Tests](https://github.com/peanutprotocol/peanut-ui/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/peanutprotocol/peanut-ui/actions/workflows/tests.yml)
+[![CodeQL](https://github.com/peanutprotocol/peanut-ui/actions/workflows/github-code-scanning/codeql/badge.svg?branch=main)](https://github.com/peanutprotocol/peanut-ui/security/code-scanning)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
