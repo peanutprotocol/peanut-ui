@@ -11,8 +11,9 @@ interface BlogCardProps {
 }
 
 export function BlogCard({ slug, title, excerpt, date, category, hrefPrefix = '/blog' }: BlogCardProps) {
+    const safeSlug = encodeURIComponent(slug)
     return (
-        <Link href={`${hrefPrefix}/${slug}`}>
+        <Link href={`${hrefPrefix}/${safeSlug}`}>
             <Card
                 shadowSize="4"
                 className="h-full p-5 transition-all hover:shadow-primary-6 hover:-translate-x-1 hover:-translate-y-1"
