@@ -138,7 +138,7 @@ interface BrokenLink {
 }
 
 const MARKDOWN_LINK_RE = /\[([^\]]*)\]\((\/?[^)]+)\)/g
-const JSX_HREF_RE = /href="(\/[^"]+)"/g
+const JSX_HREF_RE = /href=["'](\/[^"']+)["']/g
 
 function extractLinks(content: string): Array<{ line: number; url: string; text: string }> {
     const links: Array<{ line: number; url: string; text: string }> = []
@@ -229,7 +229,7 @@ function main() {
 
         for (const link of links) {
             // Strip query string and hash for validation
-            const cleanUrl = link.url.split('?')[0].split('#')[0]
+            const cleanUrl = link.url.split('?')[0].split('#')[0].replace(/\/$/, '')
 
             if (!validPaths.has(cleanUrl)) {
                 broken.push({
