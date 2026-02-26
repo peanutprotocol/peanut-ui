@@ -99,7 +99,7 @@ export const KycStatusDrawer = ({ isOpen, onClose, verification, bridgeKycStatus
                     <KycCompleted
                         bridgeKycApprovedAt={verification?.approvedAt ?? user?.user?.bridgeKycApprovedAt}
                         countryCode={countryCode ?? undefined}
-                        isBridge={isBridgeKyc}
+                        isBridge={isBridgeKyc || region === 'STANDARD'}
                         rails={user?.rails?.filter((r) => {
                             if (region === 'STANDARD') return r.rail.provider.code === 'BRIDGE'
                             if (region === 'LATAM') return r.rail.provider.code === 'MANTECA'
