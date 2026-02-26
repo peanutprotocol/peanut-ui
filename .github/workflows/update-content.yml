@@ -40,13 +40,22 @@ jobs:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
                   BRANCH="auto/update-content-$(date -u +%Y%m%d-%H%M%S)"
-                  git config user.name "github-actions[bot]"
-                  git config user.email "github-actions[bot]@users.noreply.github.com"
-                  git checkout -b "$BRANCH"
-                  git add src/content
-                  git commit -m "Update content submodule to latest main"
-                  git push origin "$BRANCH"
+                  TREE=$(git write-tree)
+                  PARENT=$(git rev-parse HEAD)
+                  # create signed commit via GitHub API (verified signature)
+                  COMMIT_SHA=$(gh api repos/${{ github.repository }}/git/commits \
+                    --method POST \
+                    -f message="Update content submodule to latest main" \
+                    -f "tree=$TREE" \
+                    -f "parents[]=$PARENT" \
+                    --jq '.sha')
+                  # create branch pointing to signed commit
+                  gh api repos/${{ github.repository }}/git/refs \
+                    --method POST \
+                    -f "ref=refs/heads/$BRANCH" \
+                    -f "sha=$COMMIT_SHA"
                   gh pr create \
+                    --head "$BRANCH" \
                     --title "Update content submodule" \
                     --body "Auto-generated: updates content submodule to latest peanut-content main." \
                     --label "infra"
