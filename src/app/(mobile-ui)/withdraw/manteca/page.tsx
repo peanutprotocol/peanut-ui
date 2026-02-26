@@ -17,7 +17,13 @@ import { loadingStateContext } from '@/context'
 import { countryData } from '@/components/AddMoney/consts'
 import Image from 'next/image'
 import { formatAmount, formatNumberForDisplay } from '@/utils/general.utils'
-import { validateCbuCvuAlias, validatePixKey, normalizePixPhoneNumber, isPixPhoneNumber } from '@/utils/withdraw.utils'
+import {
+    validateCbuCvuAlias,
+    validatePixKey,
+    normalizePixPhoneNumber,
+    isPixPhoneNumber,
+    isPixEmvcoQr,
+} from '@/utils/withdraw.utils'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import AmountInput from '@/components/Global/AmountInput'
 import { formatUnits, parseUnits } from 'viem'
@@ -153,7 +159,7 @@ export default function MantecaWithdrawFlow() {
                 }
                 break
             case 'brazil':
-                value = value.replace(/\s/g, '')
+                value = isPixEmvcoQr(value.trim()) ? value.trim() : value.replace(/\s/g, '')
                 const pixResult = validatePixKey(value)
                 isValid = pixResult.valid
                 if (!pixResult.valid) {
@@ -582,7 +588,9 @@ export default function MantecaWithdrawFlow() {
                                     // Auto-normalize PIX keys for Brazil: strip whitespace and normalize phone numbers
                                     let normalizedValue = update.value
                                     if (countryPath === 'brazil') {
-                                        normalizedValue = normalizedValue.replace(/\s/g, '')
+                                        normalizedValue = isPixEmvcoQr(normalizedValue.trim())
+                                            ? normalizedValue.trim()
+                                            : normalizedValue.replace(/\s/g, '')
                                         if (isPixPhoneNumber(normalizedValue)) {
                                             normalizedValue = normalizePixPhoneNumber(normalizedValue)
                                         }

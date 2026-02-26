@@ -278,9 +278,10 @@ describe('Withdraw Utilities', () => {
         })
 
         describe('Pasted values with whitespace (stripped before validation)', () => {
-            // The withdraw page strips all whitespace from PIX keys before validation.
-            // These tests verify that after stripping, the values validate correctly.
-            const stripWhitespace = (value: string) => value.replace(/\s/g, '')
+            // The withdraw page strips all whitespace from non-QR PIX keys before validation.
+            // EMVCo QR codes only get trimmed (internal whitespace is preserved).
+            const normalizePixInput = (value: string) =>
+                isPixEmvcoQr(value.trim()) ? value.trim() : value.replace(/\s/g, '')
 
             it.each([
                 { raw: ' +5511999999999 ', desc: 'phone with leading/trailing spaces' },
@@ -291,7 +292,19 @@ describe('Withdraw Utilities', () => {
                 { raw: ' user@example.com ', desc: 'email with spaces' },
                 { raw: ' 123e4567-e89b-12d3-a456-426614174000 ', desc: 'UUID with spaces' },
             ])('should accept $desc after whitespace stripping', ({ raw }) => {
-                const cleaned = stripWhitespace(raw)
+                const cleaned = normalizePixInput(raw)
+                const result = validatePixKey(cleaned)
+                expect(result.valid).toBe(true)
+            })
+
+            it('should preserve internal whitespace in EMVCo QR codes', () => {
+                const qrWithSpaces =
+                    '00020126580014br.gov.bcb.pix0136123e4567-e12b-12d1-a456-4266554400005204000053039865802BR5913Fulano de Tal6008BRASILIA62070503***63041D3D'
+                const padded = `  ${qrWithSpaces}  `
+                const cleaned = normalizePixInput(padded)
+                // Internal whitespace in "Fulano de Tal" must survive
+                expect(cleaned).toBe(qrWithSpaces)
+                expect(cleaned).toContain('Fulano de Tal')
                 const result = validatePixKey(cleaned)
                 expect(result.valid).toBe(true)
             })
