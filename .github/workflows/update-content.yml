@@ -14,12 +14,13 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
-              with:
-                  submodules: true
-                  token: ${{ secrets.SUBMODULE_TOKEN }}
 
-            - name: Update content submodule to latest main
+            - name: Init and update submodule
+              env:
+                  SUBMODULE_TOKEN: ${{ secrets.SUBMODULE_TOKEN }}
               run: |
+                  git config submodule.src/content.url "https://x-access-token:${SUBMODULE_TOKEN}@github.com/peanutprotocol/peanut-content.git"
+                  git submodule update --init src/content
                   cd src/content
                   git fetch origin main
                   git checkout origin/main
@@ -44,7 +45,7 @@ jobs:
                   git checkout -b "$BRANCH"
                   git add src/content
                   git commit -m "Update content submodule to latest main"
-                  git -c "http.extraheader=Authorization: basic $(echo -n "x-access-token:${GH_TOKEN}" | base64)" push origin "$BRANCH"
+                  git push origin "$BRANCH"
                   gh pr create \
                     --title "Update content submodule" \
                     --body "Auto-generated: updates content submodule to latest peanut-content main." \
