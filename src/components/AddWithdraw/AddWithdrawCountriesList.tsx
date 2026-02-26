@@ -98,14 +98,15 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         payload: AddBankAccountPayload,
         rawData: IBankAccountDetails
     ): Promise<{ error?: string }> => {
-        const currentKycStatus = liveKycStatus || user?.user.bridgeKycStatus
+        // re-fetch user to ensure we have the latest KYC status
+        // (the multi-phase flow may have completed but websocket/state not yet propagated)
+        const freshUser = await fetchUser()
+        const currentKycStatus = freshUser?.user?.bridgeKycStatus || liveKycStatus || user?.user.bridgeKycStatus
         const isUserKycVerified = currentKycStatus === 'approved'
 
-        const hasEmailOnLoad = !!user?.user.email
-
         // scenario (1): happy path: if the user has already completed kyc, we can add the bank account directly
-        // note: we no longer check for fullName as account owner name is now always collected from the form
-        if (isUserKycVerified && (hasEmailOnLoad || rawData.email)) {
+        // email and name are now collected by sumsub — no need to check them here
+        if (isUserKycVerified) {
             const currentAccountIds = new Set(user?.accounts.map((acc) => acc.id) ?? [])
 
             const result = await addBankAccount(payload)
