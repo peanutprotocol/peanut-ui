@@ -4,3 +4,4 @@
 [submodule "src/content"]
 	path = src/content
 	url = https://github.com/peanutprotocol/peanut-content.git
+	branch = main
