@@ -266,6 +266,22 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         const data = isMinimal ? props.data : fetchedGraphData
         if (!data) return null
 
+        // Minimal mode (points page): cap at 200 nodes for performance
+        if (isMinimal && data.nodes.length > 200) {
+            const sortedNodes = [...data.nodes].sort((a, b) => (b.totalPoints ?? 0) - (a.totalPoints ?? 0))
+            const limitedNodes = sortedNodes.slice(0, 200)
+            const limitedNodeIds = new Set(limitedNodes.map((n) => n.id))
+            const filteredEdges = data.edges.filter(
+                (edge) => limitedNodeIds.has(edge.source) && limitedNodeIds.has(edge.target)
+            )
+            return {
+                nodes: limitedNodes,
+                edges: filteredEdges,
+                p2pEdges: [],
+                stats: { ...data.stats, totalNodes: limitedNodes.length, totalEdges: filteredEdges.length, totalP2PEdges: 0 },
+            }
+        }
+
         // Performance mode: limit to top 1000 nodes on frontend (payment graph only)
         const performanceMode = !isMinimal && (props as FullModeProps).performanceMode
         if (performanceMode && data.nodes.length > 1000) {
