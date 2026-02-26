@@ -2,8 +2,8 @@ name: Preview deploy
 on:
     pull_request:
         branches:
-            - peanut-wallet
-            - peanut-wallet-dev
+            - main
+            - dev
 
 jobs:
     Deploy-Preview:
