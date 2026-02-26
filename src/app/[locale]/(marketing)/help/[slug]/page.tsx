@@ -6,7 +6,6 @@ import { getTranslations } from '@/i18n'
 import { ContentPage } from '@/components/Marketing/ContentPage'
 import { readPageContentLocalized, listContentSlugs } from '@/lib/content'
 import { renderContent } from '@/lib/mdx'
-import { JsonLd } from '@/components/Marketing/JsonLd'
 
 interface PageProps {
     params: Promise<{ locale: string; slug: string }>
@@ -18,7 +17,6 @@ interface HelpFrontmatter {
     slug: string
     category?: string
     published?: boolean
-    schema_types?: string[]
 }
 
 const HELP_SLUGS = listContentSlugs('help')
@@ -48,53 +46,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     }
 }
 
-/**
- * Extract FAQ pairs from markdown body.
- * Looks for ## FAQ or ## Frequently Asked Questions section,
- * then parses **Q:** / **A:** or ### heading + paragraph pairs.
- */
-function extractFAQPairs(body: string): Array<{ question: string; answer: string }> {
-    const faqMatch = body.match(/## (?:FAQ|Frequently Asked Questions)\s*\n([\s\S]*?)(?=\n## |\n---|\Z)/)
-    if (!faqMatch) return []
-
-    const faqSection = faqMatch[1]
-    const pairs: Array<{ question: string; answer: string }> = []
-
-    // Match ### heading as question, following paragraph as answer
-    const questionBlocks = faqSection.split(/(?=###\s)/)
-    for (const block of questionBlocks) {
-        const match = block.match(/###\s+(.+?)\n\n([\s\S]*?)(?=\n###|\n## |$)/)
-        if (match) {
-            pairs.push({
-                question: match[1].trim(),
-                answer: match[2].trim().replace(/\n+/g, ' '),
-            })
-        }
-    }
-
-    return pairs
-}
-
-/**
- * Extract steps from a Step-by-Step section for HowTo schema.
- */
-function extractSteps(body: string): Array<{ name: string; text: string }> {
-    const stepsMatch = body.match(/## Step-by-Step[^\n]*\n([\s\S]*?)(?=\n## |\n---|\Z)/)
-    if (!stepsMatch) return []
-
-    const steps: Array<{ name: string; text: string }> = []
-    const lines = stepsMatch[1].split('\n')
-
-    for (const line of lines) {
-        const match = line.match(/^\d+\.\s+\*\*(.+?)\*\*\s*[-–—]?\s*(.*)/)
-        if (match) {
-            steps.push({ name: match[1].trim(), text: match[2].trim() })
-        }
-    }
-
-    return steps
-}
-
 export default async function HelpArticlePage({ params }: PageProps) {
     const { locale, slug } = await params
     if (!isValidLocale(locale)) notFound()
@@ -104,57 +55,17 @@ export default async function HelpArticlePage({ params }: PageProps) {
 
     const { content } = await renderContent(mdxSource.body)
     const i18n = getTranslations(locale)
-    const { frontmatter, body } = mdxSource
 
-    // Build structured data based on schema_types
-    const schemaTypes = frontmatter.schema_types ?? []
-
-    const faqPairs = schemaTypes.includes('FAQPage') ? extractFAQPairs(body) : []
-    const steps = schemaTypes.includes('HowTo') ? extractSteps(body) : []
-
-    // Clean title for display (strip " | Peanut Help" suffix)
-    const displayTitle = frontmatter.title.replace(/\s*\|\s*Peanut Help$/, '')
+    const displayTitle = mdxSource.frontmatter.title.replace(/\s*\|\s*Peanut Help$/, '')
 
     return (
         <ContentPage
             breadcrumbs={[
                 { name: i18n.home, href: '/' },
-                { name: 'Help', href: `/${locale}/help` },
+                { name: i18n.help, href: `/${locale}/help` },
                 { name: displayTitle, href: `/${locale}/help/${slug}` },
             ]}
         >
-            {faqPairs.length > 0 && (
-                <JsonLd
-                    data={{
-                        '@context': 'https://schema.org',
-                        '@type': 'FAQPage',
-                        mainEntity: faqPairs.map((faq) => ({
-                            '@type': 'Question',
-                            name: faq.question,
-                            acceptedAnswer: {
-                                '@type': 'Answer',
-                                text: faq.answer,
-                            },
-                        })),
-                    }}
-                />
-            )}
-            {steps.length > 0 && (
-                <JsonLd
-                    data={{
-                        '@context': 'https://schema.org',
-                        '@type': 'HowTo',
-                        name: displayTitle,
-                        description: frontmatter.description,
-                        step: steps.map((step, i) => ({
-                            '@type': 'HowToStep',
-                            position: i + 1,
-                            name: step.name,
-                            text: step.text,
-                        })),
-                    }}
-                />
-            )}
             {content}
         </ContentPage>
     )

@@ -32,6 +32,18 @@
     "receiveMoneyFromDesc": "Get money sent to you from {country}. Fast and secure.",
     "teamTitle": "Our Team",
     "teamSubtitle": "The people behind Peanut.",
+    "help": "Help",
+    "helpCenter": "Help Center",
+    "helpCenterDescription": "Get help with Peanut — verification, passkeys, payments, deposits, and account recovery. Step-by-step guides and answers to common questions.",
+    "searchHelpArticles": "Search help articles...",
+    "cantFindAnswer": "Can't find what you need?",
+    "cantFindAnswerDesc": "Click the chat bubble in the bottom-right corner to talk to our support team. We typically reply within minutes.",
+    "categoryGettingStarted": "Getting Started",
+    "categoryAccountSecurity": "Account & Security",
+    "categoryPayments": "Payments",
+    "categoryDepositsWithdrawals": "Deposits & Withdrawals",
+    "categorySendingReceiving": "Sending & Receiving",
+    "categoryTroubleshooting": "Troubleshooting",
     "lastUpdated": "Last updated: {date}",
     "relatedPages": "Related Pages"
 }

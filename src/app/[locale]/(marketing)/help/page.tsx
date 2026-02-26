@@ -1,11 +1,12 @@
 import { Suspense } from 'react'
 import { type Metadata } from 'next'
 import { generateMetadata as metadataHelper } from '@/app/metadata'
-import { SUPPORTED_LOCALES, isValidLocale } from '@/i18n/config'
+import { SUPPORTED_LOCALES, isValidLocale, getAlternates } from '@/i18n/config'
+import { getTranslations } from '@/i18n'
 import { readPageContentLocalized, listContentSlugs } from '@/lib/content'
 import { notFound } from 'next/navigation'
-import { JsonLd } from '@/components/Marketing/JsonLd'
-import { BASE_URL } from '@/constants/general.consts'
+import { ContentPage } from '@/components/Marketing/ContentPage'
+import { Hero } from '@/components/Marketing/mdx/Hero'
 import HelpLanding from '@/components/Marketing/HelpLanding'
 
 interface PageProps {
@@ -20,6 +21,16 @@ interface HelpFrontmatter {
     published?: boolean
 }
 
+/** Map frontmatter category keys → i18n translation keys */
+const CATEGORY_I18N_KEYS: Record<string, keyof import('@/i18n/types').Translations> = {
+    'Getting Started': 'categoryGettingStarted',
+    'Account & Security': 'categoryAccountSecurity',
+    Payments: 'categoryPayments',
+    'Deposits & Withdrawals': 'categoryDepositsWithdrawals',
+    'Sending & Receiving': 'categorySendingReceiving',
+    Troubleshooting: 'categoryTroubleshooting',
+}
+
 export async function generateStaticParams() {
     return SUPPORTED_LOCALES.map((locale) => ({ locale }))
 }
@@ -29,18 +40,26 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const { locale } = await params
     if (!isValidLocale(locale)) return {}
 
-    return metadataHelper({
-        title: 'Help Center | Peanut',
-        description:
-            'Get help with Peanut — verification, passkeys, payments, deposits, and account recovery. Step-by-step guides and answers to common questions.',
-        canonical: `/${locale}/help`,
-    })
+    const i18n = getTranslations(locale)
+
+    return {
+        ...metadataHelper({
+            title: `${i18n.helpCenter} | Peanut`,
+            description: i18n.helpCenterDescription,
+            canonical: `/${locale}/help`,
+        }),
+        alternates: {
+            canonical: `/${locale}/help`,
+            languages: getAlternates('help'),
+        },
+    }
 }
 
 export default async function HelpPage({ params }: PageProps) {
     const { locale } = await params
     if (!isValidLocale(locale)) notFound()
 
+    const i18n = getTranslations(locale)
     const slugs = listContentSlugs('help')
     const articles = slugs
         .map((slug) => {
@@ -55,24 +74,33 @@ export default async function HelpPage({ params }: PageProps) {
         })
         .filter(Boolean) as Array<{ slug: string; title: string; description: string; category: string }>
 
-    // Group by category for display order
-    const categories = [...new Set(articles.map((a) => a.category))]
-
-    const breadcrumbSchema = {
-        '@context': 'https://schema.org',
-        '@type': 'BreadcrumbList',
-        itemListElement: [
-            { '@type': 'ListItem', position: 1, name: 'Home', item: BASE_URL },
-            { '@type': 'ListItem', position: 2, name: 'Help', item: `${BASE_URL}/${locale}/help` },
-        ],
-    }
+    // Translate category names
+    const translatedArticles = articles.map((a) => ({
+        ...a,
+        category: i18n[CATEGORY_I18N_KEYS[a.category] ?? 'help'] ?? a.category,
+    }))
+    const categories = [...new Set(translatedArticles.map((a) => a.category))]
 
     return (
-        <>
-            <JsonLd data={breadcrumbSchema} />
+        <ContentPage
+            breadcrumbs={[
+                { name: i18n.home, href: '/' },
+                { name: i18n.help, href: `/${locale}/help` },
+            ]}
+        >
+            <Hero title={i18n.helpCenter} subtitle={i18n.helpCenterDescription} />
             <Suspense>
-                <HelpLanding articles={articles} categories={categories} locale={locale} />
+                <HelpLanding
+                    articles={translatedArticles}
+                    categories={categories}
+                    locale={locale}
+                    strings={{
+                        searchPlaceholder: i18n.searchHelpArticles,
+                        cantFind: i18n.cantFindAnswer,
+                        cantFindDesc: i18n.cantFindAnswerDesc,
+                    }}
+                />
             </Suspense>
-        </>
+        </ContentPage>
     )
 }
