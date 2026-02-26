@@ -57,5 +57,4 @@ jobs:
                   gh pr create \
                     --head "$BRANCH" \
                     --title "Update content submodule" \
-                    --body "Auto-generated: updates content submodule to latest peanut-content main." \
-                    --label "infra"
+                    --body "Auto-generated: updates content submodule to latest peanut-content main."
