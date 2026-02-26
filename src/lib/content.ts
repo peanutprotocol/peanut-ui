@@ -23,7 +23,7 @@ const FALLBACK_CHAINS: Record<string, string[]> = {
     en: [],
     'es-419': ['en'],
     'es-ar': ['es-419', 'en'],
-    'es-es': ['en'],
+    'es-es': ['es-419', 'en'],
     'pt-br': ['en'],
 }
 

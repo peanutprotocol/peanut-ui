@@ -11,6 +11,7 @@ export const ROUTE_SLUGS = [
     'receive-money-from',
     'pay-with',
     'team',
+    'help',
 ] as const
 
 export type RouteSlug = (typeof ROUTE_SLUGS)[number]

@@ -61,6 +61,20 @@ export interface Translations {
     teamTitle: string // "Our Team"
     teamSubtitle: string // "The people behind Peanut."
 
+    // Help center
+    help: string // "Help"
+    helpCenter: string // "Help Center"
+    helpCenterDescription: string // "Get help with Peanut — ..."
+    searchHelpArticles: string // "Search help articles..."
+    cantFindAnswer: string // "Can't find what you need?"
+    cantFindAnswerDesc: string // "Click the chat bubble..."
+    categoryGettingStarted: string
+    categoryAccountSecurity: string
+    categoryPayments: string
+    categoryDepositsWithdrawals: string
+    categorySendingReceiving: string
+    categoryTroubleshooting: string
+
     // Misc
     lastUpdated: string // "Last updated: {date}"
     relatedPages: string // "Related Pages"

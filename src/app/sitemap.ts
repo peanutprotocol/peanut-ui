@@ -2,9 +2,10 @@ import { type MetadataRoute } from 'next'
 import { BASE_URL } from '@/constants/general.consts'
 import { COUNTRIES_SEO, CORRIDORS, COMPETITORS, EXCHANGES, PAYMENT_METHOD_SLUGS } from '@/data/seo'
 import { SUPPORTED_LOCALES } from '@/i18n/config'
+import { listContentSlugs } from '@/lib/content'
 
 // TODO (infra): Set up 301 redirect peanut.to/* → peanut.me/ at Vercel/Cloudflare level
-// TODO (infra): Set up 301 redirect docs.peanut.to/* → peanut.me/help
+// DONE: /docs → /help redirect added in redirects.json
 // TODO (infra): Update GitHub org, Twitter bio, LinkedIn, npm package.json → peanut.me
 // TODO (infra): Add peanut.me to Google Search Console and submit this sitemap
 // TODO (GA4): Create data filter to exclude trafficheap.com referral traffic
@@ -97,6 +98,20 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
             pages.push({
                 path: `/${locale}/pay-with/${method}`,
                 priority: 0.7 * basePriority,
+                changeFrequency: 'monthly',
+            })
+        }
+
+        // Help center
+        pages.push({
+            path: `/${locale}/help`,
+            priority: 0.7 * basePriority,
+            changeFrequency: 'weekly',
+        })
+        for (const slug of listContentSlugs('help')) {
+            pages.push({
+                path: `/${locale}/help/${slug}`,
+                priority: 0.6 * basePriority,
                 changeFrequency: 'monthly',
             })
         }

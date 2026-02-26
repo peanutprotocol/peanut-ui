@@ -11,7 +11,7 @@ const marketingClouds = [
 
 interface HeroProps {
     title: string
-    subtitle: string
+    subtitle?: string
     cta?: string
     ctaHref?: string
     /** @deprecated — ignored. Use standalone <ExchangeWidget> in MDX body instead. */
@@ -31,9 +31,11 @@ export function Hero({ title, subtitle, cta, ctaHref }: HeroProps) {
                     <h1 className="font-roboto-flex-extrabold text-[2.5rem] font-extraBlack uppercase leading-[0.95] text-black md:text-[4.5rem]">
                         {title}
                     </h1>
-                    <p className="font-roboto-flex-extrabold mt-6 text-[1.25rem] uppercase text-black md:mt-8 md:text-[2rem]">
-                        {subtitle}
-                    </p>
+                    {subtitle && (
+                        <p className="font-roboto-flex-extrabold mt-6 text-[1.25rem] uppercase text-black md:mt-8 md:text-[2rem]">
+                            {subtitle}
+                        </p>
+                    )}
                     {cta && ctaHref && (
                         <div className="mt-8">
                             <Link

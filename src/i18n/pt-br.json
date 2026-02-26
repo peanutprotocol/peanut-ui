@@ -32,6 +32,18 @@
     "receiveMoneyFromDesc": "Receba dinheiro enviado de {country}. Rápido e seguro.",
     "teamTitle": "Nossa Equipe",
     "teamSubtitle": "As pessoas por trás do Peanut.",
+    "help": "Ajuda",
+    "helpCenter": "Central de Ajuda",
+    "helpCenterDescription": "Obtenha ajuda com o Peanut — verificação, passkeys, pagamentos, depósitos e recuperação de conta. Guias passo a passo e respostas para perguntas frequentes.",
+    "searchHelpArticles": "Buscar artigos de ajuda...",
+    "cantFindAnswer": "Não encontrou o que precisa?",
+    "cantFindAnswerDesc": "Clique no ícone de chat no canto inferior direito para falar com nossa equipe de suporte. Geralmente respondemos em minutos.",
+    "categoryGettingStarted": "Primeiros Passos",
+    "categoryAccountSecurity": "Conta e Segurança",
+    "categoryPayments": "Pagamentos",
+    "categoryDepositsWithdrawals": "Depósitos e Saques",
+    "categorySendingReceiving": "Envios e Recebimentos",
+    "categoryTroubleshooting": "Solução de Problemas",
     "lastUpdated": "Última atualização: {date}",
     "relatedPages": "Páginas Relacionadas"
 }

@@ -19,17 +19,24 @@ interface CTAProps {
  * - primary: standalone purple button within prose column (default)
  * - secondary: subtle inline text link with arrow — for mid-content CTAs
  * - card: bordered card with button + subtitle — for final/end-of-page CTAs
+ *
+ * Special: href="#chat" opens Crisp chat via click interceptor (no navigation).
  */
 export function CTA({ text, href, subtitle, variant = 'primary' }: CTAProps) {
     if (variant === 'secondary') {
+        const linkClass =
+            'inline-flex items-center gap-1 font-semibold text-n-1 underline decoration-n-1/30 underline-offset-2 hover:decoration-n-1'
         return (
             <div className={`mx-auto ${PROSE_WIDTH} px-6 py-4 md:px-4`}>
-                <Link
-                    href={href}
-                    className="inline-flex items-center gap-1 font-semibold text-n-1 underline decoration-n-1/30 underline-offset-2 hover:decoration-n-1"
-                >
-                    {text} <span aria-hidden="true">&rarr;</span>
-                </Link>
+                {href.startsWith('#') ? (
+                    <a href={href} className={linkClass}>
+                        {text} <span aria-hidden="true">&rarr;</span>
+                    </a>
+                ) : (
+                    <Link href={href} className={linkClass}>
+                        {text} <span aria-hidden="true">&rarr;</span>
+                    </Link>
+                )}
             </div>
         )
     }
