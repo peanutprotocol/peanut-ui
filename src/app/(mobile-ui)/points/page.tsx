@@ -208,7 +208,7 @@ const PointsPage = () => {
                                     invited you.{' '}
                                 </>
                             )}
-                            <br></br>You earn rewards whenever friends your friends use Peanut!
+                            <br></br>You earn rewards whenever your friends use Peanut!
                         </p>
                     </>
                 )}

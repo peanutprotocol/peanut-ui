@@ -22,6 +22,11 @@ export async function generateStaticParams() {
         return posts.map((post) => ({ locale, slug: post.slug }))
     })
 }
+// TODO: when blog content is added to src/content/blog/, either remove the
+// production guard in generateStaticParams above, or set dynamicParams = true.
+// Currently no blog posts exist so this has no effect, but with content present
+// the combination of returning [] in prod + dynamicParams = false would 404 all
+// blog pages.
 export const dynamicParams = false
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
