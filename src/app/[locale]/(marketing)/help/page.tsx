@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { type Metadata } from 'next'
 import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { SUPPORTED_LOCALES, isValidLocale } from '@/i18n/config'
@@ -69,7 +70,9 @@ export default async function HelpPage({ params }: PageProps) {
     return (
         <>
             <JsonLd data={breadcrumbSchema} />
-            <HelpLanding articles={articles} categories={categories} locale={locale} />
+            <Suspense>
+                <HelpLanding articles={articles} categories={categories} locale={locale} />
+            </Suspense>
         </>
     )
 }

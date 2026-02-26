@@ -1,12 +1,17 @@
 [
     {
+        "source": "/help",
+        "destination": "/en/help",
+        "permanent": false
+    },
+    {
         "source": "/docs",
-        "destination": "/help",
+        "destination": "/en/help",
         "permanent": true
     },
     {
         "source": "/docs/:path*",
-        "destination": "/help",
+        "destination": "/en/help",
         "permanent": true
     },
     {
