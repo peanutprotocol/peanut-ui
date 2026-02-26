@@ -3,86 +3,80 @@
 import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
 import Link from 'next/link'
-import { Icon } from '@/components/Global/Icons/Icon'
+import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 
 export default function DevToolsPage() {
-    const tools = [
+    const tools: { name: string; description: string; path: string; icon: IconName }[] = [
         {
             name: 'Points Leaderboard',
             description: 'Real-time leaderboard with customizable time filters for event competitions',
             path: '/dev/leaderboard',
-            icon: '🏆',
-            status: 'active',
+            icon: 'trophy',
         },
         {
             name: 'Full Graph',
             description:
                 'Interactive force-directed graph visualization of all users, invites, and P2P activity (admin only)',
             path: '/dev/full-graph',
-            icon: '🕸️',
-            status: 'active',
+            icon: 'globe-lock',
         },
         {
             name: 'Payment Graph',
             description: 'P2P payment flow visualization',
             path: '/dev/payment-graph',
-            icon: '💸',
-            status: 'active',
+            icon: 'dollar',
         },
         {
-            name: 'Shake Test',
-            description: 'Test progressive shake animation and confetti for perk claiming',
-            path: '/dev/shake-test',
-            icon: '🧪',
-            status: 'active',
+            name: 'Design System',
+            description: 'Foundations, primitives, patterns, and interactive playground',
+            path: '/dev/ds',
+            icon: 'docs',
         },
-        // Add more dev tools here in the future
     ]
 
     return (
-        <div className="flex min-h-[inherit] flex-col gap-8">
-            <NavHeader title="🛠️ Dev Tools" />
+        <div className="flex w-full flex-col gap-6">
+            <div className="px-4 pt-4">
+                <NavHeader title="Dev Tools" />
+            </div>
 
-            <div className="flex h-full flex-col space-y-6 px-4 pb-8">
-                <Card className="p-6">
-                    <h1 className="mb-2 text-2xl font-bold">Developer Tools</h1>
-                    <p className="text-sm text-gray-600">
-                        Internal testing tools and components. Publicly accessible for multi-device testing.
-                    </p>
-                </Card>
+            <div className="flex h-full flex-col space-y-4 px-4 pb-8">
+                <p className="text-sm text-grey-1">
+                    Internal testing tools and components. Publicly accessible for multi-device testing.
+                </p>
 
-                <div className="space-y-4">
+                <div className="space-y-2">
                     {tools.map((tool) => (
                         <Link key={tool.path} href={tool.path}>
-                            <Card className="cursor-pointer p-4 transition-all hover:shadow-lg">
+                            <Card className="cursor-pointer p-4">
                                 <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-4">
-                                        <div className="text-3xl">{tool.icon}</div>
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex size-10 items-center justify-center rounded-sm border border-n-1 bg-primary-3">
+                                            <Icon name={tool.icon} size={20} />
+                                        </div>
                                         <div>
-                                            <h3 className="font-bold">{tool.name}</h3>
-                                            <p className="text-sm text-gray-600">{tool.description}</p>
-                                            {tool.status === 'active' && (
-                                                <span className="mt-1 inline-block rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
-                                                    Active
-                                                </span>
-                                            )}
+                                            <h3 className="text-sm font-bold">{tool.name}</h3>
+                                            <p className="text-xs text-grey-1">{tool.description}</p>
                                         </div>
                                     </div>
-                                    <Icon name="arrow-up-right" size={20} className="text-gray-400" />
+                                    <Icon name="arrow-up-right" size={16} className="text-grey-1" />
                                 </div>
                             </Card>
                         </Link>
                     ))}
                 </div>
 
-                <Card className="space-y-2 bg-blue-50 p-4">
-                    <h3 className="font-bold text-blue-900">ℹ️ Info</h3>
-                    <ul className="space-y-1 text-sm text-blue-800">
-                        <li>• These tools are only available in development mode</li>
-                        <li>• Perfect for testing on multiple devices</li>
-                        <li>• Share the URL with team members for testing</li>
+                <div className="rounded-sm border border-n-1 bg-primary-3/20 p-3">
+                    <div className="mb-1 flex items-center gap-2">
+                        <Icon name="info" size={14} />
+                        <span className="text-xs font-bold">Info</span>
+                    </div>
+                    <ul className="space-y-0.5 text-xs text-grey-1">
+                        <li>These tools are only available in development mode</li>
+                        <li>Perfect for testing on multiple devices</li>
+                        <li>Share the URL with team members for testing</li>
                     </ul>
-                </Card>
+                </div>
             </div>
         </div>
     )

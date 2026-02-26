@@ -2,17 +2,20 @@
 
 import { usePathname } from 'next/navigation'
 import { notFound } from 'next/navigation'
-import { IS_DEV } from '@/constants/general.consts'
+import { BASE_URL } from '@/constants/general.consts'
 
-// Routes that are allowed in production (protected by API key / user check)
+// Routes allowed on peanut.me (production). All /dev routes are available elsewhere
+// (localhost, staging, Vercel preview deploys).
 const PRODUCTION_ALLOWED_ROUTES = ['/dev/full-graph', '/dev/payment-graph']
+
+const IS_PROD_DOMAIN = BASE_URL === 'https://peanut.me'
 
 export default function DevLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
 
-    // In production, only allow specific routes (full-graph, payment-graph)
-    // Other dev tools (leaderboard, shake-test, dev index) are dev-only
-    if (!IS_DEV) {
+    // On peanut.me, only allow specific routes (full-graph, payment-graph)
+    // On staging, Vercel previews, and localhost, all /dev routes are accessible
+    if (IS_PROD_DOMAIN) {
         const isAllowedInProd = PRODUCTION_ALLOWED_ROUTES.some((route) => pathname?.startsWith(route))
         if (!isAllowedInProd) {
             notFound()

@@ -53,7 +53,7 @@ export function FAQsPanel({ heading, questions }: FAQsProps) {
 
     return (
         <div className="w-full overflow-x-hidden bg-background">
-            <div className="relative px-6 py-20 md:px-8 md:py-36">
+            <div className="relative px-6 py-12 md:px-8 md:py-16">
                 <motion.div
                     initial={{ opacity: 0, translateY: 20 }}
                     animate={{ opacity: 1, translateY: 0 }}

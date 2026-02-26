@@ -100,4 +100,5 @@ const BaseSelect = forwardRef<HTMLButtonElement, BaseSelectProps>(
 
 BaseSelect.displayName = 'BaseSelect'
 
+export { BaseSelect }
 export default BaseSelect

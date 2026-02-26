@@ -8,6 +8,16 @@ import { usePWAStatus } from '../usePWAStatus'
 import { useDeviceType } from '../useGetDeviceType'
 import { USER } from '@/constants/query.consts'
 
+// custom error class for backend errors (5xx) that should trigger retry
+export class BackendError extends Error {
+    status: number
+    constructor(message: string, status: number) {
+        super(message)
+        this.name = 'BackendError'
+        this.status = status
+    }
+}
+
 export const useUserQuery = (dependsOn: boolean = true) => {
     const isPwa = usePWAStatus()
     const { deviceType } = useDeviceType()
@@ -23,30 +33,36 @@ export const useUserQuery = (dependsOn: boolean = true) => {
                     isPwa: isPwa,
                     deviceType: deviceType,
                 })
-
                 dispatch(userActions.setUser(userData))
             }
-
             return userData
-        } else {
-            console.warn('Failed to fetch user, status:', userResponse.status)
-            // clear stale redux data so the app doesn't keep serving cached user
-            dispatch(userActions.setUser(null))
-            return null
         }
+
+        // 5xx = backend error, throw so tanstack retries
+        if (userResponse.status >= 500) {
+            console.error('Backend error fetching user:', userResponse.status)
+            throw new BackendError('Backend error fetching user', userResponse.status)
+        }
+
+        // 4xx = auth failure, clear stale redux so layout redirects to /setup
+        console.warn('Failed to fetch user, status:', userResponse.status)
+        dispatch(userActions.setUser(null))
+        return null
     }
 
     return useQuery({
         queryKey: [USER],
         queryFn: fetchUser,
-        retry: 0,
+        retry: (failureCount, error) => {
+            if (error instanceof BackendError && failureCount < 2) return true
+            return false
+        },
+        retryDelay: 1000,
         enabled: dependsOn,
         staleTime: 5 * 60 * 1000,
         gcTime: 10 * 60 * 1000,
         refetchOnMount: true,
         refetchOnWindowFocus: true,
-        // use redux data as placeholder while fetching (no flicker)
-        // but always validate against the backend
         placeholderData: authUser || undefined,
     })
 }

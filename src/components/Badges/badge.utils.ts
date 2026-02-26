@@ -13,6 +13,7 @@ const CODE_TO_PATH: Record<string, string> = {
     BIGGEST_REQUEST_POT: '/badges/biggest_request_pot.svg',
     SEEDLING_DEVCONNECT_BA_2025: '/badges/seedlings_devconnect.svg',
     ARBIVERSE_DEVCONNECT_BA_2025: '/badges/arbiverse_devconnect.svg',
+    CARD_PIONEER: '/badges/peanut-pioneer.png',
 }
 
 // public-facing descriptions for badges (third-person perspective)
@@ -28,6 +29,7 @@ const PUBLIC_DESCRIPTIONS: Record<string, string> = {
     BIGGEST_REQUEST_POT: 'High Roller or Master Beggar? They created the pot with the highest number of contributors.',
     SEEDLING_DEVCONNECT_BA_2025: 'Peanut Ambassador. They spread the word and brought others into the ecosystem.',
     ARBIVERSE_DEVCONNECT_BA_2025: 'Peanut 🤝 Arbiverse. They joined us at the amazing Arbiverse booth.',
+    CARD_PIONEER: 'A true Card Pioneer. Among the first to pay everywhere with Peanut.',
 }
 
 export function getBadgeIcon(code?: string) {

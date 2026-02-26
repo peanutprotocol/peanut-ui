@@ -18,6 +18,7 @@ import { useUserStore } from '@/redux/hooks'
 import { chargesApi } from '@/services/charges'
 import useClaimLink from '@/components/Claim/useClaimLink'
 import { formatAmount, formatDate, isStableCoin, formatCurrency } from '@/utils/general.utils'
+import { formatPoints } from '@/utils/format.utils'
 import { getAvatarUrl } from '@/utils/history.utils'
 import {
     formatIban,
@@ -332,12 +333,12 @@ export const TransactionDetailsReceipt = ({
 
     useEffect(() => {
         const getTokenDetails = async () => {
-            if (!transaction) {
+            if (!transaction?.tokenDisplayDetails) {
                 setIsTokenDataLoading(false)
                 return
             }
 
-            if (transaction.tokenDisplayDetails?.tokenIconUrl && transaction.tokenDisplayDetails.tokenSymbol) {
+            if (transaction.tokenDisplayDetails.tokenIconUrl && transaction.tokenDisplayDetails.tokenSymbol) {
                 setTokenData({
                     symbol: transaction.tokenDisplayDetails.tokenSymbol,
                     icon: transaction.tokenDisplayDetails.tokenIconUrl,
@@ -346,8 +347,13 @@ export const TransactionDetailsReceipt = ({
                 return
             }
 
+            if (!transaction.tokenDisplayDetails.chainName) {
+                setIsTokenDataLoading(false)
+                return
+            }
+
             try {
-                const chainName = slugify(transaction.tokenDisplayDetails?.chainName ?? '')
+                const chainName = slugify(transaction.tokenDisplayDetails.chainName)
                 const res = await fetch(
                     `https://api.coingecko.com/api/v3/coins/${chainName}/contract/${transaction.tokenAddress}`
                 )
@@ -370,7 +376,7 @@ export const TransactionDetailsReceipt = ({
         }
 
         getTokenDetails()
-    }, [])
+    }, [transaction?.tokenDisplayDetails])
 
     const convertedAmount = useMemo(() => {
         if (!transaction) return null
@@ -506,9 +512,22 @@ export const TransactionDetailsReceipt = ({
                         value={formatDate(new Date(transaction.date))}
                         hideBottomBorder={false}
                     />
+                    {/*
+                     * HACK: Strip payment UUID from reason field.
+                     *
+                     * The backend stores the payment UUID in the reason field for idempotency
+                     * (e.g., "Alice became a Card Pioneer! (payment: uuid)") because PerkUsage
+                     * lacks a dedicated requestPaymentUuid field. The code in purchase-listener.ts
+                     * uses `reason: { contains: paymentUuid }` to prevent duplicate perk issuance.
+                     *
+                     * Proper fix (backend): Add requestPaymentUuid field to PerkUsage model with
+                     * a unique constraint @@unique([userId, perkId, requestPaymentUuid]), similar
+                     * to how mantecaTransferId/bridgeTransferId/simplefiTransferId are handled.
+                     * Then store clean reason text without the UUID suffix.
+                     */}
                     <PaymentInfoRow
                         label="Reason"
-                        value={perkRewardData.reason}
+                        value={perkRewardData.reason.replace(/\s*\(payment:\s*[a-f0-9-]+\)/i, '')}
                         // hideBottomBorder={!perkRewardData.originatingTxId}
                         hideBottomBorder={true}
                     />
@@ -1113,7 +1132,7 @@ export const TransactionDetailsReceipt = ({
                             value={
                                 <div className="flex items-center gap-2">
                                     <Image src={STAR_STRAIGHT_ICON} alt="star" width={16} height={16} />
-                                    <span>{transaction.points}</span>
+                                    <span>{formatPoints(transaction.points)}</span>
                                 </div>
                             }
                             hideBottomBorder={shouldHideBorder('points')}

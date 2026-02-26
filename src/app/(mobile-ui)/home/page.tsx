@@ -27,12 +27,14 @@ import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
 import { useNotifications } from '@/hooks/useNotifications'
 import useKycStatus from '@/hooks/useKycStatus'
+import { useCardPioneerInfo } from '@/hooks/useCardPioneerInfo'
 import HomeCarouselCTA from '@/components/Home/HomeCarouselCTA'
 import InvitesIcon from '@/components/Home/InvitesIcon'
 import NavigationArrow from '@/components/Global/NavigationArrow'
 import { updateUserById } from '@/app/actions/users'
 import { useHaptic } from 'use-haptic'
 import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
+import underMaintenanceConfig from '@/config/underMaintenance.config'
 
 // Lazy load heavy modal components (~20-30KB each) to reduce initial bundle size
 // Components are only loaded when user triggers them
@@ -43,6 +45,7 @@ const NoMoreJailModal = lazy(() => import('@/components/Global/NoMoreJailModal')
 const EarlyUserModal = lazy(() => import('@/components/Global/EarlyUserModal'))
 const KycCompletedModal = lazy(() => import('@/components/Home/KycCompletedModal'))
 const IosPwaInstallModal = lazy(() => import('@/components/Global/IosPwaInstallModal'))
+const CardPioneerModal = lazy(() => import('@/components/Card/CardPioneerModal'))
 
 const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
 const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_EXPIRY ?? '1814400') // 21 days in seconds
@@ -64,12 +67,24 @@ export default function Home() {
 
     const { isFetchingUser, fetchUser } = useAuth()
     const { isUserKycApproved } = useKycStatus()
+    const {
+        hasPurchased: hasCardPioneerPurchased,
+        isLoading: isCardInfoLoading,
+        error: cardInfoError,
+    } = useCardPioneerInfo()
     const username = user?.user.username
 
     const [showBalanceWarningModal, setShowBalanceWarningModal] = useState(false)
     // const [showReferralCampaignModal, setShowReferralCampaignModal] = useState(false)
     const [isPostSignupActionModalVisible, setIsPostSignupActionModalVisible] = useState(false)
     const [showKycModal, setShowKycModal] = useState(user?.user.showKycCompletedModal ?? false)
+
+    // Track if this is a fresh signup session - captured once on mount so it persists
+    // even after NoMoreJailModal clears the sessionStorage key
+    const [isPostSignupSession] = useState(() => {
+        if (typeof window === 'undefined') return false
+        return sessionStorage.getItem('showNoMoreJailModal') === 'true'
+    })
 
     // sync modal state with user data when it changes
     useEffect(() => {
@@ -259,6 +274,25 @@ export default function Home() {
                     <IosPwaInstallModal />
                 </Suspense>
             </LazyLoadErrorBoundary>
+
+            {/* Card Pioneer Modal - Show to all users who haven't purchased */}
+            {/* Eligibility check happens during the flow (geo screen), not here */}
+            {/* Only shows if no higher-priority modals are active and card info loaded successfully */}
+            {!underMaintenanceConfig.disableCardPioneers &&
+                !isCardInfoLoading &&
+                !cardInfoError &&
+                !showBalanceWarningModal &&
+                !showPermissionModal &&
+                !showKycModal &&
+                !isPostSignupActionModalVisible &&
+                !user?.showEarlyUserModal &&
+                !isPostSignupSession && (
+                    <LazyLoadErrorBoundary>
+                        <Suspense fallback={null}>
+                            <CardPioneerModal hasPurchased={hasCardPioneerPurchased ?? false} />
+                        </Suspense>
+                    </LazyLoadErrorBoundary>
+                )}
 
             {/* Referral Campaign Modal - DISABLED FOR NOW */}
             {/* <ReferralCampaignModal

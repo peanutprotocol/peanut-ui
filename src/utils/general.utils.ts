@@ -936,6 +936,20 @@ export const generateInviteCodeLink = (username: string) => {
     return { inviteLink, inviteCode }
 }
 
+/**
+ * Extract invitee name from perk reason string.
+ * Perk reasons follow the format: "Username became a Card Pioneer! (payment: uuid)"
+ *
+ * @param reason - The perk reason string
+ * @param fallback - Fallback name if extraction fails (default: 'Your friend')
+ * @returns The extracted invitee name or fallback
+ */
+export const extractInviteeName = (reason: string | undefined | null, fallback = 'Your friend'): string => {
+    if (!reason) return fallback
+    const name = reason.split(' became')[0]
+    return name || fallback
+}
+
 export const getValidRedirectUrl = (redirectUrl: string, fallbackRoute: string) => {
     let decodedRedirect = redirectUrl
     try {

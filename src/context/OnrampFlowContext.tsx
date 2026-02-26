@@ -23,6 +23,10 @@ export interface IOnrampData {
         bic?: string
         accountHolderName?: string
         clabe?: string
+        // uk faster payments fields
+        sortCode?: string
+        accountNumber?: string
+        reference?: string
     }
 }
 

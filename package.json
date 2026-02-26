@@ -15,10 +15,15 @@
         "knip": "knip",
         "format": "prettier --write .",
         "analyze": "ANALYZE=true next build",
+        "typecheck": "tsc --noEmit",
         "test": "jest",
         "test:watch": "jest --watch",
         "test:coverage": "jest --coverage",
-        "script": "NODE_OPTIONS=\"--experimental-json-modules\" tsx"
+        "test:e2e": "playwright test",
+        "test:e2e:ui": "playwright test --ui",
+        "test:e2e:headed": "playwright test --headed",
+        "script": "NODE_OPTIONS=\"--experimental-json-modules\" tsx",
+        "validate-content": "tsx scripts/validate-content.ts"
     },
     "dependencies": {
         "@dicebear/collection": "^9.2.2",
@@ -48,7 +53,7 @@
         "@vercel/analytics": "^1.4.1",
         "@wagmi/core": "2.19.0",
         "@zerodev/passkey-validator": "^5.6.0",
-        "@zerodev/sdk": "5.5.0",
+        "@zerodev/sdk": "5.5.7",
         "autoprefixer": "^10.4.20",
         "canvas-confetti": "^1.9.3",
         "classnames": "^2.5.1",
@@ -56,11 +61,14 @@
         "embla-carousel-react": "^8.6.0",
         "ethers": "5.7.2",
         "framer-motion": "^11.11.17",
+        "gray-matter": "^4.0.3",
         "i18n-iso-countries": "^7.13.0",
         "iban-to-bic": "^1.4.0",
         "js-cookie": "^3.0.5",
         "jsqr": "^1.4.0",
+        "marked": "^17.0.2",
         "next": "16.0.10",
+        "next-mdx-remote": "^6.0.0",
         "nuqs": "^2.8.6",
         "pix-utils": "^2.8.2",
         "pulltorefreshjs": "^0.1.22",
@@ -75,6 +83,8 @@
         "react-redux": "^9.2.0",
         "react-tooltip": "^5.28.0",
         "redux": "^5.0.1",
+        "remark-gfm": "^4.0.1",
+        "shiki": "^3.22.0",
         "siwe": "^2.3.2",
         "tailwind-merge": "^1.14.0",
         "tailwind-scrollbar": "^3.1.0",
@@ -86,6 +96,7 @@
     },
     "devDependencies": {
         "@next/bundle-analyzer": "^16.1.1",
+        "@playwright/test": "^1.58.0",
         "@serwist/build": "^9.0.10",
         "@size-limit/preset-app": "^11.2.0",
         "@testing-library/jest-dom": "^6.4.2",
@@ -146,6 +157,10 @@
         "testMatch": [
             "**/__tests__/**/*.test.[jt]s?(x)",
             "**/?(*.)+(spec|test).[jt]s?(x)"
+        ],
+        "testPathIgnorePatterns": [
+            "/node_modules/",
+            "\\.e2e\\.test\\.(ts|tsx)$"
         ],
         "extensionsToTreatAsEsm": [
             ".ts",

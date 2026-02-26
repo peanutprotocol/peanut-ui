@@ -42,7 +42,8 @@ interface AuthContextType {
         }
     }) => Promise<void>
     isFetchingUser: boolean
-    logoutUser: () => Promise<void>
+    userFetchError: Error | null
+    logoutUser: (options?: { skipBackendCall?: boolean }) => Promise<void>
     isLoggingOut: boolean
     invitedUsernamesSet: Set<string>
 }
@@ -60,7 +61,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const queryClient = useQueryClient()
     const WEB_AUTHN_COOKIE_KEY = 'web-authn-key'
 
-    const { data: user, isLoading: isFetchingUser, refetch: fetchUser } = useUserQuery()
+    const { data: user, isLoading: isFetchingUser, refetch: fetchUser, error: userFetchError } = useUserQuery()
 
     // Pre-compute a Set of invited usernames for O(1) lookups
     const invitedUsernamesSet = useMemo(() => {
@@ -149,84 +150,107 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         })
     }
 
-    const logoutUser = useCallback(async () => {
-        if (isLoggingOut) return
+    /**
+     * Clears all client-side auth state (cookies, localStorage, redux, caches)
+     * Used by both normal logout and force logout (when backend is down)
+     */
+    const clearLocalAuthState = useCallback(async () => {
+        // clear user preferences (webauthn key in localStorage)
+        updateUserPreferences(user?.user.userId, { webAuthnKey: undefined })
 
-        setIsLoggingOut(true)
-        try {
-            const response = await fetchWithSentry('/api/peanut/user/logout-user', {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            })
+        // clear cookies
+        removeFromCookie(WEB_AUTHN_COOKIE_KEY)
+        document.cookie = 'jwt-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
 
-            if (response.ok) {
-                // clear user preferences (webauthn key in localStorage)
-                updateUserPreferences(user?.user.userId, { webAuthnKey: undefined })
+        // clear redirect url
+        clearRedirectUrl()
 
-                // clear cookies
-                removeFromCookie(WEB_AUTHN_COOKIE_KEY)
-                document.cookie = 'jwt-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
+        // invalidate all queries
+        queryClient.invalidateQueries()
 
-                // clear redirect url
-                clearRedirectUrl()
+        // reset redux state (setup and zerodev)
+        dispatch(setupActions.resetSetup())
+        dispatch(zerodevActions.resetZeroDevState())
+        console.log('[Logout] Cleared redux state (setup and zerodev)')
 
-                // invalidate all queries
-                queryClient.invalidateQueries()
+        // Clear service worker caches to prevent user data leakage
+        // When User A logs out and User B logs in on the same device, cached API responses
+        // could expose User A's data (profile, transactions, KYC) to User B
+        // Only clears user-specific caches; preserves prices and external resources
+        if ('caches' in window) {
+            try {
+                const cacheNames = await caches.keys()
+                await Promise.all(
+                    cacheNames
+                        .filter((name) => USER_DATA_CACHE_PATTERNS.some((pattern) => name.includes(pattern)))
+                        .map((name) => {
+                            console.log('Logout: Clearing cache:', name)
+                            return caches.delete(name)
+                        })
+                )
+            } catch (error) {
+                console.error('Failed to clear caches on logout:', error)
+                // Non-fatal: logout continues even if cache clearing fails
+            }
+        }
 
-                // reset redux state (setup and zerodev)
-                dispatch(setupActions.resetSetup())
-                dispatch(zerodevActions.resetZeroDevState())
-                console.log('[Logout] Cleared redux state (setup and zerodev)')
+        // clear the iOS PWA prompt session flag
+        if (typeof window !== 'undefined') {
+            sessionStorage.removeItem('hasSeenIOSPWAPromptThisSession')
+        }
 
-                // Clear service worker caches to prevent user data leakage
-                // When User A logs out and User B logs in on the same device, cached API responses
-                // could expose User A's data (profile, transactions, KYC) to User B
-                // Only clears user-specific caches; preserves prices and external resources
-                if ('caches' in window) {
-                    try {
-                        const cacheNames = await caches.keys()
-                        await Promise.all(
-                            cacheNames
-                                .filter((name) => USER_DATA_CACHE_PATTERNS.some((pattern) => name.includes(pattern)))
-                                .map((name) => {
-                                    console.log('Logout: Clearing cache:', name)
-                                    return caches.delete(name)
-                                })
-                        )
-                    } catch (error) {
-                        console.error('Failed to clear caches on logout:', error)
-                        // Non-fatal: logout continues even if cache clearing fails
+        // Reset Crisp session to prevent session merging with next user
+        // This resets both main window Crisp instance and any proxy page instances
+        if (typeof window !== 'undefined') {
+            resetCrispProxySessions()
+        }
+    }, [dispatch, queryClient, user?.user.userId])
+
+    /**
+     * Logs out the user
+     * @param options.skipBackendCall - If true, skips the backend logout call (useful when backend is down)
+     */
+    const logoutUser = useCallback(
+        async (options?: { skipBackendCall?: boolean }) => {
+            if (isLoggingOut) return
+
+            setIsLoggingOut(true)
+            try {
+                // Call backend logout unless skipped (e.g., when backend is down)
+                if (!options?.skipBackendCall) {
+                    const response = await fetchWithSentry('/api/peanut/user/logout-user', {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                    })
+
+                    if (!response.ok) {
+                        throw new Error('Backend logout failed')
                     }
                 }
 
-                // clear the iOS PWA prompt session flag
-                if (typeof window !== 'undefined') {
-                    sessionStorage.removeItem('hasSeenIOSPWAPromptThisSession')
-                }
+                // Clear all client-side auth state
+                await clearLocalAuthState()
 
-                // Reset Crisp session to prevent session merging with next user
-                // This resets both main window Crisp instance and any proxy page instances
-                if (typeof window !== 'undefined') {
-                    resetCrispProxySessions()
+                // fetch user (should return null after logout) - skip if backend call was skipped
+                if (!options?.skipBackendCall) {
+                    await fetchUser()
                 }
-
-                // fetch user (should return null after logout)
-                await fetchUser()
 
                 // force full page refresh to /setup to clear all state
                 // this ensures no stale redux/react state persists after logout
                 window.location.href = '/setup'
+            } catch (error) {
+                captureException(error)
+                console.error('Error logging out user', error)
+                toast.error('Error logging out')
+            } finally {
+                setIsLoggingOut(false)
             }
-        } catch (error) {
-            captureException(error)
-            console.error('Error logging out user', error)
-            toast.error('Error logging out')
-        } finally {
-            setIsLoggingOut(false)
-        }
-    }, [fetchUser, isLoggingOut, user])
+        },
+        [clearLocalAuthState, fetchUser, isLoggingOut, toast]
+    )
 
     return (
         <AuthContext.Provider
@@ -237,6 +261,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 fetchUser: legacy_fetchUser,
                 addAccount,
                 isFetchingUser,
+                userFetchError: userFetchError ?? null,
                 logoutUser,
                 isLoggingOut,
                 invitedUsernamesSet,

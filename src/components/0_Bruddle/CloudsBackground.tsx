@@ -227,4 +227,7 @@ const CloudsBackground: React.FC<CloudsBackgroundProps> = ({ minimal = false }) 
     )
 }
 
+CloudsBackground.displayName = 'CloudsBackground'
+
+export { CloudsBackground }
 export default CloudsBackground

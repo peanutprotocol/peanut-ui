@@ -338,6 +338,47 @@ export const pointsApi = {
         return fetchInvitesGraph('/invites/user-graph')
     },
 
+    getCashStatus: async (): Promise<{
+        success: boolean
+        data: {
+            hasCashbackLeft: boolean
+            lifetimeEarned: number
+            lifetimeBreakdown: {
+                cashback: number
+                inviterRewards: number
+                withdrawPerks: number
+                depositPerks: number
+                other: number
+            }
+        } | null
+    }> => {
+        try {
+            const jwtToken = Cookies.get('jwt-token')
+            if (!jwtToken) {
+                console.error('getCashStatus: No JWT token found')
+                return { success: false, data: null }
+            }
+
+            const response = await fetchWithSentry(`${PEANUT_API_URL}/points/cash-status`, {
+                method: 'GET',
+                headers: {
+                    Authorization: `Bearer ${jwtToken}`,
+                    'Content-Type': 'application/json',
+                },
+            })
+            if (!response.ok) {
+                console.error('getCashStatus: API request failed', response.status, response.statusText)
+                return { success: false, data: null }
+            }
+
+            const data = await response.json()
+            return { success: true, data }
+        } catch (error) {
+            console.error('getCashStatus: Unexpected error', error)
+            return { success: false, data: null }
+        }
+    },
+
     getExternalNodes: async (
         apiKey: string,
         options?: {

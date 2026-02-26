@@ -1,57 +1,41 @@
-import { motion } from 'framer-motion'
-import { useEffect, useState } from 'react'
 import mantecaIphone from '@/assets/iphone-ss/manteca_ss.png'
 import Image from 'next/image'
 import { MEPA_ARGENTINA_LOGO, PIX_BRZ_LOGO, Star } from '@/assets'
-import { CloudImages } from './imageAssets'
+import { CloudsCss } from './CloudsCss'
+import { AnimateOnView } from '@/components/Global/AnimateOnView'
+
+const starConfigs = [
+    { className: 'absolute left-12 top-10', delay: '0.2s', rotate: '22deg' },
+    { className: 'absolute left-56 top-1/2', delay: '0.2s', rotate: '22deg' },
+    { className: 'absolute bottom-20 left-20', delay: '0.2s', rotate: '22deg' },
+    { className: 'absolute -top-16 right-20 md:top-58', delay: '0.6s', rotate: '22deg' },
+    { className: 'absolute bottom-20 right-44', delay: '0.6s', rotate: '22deg' },
+]
 
 const Manteca = () => {
-    const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200)
-
-    const starConfigs = [
-        { className: 'absolute left-12 top-10', delay: 0.2 },
-        { className: 'absolute left-56 top-1/2', delay: 0.2 },
-        { className: 'absolute bottom-20 left-20', delay: 0.2 },
-        { className: 'absolute -top-16 right-20 md:top-58', delay: 0.6 },
-        { className: 'absolute bottom-20 right-44', delay: 0.6 },
-    ]
-
-    const isMobile = screenWidth < 768
-
-    useEffect(() => {
-        const handleResize = () => {
-            setScreenWidth(window.innerWidth)
-        }
-
-        handleResize()
-        window.addEventListener('resize', handleResize)
-        return () => window.removeEventListener('resize', handleResize)
-    }, [])
-
     return (
         <section
+            id="qr-pay"
             className="relative overflow-hidden py-20 text-n-1 md:h-[850px] lg:h-[750px]"
             style={{ backgroundColor: '#F9F4F0' }}
         >
-            {!isMobile && <CloudImages screenWidth={screenWidth} />}
+            <div className="hidden md:block">
+                <CloudsCss />
+            </div>
 
-            {!isMobile && (
-                <>
-                    {starConfigs.map((config, index) => (
-                        <motion.img
-                            key={index}
-                            src={Star.src}
-                            alt="Floating Star"
-                            width={50}
-                            height={50}
-                            className={config.className}
-                            initial={{ opacity: 0, translateY: 20, translateX: 5, rotate: 22 }}
-                            whileInView={{ opacity: 1, translateY: 0, translateX: 0, rotate: 22 }}
-                            transition={{ type: 'spring', damping: 5, delay: config.delay }}
-                        />
-                    ))}
-                </>
-            )}
+            <div className="hidden md:block">
+                {starConfigs.map((config, index) => (
+                    <AnimateOnView
+                        key={index}
+                        className={config.className}
+                        delay={config.delay}
+                        x="5px"
+                        rotate={config.rotate}
+                    >
+                        <img src={Star.src} alt="" width={50} height={50} />
+                    </AnimateOnView>
+                ))}
+            </div>
 
             <div className="relative flex flex-col items-center justify-center px-4">
                 <h1 className="font-roboto-flex-extrabold text-center text-[4rem] font-extraBlack md:text-left lg:text-headingMedium">
@@ -71,24 +55,22 @@ const Manteca = () => {
                 </h3>
             </div>
 
-            {isMobile && (
-                <div className="mt-4 flex flex-col items-center justify-center gap-4">
-                    <Image src={mantecaIphone} alt="Mercado pago payment" width={250} height={250} />
+            {/* Mobile layout */}
+            <div className="mt-4 flex flex-col items-center justify-center gap-4 md:hidden">
+                <Image src={mantecaIphone} alt="Mercado pago payment" width={250} height={250} />
 
-                    <div className="flex gap-8">
-                        <Image src={MEPA_ARGENTINA_LOGO} alt="Mepa Argentina" width={100} height={100} />
-                        <Image src={PIX_BRZ_LOGO} alt="Pix Brz" width={100} height={100} />
-                    </div>
+                <div className="flex gap-8">
+                    <Image src={MEPA_ARGENTINA_LOGO} alt="Mepa Argentina" width={100} height={100} />
+                    <Image src={PIX_BRZ_LOGO} alt="Pix Brz" width={100} height={100} />
                 </div>
-            )}
+            </div>
 
-            {!isMobile && (
-                <div className="absolute -bottom-24 left-1/2 mx-auto flex -translate-x-1/2 items-center justify-center gap-20 lg:gap-36">
-                    <Image src={MEPA_ARGENTINA_LOGO} alt="Mepa Argentina" width={170} height={170} />
-                    <Image src={mantecaIphone} alt="Mercado pago payment" width={250} height={250} />
-                    <Image src={PIX_BRZ_LOGO} alt="Pix Brazil" width={170} height={170} />
-                </div>
-            )}
+            {/* Desktop layout */}
+            <div className="absolute -bottom-24 left-1/2 mx-auto hidden -translate-x-1/2 items-center justify-center gap-20 md:flex lg:gap-36">
+                <Image src={MEPA_ARGENTINA_LOGO} alt="Mepa Argentina" width={170} height={170} />
+                <Image src={mantecaIphone} alt="Mercado pago payment" width={250} height={250} />
+                <Image src={PIX_BRZ_LOGO} alt="Pix Brazil" width={170} height={170} />
+            </div>
         </section>
     )
 }

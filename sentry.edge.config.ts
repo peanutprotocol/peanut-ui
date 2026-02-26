@@ -5,6 +5,8 @@
 
 import * as Sentry from '@sentry/nextjs'
 
+import { beforeSendHandler } from './sentry.utils'
+
 if (process.env.NODE_ENV !== 'development') {
     Sentry.init({
         dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
@@ -12,13 +14,7 @@ if (process.env.NODE_ENV !== 'development') {
         tracesSampleRate: 1,
         debug: false,
 
-        beforeSend(event) {
-            if (event.request?.headers) {
-                delete event.request.headers['Authorization']
-                delete event.request.headers['api-key']
-            }
-            return event
-        },
+        beforeSend: beforeSendHandler,
 
         integrations: [
             Sentry.captureConsoleIntegration({

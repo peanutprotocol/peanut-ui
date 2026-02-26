@@ -172,7 +172,14 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
         const userPreferences = getUserPreferences(user.user.userId)
         const storedWebAuthnKey = userPreferences?.webAuthnKey ?? getFromCookie(WEB_AUTHN_COOKIE_KEY)
         if (storedWebAuthnKey) {
-            setWebAuthnKey(storedWebAuthnKey)
+            // Only update if the key actually changed to avoid re-triggering kernel client init
+            // Note: WebAuthnKey contains BigInt fields (pubX, pubY) which JSON.stringify cannot handle,
+            // so we use a custom replacer that converts BigInts to strings for comparison purposes.
+            const bigIntSafeStringify = (obj: unknown) =>
+                JSON.stringify(obj, (_, v) => (typeof v === 'bigint' ? v.toString() : v))
+            setWebAuthnKey((prev) =>
+                prev && bigIntSafeStringify(prev) === bigIntSafeStringify(storedWebAuthnKey) ? prev : storedWebAuthnKey
+            )
         } else {
             // avoid mixed state
             logoutUser()

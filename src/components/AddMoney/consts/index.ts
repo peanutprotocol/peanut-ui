@@ -2843,7 +2843,9 @@ export const NON_EUR_SEPA_ALPHA2 = new Set(
                 !!c.iso3 &&
                 BRIDGE_ALPHA3_TO_ALPHA2[c.iso3] &&
                 // exclude usa explicitly; bridge map includes it but it's not sepa
-                c.iso3 !== 'USA'
+                c.iso3 !== 'USA' &&
+                // exclude uk explicitly; uses faster payments, not sepa
+                c.iso3 !== 'GBR'
         )
         .map((c) => ({ alpha2: BRIDGE_ALPHA3_TO_ALPHA2[c.iso3!], currency: c.currency }))
         .filter((x) => x.alpha2 && x.currency && x.currency !== 'EUR')

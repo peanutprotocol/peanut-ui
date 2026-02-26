@@ -274,6 +274,7 @@ export default function WithdrawCryptoPage() {
                 txHash: finalTxHash,
                 tokenAddress: PEANUT_WALLET_TOKEN,
                 payerAddress: address as Address,
+                squidQuoteId: xChainRoute?.rawResponse?.route?.quoteId,
             })
 
             setTransactionHash(finalTxHash)
@@ -381,8 +382,10 @@ export default function WithdrawCryptoPage() {
         return 0
     }, [xChainRoute])
 
-    if (!amountToWithdraw) {
+    if (!amountToWithdraw && currentView !== 'STATUS') {
         // Redirect to main withdraw page for amount input
+        // Guard against STATUS view: resetWithdrawFlow() clears amountToWithdraw,
+        // which would override the router.push('/home') in handleDone
         router.push('/withdraw')
         return <PeanutLoading />
     }

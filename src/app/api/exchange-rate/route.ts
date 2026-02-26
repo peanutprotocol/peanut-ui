@@ -42,8 +42,8 @@ export async function GET(request: NextRequest) {
             if (
                 MANTECA_CURRENCIES.has(fromUc) ||
                 MANTECA_CURRENCIES.has(toUc) ||
-                ['EUR', 'MXN'].includes(fromUc) ||
-                ['EUR', 'MXN'].includes(toUc)
+                ['EUR', 'MXN', 'GBP'].includes(fromUc) ||
+                ['EUR', 'MXN', 'GBP'].includes(toUc)
             ) {
                 const currencyPriceRate = await fetchFromCurrencyPrice(fromUc, toUc)
                 if (currencyPriceRate !== null) {
@@ -105,8 +105,8 @@ async function getExchangeRate(from: string, to: string): Promise<number | null>
         if (
             MANTECA_CURRENCIES.has(from) ||
             MANTECA_CURRENCIES.has(to) ||
-            ['EUR', 'MXN'].includes(from) ||
-            ['EUR', 'MXN'].includes(to)
+            ['EUR', 'MXN', 'GBP'].includes(from) ||
+            ['EUR', 'MXN', 'GBP'].includes(to)
         ) {
             return await fetchFromCurrencyPrice(from, to)
         }
@@ -122,7 +122,7 @@ async function getExchangeRate(from: string, to: string): Promise<number | null>
 async function fetchFromCurrencyPrice(from: string, to: string): Promise<number | null> {
     console.log('Fetching from getCurrencyPrice')
     try {
-        if (from === 'USD' && (MANTECA_CURRENCIES.has(to) || ['EUR', 'MXN'].includes(to))) {
+        if (from === 'USD' && (MANTECA_CURRENCIES.has(to) || ['EUR', 'MXN', 'GBP'].includes(to))) {
             // USD → other currency: use sell rate (selling USD to get other currency)
             const { sell } = await getCurrencyPrice(to)
             if (!isFinite(sell) || sell <= 0) {
@@ -130,7 +130,7 @@ async function fetchFromCurrencyPrice(from: string, to: string): Promise<number 
                 return null
             }
             return sell
-        } else if ((MANTECA_CURRENCIES.has(from) || ['EUR', 'MXN'].includes(from)) && to === 'USD') {
+        } else if ((MANTECA_CURRENCIES.has(from) || ['EUR', 'MXN', 'GBP'].includes(from)) && to === 'USD') {
             // Other currency → USD: use buy rate (buying USD with other currency)
             const { buy } = await getCurrencyPrice(from)
             if (!isFinite(buy) || buy <= 0) {
@@ -139,8 +139,8 @@ async function fetchFromCurrencyPrice(from: string, to: string): Promise<number 
             }
             return 1 / buy
         } else if (
-            (MANTECA_CURRENCIES.has(from) || ['EUR', 'MXN'].includes(from)) &&
-            (MANTECA_CURRENCIES.has(to) || ['EUR', 'MXN'].includes(to))
+            (MANTECA_CURRENCIES.has(from) || ['EUR', 'MXN', 'GBP'].includes(from)) &&
+            (MANTECA_CURRENCIES.has(to) || ['EUR', 'MXN', 'GBP'].includes(to))
         ) {
             // Other currency → Other currency: convert through USD
             const fromPrices = await getCurrencyPrice(from)
