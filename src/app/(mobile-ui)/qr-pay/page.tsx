@@ -1274,7 +1274,13 @@ export default function QRPayPage() {
                                 <h2 className="text-2xl font-bold">Peanut got you!</h2>
                                 <p className="text-base text-gray-900">
                                     {(() => {
-                                        const percentage = qrPayment?.perk?.discountPercentage || 100
+                                        const amountSponsored = qrPayment?.perk?.amountSponsored
+                                        const transactionUsd =
+                                            parseFloat(qrPayment?.details?.paymentAgainstAmount || '0') || 0
+                                        const percentage =
+                                            amountSponsored && transactionUsd > 0
+                                                ? Math.round((amountSponsored / transactionUsd) * 100)
+                                                : qrPayment?.perk?.discountPercentage || 100
                                         if (percentage === 100) {
                                             return 'We paid for this bill! Earn points, climb tiers and unlock even better perks.'
                                         } else if (percentage > 100) {
