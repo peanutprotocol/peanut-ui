@@ -276,5 +276,25 @@ describe('Withdraw Utilities', () => {
                 }
             })
         })
+
+        describe('Pasted values with whitespace (stripped before validation)', () => {
+            // The withdraw page strips all whitespace from PIX keys before validation.
+            // These tests verify that after stripping, the values validate correctly.
+            const stripWhitespace = (value: string) => value.replace(/\s/g, '')
+
+            it.each([
+                { raw: ' +5511999999999 ', desc: 'phone with leading/trailing spaces' },
+                { raw: '+55 11 999999999', desc: 'phone with internal spaces' },
+                { raw: '  5511999999999  ', desc: 'phone without + with spaces' },
+                { raw: '123 456 789 01', desc: 'CPF with spaces' },
+                { raw: ' 12345678901234 ', desc: 'CNPJ with spaces' },
+                { raw: ' user@example.com ', desc: 'email with spaces' },
+                { raw: ' 123e4567-e89b-12d3-a456-426614174000 ', desc: 'UUID with spaces' },
+            ])('should accept $desc after whitespace stripping', ({ raw }) => {
+                const cleaned = stripWhitespace(raw)
+                const result = validatePixKey(cleaned)
+                expect(result.valid).toBe(true)
+            })
+        })
     })
 })

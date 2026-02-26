@@ -153,6 +153,7 @@ export default function MantecaWithdrawFlow() {
                 }
                 break
             case 'brazil':
+                value = value.replace(/\s/g, '')
                 const pixResult = validatePixKey(value)
                 isValid = pixResult.valid
                 if (!pixResult.valid) {
@@ -578,10 +579,13 @@ export default function MantecaWithdrawFlow() {
                                 value={destinationAddress}
                                 placeholder={countryConfig!.accountNumberLabel}
                                 onUpdate={(update) => {
-                                    // Auto-normalize PIX phone numbers for Brazil
+                                    // Auto-normalize PIX keys for Brazil: strip whitespace and normalize phone numbers
                                     let normalizedValue = update.value
-                                    if (countryPath === 'brazil' && isPixPhoneNumber(update.value)) {
-                                        normalizedValue = normalizePixPhoneNumber(update.value)
+                                    if (countryPath === 'brazil') {
+                                        normalizedValue = normalizedValue.replace(/\s/g, '')
+                                        if (isPixPhoneNumber(normalizedValue)) {
+                                            normalizedValue = normalizePixPhoneNumber(normalizedValue)
+                                        }
                                     }
                                     setDestinationAddress(normalizedValue)
                                     setIsDestinationAddressValid(update.isValid)
