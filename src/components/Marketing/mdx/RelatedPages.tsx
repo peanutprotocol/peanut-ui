@@ -50,8 +50,16 @@ export function RelatedPages({ title = 'Related Pages', children }: RelatedPages
         <nav className={`mx-auto ${PROSE_WIDTH} px-6 py-10 md:px-4 md:py-14`}>
             <h2 className="mb-5 text-xl font-bold text-n-1 md:text-2xl">{title}</h2>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {links.map((link) => (
-                    <Link key={link.href} href={link.href}>
+                {links.map((link, i) => (
+                    <Link
+                        key={link.href}
+                        href={link.href}
+                        className={
+                            links.length % 2 !== 0 && i === links.length - 1
+                                ? 'sm:col-span-2'
+                                : ''
+                        }
+                    >
                         <Card shadowSize="4" className={`flex-row items-center gap-3 p-4 ${CARD_HOVER}`}>
                             <span className="font-semibold">{link.text}</span>
                             <span className="ml-auto text-sm text-black/50">&rarr;</span>
