@@ -36,8 +36,20 @@ function ExchangeWidgetInner({ destinationCurrency, sourceCurrency = 'USD' }: Ex
         <section className="relative my-8 w-full pb-14 pt-10 md:pb-18 md:pt-14" style={{ backgroundColor: '#90A8ED' }}>
             <div className="pointer-events-none absolute inset-0 overflow-hidden">
                 <CloudsCss clouds={widgetClouds} />
-                <img src={Star.src} alt="" width={36} height={36} className="absolute left-[8%] top-6 md:left-[12%] md:top-8" />
-                <img src={Star.src} alt="" width={28} height={28} className="absolute bottom-8 right-[10%] md:bottom-10 md:right-[14%]" />
+                <img
+                    src={Star.src}
+                    alt=""
+                    width={36}
+                    height={36}
+                    className="absolute left-[8%] top-6 md:left-[12%] md:top-8"
+                />
+                <img
+                    src={Star.src}
+                    alt=""
+                    width={28}
+                    height={28}
+                    className="absolute bottom-8 right-[10%] md:bottom-10 md:right-[14%]"
+                />
             </div>
             <div className="relative z-10 mx-auto max-w-[640px] px-6 md:px-4">
                 <ExchangeRateWidget
@@ -63,7 +75,10 @@ export function ExchangeWidget({ destinationCurrency, sourceCurrency }: Exchange
     return (
         <Suspense
             fallback={
-                <section className="relative my-8 w-full overflow-hidden pb-14 pt-10 md:pb-18 md:pt-14" style={{ backgroundColor: '#90A8ED' }}>
+                <section
+                    className="relative my-8 w-full overflow-hidden pb-14 pt-10 md:pb-18 md:pt-14"
+                    style={{ backgroundColor: '#90A8ED' }}
+                >
                     <div className="mx-auto flex max-w-[640px] justify-center px-6 md:px-4">
                         <div className="btn btn-shadow-primary-4 h-[300px] w-full animate-pulse bg-white md:w-[420px]" />
                     </div>

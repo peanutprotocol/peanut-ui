@@ -47,7 +47,7 @@ export function ContentPage({ children, breadcrumbs }: ContentPageProps) {
                                             {crumb.name}
                                         </Link>
                                     ) : (
-                                        <span className="text-n-1 font-medium">{crumb.name}</span>
+                                        <span className="font-medium text-n-1">{crumb.name}</span>
                                     )}
                                 </li>
                             ))}

@@ -26,7 +26,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const seo = COUNTRIES_SEO[country]
     if (!seo) return {}
 
-    const mdxContent = readPageContentLocalized<{ title: string; description: string; published?: boolean }>('send-to', country, locale)
+    const mdxContent = readPageContentLocalized<{ title: string; description: string; published?: boolean }>(
+        'send-to',
+        country,
+        locale
+    )
     if (!mdxContent || mdxContent.frontmatter.published === false) return {}
 
     return {

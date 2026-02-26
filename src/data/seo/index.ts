@@ -1,7 +1,6 @@
 export { COUNTRIES_SEO, CORRIDORS, getLocalizedSEO, getCountryName } from './corridors'
 export type { CountrySEO, Corridor } from './corridors'
 
-
 export { COMPETITORS } from './comparisons'
 export type { Competitor } from './comparisons'
 

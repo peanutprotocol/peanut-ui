@@ -68,14 +68,10 @@ function loadPaymentMethods(): Record<string, PaymentMethod> {
             name: fm.name,
             countries: fm.countries ?? [],
             description: content.body,
-            steps: extractSteps(
-                content.body,
-                /Merchant QR Payments|How to Pay|Steps|How It Works/,
-                (line) => {
-                    const match = line.match(/^\d+\.\s+\*\*(.+?)\*\*/)
-                    return match ? match[1].trim() : null
-                }
-            ),
+            steps: extractSteps(content.body, /Merchant QR Payments|How to Pay|Steps|How It Works/, (line) => {
+                const match = line.match(/^\d+\.\s+\*\*(.+?)\*\*/)
+                return match ? match[1].trim() : null
+            }),
             faqs: extractFaqs(content.body),
         }
     }

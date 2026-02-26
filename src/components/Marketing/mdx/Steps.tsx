@@ -11,11 +11,7 @@ interface StepProps {
 
 /** Individual step. Used as a child of <Steps>. */
 export function Step({ title, children }: StepProps) {
-    return (
-        <div data-title={title}>
-            {children}
-        </div>
-    )
+    return <div data-title={title}>{children}</div>
 }
 
 interface StepsProps {

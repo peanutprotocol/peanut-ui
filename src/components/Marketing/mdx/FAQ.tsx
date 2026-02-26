@@ -12,11 +12,7 @@ interface FAQItemProps {
 export function FAQItem({ question, children }: FAQItemProps) {
     // FAQItem doesn't render on its own — FAQ collects these via children.
     // This exists for type safety and readability in MDX content.
-    return (
-        <div data-question={question}>
-            {children}
-        </div>
-    )
+    return <div data-question={question}>{children}</div>
 }
 
 interface FAQProps {

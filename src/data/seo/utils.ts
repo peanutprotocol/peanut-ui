@@ -57,7 +57,9 @@ export function extractSteps(
     lineParser?: (line: string) => string | null
 ): string[] {
     const steps: string[] = []
-    const section = body.match(new RegExp(`##?#?\\s+(?:${headingPattern.source})\\s*\\n([\\s\\S]*?)(?=\\n##?#?\\s|$)`, 'i'))
+    const section = body.match(
+        new RegExp(`##?#?\\s+(?:${headingPattern.source})\\s*\\n([\\s\\S]*?)(?=\\n##?#?\\s|$)`, 'i')
+    )
     if (!section) return steps
 
     const defaultParser = (line: string): string | null => {

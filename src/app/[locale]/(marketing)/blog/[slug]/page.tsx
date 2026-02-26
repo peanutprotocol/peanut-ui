@@ -103,17 +103,20 @@ export default async function BlogPostPageLocalized({ params }: PageProps) {
             <JsonLd data={breadcrumbSchema} />
             {faqSchema && <JsonLd data={faqSchema} />}
             <MarketingShell className="max-w-2xl">
-                <nav aria-label="Breadcrumb" className="mb-4 -mt-2">
+                <nav aria-label="Breadcrumb" className="-mt-2 mb-4">
                     <ol className="flex flex-wrap items-center gap-1 text-xs text-grey-1">
                         {breadcrumbs.map((crumb, i) => (
                             <li key={crumb.href} className="flex items-center gap-1">
                                 {i > 0 && <span aria-hidden>/</span>}
                                 {i < breadcrumbs.length - 1 ? (
-                                    <Link href={crumb.href} className="underline decoration-n-1/30 underline-offset-2 hover:text-n-1">
+                                    <Link
+                                        href={crumb.href}
+                                        className="underline decoration-n-1/30 underline-offset-2 hover:text-n-1"
+                                    >
                                         {crumb.name}
                                     </Link>
                                 ) : (
-                                    <span className="text-n-1 font-medium truncate max-w-[200px]">{crumb.name}</span>
+                                    <span className="max-w-[200px] truncate font-medium text-n-1">{crumb.name}</span>
                                 )}
                             </li>
                         ))}

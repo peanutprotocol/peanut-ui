@@ -7,14 +7,33 @@ import { CARD_HOVER } from '@/components/Marketing/mdx/constants'
 import type { Locale } from '@/i18n/types'
 
 const SLUG_TO_ISO2: Record<string, string> = {
-    argentina: 'ar', australia: 'au', brazil: 'br', canada: 'ca',
-    colombia: 'co', 'costa-rica': 'cr', indonesia: 'id', japan: 'jp',
-    kenya: 'ke', malaysia: 'my', mexico: 'mx', pakistan: 'pk',
-    peru: 'pe', philippines: 'ph', poland: 'pl', portugal: 'pt',
-    singapore: 'sg', 'south-africa': 'za', spain: 'es', sweden: 'se',
-    tanzania: 'tz', thailand: 'th', turkey: 'tr',
-    'united-arab-emirates': 'ae', 'united-kingdom': 'gb',
-    'united-states': 'us', vietnam: 'vn',
+    argentina: 'ar',
+    australia: 'au',
+    brazil: 'br',
+    canada: 'ca',
+    colombia: 'co',
+    'costa-rica': 'cr',
+    indonesia: 'id',
+    japan: 'jp',
+    kenya: 'ke',
+    malaysia: 'my',
+    mexico: 'mx',
+    pakistan: 'pk',
+    peru: 'pe',
+    philippines: 'ph',
+    poland: 'pl',
+    portugal: 'pt',
+    singapore: 'sg',
+    'south-africa': 'za',
+    spain: 'es',
+    sweden: 'se',
+    tanzania: 'tz',
+    thailand: 'th',
+    turkey: 'tr',
+    'united-arab-emirates': 'ae',
+    'united-kingdom': 'gb',
+    'united-states': 'us',
+    vietnam: 'vn',
 }
 
 interface DestinationGridProps {
@@ -43,10 +62,7 @@ export function DestinationGrid({ countries, exclude, title = 'Send money to', l
 
                     return (
                         <Link key={slug} href={localizedPath('send-money-to', locale, slug)}>
-                            <Card
-                                shadowSize="4"
-                                className={`flex-row items-center gap-3 p-4 ${CARD_HOVER}`}
-                            >
+                            <Card shadowSize="4" className={`flex-row items-center gap-3 p-4 ${CARD_HOVER}`}>
                                 {flagCode && (
                                     <img
                                         src={getFlagUrl(flagCode)}

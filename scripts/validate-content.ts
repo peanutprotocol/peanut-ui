@@ -55,9 +55,7 @@ function listDirs(dir: string): string[] {
 
 function listMdFiles(dir: string): string[] {
     try {
-        return fs
-            .readdirSync(dir)
-            .filter((f) => f.endsWith('.md') && f !== 'README.md')
+        return fs.readdirSync(dir).filter((f) => f.endsWith('.md') && f !== 'README.md')
     } catch {
         return []
     }
@@ -149,7 +147,9 @@ function validateContentType(config: ContentTypeConfig): TypeCounts {
 
         // Check slug consistency
         if (fm.slug && fm.slug !== slug) {
-            warn(`${config.contentDir}/${slug}/en.md: frontmatter slug '${fm.slug}' doesn't match directory name '${slug}'`)
+            warn(
+                `${config.contentDir}/${slug}/en.md: frontmatter slug '${fm.slug}' doesn't match directory name '${slug}'`
+            )
         }
 
         // Check published status
@@ -165,12 +165,16 @@ function validateContentType(config: ContentTypeConfig): TypeCounts {
             if (mdFile === 'en.md') continue
             const localeFm = readFrontmatter(path.join(slugDir, mdFile))
             if (localeFm && localeFm.slug && localeFm.slug !== slug) {
-                warn(`${config.contentDir}/${slug}/${mdFile}: frontmatter slug '${localeFm.slug}' doesn't match directory '${slug}'`)
+                warn(
+                    `${config.contentDir}/${slug}/${mdFile}: frontmatter slug '${localeFm.slug}' doesn't match directory '${slug}'`
+                )
             }
             if (localeFm && localeFm.lang) {
                 const expectedLang = mdFile.replace('.md', '')
                 if (localeFm.lang !== expectedLang) {
-                    warn(`${config.contentDir}/${slug}/${mdFile}: frontmatter lang '${localeFm.lang}' doesn't match filename '${expectedLang}'`)
+                    warn(
+                        `${config.contentDir}/${slug}/${mdFile}: frontmatter lang '${localeFm.lang}' doesn't match filename '${expectedLang}'`
+                    )
                 }
             }
         }
@@ -179,7 +183,9 @@ function validateContentType(config: ContentTypeConfig): TypeCounts {
         if (config.entityDir) {
             const entityPath = path.join(ROOT, 'input/data', config.entityDir, `${slug}.md`)
             if (!fs.existsSync(entityPath)) {
-                warn(`${config.contentDir}/${slug}: no matching entity data at input/data/${config.entityDir}/${slug}.md`)
+                warn(
+                    `${config.contentDir}/${slug}: no matching entity data at input/data/${config.entityDir}/${slug}.md`
+                )
             } else if (config.entityRequiredFields) {
                 const entityFm = readFrontmatter(entityPath)
                 if (entityFm) {

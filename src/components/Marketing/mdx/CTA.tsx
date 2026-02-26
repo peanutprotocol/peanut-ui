@@ -56,9 +56,7 @@ export function CTA({ text, href, subtitle, variant = 'primary' }: CTAProps) {
                                 {text}
                             </Button>
                         </a>
-                        {subtitle && (
-                            <p className="mt-3 text-sm text-grey-1">{subtitle}</p>
-                        )}
+                        {subtitle && <p className="mt-3 text-sm text-grey-1">{subtitle}</p>}
                     </Card>
                 </div>
             </div>

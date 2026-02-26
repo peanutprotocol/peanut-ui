@@ -16,7 +16,7 @@ export const CashCard = ({ hasCashbackLeft, lifetimeEarned }: CashCardProps) => 
                     Lifetime cashback claimed: ${lifetimeEarned.toFixed(2)}
                 </h2>
                 <Tooltip
-                    content="You earn cashback on payments and withdrawals. Use Peanut more and invite friends to unlock a higher cashback allowance."
+                    content="The more points you have and higher Tier you are, the more cashback you get. The best way to get more cashback is to invite frinds!"
                     position="bottom"
                 >
                     <Icon name="info" className="size-4 flex-shrink-0 text-grey-1" />
@@ -24,7 +24,7 @@ export const CashCard = ({ hasCashbackLeft, lifetimeEarned }: CashCardProps) => 
             </div>
 
             {hasCashbackLeft ? (
-                <p className="text-sm text-grey-1">You have more cashback left! Make a payment to receive it.</p>
+                <p className="text-sm text-grey-1">You have more cashback left! Make a payment to claim it.</p>
             ) : (
                 <p className="text-sm text-grey-1">Invite friends to unlock more cashback.</p>
             )}
