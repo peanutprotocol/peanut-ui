@@ -4,9 +4,7 @@ import { COUNTRIES_SEO, CORRIDORS, COMPETITORS, EXCHANGES, PAYMENT_METHOD_SLUGS 
 import { SUPPORTED_LOCALES } from '@/i18n/config'
 import { listContentSlugs } from '@/lib/content'
 
-// TODO (infra): Set up 301 redirect peanut.to/* → peanut.me/ at Vercel/Cloudflare level
 // TODO (infra): Update GitHub org, Twitter bio, LinkedIn, npm package.json → peanut.me
-// TODO (infra): Add peanut.me to Google Search Console and submit this sitemap
 // TODO (GA4): Create data filter to exclude trafficheap.com referral traffic
 
 /** Build date used for non-content pages that don't have their own date. */
