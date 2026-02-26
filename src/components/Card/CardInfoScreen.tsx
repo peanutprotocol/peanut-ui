@@ -142,7 +142,7 @@ const CardInfoScreen = ({ onContinue, hasPurchased, slotsRemaining, recentPurcha
                         every spend of you and your friends.
                     </p>
                     <a
-                        href="https://peanut.to/card/faq"
+                        href="https://peanut.me/card/faq"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="mt-2 inline-block text-sm text-black underline"

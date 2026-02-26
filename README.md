@@ -80,3 +80,14 @@ describe('Bank Account Formatting', () => {
 ```
 
 The CI pipeline runs tests on all PRs. Failed tests will block merging.
+
+## Archived Branches
+
+This repo previously hosted two other apps under the `peanut.to` domain. Both are now deprecated in favor of `peanut.me` (this branch). Their final states are preserved as tags:
+
+| Tag | Was | Last commit | Notes |
+|-----|-----|-------------|-------|
+| `archive/peanut-to` | `main` → `peanut.to` | Nov 2025 | Link-based send/claim app, cashout, SDK pages |
+| `archive/legacy-peanut-to` | `legacy` → `legacy.peanut.to` | Mar 2025 | Batch send, raffles, leaderboard |
+
+To browse the old code: `git checkout archive/peanut-to`
