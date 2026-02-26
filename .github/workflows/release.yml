@@ -1,0 +1,39 @@
+name: Release
+
+on:
+    push:
+        branches: [main]
+
+permissions:
+    contents: write
+
+jobs:
+    release:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Get date tag
+              id: tag
+              run: echo "tag=v$(date -u +%Y.%m.%d)" >> "$GITHUB_OUTPUT"
+
+            - name: Check if tag exists
+              id: check
+              run: |
+                  if git rev-parse "${{ steps.tag.outputs.tag }}" >/dev/null 2>&1; then
+                    # append run number for multiple releases in one day
+                    echo "tag=${{ steps.tag.outputs.tag }}.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+                  else
+                    echo "tag=${{ steps.tag.outputs.tag }}" >> "$GITHUB_OUTPUT"
+                  fi
+
+            - name: Create release
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  gh release create "${{ steps.check.outputs.tag }}" \
+                    --title "${{ steps.check.outputs.tag }}" \
+                    --generate-notes \
+                    --latest
