@@ -26,4 +26,7 @@ const Checkbox = ({ className, label, value, onChange }: CheckboxProps) => (
     </label>
 )
 
+Checkbox.displayName = 'Checkbox'
+
+export { Checkbox }
 export default Checkbox

@@ -1,3 +1,15 @@
+# Peanut UI
+
+[![Tests](https://github.com/peanutprotocol/peanut-ui/actions/workflows/tests.yml/badge.svg)](https://github.com/peanutprotocol/peanut-ui/actions/workflows/tests.yml)
+[![Code Formatting](https://github.com/peanutprotocol/peanut-ui/actions/workflows/prettier.yml/badge.svg)](https://github.com/peanutprotocol/peanut-ui/actions/workflows/prettier.yml)
+[![CodeQL](https://github.com/peanutprotocol/peanut-ui/actions/workflows/codeql.yml/badge.svg)](https://github.com/peanutprotocol/peanut-ui/actions/workflows/codeql.yml)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.6-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![i18n](https://img.shields.io/badge/i18n-5_locales-blue)](https://peanut.me)
+[![PWA Ready](https://img.shields.io/badge/PWA-ready-5A0FC8?logo=pwa)](https://peanut.me)
+
 Live at: [peanut.me](https://peanut.me) | [staging.peanut.me](https://staging.peanut.me)
 
 ## Getting Started

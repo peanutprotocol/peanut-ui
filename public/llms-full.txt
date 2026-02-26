@@ -1,0 +1,77 @@
+# Peanut — Full Product Description
+
+> Instant global peer-to-peer payments in digital dollars.
+
+## Overview
+
+Peanut is a peer-to-peer payments app that lets users send and receive money globally using digital dollars (USDC stablecoins). It provides a consumer-grade UX on top of blockchain infrastructure — users never need to understand crypto, manage wallets, or handle gas fees.
+
+## Key Features
+
+### Instant P2P Transfers
+Send digital dollars to any Peanut user instantly. No waiting for bank processing, no wire fees.
+
+### Payment Links
+Generate a shareable link containing funds. The recipient clicks the link to claim the money — no account needed. Links work across messaging apps, email, and social media.
+
+### Bank Cash-Out
+Connect a local bank account and convert digital dollars to local currency. Supported rails:
+- **Argentina**: Bank transfer, MercadoPago
+- **Brazil**: PIX, bank transfer
+- **Mexico**: SPEI, bank transfer
+- **Colombia**: Bank transfer
+- **Peru**: Bank transfer
+- **Bolivia**: Bank transfer (via Meru)
+
+### Crypto Deposit
+Fund your account by depositing crypto from any exchange (Coinbase, Binance, Kraken, Bybit, OKX, etc.) or external wallet.
+
+### Card Payments
+Physical and virtual debit cards for spending digital dollars at any merchant that accepts card payments.
+
+### QR Payments
+Generate and scan QR codes for in-person payments.
+
+## Security Model
+
+- **Self-custodied smart accounts**: User funds sit in ERC-4337 smart accounts, not on Peanut servers
+- **Biometric passkeys**: Account access is secured by the device's Secure Enclave (face/fingerprint). The private key never leaves the device
+- **No server-side keys**: Peanut cannot access, freeze, or move user funds — even under regulatory pressure
+- **Independent recovery**: If Peanut goes offline, users can recover access via any ERC-4337-compatible wallet
+
+## KYC / Compliance
+
+- Core features (send, receive, payment links) work without KYC
+- Bank connections trigger a one-time identity check via Persona (SOC2 Type 2, GDPR, ISO 27001)
+- Peanut only receives a pass/fail result — no documents stored on Peanut servers
+
+## Fee Structure
+
+- Peer-to-peer transfers: minimal fees
+- Bank cash-out: small conversion spread
+- No monthly subscription or account fees
+- Merchant payments planned with fees lower than Visa/Mastercard
+
+## Target Markets
+
+Primary focus on Latin America:
+- Argentina, Brazil, Mexico (largest markets)
+- Colombia, Peru, Bolivia, Chile, Ecuador
+
+Use cases: remittances, freelancer payments, cross-border transfers, savings in stable currency, merchant payments.
+
+## Technical Stack
+
+- Next.js web application (progressive web app)
+- ERC-4337 smart accounts on Base (Ethereum L2)
+- Biometric passkeys via WebAuthn / Secure Enclave
+- Licensed banking partners for fiat on/off ramps
+
+## Company
+
+- Founded by Konrad Kononenko and Hugo Montenegro
+- Based in Europe, serving Latin America
+- Website: https://peanut.me
+- Twitter: https://twitter.com/PeanutProtocol
+- GitHub: https://github.com/peanutprotocol
+- LinkedIn: https://www.linkedin.com/company/peanut-trade/

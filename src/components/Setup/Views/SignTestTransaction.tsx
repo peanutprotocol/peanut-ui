@@ -160,13 +160,13 @@ const SignTestTransaction = () => {
         }
     }
 
-    const isLoading = isSigning || isProcessing || isFetchingUser
-    const isDisabled = isLoading || !user
+    const isLoading = isSigning || isProcessing || isFetchingUser || !user
+    const isDisabled = isLoading
     const displayError = error || setupError
 
     // determine button text based on state
     const getButtonText = () => {
-        if (isFetchingUser) return 'Loading...'
+        if (isFetchingUser || !user) return 'Loading...'
         if (testTransactionCompleted && displayError) return 'Retry account setup'
         return 'Sign test transaction'
     }
