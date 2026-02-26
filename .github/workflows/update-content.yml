@@ -41,11 +41,10 @@ jobs:
                   BRANCH="auto/update-content-$(date -u +%Y%m%d-%H%M%S)"
                   git config user.name "github-actions[bot]"
                   git config user.email "github-actions[bot]@users.noreply.github.com"
-                  git config --unset-all http.https://github.com/.extraheader || true
                   git checkout -b "$BRANCH"
                   git add src/content
                   git commit -m "Update content submodule to latest main"
-                  git push origin "$BRANCH"
+                  git -c "http.extraheader=Authorization: basic $(echo -n "x-access-token:${GH_TOKEN}" | base64)" push origin "$BRANCH"
                   gh pr create \
                     --title "Update content submodule" \
                     --body "Auto-generated: updates content submodule to latest peanut-content main." \
