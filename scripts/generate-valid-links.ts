@@ -169,6 +169,7 @@ function main() {
     }
     lines.push('')
 
+    fs.mkdirSync(path.dirname(OUTPUT), { recursive: true })
     fs.writeFileSync(OUTPUT, lines.join('\n'))
     console.log(`Generated ${OUTPUT} with valid links for:`)
     console.log(`  ${countrySlugs.length} countries`)

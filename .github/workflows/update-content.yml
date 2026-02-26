@@ -5,6 +5,9 @@ on:
         types: [content-updated]
     workflow_dispatch:
 
+permissions:
+    contents: write
+
 jobs:
     update:
         runs-on: ubuntu-latest
