@@ -1,9 +1,13 @@
 [
     {
         "source": "/docs",
-        "destination": "https://docs.peanut.me",
-        "permanent": false,
-        "basePath": false
+        "destination": "/help",
+        "permanent": true
+    },
+    {
+        "source": "/docs/:path*",
+        "destination": "/help",
+        "permanent": true
     },
     {
         "source": "/packet",
