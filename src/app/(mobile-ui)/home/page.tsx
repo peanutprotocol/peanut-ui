@@ -67,7 +67,11 @@ export default function Home() {
 
     const { isFetchingUser, fetchUser } = useAuth()
     const { isUserKycApproved } = useKycStatus()
-    const { hasPurchased: hasCardPioneerPurchased } = useCardPioneerInfo()
+    const {
+        hasPurchased: hasCardPioneerPurchased,
+        isLoading: isCardInfoLoading,
+        error: cardInfoError,
+    } = useCardPioneerInfo()
     const username = user?.user.username
 
     const [showBalanceWarningModal, setShowBalanceWarningModal] = useState(false)
@@ -273,8 +277,10 @@ export default function Home() {
 
             {/* Card Pioneer Modal - Show to all users who haven't purchased */}
             {/* Eligibility check happens during the flow (geo screen), not here */}
-            {/* Only shows if no higher-priority modals are active */}
+            {/* Only shows if no higher-priority modals are active and card info loaded successfully */}
             {!underMaintenanceConfig.disableCardPioneers &&
+                !isCardInfoLoading &&
+                !cardInfoError &&
                 !showBalanceWarningModal &&
                 !showPermissionModal &&
                 !showKycModal &&

@@ -19,17 +19,22 @@ import Image from 'next/image'
 import { pointsApi } from '@/services/points'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { type PointsInvite } from '@/services/services.types'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import InvitesGraph from '@/components/Global/InvitesGraph'
 import { CashCard } from '@/components/Points/CashCard'
-import { TRANSITIVITY_MULTIPLIER } from '@/constants/points.consts'
 import InviteFriendsModal from '@/components/Global/InviteFriendsModal'
+import { formatPoints, shortenPoints } from '@/utils/format.utils'
 import { Button } from '@/components/0_Bruddle/Button'
+import { useCountUp } from '@/hooks/useCountUp'
+import { useInView } from 'framer-motion'
+import InviteePointsBadge from '@/components/Points/InviteePointsBadge'
 
 const PointsPage = () => {
     const router = useRouter()
     const { user, fetchUser } = useAuth()
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
+    const inviteesRef = useRef(null)
+    const inviteesInView = useInView(inviteesRef, { once: true, margin: '-50px' })
 
     const getTierBadge = (tier: number) => {
         const badges = [TIER_0_BADGE, TIER_1_BADGE, TIER_2_BADGE, TIER_3_BADGE]
@@ -73,8 +78,15 @@ const PointsPage = () => {
 
     const username = user?.user.username
 
+    // animated hero points — remembers last-seen value across visits
+    const animatedTotal = useCountUp(tierInfo?.data?.totalPoints ?? 0, {
+        storageKey: 'hero_total',
+        duration: 1.8,
+        enabled: !!tierInfo?.data,
+    })
+
     useEffect(() => {
-        // Re-fetch user to get the latest invitees list for showing heart Icon
+        // re-fetch user to get the latest invitees list for showing heart icon
         fetchUser()
     }, [])
 
@@ -103,7 +115,16 @@ const PointsPage = () => {
                     <div className="flex items-center justify-center gap-2">
                         <Image src={STAR_STRAIGHT_ICON} alt="star" width={24} height={24} />
                         <h2 className="text-4xl font-black text-black">
-                            {tierInfo.data.totalPoints} {tierInfo.data.totalPoints === 1 ? 'Point' : 'Points'}
+                            {(() => {
+                                const { number, suffix } = shortenPoints(animatedTotal)
+                                return (
+                                    <>
+                                        {number}
+                                        {suffix && <span className="text-primary-1">{suffix}</span>}
+                                    </>
+                                )
+                            })()}{' '}
+                            {tierInfo.data.totalPoints === 1 ? 'Point' : 'Points'}
                         </h2>
                     </div>
 
@@ -148,7 +169,7 @@ const PointsPage = () => {
                         </div>
                         {tierInfo?.data.currentTier < 2 && (
                             <p className="text-center text-sm text-grey-1">
-                                {tierInfo.data.pointsToNextTier}{' '}
+                                {formatPoints(tierInfo.data.pointsToNextTier)}{' '}
                                 {tierInfo.data.pointsToNextTier === 1 ? 'point' : 'points'} to next tier
                             </p>
                         )}
@@ -157,7 +178,7 @@ const PointsPage = () => {
                     {/* cash section */}
                     {cashStatus?.success && cashStatus.data && (
                         <CashCard
-                            cashbackAllowance={cashStatus.data.cashbackAllowance}
+                            hasCashbackLeft={cashStatus.data.hasCashbackLeft}
                             lifetimeEarned={cashStatus.data.lifetimeEarned}
                         />
                     )}
@@ -187,7 +208,7 @@ const PointsPage = () => {
                                     invited you.{' '}
                                 </>
                             )}
-                            You earn rewards whenever friends you invite use Peanut!
+                            <br></br>You earn rewards whenever your friends use Peanut!
                         </p>
                     </>
                 )}
@@ -213,12 +234,12 @@ const PointsPage = () => {
                             <NavigationArrow className="text-black" />
                         </div>
 
-                        <div>
+                        <div ref={inviteesRef}>
                             {invites.invitees?.slice(0, 5).map((invite: PointsInvite, i: number) => {
                                 const username = invite.username
                                 const fullName = invite.fullName
                                 const isVerified = invite.kycStatus === 'approved'
-                                const pointsEarned = Math.floor(invite.totalPoints * TRANSITIVITY_MULTIPLIER)
+                                const pointsEarned = invite.contributedPoints ?? 0
                                 // respect user's showFullName preference for avatar and display name
                                 const displayName = invite.showFullName && fullName ? fullName : username
                                 return (
@@ -246,9 +267,7 @@ const PointsPage = () => {
                                                     isVerified={isVerified}
                                                 />
                                             </div>
-                                            <p className="text-grey-1">
-                                                +{pointsEarned} {pointsEarned === 1 ? 'pt' : 'pts'}
-                                            </p>
+                                            <InviteePointsBadge points={pointsEarned} inView={inviteesInView} />
                                         </div>
                                     </Card>
                                 )

@@ -1,3 +1,26 @@
+/**
+ * Format points for display with thousands separators (e.g. 564,554).
+ */
+export function formatPoints(points: number): string {
+    return points.toLocaleString('en-US')
+}
+
+/**
+ * Shorten large point values to compact form.
+ * Returns { number, suffix } so the suffix (K/M) can be styled separately.
+ */
+export function shortenPoints(points: number): { number: string; suffix: string } {
+    if (points >= 1_000_000) {
+        const m = points / 1_000_000
+        return { number: m >= 10 ? Math.round(m).toString() : m.toFixed(1).replace(/\.0$/, ''), suffix: 'M' }
+    }
+    if (points >= 1_000) {
+        const k = points / 1_000
+        return { number: k >= 10 ? Math.round(k).toString() : k.toFixed(1).replace(/\.0$/, ''), suffix: 'K' }
+    }
+    return { number: points.toString(), suffix: '' }
+}
+
 export const sanitizeBankAccount = (value: string | undefined): string => {
     if (!value) return ''
     return value.replace(/[\s\-\._]/g, '').toLowerCase()

@@ -16,11 +16,17 @@ import Image from 'next/image'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { getInitialsFromName } from '@/utils/general.utils'
 import { type PointsInvite } from '@/services/services.types'
-import { TRANSITIVITY_MULTIPLIER } from '@/constants/points.consts'
+import { formatPoints } from '@/utils/format.utils'
+import { useCountUp } from '@/hooks/useCountUp'
+import { useInView } from 'framer-motion'
+import { useRef } from 'react'
+import InviteePointsBadge from '@/components/Points/InviteePointsBadge'
 
 const InvitesPage = () => {
     const router = useRouter()
     const { user } = useAuth()
+    const listRef = useRef(null)
+    const listInView = useInView(listRef, { once: true, margin: '-50px' })
 
     const {
         data: invites,
@@ -31,6 +37,17 @@ const InvitesPage = () => {
         queryKey: ['invites', user?.user.userId],
         queryFn: () => invitesApi.getInvites(),
         enabled: !!user?.user.userId,
+    })
+
+    const totalPointsEarned =
+        invites?.invitees?.reduce((sum: number, invite: PointsInvite) => {
+            return sum + (invite.contributedPoints ?? 0)
+        }, 0) || 0
+
+    const animatedTotal = useCountUp(totalPointsEarned, {
+        storageKey: 'invites_total',
+        duration: 1.8,
+        enabled: !isLoading && !isError,
     })
 
     if (isLoading) {
@@ -46,12 +63,6 @@ const InvitesPage = () => {
         )
     }
 
-    // Calculate total points earned (50% of each invitee's points)
-    const totalPointsEarned =
-        invites?.invitees?.reduce((sum: number, invite: PointsInvite) => {
-            return sum + Math.floor(invite.totalPoints * TRANSITIVITY_MULTIPLIER)
-        }, 0) || 0
-
     return (
         <PageContainer className="flex flex-col">
             <NavHeader title="Points" onPrev={() => router.back()} />
@@ -63,7 +74,7 @@ const InvitesPage = () => {
                     <span className="flex items-center gap-2">
                         <Image src={STAR_STRAIGHT_ICON} alt="star" width={20} height={20} />
                         <span className="text-3xl font-extrabold text-black">
-                            {totalPointsEarned} {totalPointsEarned === 1 ? 'Point' : 'Points'}
+                            {formatPoints(animatedTotal)} {totalPointsEarned === 1 ? 'Point' : 'Points'}
                         </span>
                     </span>
                 </Card>
@@ -71,12 +82,12 @@ const InvitesPage = () => {
                 <h2 className="font-bold">People you invited</h2>
 
                 {/* Full list */}
-                <div>
+                <div ref={listRef}>
                     {invites?.invitees?.map((invite: PointsInvite, i: number) => {
                         const username = invite.username
                         const fullName = invite.fullName
                         const isVerified = invite.kycStatus === 'approved'
-                        const pointsEarned = Math.floor(invite.totalPoints * TRANSITIVITY_MULTIPLIER)
+                        const pointsEarned = invite.contributedPoints ?? 0
                         // respect user's showFullName preference for avatar and display name
                         const displayName = invite.showFullName && fullName ? fullName : username
                         return (
@@ -104,9 +115,7 @@ const InvitesPage = () => {
                                             isVerified={isVerified}
                                         />
                                     </div>
-                                    <p className="text-grey-1">
-                                        +{pointsEarned} {pointsEarned === 1 ? 'pt' : 'pts'}
-                                    </p>
+                                    <InviteePointsBadge points={pointsEarned} inView={listInView} />
                                 </div>
                             </Card>
                         )
