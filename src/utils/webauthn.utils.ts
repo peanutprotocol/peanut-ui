@@ -121,9 +121,8 @@ export async function withWebAuthnRetry<T>(
  * 10. Browser extension interference (password managers, etc.)
  */
 const WEBAUTHN_ERROR_MESSAGES: Record<string, string> = {
-    NotAllowedError:
-        'Passkey setup was blocked. Make sure your device is up to date and has the latest security updates.',
-    NotReadableError: 'Credential manager is busy. Please try again.',
+    NotAllowedError: 'Passkeys are not enabled on your device. Check your device settings to enable them.',
+    NotReadableError: "There's an issue with your device's passkey settings. Please try again.",
     UnknownError: 'Unable to create passkey. Please try again.',
     InvalidStateError: 'A passkey already exists for this device.',
     NotSupportedError: 'Passkeys are not supported on this device.',
