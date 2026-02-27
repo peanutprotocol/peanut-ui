@@ -438,17 +438,13 @@ export default function OnrampBankPage() {
                         />
                     )}
 
-                    {/* Warning for non-EUR SEPA countries */}
-                    {!limitsValidation.isBlocking && isNonEuroSepa && (
+                    {/* Warning for non-EUR SEPA countries (not UK — UK uses Faster Payments with GBP) */}
+                    {!limitsValidation.isBlocking && isNonEuroSepa && !isUK && (
                         <InfoCard
                             variant="info"
                             icon="info"
                             title="EUR accounts only"
-                            description={
-                                isUK
-                                    ? 'Only EUR accounts with IBAN work for onramps. Standard GBP accounts with Account Number + Sort Code are not supported.'
-                                    : 'Only EUR accounts with IBAN work for onramps. Your local currency account may not work.'
-                            }
+                            description="Only EUR accounts with IBAN work for onramps. Your local currency account may not work."
                         />
                     )}
                     <Button
