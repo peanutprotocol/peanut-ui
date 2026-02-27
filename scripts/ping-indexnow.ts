@@ -2,7 +2,7 @@
  * Pings IndexNow (Bing, Yandex, etc.) with all sitemap URLs.
  *
  * Usage:
- *   INDEXNOW_KEY=054e10e6239a45cb2d06e92d669f5b6f tsx scripts/ping-indexnow.ts
+ *   INDEXNOW_KEY=your-key-here tsx scripts/ping-indexnow.ts
  *
  * Or pass specific paths:
  *   INDEXNOW_KEY=xxx tsx scripts/ping-indexnow.ts /en/argentina /en/brazil
@@ -78,11 +78,14 @@ async function main() {
             urlList: batch,
         }
 
+        const controller = new AbortController()
+        const timeout = setTimeout(() => controller.abort(), 30_000)
         const res = await fetch(INDEXNOW_ENDPOINT, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json; charset=utf-8' },
             body: JSON.stringify(payload),
-        })
+            signal: controller.signal,
+        }).finally(() => clearTimeout(timeout))
 
         console.log(`Batch ${Math.floor(i / batchSize) + 1}: ${res.status} ${res.statusText} (${batch.length} URLs)`)
 
