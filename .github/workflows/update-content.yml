@@ -40,12 +40,30 @@ jobs:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
                   BRANCH="auto/update-content-$(date -u +%Y%m%d-%H%M%S)"
-                  git config user.name "github-actions[bot]"
-                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-                  git checkout -b "$BRANCH"
-                  git add src/content
-                  git commit -m "Update content submodule to latest main"
-                  git push origin "$BRANCH"
+                  SUBMODULE_SHA=$(git -C src/content rev-parse HEAD)
+                  PARENT=$(git rev-parse HEAD)
+                  BASE_TREE=$(gh api repos/${{ github.repository }}/git/commits/$PARENT --jq '.tree.sha')
+                  # Create tree via API with updated submodule pointer
+                  TREE=$(gh api repos/${{ github.repository }}/git/trees \
+                    --method POST \
+                    -f "base_tree=$BASE_TREE" \
+                    -f "tree[][path]=src/content" \
+                    -f "tree[][mode]=160000" \
+                    -f "tree[][type]=commit" \
+                    -f "tree[][sha]=$SUBMODULE_SHA" \
+                    --jq '.sha')
+                  # Create signed commit via API (verified signature)
+                  COMMIT_SHA=$(gh api repos/${{ github.repository }}/git/commits \
+                    --method POST \
+                    -f message="Update content submodule to latest main" \
+                    -f "tree=$TREE" \
+                    -f "parents[]=$PARENT" \
+                    --jq '.sha')
+                  # Create branch pointing to signed commit
+                  gh api repos/${{ github.repository }}/git/refs \
+                    --method POST \
+                    -f "ref=refs/heads/$BRANCH" \
+                    -f "sha=$COMMIT_SHA"
                   gh pr create \
                     --head "$BRANCH" \
                     --title "Update content submodule" \
