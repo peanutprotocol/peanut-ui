@@ -77,7 +77,7 @@ export const KycStatusItem = ({
     const isInitiatedButNotStarted = !!verification && isKycStatusNotStarted(kycStatus)
 
     const subtitle = useMemo(() => {
-        if (isInitiatedButNotStarted) return 'In progress'
+        if (isInitiatedButNotStarted) return 'Not completed'
         if (isActionRequired) return 'Action needed'
         if (isPending) return 'Under review'
         if (isApproved) return 'Approved'

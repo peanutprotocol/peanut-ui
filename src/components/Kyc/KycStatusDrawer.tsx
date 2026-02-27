@@ -1,6 +1,7 @@
 import { KycActionRequired } from './states/KycActionRequired'
 import { KycCompleted } from './states/KycCompleted'
 import { KycFailed } from './states/KycFailed'
+import { KycNotStarted } from './states/KycNotStarted'
 import { KycProcessing } from './states/KycProcessing'
 import { KycRequiresDocuments } from './states/KycRequiresDocuments'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
@@ -74,6 +75,11 @@ export const KycStatusDrawer = ({ isOpen, onClose, verification, bridgeKycStatus
     }
 
     const renderContent = () => {
+        // user initiated kyc but abandoned before submitting — show resume cta
+        if (verification && isKycStatusNotStarted(status)) {
+            return <KycNotStarted onResume={onRetry} isLoading={sumsubFlow.isLoading} />
+        }
+
         // bridge additional document requirement — but don't mask terminal kyc states
         if (needsAdditionalDocs && statusCategory !== 'failed' && statusCategory !== 'action_required') {
             return (
