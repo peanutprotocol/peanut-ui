@@ -44,7 +44,7 @@ export const faqData = {
         {
             id: '6',
             question: 'My question is not here',
-            answer: 'Check out our full FAQ page at https://peanutprotocol.notion.site/FAQ-2a4838117579805dad62ff47c9d2eb7a or visit our support page at https://peanut.me/support for more help.',
+            answer: 'Check out our full FAQ page on [notion](https://peanutprotocol.notion.site/FAQ-2a4838117579805dad62ff47c9d2eb7a) or visit our [support page](https://peanut.me/support) for more help.',
         },
     ],
     marquee: {

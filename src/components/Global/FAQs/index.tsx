@@ -28,27 +28,38 @@ export function FAQsPanel({ heading, questions }: FAQsProps) {
         setOpenFaq((prevId) => (prevId === id ? null : id))
     }, [])
 
-    // helper to convert urls in text to clickable links
+    // helper to convert markdown links [text](url) and raw urls in text to clickable links
     const linkifyText = useCallback((text: string) => {
-        const urlRegex = /(https?:\/\/[^\s]+)/g
-        const parts = text.split(urlRegex)
+        const markdownLinkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g
+        const parts: (string | JSX.Element)[] = []
+        let lastIndex = 0
 
-        return parts.map((part, index) => {
-            if (part.match(urlRegex)) {
-                return (
-                    <a
-                        key={index}
-                        href={part}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-black underline hover:text-accent"
-                    >
-                        {part}
-                    </a>
-                )
+        let match
+        while ((match = markdownLinkRegex.exec(text)) !== null) {
+            // add text before this match
+            if (match.index > lastIndex) {
+                parts.push(text.slice(lastIndex, match.index))
             }
-            return part
-        })
+            parts.push(
+                <a
+                    key={match.index}
+                    href={match[2]}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-black underline hover:text-accent"
+                >
+                    {match[1]}
+                </a>
+            )
+            lastIndex = match.index + match[0].length
+        }
+
+        // add remaining text
+        if (lastIndex < text.length) {
+            parts.push(text.slice(lastIndex))
+        }
+
+        return parts
     }, [])
 
     return (
