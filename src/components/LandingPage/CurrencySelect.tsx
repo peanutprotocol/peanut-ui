@@ -58,7 +58,7 @@ const CurrencySelect = ({
                     <PopoverButton as={React.Fragment}>{trigger}</PopoverButton>
                     <PopoverPanel
                         anchor="bottom end"
-                        className="mt-4 h-72 w-72 overflow-scroll rounded-sm border border-black bg-white shadow-lg sm:w-80 md:w-96"
+                        className="z-50 mt-4 h-72 w-72 overflow-scroll rounded-sm border border-black bg-white shadow-lg sm:w-80 md:w-96"
                     >
                         <div className="flex max-h-full w-full flex-col gap-4 overflow-hidden p-4">
                             <div className="relative w-full">

@@ -159,7 +159,7 @@ export const useHomeCarouselCTAs = () => {
                 id: 'latam-cashback-invite',
                 title: (
                     <span>
-                        Earn <b>20% cashback</b> on QR payments
+                        Earn <b>cashback</b> on QR payments
                     </span>
                 ),
                 description: (

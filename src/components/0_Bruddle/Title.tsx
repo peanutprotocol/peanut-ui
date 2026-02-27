@@ -18,4 +18,7 @@ const Title = ({
     )
 }
 
+Title.displayName = 'Title'
+
+export { Title }
 export default Title

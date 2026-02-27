@@ -1,6 +1,7 @@
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { NextRequest, NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 import { getJWTCookie } from '@/utils/cookie-migration.utils'
 
 export async function GET(_request: NextRequest) {
@@ -39,6 +40,23 @@ export async function GET(_request: NextRequest) {
         }
 
         const data = await response.json()
+
+        // Refresh cookie expiry only when backend confirms JWT is valid.
+        // This keeps active users logged in indefinitely without refreshing
+        // expired JWTs (which caused infinite loading loops).
+        try {
+            const cookieStore = await cookies()
+            cookieStore.set('jwt-token', token.value, {
+                httpOnly: false,
+                secure: process.env.NODE_ENV === 'production',
+                path: '/',
+                sameSite: 'lax',
+                maxAge: 30 * 24 * 60 * 60, // 30 days
+            })
+        } catch {
+            // cookie refresh is best-effort
+        }
+
         return new NextResponse(JSON.stringify(data), {
             status: 200,
             headers: {
