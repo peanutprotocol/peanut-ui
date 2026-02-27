@@ -67,6 +67,7 @@ async function main() {
 
     // IndexNow accepts up to 10,000 URLs per request
     const batchSize = 10000
+    let failures = 0
     for (let i = 0; i < urlList.length; i += batchSize) {
         const batch = urlList.slice(i, i + batchSize)
 
@@ -88,7 +89,13 @@ async function main() {
         if (res.status >= 400) {
             const body = await res.text()
             console.error('  Error:', body)
+            failures++
         }
+    }
+
+    if (failures > 0) {
+        console.error(`${failures} batch(es) failed.`)
+        process.exit(1)
     }
 
     console.log('Done.')

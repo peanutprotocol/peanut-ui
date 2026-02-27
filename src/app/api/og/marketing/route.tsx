@@ -6,15 +6,24 @@ import path from 'path'
 export const runtime = 'nodejs'
 
 const fontDir = path.join(process.cwd(), 'src', 'assets', 'fonts')
+const publicDir = path.join(process.cwd(), 'public')
 const getFont = async (file: string) => fs.readFile(path.join(fontDir, file))
+const getSvgDataUri = async (file: string) => {
+    const svg = await fs.readFile(path.join(publicDir, file), 'utf-8')
+    return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`
+}
 
 export async function GET(req: NextRequest) {
-    const origin = new URL(req.url).origin
     const { searchParams } = new URL(req.url)
     const title = searchParams.get('title') ?? 'Peanut'
     const subtitle = searchParams.get('subtitle') ?? ''
 
-    const [medium, semibold] = await Promise.all([getFont('montserrat-medium.ttf'), getFont('montserrat-semibold.ttf')])
+    const [medium, semibold, peanutIcon, peanutLogo] = await Promise.all([
+        getFont('montserrat-medium.ttf'),
+        getFont('montserrat-semibold.ttf'),
+        getSvgDataUri('icons/peanut-icon.svg'),
+        getSvgDataUri('logos/peanut-logo.svg'),
+    ])
 
     // Scale title font size down for longer text to prevent overflow
     const titleFontSize = title.length > 50 ? 44 : title.length > 35 ? 54 : 64
@@ -43,8 +52,8 @@ export async function GET(req: NextRequest) {
                     marginBottom: 40,
                 }}
             >
-                <img src={`${origin}/icons/peanut-icon.svg`} width={36} height={46} alt="" />
-                <img src={`${origin}/logos/peanut-logo.svg`} width={132} height={26} alt="" />
+                <img src={peanutIcon} width={36} height={46} alt="" />
+                <img src={peanutLogo} width={132} height={26} alt="" />
             </div>
 
             {/* Title */}
