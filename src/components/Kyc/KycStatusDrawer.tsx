@@ -12,6 +12,7 @@ import { useUserStore } from '@/redux/hooks'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { getKycStatusCategory, isKycStatusNotStarted } from '@/constants/kyc.consts'
 import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
+import { useCallback } from 'react'
 
 interface KycStatusDrawerProps {
     isOpen: boolean
@@ -19,10 +20,19 @@ interface KycStatusDrawerProps {
     verification?: IUserKycVerification
     bridgeKycStatus?: BridgeKycStatus
     region?: 'STANDARD' | 'LATAM'
+    /** keep this component mounted even after drawer closes (so SumsubKycModals persists) */
+    onKeepMounted?: (keep: boolean) => void
 }
 
 // this component determines which kyc state to show inside the drawer and fetches rejection reasons if the kyc has failed.
-export const KycStatusDrawer = ({ isOpen, onClose, verification, bridgeKycStatus, region }: KycStatusDrawerProps) => {
+export const KycStatusDrawer = ({
+    isOpen,
+    onClose,
+    verification,
+    bridgeKycStatus,
+    region,
+    onKeepMounted,
+}: KycStatusDrawerProps) => {
     const { user } = useUserStore()
 
     const status = verification ? verification.status : bridgeKycStatus
@@ -35,9 +45,15 @@ export const KycStatusDrawer = ({ isOpen, onClose, verification, bridgeKycStatus
         verification?.provider === 'SUMSUB' ? verification?.metadata?.regionIntent : undefined
     ) as KYCRegionIntent | undefined
 
+    // close drawer and release the keep-mounted hold
+    const handleFlowDone = useCallback(() => {
+        onClose()
+        onKeepMounted?.(false)
+    }, [onClose, onKeepMounted])
+
     const sumsubFlow = useMultiPhaseKycFlow({
-        onKycSuccess: onClose,
-        onManualClose: onClose,
+        onKycSuccess: handleFlowDone,
+        onManualClose: handleFlowDone,
         // don't pass regionIntent for completed kyc — prevents the mount effect
         // in useSumsubKycFlow from calling initiateSumsubKyc(), which triggers
         // the undefined->APPROVED transition that auto-closes the drawer
@@ -75,9 +91,18 @@ export const KycStatusDrawer = ({ isOpen, onClose, verification, bridgeKycStatus
     }
 
     const renderContent = () => {
-        // user initiated kyc but abandoned before submitting — show resume cta
+        // user initiated kyc but abandoned before submitting — close drawer visually
+        // but keep component mounted so SumsubKycModals persists for the SDK flow
         if (verification && isKycStatusNotStarted(status)) {
-            return <KycNotStarted onResume={onRetry} isLoading={sumsubFlow.isLoading} />
+            return (
+                <KycNotStarted
+                    onResume={() => {
+                        onKeepMounted?.(true)
+                        onClose()
+                        sumsubFlow.handleInitiateKyc()
+                    }}
+                />
+            )
         }
 
         // bridge additional document requirement — but don't mask terminal kyc states
