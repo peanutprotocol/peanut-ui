@@ -1,11 +1,9 @@
 name: Ping IndexNow
 
 on:
-    # Run after content update PRs are merged
-    push:
-        branches: [main]
-        paths:
-            - 'src/content/**'
+    # Fires when Vercel (or any deployment) reports status to GitHub.
+    # Only runs on successful production deploys, so crawlers always hit live content.
+    deployment_status:
     # Allow manual trigger
     workflow_dispatch:
 
@@ -15,6 +13,12 @@ permissions:
 jobs:
     ping:
         runs-on: ubuntu-latest
+        # Only run on successful production deployments (skip preview/staging).
+        # The condition is ignored for workflow_dispatch (no deployment_status context).
+        if: >-
+            github.event_name == 'workflow_dispatch' ||
+            (github.event.deployment_status.state == 'success' &&
+             github.event.deployment_status.environment == 'Production')
         steps:
             - uses: actions/checkout@v4
               with:
