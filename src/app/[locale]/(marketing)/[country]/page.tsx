@@ -5,7 +5,7 @@ import { COUNTRIES_SEO, getCountryName } from '@/data/seo'
 import { SUPPORTED_LOCALES, isValidLocale, getBareAlternates } from '@/i18n/config'
 import { getTranslations } from '@/i18n'
 import { ContentPage } from '@/components/Marketing/ContentPage'
-import { readPageContentLocalized } from '@/lib/content'
+import { readPageContentLocalized, type ContentFrontmatter } from '@/lib/content'
 import { renderContent } from '@/lib/mdx'
 
 interface PageProps {
@@ -25,11 +25,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const seo = COUNTRIES_SEO[country]
     if (!seo) return {}
 
-    const mdxContent = readPageContentLocalized<{ title: string; description: string; published?: boolean }>(
-        'countries',
-        country,
-        locale
-    )
+    const mdxContent = readPageContentLocalized<ContentFrontmatter>('countries', country, locale)
     if (!mdxContent || mdxContent.frontmatter.published === false) return {}
 
     return {
@@ -37,6 +33,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
             title: mdxContent.frontmatter.title,
             description: mdxContent.frontmatter.description,
             canonical: `/${locale}/${country}`,
+            dynamicOg: true,
         }),
         alternates: {
             canonical: `/${locale}/${country}`,
@@ -50,19 +47,30 @@ export default async function CountryHubPage({ params }: PageProps) {
     if (!isValidLocale(locale)) notFound()
     if (!COUNTRIES_SEO[country]) notFound()
 
-    const mdxSource = readPageContentLocalized('countries', country, locale)
+    const mdxSource = readPageContentLocalized<ContentFrontmatter>('countries', country, locale)
     if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
 
     const { content } = await renderContent(mdxSource.body)
     const i18n = getTranslations(locale)
     const countryName = getCountryName(country, locale)
+    const url = `/${locale}/${country}`
 
     return (
         <ContentPage
             breadcrumbs={[
                 { name: i18n.home, href: '/' },
-                { name: countryName, href: `/${locale}/${country}` },
+                { name: countryName, href: url },
             ]}
+            article={
+                mdxSource.frontmatter.generated_at
+                    ? {
+                          title: mdxSource.frontmatter.title,
+                          description: mdxSource.frontmatter.description,
+                          url,
+                          datePublished: mdxSource.frontmatter.generated_at,
+                      }
+                    : undefined
+            }
         >
             {content}
         </ContentPage>

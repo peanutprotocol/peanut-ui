@@ -3,10 +3,9 @@ import { type Metadata } from 'next'
 import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { COUNTRIES_SEO, getCountryName } from '@/data/seo'
 import { SUPPORTED_LOCALES, getAlternates, isValidLocale, localizedPath } from '@/i18n/config'
-import type { Locale } from '@/i18n/types'
 import { getTranslations } from '@/i18n'
 import { ContentPage } from '@/components/Marketing/ContentPage'
-import { readPageContentLocalized } from '@/lib/content'
+import { readPageContentLocalized, type ContentFrontmatter } from '@/lib/content'
 import { renderContent } from '@/lib/mdx'
 
 interface PageProps {
@@ -26,11 +25,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const seo = COUNTRIES_SEO[country]
     if (!seo) return {}
 
-    const mdxContent = readPageContentLocalized<{ title: string; description: string; published?: boolean }>(
-        'send-to',
-        country,
-        locale
-    )
+    const mdxContent = readPageContentLocalized<ContentFrontmatter>('send-to', country, locale)
     if (!mdxContent || mdxContent.frontmatter.published === false) return {}
 
     return {
@@ -38,6 +33,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
             title: mdxContent.frontmatter.title,
             description: mdxContent.frontmatter.description,
             canonical: `/${locale}/send-money-to/${country}`,
+            dynamicOg: true,
         }),
         alternates: {
             canonical: `/${locale}/send-money-to/${country}`,
@@ -50,19 +46,30 @@ export default async function SendMoneyToCountryPageLocalized({ params }: PagePr
     const { locale, country } = await params
     if (!isValidLocale(locale)) notFound()
 
-    const mdxSource = readPageContentLocalized('send-to', country, locale)
+    const mdxSource = readPageContentLocalized<ContentFrontmatter>('send-to', country, locale)
     if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
 
     const { content } = await renderContent(mdxSource.body)
     const i18n = getTranslations(locale)
     const countryName = getCountryName(country, locale)
+    const url = localizedPath('send-money-to', locale, country)
 
     return (
         <ContentPage
             breadcrumbs={[
                 { name: i18n.home, href: '/' },
-                { name: countryName, href: localizedPath('send-money-to', locale, country) },
+                { name: countryName, href: url },
             ]}
+            article={
+                mdxSource.frontmatter.generated_at
+                    ? {
+                          title: mdxSource.frontmatter.title,
+                          description: mdxSource.frontmatter.description,
+                          url,
+                          datePublished: mdxSource.frontmatter.generated_at,
+                      }
+                    : undefined
+            }
         >
             {content}
         </ContentPage>

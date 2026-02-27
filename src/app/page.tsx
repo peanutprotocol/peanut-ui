@@ -7,7 +7,8 @@ import { YourMoney } from '@/components/LandingPage/yourMoney'
 import { SecurityBuiltIn } from '@/components/LandingPage/securityBuiltIn'
 import { SendInSeconds } from '@/components/LandingPage/sendInSeconds'
 import Footer from '@/components/LandingPage/Footer'
-import { faqSchema, JsonLd } from '@/lib/seo/schemas'
+import { faqSchema } from '@/lib/seo/schemas'
+import { JsonLd } from '@/components/Marketing/JsonLd'
 import { heroConfig, faqData, marqueeMessages } from '@/components/LandingPage/landingPageData'
 
 export default function LandingPage() {
@@ -15,7 +16,7 @@ export default function LandingPage() {
 
     return (
         <LandingPageShell>
-            <JsonLd data={faqJsonLd} />
+            {faqJsonLd && <JsonLd data={faqJsonLd} />}
             <Suspense>
                 <LandingPageClient
                     heroConfig={heroConfig}

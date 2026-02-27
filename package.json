@@ -22,6 +22,7 @@
         "test:e2e": "playwright test",
         "test:e2e:ui": "playwright test --ui",
         "test:e2e:headed": "playwright test --headed",
+        "ping-indexnow": "tsx scripts/ping-indexnow.ts",
         "script": "NODE_OPTIONS=\"--experimental-json-modules\" tsx",
         "validate-content": "tsx scripts/validate-content.ts",
         "validate-links": "tsx scripts/validate-links.ts"
