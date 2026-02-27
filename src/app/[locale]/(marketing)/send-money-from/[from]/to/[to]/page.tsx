@@ -5,7 +5,7 @@ import { CORRIDORS, getCountryName } from '@/data/seo'
 import { SUPPORTED_LOCALES, getAlternates, isValidLocale } from '@/i18n/config'
 import { getTranslations } from '@/i18n'
 import { ContentPage } from '@/components/Marketing/ContentPage'
-import { readCorridorContentLocalized } from '@/lib/content'
+import { readCorridorContentLocalized, type ContentFrontmatter } from '@/lib/content'
 import { renderContent } from '@/lib/mdx'
 
 interface PageProps {
@@ -23,17 +23,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
     if (!CORRIDORS.some((c) => c.from === from && c.to === to)) return {}
 
-    const mdxContent = readCorridorContentLocalized(to, from, locale)
+    const mdxContent = readCorridorContentLocalized<ContentFrontmatter>(to, from, locale)
     if (!mdxContent || mdxContent.frontmatter.published === false) return {}
 
-    const fm = mdxContent.frontmatter as { title?: string; description?: string }
-    if (!fm.title || !fm.description) return {}
+    const { title, description } = mdxContent.frontmatter
+    if (!title || !description) return {}
 
     return {
         ...metadataHelper({
-            title: fm.title,
-            description: fm.description,
+            title,
+            description,
             canonical: `/${locale}/send-money-from/${from}/to/${to}`,
+            dynamicOg: true,
         }),
         alternates: {
             canonical: `/${locale}/send-money-from/${from}/to/${to}`,
@@ -47,20 +48,27 @@ export default async function FromToCorridorPage({ params }: PageProps) {
     if (!isValidLocale(locale)) notFound()
     if (!CORRIDORS.some((c) => c.from === from && c.to === to)) notFound()
 
-    const mdxSource = readCorridorContentLocalized(to, from, locale)
+    const mdxSource = readCorridorContentLocalized<ContentFrontmatter>(to, from, locale)
     if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
 
     const { content } = await renderContent(mdxSource.body)
     const i18n = getTranslations(locale)
     const fromName = getCountryName(from, locale)
     const toName = getCountryName(to, locale)
+    const url = `/${locale}/send-money-from/${from}/to/${to}`
+    const fm = mdxSource.frontmatter
 
     return (
         <ContentPage
             breadcrumbs={[
                 { name: i18n.home, href: '/' },
-                { name: `${fromName} → ${toName}`, href: `/${locale}/send-money-from/${from}/to/${to}` },
+                { name: `${fromName} → ${toName}`, href: url },
             ]}
+            article={
+                fm.generated_at
+                    ? { title: fm.title, description: fm.description, url, datePublished: fm.generated_at }
+                    : undefined
+            }
         >
             {content}
         </ContentPage>

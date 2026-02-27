@@ -13,7 +13,7 @@ import type { Locale } from '@/i18n/types'
 import { getTranslations, t, localizedPath } from '@/i18n'
 import { RelatedPages } from '@/components/Marketing/RelatedPages'
 import { ContentPage } from '@/components/Marketing/ContentPage'
-import { readPageContentLocalized } from '@/lib/content'
+import { readPageContentLocalized, type ContentFrontmatter } from '@/lib/content'
 import { renderContent } from '@/lib/mdx'
 
 interface PageProps {
@@ -42,17 +42,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     if (!competitor) return {}
 
     // Try MDX content frontmatter first
-    const mdxContent = readPageContentLocalized<{ title: string; description: string; published?: boolean }>(
-        'compare',
-        slug,
-        locale
-    )
+    const mdxContent = readPageContentLocalized<ContentFrontmatter>('compare', slug, locale)
     if (mdxContent && mdxContent.frontmatter.published !== false) {
         return {
             ...metadataHelper({
                 title: mdxContent.frontmatter.title,
                 description: mdxContent.frontmatter.description,
                 canonical: `/${locale}/compare/peanut-vs-${slug}`,
+                dynamicOg: true,
             }),
             alternates: {
                 canonical: `/${locale}/compare/peanut-vs-${slug}`,
@@ -87,16 +84,27 @@ export default async function ComparisonPageLocalized({ params }: PageProps) {
     if (!competitor) notFound()
 
     // Try MDX content first
-    const mdxSource = readPageContentLocalized('compare', slug, locale)
+    const mdxSource = readPageContentLocalized<ContentFrontmatter>('compare', slug, locale)
     if (mdxSource && mdxSource.frontmatter.published !== false) {
         const { content } = await renderContent(mdxSource.body)
         const i18n = getTranslations(locale)
+        const url = `/${locale}/compare/peanut-vs-${slug}`
         return (
             <ContentPage
                 breadcrumbs={[
                     { name: i18n.home, href: '/' },
-                    { name: `Peanut vs ${competitor.name}`, href: `/${locale}/compare/peanut-vs-${slug}` },
+                    { name: `Peanut vs ${competitor.name}`, href: url },
                 ]}
+                article={
+                    mdxSource.frontmatter.generated_at
+                        ? {
+                              title: mdxSource.frontmatter.title,
+                              description: mdxSource.frontmatter.description,
+                              url,
+                              datePublished: mdxSource.frontmatter.generated_at,
+                          }
+                        : undefined
+                }
             >
                 {content}
             </ContentPage>

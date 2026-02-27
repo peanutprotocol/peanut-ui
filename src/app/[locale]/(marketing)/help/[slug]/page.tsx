@@ -17,6 +17,7 @@ interface HelpFrontmatter {
     slug: string
     category?: string
     published?: boolean
+    generated_at?: string
 }
 
 const HELP_SLUGS = listContentSlugs('help')
@@ -38,6 +39,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
             title: mdxContent.frontmatter.title,
             description: mdxContent.frontmatter.description,
             canonical: `/${locale}/help/${slug}`,
+            dynamicOg: true,
         }),
         alternates: {
             canonical: `/${locale}/help/${slug}`,
@@ -57,14 +59,25 @@ export default async function HelpArticlePage({ params }: PageProps) {
     const i18n = getTranslations(locale)
 
     const displayTitle = mdxSource.frontmatter.title.replace(/\s*\|\s*Peanut Help$/, '')
+    const url = `/${locale}/help/${slug}`
 
     return (
         <ContentPage
             breadcrumbs={[
                 { name: i18n.home, href: '/' },
                 { name: i18n.help, href: `/${locale}/help` },
-                { name: displayTitle, href: `/${locale}/help/${slug}` },
+                { name: displayTitle, href: url },
             ]}
+            article={
+                mdxSource.frontmatter.generated_at
+                    ? {
+                          title: mdxSource.frontmatter.title,
+                          description: mdxSource.frontmatter.description,
+                          url,
+                          datePublished: mdxSource.frontmatter.generated_at,
+                      }
+                    : undefined
+            }
         >
             {content}
         </ContentPage>
