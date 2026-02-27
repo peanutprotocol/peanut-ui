@@ -1,6 +1,7 @@
 import { KycActionRequired } from './states/KycActionRequired'
 import { KycCompleted } from './states/KycCompleted'
 import { KycFailed } from './states/KycFailed'
+import { KycNotStarted } from './states/KycNotStarted'
 import { KycProcessing } from './states/KycProcessing'
 import { KycRequiresDocuments } from './states/KycRequiresDocuments'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
@@ -11,6 +12,7 @@ import { useUserStore } from '@/redux/hooks'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { getKycStatusCategory, isKycStatusNotStarted } from '@/constants/kyc.consts'
 import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
+import { useCallback } from 'react'
 
 interface KycStatusDrawerProps {
     isOpen: boolean
@@ -18,10 +20,19 @@ interface KycStatusDrawerProps {
     verification?: IUserKycVerification
     bridgeKycStatus?: BridgeKycStatus
     region?: 'STANDARD' | 'LATAM'
+    /** keep this component mounted even after drawer closes (so SumsubKycModals persists) */
+    onKeepMounted?: (keep: boolean) => void
 }
 
 // this component determines which kyc state to show inside the drawer and fetches rejection reasons if the kyc has failed.
-export const KycStatusDrawer = ({ isOpen, onClose, verification, bridgeKycStatus, region }: KycStatusDrawerProps) => {
+export const KycStatusDrawer = ({
+    isOpen,
+    onClose,
+    verification,
+    bridgeKycStatus,
+    region,
+    onKeepMounted,
+}: KycStatusDrawerProps) => {
     const { user } = useUserStore()
 
     const status = verification ? verification.status : bridgeKycStatus
@@ -34,9 +45,15 @@ export const KycStatusDrawer = ({ isOpen, onClose, verification, bridgeKycStatus
         verification?.provider === 'SUMSUB' ? verification?.metadata?.regionIntent : undefined
     ) as KYCRegionIntent | undefined
 
+    // close drawer and release the keep-mounted hold
+    const handleFlowDone = useCallback(() => {
+        onClose()
+        onKeepMounted?.(false)
+    }, [onClose, onKeepMounted])
+
     const sumsubFlow = useMultiPhaseKycFlow({
-        onKycSuccess: onClose,
-        onManualClose: onClose,
+        onKycSuccess: handleFlowDone,
+        onManualClose: handleFlowDone,
         // don't pass regionIntent for completed kyc — prevents the mount effect
         // in useSumsubKycFlow from calling initiateSumsubKyc(), which triggers
         // the undefined->APPROVED transition that auto-closes the drawer
@@ -74,6 +91,20 @@ export const KycStatusDrawer = ({ isOpen, onClose, verification, bridgeKycStatus
     }
 
     const renderContent = () => {
+        // user initiated kyc but abandoned before submitting — close drawer visually
+        // but keep component mounted so SumsubKycModals persists for the SDK flow
+        if (verification && isKycStatusNotStarted(status)) {
+            return (
+                <KycNotStarted
+                    onResume={() => {
+                        onKeepMounted?.(true)
+                        onClose()
+                        sumsubFlow.handleInitiateKyc()
+                    }}
+                />
+            )
+        }
+
         // bridge additional document requirement — but don't mask terminal kyc states
         if (needsAdditionalDocs && statusCategory !== 'failed' && statusCategory !== 'action_required') {
             return (
@@ -99,12 +130,7 @@ export const KycStatusDrawer = ({ isOpen, onClose, verification, bridgeKycStatus
                     <KycCompleted
                         bridgeKycApprovedAt={verification?.approvedAt ?? user?.user?.bridgeKycApprovedAt}
                         countryCode={countryCode ?? undefined}
-                        isBridge={isBridgeKyc}
-                        rails={user?.rails?.filter((r) => {
-                            if (region === 'STANDARD') return r.rail.provider.code === 'BRIDGE'
-                            if (region === 'LATAM') return r.rail.provider.code === 'MANTECA'
-                            return true
-                        })}
+                        isBridge={isBridgeKyc || region === 'STANDARD'}
                     />
                 )
             case 'action_required':

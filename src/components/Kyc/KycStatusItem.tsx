@@ -51,6 +51,9 @@ export const KycStatusItem = ({
     const { user } = useUserStore()
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
     const [wsBridgeKycStatus, setWsBridgeKycStatus] = useState<BridgeKycStatus | undefined>(undefined)
+    // keep drawer component mounted when SDK flow is active (so SumsubKycModals persists
+    // even after the drawer visually closes)
+    const [keepDrawerMounted, setKeepDrawerMounted] = useState(false)
 
     const handleCloseDrawer = useCallback(() => {
         setIsDrawerOpen(false)
@@ -77,7 +80,7 @@ export const KycStatusItem = ({
     const isInitiatedButNotStarted = !!verification && isKycStatusNotStarted(kycStatus)
 
     const subtitle = useMemo(() => {
-        if (isInitiatedButNotStarted) return 'In progress'
+        if (isInitiatedButNotStarted) return 'Not completed'
         if (isActionRequired) return 'Action needed'
         if (isPending) return 'Under review'
         if (isApproved) return 'Approved'
@@ -127,13 +130,14 @@ export const KycStatusItem = ({
                 </div>
             </Card>
 
-            {isDrawerOpen && (
+            {(isDrawerOpen || keepDrawerMounted) && (
                 <KycStatusDrawer
                     isOpen={isDrawerOpen}
                     onClose={handleCloseDrawer}
                     verification={verification}
                     bridgeKycStatus={finalBridgeKycStatus}
                     region={region}
+                    onKeepMounted={setKeepDrawerMounted}
                 />
             )}
         </>

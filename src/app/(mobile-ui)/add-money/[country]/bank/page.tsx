@@ -30,9 +30,10 @@ import { getLimitsWarningCardProps } from '@/features/limits/utils'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
+import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 
 // Step type for URL state
-type BridgeBankStep = 'inputAmount' | 'kyc' | 'showDetails'
+type BridgeBankStep = 'inputAmount' | 'showDetails'
 
 export default function OnrampBankPage() {
     const router = useRouter()
@@ -42,7 +43,7 @@ export default function OnrampBankPage() {
     // Example: /add-money/mexico/bank?step=inputAmount&amount=500
     const [urlState, setUrlState] = useQueryStates(
         {
-            step: parseAsStringEnum<BridgeBankStep>(['inputAmount', 'kyc', 'showDetails']),
+            step: parseAsStringEnum<BridgeBankStep>(['inputAmount', 'showDetails']),
             amount: parseAsString,
         },
         { history: 'push' }
@@ -53,6 +54,7 @@ export default function OnrampBankPage() {
 
     // Local UI state (not URL-appropriate - transient)
     const [showWarningModal, setShowWarningModal] = useState<boolean>(false)
+    const [showKycModal, setShowKycModal] = useState<boolean>(false)
     const [isRiskAccepted, setIsRiskAccepted] = useState<boolean>(false)
     const [liveKycStatus, setLiveKycStatus] = useState<BridgeKycStatus | undefined>(undefined)
     const { setError, error, setOnrampData, onrampData } = useOnrampFlow()
@@ -152,30 +154,12 @@ export default function OnrampBankPage() {
         currency: 'USD',
     })
 
-    // Determine initial step based on KYC status (only when URL has no step)
+    // Default to inputAmount step when no step in URL
     useEffect(() => {
-        // If URL already has a step, respect it (allows deep linking)
         if (urlState.step) return
-
-        // Wait for user to be fetched before determining initial step
         if (user === null) return
-
-        const currentKycStatus = liveKycStatus || user?.user.bridgeKycStatus
-        const isUserKycVerified = currentKycStatus === 'approved'
-
-        if (!isUserKycVerified) {
-            setUrlState({ step: 'kyc' })
-        } else {
-            setUrlState({ step: 'inputAmount' })
-        }
-    }, [liveKycStatus, user, urlState.step, setUrlState])
-
-    // Handle KYC completion
-    useEffect(() => {
-        if (urlState.step === 'kyc' && liveKycStatus === 'approved') {
-            setUrlState({ step: 'inputAmount' })
-        }
-    }, [liveKycStatus, urlState.step, setUrlState])
+        setUrlState({ step: 'inputAmount' })
+    }, [user, urlState.step, setUrlState])
 
     const validateAmount = useCallback(
         (amountStr: string): boolean => {
@@ -217,9 +201,17 @@ export default function OnrampBankPage() {
     }, [rawTokenAmount, validateAmount, setError])
 
     const handleAmountContinue = () => {
-        if (validateAmount(rawTokenAmount)) {
-            setShowWarningModal(true)
+        if (!validateAmount(rawTokenAmount)) return
+
+        const currentKycStatus = liveKycStatus || user?.user.bridgeKycStatus
+        const isUserKycVerified = currentKycStatus === 'approved'
+
+        if (!isUserKycVerified) {
+            setShowKycModal(true)
+            return
         }
+
+        setShowWarningModal(true)
     }
 
     const handleWarningConfirm = async () => {
@@ -271,12 +263,6 @@ export default function OnrampBankPage() {
         }
     }
 
-    useEffect(() => {
-        if (urlState.step === 'kyc') {
-            sumsubFlow.handleInitiateKyc('STANDARD')
-        }
-    }, [urlState.step]) // eslint-disable-line react-hooks/exhaustive-deps
-
     // Redirect to inputAmount if showDetails is accessed without required data (deep link / back navigation)
     useEffect(() => {
         if (urlState.step === 'showDetails' && !onrampData?.transferId) {
@@ -301,15 +287,6 @@ export default function OnrampBankPage() {
     // Still determining initial step
     if (!urlState.step) {
         return <PeanutLoading />
-    }
-
-    if (urlState.step === 'kyc') {
-        return (
-            <div className="flex flex-col justify-start space-y-8">
-                <NavHeader title="Identity Verification" onPrev={handleBack} />
-                <SumsubKycModals flow={sumsubFlow} autoStartSdk />
-            </div>
-        )
     }
 
     if (urlState.step === 'showDetails') {
@@ -408,6 +385,18 @@ export default function OnrampBankPage() {
                     amount={rawTokenAmount}
                     currency={getCurrencySymbol(getCurrencyConfig(selectedCountry.id, 'onramp').currency)}
                 />
+
+                <InitiateKycModal
+                    visible={showKycModal}
+                    onClose={() => setShowKycModal(false)}
+                    onVerify={async () => {
+                        setShowKycModal(false)
+                        await sumsubFlow.handleInitiateKyc('STANDARD')
+                    }}
+                    isLoading={sumsubFlow.isLoading}
+                />
+
+                <SumsubKycModals flow={sumsubFlow} autoStartSdk />
             </div>
         )
     }
