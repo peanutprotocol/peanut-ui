@@ -2,7 +2,7 @@
  * Pings IndexNow (Bing, Yandex, etc.) with all sitemap URLs.
  *
  * Usage:
- *   INDEXNOW_KEY=your-key-here tsx scripts/ping-indexnow.ts
+ *   INDEXNOW_KEY=$INDEXNOW_KEY tsx scripts/ping-indexnow.ts
  *
  * Or pass specific paths:
  *   INDEXNOW_KEY=xxx tsx scripts/ping-indexnow.ts /en/argentina /en/brazil
