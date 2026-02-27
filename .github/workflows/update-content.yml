@@ -40,6 +40,7 @@ jobs:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
                   BRANCH="auto/update-content-$(date -u +%Y%m%d-%H%M%S)"
+                  git add src/content
                   TREE=$(git write-tree)
                   PARENT=$(git rev-parse HEAD)
                   # create signed commit via GitHub API (verified signature)
