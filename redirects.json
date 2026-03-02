@@ -1,33 +1,42 @@
 [
     {
+        "source": "/support",
+        "destination": "/en/help",
+        "permanent": true
+    },
+    {
+        "source": "/help",
+        "destination": "/en/help",
+        "permanent": false
+    },
+    {
         "source": "/docs",
-        "destination": "https://docs.peanut.me",
-        "permanent": false,
-        "basePath": false
+        "destination": "/en/help",
+        "permanent": true
+    },
+    {
+        "source": "/docs/:path*",
+        "destination": "/en/help",
+        "permanent": true
     },
     {
         "source": "/packet",
-        "destination": "/raffle/claim",
+        "destination": "https://github.com/peanutprotocol/peanut-ui/tree/archive/legacy-peanut-to",
         "permanent": true
     },
     {
         "source": "/create-packet",
-        "destination": "/raffle/create",
+        "destination": "https://github.com/peanutprotocol/peanut-ui/tree/archive/legacy-peanut-to",
         "permanent": true
     },
     {
-        "source": "/batch/create",
-        "destination": "https://legacy.peanut.to/batch/create",
+        "source": "/batch/:path*",
+        "destination": "https://github.com/peanutprotocol/peanut-ui/tree/archive/legacy-peanut-to",
         "permanent": true
     },
     {
-        "source": "/raffle/create",
-        "destination": "https://legacy.peanut.to/raffle/create",
-        "permanent": true
-    },
-    {
-        "source": "/raffle/claim",
-        "destination": "https://legacy.peanut.to/raffle/claim",
+        "source": "/raffle/:path*",
+        "destination": "https://github.com/peanutprotocol/peanut-ui/tree/archive/legacy-peanut-to",
         "permanent": true
     },
     {

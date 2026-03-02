@@ -2,8 +2,8 @@ name: Preview deploy
 on:
     pull_request:
         branches:
-            - peanut-wallet
-            - peanut-wallet-dev
+            - main
+            - dev
 
 jobs:
     Deploy-Preview:
@@ -12,6 +12,7 @@ jobs:
             - uses: actions/checkout@v4
               with:
                   submodules: true
+                  token: ${{ secrets.SUBMODULE_TOKEN }}
             - uses: pnpm/action-setup@v4
               with:
                   version: 9
@@ -24,4 +25,4 @@ jobs:
             - name: Build Project Artifacts
               run: vercel build --target=preview --token=${{ secrets.VERCEL_TOKEN }}
             - name: Deploy Project Artifacts to Vercel
-              run: vercel deploy --prebuilt --target=preview --token=${{ secrets.VERCEL_TOKEN }}
+              run: vercel deploy --prebuilt --archive=tgz --target=preview --token=${{ secrets.VERCEL_TOKEN }}

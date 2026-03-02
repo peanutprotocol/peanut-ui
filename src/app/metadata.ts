@@ -6,11 +6,14 @@ export function generateMetadata({
     description,
     image = '/metadata-img.png',
     keywords,
+    canonical,
 }: {
     title: string
     description: string
     image?: string
     keywords?: string
+    /** Canonical URL path (e.g. '/careers') or full URL. Resolved against metadataBase. */
+    canonical?: string
 }): Metadata {
     return {
         title,
@@ -22,7 +25,7 @@ export function generateMetadata({
             type: 'website',
             title,
             description,
-            url: BASE_URL,
+            url: canonical ? `${BASE_URL}${canonical}` : BASE_URL,
             siteName: 'Peanut',
             images: [{ url: image, width: 1200, height: 630, alt: title }],
         },
@@ -35,5 +38,6 @@ export function generateMetadata({
             site: '@PeanutProtocol',
         },
         applicationName: process.env.NODE_ENV === 'development' ? 'Peanut Dev' : 'Peanut',
+        ...(canonical ? { alternates: { canonical } } : {}),
     }
 }

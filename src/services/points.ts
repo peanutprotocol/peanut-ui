@@ -341,7 +341,7 @@ export const pointsApi = {
     getCashStatus: async (): Promise<{
         success: boolean
         data: {
-            cashbackAllowance: number | null
+            hasCashbackLeft: boolean
             lifetimeEarned: number
             lifetimeBreakdown: {
                 cashback: number

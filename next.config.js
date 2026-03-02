@@ -1,9 +1,7 @@
 const os = require('os')
 const { execSync } = require('child_process')
-const withBundleAnalyzer = require('@next/bundle-analyzer')({
-    // Only enable in production builds when explicitly requested
-    enabled: process.env.ANALYZE === 'true' && process.env.NODE_ENV !== 'development',
-})
+const withBundleAnalyzer =
+    process.env.ANALYZE === 'true' ? require('@next/bundle-analyzer')({ enabled: true }) : (config) => config
 
 const redirectsConfig = require('./redirects.json')
 

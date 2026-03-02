@@ -27,28 +27,10 @@ export default function DevToolsPage() {
             icon: 'dollar',
         },
         {
-            name: 'Shake Test',
-            description: 'Test progressive shake animation and confetti for perk claiming',
-            path: '/dev/shake-test',
-            icon: 'bulb',
-        },
-        {
-            name: 'Gift Test',
-            description: 'Test gift box unwrap animations and variants',
-            path: '/dev/gift-test',
-            icon: 'gift',
-        },
-        {
-            name: 'Perk Success Test',
-            description: 'Test the perk claim success screen with mock perks',
-            path: '/dev/perk-success-test',
-            icon: 'check-circle',
-        },
-        {
-            name: 'Components',
-            description: 'Design system showcase: buttons, cards, inputs, and all variants',
-            path: '/dev/components',
-            icon: 'bulb',
+            name: 'Design System',
+            description: 'Foundations, primitives, patterns, and interactive playground',
+            path: '/dev/ds',
+            icon: 'docs',
         },
     ]
 

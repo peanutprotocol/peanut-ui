@@ -16,4 +16,7 @@ const Divider = ({ text, className, dividerClassname, textClassname, ...props }:
     )
 }
 
+Divider.displayName = 'Divider'
+
+export { Divider }
 export default Divider

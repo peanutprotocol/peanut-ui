@@ -8,7 +8,7 @@ export const projectId = 'test-project-id'
 export const metadata = {
     name: 'Peanut Protocol',
     description: 'Test',
-    url: 'https://peanut.to',
+    url: 'https://peanut.me',
     icons: [],
 }
 

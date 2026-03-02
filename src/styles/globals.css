@@ -685,3 +685,92 @@ input::placeholder {
     z-index: 5;
     border-radius: inherit;
 }
+
+/* ── Landing page: CSS cloud drift animations ── */
+@keyframes cloud-drift-ltr {
+    from {
+        transform: translateX(-300px);
+    }
+    to {
+        transform: translateX(100vw);
+    }
+}
+
+@keyframes cloud-drift-rtl {
+    from {
+        transform: translateX(100vw);
+    }
+    to {
+        transform: translateX(-300px);
+    }
+}
+
+.cloud-ltr {
+    animation: cloud-drift-ltr var(--cloud-speed, 35s) linear infinite;
+    animation-delay: var(--cloud-delay, 0s);
+}
+
+.cloud-rtl {
+    animation: cloud-drift-rtl var(--cloud-speed, 35s) linear infinite;
+    animation-delay: var(--cloud-delay, 0s);
+}
+
+/* ── Landing page: entrance animations (replaces framer-motion whileInView) ── */
+/* Spring animation approximating framer-motion { type: 'spring', damping: 5, stiffness: 100 }
+   damping:5 is heavily underdamped — large overshoot with visible bounces.
+   Sampled from spring physics: e^(-ζωt) * cos(ωd*t) with ζ=0.25, ω=10 */
+@keyframes fade-in-up-spring {
+    0% {
+        opacity: 0;
+        transform: translateY(var(--aov-y, 20px)) translateX(var(--aov-x, 0px)) rotate(var(--aov-rotate, 0deg));
+    }
+    12% {
+        opacity: 1;
+        transform: translateY(calc(var(--aov-y, 20px) * -1.2)) translateX(calc(var(--aov-x, 0px) * -1.2))
+            rotate(var(--aov-rotate, 0deg));
+    }
+    24% {
+        transform: translateY(calc(var(--aov-y, 20px) * 0.6)) translateX(calc(var(--aov-x, 0px) * 0.6))
+            rotate(var(--aov-rotate, 0deg));
+    }
+    38% {
+        transform: translateY(calc(var(--aov-y, 20px) * -0.35)) translateX(calc(var(--aov-x, 0px) * -0.35))
+            rotate(var(--aov-rotate, 0deg));
+    }
+    52% {
+        transform: translateY(calc(var(--aov-y, 20px) * 0.18)) translateX(calc(var(--aov-x, 0px) * 0.18))
+            rotate(var(--aov-rotate, 0deg));
+    }
+    68% {
+        transform: translateY(calc(var(--aov-y, 20px) * -0.08)) translateX(calc(var(--aov-x, 0px) * -0.08))
+            rotate(var(--aov-rotate, 0deg));
+    }
+    82% {
+        transform: translateY(calc(var(--aov-y, 20px) * 0.03)) translateX(calc(var(--aov-x, 0px) * 0.03))
+            rotate(var(--aov-rotate, 0deg));
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) translateX(0) rotate(var(--aov-rotate, 0deg));
+    }
+}
+
+.animate-on-view {
+    opacity: 0;
+}
+
+.animate-on-view.in-view {
+    animation: fade-in-up-spring 1.8s linear forwards;
+    animation-delay: var(--aov-delay, 0s);
+}
+
+/* ── Marketing content pages ── */
+
+/*
+ * Prose styling is handled via MDX element mappings in components.tsx.
+ * Only structural and zebra-stripe styles remain here (can't be done via components).
+ */
+
+.content-page tbody tr:nth-child(even) {
+    @apply bg-primary-3/30;
+}

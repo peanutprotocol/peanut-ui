@@ -17,7 +17,7 @@ This script generates an HTML page containing multiple Peanut-branded QR codes t
 You can run the script directly with individual links:
 
 ```bash
-pnpm run script scripts/generate-qr-sheet.ts output.html "https://peanut.to/claim/link1" "https://peanut.to/claim/link2"
+pnpm run script scripts/generate-qr-sheet.ts output.html "https://peanut.me/claim/link1" "https://peanut.me/claim/link2"
 ```
 
 ### Using a File with Links
@@ -25,10 +25,10 @@ pnpm run script scripts/generate-qr-sheet.ts output.html "https://peanut.to/clai
 For multiple links, create a text file with one link per line:
 
 ```
-https://peanut.to/claim/link1
-https://peanut.to/claim/link2
-https://peanut.to/claim/link3
-https://peanut.to/claim/link4
+https://peanut.me/claim/link1
+https://peanut.me/claim/link2
+https://peanut.me/claim/link3
+https://peanut.me/claim/link4
 ```
 
 Then run:

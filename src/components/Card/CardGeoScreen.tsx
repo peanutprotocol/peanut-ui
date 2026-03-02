@@ -96,7 +96,7 @@ const CardGeoScreen = ({
                             </div>
                             <div className="text-center">
                                 <h1 className="font-bold">Verification Required</h1>
-                                <p className="mt-2 text-sm text-black">Card Purchare requires identity verification.</p>
+                                <p className="mt-2 text-sm text-black">Card Purchase requires identity verification.</p>
                             </div>
                         </Card>
 

@@ -11,7 +11,7 @@ const CONFIG = {
     CAMERA_RETRY_DELAY_MS: 1000,
     MAX_CAMERA_RETRIES: 3,
     IOS_CAMERA_DELAY_MS: 200,
-    SCANNER_MAX_SCANS_PER_SECOND: 25,
+    SCANNER_MAX_SCANS_PER_SECOND: 8,
     SCANNER_CLOSE_DELAY_MS: 1500,
     VIDEO_ELEMENT_RETRY_DELAY_MS: 100,
     MAX_VIDEO_ELEMENT_RETRIES: 2,
@@ -24,23 +24,20 @@ const CAMERA_ERRORS = {
 } as const
 
 /**
- * Custom scan region: top 2/3 of video, horizontally centered.
- * Matches the visual overlay position better.
+ * Scan region: half the video area, centered slightly above middle.
  * Uses 800x800 downscale for dense QR codes (Mercado Pago, PIX).
  */
 const calculateScanRegion = (video: HTMLVideoElement) => {
-    // Use 2/3 of the smaller dimension for a square scan region
-    const smallerDimension = Math.min(video.videoWidth, video.videoHeight)
-    const scanRegionSize = Math.round((2 / 3) * smallerDimension)
+    const regionW = Math.round(video.videoWidth * 0.7)
+    const regionH = Math.round(video.videoHeight * 0.7)
 
     return {
-        x: Math.round((video.videoWidth - scanRegionSize) / 2), // Centered horizontally
-        y: 0, // Top aligned
-        width: scanRegionSize,
-        height: scanRegionSize,
-        // Larger downscale for dense QR codes (default is 400x400)
-        downScaledWidth: Math.min(scanRegionSize, 800),
-        downScaledHeight: Math.min(scanRegionSize, 800),
+        x: Math.round((video.videoWidth - regionW) / 2),
+        y: Math.round(((video.videoHeight - regionH) / 2) * 0.7),
+        width: regionW,
+        height: regionH,
+        downScaledWidth: Math.min(regionW, 800),
+        downScaledHeight: Math.min(regionH, 800),
     }
 }
 
@@ -219,11 +216,25 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                     preferredCamera,
                 })
 
-                // Enable scanning both normal and inverted QR codes (dark on light AND light on dark)
-                scanner.setInversionMode('both')
+                scanner.setInversionMode('original')
 
                 scannerRef.current = scanner
                 await scanner.start()
+
+                // Request continuous autofocus — some devices default to single-shot
+                // focus on start, leaving the image blurry when the user moves the phone.
+                try {
+                    const stream = videoRef.current?.srcObject as MediaStream | null
+                    const track = stream?.getVideoTracks()[0]
+                    if (track && 'applyConstraints' in track) {
+                        await track.applyConstraints({
+                            advanced: [{ focusMode: 'continuous' } as MediaTrackConstraintSet],
+                        })
+                    }
+                } catch {
+                    // Not all devices support focusMode — safe to ignore
+                }
+
                 console.log('[QR Scanner] Camera started, ready to scan')
                 retryCountRef.current = 0
             } catch (err: any) {

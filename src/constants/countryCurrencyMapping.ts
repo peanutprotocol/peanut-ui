@@ -109,3 +109,8 @@ export function isUKCountry(countryIdentifier: string | undefined): boolean {
     const lower = countryIdentifier.toLowerCase()
     return lower === 'united-kingdom' || lower === 'gb' || lower === 'gbr'
 }
+
+/** Find a currency mapping by country slug (e.g. 'argentina', 'united-kingdom'). */
+export function findMappingBySlug(slug: string): CountryCurrencyMapping | undefined {
+    return countryCurrencyMappings.find((m) => m.path === slug || m.country.toLowerCase().replace(/ /g, '-') === slug)
+}

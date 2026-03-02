@@ -77,6 +77,9 @@ export default function WithdrawBankPage() {
     )
 
     useEffect(() => {
+        // Skip redirects when on success view — clearing state during navigation
+        // would race with router.push('/home') and redirect back to /withdraw
+        if (view === 'SUCCESS') return
         if (!amountToWithdraw) {
             // If no amount, go back to main page
             router.replace('/withdraw')
@@ -84,7 +87,7 @@ export default function WithdrawBankPage() {
             // If amount is set but no bank account, go to country method selection
             router.replace(`/withdraw/${country}`)
         }
-    }, [bankAccount, router, amountToWithdraw, country])
+    }, [bankAccount, router, amountToWithdraw, country, view])
 
     const destinationDetails = (account: Account) => {
         let countryId: string
@@ -264,11 +267,15 @@ export default function WithdrawBankPage() {
                 title={fromSendFlow ? 'Send' : 'Withdraw'}
                 icon={view === 'SUCCESS' ? 'cancel' : undefined}
                 onPrev={() => {
-                    setAmountToWithdraw('')
-                    setSelectedMethod(null)
                     if (view === 'SUCCESS') {
+                        // Navigate first, then reset — otherwise clearing amountToWithdraw
+                        // triggers the useEffect redirect to /withdraw, overriding /home
                         router.push('/home')
+                        setAmountToWithdraw('')
+                        setSelectedMethod(null)
                     } else {
+                        setAmountToWithdraw('')
+                        setSelectedMethod(null)
                         router.back()
                     }
                 }}
@@ -374,6 +381,10 @@ export default function WithdrawBankPage() {
                     currencyAmount={`$${amountToWithdraw}`}
                     message={bankAccount ? shortenStringLong(bankAccount.identifier.toUpperCase()) : ''}
                     points={pointsData?.estimatedPoints}
+                    onComplete={() => {
+                        setAmountToWithdraw('')
+                        setSelectedMethod(null)
+                    }}
                 />
             )}
         </div>

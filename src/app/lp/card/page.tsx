@@ -1,4 +1,6 @@
 import { generateMetadata as generateMeta } from '@/app/metadata'
+import { LandingPageShell } from '@/components/LandingPage/LandingPageShell'
+import Footer from '@/components/LandingPage/Footer'
 import CardLandingPage from './CardLandingPage'
 
 export const metadata = generateMeta({
@@ -10,5 +12,10 @@ export const metadata = generateMeta({
 })
 
 export default function CardLPPage() {
-    return <CardLandingPage />
+    return (
+        <LandingPageShell>
+            <CardLandingPage />
+            <Footer />
+        </LandingPageShell>
+    )
 }

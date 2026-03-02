@@ -10,7 +10,7 @@ type MarqueeProps = {
 
 export function Marquee({
     visible = true,
-    message = ['No fees', 'Instant', '24/7', 'Dollars', 'Fiat / Crypto'],
+    message = ['No fees', 'Instant', '24/7', 'Dollars', 'USDT/USDC'],
     imageSrc = HandThumbsUp.src,
     backgroundColor = 'bg-secondary-1',
 }: MarqueeProps) {

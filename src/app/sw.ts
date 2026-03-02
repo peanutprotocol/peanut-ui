@@ -1,6 +1,6 @@
 import { defaultCache } from '@serwist/next/worker'
 import type { PrecacheEntry, SerwistGlobalConfig } from 'serwist'
-import { Serwist } from 'serwist'
+import { NetworkOnly, Serwist } from 'serwist'
 
 // This declares the value of `injectionPoint` to TypeScript.
 // `injectionPoint` is the string that will be replaced by the
@@ -20,7 +20,15 @@ const serwist = new Serwist({
     skipWaiting: true,
     clientsClaim: true,
     navigationPreload: true,
-    runtimeCaching: defaultCache,
+    runtimeCaching: [
+        // Never cache auth/user API responses — stale 401s cause infinite loading loops
+        {
+            matcher: ({ sameOrigin, url: { pathname } }: { sameOrigin: boolean; url: URL }) =>
+                sameOrigin && pathname.startsWith('/api/peanut/user/'),
+            handler: new NetworkOnly(),
+        },
+        ...defaultCache,
+    ],
     disableDevLogs: false,
 })
 

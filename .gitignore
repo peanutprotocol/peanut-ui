@@ -76,3 +76,4 @@ public/swe-worker*
 
 # mobile POC
 android/
+.claude/

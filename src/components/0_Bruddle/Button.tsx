@@ -1,9 +1,10 @@
 'use client'
-import React, { forwardRef, useEffect, useRef, useState, useCallback } from 'react'
+import React, { forwardRef, useCallback, useEffect, useRef } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Icon, type IconName } from '../Global/Icons/Icon'
 import Loading from '../Global/Loading'
 import { useHaptic } from 'use-haptic'
+import { useLongPress } from '@/hooks/useLongPress'
 
 export type ButtonVariant =
     | 'purple'
@@ -11,15 +12,21 @@ export type ButtonVariant =
     | 'stroke'
     | 'transparent-light'
     | 'transparent-dark'
-    | 'green'
-    | 'yellow'
     | 'transparent'
     | 'primary-soft'
-export type ButtonSize = 'small' | 'medium' | 'large' | 'xl' | 'xl-fixed'
+export type ButtonSize = 'small' | 'medium' | 'large'
 type ButtonShape = 'default' | 'square'
 type ShadowSize = '3' | '4' | '6' | '8'
 type ShadowType = 'primary' | 'secondary'
 
+/**
+ * Primary button component.
+ *
+ * @prop variant - Visual style. 'purple' for primary CTAs, 'stroke' for secondary.
+ * @prop size - Height override. Omit for default h-13 (tallest). 'large' is h-10 (shorter!).
+ * @prop shadowSize - Drop shadow depth. '4' is standard (160+ usages).
+ * @prop longPress - Hold-to-confirm behavior with progress bar animation.
+ */
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     variant?: ButtonVariant
     size?: ButtonSize
@@ -47,8 +54,6 @@ const buttonVariants: Record<ButtonVariant, string> = {
     stroke: 'btn-stroke',
     'transparent-light': 'btn-transparent-light',
     'transparent-dark': 'btn-transparent-dark',
-    green: 'bg-green-1',
-    yellow: 'bg-secondary-1',
     'primary-soft': 'bg-white',
     transparent:
         'bg-transparent border-none hover:bg-transparent !active:bg-transparent focus:bg-transparent disabled:bg-transparent disabled:hover:bg-transparent',
@@ -57,9 +62,8 @@ const buttonVariants: Record<ButtonVariant, string> = {
 const buttonSizes: Record<ButtonSize, string> = {
     small: 'btn-small',
     medium: 'btn-medium',
+    /** @deprecated large (h-10) is shorter than default (h-13). Avoid for primary CTAs. */
     large: 'btn-large',
-    xl: 'btn-xl',
-    'xl-fixed': 'btn-xl-fixed',
 }
 
 const buttonShadows: Record<ShadowType, Record<ShadowSize, string>> = {
@@ -104,12 +108,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         const buttonRef = (ref as React.RefObject<HTMLButtonElement>) || localRef
 
         const { triggerHaptic } = useHaptic()
-
-        // Long press state
-        const [isLongPressed, setIsLongPressed] = useState(false)
-        const [pressTimer, setPressTimer] = useState<NodeJS.Timeout | null>(null)
-        const [pressProgress, setPressProgress] = useState(0)
-        const [progressInterval, setProgressInterval] = useState<NodeJS.Timeout | null>(null)
+        const { isLongPressed, pressProgress, handlers: longPressHandlers } = useLongPress(longPress)
 
         useEffect(() => {
             if (!buttonRef.current) return
@@ -117,83 +116,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             buttonRef.current.classList.add('notranslate')
         }, [])
 
-        // Long press handlers
-        const handlePressStart = useCallback(() => {
-            if (!longPress) return
-
-            longPress.onLongPressStart?.()
-            setPressProgress(0)
-
-            const duration = longPress.duration || 2000
-            const updateInterval = 16 // ~60fps
-            const increment = (100 / duration) * updateInterval
-
-            // Progress animation
-            const progressTimer = setInterval(() => {
-                setPressProgress((prev) => {
-                    const newProgress = prev + increment
-                    if (newProgress >= 100) {
-                        clearInterval(progressTimer)
-                        return 100
-                    }
-                    return newProgress
-                })
-            }, updateInterval)
-
-            setProgressInterval(progressTimer)
-
-            // Long press completion timer
-            const timer = setTimeout(() => {
-                setIsLongPressed(true)
-                longPress.onLongPress?.()
-                clearInterval(progressTimer)
-            }, duration)
-
-            setPressTimer(timer)
-        }, [longPress])
-
-        const handlePressEnd = useCallback(() => {
-            if (!longPress) return
-
-            if (pressTimer) {
-                clearTimeout(pressTimer)
-                setPressTimer(null)
-            }
-
-            if (progressInterval) {
-                clearInterval(progressInterval)
-                setProgressInterval(null)
-            }
-
-            if (isLongPressed) {
-                longPress.onLongPressEnd?.()
-                setIsLongPressed(false)
-            }
-
-            setPressProgress(0)
-        }, [longPress, pressTimer, progressInterval, isLongPressed])
-
-        const handlePressCancel = useCallback(() => {
-            if (!longPress) return
-
-            if (pressTimer) {
-                clearTimeout(pressTimer)
-                setPressTimer(null)
-            }
-
-            if (progressInterval) {
-                clearInterval(progressInterval)
-                setProgressInterval(null)
-            }
-
-            setIsLongPressed(false)
-            setPressProgress(0)
-        }, [longPress, pressTimer, progressInterval])
-
         const handleClick = useCallback(
             (e: React.MouseEvent<HTMLButtonElement>) => {
                 if (longPress && !isLongPressed) {
-                    // If long press is enabled but not completed, don't trigger onClick
                     return
                 }
 
@@ -203,20 +128,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
                 onClick?.(e)
             },
-            [longPress, isLongPressed, onClick]
+            [longPress, isLongPressed, onClick, disableHaptics, triggerHaptic]
         )
-
-        // Cleanup timers on unmount
-        useEffect(() => {
-            return () => {
-                if (pressTimer) {
-                    clearTimeout(pressTimer)
-                }
-                if (progressInterval) {
-                    clearInterval(progressInterval)
-                }
-            }
-        }, [pressTimer, progressInterval])
 
         const buttonClasses = twMerge(
             `btn w-full flex items-center gap-2 transition-all duration-100 active:translate-x-[3px] active:translate-y-[${shadowSize}px] active:shadow-none notranslate`,
@@ -255,12 +168,12 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
                 ref={buttonRef}
                 translate="no"
                 onClick={handleClick}
-                onMouseDown={longPress ? handlePressStart : undefined}
-                onMouseUp={longPress ? handlePressEnd : undefined}
-                onMouseLeave={longPress ? handlePressCancel : undefined}
-                onTouchStart={longPress ? handlePressStart : undefined}
-                onTouchEnd={longPress ? handlePressEnd : undefined}
-                onTouchCancel={longPress ? handlePressCancel : undefined}
+                onMouseDown={longPress ? longPressHandlers.onMouseDown : undefined}
+                onMouseUp={longPress ? longPressHandlers.onMouseUp : undefined}
+                onMouseLeave={longPress ? longPressHandlers.onMouseLeave : undefined}
+                onTouchStart={longPress ? longPressHandlers.onTouchStart : undefined}
+                onTouchEnd={longPress ? longPressHandlers.onTouchEnd : undefined}
+                onTouchCancel={longPress ? longPressHandlers.onTouchCancel : undefined}
                 {...props}
             >
                 {/* Progress bar for long press */}
