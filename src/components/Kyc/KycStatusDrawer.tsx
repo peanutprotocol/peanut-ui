@@ -65,7 +65,12 @@ export const KycStatusDrawer = ({
         async (regionIntent?: KYCRegionIntent, levelName?: string) => {
             onKeepMounted?.(true)
             onClose()
-            await sumsubFlow.handleInitiateKyc(regionIntent, levelName)
+            try {
+                await sumsubFlow.handleInitiateKyc(regionIntent, levelName)
+            } catch (e) {
+                onKeepMounted?.(false)
+                throw e
+            }
         },
         [onKeepMounted, onClose, sumsubFlow]
     )
