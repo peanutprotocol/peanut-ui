@@ -107,7 +107,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         // scenario (1): happy path: if the user has already completed kyc, we can add the bank account directly
         // email and name are now collected by sumsub — no need to check them here
         if (isUserKycVerified) {
-            const currentAccountIds = new Set(user?.accounts.map((acc) => acc.id) ?? [])
+            const currentAccountIds = new Set((freshUser?.accounts ?? user?.accounts ?? []).map((acc) => acc.id))
 
             const result = await addBankAccount(payload)
             if (result.error) {

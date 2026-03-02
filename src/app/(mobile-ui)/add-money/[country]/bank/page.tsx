@@ -390,8 +390,8 @@ export default function OnrampBankPage() {
                     visible={showKycModal}
                     onClose={() => setShowKycModal(false)}
                     onVerify={async () => {
-                        setShowKycModal(false)
                         await sumsubFlow.handleInitiateKyc('STANDARD')
+                        setShowKycModal(false)
                     }}
                     isLoading={sumsubFlow.isLoading}
                 />

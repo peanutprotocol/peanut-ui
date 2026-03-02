@@ -120,8 +120,8 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                 visible={showKycModal}
                 onClose={() => setShowKycModal(false)}
                 onVerify={async () => {
-                    setShowKycModal(false)
                     await sumsubFlow.handleInitiateKyc('LATAM')
+                    setShowKycModal(false)
                 }}
                 isLoading={sumsubFlow.isLoading}
             />
