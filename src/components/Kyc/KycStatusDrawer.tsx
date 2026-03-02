@@ -100,9 +100,7 @@ export const KycStatusDrawer = ({
         // user initiated kyc but abandoned before submitting — close drawer visually
         // but keep component mounted so SumsubKycModals persists for the SDK flow
         if (verification && isKycStatusNotStarted(status)) {
-            return (
-                <KycNotStarted onResume={closeAndStartKyc} />
-            )
+            return <KycNotStarted onResume={closeAndStartKyc} />
         }
 
         // bridge additional document requirement — but don't mask terminal kyc states
