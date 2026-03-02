@@ -77,6 +77,9 @@ const BRIDGE_SUPPORTED_LATAM_COUNTRIES: Region[] = [
     },
 ]
 
+// precompute bridge alpha2 values for O(1) lookup
+const BRIDGE_ALPHA2_SET = new Set(Object.values(BRIDGE_ALPHA3_TO_ALPHA2))
+
 /** maps a region path to the sumsub kyc template intent */
 export const getRegionIntent = (regionPath: string): KYCRegionIntent => {
     return regionPath === 'latam' ? 'LATAM' : 'STANDARD'
@@ -159,17 +162,31 @@ export const useIdentityVerification = () => {
         const isMantecaApproved = isUserMantecaKycApproved
         const isSumsubApproved = isUserSumsubKycApproved
 
+        // check if a provider's rails are in a functional state (not pending/failed)
+        const hasProviderAccess = (providerCode: string) => {
+            const providerRails = user?.rails?.filter((r) => r.rail.provider.code === providerCode) ?? []
+            if (providerRails.length === 0) return false
+            return providerRails.some(
+                (r) =>
+                    r.status === 'ENABLED' ||
+                    r.status === 'REQUIRES_INFORMATION' ||
+                    r.status === 'REQUIRES_EXTRA_INFORMATION'
+            )
+        }
+
         // helper to check if a region should be unlocked
         const isRegionUnlocked = (regionName: string) => {
             // sumsub approval scoped by the regionIntent used during verification.
-            // 'LATAM' intent → unlocks LATAM. 'STANDARD' intent → unlocks Bridge regions + rest of world.
-            // no intent (or rest-of-world) → unlocks rest of world only.
+            // 'LATAM' intent → unlocks LATAM. 'STANDARD' intent → unlocks Bridge regions.
+            // rest of world is always unlocked with any sumsub approval (crypto features).
+            // provider-specific regions require the provider rails to be functional
+            // (not still PENDING from submission or FAILED).
             if (isSumsubApproved) {
+                if (regionName === 'Rest of the world') return true
                 if (sumsubVerificationRegionIntent === 'LATAM') {
-                    return MANTECA_SUPPORTED_REGIONS.includes(regionName) || regionName === 'Rest of the world'
+                    return hasProviderAccess('MANTECA') && MANTECA_SUPPORTED_REGIONS.includes(regionName)
                 }
-                // STANDARD intent covers bridge regions + rest of world
-                return BRIDGE_SUPPORTED_REGIONS.includes(regionName) || regionName === 'Rest of the world'
+                return hasProviderAccess('BRIDGE') && BRIDGE_SUPPORTED_REGIONS.includes(regionName)
             }
             return (
                 (isBridgeApproved && BRIDGE_SUPPORTED_REGIONS.includes(regionName)) ||
@@ -190,7 +207,13 @@ export const useIdentityVerification = () => {
             lockedRegions: locked,
             unlockedRegions: unlocked,
         }
-    }, [isUserBridgeKycApproved, isUserMantecaKycApproved, isUserSumsubKycApproved, sumsubVerificationRegionIntent])
+    }, [
+        isUserBridgeKycApproved,
+        isUserMantecaKycApproved,
+        isUserSumsubKycApproved,
+        sumsubVerificationRegionIntent,
+        user?.rails,
+    ])
 
     /**
      * Check if a region is already unlocked by comparing region paths.
@@ -270,12 +293,7 @@ export const useIdentityVerification = () => {
 
     const isBridgeSupportedCountry = useCallback((code: string) => {
         const upper = code.toUpperCase()
-        return (
-            upper === 'US' ||
-            upper === 'MX' ||
-            Object.keys(BRIDGE_ALPHA3_TO_ALPHA2).includes(upper) ||
-            Object.values(BRIDGE_ALPHA3_TO_ALPHA2).includes(upper)
-        )
+        return upper === 'US' || upper === 'MX' || upper in BRIDGE_ALPHA3_TO_ALPHA2 || BRIDGE_ALPHA2_SET.has(upper)
     }, [])
 
     return {

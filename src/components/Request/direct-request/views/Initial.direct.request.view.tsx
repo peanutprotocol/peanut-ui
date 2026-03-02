@@ -21,6 +21,7 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { useUserByUsername } from '@/hooks/useUserByUsername'
+import { isUserKycVerified } from '@/constants/kyc.consts'
 
 interface DirectRequestInitialViewProps {
     username: string
@@ -216,7 +217,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                     recipientType={'USERNAME'}
                     username={recipientUser?.username || username}
                     fullName={recipientUser?.fullName}
-                    isVerified={recipientUser?.bridgeKycStatus === 'approved'}
+                    isVerified={isUserKycVerified(recipientUser)}
                     haveSentMoneyToUser={recipientUser?.userId ? interactions[recipientUser.userId] || false : false}
                 />
 

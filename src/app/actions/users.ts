@@ -194,6 +194,7 @@ export const confirmBridgeTos = async (): Promise<{ data?: { accepted: boolean }
                 Authorization: `Bearer ${jwtToken}`,
                 'api-key': API_KEY,
             },
+            body: JSON.stringify({}),
         })
         const responseJson = await response.json()
         if (!response.ok) {

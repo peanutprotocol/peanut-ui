@@ -12,6 +12,7 @@ import { DeviceType, useDeviceType } from './useGetDeviceType'
 import { usePWAStatus } from './usePWAStatus'
 import { useGeoLocation } from './useGeoLocation'
 import { useCardPioneerInfo } from './useCardPioneerInfo'
+import { useBridgeTosStatus } from './useBridgeTosStatus'
 import { STAR_STRAIGHT_ICON } from '@/assets'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 
@@ -50,6 +51,8 @@ export const useHomeCarouselCTAs = () => {
         hasPurchased: hasCardPioneerPurchased,
         isLoading: isCardPioneerLoading,
     } = useCardPioneerInfo()
+    const { needsBridgeTos } = useBridgeTosStatus()
+    const [showBridgeTos, setShowBridgeTos] = useState(false)
 
     const generateCarouselCTAs = useCallback(() => {
         const _carouselCTAs: CarouselCTA[] = []
@@ -57,6 +60,18 @@ export const useHomeCarouselCTAs = () => {
         // DRY: Check KYC approval status once
         const hasKycApproval = isUserKycApproved || isUserMantecaKycApproved
         const isLatamUser = userCountryCode === 'AR' || userCountryCode === 'BR'
+
+        // Bridge ToS acceptance — must be first CTA when user has pending ToS
+        if (needsBridgeTos) {
+            _carouselCTAs.push({
+                id: 'bridge-tos',
+                title: 'Accept terms of service',
+                description: 'Required to enable bank transfers',
+                icon: 'alert',
+                iconContainerClassName: 'bg-yellow-1',
+                onClick: () => setShowBridgeTos(true),
+            })
+        }
 
         // Card Pioneer CTA - show to all users who haven't purchased yet
         // Eligibility check happens during the flow (geo screen)
@@ -215,6 +230,7 @@ export const useHomeCarouselCTAs = () => {
         isCardPioneerEligible,
         hasCardPioneerPurchased,
         isCardPioneerLoading,
+        needsBridgeTos,
     ])
 
     useEffect(() => {
@@ -226,5 +242,5 @@ export const useHomeCarouselCTAs = () => {
         generateCarouselCTAs()
     }, [user, generateCarouselCTAs, isPermissionGranted])
 
-    return { carouselCTAs, setCarouselCTAs }
+    return { carouselCTAs, setCarouselCTAs, showBridgeTos, setShowBridgeTos }
 }

@@ -1,9 +1,8 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { KYCStatusDrawerItem } from '../KYCStatusDrawerItem'
-import { RejectLabelsList } from '../RejectLabelsList'
+import { KycFailedContent } from '../KycFailedContent'
 import Card from '@/components/Global/Card'
-import InfoCard from '@/components/Global/InfoCard'
 import { useMemo } from 'react'
 import { formatDate } from '@/utils/general.utils'
 import { CountryRegionRow } from '../CountryRegionRow'
@@ -54,39 +53,34 @@ export const KycFailed = ({
         [isSumsub, rejectType, failureCount, rejectLabels]
     )
 
-    // formatted bridge reason (legacy display)
-    const formattedBridgeReason = useMemo(() => {
-        const reasonText = bridgeReason || 'There was an issue. Contact Support.'
-        const lines = reasonText.split(/\\n|\n/).filter((line) => line.trim() !== '')
-        if (lines.length === 1) return reasonText
-        return (
-            <ul className="list-disc space-y-1 pl-4">
-                {lines.map((line, index) => (
-                    <li key={index}>{line}</li>
-                ))}
-            </ul>
-        )
-    }, [bridgeReason])
+    // determine which row is last in the card for border handling
+    const hasCountryRow = isBridge || !!countryCode
+    const hasReasonRow = !isSumsub
 
     return (
         <div className="space-y-4">
             <KYCStatusDrawerItem status="failed" />
 
-            <Card position="single">
-                <PaymentInfoRow label="Rejected on" value={rejectedOn} />
-                <CountryRegionRow countryCode={countryCode} isBridge={isBridge} />
-                {!isSumsub && <PaymentInfoRow label="Reason" value={formattedBridgeReason} hideBottomBorder />}
+            <Card position="single" className="py-0">
+                <PaymentInfoRow
+                    label="Rejected on"
+                    value={rejectedOn}
+                    hideBottomBorder={!hasCountryRow && !hasReasonRow}
+                />
+                <CountryRegionRow countryCode={countryCode} isBridge={isBridge} hideBottomBorder={!hasReasonRow} />
+                {hasReasonRow && (
+                    <PaymentInfoRow
+                        label="Reason"
+                        value={bridgeReason || 'There was an issue. Contact Support.'}
+                        hideBottomBorder
+                    />
+                )}
             </Card>
 
-            {isSumsub && <RejectLabelsList rejectLabels={rejectLabels} />}
+            {isSumsub && <KycFailedContent rejectLabels={rejectLabels} isTerminal={isTerminal} />}
 
             {isTerminal ? (
-                <div className="space-y-3">
-                    <InfoCard
-                        variant="error"
-                        icon="lock"
-                        description="Your verification cannot be retried. Please contact support for help."
-                    />
+                <div className="p-1">
                     {/* TODO: auto-create crisp support ticket on terminal rejection */}
                     <Button
                         variant="purple"

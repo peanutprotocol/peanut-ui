@@ -4,8 +4,9 @@ import { useState, useCallback, useEffect } from 'react'
 import ActionModal from '@/components/Global/ActionModal'
 import IframeWrapper from '@/components/Global/IframeWrapper'
 import { type IconName } from '@/components/Global/Icons/Icon'
-import { getBridgeTosLink, confirmBridgeTos } from '@/app/actions/users'
+import { getBridgeTosLink } from '@/app/actions/users'
 import { useAuth } from '@/context/authContext'
+import { confirmBridgeTosAndAwaitRails } from '@/hooks/useMultiPhaseKycFlow'
 
 interface BridgeTosStepProps {
     visible: boolean
@@ -62,29 +63,9 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip }: BridgeTosStepProp
             setShowIframe(false)
 
             if (source === 'tos_accepted') {
-                // confirm with backend that bridge actually accepted the ToS
-                const result = await confirmBridgeTos()
-
-                if (result.data?.accepted) {
-                    await fetchUser()
-                    onComplete()
-                    return
-                }
-
-                // bridge hasn't registered acceptance yet — poll once after a short delay
-                await new Promise((resolve) => setTimeout(resolve, 2000))
-                const retry = await confirmBridgeTos()
-
-                if (retry.data?.accepted) {
-                    await fetchUser()
-                    onComplete()
-                } else {
-                    // will be caught by poller/webhook eventually
-                    await fetchUser()
-                    onComplete()
-                }
+                await confirmBridgeTosAndAwaitRails(fetchUser)
+                onComplete()
             } else {
-                // user closed without accepting — skip, activity feed will remind them
                 onSkip()
             }
         },

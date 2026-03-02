@@ -4,7 +4,6 @@ import NavHeader from '@/components/Global/NavHeader'
 import Card from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { useLimits } from '@/hooks/useLimits'
-import useKycStatus from '@/hooks/useKycStatus'
 import { useRouter } from 'next/navigation'
 import { MAX_QR_PAYMENT_AMOUNT_FOREIGN } from '@/constants/payment.consts'
 import Image from 'next/image'
@@ -25,8 +24,7 @@ import EmptyState from '@/components/Global/EmptyStates/EmptyState'
  */
 const BridgeLimitsView = () => {
     const router = useRouter()
-    const { bridgeLimits, isLoading, error } = useLimits()
-    const { isUserMantecaKycApproved } = useKycStatus()
+    const { bridgeLimits, isLoading, error, hasMantecaLimits } = useLimits()
 
     // url state for source region (where user came from)
     const [region] = useQueryState(
@@ -90,7 +88,7 @@ const BridgeLimitsView = () => {
                     )}
 
                     {/* qr payment limits accordion - for bridge users without manteca kyc */}
-                    {!isUserMantecaKycApproved && (
+                    {!hasMantecaLimits && (
                         <div className="space-y-2">
                             <h3 className="font-bold">QR payment limits:</h3>
                             <Card position="single" className="p-0">

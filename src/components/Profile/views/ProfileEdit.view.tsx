@@ -14,7 +14,7 @@ import useKycStatus from '@/hooks/useKycStatus'
 export const ProfileEditView = () => {
     const router = useRouter()
     const { user, fetchUser } = useAuth()
-    const { isUserBridgeKycApproved } = useKycStatus()
+    const { isUserKycApproved } = useKycStatus()
 
     const [isLoading, setIsLoading] = useState(false)
     const [errorMessage, setErrorMessage] = useState('')
@@ -115,7 +115,7 @@ export const ProfileEditView = () => {
         <div className="space-y-8">
             <NavHeader title="Edit Profile" onPrev={() => router.push('/profile')} />
 
-            <ProfileHeader name={fullName} username={username} isVerified={isUserBridgeKycApproved} />
+            <ProfileHeader name={fullName} username={username} isVerified={isUserKycApproved} />
 
             <div className="space-y-4">
                 <ProfileEditField
@@ -123,7 +123,7 @@ export const ProfileEditView = () => {
                     value={formData.name}
                     onChange={(value) => handleChange('name', value)}
                     placeholder="Add your name"
-                    disabled={user?.user.bridgeKycStatus === 'approved'}
+                    disabled={isUserKycApproved}
                 />
 
                 <ProfileEditField
@@ -131,7 +131,7 @@ export const ProfileEditView = () => {
                     value={formData.surname}
                     onChange={(value) => handleChange('surname', value)}
                     placeholder="Add your surname"
-                    disabled={user?.user.bridgeKycStatus === 'approved'}
+                    disabled={isUserKycApproved}
                 />
 
                 <ProfileEditField

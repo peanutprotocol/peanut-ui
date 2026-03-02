@@ -15,8 +15,6 @@ import { type CardPosition, getCardPosition } from '../Global/Card/card.utils'
 import EmptyState from '../Global/EmptyStates/EmptyState'
 import { KycStatusItem, isKycStatusItem, type KycHistoryEntry } from '../Kyc/KycStatusItem'
 import { groupKycByRegion } from '@/utils/kyc-grouping.utils'
-import { BridgeTosReminder } from '../Kyc/BridgeTosReminder'
-import { useBridgeTosStatus } from '@/hooks/useBridgeTosStatus'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { BadgeStatusItem } from '@/components/Badges/BadgeStatusItem'
 import { isBadgeHistoryItem } from '@/components/Badges/badge.types'
@@ -45,8 +43,6 @@ const HomeHistory = ({ username, hideTxnAmount = false }: { username?: string; h
     const { fetchBalance } = useWallet()
     const { triggerHaptic } = useHaptic()
     const { fetchUser } = useAuth()
-    const { needsBridgeTos } = useBridgeTosStatus()
-
     const isViewingOwnHistory = useMemo(
         () => (isLoggedIn && !username) || (isLoggedIn && username === user?.user.username),
         [isLoggedIn, username, user?.user.username]
@@ -251,7 +247,6 @@ const HomeHistory = ({ username, hideTxnAmount = false }: { username?: string; h
         return (
             <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
                 <h2 className="text-base font-bold">Activity</h2>
-                {isViewingOwnHistory && needsBridgeTos && <BridgeTosReminder />}
                 {isViewingOwnHistory &&
                     user?.user &&
                     (() => {
@@ -290,9 +285,6 @@ const HomeHistory = ({ username, hideTxnAmount = false }: { username?: string; h
 
     return (
         <div className={twMerge('mx-auto w-full space-y-3 md:max-w-2xl md:space-y-3', isLoggedIn ? 'pb-4' : 'pb-0')}>
-            {/* bridge ToS reminder for users who haven't accepted yet */}
-            {isViewingOwnHistory && needsBridgeTos && <BridgeTosReminder />}
-
             {/* link to the full history page */}
             {pendingRequests.length > 0 && (
                 <>

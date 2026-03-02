@@ -31,6 +31,25 @@ const SUMSUB_IN_PROGRESS_STATUSES: ReadonlySet<string> = new Set(['PENDING', 'IN
 export const isKycStatusApproved = (status: string | undefined | null): boolean =>
     !!status && APPROVED_STATUSES.has(status)
 
+/**
+ * check if a user (from API data) has completed kyc with any provider.
+ * works with user objects from getUserById, contacts, senders, recipients, etc.
+ * for current user, prefer useUnifiedKycStatus hook instead.
+ */
+export function isUserKycVerified(
+    user:
+        | {
+              bridgeKycStatus?: string | null
+              kycVerifications?: Array<{ status: string }> | null
+          }
+        | null
+        | undefined
+): boolean {
+    if (!user) return false
+    if (user.bridgeKycStatus === 'approved') return true
+    return user.kycVerifications?.some((v) => isKycStatusApproved(v.status)) ?? false
+}
+
 /** check if a kyc status represents a failed/rejected state */
 export const isKycStatusFailed = (status: string | undefined | null): boolean => !!status && FAILED_STATUSES.has(status)
 

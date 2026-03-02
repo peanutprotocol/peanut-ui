@@ -238,7 +238,7 @@ const PointsPage = () => {
                             {invites.invitees?.slice(0, 5).map((invite: PointsInvite, i: number) => {
                                 const username = invite.username
                                 const fullName = invite.fullName
-                                const isVerified = invite.kycStatus === 'approved'
+                                const isVerified = invite.kycVerified
                                 const pointsEarned = invite.contributedPoints ?? 0
                                 // respect user's showFullName preference for avatar and display name
                                 const displayName = invite.showFullName && fullName ? fullName : username

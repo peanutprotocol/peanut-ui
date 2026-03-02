@@ -8,6 +8,27 @@ import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 
 const PREPARING_TIMEOUT_MS = 30000
 
+/**
+ * confirms bridge ToS acceptance (with one retry) then polls fetchUser
+ * until bridge rails leave REQUIRES_INFORMATION. max 3 attempts × 2s.
+ */
+export async function confirmBridgeTosAndAwaitRails(fetchUser: () => Promise<any>) {
+    const result = await confirmBridgeTos()
+    if (!result.data?.accepted) {
+        await new Promise((resolve) => setTimeout(resolve, 2000))
+        await confirmBridgeTos()
+    }
+
+    for (let i = 0; i < 3; i++) {
+        const updatedUser = await fetchUser()
+        const stillNeedsTos = (updatedUser?.rails ?? []).some(
+            (r: any) => r.rail.provider.code === 'BRIDGE' && r.status === 'REQUIRES_INFORMATION'
+        )
+        if (!stillNeedsTos) break
+        if (i < 2) await new Promise((resolve) => setTimeout(resolve, 2000))
+    }
+}
+
 interface UseMultiPhaseKycFlowOptions {
     onKycSuccess?: () => void
     onManualClose?: () => void
@@ -214,20 +235,9 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
             setShowTosIframe(false)
 
             if (source === 'tos_accepted') {
-                // confirm with backend
-                const result = await confirmBridgeTos()
-
-                if (!result.data?.accepted) {
-                    // bridge may not have registered acceptance yet — retry after short delay
-                    await new Promise((resolve) => setTimeout(resolve, 2000))
-                    const retryResult = await confirmBridgeTos()
-                    if (!retryResult.data?.accepted) {
-                        console.warn('[useMultiPhaseKycFlow] bridge ToS confirmation failed after retry')
-                    }
-                }
-
-                // optimistically complete — don't wait for rail status WebSocket
-                await fetchUser()
+                // show loading state while confirming + polling
+                setModalPhase('preparing')
+                await confirmBridgeTosAndAwaitRails(fetchUser)
                 completeFlow()
             }
             // if manual close, stay on bridge_tos phase (user can try again)

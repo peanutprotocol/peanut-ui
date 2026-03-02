@@ -3,6 +3,7 @@ import { useAuth } from '@/context/authContext'
 import { useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import { useEffect, useState } from 'react'
 import useKycStatus from './useKycStatus'
+import { isUserKycVerified } from '@/constants/kyc.consts'
 
 export enum BankRequestType {
     GuestBankRequest = 'guest-bank-request',
@@ -23,11 +24,11 @@ export function useDetermineBankRequestType(requesterUserId: string): {
     const { user } = useAuth()
     const [requestType, setRequestType] = useState<BankRequestType>(BankRequestType.PayerKycNeeded)
     const { setRequesterDetails } = useRequestFulfillmentFlow()
-    const { isUserBridgeKycApproved } = useKycStatus()
+    const { isUserKycApproved } = useKycStatus()
 
     useEffect(() => {
         const determineBankRequestType = async () => {
-            const payerKycApproved = isUserBridgeKycApproved
+            const payerKycApproved = isUserKycApproved
 
             if (payerKycApproved) {
                 setRequestType(BankRequestType.UserBankRequest)
@@ -45,7 +46,7 @@ export function useDetermineBankRequestType(requesterUserId: string): {
 
             try {
                 const requesterDetails = await getUserById(requesterUserId)
-                const requesterKycApproved = requesterDetails?.bridgeKycStatus === 'approved'
+                const requesterKycApproved = isUserKycVerified(requesterDetails)
 
                 if (requesterKycApproved) {
                     setRequesterDetails(requesterDetails)

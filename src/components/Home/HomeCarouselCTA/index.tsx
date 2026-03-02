@@ -8,14 +8,15 @@ import { type IconName } from '@/components/Global/Icons/Icon'
 import { useHomeCarouselCTAs, type CarouselCTA as CarouselCTAType } from '@/hooks/useHomeCarouselCTAs'
 import { perksApi, type PendingPerk } from '@/services/perks'
 import { useAuth } from '@/context/authContext'
+import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { extractInviteeName } from '@/utils/general.utils'
 import PerkClaimModal from '../PerkClaimModal'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 
 const HomeCarouselCTA = () => {
-    const { carouselCTAs, setCarouselCTAs } = useHomeCarouselCTAs()
-    const { user } = useAuth()
+    const { carouselCTAs, setCarouselCTAs, showBridgeTos, setShowBridgeTos } = useHomeCarouselCTAs()
+    const { user, fetchUser } = useAuth()
     const queryClient = useQueryClient()
 
     // Perk claim modal state
@@ -89,6 +90,17 @@ const HomeCarouselCTA = () => {
         setSelectedPerk(null)
     }, [])
 
+    // bridge ToS handlers
+    const handleTosComplete = useCallback(async () => {
+        setShowBridgeTos(false)
+        setCarouselCTAs((prev) => prev.filter((c) => c.id !== 'bridge-tos'))
+        await fetchUser()
+    }, [setShowBridgeTos, setCarouselCTAs, fetchUser])
+
+    const handleTosSkip = useCallback(() => {
+        setShowBridgeTos(false)
+    }, [setShowBridgeTos])
+
     // don't render carousel if there are no CTAs
     if (!allCTAs.length) return null
 
@@ -130,6 +142,9 @@ const HomeCarouselCTA = () => {
                     onClaimed={handlePerkClaimed}
                 />
             )}
+
+            {/* Bridge ToS iframe */}
+            <BridgeTosStep visible={showBridgeTos} onComplete={handleTosComplete} onSkip={handleTosSkip} />
         </>
     )
 }
