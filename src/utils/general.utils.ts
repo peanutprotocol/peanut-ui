@@ -19,6 +19,7 @@ import { type ChargeEntry } from '@/services/services.types'
 import { toWebAuthnKey } from '@zerodev/passkey-validator'
 import { USER_OPERATION_REVERT_REASON_TOPIC } from '@/constants/zerodev.consts'
 import { CHAIN_LOGOS, type ChainName } from '@/constants/rhino.consts'
+import { isUserKycVerified } from '@/constants/kyc.consts'
 
 export function urlBase64ToUint8Array(base64String: string) {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -984,7 +985,7 @@ export const getContributorsFromCharge = (charges: ChargeEntry[]) => {
             amount: charge.tokenAmount,
             username,
             fulfillmentPayment: charge.fulfillmentPayment,
-            isUserVerified: successfulPayment?.payerAccount?.user?.bridgeKycStatus === 'approved',
+            isUserVerified: isUserKycVerified(successfulPayment?.payerAccount?.user),
             isPeanutUser,
         }
     })
