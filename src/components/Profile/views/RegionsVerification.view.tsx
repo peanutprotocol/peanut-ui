@@ -9,7 +9,7 @@ import StartVerificationModal from '@/components/IdentityVerification/StartVerif
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { KycProcessingModal } from '@/components/Kyc/modals/KycProcessingModal'
 import { KycActionRequiredModal } from '@/components/Kyc/modals/KycActionRequiredModal'
-import { KycRejectedModal } from '@/components/Kyc/modals/KycRejectedModal'
+import { KycFailedModal } from '@/components/Kyc/modals/KycFailedModal'
 import { useIdentityVerification, getRegionIntent, type Region } from '@/hooks/useIdentityVerification'
 import useUnifiedKycStatus from '@/hooks/useUnifiedKycStatus'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
@@ -162,7 +162,7 @@ const RegionsVerification = () => {
                 rejectLabels={sumsubRejectLabels}
             />
 
-            <KycRejectedModal
+            <KycFailedModal
                 visible={modalVariant === 'rejected'}
                 onClose={handleModalClose}
                 onRetry={handleResubmitKyc}

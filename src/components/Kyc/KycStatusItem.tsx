@@ -82,9 +82,9 @@ export const KycStatusItem = ({
     const subtitle = useMemo(() => {
         if (isInitiatedButNotStarted) return 'Not completed'
         if (isActionRequired) return 'Action needed'
-        if (isPending) return 'Under review'
-        if (isApproved) return 'Approved'
-        if (isRejected) return 'Rejected'
+        if (isPending) return 'Processing'
+        if (isApproved) return 'Completed'
+        if (isRejected) return 'Failed'
         return 'Unknown'
     }, [isInitiatedButNotStarted, isActionRequired, isPending, isApproved, isRejected])
 

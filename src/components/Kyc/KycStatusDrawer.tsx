@@ -60,10 +60,15 @@ export const KycStatusDrawer = ({
         regionIntent: statusCategory === 'completed' ? undefined : sumsubRegionIntent,
     })
 
-    // all kyc retries now go through sumsub
-    const onRetry = async () => {
-        await sumsubFlow.handleInitiateKyc()
-    }
+    // close drawer but keep mounted so SumsubKycModals persists, then start kyc
+    const closeAndStartKyc = useCallback(
+        async (regionIntent?: KYCRegionIntent, levelName?: string) => {
+            onKeepMounted?.(true)
+            onClose()
+            await sumsubFlow.handleInitiateKyc(regionIntent, levelName)
+        },
+        [onKeepMounted, onClose, sumsubFlow]
+    )
 
     // check if any bridge rail needs additional documents
     const bridgeRailsNeedingDocs = (user?.rails ?? []).filter(
@@ -86,22 +91,17 @@ export const KycStatusDrawer = ({
     const sumsubFailureCount =
         user?.user?.kycVerifications?.filter((v) => v.provider === 'SUMSUB' && v.status === 'REJECTED').length ?? 0
 
-    const handleSubmitAdditionalDocs = async () => {
-        await sumsubFlow.handleInitiateKyc(undefined, 'peanut-additional-docs')
-    }
+    const handleSubmitAdditionalDocs = useCallback(
+        () => closeAndStartKyc(undefined, 'peanut-additional-docs'),
+        [closeAndStartKyc]
+    )
 
     const renderContent = () => {
         // user initiated kyc but abandoned before submitting — close drawer visually
         // but keep component mounted so SumsubKycModals persists for the SDK flow
         if (verification && isKycStatusNotStarted(status)) {
             return (
-                <KycNotStarted
-                    onResume={() => {
-                        onKeepMounted?.(true)
-                        onClose()
-                        sumsubFlow.handleInitiateKyc()
-                    }}
-                />
+                <KycNotStarted onResume={closeAndStartKyc} />
             )
         }
 
@@ -136,7 +136,7 @@ export const KycStatusDrawer = ({
             case 'action_required':
                 return (
                     <KycActionRequired
-                        onResume={onRetry}
+                        onResume={closeAndStartKyc}
                         isLoading={sumsubFlow.isLoading}
                         rejectLabels={verification?.rejectLabels}
                     />
@@ -152,7 +152,7 @@ export const KycStatusDrawer = ({
                         bridgeKycRejectedAt={verification?.updatedAt ?? user?.user?.bridgeKycRejectedAt}
                         countryCode={countryCode ?? undefined}
                         isBridge={isBridgeKyc}
-                        onRetry={onRetry}
+                        onRetry={closeAndStartKyc}
                         isLoading={sumsubFlow.isLoading}
                     />
                 )

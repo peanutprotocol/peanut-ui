@@ -1,11 +1,10 @@
 import { useMemo } from 'react'
 import ActionModal from '@/components/Global/ActionModal'
-import InfoCard from '@/components/Global/InfoCard'
-import { RejectLabelsList } from '../RejectLabelsList'
+import { KycFailedContent } from '../KycFailedContent'
 import { isTerminalRejection } from '@/constants/sumsub-reject-labels.consts'
 import { useModalsContext } from '@/context/ModalsContext'
 
-interface KycRejectedModalProps {
+interface KycFailedModalProps {
     visible: boolean
     onClose: () => void
     onRetry: () => void
@@ -16,7 +15,7 @@ interface KycRejectedModalProps {
 }
 
 // shown when user clicks a locked region while their kyc is rejected
-export const KycRejectedModal = ({
+export const KycFailedModal = ({
     visible,
     onClose,
     onRetry,
@@ -24,7 +23,7 @@ export const KycRejectedModal = ({
     rejectLabels,
     rejectType,
     failureCount,
-}: KycRejectedModalProps) => {
+}: KycFailedModalProps) => {
     const { setIsSupportModalOpen } = useModalsContext()
 
     const isTerminal = useMemo(
@@ -36,24 +35,13 @@ export const KycRejectedModal = ({
         <ActionModal
             visible={visible}
             onClose={onClose}
-            icon={isTerminal ? 'lock' : 'alert'}
-            iconContainerClassName={isTerminal ? 'bg-red-1' : 'bg-yellow-1'}
+            icon={'alert'}
+            iconContainerClassName="bg-yellow-1"
             title={isTerminal ? 'Verification failed' : 'Verification unsuccessful'}
-            description={
-                isTerminal
-                    ? 'Your verification cannot be retried.'
-                    : 'Your verification was not successful. You can try again.'
-            }
+            description={!isTerminal && 'Your verification was not successful. You can try again.'}
             content={
-                <div className="w-full space-y-3">
-                    <RejectLabelsList rejectLabels={rejectLabels} />
-                    {isTerminal && (
-                        <InfoCard
-                            variant="error"
-                            icon="lock"
-                            description="Your verification cannot be retried. Please contact support for help."
-                        />
-                    )}
+                <div className="w-full">
+                    <KycFailedContent rejectLabels={rejectLabels} isTerminal={isTerminal} />
                 </div>
             }
             ctas={[
