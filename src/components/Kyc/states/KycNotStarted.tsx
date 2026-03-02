@@ -1,3 +1,4 @@
+import InfoCard from '@/components/Global/InfoCard'
 import { KYCStatusDrawerItem } from '../KYCStatusDrawerItem'
 import { Button } from '@/components/0_Bruddle/Button'
 
@@ -8,10 +9,11 @@ export const KycNotStarted = ({ onResume, isLoading }: { onResume: () => void; i
         <div className="space-y-4 p-1">
             <KYCStatusDrawerItem status="pending" customText="Not completed" />
 
-            <p className="text-sm text-grey-1">
-                Your verification isn't complete yet. Continue where you left off to enable bank transfers and QR
-                payments.
-            </p>
+            <InfoCard
+                variant="info"
+                description="Your verification isn't complete yet. Continue where you left off to enable bank transfers and QR
+                payments."
+            />
 
             <Button className="w-full" shadowSize="4" onClick={onResume} disabled={isLoading}>
                 {isLoading ? 'Loading...' : 'Continue verification'}
