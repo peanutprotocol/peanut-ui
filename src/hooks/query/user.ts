@@ -53,9 +53,11 @@ export const useUserQuery = (dependsOn: boolean = true) => {
     return useQuery({
         queryKey: [USER],
         queryFn: fetchUser,
-        retry: (failureCount, error) => {
-            if (error instanceof BackendError && failureCount < 2) return true
-            return false
+        retry: (failureCount, _error) => {
+            // retry all errors (5xx, network timeouts, connection failures) up to 2 times
+            // previously only BackendError (5xx) was retried, meaning a single network
+            // blip would instantly show the BackendErrorScreen with zero retries
+            return failureCount < 2
         },
         retryDelay: 1000,
         enabled: dependsOn,
