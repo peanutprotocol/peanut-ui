@@ -17,6 +17,7 @@ export const CountryFlagAndName = ({ countryCode, isBridgeRegion }: CountryFlagA
                         'https://flagcdn.com/w160/us.png',
                         'https://flagcdn.com/w160/eu.png',
                         'https://flagcdn.com/w160/mx.png',
+                        'https://flagcdn.com/w160/gb.png',
                     ]}
                     iconSize={80}
                     imageClassName="h-5 w-5 min-h-5 min-w-5 rounded-full object-cover object-center shadow-sm"
@@ -31,7 +32,7 @@ export const CountryFlagAndName = ({ countryCode, isBridgeRegion }: CountryFlagA
                     loading="lazy"
                 />
             )}
-            {isBridgeRegion ? 'US/EU/MX' : countryName}
+            {isBridgeRegion ? 'US/EU/MX/UK' : countryName}
         </div>
     )
 }
