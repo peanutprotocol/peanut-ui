@@ -127,10 +127,7 @@ export const KycStatusItem = ({
                                 <p className="text-sm text-grey-1">{subtitle}</p>
                                 <StatusPill
                                     status={
-                                        hasBridgeDocsNeeded ||
-                                        isInitiatedButNotStarted ||
-                                        isActionRequired ||
-                                        isPending
+                                        hasBridgeDocsNeeded || isInitiatedButNotStarted || isActionRequired || isPending
                                             ? 'pending'
                                             : isRejected
                                               ? 'cancelled'
