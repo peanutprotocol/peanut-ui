@@ -141,6 +141,10 @@ const HistoryPage = () => {
             console.log('KYC status updated via WebSocket:', newStatus)
             await fetchUser()
         },
+        onSumsubKycStatusUpdate: async (newStatus: string) => {
+            console.log('Sumsub KYC status updated via WebSocket:', newStatus)
+            await fetchUser()
+        },
     })
 
     const allEntries = useMemo(() => historyData?.pages.flatMap((page) => page.entries) ?? [], [historyData])
