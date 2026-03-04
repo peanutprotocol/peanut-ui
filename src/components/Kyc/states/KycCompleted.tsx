@@ -33,7 +33,7 @@ export const KycCompleted = ({
 
     return (
         <div className="space-y-4">
-            <KYCStatusDrawerItem status="completed" />
+            <KYCStatusDrawerItem status="completed" customText="Verified" />
             <Card position="single">
                 <PaymentInfoRow label="Verified on" value={verifiedOn} />
                 <CountryRegionRow countryCode={countryCode} isBridge={isBridge} />

@@ -1,5 +1,6 @@
 import { KYCStatusDrawerItem } from '../KYCStatusDrawerItem'
 import { Button } from '@/components/0_Bruddle/Button'
+import InfoCard from '@/components/Global/InfoCard'
 import { getRequirementLabel } from '@/constants/bridge-requirements.consts'
 
 // shows when a payment provider (bridge) needs additional documents from the user.
@@ -15,25 +16,28 @@ export const KycRequiresDocuments = ({
 }) => {
     return (
         <div className="space-y-4 p-1">
-            <KYCStatusDrawerItem status="pending" customText="Additional documents needed" />
+            <KYCStatusDrawerItem status="pending" customText="Action needed" />
 
             <div className="space-y-3">
-                <p className="text-sm text-gray-1">Your payment provider requires additional verification documents.</p>
+                <p className="text-xs text-gray-1">Our payment provider requires additional verification documents.</p>
                 {requirements.length > 0 ? (
                     requirements.map((req) => {
                         const label = getRequirementLabel(req)
                         return (
-                            <div key={req} className="border border-n-1 p-3">
-                                <p className="text-sm font-bold">{label.title}</p>
-                                <p className="mt-1 text-xs text-gray-1">{label.description}</p>
-                            </div>
+                            <InfoCard
+                                variant="info"
+                                key={label.title}
+                                description={label.description}
+                                title={label.title}
+                            />
                         )
                     })
                 ) : (
-                    <div className="border border-n-1 p-3">
-                        <p className="text-sm font-bold">Additional Document</p>
-                        <p className="mt-1 text-xs text-gray-1">Please provide the requested document.</p>
-                    </div>
+                    <InfoCard
+                        variant="info"
+                        title={'Additional Document'}
+                        description={'Please provide the requested document.'}
+                    />
                 )}
             </div>
 

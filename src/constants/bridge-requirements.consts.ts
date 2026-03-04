@@ -26,7 +26,7 @@ const BRIDGE_REQUIREMENT_LABELS: Record<string, RequirementLabelInfo> = {
 
 const FALLBACK_LABEL: RequirementLabelInfo = {
     title: 'Additional Document',
-    description: 'Please provide the requested document.',
+    description: 'Please resubmit your identity document.',
 }
 
 /** get human-readable label for a bridge additional requirement */
