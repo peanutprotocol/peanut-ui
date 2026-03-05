@@ -490,7 +490,7 @@ export default function QRPayPage() {
             if (paymentProcessor !== 'MANTECA' || !qrCode || !isPaymentProcessorQR(qrCode)) {
                 return null
             }
-            return mantecaApi.initiateQrPayment({ qrCode })
+            return mantecaApi.initiateQrPayment({ qrCode, qrType: qrType ?? undefined })
         },
         enabled: paymentProcessor === 'MANTECA' && !!qrCode && isPaymentProcessorQR(qrCode) && !paymentLock,
         retry: (failureCount, error: any) => {
@@ -693,6 +693,7 @@ export default function QRPayPage() {
                 signedUserOp,
                 chainId: signedUserOpData.chainId,
                 entryPointAddress: signedUserOpData.entryPointAddress,
+                qrType: qrType ?? undefined,
             })
             // clear the timer since we got a response
             if (payingStateTimerRef.current) {
