@@ -3,7 +3,7 @@
 import { type IClaimScreenProps } from '../../Claim.consts'
 import { DynamicBankAccountForm, type IBankAccountDetails } from '@/components/AddWithdraw/DynamicBankAccountForm'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
-import { useCallback, useContext, useState, useRef, useEffect } from 'react'
+import { useCallback, useContext, useState, useRef } from 'react'
 import { loadingStateContext } from '@/context'
 import { createBridgeExternalAccountForGuest } from '@/app/actions/external-accounts'
 import { confirmOfframp, createOfframp, createOfframpForGuest } from '@/app/actions/offramp'
@@ -25,8 +25,6 @@ import useSavedAccounts from '@/hooks/useSavedAccounts'
 import { ConfirmBankClaimView } from './Confirm.bank-claim.view'
 import { CountryListRouter } from '@/components/Common/CountryListRouter'
 import NavHeader from '@/components/Global/NavHeader'
-import { useWebSocket } from '@/hooks/useWebSocket'
-import { type BridgeKycStatus } from '@/utils/bridge-accounts.utils'
 import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
 import { useAppDispatch } from '@/redux/hooks'
 import { bankFormActions } from '@/redux/slices/bank-form-slice'
@@ -96,27 +94,8 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
     const [receiverFullName, setReceiverFullName] = useState<string>('')
     const [error, setError] = useState<string | null>(null)
     const formRef = useRef<{ handleSubmit: () => void }>(null)
-    const [liveKycStatus, setLiveKycStatus] = useState<BridgeKycStatus | undefined>(
-        user?.user?.bridgeKycStatus as BridgeKycStatus
-    )
     const [isProcessingKycSuccess, setIsProcessingKycSuccess] = useState(false)
     const [offrampData, setOfframpData] = useState<TCreateOfframpResponse | null>(null)
-
-    // websocket for real-time KYC status updates
-    useWebSocket({
-        username: user?.user.username ?? undefined,
-        autoConnect: !!user?.user.username,
-        onKycStatusUpdate: (newStatus) => {
-            setLiveKycStatus(newStatus as BridgeKycStatus)
-        },
-    })
-
-    // effect to update live KYC status from user object
-    useEffect(() => {
-        if (user?.user.bridgeKycStatus) {
-            setLiveKycStatus(user.user.bridgeKycStatus as BridgeKycStatus)
-        }
-    }, [user?.user.bridgeKycStatus])
 
     /**
      * @name handleConfirmClaim

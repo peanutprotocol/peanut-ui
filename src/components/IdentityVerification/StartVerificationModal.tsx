@@ -6,40 +6,42 @@ import { Icon } from '../Global/Icons/Icon'
 import { type Region } from '@/hooks/useIdentityVerification'
 import React from 'react'
 
+const QR_PAYMENTS = (
+    <p key="qr">
+        QR Payments in <b>Argentina and Brazil</b>
+    </p>
+)
+
+const BRIDGE_UNLOCK_ITEMS: Array<string | React.ReactNode> = [
+    <p key="sepa">
+        <b>Europe</b> SEPA transfers (+30 countries)
+    </p>,
+    <p key="uk">
+        <b>UK</b> Faster payment transfers
+    </p>,
+    <p key="ach">
+        <b>United States</b> ACH and Wire transfers
+    </p>,
+    <p key="mx">
+        <b>Mexico</b> SPEI transfers
+    </p>,
+    QR_PAYMENTS,
+]
+
 // unlock benefits shown per region
 const REGION_UNLOCK_ITEMS: Record<string, Array<string | React.ReactNode>> = {
     latam: [
         <p key="bank">
             Bank transfers to your own accounts in <b>LATAM</b>
         </p>,
-        <p key="qr">
-            QR Payments in <b>Argentina and Brazil</b>
-        </p>,
+        QR_PAYMENTS,
     ],
-    europe: [
-        <p key="sepa">
-            <b>Europe</b> SEPA transfers (+30 countries)
-        </p>,
-        <p key="qr">
-            QR Payments in <b>Argentina and Brazil</b>
-        </p>,
-    ],
-    'north-america': [
-        <p key="ach">
-            <b>United States</b> ACH and Wire transfers
-        </p>,
-        <p key="mx">
-            <b>Mexico</b> SPEI transfers
-        </p>,
-        <p key="qr">
-            QR Payments in <b>Argentina and Brazil</b>
-        </p>,
-    ],
-    'rest-of-the-world': [
-        <p key="qr">
-            QR Payments in <b>Argentina and Brazil</b>
-        </p>,
-    ],
+
+    europe: BRIDGE_UNLOCK_ITEMS,
+
+    'north-america': BRIDGE_UNLOCK_ITEMS,
+
+    'rest-of-the-world': [QR_PAYMENTS],
 }
 
 const DEFAULT_UNLOCK_ITEMS = [<p key="bank">Bank transfers and local payment methods</p>]

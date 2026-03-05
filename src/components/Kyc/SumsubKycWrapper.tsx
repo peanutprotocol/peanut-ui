@@ -90,6 +90,10 @@ export const SumsubKycWrapper = ({
         }
 
         try {
+            // track sdk init time so we can ignore stale onApplicantStatusChanged events
+            // that fire immediately when the applicant is already approved (e.g. additional-docs flow)
+            const sdkInitTime = Date.now()
+
             const handleSubmitted = () => {
                 console.log('[sumsub] onApplicantSubmitted fired')
                 stableOnComplete()
@@ -103,6 +107,12 @@ export const SumsubKycWrapper = ({
                 reviewResult?: { reviewAnswer?: string }
             }) => {
                 console.log('[sumsub] onApplicantStatusChanged fired', payload)
+                // ignore status events that fire within 3s of sdk init — these reflect
+                // pre-existing state (e.g. user already approved), not a new submission
+                if (Date.now() - sdkInitTime < 3000) {
+                    console.log('[sumsub] ignoring early onApplicantStatusChanged (pre-existing state)')
+                    return
+                }
                 // auto-close when sumsub shows success screen
                 if (payload?.reviewStatus === 'completed' && payload?.reviewResult?.reviewAnswer === 'GREEN') {
                     stableOnComplete()

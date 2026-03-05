@@ -71,6 +71,15 @@ export const KycStatusItem = ({
     const finalBridgeKycStatus = wsBridgeKycStatus || bridgeKycStatus || user?.user?.bridgeKycStatus
     const kycStatus = verification ? verification.status : finalBridgeKycStatus
 
+    // check if any bridge rail needs additional documents
+    const hasBridgeDocsNeeded = useMemo(
+        () =>
+            (user?.rails ?? []).some(
+                (r) => r.status === 'REQUIRES_EXTRA_INFORMATION' && r.rail.provider.code === 'BRIDGE'
+            ),
+        [user?.rails]
+    )
+
     const isApproved = isKycStatusApproved(kycStatus)
     const isPending = isKycStatusPending(kycStatus)
     const isRejected = isKycStatusFailed(kycStatus)
@@ -80,13 +89,14 @@ export const KycStatusItem = ({
     const isInitiatedButNotStarted = !!verification && isKycStatusNotStarted(kycStatus)
 
     const subtitle = useMemo(() => {
+        if (hasBridgeDocsNeeded) return 'Action needed'
         if (isInitiatedButNotStarted) return 'Not completed'
         if (isActionRequired) return 'Action needed'
         if (isPending) return 'Processing'
-        if (isApproved) return 'Completed'
+        if (isApproved) return 'Verified'
         if (isRejected) return 'Failed'
         return 'Unknown'
-    }, [isInitiatedButNotStarted, isActionRequired, isPending, isApproved, isRejected])
+    }, [hasBridgeDocsNeeded, isInitiatedButNotStarted, isActionRequired, isPending, isApproved, isRejected])
 
     const title = useMemo(() => {
         if (region === 'LATAM') return 'LATAM verification'
@@ -95,7 +105,7 @@ export const KycStatusItem = ({
 
     // only hide for bridge's default "not_started" state.
     // if a verification record exists, the user has initiated KYC — show it.
-    if (!verification && isKycStatusNotStarted(kycStatus)) {
+    if (!verification && !hasBridgeDocsNeeded && isKycStatusNotStarted(kycStatus)) {
         return null
     }
 
@@ -117,7 +127,7 @@ export const KycStatusItem = ({
                                 <p className="text-sm text-grey-1">{subtitle}</p>
                                 <StatusPill
                                     status={
-                                        isInitiatedButNotStarted || isActionRequired || isPending
+                                        hasBridgeDocsNeeded || isInitiatedButNotStarted || isActionRequired || isPending
                                             ? 'pending'
                                             : isRejected
                                               ? 'cancelled'

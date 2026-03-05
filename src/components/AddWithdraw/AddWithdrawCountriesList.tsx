@@ -10,12 +10,10 @@ import Image, { type StaticImageData } from 'next/image'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import EmptyState from '../Global/EmptyStates/EmptyState'
 import { useAuth } from '@/context/authContext'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { DynamicBankAccountForm, type IBankAccountDetails } from './DynamicBankAccountForm'
 import { addBankAccount } from '@/app/actions/users'
-import { type BridgeKycStatus } from '@/utils/bridge-accounts.utils'
 import { type AddBankAccountPayload } from '@/app/actions/types/users.types'
-import { useWebSocket } from '@/hooks/useWebSocket'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { type Account } from '@/interfaces'
 import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
@@ -64,27 +62,10 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const [view, setView] = useState<'list' | 'form'>(flow === 'withdraw' && amountToWithdraw ? 'form' : 'list')
     const [isKycModalOpen, setIsKycModalOpen] = useState(false)
     const formRef = useRef<{ handleSubmit: () => void }>(null)
-    const [liveKycStatus, setLiveKycStatus] = useState<BridgeKycStatus | undefined>(
-        user?.user?.bridgeKycStatus as BridgeKycStatus
-    )
     const [isSupportedTokensModalOpen, setIsSupportedTokensModalOpen] = useState(false)
 
-    const { isUserBridgeKycUnderReview } = useKycStatus()
+    const { isUserKycApproved, isUserBridgeKycUnderReview } = useKycStatus()
     const [showKycStatusModal, setShowKycStatusModal] = useState(false)
-
-    useWebSocket({
-        username: user?.user.username ?? undefined,
-        autoConnect: !!user?.user.username,
-        onKycStatusUpdate: (newStatus) => {
-            setLiveKycStatus(newStatus as BridgeKycStatus)
-        },
-    })
-
-    useEffect(() => {
-        if (user?.user.bridgeKycStatus) {
-            setLiveKycStatus(user.user.bridgeKycStatus as BridgeKycStatus)
-        }
-    }, [user?.user.bridgeKycStatus])
 
     const countryPathParts = Array.isArray(params.country) ? params.country : [params.country]
     const isBankPage = countryPathParts[countryPathParts.length - 1] === 'bank'
@@ -100,14 +81,12 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     ): Promise<{ error?: string }> => {
         // re-fetch user to ensure we have the latest KYC status
         // (the multi-phase flow may have completed but websocket/state not yet propagated)
-        const freshUser = await fetchUser()
-        const currentKycStatus = freshUser?.user?.bridgeKycStatus || liveKycStatus || user?.user.bridgeKycStatus
-        const isUserKycVerified = currentKycStatus === 'approved'
+        await fetchUser()
 
         // scenario (1): happy path: if the user has already completed kyc, we can add the bank account directly
         // email and name are now collected by sumsub — no need to check them here
-        if (isUserKycVerified) {
-            const currentAccountIds = new Set((freshUser?.accounts ?? user?.accounts ?? []).map((acc) => acc.id))
+        if (isUserKycApproved) {
+            const currentAccountIds = new Set((user?.accounts ?? []).map((acc) => acc.id))
 
             const result = await addBankAccount(payload)
             if (result.error) {
@@ -149,7 +128,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
         // scenario (2): if the user hasn't completed kyc yet
         // name and email are now collected by sumsub sdk — no need to save them beforehand
-        if (!isUserKycVerified) {
+        if (!isUserKycApproved) {
             await sumsubFlow.handleInitiateKyc('STANDARD')
         }
 

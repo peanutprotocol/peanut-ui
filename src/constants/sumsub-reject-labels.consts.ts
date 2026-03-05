@@ -270,6 +270,13 @@ const REJECT_LABEL_MAP: Record<string, RejectLabelInfo> = {
         title: 'Verification temporarily unavailable',
         description: 'The verification database is currently unavailable. Please try again later.',
     },
+
+    // --- provider submission errors (retryable) ---
+    DUPLICATE_EMAIL: {
+        title: 'Email already in use',
+        description:
+            'The email you entered is already associated with another account. Please verify again with a different email.',
+    },
 }
 
 const FALLBACK_LABEL_INFO: RejectLabelInfo = {

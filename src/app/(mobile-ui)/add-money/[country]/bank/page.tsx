@@ -9,9 +9,8 @@ import { useOnrampFlow } from '@/context/OnrampFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { formatAmount } from '@/utils/general.utils'
 import { countryData } from '@/components/AddMoney/consts'
-import { type BridgeKycStatus } from '@/utils/bridge-accounts.utils'
-import { useWebSocket } from '@/hooks/useWebSocket'
 import { useAuth } from '@/context/authContext'
+import useKycStatus from '@/hooks/useKycStatus'
 import { useCreateOnramp } from '@/hooks/useCreateOnramp'
 import { useRouter, useParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -56,7 +55,6 @@ export default function OnrampBankPage() {
     const [showWarningModal, setShowWarningModal] = useState<boolean>(false)
     const [showKycModal, setShowKycModal] = useState<boolean>(false)
     const [isRiskAccepted, setIsRiskAccepted] = useState<boolean>(false)
-    const [liveKycStatus, setLiveKycStatus] = useState<BridgeKycStatus | undefined>(undefined)
     const { setError, error, setOnrampData, onrampData } = useOnrampFlow()
 
     const { balance } = useWallet()
@@ -91,19 +89,7 @@ export default function OnrampBankPage() {
     // uk-specific check
     const isUK = isUKCountry(selectedCountryPath)
 
-    useWebSocket({
-        username: user?.user.username ?? undefined,
-        autoConnect: !!user?.user.username,
-        onKycStatusUpdate: (newStatus) => {
-            setLiveKycStatus(newStatus as BridgeKycStatus)
-        },
-    })
-
-    useEffect(() => {
-        if (user?.user.bridgeKycStatus) {
-            setLiveKycStatus(user.user.bridgeKycStatus as BridgeKycStatus)
-        }
-    }, [user?.user.bridgeKycStatus])
+    const { isUserKycApproved } = useKycStatus()
 
     useEffect(() => {
         fetchUser()
@@ -203,10 +189,7 @@ export default function OnrampBankPage() {
     const handleAmountContinue = () => {
         if (!validateAmount(rawTokenAmount)) return
 
-        const currentKycStatus = liveKycStatus || user?.user.bridgeKycStatus
-        const isUserKycVerified = currentKycStatus === 'approved'
-
-        if (!isUserKycVerified) {
+        if (!isUserKycApproved) {
             setShowKycModal(true)
             return
         }

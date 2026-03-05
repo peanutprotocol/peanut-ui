@@ -71,6 +71,13 @@ const HomeHistory = ({ username, hideTxnAmount = false }: { username?: string; h
             },
             [fetchUser]
         ),
+        onSumsubKycStatusUpdate: useCallback(
+            async (newStatus: string) => {
+                console.log('Sumsub KYC status updated via WebSocket:', newStatus)
+                await fetchUser()
+            },
+            [fetchUser]
+        ),
     })
 
     // Combine fetched history with real-time updates

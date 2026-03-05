@@ -126,8 +126,11 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     return
                 }
 
-                // sync status from api response
-                if (response.data?.status) {
+                // sync status from api response, but skip when a token is returned
+                // alongside APPROVED — that means the SDK should open (e.g. additional-docs flow),
+                // not that kyc is finished. syncing APPROVED here would trigger the useEffect
+                // which fires onKycSuccess and closes everything before the SDK opens.
+                if (response.data?.status && !(response.data.status === 'APPROVED' && response.data.token)) {
                     setLiveKycStatus(response.data.status)
                 }
 
@@ -136,9 +139,10 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 if (effectiveIntent) regionIntentRef.current = effectiveIntent
                 levelNameRef.current = levelName
 
-                // if already approved, no token is returned.
+                // if already approved and no token returned, kyc is done.
                 // set prevStatusRef so the transition effect doesn't fire onKycSuccess a second time.
-                if (response.data?.status === 'APPROVED') {
+                // when a token IS returned (e.g. additional-docs flow), we still need to show the SDK.
+                if (response.data?.status === 'APPROVED' && !response.data?.token) {
                     prevStatusRef.current = 'APPROVED'
                     onKycSuccess?.()
                     return

@@ -67,15 +67,19 @@ export const useCreateOnramp = (): UseCreateOnrampReturn => {
                 })
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`)
+                    // parse error body from backend to get specific message
+                    let errorMessage = 'Failed to create bank transfer. Please try again or contact support.'
+                    setError(errorMessage)
+                    throw new Error(errorMessage)
                 }
 
                 const onrampData = await response.json()
                 return onrampData
-            } catch (error) {
-                console.error('Error creating onramp:', error)
-                setError('Failed to create bank transfer. Please try again or contact support.')
-                throw error
+            } catch (err) {
+                console.error('Error creating onramp:', err)
+                // only set generic fallback if no specific error was already set by the !response.ok block
+                setError((prev) => prev ?? 'Failed to create bank transfer. Please try again or contact support.')
+                throw err
             } finally {
                 setIsLoading(false)
             }
