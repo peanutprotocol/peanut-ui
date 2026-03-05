@@ -73,7 +73,7 @@ export const KycVerificationInProgressModal = ({
                 onClose={onClose}
                 isLoadingIcon
                 iconContainerClassName="bg-yellow-1 text-black"
-                title={'Verfication in progress'}
+                title="Verification in progress"
                 description={
                     preparingTimedOut
                         ? "This is taking longer than expected. You can continue and we'll notify you when it's ready."
