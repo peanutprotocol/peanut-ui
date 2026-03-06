@@ -28,6 +28,7 @@ const JoinWaitlistPage = () => {
     const [inviteCode, setInviteCode] = useState(setupInviteCode)
 
     const { requestPermission, afterPermissionAttempt, isPermissionGranted } = useNotifications()
+    const [notificationSkipped, setNotificationSkipped] = useState(false)
 
     const { data, isLoading: isLoadingWaitlistPosition } = useQuery({
         queryKey: ['waitlist-position'],
@@ -85,7 +86,7 @@ const JoinWaitlistPage = () => {
                 )}
             >
                 <div className="mx-auto w-full md:max-w-xs">
-                    {!isPermissionGranted && (
+                    {!isPermissionGranted && !notificationSkipped && (
                         <div className="flex h-full flex-col justify-between gap-4 md:gap-10 md:pt-5">
                             <h1 className="text-xl font-extrabold">Enable notifications</h1>
                             <p className="text-base font-medium">We'll send you an update as soon as you get access.</p>
@@ -99,10 +100,16 @@ const JoinWaitlistPage = () => {
                             >
                                 Yes, notify me
                             </Button>
+                            <button
+                                onClick={() => setNotificationSkipped(true)}
+                                className="text-sm underline"
+                            >
+                                Not now
+                            </button>
                         </div>
                     )}
 
-                    {isPermissionGranted && (
+                    {(isPermissionGranted || notificationSkipped) && (
                         <div className="flex h-full flex-col justify-between gap-4 md:gap-10 md:pt-5">
                             <h1 className="text-xl font-extrabold">You&apos;re still in Peanut jail</h1>
 

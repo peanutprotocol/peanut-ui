@@ -162,23 +162,20 @@ const InstallPWA = ({
                 return null
             }
 
-            // for other browsers, try to open the pwa in a new tab
+            // for other browsers, prompt user to open the installed PWA from home screen
+            // (opening /setup in a new tab causes a redirect loop between browser and PWA)
             return (
                 <div className="flex flex-col gap-4">
+                    <p className="text-center text-sm text-grey-1">
+                        Peanut has been installed! Open it from your Home Screen to continue.
+                    </p>
                     <Button
-                        onClick={() => {
-                            const link = document.createElement('a')
-                            link.href = '/setup'
-                            link.target = '_blank'
-                            document.body.appendChild(link)
-                            link.click()
-                            document.body.removeChild(link)
-                        }}
+                        onClick={() => handleNext()}
                         className="w-full"
                         shadowSize="4"
-                        loading={isSetupFlowLoading}
+                        variant="purple"
                     >
-                        Open Peanut app
+                        Continue here instead
                     </Button>
                 </div>
             )
@@ -209,12 +206,13 @@ const InstallPWA = ({
             )
         }
 
-        // Scenario 4: Fallback (cannot initiate automatic install)
+        // Scenario 4: Fallback (manual install instructions)
         return (
-            <div className="space-y-2 text-center">
-                <p className="text-sm text-grey-1">Could not initiate automatic installation.</p>
-                <p className="text-sm text-grey-1">Please try adding to Home Screen manually via your browser menu.</p>
-                <Button onClick={() => handleNext()} className="mt-4 w-full" shadowSize="4" variant="purple">
+            <div className="space-y-4 text-center">
+                <p className="text-sm text-grey-1">
+                    To install the app, please add it to your Home Screen from your browser menu.
+                </p>
+                <Button onClick={() => handleNext()} className="w-full" shadowSize="4" variant="purple">
                     Continue
                 </Button>
             </div>
