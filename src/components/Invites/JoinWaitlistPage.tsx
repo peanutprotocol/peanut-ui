@@ -100,10 +100,7 @@ const JoinWaitlistPage = () => {
                             >
                                 Yes, notify me
                             </Button>
-                            <button
-                                onClick={() => setNotificationSkipped(true)}
-                                className="text-sm underline"
-                            >
+                            <button onClick={() => setNotificationSkipped(true)} className="text-sm underline">
                                 Not now
                             </button>
                         </div>
