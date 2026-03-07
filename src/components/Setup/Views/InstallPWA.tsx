@@ -209,12 +209,13 @@ const InstallPWA = ({
             )
         }
 
-        // Scenario 4: Fallback (cannot initiate automatic install)
+        // Scenario 4: Fallback (manual install instructions)
         return (
-            <div className="space-y-2 text-center">
-                <p className="text-sm text-grey-1">Could not initiate automatic installation.</p>
-                <p className="text-sm text-grey-1">Please try adding to Home Screen manually via your browser menu.</p>
-                <Button onClick={() => handleNext()} className="mt-4 w-full" shadowSize="4" variant="purple">
+            <div className="space-y-4 text-center">
+                <p className="text-sm text-grey-1">
+                    To install the app, please add it to your Home Screen from your browser menu.
+                </p>
+                <Button onClick={() => handleNext()} className="w-full" shadowSize="4" variant="purple">
                     Continue
                 </Button>
             </div>
