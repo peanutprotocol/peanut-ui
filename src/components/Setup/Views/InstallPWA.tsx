@@ -162,20 +162,23 @@ const InstallPWA = ({
                 return null
             }
 
-            // for other browsers, prompt user to open the installed PWA from home screen
-            // (opening /setup in a new tab causes a redirect loop between browser and PWA)
+            // for other browsers, try to open the pwa in a new tab
             return (
                 <div className="flex flex-col gap-4">
-                    <p className="text-center text-sm text-grey-1">
-                        Peanut has been installed! Open it from your Home Screen to continue.
-                    </p>
                     <Button
-                        onClick={() => handleNext()}
+                        onClick={() => {
+                            const link = document.createElement('a')
+                            link.href = '/setup'
+                            link.target = '_blank'
+                            document.body.appendChild(link)
+                            link.click()
+                            document.body.removeChild(link)
+                        }}
                         className="w-full"
                         shadowSize="4"
-                        variant="purple"
+                        loading={isSetupFlowLoading}
                     >
-                        Continue here instead
+                        Open Peanut app
                     </Button>
                 </div>
             )
