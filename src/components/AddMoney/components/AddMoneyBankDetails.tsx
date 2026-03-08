@@ -15,6 +15,7 @@ import { RequestFulfillmentBankFlowStep, useRequestFulfillmentFlow } from '@/con
 import { formatAmount } from '@/utils/general.utils'
 import InfoCard from '@/components/Global/InfoCard'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
+import { BRIDGE_DEFAULT_ACCOUNT_HOLDER_NAME } from '@/constants/payment.consts'
 import { Button } from '@/components/0_Bruddle/Button'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
 import { useQueryState, parseAsString } from 'nuqs'
@@ -260,7 +261,7 @@ Please use these details to complete your bank transfer.`
                     {/* note: fallback to bridge as account holder name, to cover faster_payments onramp requests as bridge currently doesnt retrun a account holder name in api response */}
                     <PaymentInfoRow
                         label={'Account Holder Name'}
-                        value={onrampData?.depositInstructions?.accountHolderName || 'Bridge Building Sp. Z.o.o.'}
+                        value={onrampData?.depositInstructions?.accountHolderName || BRIDGE_DEFAULT_ACCOUNT_HOLDER_NAME}
                         allowCopy
                         hideBottomBorder
                     />

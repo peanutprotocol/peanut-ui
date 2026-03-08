@@ -1,3 +1,7 @@
+// fallback account holder name for bridge onramp deposit instructions
+// bridge currently doesnt return account_holder_name for faster_payments requests
+export const BRIDGE_DEFAULT_ACCOUNT_HOLDER_NAME = 'Bridge Building Sp. Z.o.o.'
+
 // minimum amount requirements for different payment methods (in USD)
 export const MIN_BANK_TRANSFER_AMOUNT = 5
 export const MIN_MERCADOPAGO_AMOUNT = 5
