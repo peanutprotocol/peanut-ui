@@ -97,6 +97,9 @@ export interface TransactionDetails {
             iban?: string
             bic?: string
             account_holder_name?: string
+            // UK faster_payments format
+            sort_code?: string
+            account_number?: string
             // Mexican format (SPEI)
             clabe?: string
         }

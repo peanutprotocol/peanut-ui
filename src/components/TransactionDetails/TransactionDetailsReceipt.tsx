@@ -12,6 +12,7 @@ import { getCardPosition } from '@/components/Global/Card/card.utils'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { TRANSACTIONS } from '@/constants/query.consts'
+import { BRIDGE_DEFAULT_ACCOUNT_HOLDER_NAME } from '@/constants/payment.consts'
 import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useUserStore } from '@/redux/hooks'
@@ -927,29 +928,16 @@ export const TransactionDetailsReceipt = ({
 
                             {showBankDetails && (
                                 <>
-                                    {transaction.extraDataForDrawer.depositInstructions.account_holder_name && (
-                                        <PaymentInfoRow
-                                            label="Account Holder Name"
-                                            value={
-                                                <div className="flex items-center gap-2">
-                                                    <span>
-                                                        {
-                                                            transaction.extraDataForDrawer.depositInstructions
-                                                                .account_holder_name
-                                                        }
-                                                    </span>
-                                                    <CopyToClipboard
-                                                        textToCopy={
-                                                            transaction.extraDataForDrawer.depositInstructions
-                                                                .account_holder_name
-                                                        }
-                                                        iconSize="4"
-                                                    />
-                                                </div>
-                                            }
-                                            hideBottomBorder={false}
-                                        />
-                                    )}
+                                    {/* note: fallback to bridge as account holder name, to cover faster_payments onramp requests as bridge currently doesnt return an account holder name in api response */}
+                                    <PaymentInfoRow
+                                        label="Account Holder Name"
+                                        value={
+                                            transaction.extraDataForDrawer.depositInstructions.account_holder_name ||
+                                            BRIDGE_DEFAULT_ACCOUNT_HOLDER_NAME
+                                        }
+                                        allowCopy
+                                        hideBottomBorder={false}
+                                    />
                                     <PaymentInfoRow
                                         label="Bank Name"
                                         value={
@@ -1024,6 +1012,25 @@ export const TransactionDetailsReceipt = ({
                                                     </div>
                                                 }
                                                 hideBottomBorder={true}
+                                            />
+                                        </>
+                                    ) : transaction.extraDataForDrawer.depositInstructions.sort_code &&
+                                      transaction.extraDataForDrawer.depositInstructions.account_number ? (
+                                        /* UK faster_payments format (Sort Code/Account Number) */
+                                        <>
+                                            <PaymentInfoRow
+                                                label="Sort Code"
+                                                value={transaction.extraDataForDrawer.depositInstructions.sort_code}
+                                                allowCopy
+                                                hideBottomBorder
+                                            />
+                                            <PaymentInfoRow
+                                                label="Account Number"
+                                                value={
+                                                    transaction.extraDataForDrawer.depositInstructions.account_number
+                                                }
+                                                allowCopy
+                                                hideBottomBorder
                                             />
                                         </>
                                     ) : (
