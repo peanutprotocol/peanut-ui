@@ -257,14 +257,13 @@ Please use these details to complete your bank transfer.`
                 <Card className="gap-2 rounded-sm">
                     <h1 className="text-xs">Bank Details</h1>
 
-                    {onrampData?.depositInstructions?.accountHolderName && (
-                        <PaymentInfoRow
-                            label={'Account Holder Name'}
-                            value={onrampData?.depositInstructions?.accountHolderName || 'Loading...'}
-                            allowCopy={!!onrampData?.depositInstructions?.accountHolderName}
-                            hideBottomBorder
-                        />
-                    )}
+                    {/* note: fallback to bridge as account holder name, to cover faster_payments onramp requests as bridge currently doesnt retrun a account holder name in api response */}
+                    <PaymentInfoRow
+                        label={'Account Holder Name'}
+                        value={onrampData?.depositInstructions?.accountHolderName || 'Bridge Building Sp. Z.o.o.'}
+                        allowCopy
+                        hideBottomBorder
+                    />
 
                     <PaymentInfoRow
                         label={'Bank Name'}
