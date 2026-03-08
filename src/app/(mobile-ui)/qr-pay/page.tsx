@@ -688,12 +688,20 @@ export default function QRPayPage() {
                 paymasterVerificationGasLimit: signedUserOpData.signedUserOp.paymasterVerificationGasLimit,
                 paymasterPostOpGasLimit: signedUserOpData.signedUserOp.paymasterPostOpGasLimit,
             }
-            const qrPayment = await mantecaApi.completeQrPaymentWithSignedTx({
-                paymentLockCode: finalPaymentLock.code,
-                signedUserOp,
-                chainId: signedUserOpData.chainId,
-                entryPointAddress: signedUserOpData.entryPointAddress,
-            })
+            const QR_PAYMENT_TIMEOUT_MS = 90_000
+            const timeoutPromise = new Promise<never>((_, reject) =>
+                setTimeout(() => reject(new Error('timeout')), QR_PAYMENT_TIMEOUT_MS)
+            )
+
+            const qrPayment = await Promise.race([
+                mantecaApi.completeQrPaymentWithSignedTx({
+                    paymentLockCode: finalPaymentLock.code,
+                    signedUserOp,
+                    chainId: signedUserOpData.chainId,
+                    entryPointAddress: signedUserOpData.entryPointAddress,
+                }),
+                timeoutPromise,
+            ])
             // clear the timer since we got a response
             if (payingStateTimerRef.current) {
                 clearTimeout(payingStateTimerRef.current)
@@ -711,7 +719,11 @@ export default function QRPayPage() {
             const errorMsg = (error as Error).message || 'Could not complete payment'
 
             // Handle specific error cases
-            if (errorMsg.toLowerCase().includes('nonce')) {
+            if (errorMsg.toLowerCase().includes('timeout')) {
+                setErrorMessage(
+                    'Could not complete payment. Please scan the QR code again. If problem persists contact support'
+                )
+            } else if (errorMsg.toLowerCase().includes('nonce')) {
                 setErrorMessage(
                     'Transaction failed due to account state change. Please try again. If the problem persists, contact support.'
                 )
