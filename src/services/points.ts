@@ -303,7 +303,7 @@ export const pointsApi = {
 
     getInvitesGraph: async (
         apiKey: string,
-        options?: { mode?: 'full' | 'payment'; topNodes?: number; password?: string }
+        options?: { mode?: 'full' | 'payment'; topNodes?: number; includeNewDays?: number; password?: string }
     ): Promise<InvitesGraphResponse> => {
         const isPaymentMode = options?.mode === 'payment'
         const params = new URLSearchParams()
@@ -312,6 +312,9 @@ export const pointsApi = {
         }
         if (options?.topNodes && options.topNodes > 0) {
             params.set('topNodes', options.topNodes.toString())
+        }
+        if (options?.includeNewDays && options.includeNewDays > 0) {
+            params.set('includeNewDays', options.includeNewDays.toString())
         }
         if (options?.password) {
             params.set('password', options.password)
