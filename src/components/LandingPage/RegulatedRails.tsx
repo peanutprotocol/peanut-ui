@@ -61,7 +61,7 @@ export function RegulatedRails() {
 
                 <h6 className="font-roboto-flex mt-3 text-xs md:text-lg">
                     <a
-                        href="/en/help/transaction-limits"
+                        href="/en/help/supported-geographies"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-n-1 underline"
