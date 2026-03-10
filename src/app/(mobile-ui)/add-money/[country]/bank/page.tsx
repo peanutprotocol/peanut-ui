@@ -259,9 +259,10 @@ export default function OnrampBankPage() {
             }
         } catch (error) {
             setShowWarningModal(false)
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error'
             posthog.capture(ANALYTICS_EVENTS.DEPOSIT_FAILED, {
                 method_type: 'bank',
-                error_message: onrampError || 'Unknown error',
+                error_message: errorMessage,
             })
             if (onrampError) {
                 setError({

@@ -181,15 +181,17 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         prevUser.current = user
     }, [user, resetClaimBankFlow])
 
+    const hasTrackedClaimView = useRef(false)
     useEffect(() => {
-        if (claimLinkData) {
+        if (claimLinkData && !hasTrackedClaimView.current) {
+            hasTrackedClaimView.current = true
             posthog.capture(ANALYTICS_EVENTS.CLAIM_LINK_VIEWED, {
                 amount: formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals),
                 token_symbol: claimLinkData.tokenSymbol,
                 chain_id: claimLinkData.chainId,
             })
         }
-    }, [])
+    }, [claimLinkData])
 
     const resetSelectedToken = useCallback(() => {
         if (isPeanutWallet) {

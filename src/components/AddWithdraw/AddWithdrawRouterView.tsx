@@ -130,7 +130,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                 saveRecentMethod(user.user.userId, method)
                 posthog.capture(ANALYTICS_EVENTS.DEPOSIT_METHOD_SELECTED, {
                     method_type: method.type === 'crypto' ? 'crypto' : 'bank',
-                    country: method.path,
+                    country: method.path?.split('?')[0].split('/').filter(Boolean).at(-1),
                 })
             }
 
@@ -152,7 +152,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
 
                 posthog.capture(ANALYTICS_EVENTS.WITHDRAW_METHOD_SELECTED, {
                     method_type: methodType,
-                    country: method.path,
+                    country: method.path?.split('?')[0].split('/').filter(Boolean).at(-1),
                 })
 
                 setSelectedMethod({

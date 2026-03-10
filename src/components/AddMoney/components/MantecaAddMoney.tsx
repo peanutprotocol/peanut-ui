@@ -189,6 +189,11 @@ const MantecaAddMoney: FC = () => {
                 currency: selectedCountry.currency,
             })
             if (depositData.error) {
+                posthog.capture(ANALYTICS_EVENTS.DEPOSIT_FAILED, {
+                    method_type: 'manteca',
+                    country: selectedCountryPath,
+                    error_message: depositData.error,
+                })
                 setError(depositData.error)
                 return
             }
@@ -211,7 +216,16 @@ const MantecaAddMoney: FC = () => {
         } finally {
             setIsCreatingDeposit(false)
         }
-    }, [currentDenomination, selectedCountry, displayedAmount, isMantecaKycRequired, isCreatingDeposit, setUrlState])
+    }, [
+        currentDenomination,
+        selectedCountry,
+        displayedAmount,
+        isMantecaKycRequired,
+        isCreatingDeposit,
+        setUrlState,
+        usdAmount,
+        selectedCountryPath,
+    ])
 
     // handle verification modal opening
     useEffect(() => {
