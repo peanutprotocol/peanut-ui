@@ -1,6 +1,6 @@
 import { type MetadataRoute } from 'next'
 import { BASE_URL } from '@/constants/general.consts'
-import { COUNTRIES_SEO, CORRIDORS, COMPETITORS, EXCHANGES, PAYMENT_METHOD_SLUGS } from '@/data/seo'
+import { COUNTRIES_SEO, CORRIDORS, COMPETITORS, EXCHANGES, DEPOSIT_RAILS, PAYMENT_METHOD_SLUGS } from '@/data/seo'
 import { SUPPORTED_LOCALES } from '@/i18n/config'
 import { listContentSlugs } from '@/lib/content'
 
@@ -81,10 +81,17 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
             })
         }
 
-        // Deposit pages
+        // Deposit pages (exchanges + rails)
         for (const exchange of Object.keys(EXCHANGES)) {
             pages.push({
                 path: `/${locale}/deposit/from-${exchange}`,
+                priority: 0.7 * basePriority,
+                changeFrequency: 'monthly',
+            })
+        }
+        for (const rail of Object.keys(DEPOSIT_RAILS)) {
+            pages.push({
+                path: `/${locale}/deposit/via-${rail}`,
                 priority: 0.7 * basePriority,
                 changeFrequency: 'monthly',
             })
