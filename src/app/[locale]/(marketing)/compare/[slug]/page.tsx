@@ -69,7 +69,7 @@ export default async function ComparisonPageLocalized({ params }: PageProps) {
     return (
         <ContentPage
             breadcrumbs={[
-                { name: i18n.home, href: '/' },
+                { name: i18n.home, href: `/${locale}` },
                 { name: `Peanut vs ${competitor.name}`, href: url },
             ]}
             article={

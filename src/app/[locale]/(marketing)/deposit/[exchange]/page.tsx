@@ -99,7 +99,7 @@ export default async function DepositPageLocalized({ params }: PageProps) {
     return (
         <ContentPage
             breadcrumbs={[
-                { name: i18n.home, href: '/' },
+                { name: i18n.home, href: `/${locale}` },
                 { name: deposit.displayName, href: url },
             ]}
             article={
