@@ -55,11 +55,17 @@ const SignupStep = () => {
             switch (res.status) {
                 case 200:
                     setError('Username already taken')
-                    posthog.capture(ANALYTICS_EVENTS.SIGNUP_USERNAME_VALIDATED, { is_valid: false, error_type: 'taken' })
+                    posthog.capture(ANALYTICS_EVENTS.SIGNUP_USERNAME_VALIDATED, {
+                        is_valid: false,
+                        error_type: 'taken',
+                    })
                     return false
                 case 400:
                     setError('Username is invalid, please use a different one')
-                    posthog.capture(ANALYTICS_EVENTS.SIGNUP_USERNAME_VALIDATED, { is_valid: false, error_type: 'invalid' })
+                    posthog.capture(ANALYTICS_EVENTS.SIGNUP_USERNAME_VALIDATED, {
+                        is_valid: false,
+                        error_type: 'invalid',
+                    })
                     return false
                 case 404:
                     // handle is available
