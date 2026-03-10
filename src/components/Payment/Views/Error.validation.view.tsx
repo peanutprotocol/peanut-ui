@@ -49,9 +49,8 @@ function ValidationErrorView({
             </div>
             {showLearnMore && (
                 <Link
-                    href={'https://docs.peanut.me/how-to-use-peanut-links/request-peanut-links'}
+                    href="/en/help"
                     className="text-sm underline"
-                    target="_blank"
                 >
                     Learn how to receive money through Peanut
                 </Link>

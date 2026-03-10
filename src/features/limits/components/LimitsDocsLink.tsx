@@ -1,12 +1,12 @@
+import Link from 'next/link'
+
 export default function LimitsDocsLink() {
     return (
-        <a
-            href="https://docs.peanut.me/limits"
-            target="_blank"
-            rel="noopener noreferrer"
+        <Link
+            href="/en/help"
             className="text-center text-sm underline"
         >
             See more about limits
-        </a>
+        </Link>
     )
 }

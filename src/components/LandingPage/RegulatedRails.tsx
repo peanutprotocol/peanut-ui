@@ -61,9 +61,7 @@ export function RegulatedRails() {
 
                 <h6 className="font-roboto-flex mt-3 text-xs md:text-lg">
                     <a
-                        href="https://docs.peanut.me"
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        href="/en/help"
                         className="text-n-1 underline"
                     >
                         Learn more

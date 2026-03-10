@@ -65,9 +65,7 @@ const Footer = ({ showSiteDirectory = true }: { showSiteDirectory?: boolean }) =
                         </a>
                         <a
                             className="text-xl font-bold text-white"
-                            href="https://docs.peanut.me/"
-                            rel="noopener noreferrer"
-                            target="_blank"
+                            href="/en/help"
                         >
                             Docs
                         </a>

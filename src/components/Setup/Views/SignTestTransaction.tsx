@@ -189,10 +189,8 @@ const SignTestTransaction = () => {
                 <div>
                     <p className="border-t border-grey-1 pt-2 text-center text-xs text-grey-1">
                         <Link
-                            rel="noopener noreferrer"
-                            target="_blank"
                             className="underline underline-offset-2"
-                            href="https://docs.peanut.me/passkeys"
+                            href="/en/help"
                         >
                             Learn more about what Passkeys are
                         </Link>{' '}
@@ -207,10 +205,8 @@ export const PasskeyDocsLink = ({ className }: { className?: string }) => {
     return (
         <p className={twMerge('border-t border-grey-1 pt-2 text-center text-xs text-grey-1', className)}>
             <Link
-                rel="noopener noreferrer"
-                target="_blank"
                 className="underline underline-offset-2"
-                href="https://docs.peanut.me/passkeys"
+                href="/en/help"
             >
                 Learn more about what Passkeys are
             </Link>{' '}

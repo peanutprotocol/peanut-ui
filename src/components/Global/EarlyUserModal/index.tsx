@@ -47,8 +47,7 @@ const EarlyUserModal = () => {
                     </ShareButton>
                     <a
                         className="text-sm text-grey-1 underline"
-                        href="https://docs.peanut.me/og-and-invites"
-                        target="_blank"
+                        href="/en/help"
                     >
                         Learn more
                     </a>
