@@ -14,8 +14,10 @@ Single source of truth for developer and AI assistant rules. Tool-specific files
 - **Never add AI co-author to commits** — no "Co-Authored-By" lines for AI assistants.
 - **Do not generate .md files** unless explicitly told to.
 
-## 🔀 Parallel Work
+## 🔀 Git Workflow
 
+- **NEVER commit or push directly to main** — all changes must go through a pull request. No exceptions.
+- **Always work from a feature branch** — create a branch, push it, open a PR, wait for CI to pass, then merge.
 - **Use git worktrees** for parallel work (`claude --worktree <name>` or `git worktree add`).
 - Multiple agents/sessions must use separate worktrees to avoid collisions.
 
@@ -116,7 +118,7 @@ Button, Card (named export), BaseInput, BaseSelect, Checkbox, Divider, Title, To
 
 ## 📁 Documentation
 
-- **All docs go in `docs/`** (except root `README.md`, `SOP.md`, `CONTRIBUTING.md`).
+- **All docs go in `docs/`** (except root `README.md` and `CONTRIBUTING.md`).
 - **Keep it concise** — AI tends to be verbose. No one reads that.
 - **Check existing docs** before creating new ones — merge instead of duplicate.
 - **Delete or edit outdated docs** instead of creating new ones.

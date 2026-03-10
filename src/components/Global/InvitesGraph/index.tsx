@@ -140,6 +140,9 @@ interface BaseProps {
         handleResetView: () => void
         handleReset: () => void
         handleRecalculate: () => void
+        /** Set of activity statuses to hide visually (no re-layout). Values: 'new' | 'active' | 'inactive' | 'jailed' */
+        hiddenStatuses: Set<string>
+        setHiddenStatuses: (v: Set<string>) => void
     }) => React.ReactNode
 }
 
@@ -252,6 +255,8 @@ export default function InvitesGraph(props: InvitesGraphProps) {
     const [showUsernames, setShowUsernames] = useState(initialShowUsernames)
     // topNodes: limit to top N by points (0 = all). Backend-filtered, triggers refetch.
     const [topNodes, setTopNodes] = useState(initialTopNodes)
+    // Hidden activity statuses — purely visual toggle (no re-layout)
+    const [hiddenStatuses, setHiddenStatuses] = useState<Set<string>>(new Set())
 
     // Particle arrival popups for user mode (+1 pt animations)
     // Map: linkId → { timestamp, x, y, nodeId }
@@ -948,6 +953,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         externalNodesConfig,
         p2pActiveNodes,
         inviterNodes,
+        hiddenStatuses,
     })
     useEffect(() => {
         displaySettingsRef.current = {
@@ -960,6 +966,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             externalNodesConfig,
             p2pActiveNodes,
             inviterNodes,
+            hiddenStatuses,
         }
     }, [
         showUsernames,
@@ -971,6 +978,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         externalNodesConfig,
         p2pActiveNodes,
         inviterNodes,
+        hiddenStatuses,
     ])
 
     // Helper to determine user activity status
@@ -1167,30 +1175,40 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                 }
             }
 
+            // Check if this node's status is hidden via legend toggle
+            const { hiddenStatuses: hidden } = displaySettingsRef.current
+            const isJailed = !hasAccess
+            const isHidden = hidden.size > 0 && (hidden.has(activityStatus) || (isJailed && hidden.has('jailed')))
+            if (isHidden) {
+                ctx.globalAlpha = 0.03 // Nearly invisible but keeps layout stable
+            }
+
             // Draw fill
             ctx.beginPath()
             ctx.arc(node.x, node.y, size, 0, 2 * Math.PI)
             ctx.fillStyle = fillColor
             ctx.fill()
 
-            // Draw outline based on access/selection
-            ctx.globalAlpha = 1
-            if (isSelected) {
-                // Selected: golden outline
-                ctx.strokeStyle = '#FFC900'
-                ctx.lineWidth = 3
-                ctx.stroke()
-            } else if (!hasAccess) {
-                // Jailed (no app access): black outline
-                ctx.strokeStyle = '#000000'
-                ctx.lineWidth = 2
-                ctx.stroke()
+            // Draw outline based on access/selection (skip if hidden)
+            if (!isHidden) {
+                ctx.globalAlpha = 1
+                if (isSelected) {
+                    // Selected: golden outline
+                    ctx.strokeStyle = '#FFC900'
+                    ctx.lineWidth = 3
+                    ctx.stroke()
+                } else if (!hasAccess) {
+                    // Jailed (no app access): black outline
+                    ctx.strokeStyle = '#000000'
+                    ctx.lineWidth = 2
+                    ctx.stroke()
+                }
             }
 
             ctx.globalAlpha = 1 // Reset alpha
 
             // In minimal mode, always show labels; otherwise require closer zoom
-            if (showNames && (minimal || globalScale > 1.2)) {
+            if (!isHidden && showNames && (minimal || globalScale > 1.2)) {
                 const label = node.username
                 const fontSize = minimal ? 4 : 12 / globalScale
                 const { inviterNodes: inviterNodesSet } = displaySettingsRef.current
@@ -2209,6 +2227,8 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                         handleResetView,
                         handleReset,
                         handleRecalculate,
+                        hiddenStatuses,
+                        setHiddenStatuses,
                     })}
                 </div>
             </>
@@ -2544,6 +2564,8 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                     handleResetView,
                     handleReset,
                     handleRecalculate,
+                    hiddenStatuses,
+                    setHiddenStatuses,
                 })}
             </div>
         </>
