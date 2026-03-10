@@ -6,6 +6,8 @@ import { type CountryData, MantecaSupportedExchanges } from '@/components/AddMon
 import { MantecaKycStatus } from '@/interfaces'
 import { useWebSocket } from './useWebSocket'
 import { BASE_URL } from '@/constants/general.consts'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 type UseMantecaKycFlowOptions = {
     onClose?: () => void
@@ -36,6 +38,7 @@ export const useMantecaKycFlow = ({ onClose, onSuccess, onManualClose, country }
                 return
             }
             if (source === 'manual') {
+                posthog.capture(ANALYTICS_EVENTS.MANTECA_KYC_ABANDONED, { country: country?.id })
                 onManualClose?.()
                 return
             }
@@ -49,6 +52,7 @@ export const useMantecaKycFlow = ({ onClose, onSuccess, onManualClose, country }
         autoConnect: true,
         onMantecaKycStatusUpdate: async (status) => {
             if (status === MantecaKycStatus.ACTIVE || status === 'WIDGET_FINISHED') {
+                posthog.capture(ANALYTICS_EVENTS.MANTECA_KYC_COMPLETED, { country: country?.id })
                 await handleIframeClose('completed')
             }
         },
@@ -79,6 +83,7 @@ export const useMantecaKycFlow = ({ onClose, onSuccess, onManualClose, country }
     const openMantecaKyc = useCallback(async (countryParam?: CountryData) => {
         setIsLoading(true)
         setError(null)
+        posthog.capture(ANALYTICS_EVENTS.MANTECA_KYC_INITIATED, { country: countryParam?.id })
         try {
             const exchange = countryParam?.id
                 ? MantecaSupportedExchanges[countryParam.id as keyof typeof MantecaSupportedExchanges]
