@@ -841,6 +841,9 @@ export default function InvitesGraph(props: InvitesGraphProps) {
 
     // Fetch graph data on mount and when topNodes changes (only in full mode)
     // Note: topNodes filtering only applies to full mode (payment mode has fixed 5000 limit in backend)
+    // topNodes is debounced so the slider doesn't trigger a refetch on every tick
+    const topNodesDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const isInitialFetchRef = useRef(true)
     useEffect(() => {
         if (isMinimal) return
 
@@ -852,9 +855,11 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             const apiMode = mode === 'payment' ? 'payment' : 'full'
             // Pass topNodes for both modes - payment mode now supports it via Performance button
             // Pass password for payment mode authentication
+            // Pass includeNewDays so backend always includes recent signups regardless of topNodes
             const result = await pointsApi.getInvitesGraph(props.apiKey, {
                 mode: apiMode,
                 topNodes: topNodes > 0 ? topNodes : undefined,
+                includeNewDays: displaySettingsRef.current.activityFilter.activityDays,
                 password: mode === 'payment' ? props.password : undefined,
             })
 
@@ -866,7 +871,18 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             setLoading(false)
         }
 
-        fetchData()
+        // First fetch is immediate, subsequent topNodes changes are debounced (500ms)
+        if (isInitialFetchRef.current) {
+            isInitialFetchRef.current = false
+            fetchData()
+        } else {
+            if (topNodesDebounceRef.current) clearTimeout(topNodesDebounceRef.current)
+            topNodesDebounceRef.current = setTimeout(fetchData, 500)
+        }
+
+        return () => {
+            if (topNodesDebounceRef.current) clearTimeout(topNodesDebounceRef.current)
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isMinimal, !isMinimal && props.apiKey, mode, topNodes])
 
@@ -1118,7 +1134,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             } else {
                 // Activity filter enabled - three states
                 if (activityStatus === 'new') {
-                    fillColor = 'rgba(144, 168, 237, 0.85)' // secondary-3 #90A8ED for new signups
+                    fillColor = 'rgba(74, 222, 128, 0.85)' // green-400 for new signups
                 } else if (activityStatus === 'active') {
                     fillColor = 'rgba(255, 144, 232, 0.85)' // primary-1 for active
                 } else {
