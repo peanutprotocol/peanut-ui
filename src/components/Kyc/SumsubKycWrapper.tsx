@@ -185,7 +185,6 @@ export const SumsubKycWrapper = ({
                 ctas: [
                     {
                         text: 'Chat with support',
-                        icon: 'peanut-support' as IconName,
                         onClick: () => setIsSupportModalOpen(true),
                         variant: 'purple' as ButtonVariant,
                         shadowSize: '4' as const,
@@ -194,30 +193,56 @@ export const SumsubKycWrapper = ({
             }
         }
 
-        return {
-            title: 'Stop verification?',
-            description: "If you exit now, your verification won't be completed and you'll need to start again later.",
-            icon: 'alert' as IconName,
-            iconContainerClassName: 'bg-secondary-1',
-            ctas: [
-                {
-                    text: 'Stop verification',
-                    onClick: () => {
-                        setIsHelpModalOpen(false)
-                        onClose()
-                    },
-                    variant: 'purple' as ButtonVariant,
-                    shadowSize: '4' as const,
-                },
-                {
-                    text: 'Continue verifying',
-                    onClick: () => setIsHelpModalOpen(false),
-                    variant: 'transparent' as ButtonVariant,
-                    className: 'underline text-sm font-medium w-full h-fit mt-3',
-                },
-            ],
-        }
-    }, [modalVariant, onClose, setIsSupportModalOpen])
+        return autoStart
+            ? {
+                  title: 'Are you sure you want to exit?',
+                  description:
+                      "You are about to exit verification, you can come back to finish this later. Your progress won't be lost.",
+                  icon: 'alert' as IconName,
+                  iconContainerClassName: 'bg-secondary-1',
+                  ctas: [
+                      {
+                          text: 'Exit',
+                          onClick: () => {
+                              setIsHelpModalOpen(false)
+                              onClose()
+                          },
+                          variant: 'purple' as ButtonVariant,
+                          shadowSize: '4' as const,
+                      },
+                      {
+                          text: 'Continue',
+                          onClick: () => setIsHelpModalOpen(false),
+                          variant: 'transparent' as ButtonVariant,
+                          className: 'underline text-sm font-medium w-full h-fit mt-3',
+                      },
+                  ],
+              }
+            : {
+                  title: 'Stop verification?',
+                  description:
+                      "If you exit now, your verification won't be completed and you'll need to start again later.",
+                  icon: 'alert' as IconName,
+                  iconContainerClassName: 'bg-secondary-1',
+                  ctas: [
+                      {
+                          text: 'Stop verification',
+                          onClick: () => {
+                              setIsHelpModalOpen(false)
+                              onClose()
+                          },
+                          variant: 'purple' as ButtonVariant,
+                          shadowSize: '4' as const,
+                      },
+                      {
+                          text: 'Continue verifying',
+                          onClick: () => setIsHelpModalOpen(false),
+                          variant: 'transparent' as ButtonVariant,
+                          className: 'underline text-sm font-medium w-full h-fit mt-3',
+                      },
+                  ],
+              }
+    }, [autoStart, modalVariant, onClose, setIsSupportModalOpen])
 
     return (
         <>
@@ -248,33 +273,28 @@ export const SumsubKycWrapper = ({
                         </Button>
                     </div>
                 ) : (
-                    <div className="flex h-full flex-col gap-2 p-0">
-                        <div className="relative h-full w-full flex-grow">
-                            <div ref={sdkContainerRef} className="w-full overflow-auto p-4" style={{ height: '85%' }} />
-                            <div className="absolute bottom-0 flex h-[12%] w-full flex-col items-center justify-center gap-2 px-5 shadow-md">
-                                <Button
-                                    variant="transparent"
-                                    className="h-8 max-w-md font-normal underline"
-                                    onClick={() => {
-                                        setModalVariant('stop-verification')
-                                        setIsHelpModalOpen(true)
-                                    }}
-                                    shadowType="primary"
-                                >
-                                    Stop verification process
-                                </Button>
-                                <button
-                                    onClick={() => {
-                                        setModalVariant('trouble')
-                                        setIsHelpModalOpen(true)
-                                    }}
-                                    className="flex items-center gap-1"
-                                >
-                                    <Icon name="peanut-support" size={16} className="text-grey-1" />
-                                    <p className="text-xs font-medium text-grey-1 underline">Having trouble?</p>
-                                </button>
-                            </div>
+                    <div className="flex h-full flex-col">
+                        <div className="flex items-center justify-between px-4 py-2">
+                            <button
+                                onClick={() => {
+                                    setModalVariant('trouble')
+                                    setIsHelpModalOpen(true)
+                                }}
+                                className="flex items-center gap-1 p-1"
+                            >
+                                <Icon name="peanut-support" size={20} className="text-grey-1" />
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setModalVariant('stop-verification')
+                                    setIsHelpModalOpen(true)
+                                }}
+                                className="p-1"
+                            >
+                                <Icon name="cancel" size={24} />
+                            </button>
                         </div>
+                        <div ref={sdkContainerRef} className="w-full flex-1 overflow-auto [&>iframe]:!min-h-full" />
                     </div>
                 )}
             </Modal>
