@@ -78,8 +78,5 @@ public/swe-worker*
 android/
 .claude/
 
-# AI tool symlinks (source of truth: CONTRIBUTING.md)
-CLAUDE.md
-AGENTS.md
-.cursorrules
-.windsurfrules
+# AI tool worktrees
+.claude/worktrees/
