@@ -116,7 +116,7 @@ Button, Card (named export), BaseInput, BaseSelect, Checkbox, Divider, Title, To
 
 ## 📁 Documentation
 
-- **All docs go in `docs/`** (except root `README.md`, `SOP.md`, `CONTRIBUTING.md`).
+- **All docs go in `docs/`** (except root `README.md` and `CONTRIBUTING.md`).
 - **Keep it concise** — AI tends to be verbose. No one reads that.
 - **Check existing docs** before creating new ones — merge instead of duplicate.
 - **Delete or edit outdated docs** instead of creating new ones.
