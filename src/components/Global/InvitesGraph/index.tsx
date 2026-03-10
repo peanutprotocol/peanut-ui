@@ -2564,6 +2564,8 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                     handleResetView,
                     handleReset,
                     handleRecalculate,
+                    hiddenStatuses,
+                    setHiddenStatuses,
                 })}
             </div>
         </>
