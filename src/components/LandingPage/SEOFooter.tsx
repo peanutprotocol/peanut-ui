@@ -4,12 +4,13 @@ import Link from 'next/link'
 // on non-marketing pages (homepage, /exchange, /lp, etc.). Marketing pages don't
 // need this — they already have RelatedPages + CountryGrid linking to sibling content.
 //
-// This list is intentionally static and small. New countries/exchanges/competitors
-// are discovered by Google via in-page links on the pages listed here. Only update
-// this when a new content *category* is added or top markets shift significantly.
+// Data is inlined (not imported from @/data/seo) because Footer.tsx is bundled
+// by webpack for client-routed pages (e.g. /exchange) — importing fs-dependent
+// modules would break the build.
 //
-// Data is inlined (not imported from @/data/seo) to avoid pulling in fs-dependent
-// modules that can't be bundled for the client.
+// IMPORTANT: Only list slugs that have published content in peanut-content.
+// The validate-links CI in peanut-content catches broken internal links, but
+// this file lives in peanut-ui — verify manually when editing.
 
 const TOP_COUNTRIES: Array<{ slug: string; name: string }> = [
     { slug: 'argentina', name: 'Argentina' },

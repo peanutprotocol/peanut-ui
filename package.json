@@ -73,6 +73,7 @@
         "next-mdx-remote": "^6.0.0",
         "nuqs": "^2.8.6",
         "pix-utils": "^2.8.2",
+        "posthog-js": "^1.360.0",
         "pulltorefreshjs": "^0.1.22",
         "qr-scanner": "^1.4.2",
         "react": "^19.2.1",

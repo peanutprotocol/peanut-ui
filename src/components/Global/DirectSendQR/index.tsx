@@ -10,6 +10,8 @@ import QRBottomDrawer from '@/components/Global/QRBottomDrawer'
 import QRScanner from '@/components/Global/QRScanner'
 import { useAuth } from '@/context/authContext'
 import { hitUserMetric } from '@/utils/metrics.utils'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import * as Sentry from '@sentry/nextjs'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useMemo, useState, type ChangeEvent } from 'react'
@@ -261,6 +263,7 @@ export default function DirectSendQr({
             return originalData
         }
         hitUserMetric(user!.user.userId, 'scan-qr', { qrType, data: getLogData() })
+        posthog.capture(ANALYTICS_EVENTS.QR_SCANNED, { qr_type: qrType })
         setQrType(qrType as EQrType)
         switch (qrType) {
             case EQrType.PEANUT_URL:
