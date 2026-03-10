@@ -859,7 +859,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             const result = await pointsApi.getInvitesGraph(props.apiKey, {
                 mode: apiMode,
                 topNodes: topNodes > 0 ? topNodes : undefined,
-                includeNewDays: activityFilter.activityDays,
+                includeNewDays: displaySettingsRef.current.activityFilter.activityDays,
                 password: mode === 'payment' ? props.password : undefined,
             })
 
