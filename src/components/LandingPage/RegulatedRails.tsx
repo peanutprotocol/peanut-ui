@@ -52,34 +52,22 @@ export function RegulatedRails() {
                 </AnimateOnView>
 
                 <h1 className="font-roboto-flex-extrabold text-left text-[3.25rem] font-extraBlack !leading-[5rem] md:text-6xl lg:text-headingMedium">
-                    REGULATED RAILS, SELF-CUSTODY CONTROL
+                    YOUR MONEY. YOUR RULES.
                 </h1>
                 <p className="font-roboto-flex mt-6 text-left text-xl md:text-4xl">
-                    Peanut is a self-custodial wallet that seamlessly connects to banks and payment networks (examples
-                    below) via multiple third party partners who operate under international licenses and standards to
-                    keep every transaction secure, private, and under your control.
+                    Connect your wallet to your bank and local payment networks like PIX and MercadoPago through
+                    licensed partners — so you can pay like a local without giving up control of your funds.
                 </p>
 
                 <h6 className="font-roboto-flex mt-3 text-xs md:text-lg">
-                    Our partners hold{' '}
                     <a
-                        href="https://www.bridge.xyz/legal/licenses/us-licenses-and-registrations"
+                        href="https://docs.peanut.me"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-n-1 underline"
                     >
-                        MSB
-                    </a>{' '}
-                    licenses and are compliant under{' '}
-                    <a
-                        href="https://withpersona.com/security"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-n-1 underline"
-                    >
-                        GDPR and CCPA/CPRA
+                        Learn more
                     </a>
-                    &nbsp; frameworks
                 </h6>
             </div>
 
