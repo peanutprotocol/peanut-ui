@@ -136,6 +136,8 @@ export default function FullGraphPage() {
                     externalNodesError,
                     handleReset,
                     handleRecalculate,
+                    hiddenStatuses,
+                    setHiddenStatuses,
                 }) => (
                     <>
                         {/* Controls Panel - Top Right */}
@@ -739,27 +741,69 @@ export default function FullGraphPage() {
                                 </div>
                             </div>
 
-                            {/* Compact Legend */}
+                            {/* Compact Legend — click to toggle visibility */}
                             <div className="mt-3 border-t border-gray-200 pt-2">
                                 <div className="space-y-1 text-[9px]">
-                                    {/* Nodes */}
+                                    {/* Nodes — clickable toggles */}
                                     <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-gray-500">
-                                        <span className="flex items-center gap-0.5">
-                                            <span className="inline-block h-2 w-2 rounded-full bg-green-500"></span>
-                                            New
-                                        </span>
-                                        <span className="flex items-center gap-0.5">
-                                            <span className="inline-block h-2 w-2 rounded-full bg-purple-500"></span>
-                                            Active
-                                        </span>
-                                        <span className="flex items-center gap-0.5">
-                                            <span className="inline-block h-2 w-2 rounded-full bg-gray-400 opacity-40"></span>
-                                            Inactive
-                                        </span>
-                                        <span className="flex items-center gap-0.5">
-                                            <span className="inline-block h-2 w-2 rounded-full border border-black bg-gray-300"></span>
-                                            Jailed
-                                        </span>
+                                        {(
+                                            [
+                                                {
+                                                    key: 'new',
+                                                    label: 'New',
+                                                    color: 'rgba(74, 222, 128, 0.85)',
+                                                    border: false,
+                                                },
+                                                {
+                                                    key: 'active',
+                                                    label: 'Active',
+                                                    color: 'rgba(255, 144, 232, 0.85)',
+                                                    border: false,
+                                                },
+                                                {
+                                                    key: 'inactive',
+                                                    label: 'Inactive',
+                                                    color: 'rgba(145, 145, 145, 0.7)',
+                                                    border: false,
+                                                },
+                                                {
+                                                    key: 'jailed',
+                                                    label: 'Jailed',
+                                                    color: 'rgba(156, 163, 175, 0.85)',
+                                                    border: true,
+                                                },
+                                            ] as const
+                                        ).map(({ key, label, color, border }) => (
+                                            <button
+                                                key={key}
+                                                onClick={() => {
+                                                    const next = new Set(hiddenStatuses)
+                                                    if (next.has(key)) next.delete(key)
+                                                    else next.add(key)
+                                                    setHiddenStatuses(next)
+                                                }}
+                                                className="flex cursor-pointer items-center gap-0.5"
+                                                style={{ opacity: hiddenStatuses.has(key) ? 0.3 : 1 }}
+                                                title={hiddenStatuses.has(key) ? `Show ${label}` : `Hide ${label}`}
+                                            >
+                                                <span
+                                                    className="inline-block h-2 w-2 rounded-full"
+                                                    style={{
+                                                        backgroundColor: color,
+                                                        border: border ? '1.5px solid #000' : undefined,
+                                                    }}
+                                                ></span>
+                                                <span
+                                                    style={{
+                                                        textDecoration: hiddenStatuses.has(key)
+                                                            ? 'line-through'
+                                                            : undefined,
+                                                    }}
+                                                >
+                                                    {label}
+                                                </span>
+                                            </button>
+                                        ))}
                                     </div>
                                     {/* External nodes */}
                                     {externalNodesConfig.enabled && (
