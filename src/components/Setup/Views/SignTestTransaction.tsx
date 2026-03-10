@@ -10,7 +10,6 @@ import { encodeFunctionData, erc20Abi, type Address, type Hex } from 'viem'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { capturePasskeyDebugInfo } from '@/utils/passkeyDebug'
 import * as Sentry from '@sentry/nextjs'
-import Link from 'next/link'
 import { twMerge } from 'tailwind-merge'
 
 const SignTestTransaction = () => {
@@ -188,14 +187,14 @@ const SignTestTransaction = () => {
                 </div>
                 <div>
                     <p className="border-t border-grey-1 pt-2 text-center text-xs text-grey-1">
-                        <Link
-                            rel="noopener noreferrer"
-                            target="_blank"
+                        <a
                             className="underline underline-offset-2"
-                            href="https://docs.peanut.me/passkeys"
+                            href="/en/help/passkeys"
+                            target="_blank"
+                            rel="noopener noreferrer"
                         >
                             Learn more about what Passkeys are
-                        </Link>{' '}
+                        </a>{' '}
                     </p>
                 </div>
             </div>
@@ -206,14 +205,14 @@ const SignTestTransaction = () => {
 export const PasskeyDocsLink = ({ className }: { className?: string }) => {
     return (
         <p className={twMerge('border-t border-grey-1 pt-2 text-center text-xs text-grey-1', className)}>
-            <Link
-                rel="noopener noreferrer"
-                target="_blank"
+            <a
                 className="underline underline-offset-2"
-                href="https://docs.peanut.me/passkeys"
+                href="/en/help/passkeys"
+                target="_blank"
+                rel="noopener noreferrer"
             >
                 Learn more about what Passkeys are
-            </Link>{' '}
+            </a>{' '}
         </p>
     )
 }
