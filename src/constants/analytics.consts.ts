@@ -37,8 +37,31 @@ export const ANALYTICS_EVENTS = {
     // ── Send ──
     SEND_METHOD_SELECTED: 'send_method_selected',
 
+    // ── Send Link ──
+    SEND_LINK_CREATED: 'send_link_created',
+    SEND_LINK_FAILED: 'send_link_failed',
+    SEND_LINK_SHARED: 'send_link_shared',
+
+    // ── Claim Link ──
+    CLAIM_LINK_VIEWED: 'claim_link_viewed',
+    CLAIM_LINK_STARTED: 'claim_link_started',
+    CLAIM_LINK_COMPLETED: 'claim_link_completed',
+    CLAIM_LINK_FAILED: 'claim_link_failed',
+    CLAIM_RECIPIENT_SELECTED: 'claim_recipient_selected',
+
+    // ── Deposit / Onramp ──
+    DEPOSIT_METHOD_SELECTED: 'deposit_method_selected',
+    DEPOSIT_AMOUNT_ENTERED: 'deposit_amount_entered',
+    DEPOSIT_CONFIRMED: 'deposit_confirmed',
+    DEPOSIT_COMPLETED: 'deposit_completed',
+    DEPOSIT_FAILED: 'deposit_failed',
+
     // ── Withdraw ──
     WITHDRAW_AMOUNT_ENTERED: 'withdraw_amount_entered',
+    WITHDRAW_METHOD_SELECTED: 'withdraw_method_selected',
+    WITHDRAW_CONFIRMED: 'withdraw_confirmed',
+    WITHDRAW_COMPLETED: 'withdraw_completed',
+    WITHDRAW_FAILED: 'withdraw_failed',
 
     // ── QR ──
     QR_SCANNED: 'qr_scanned',

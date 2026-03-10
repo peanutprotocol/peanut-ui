@@ -31,6 +31,8 @@ import { useRouteCalculation } from '@/features/payments/shared/hooks/useRouteCa
 import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentRecorder'
 import { isTxReverted } from '@/utils/general.utils'
 import { ErrorHandler } from '@/utils/sdkErrorHandler.utils'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 export default function WithdrawCryptoPage() {
     const router = useRouter()
@@ -254,6 +256,11 @@ export default function WithdrawCryptoPage() {
         clearErrors()
         setIsSendingTx(true)
 
+        posthog.capture(ANALYTICS_EVENTS.WITHDRAW_CONFIRMED, {
+            amount_usd: usdAmount,
+            method_type: 'crypto',
+        })
+
         try {
             // send transactions via peanut wallet
             const txResult = await sendTransactions(transactions, PEANUT_WALLET_CHAIN.id.toString())
@@ -281,9 +288,17 @@ export default function WithdrawCryptoPage() {
             setPaymentDetails(payment)
             triggerHaptic()
             setCurrentView('STATUS')
+            posthog.capture(ANALYTICS_EVENTS.WITHDRAW_COMPLETED, {
+                amount_usd: usdAmount,
+                method_type: 'crypto',
+            })
         } catch (err) {
             console.error('Withdrawal execution failed:', err)
             const errMsg = ErrorHandler(err)
+            posthog.capture(ANALYTICS_EVENTS.WITHDRAW_FAILED, {
+                method_type: 'crypto',
+                error_message: errMsg,
+            })
             setError(errMsg)
         } finally {
             setIsSendingTx(false)

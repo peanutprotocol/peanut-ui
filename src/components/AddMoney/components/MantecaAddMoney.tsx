@@ -19,6 +19,8 @@ import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 // Step type for URL state
 type MantecaStep = 'inputAmount' | 'depositDetails'
@@ -170,6 +172,14 @@ const MantecaAddMoney: FC = () => {
         try {
             setError(null)
             setIsCreatingDeposit(true)
+
+            posthog.capture(ANALYTICS_EVENTS.DEPOSIT_AMOUNT_ENTERED, {
+                amount_usd: usdAmount,
+                method_type: 'manteca',
+                country: selectedCountryPath,
+                denomination: currentDenomination,
+            })
+
             const isUsdDenominated = currentDenomination === 'USD'
             // Use the displayed amount for the API call
             const amount = displayedAmount
@@ -183,11 +193,21 @@ const MantecaAddMoney: FC = () => {
                 return
             }
             setDepositDetails(depositData.data)
+            posthog.capture(ANALYTICS_EVENTS.DEPOSIT_CONFIRMED, {
+                amount_usd: usdAmount,
+                method_type: 'manteca',
+                country: selectedCountryPath,
+            })
             // Update URL state to show deposit details step
             setUrlState({ step: 'depositDetails' })
         } catch (error) {
             console.log(error)
-            setError(error instanceof Error ? error.message : String(error))
+            const errorMessage = error instanceof Error ? error.message : String(error)
+            posthog.capture(ANALYTICS_EVENTS.DEPOSIT_FAILED, {
+                method_type: 'manteca',
+                error_message: errorMessage,
+            })
+            setError(errorMessage)
         } finally {
             setIsCreatingDeposit(false)
         }
