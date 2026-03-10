@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/context/authContext'
 import { invitesApi } from '@/services/invites'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import InvitesPageLayout from './InvitesPageLayout'
 import { twMerge } from 'tailwind-merge'
 import ValidatedInput from '../Global/ValidatedInput'
@@ -16,8 +16,11 @@ import PeanutLoading from '../Global/PeanutLoading'
 import { useSetupStore } from '@/redux/hooks'
 import { useNotifications } from '@/hooks/useNotifications'
 import { updateUserById } from '@/app/actions/users'
+import { useQueryState, parseAsStringEnum } from 'nuqs'
 
 const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+
+type WaitlistStep = 'email' | 'notifications' | 'jail'
 
 const JoinWaitlistPage = () => {
     const { fetchUser, isFetchingUser, logoutUser, user } = useAuth()
@@ -25,16 +28,17 @@ const JoinWaitlistPage = () => {
     const { inviteType, inviteCode: setupInviteCode } = useSetupStore()
     const { requestPermission, afterPermissionAttempt, isPermissionGranted } = useNotifications()
 
-    // Determine initial step: skip email if already on file, skip notifications if already granted
-    const initialStep = useMemo<1 | 2 | 3>(() => {
-        if (user?.user.email) {
-            return isPermissionGranted ? 3 : 2
-        }
-        return 1
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
-
-    const [step, setStep] = useState<1 | 2 | 3>(initialStep)
+    // URL-backed step state — survives refresh, enables deep-linking
+    const [step, setStep] = useQueryState(
+        'step',
+        parseAsStringEnum<WaitlistStep>(['email', 'notifications', 'jail']).withDefault(
+            // Determine initial step: skip completed steps
+            (() => {
+                if (user?.user.email) return isPermissionGranted ? 'jail' : 'notifications'
+                return 'email'
+            })()
+        )
+    )
 
     // Step 1: Email state
     const [emailValue, setEmailValue] = useState('')
@@ -55,6 +59,15 @@ const JoinWaitlistPage = () => {
         enabled: !!user?.user.userId,
     })
 
+    // Redirect completed steps when user/permission state changes
+    useEffect(() => {
+        if (step === 'email' && user?.user.email) {
+            setStep(isPermissionGranted ? 'jail' : 'notifications')
+        } else if (step === 'notifications' && isPermissionGranted) {
+            setStep('jail')
+        }
+    }, [user?.user.email, isPermissionGranted, step, setStep])
+
     // Step 1: Submit email via server action
     const handleEmailSubmit = async () => {
         if (!isValidEmail(emailValue) || !user?.user.userId) return
@@ -67,7 +80,7 @@ const JoinWaitlistPage = () => {
             if (result.error) {
                 setEmailError(result.error)
             } else {
-                setStep(isPermissionGranted ? 3 : 2)
+                setStep(isPermissionGranted ? 'jail' : 'notifications')
             }
         } catch {
             setEmailError('Something went wrong. Please try again.')
@@ -84,7 +97,7 @@ const JoinWaitlistPage = () => {
         } catch {
             // permission denied or error — that's fine
         }
-        setStep(3)
+        setStep('jail')
     }
 
     // Step 3: Validate and accept invite code
@@ -135,7 +148,7 @@ const JoinWaitlistPage = () => {
         return <PeanutLoading coverFullScreen />
     }
 
-    const stepImage = step === 3 ? peanutAnim.src : chillPeanutAnim.src
+    const stepImage = step === 'jail' ? peanutAnim.src : chillPeanutAnim.src
 
     return (
         <InvitesPageLayout image={stepImage}>
@@ -147,7 +160,7 @@ const JoinWaitlistPage = () => {
             >
                 <div className="mx-auto w-full md:max-w-xs">
                     {/* Step 1: Email Collection */}
-                    {step === 1 && (
+                    {step === 'email' && (
                         <div className="flex h-full flex-col justify-between gap-4 md:gap-10 md:pt-5">
                             <h1 className="text-xl font-extrabold">Stay in the loop</h1>
                             <p className="text-base font-medium">
@@ -183,7 +196,7 @@ const JoinWaitlistPage = () => {
                     )}
 
                     {/* Step 2: Enable Notifications (skippable) */}
-                    {step === 2 && (
+                    {step === 'notifications' && (
                         <div className="flex h-full flex-col justify-between gap-4 md:gap-10 md:pt-5">
                             <h1 className="text-xl font-extrabold">Want instant updates?</h1>
                             <p className="text-base font-medium">We&apos;ll notify you the moment you get access.</p>
@@ -192,14 +205,14 @@ const JoinWaitlistPage = () => {
                                 Enable notifications
                             </Button>
 
-                            <button onClick={() => setStep(3)} className="text-sm underline">
+                            <button onClick={() => setStep('jail')} className="text-sm underline">
                                 Not now
                             </button>
                         </div>
                     )}
 
                     {/* Step 3: Jail Screen */}
-                    {step === 3 && (
+                    {step === 'jail' && (
                         <div className="flex h-full flex-col justify-between gap-4 md:gap-10 md:pt-5">
                             {!isPermissionGranted && (
                                 <div className="flex items-center justify-between rounded-sm border border-n-2 px-3 py-2">
