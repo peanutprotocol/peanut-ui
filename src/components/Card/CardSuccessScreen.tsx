@@ -136,6 +136,7 @@ const CardSuccessScreen = ({ onViewBadges }: CardSuccessScreenProps) => {
                 visible={isInviteModalOpen}
                 onClose={() => setIsInviteModalOpen(false)}
                 username={user?.user?.username ?? ''}
+                source="card_deposit_success"
             />
         </>
     )

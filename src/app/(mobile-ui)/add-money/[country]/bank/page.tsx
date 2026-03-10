@@ -31,6 +31,8 @@ import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
 import { getLimitsWarningCardProps } from '@/features/limits/utils'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 // Step type for URL state
 type BridgeBankStep = 'inputAmount' | 'kyc' | 'collectUserDetails' | 'showDetails'
@@ -216,6 +218,11 @@ export default function OnrampBankPage() {
 
     const handleAmountContinue = () => {
         if (validateAmount(rawTokenAmount)) {
+            posthog.capture(ANALYTICS_EVENTS.DEPOSIT_AMOUNT_ENTERED, {
+                amount_usd: usdEquivalent,
+                method_type: 'bank',
+                country: selectedCountryPath,
+            })
             setShowWarningModal(true)
         }
     }
@@ -238,6 +245,11 @@ export default function OnrampBankPage() {
             setOnrampData(onrampDataResponse)
 
             if (onrampDataResponse.transferId) {
+                posthog.capture(ANALYTICS_EVENTS.DEPOSIT_CONFIRMED, {
+                    amount_usd: usdEquivalent,
+                    method_type: 'bank',
+                    country: selectedCountryPath,
+                })
                 setUrlState({ step: 'showDetails' })
             } else {
                 setError({
@@ -247,6 +259,11 @@ export default function OnrampBankPage() {
             }
         } catch (error) {
             setShowWarningModal(false)
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+            posthog.capture(ANALYTICS_EVENTS.DEPOSIT_FAILED, {
+                method_type: 'bank',
+                error_message: errorMessage,
+            })
             if (onrampError) {
                 setError({
                     showError: true,

@@ -20,6 +20,8 @@ import { pointsApi } from '@/services/points'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { type PointsInvite } from '@/services/services.types'
 import { useEffect, useRef, useState } from 'react'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import InvitesGraph from '@/components/Global/InvitesGraph'
 import { CashCard } from '@/components/Points/CashCard'
 import InviteFriendsModal from '@/components/Global/InviteFriendsModal'
@@ -84,6 +86,10 @@ const PointsPage = () => {
         duration: 1.8,
         enabled: !!tierInfo?.data,
     })
+
+    useEffect(() => {
+        posthog.capture(ANALYTICS_EVENTS.POINTS_PAGE_VIEWED)
+    }, [])
 
     useEffect(() => {
         // re-fetch user to get the latest invitees list for showing heart icon
@@ -303,6 +309,7 @@ const PointsPage = () => {
                     visible={isInviteModalOpen}
                     onClose={() => setIsInviteModalOpen(false)}
                     username={username ?? ''}
+                    source="points_page"
                 />
             </section>
         </PageContainer>

@@ -37,8 +37,53 @@ export const ANALYTICS_EVENTS = {
     // ── Send ──
     SEND_METHOD_SELECTED: 'send_method_selected',
 
+    // ── Send Link ──
+    SEND_LINK_CREATED: 'send_link_created',
+    SEND_LINK_FAILED: 'send_link_failed',
+    SEND_LINK_SHARED: 'send_link_shared',
+
+    // ── Claim Link ──
+    CLAIM_LINK_VIEWED: 'claim_link_viewed',
+    CLAIM_LINK_STARTED: 'claim_link_started',
+    CLAIM_LINK_COMPLETED: 'claim_link_completed',
+    CLAIM_LINK_FAILED: 'claim_link_failed',
+    CLAIM_RECIPIENT_SELECTED: 'claim_recipient_selected',
+
+    // ── Deposit / Onramp ──
+    DEPOSIT_METHOD_SELECTED: 'deposit_method_selected',
+    DEPOSIT_AMOUNT_ENTERED: 'deposit_amount_entered',
+    DEPOSIT_CONFIRMED: 'deposit_confirmed',
+    DEPOSIT_COMPLETED: 'deposit_completed',
+    DEPOSIT_FAILED: 'deposit_failed',
+
     // ── Withdraw ──
     WITHDRAW_AMOUNT_ENTERED: 'withdraw_amount_entered',
+    WITHDRAW_METHOD_SELECTED: 'withdraw_method_selected',
+    WITHDRAW_CONFIRMED: 'withdraw_confirmed',
+    WITHDRAW_COMPLETED: 'withdraw_completed',
+    WITHDRAW_FAILED: 'withdraw_failed',
+
+    // ── Invites / Referrals ──
+    INVITE_LINK_SHARED: 'invite_link_shared',
+    INVITE_LINK_COPIED: 'invite_link_copied',
+    INVITE_PAGE_VIEWED: 'invite_page_viewed',
+    INVITE_CLAIM_CLICKED: 'invite_claim_clicked',
+    INVITE_ACCEPTED: 'invite_accepted',
+    INVITE_ACCEPT_FAILED: 'invite_accept_failed',
+    INVITE_MODAL_OPENED: 'invite_modal_opened',
+    INVITE_MODAL_DISMISSED: 'invite_modal_dismissed',
+
+    // ── Points / Cashback ──
+    POINTS_PAGE_VIEWED: 'points_page_viewed',
+    POINTS_EARNED: 'points_earned',
+
+    // ── Notifications ──
+    NOTIFICATION_PERMISSION_REQUESTED: 'notification_permission_requested',
+    NOTIFICATION_PERMISSION_GRANTED: 'notification_permission_granted',
+    NOTIFICATION_PERMISSION_DENIED: 'notification_permission_denied',
+    NOTIFICATION_MODAL_SHOWN: 'notification_modal_shown',
+    NOTIFICATION_MODAL_DISMISSED: 'notification_modal_dismissed',
+    NOTIFICATION_SUBSCRIBED: 'notification_subscribed',
 
     // ── QR ──
     QR_SCANNED: 'qr_scanned',

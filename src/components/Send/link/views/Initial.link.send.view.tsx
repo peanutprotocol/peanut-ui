@@ -19,6 +19,8 @@ import { Button } from '@/components/0_Bruddle/Button'
 import FileUploadInput from '../../../Global/FileUploadInput'
 import AmountInput from '../../../Global/AmountInput'
 import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 const LinkSendInitialView = () => {
     const {
@@ -56,6 +58,13 @@ const LinkSendInitialView = () => {
             const { link, pubKey, chainId, contractVersion, depositIdx, txHash, amount, tokenAddress } =
                 await createLink(parseUnits(tokenValue!, PEANUT_WALLET_TOKEN_DECIMALS))
 
+            posthog.capture(ANALYTICS_EVENTS.SEND_LINK_CREATED, {
+                amount: tokenValue,
+                chain_id: chainId,
+                token_address: tokenAddress,
+                has_attachment: !!attachmentOptions?.rawFile,
+            })
+
             setLink(link)
             setView('SUCCESS')
             fetchBalance()
@@ -89,6 +98,10 @@ const LinkSendInitialView = () => {
             // handle errors
             const errorString = ErrorHandler(error)
             setErrorState({ showError: true, errorMessage: errorString })
+            posthog.capture(ANALYTICS_EVENTS.SEND_LINK_FAILED, {
+                amount: tokenValue,
+                error_message: errorString,
+            })
             captureException(error)
         } finally {
             setLoadingState('Idle')
