@@ -77,3 +77,9 @@ public/swe-worker*
 # mobile POC
 android/
 .claude/
+
+# AI tool symlinks (source of truth: CONTRIBUTING.md)
+CLAUDE.md
+AGENTS.md
+.cursorrules
+.windsurfrules
