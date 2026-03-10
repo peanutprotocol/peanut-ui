@@ -17,8 +17,7 @@ import { useSetupStore } from '@/redux/hooks'
 import { useNotifications } from '@/hooks/useNotifications'
 import { updateUserById } from '@/app/actions/users'
 import { useQueryState, parseAsStringEnum } from 'nuqs'
-
-const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+import { isValidEmail } from '@/utils/format.utils'
 
 type WaitlistStep = 'email' | 'notifications' | 'jail'
 
@@ -80,6 +79,7 @@ const JoinWaitlistPage = () => {
             if (result.error) {
                 setEmailError(result.error)
             } else {
+                await fetchUser()
                 setStep(isPermissionGranted ? 'jail' : 'notifications')
             }
         } catch {
@@ -179,7 +179,7 @@ const JoinWaitlistPage = () => {
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter' && isValidEmail(emailValue)) handleEmailSubmit()
                                 }}
-                                className="h-12 w-full rounded-sm border border-n-2 px-4 text-base outline-none focus:border-black"
+                                className="h-12 w-full rounded-sm border border-n-1 px-4 text-base outline-none focus:border-black"
                             />
 
                             {emailError && <ErrorAlert description={emailError} />}
@@ -208,6 +208,10 @@ const JoinWaitlistPage = () => {
                             <button onClick={() => setStep('jail')} className="text-sm underline">
                                 Not now
                             </button>
+
+                            <button onClick={() => setStep('email')} className="text-sm underline">
+                                Back
+                            </button>
                         </div>
                     )}
 
@@ -215,7 +219,7 @@ const JoinWaitlistPage = () => {
                     {step === 'jail' && (
                         <div className="flex h-full flex-col justify-between gap-4 md:gap-10 md:pt-5">
                             {!isPermissionGranted && (
-                                <div className="flex items-center justify-between rounded-sm border border-n-2 px-3 py-2">
+                                <div className="flex items-center justify-between rounded-sm border border-n-1 px-3 py-2">
                                     <span className="text-xs font-medium text-n-3">
                                         Enable notifications to get updates when you&apos;re unlocked
                                     </span>

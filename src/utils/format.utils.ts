@@ -108,3 +108,5 @@ export const formatCurrencyWithIntl = (
         return numericValue.toFixed(minDigits)
     }
 }
+
+export const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
