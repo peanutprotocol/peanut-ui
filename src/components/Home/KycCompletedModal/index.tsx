@@ -1,5 +1,5 @@
 'use client'
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import ActionModal from '@/components/Global/ActionModal'
 import type { IconName } from '@/components/Global/Icons/Icon'
 import InfoCard from '@/components/Global/InfoCard'
@@ -8,10 +8,20 @@ import { MantecaKycStatus } from '@/interfaces'
 import { countryData, MantecaSupportedExchanges, type CountryData } from '@/components/AddMoney/consts'
 import useKycStatus from '@/hooks/useKycStatus'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
 
 const KycCompletedModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
     const { user } = useAuth()
     const [approvedCountryData, setApprovedCountryData] = useState<CountryData | null>(null)
+
+    const hasTrackedShow = useRef(false)
+    useEffect(() => {
+        if (isOpen && !hasTrackedShow.current) {
+            hasTrackedShow.current = true
+            posthog.capture(ANALYTICS_EVENTS.MODAL_SHOWN, { modal_type: MODAL_TYPES.KYC_COMPLETED })
+        }
+    }, [isOpen])
 
     const { isUserBridgeKycApproved, isUserMantecaKycApproved } = useKycStatus()
     const { getVerificationUnlockItems } = useIdentityVerification()
@@ -70,7 +80,13 @@ const KycCompletedModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =
             ctas={[
                 {
                     text: 'Start sending money',
-                    onClick: onClose,
+                    onClick: () => {
+                        posthog.capture(ANALYTICS_EVENTS.MODAL_CTA_CLICKED, {
+                            modal_type: MODAL_TYPES.KYC_COMPLETED,
+                            cta: 'start_sending',
+                        })
+                        onClose()
+                    },
                     variant: 'purple',
                     className: 'w-full',
                     shadowSize: '4',

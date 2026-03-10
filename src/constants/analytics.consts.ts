@@ -81,9 +81,12 @@ export const ANALYTICS_EVENTS = {
     NOTIFICATION_PERMISSION_REQUESTED: 'notification_permission_requested',
     NOTIFICATION_PERMISSION_GRANTED: 'notification_permission_granted',
     NOTIFICATION_PERMISSION_DENIED: 'notification_permission_denied',
-    NOTIFICATION_MODAL_SHOWN: 'notification_modal_shown',
-    NOTIFICATION_MODAL_DISMISSED: 'notification_modal_dismissed',
     NOTIFICATION_SUBSCRIBED: 'notification_subscribed',
+
+    // ── Modal Fatigue ──
+    MODAL_SHOWN: 'modal_shown',
+    MODAL_DISMISSED: 'modal_dismissed',
+    MODAL_CTA_CLICKED: 'modal_cta_clicked',
 
     // ── QR ──
     QR_SCANNED: 'qr_scanned',
@@ -95,6 +98,18 @@ export const ANALYTICS_EVENTS = {
     BACKEND_ERROR_SHOWN: 'backend_error_shown',
     BACKEND_ERROR_RETRY: 'backend_error_retry',
     BACKEND_ERROR_LOGOUT: 'backend_error_logout',
+} as const
+
+/**
+ * Valid modal_type values for MODAL_SHOWN / MODAL_DISMISSED / MODAL_CTA_CLICKED events.
+ */
+export const MODAL_TYPES = {
+    NOTIFICATIONS: 'notifications',
+    EARLY_USER: 'early_user',
+    POST_SIGNUP: 'post_signup',
+    BALANCE_WARNING: 'balance_warning',
+    CARD_PIONEER: 'card_pioneer',
+    KYC_COMPLETED: 'kyc_completed',
 } as const
 
 export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[keyof typeof ANALYTICS_EVENTS]
