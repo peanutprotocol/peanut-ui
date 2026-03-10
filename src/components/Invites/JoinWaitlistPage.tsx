@@ -51,24 +51,28 @@ const JoinWaitlistPage = () => {
     const [inviteCode, setInviteCode] = useState(setupInviteCode)
     const [isValid, setIsValid] = useState(false)
     const [isChanging, setIsChanging] = useState(false)
-    const [isLoading, setIsLoading] = useState(false)
+    const [isValidating, setIsValidating] = useState(false)
+    const [isAccepting, setIsAccepting] = useState(false)
     const [error, setError] = useState('')
     const [isLoggingOut, setIsLoggingOut] = useState(false)
 
     const { data, isLoading: isLoadingWaitlistPosition } = useQuery({
-        queryKey: ['waitlist-position'],
+        queryKey: ['waitlist-position', user?.user.userId],
         queryFn: () => invitesApi.getWaitlistQueuePosition(),
         enabled: !!user?.user.userId && step === 'jail',
     })
 
-    // Redirect completed steps when user/permission state changes
+    // Enforce step invariants: prevent URL bypass and fast-forward completed steps
     useEffect(() => {
-        if (step === 'email' && user?.user.email) {
+        if (isFetchingUser) return
+        if (step !== 'email' && !user?.user.email) {
+            setStep('email')
+        } else if (step === 'email' && user?.user.email) {
             setStep(nextStepAfterEmail(isPermissionGranted))
         } else if (step === 'notifications' && isPermissionGranted) {
             setStep('jail')
         }
-    }, [user?.user.email, isPermissionGranted, step, setStep])
+    }, [user?.user.email, isPermissionGranted, isFetchingUser, step, setStep])
 
     // Step 1: Submit email via server action
     const handleEmailSubmit = async () => {
@@ -103,19 +107,19 @@ const JoinWaitlistPage = () => {
         setStep('jail')
     }
 
-    // Step 3: Validate and accept invite code
+    // Step 3: Validate and accept invite code (separate loading states to avoid race)
     const validateInviteCode = async (code: string): Promise<boolean> => {
-        setIsLoading(true)
+        setIsValidating(true)
         try {
             const res = await invitesApi.validateInviteCode(code)
             return res.success
         } finally {
-            setIsLoading(false)
+            setIsValidating(false)
         }
     }
 
     const handleAcceptInvite = async () => {
-        setIsLoading(true)
+        setIsAccepting(true)
         try {
             const res = await invitesApi.acceptInvite(inviteCode, inviteType)
             if (res.success) {
@@ -127,7 +131,7 @@ const JoinWaitlistPage = () => {
         } catch {
             setError('Something went wrong. Please try again or contact support.')
         } finally {
-            setIsLoading(false)
+            setIsAccepting(false)
         }
     }
 
@@ -138,6 +142,7 @@ const JoinWaitlistPage = () => {
             router.push('/setup')
         } finally {
             setIsLoggingOut(false)
+            setError('')
         }
     }
 
@@ -248,10 +253,10 @@ const JoinWaitlistPage = () => {
 
                                 <Button
                                     className="h-12 w-4/12"
-                                    loading={isLoading}
+                                    loading={isAccepting}
                                     shadowSize="4"
                                     onClick={handleAcceptInvite}
-                                    disabled={!isValid || isChanging || isLoading}
+                                    disabled={!isValid || isChanging || isValidating || isAccepting}
                                 >
                                     Next
                                 </Button>
