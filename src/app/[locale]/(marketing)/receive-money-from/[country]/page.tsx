@@ -29,6 +29,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     if (!isValidLocale(locale)) return {}
     if (!getReceiveSources().includes(country)) return {}
 
+    const mdxContent = readPageContentLocalized('receive-from', country, locale)
+    if (!mdxContent || mdxContent.frontmatter.published === false) return {}
+
     const i18n = getTranslations(locale as Locale)
     const countryName = getCountryName(country, locale as Locale)
 
