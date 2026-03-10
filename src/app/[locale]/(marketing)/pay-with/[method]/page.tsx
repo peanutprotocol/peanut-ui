@@ -58,7 +58,7 @@ export default async function PayWithPage({ params }: PageProps) {
     return (
         <ContentPage
             breadcrumbs={[
-                { name: i18n.home, href: '/' },
+                { name: i18n.home, href: `/${locale}` },
                 { name: pm.name, href: url },
             ]}
             article={

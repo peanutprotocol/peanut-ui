@@ -106,3 +106,23 @@ function estimateProcessingTime(network: string): string {
 }
 
 export const EXCHANGES: Record<string, Exchange> = loadExchanges()
+
+/**
+ * Deposit rails — payment methods and crypto networks with published MDX content
+ * in content/deposit/{slug}/. These don't have entity data like exchanges do;
+ * they're pure content pages served at /en/deposit/via-{slug}.
+ */
+export const DEPOSIT_RAILS: Record<string, string> = {
+    // Fiat rails
+    ach: 'ACH Bank Transfer',
+    sepa: 'SEPA Bank Transfer',
+    wire: 'Wire Transfer',
+    // Crypto networks
+    arbitrum: 'Arbitrum',
+    avalanche: 'Avalanche',
+    base: 'Base',
+    ethereum: 'Ethereum',
+    polygon: 'Polygon',
+    solana: 'Solana',
+    tron: 'Tron',
+}
