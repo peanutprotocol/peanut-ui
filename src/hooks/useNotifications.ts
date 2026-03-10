@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import OneSignal from 'react-onesignal'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { useUserStore } from '@/redux/hooks'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 export function useNotifications() {
     const { user } = useUserStore()
@@ -102,6 +104,7 @@ export function useNotifications() {
         // show modal only if user hasn't closed it yet
         if (!modalClosed) {
             setShowPermissionModal(true)
+            posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_MODAL_SHOWN)
         } else {
             setShowPermissionModal(false)
         }
@@ -186,6 +189,16 @@ export function useNotifications() {
                         // update local permission state and immediately re-evaluate ui visibility
                         refreshPermissionState()
                         evaluateVisibility()
+
+                        // track the resulting permission state
+                        if (typeof Notification !== 'undefined') {
+                            const perm = Notification.permission
+                            if (perm === 'granted') {
+                                posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_PERMISSION_GRANTED)
+                            } else if (perm === 'denied') {
+                                posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_PERMISSION_DENIED)
+                            }
+                        }
                     })
 
                     type PushSubscriptionChangeEvent = { current?: { optedIn?: boolean } | null }
@@ -214,6 +227,7 @@ export function useNotifications() {
 
                             // hide modal when user opts in
                             if (event.current?.optedIn) {
+                                posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_SUBSCRIBED)
                                 setShowPermissionModal(false)
                             }
                         }
@@ -237,6 +251,7 @@ export function useNotifications() {
         if (typeof window === 'undefined' || !oneSignalInitialized) return 'default'
 
         setIsRequestingPermission(true)
+        posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_PERMISSION_REQUESTED)
 
         try {
             // always use the native browser permission dialog, avoid onesignal slidedown ui
@@ -315,6 +330,7 @@ export function useNotifications() {
     const closePermissionModal = useCallback(() => {
         setShowPermissionModal(false)
         updateUserPreferences(user?.user.userId, { notifModalClosed: true })
+        posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_MODAL_DISMISSED)
     }, [user?.user.userId])
 
     // update permission state after user interacts with permission prompt

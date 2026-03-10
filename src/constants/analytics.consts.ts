@@ -77,6 +77,14 @@ export const ANALYTICS_EVENTS = {
     POINTS_PAGE_VIEWED: 'points_page_viewed',
     POINTS_EARNED: 'points_earned',
 
+    // ── Notifications ──
+    NOTIFICATION_PERMISSION_REQUESTED: 'notification_permission_requested',
+    NOTIFICATION_PERMISSION_GRANTED: 'notification_permission_granted',
+    NOTIFICATION_PERMISSION_DENIED: 'notification_permission_denied',
+    NOTIFICATION_MODAL_SHOWN: 'notification_modal_shown',
+    NOTIFICATION_MODAL_DISMISSED: 'notification_modal_dismissed',
+    NOTIFICATION_SUBSCRIBED: 'notification_subscribed',
+
     // ── QR ──
     QR_SCANNED: 'qr_scanned',
 
