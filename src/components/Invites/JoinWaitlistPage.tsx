@@ -62,21 +62,29 @@ const JoinWaitlistPage = () => {
         enabled: !!user?.user.userId && step === 'jail',
     })
 
+    // Track whether user explicitly skipped the email step
+    const [emailSkipped, setEmailSkipped] = useState(false)
+
     // Enforce step invariants: prevent URL bypass and fast-forward completed steps
     useEffect(() => {
         if (isFetchingUser) return
-        if (step !== 'email' && !user?.user.email) {
+        if (step !== 'email' && !user?.user.email && !emailSkipped) {
             setStep('email')
         } else if (step === 'email' && user?.user.email) {
             setStep(nextStepAfterEmail(isPermissionGranted))
         } else if (step === 'notifications' && isPermissionGranted) {
             setStep('jail')
         }
-    }, [user?.user.email, isPermissionGranted, isFetchingUser, step, setStep])
+    }, [user?.user.email, isPermissionGranted, isFetchingUser, step, setStep, emailSkipped])
 
     // Step 1: Submit email via server action
     const handleEmailSubmit = async () => {
-        if (!isValidEmail(emailValue) || !user?.user.userId || isSubmittingEmail) return
+        if (!isValidEmail(emailValue) || isSubmittingEmail) return
+
+        if (!user?.user.userId) {
+            setEmailError('Account not loaded yet. Please wait a moment and try again.')
+            return
+        }
 
         setIsSubmittingEmail(true)
         setEmailError('')
@@ -85,15 +93,28 @@ const JoinWaitlistPage = () => {
             const result = await updateUserById({ userId: user.user.userId, email: emailValue })
             if (result.error) {
                 setEmailError(result.error)
-            } else {
-                await fetchUser()
-                setStep(nextStepAfterEmail(isPermissionGranted))
+                return
             }
-        } catch {
-            setEmailError('Something went wrong. Please try again.')
+
+            const refreshedUser = await fetchUser()
+            if (!refreshedUser?.user.email) {
+                console.error('[JoinWaitlist] Email update succeeded but fetchUser did not return email')
+                setEmailError('Email saved, but we had trouble loading your profile. Please try again.')
+                return
+            }
+
+            setStep(nextStepAfterEmail(isPermissionGranted))
+        } catch (e) {
+            console.error('[JoinWaitlist] handleEmailSubmit failed:', e)
+            setEmailError('Something went wrong. Please try again or skip this step.')
         } finally {
             setIsSubmittingEmail(false)
         }
+    }
+
+    const handleSkipEmail = () => {
+        setEmailSkipped(true)
+        setStep(nextStepAfterEmail(isPermissionGranted))
     }
 
     // Step 2: Enable notifications (always advances regardless of outcome)
@@ -197,6 +218,12 @@ const JoinWaitlistPage = () => {
                             >
                                 Continue
                             </Button>
+
+                            {emailError && (
+                                <button onClick={handleSkipEmail} className="text-sm underline">
+                                    Skip for now
+                                </button>
+                            )}
                         </div>
                     )}
 
