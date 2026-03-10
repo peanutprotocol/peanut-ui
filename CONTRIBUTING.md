@@ -132,4 +132,4 @@ Button, Card (named export), BaseInput, BaseSelect, Checkbox, Divider, Title, To
 ## 📝 Commits
 
 - **Be descriptive** — focus on the "why", not the "what".
-- **Emoji prefixes**: ✨ features, 🐛 fixes, 📚 docs, 🚀 infra, ♻️ refactor, ⚡ performance
+- follow conventional commits.
