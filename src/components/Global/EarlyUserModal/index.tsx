@@ -48,6 +48,8 @@ const EarlyUserModal = () => {
                     <a
                         className="text-sm text-grey-1 underline"
                         href="/en/help"
+                        target="_blank"
+                        rel="noopener noreferrer"
                     >
                         Learn more
                     </a>

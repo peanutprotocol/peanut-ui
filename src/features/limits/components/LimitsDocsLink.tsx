@@ -1,12 +1,12 @@
-import Link from 'next/link'
-
 export default function LimitsDocsLink() {
     return (
-        <Link
-            href="/en/help"
+        <a
+            href="/en/help/transaction-limits"
+            target="_blank"
+            rel="noopener noreferrer"
             className="text-center text-sm underline"
         >
             See more about limits
-        </Link>
+        </a>
     )
 }

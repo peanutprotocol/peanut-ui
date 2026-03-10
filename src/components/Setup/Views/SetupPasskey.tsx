@@ -4,7 +4,6 @@ import { useZeroDev } from '@/hooks/useZeroDev'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useDeviceType } from '@/hooks/useGetDeviceType'
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
 import { capturePasskeyDebugInfo } from '@/utils/passkeyDebug'
 import { checkPasskeySupport } from '@/utils/passkeyPreflight'
 import { WebAuthnErrorName, withWebAuthnRetry } from '@/utils/webauthn.utils'
@@ -127,12 +126,14 @@ const SetupPasskey = () => {
                 </div>
                 <div>
                     <p className="border-t border-grey-1 pt-2 text-center text-xs text-grey-1">
-                        <Link
+                        <a
                             className="underline underline-offset-2"
-                            href="/en/help"
+                            href="/en/help/passkeys"
+                            target="_blank"
+                            rel="noopener noreferrer"
                         >
                             Learn more about what Passkeys are
-                        </Link>{' '}
+                        </a>{' '}
                     </p>
                 </div>
             </div>

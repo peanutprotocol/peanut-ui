@@ -2,7 +2,6 @@
 
 import PEANUTMAN_CRY from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_05.gif'
 import { Button } from '@/components/0_Bruddle/Button'
-import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useModalsContext } from '@/context/ModalsContext'
@@ -48,12 +47,14 @@ function ValidationErrorView({
                 <p className="text-sm font-normal md:max-w-xs">{message}</p>
             </div>
             {showLearnMore && (
-                <Link
-                    href="/en/help"
+                <a
+                    href="/en/help/request-money"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="text-sm underline"
                 >
                     Learn how to receive money through Peanut
-                </Link>
+                </a>
             )}
             <div className="flex w-full flex-col gap-2">
                 <Button
