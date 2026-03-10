@@ -35,6 +35,7 @@ import { updateUserById } from '@/app/actions/users'
 import { useHaptic } from 'use-haptic'
 import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
+import posthog from 'posthog-js'
 
 // Lazy load heavy modal components (~20-30KB each) to reduce initial bundle size
 // Components are only loaded when user triggers them
@@ -103,6 +104,7 @@ export default function Home() {
             e.stopPropagation()
             setIsBalanceHidden((prev: boolean) => {
                 const newValue = !prev
+                posthog.capture('balance_visibility_toggled', { is_hidden: newValue })
                 if (user) {
                     updateUserPreferences(user.user.userId, { balanceHidden: newValue })
                 }

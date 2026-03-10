@@ -15,6 +15,7 @@ import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import { useGeoFilteredPaymentOptions } from '@/hooks/useGeoFilteredPaymentOptions'
 import { useContacts } from '@/hooks/useContacts'
 import { getInitialsFromName } from '@/utils/general.utils'
+import posthog from 'posthog-js'
 import { useCallback, useMemo } from 'react'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import ContactsView from './Contacts.view'
@@ -94,6 +95,7 @@ export const SendRouterView = () => {
 
     // handle click on payment method options
     const handleMethodClick = (methodId: string) => {
+        posthog.capture('send_method_selected', { method: methodId })
         switch (methodId) {
             case 'peanut-contacts':
                 // navigate to contacts/user selection page

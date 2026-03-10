@@ -7,6 +7,7 @@ import { type BridgeKycStatus, convertPersonaUrl } from '@/utils/bridge-accounts
 import { type InitiateKycResponse } from '@/app/actions/types/users.types'
 import { getKycDetails, updateUserById } from '@/app/actions/users'
 import { type IUserKycVerification } from '@/interfaces'
+import posthog from 'posthog-js'
 
 interface UseKycFlowOptions {
     onKycSuccess?: () => void
@@ -67,9 +68,11 @@ export const useBridgeKycFlow = ({ onKycSuccess, flow, onManualClose }: UseKycFl
         const prevStatus = prevStatusRef.current
         prevStatusRef.current = liveKycStatus
         if (prevStatus !== 'approved' && liveKycStatus === 'approved') {
+            posthog.capture('kyc_approved', { provider: 'bridge' })
             setIsVerificationProgressModalOpen(false)
             onKycSuccess?.()
         } else if (prevStatus !== 'rejected' && liveKycStatus === 'rejected') {
+            posthog.capture('kyc_rejected', { provider: 'bridge' })
             setIsVerificationProgressModalOpen(false)
         }
         prevStatusRef.current = liveKycStatus
@@ -78,6 +81,7 @@ export const useBridgeKycFlow = ({ onKycSuccess, flow, onManualClose }: UseKycFl
     const handleInitiateKyc = async () => {
         setIsLoading(true)
         setError(null)
+        posthog.capture('kyc_initiated', { provider: 'bridge', flow })
 
         try {
             const response = await getKycDetails()
@@ -121,6 +125,7 @@ export const useBridgeKycFlow = ({ onKycSuccess, flow, onManualClose }: UseKycFl
 
             // handle tos acceptance: only act if the tos iframe is currently shown.
             if (source === 'tos_accepted') {
+                posthog.capture('kyc_tos_accepted', { provider: 'bridge' })
                 if (wasShowingTos && apiResponse?.kycLink) {
                     const kycUrl = convertPersonaUrl(apiResponse.kycLink)
                     setIframeOptions({
@@ -135,6 +140,7 @@ export const useBridgeKycFlow = ({ onKycSuccess, flow, onManualClose }: UseKycFl
 
             // When KYC signals completion, close iframe and show progress modal
             if (source === 'completed') {
+                posthog.capture('kyc_submitted', { provider: 'bridge' })
                 setIframeOptions((prev) => ({ ...prev, visible: false }))
                 setIsVerificationProgressModalOpen(true)
                 // set the status to under review explicitly to avoild delays from bridge webhook
@@ -147,6 +153,7 @@ export const useBridgeKycFlow = ({ onKycSuccess, flow, onManualClose }: UseKycFl
 
             // manual abort: close modal; optionally redirect in add flow
             if (source === 'manual') {
+                posthog.capture('kyc_abandoned', { provider: 'bridge', flow })
                 setIframeOptions((prev) => ({ ...prev, visible: false }))
                 if (flow === 'add') {
                     router.push('/add-money')

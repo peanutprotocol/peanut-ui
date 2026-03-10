@@ -8,6 +8,7 @@ import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { getRedirectUrl, sanitizeRedirectURL, clearRedirectUrl } from '@/utils/general.utils'
 import * as Sentry from '@sentry/nextjs'
+import posthog from 'posthog-js'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect } from 'react'
 
@@ -62,7 +63,14 @@ const WelcomeStep = () => {
     return (
         <Card className="border-0">
             <Card.Content className="space-y-4 p-0 pt-4">
-                <Button shadowSize="4" className="h-11" onClick={() => handleNext()}>
+                <Button
+                    shadowSize="4"
+                    className="h-11"
+                    onClick={() => {
+                        posthog.capture('signup_create_wallet_clicked')
+                        handleNext()
+                    }}
+                >
                     Create your wallet
                 </Button>
                 <Button

@@ -1,7 +1,9 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useAuth } from '@/context/authContext'
 import { Button } from '@/components/0_Bruddle/Button'
+import posthog from 'posthog-js'
 
 // inline peanut icon svg to ensure it works without needing to fetch external assets
 const PeanutIcon = ({ className }: { className?: string }) => (
@@ -68,11 +70,17 @@ const PeanutIcon = ({ className }: { className?: string }) => (
 export default function BackendErrorScreen() {
     const { logoutUser, isLoggingOut } = useAuth()
 
+    useEffect(() => {
+        posthog.capture('backend_error_shown')
+    }, [])
+
     const handleRetry = () => {
+        posthog.capture('backend_error_retry')
         window.location.reload()
     }
 
     const handleForceLogout = () => {
+        posthog.capture('backend_error_logout')
         // Use skipBackendCall since backend is likely down (that's why we're on this screen)
         logoutUser({ skipBackendCall: true })
     }

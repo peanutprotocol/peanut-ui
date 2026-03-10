@@ -19,6 +19,7 @@ import { formatUnits } from 'viem'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
 import { getLimitsWarningCardProps } from '@/features/limits/utils'
+import posthog from 'posthog-js'
 
 type WithdrawStep = 'inputAmount' | 'selectMethod'
 
@@ -252,6 +253,12 @@ export default function WithdrawPage() {
             setAmountToWithdraw(rawTokenAmount)
             const usdVal = (selectedTokenData?.price ?? 1) * parseFloat(rawTokenAmount)
             setUsdAmount(usdVal.toString())
+            posthog.capture('withdraw_amount_entered', {
+                amount_usd: usdVal,
+                method_type: selectedMethod.type,
+                country: selectedMethod.countryPath,
+                from_send_flow: isFromSendFlow,
+            })
 
             // Route based on selected method type (check method type first to avoid stale bank account taking priority)
             // preserve method param if coming from send flow

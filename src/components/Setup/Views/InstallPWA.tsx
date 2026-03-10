@@ -10,6 +10,7 @@ import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import { captureException } from '@sentry/nextjs'
+import posthog from 'posthog-js'
 import { DeviceType } from '@/hooks/useGetDeviceType'
 import { useBravePWAInstallState } from '@/hooks/useBravePWAInstallState'
 
@@ -75,6 +76,7 @@ const InstallPWA = ({
 
     useEffect(() => {
         const handleAppInstalled = () => {
+            posthog.capture('pwa_install_completed', { device_type: deviceType })
             setTimeout(() => {
                 setInstallComplete(true)
                 setIsInstallInProgress(false)
@@ -122,10 +124,12 @@ const InstallPWA = ({
         if (!deferredPrompt?.prompt) return
         setIsInstallInProgress(true)
         setInstallCancelled(false)
+        posthog.capture('pwa_install_clicked', { device_type: deviceType })
         try {
             await deferredPrompt.prompt()
             const { outcome } = await deferredPrompt.userChoice
             if (outcome === 'dismissed') {
+                posthog.capture('pwa_install_dismissed', { device_type: deviceType })
                 setInstallCancelled(true)
                 setIsInstallInProgress(false)
             }

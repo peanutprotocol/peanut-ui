@@ -10,6 +10,7 @@ import { encodeFunctionData, erc20Abi, type Address, type Hex } from 'viem'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { capturePasskeyDebugInfo } from '@/utils/passkeyDebug'
 import * as Sentry from '@sentry/nextjs'
+import posthog from 'posthog-js'
 import { twMerge } from 'tailwind-merge'
 
 const SignTestTransaction = () => {
@@ -80,6 +81,7 @@ const SignTestTransaction = () => {
         setIsSigning(true)
         setError(null)
         dispatch(setupActions.setLoading(true))
+        posthog.capture('signup_test_tx_started')
 
         try {
             // if test transaction already completed, skip signing and go straight to account creation
@@ -106,6 +108,7 @@ const SignTestTransaction = () => {
                 console.log('[SignTestTransaction] Transaction signed successfully', {
                     userOpHash: result.userOpHash,
                 })
+                posthog.capture('signup_test_tx_signed')
                 setTestTransactionCompleted(true)
             } else {
                 console.log('[SignTestTransaction] Test transaction already completed, retrying account creation')
@@ -127,6 +130,7 @@ const SignTestTransaction = () => {
 
                 // account setup complete - addAccount() already fetched and verified user data
                 console.log('[SignTestTransaction] Account setup complete, redirecting to the app')
+                posthog.capture('signup_completed')
 
                 // keep loading state active until redirect completes
             } else {
@@ -151,6 +155,7 @@ const SignTestTransaction = () => {
                 },
             })
 
+            posthog.capture('signup_test_tx_failed', { error_name: (e as Error).name })
             setError(
                 "We're having trouble setting up your account. Our team has been notified. Please contact support for help."
             )

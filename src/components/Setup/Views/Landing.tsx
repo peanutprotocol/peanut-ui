@@ -7,6 +7,7 @@ import * as Sentry from '@sentry/nextjs'
 import Link from 'next/link'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
+import posthog from 'posthog-js'
 
 const LandingStep = () => {
     const { handleNext } = useSetupFlow()
@@ -22,6 +23,7 @@ const LandingStep = () => {
                   : 'An unexpected error occurred during login.'
         toast.error(errorMessage)
         Sentry.captureException(error, { extra: { errorCode: error.code } })
+        posthog.capture('signup_login_error', { error_code: error.code })
     }
 
     const onLoginClick = async () => {
@@ -35,7 +37,14 @@ const LandingStep = () => {
     return (
         <Card className="border-0">
             <Card.Content className="space-y-4 p-0 pt-4">
-                <Button shadowSize="4" className="h-11" onClick={() => handleNext()}>
+                <Button
+                    shadowSize="4"
+                    className="h-11"
+                    onClick={() => {
+                        posthog.capture('signup_signup_clicked')
+                        handleNext()
+                    }}
+                >
                     Sign up
                 </Button>
                 <Button

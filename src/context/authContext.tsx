@@ -13,6 +13,7 @@ import {
 } from '@/utils/general.utils'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { resetCrispProxySessions } from '@/utils/crisp'
+import posthog from 'posthog-js'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { createContext, type ReactNode, useContext, useState, useEffect, useMemo, useCallback } from 'react'
@@ -74,6 +75,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             syncLocalStorageToCookie(WEB_AUTHN_COOKIE_KEY)
             if (typeof window !== 'undefined' && window.gtag) {
                 window.gtag('set', { user_id: user.user.userId })
+            }
+            // PostHog: identify user (stitches anonymous pre-login events to this user)
+            if (typeof window !== 'undefined') {
+                posthog.identify(user.user.userId, {
+                    username: user.user.username,
+                })
             }
         }
     }, [user])
@@ -204,6 +211,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (typeof window !== 'undefined') {
             resetCrispProxySessions()
         }
+
+        // Reset PostHog identity so next user doesn't inherit previous user's session
+        posthog.reset()
     }, [dispatch, queryClient, user?.user.userId])
 
     /**
