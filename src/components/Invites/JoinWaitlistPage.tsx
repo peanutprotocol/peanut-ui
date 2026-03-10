@@ -62,20 +62,26 @@ const JoinWaitlistPage = () => {
         enabled: !!user?.user.userId && step === 'jail',
     })
 
-    // Track whether user explicitly skipped the email step
-    const [emailSkipped, setEmailSkipped] = useState(false)
+    // Track whether the email step has been completed or skipped this session,
+    // so the step invariant useEffect doesn't race with react-query state updates
+    const [emailStepDone, setEmailStepDone] = useState(!!user?.user.email)
 
     // Enforce step invariants: prevent URL bypass and fast-forward completed steps
     useEffect(() => {
         if (isFetchingUser) return
-        if (step !== 'email' && !user?.user.email && !emailSkipped) {
+        if (step !== 'email' && !user?.user.email && !emailStepDone) {
             setStep('email')
-        } else if (step === 'email' && user?.user.email) {
+        } else if (step === 'email' && (user?.user.email || emailStepDone)) {
             setStep(nextStepAfterEmail(isPermissionGranted))
         } else if (step === 'notifications' && isPermissionGranted) {
             setStep('jail')
         }
-    }, [user?.user.email, isPermissionGranted, isFetchingUser, step, setStep, emailSkipped])
+    }, [user?.user.email, isPermissionGranted, isFetchingUser, step, setStep, emailStepDone])
+
+    // Sync emailStepDone when user data loads with an existing email
+    useEffect(() => {
+        if (user?.user.email) setEmailStepDone(true)
+    }, [user?.user.email])
 
     // Step 1: Submit email via server action
     const handleEmailSubmit = async () => {
@@ -103,6 +109,9 @@ const JoinWaitlistPage = () => {
                 return
             }
 
+            // Mark email step as done BEFORE setStep to prevent the useEffect
+            // from racing and resetting the step back to 'email'
+            setEmailStepDone(true)
             setStep(nextStepAfterEmail(isPermissionGranted))
         } catch (e) {
             console.error('[JoinWaitlist] handleEmailSubmit failed:', e)
@@ -113,7 +122,7 @@ const JoinWaitlistPage = () => {
     }
 
     const handleSkipEmail = () => {
-        setEmailSkipped(true)
+        setEmailStepDone(true)
         setStep(nextStepAfterEmail(isPermissionGranted))
     }
 
