@@ -5,7 +5,7 @@ import OneSignal from 'react-onesignal'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { useUserStore } from '@/redux/hooks'
 import posthog from 'posthog-js'
-import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
 
 export function useNotifications() {
     const { user } = useUserStore()
@@ -15,6 +15,7 @@ export function useNotifications() {
     const externalIdRef = useRef<string | null>(null)
     const lastLinkedExternalIdRef = useRef<string | null>(null)
     const disableExternalIdLoginRef = useRef<boolean>(false)
+    const hasTrackedModalShown = useRef(false)
 
     // ui state for permission modal (shown once on login)
     const [showPermissionModal, setShowPermissionModal] = useState(false)
@@ -104,7 +105,10 @@ export function useNotifications() {
         // show modal only if user hasn't closed it yet
         if (!modalClosed) {
             setShowPermissionModal(true)
-            posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_MODAL_SHOWN)
+            if (!hasTrackedModalShown.current) {
+                hasTrackedModalShown.current = true
+                posthog.capture(ANALYTICS_EVENTS.MODAL_SHOWN, { modal_type: MODAL_TYPES.NOTIFICATIONS })
+            }
         } else {
             setShowPermissionModal(false)
         }
@@ -330,7 +334,7 @@ export function useNotifications() {
     const closePermissionModal = useCallback(() => {
         setShowPermissionModal(false)
         updateUserPreferences(user?.user.userId, { notifModalClosed: true })
-        posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_MODAL_DISMISSED)
+        posthog.capture(ANALYTICS_EVENTS.MODAL_DISMISSED, { modal_type: MODAL_TYPES.NOTIFICATIONS })
     }, [user?.user.userId])
 
     // update permission state after user interacts with permission prompt
