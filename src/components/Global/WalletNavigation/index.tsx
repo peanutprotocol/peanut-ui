@@ -25,7 +25,7 @@ const desktopPaths: NavPathProps[] = [
     { name: 'Add', href: '/add-money', icon: 'arrow-down', size: 15 },
     { name: 'Withdraw', href: '/withdraw', icon: 'arrow-up', size: 15 },
     { name: 'History', href: '/history', icon: 'history', size: 15 },
-    { name: 'Docs', href: 'https://docs.peanut.me/', icon: 'docs', size: 14 },
+    { name: 'Docs', href: '/en/help', icon: 'docs', size: 14 },
     { name: 'Support', href: '/support', icon: 'peanut-support', size: 14 },
 ]
 
