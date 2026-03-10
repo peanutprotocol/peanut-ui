@@ -76,7 +76,7 @@ const JoinWaitlistPage = () => {
 
     // Step 1: Submit email via server action
     const handleEmailSubmit = async () => {
-        if (!isValidEmail(emailValue) || !user?.user.userId) return
+        if (!isValidEmail(emailValue) || !user?.user.userId || isSubmittingEmail) return
 
         setIsSubmittingEmail(true)
         setEmailError('')
