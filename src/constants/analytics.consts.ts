@@ -70,8 +70,6 @@ export const ANALYTICS_EVENTS = {
     INVITE_CLAIM_CLICKED: 'invite_claim_clicked',
     INVITE_ACCEPTED: 'invite_accepted',
     INVITE_ACCEPT_FAILED: 'invite_accept_failed',
-    INVITE_MODAL_OPENED: 'invite_modal_opened',
-    INVITE_MODAL_DISMISSED: 'invite_modal_dismissed',
 
     // ── Points / Cashback ──
     POINTS_PAGE_VIEWED: 'points_page_viewed',
@@ -110,6 +108,7 @@ export const MODAL_TYPES = {
     BALANCE_WARNING: 'balance_warning',
     CARD_PIONEER: 'card_pioneer',
     KYC_COMPLETED: 'kyc_completed',
+    INVITE: 'invite',
 } as const
 
 export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[keyof typeof ANALYTICS_EVENTS]

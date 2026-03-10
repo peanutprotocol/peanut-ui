@@ -5,9 +5,9 @@ import Card from '@/components/Global/Card'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import ShareButton from '@/components/Global/ShareButton'
 import { generateInviteCodeLink, generateInvitesShareText } from '@/utils/general.utils'
-import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
 import posthog from 'posthog-js'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import QRCode from 'react-qr-code'
 
 interface InviteFriendsModalProps {
@@ -26,14 +26,16 @@ interface InviteFriendsModalProps {
 export default function InviteFriendsModal({ visible, onClose, username, source }: InviteFriendsModalProps) {
     const { inviteCode, inviteLink } = generateInviteCodeLink(username)
 
+    const hasTrackedShow = useRef(false)
     useEffect(() => {
-        if (visible) {
-            posthog.capture(ANALYTICS_EVENTS.INVITE_MODAL_OPENED, { source })
+        if (visible && !hasTrackedShow.current) {
+            hasTrackedShow.current = true
+            posthog.capture(ANALYTICS_EVENTS.MODAL_SHOWN, { modal_type: MODAL_TYPES.INVITE, source })
         }
     }, [visible, source])
 
     const handleClose = () => {
-        posthog.capture(ANALYTICS_EVENTS.INVITE_MODAL_DISMISSED, { source })
+        posthog.capture(ANALYTICS_EVENTS.MODAL_DISMISSED, { modal_type: MODAL_TYPES.INVITE, source })
         onClose()
     }
 
