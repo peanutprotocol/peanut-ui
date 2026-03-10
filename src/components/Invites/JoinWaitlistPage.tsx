@@ -179,9 +179,7 @@ const JoinWaitlistPage = () => {
                     {step === 2 && (
                         <div className="flex h-full flex-col justify-between gap-4 md:gap-10 md:pt-5">
                             <h1 className="text-xl font-extrabold">Want instant updates?</h1>
-                            <p className="text-base font-medium">
-                                We&apos;ll notify you the moment you get access.
-                            </p>
+                            <p className="text-base font-medium">We&apos;ll notify you the moment you get access.</p>
 
                             <Button shadowSize="4" onClick={handleEnableNotifications}>
                                 Enable notifications
