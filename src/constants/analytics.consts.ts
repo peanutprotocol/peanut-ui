@@ -1,0 +1,55 @@
+/**
+ * Central registry of all PostHog analytics event names.
+ * Provides autocomplete, compile-time safety, and a single place to audit the full taxonomy.
+ */
+export const ANALYTICS_EVENTS = {
+    // ── Signup funnel ──
+    SIGNUP_CLICKED: 'signup_signup_clicked',
+    SIGNUP_LOGIN_ERROR: 'signup_login_error',
+    SIGNUP_CREATE_WALLET_CLICKED: 'signup_create_wallet_clicked',
+    SIGNUP_USERNAME_VALIDATED: 'signup_username_validated',
+    SIGNUP_PASSKEY_STARTED: 'signup_passkey_started',
+    SIGNUP_PASSKEY_SUCCEEDED: 'signup_passkey_succeeded',
+    SIGNUP_PASSKEY_FAILED: 'signup_passkey_failed',
+    SIGNUP_TEST_TX_STARTED: 'signup_test_tx_started',
+    SIGNUP_TEST_TX_SIGNED: 'signup_test_tx_signed',
+    SIGNUP_TEST_TX_FAILED: 'signup_test_tx_failed',
+    SIGNUP_COMPLETED: 'signup_completed',
+
+    // ── PWA install ──
+    PWA_INSTALL_CLICKED: 'pwa_install_clicked',
+    PWA_INSTALL_DISMISSED: 'pwa_install_dismissed',
+    PWA_INSTALL_COMPLETED: 'pwa_install_completed',
+
+    // ── KYC (Bridge) ──
+    KYC_INITIATED: 'kyc_initiated',
+    KYC_TOS_ACCEPTED: 'kyc_tos_accepted',
+    KYC_SUBMITTED: 'kyc_submitted',
+    KYC_APPROVED: 'kyc_approved',
+    KYC_REJECTED: 'kyc_rejected',
+    KYC_ABANDONED: 'kyc_abandoned',
+
+    // ── KYC (Manteca) ──
+    MANTECA_KYC_INITIATED: 'manteca_kyc_initiated',
+    MANTECA_KYC_COMPLETED: 'manteca_kyc_completed',
+    MANTECA_KYC_ABANDONED: 'manteca_kyc_abandoned',
+
+    // ── Send ──
+    SEND_METHOD_SELECTED: 'send_method_selected',
+
+    // ── Withdraw ──
+    WITHDRAW_AMOUNT_ENTERED: 'withdraw_amount_entered',
+
+    // ── QR ──
+    QR_SCANNED: 'qr_scanned',
+
+    // ── Home ──
+    BALANCE_VISIBILITY_TOGGLED: 'balance_visibility_toggled',
+
+    // ── Error / Churn ──
+    BACKEND_ERROR_SHOWN: 'backend_error_shown',
+    BACKEND_ERROR_RETRY: 'backend_error_retry',
+    BACKEND_ERROR_LOGOUT: 'backend_error_logout',
+} as const
+
+export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[keyof typeof ANALYTICS_EVENTS]

@@ -20,6 +20,7 @@ import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
 import { getLimitsWarningCardProps } from '@/features/limits/utils'
 import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 type WithdrawStep = 'inputAmount' | 'selectMethod'
 
@@ -253,7 +254,7 @@ export default function WithdrawPage() {
             setAmountToWithdraw(rawTokenAmount)
             const usdVal = (selectedTokenData?.price ?? 1) * parseFloat(rawTokenAmount)
             setUsdAmount(usdVal.toString())
-            posthog.capture('withdraw_amount_entered', {
+            posthog.capture(ANALYTICS_EVENTS.WITHDRAW_AMOUNT_ENTERED, {
                 amount_usd: usdVal,
                 method_type: selectedMethod.type,
                 country: selectedMethod.countryPath,

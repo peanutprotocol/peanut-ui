@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 const LandingStep = () => {
     const { handleNext } = useSetupFlow()
@@ -23,7 +24,7 @@ const LandingStep = () => {
                   : 'An unexpected error occurred during login.'
         toast.error(errorMessage)
         Sentry.captureException(error, { extra: { errorCode: error.code } })
-        posthog.capture('signup_login_error', { error_code: error.code })
+        posthog.capture(ANALYTICS_EVENTS.SIGNUP_LOGIN_ERROR, { error_code: error.code })
     }
 
     const onLoginClick = async () => {
@@ -41,7 +42,7 @@ const LandingStep = () => {
                     shadowSize="4"
                     className="h-11"
                     onClick={() => {
-                        posthog.capture('signup_signup_clicked')
+                        posthog.capture(ANALYTICS_EVENTS.SIGNUP_CLICKED)
                         handleNext()
                     }}
                 >

@@ -11,6 +11,7 @@ import { PasskeySetupHelpModal } from './PasskeySetupHelpModal'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 const SetupPasskey = () => {
     const { username } = useSetupStore()
@@ -39,7 +40,7 @@ const SetupPasskey = () => {
         // clear any previous inline errors
         setInlineError(null)
         setErrorName(null)
-        posthog.capture('signup_passkey_started', { device_type: deviceType })
+        posthog.capture(ANALYTICS_EVENTS.SIGNUP_PASSKEY_STARTED, { device_type: deviceType })
 
         try {
             await withWebAuthnRetry(() => handleRegister(username), 'passkey-registration')
@@ -47,7 +48,7 @@ const SetupPasskey = () => {
         } catch (error) {
             const err = error as Error
             console.error('Passkey registration failed:', err)
-            posthog.capture('signup_passkey_failed', {
+            posthog.capture(ANALYTICS_EVENTS.SIGNUP_PASSKEY_FAILED, {
                 device_type: deviceType,
                 error_name: err.name,
             })
@@ -109,7 +110,7 @@ const SetupPasskey = () => {
     // once passkey is registered successfully, move to test transaction step
     useEffect(() => {
         if (address) {
-            posthog.capture('signup_passkey_succeeded', { device_type: deviceType })
+            posthog.capture(ANALYTICS_EVENTS.SIGNUP_PASSKEY_SUCCEEDED, { device_type: deviceType })
             handleNext()
         }
     }, [address, handleNext, deviceType])

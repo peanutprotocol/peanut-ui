@@ -9,6 +9,7 @@ import { useZeroDev } from '@/hooks/useZeroDev'
 import { getRedirectUrl, sanitizeRedirectURL, clearRedirectUrl } from '@/utils/general.utils'
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect } from 'react'
 
@@ -67,7 +68,7 @@ const WelcomeStep = () => {
                     shadowSize="4"
                     className="h-11"
                     onClick={() => {
-                        posthog.capture('signup_create_wallet_clicked')
+                        posthog.capture(ANALYTICS_EVENTS.SIGNUP_CREATE_WALLET_CLICKED)
                         handleNext()
                     }}
                 >
