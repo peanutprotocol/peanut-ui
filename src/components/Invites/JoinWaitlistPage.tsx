@@ -18,8 +18,12 @@ import { useNotifications } from '@/hooks/useNotifications'
 import { updateUserById } from '@/app/actions/users'
 import { useQueryState, parseAsStringEnum } from 'nuqs'
 import { isValidEmail } from '@/utils/format.utils'
+import { BaseInput } from '@/components/0_Bruddle/BaseInput'
 
 type WaitlistStep = 'email' | 'notifications' | 'jail'
+
+const nextStepAfterEmail = (isPermissionGranted: boolean): WaitlistStep =>
+    isPermissionGranted ? 'jail' : 'notifications'
 
 const JoinWaitlistPage = () => {
     const { fetchUser, isFetchingUser, logoutUser, user } = useAuth()
@@ -31,9 +35,8 @@ const JoinWaitlistPage = () => {
     const [step, setStep] = useQueryState(
         'step',
         parseAsStringEnum<WaitlistStep>(['email', 'notifications', 'jail']).withDefault(
-            // Determine initial step: skip completed steps
             (() => {
-                if (user?.user.email) return isPermissionGranted ? 'jail' : 'notifications'
+                if (user?.user.email) return nextStepAfterEmail(isPermissionGranted)
                 return 'email'
             })()
         )
@@ -55,13 +58,13 @@ const JoinWaitlistPage = () => {
     const { data, isLoading: isLoadingWaitlistPosition } = useQuery({
         queryKey: ['waitlist-position'],
         queryFn: () => invitesApi.getWaitlistQueuePosition(),
-        enabled: !!user?.user.userId,
+        enabled: !!user?.user.userId && step === 'jail',
     })
 
     // Redirect completed steps when user/permission state changes
     useEffect(() => {
         if (step === 'email' && user?.user.email) {
-            setStep(isPermissionGranted ? 'jail' : 'notifications')
+            setStep(nextStepAfterEmail(isPermissionGranted))
         } else if (step === 'notifications' && isPermissionGranted) {
             setStep('jail')
         }
@@ -80,7 +83,7 @@ const JoinWaitlistPage = () => {
                 setEmailError(result.error)
             } else {
                 await fetchUser()
-                setStep(isPermissionGranted ? 'jail' : 'notifications')
+                setStep(nextStepAfterEmail(isPermissionGranted))
             }
         } catch {
             setEmailError('Something went wrong. Please try again.')
@@ -144,10 +147,6 @@ const JoinWaitlistPage = () => {
         }
     }, [isFetchingUser, user, router])
 
-    if (isLoadingWaitlistPosition) {
-        return <PeanutLoading coverFullScreen />
-    }
-
     const stepImage = step === 'jail' ? peanutAnim.src : chillPeanutAnim.src
 
     return (
@@ -167,8 +166,9 @@ const JoinWaitlistPage = () => {
                                 Enter your email so we can reach you when you get access.
                             </p>
 
-                            <input
+                            <BaseInput
                                 type="email"
+                                variant="sm"
                                 aria-label="Email address"
                                 placeholder="you@example.com"
                                 value={emailValue}
@@ -179,7 +179,7 @@ const JoinWaitlistPage = () => {
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter' && isValidEmail(emailValue)) handleEmailSubmit()
                                 }}
-                                className="h-12 w-full rounded-sm border border-n-1 px-4 text-base outline-none focus:border-black"
+                                className="h-12"
                             />
 
                             {emailError && <ErrorAlert description={emailError} />}
@@ -216,7 +216,8 @@ const JoinWaitlistPage = () => {
                     )}
 
                     {/* Step 3: Jail Screen */}
-                    {step === 'jail' && (
+                    {step === 'jail' && isLoadingWaitlistPosition && <PeanutLoading coverFullScreen />}
+                    {step === 'jail' && !isLoadingWaitlistPosition && (
                         <div className="flex h-full flex-col justify-between gap-4 md:gap-10 md:pt-5">
                             {!isPermissionGranted && (
                                 <div className="flex items-center justify-between rounded-sm border border-n-1 px-3 py-2">
@@ -267,9 +268,7 @@ const JoinWaitlistPage = () => {
                                     className="h-12 w-4/12"
                                     loading={isLoading}
                                     shadowSize="4"
-                                    onClick={() => {
-                                        handleAcceptInvite()
-                                    }}
+                                    onClick={handleAcceptInvite}
                                     disabled={!isValid || isChanging || isLoading}
                                 >
                                     Next
