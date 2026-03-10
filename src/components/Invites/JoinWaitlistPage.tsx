@@ -19,6 +19,8 @@ import { updateUserById } from '@/app/actions/users'
 import { useQueryState, parseAsStringEnum } from 'nuqs'
 import { isValidEmail } from '@/utils/format.utils'
 import { BaseInput } from '@/components/0_Bruddle/BaseInput'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 type WaitlistStep = 'email' | 'notifications' | 'jail'
 
@@ -153,12 +155,26 @@ const JoinWaitlistPage = () => {
         try {
             const res = await invitesApi.acceptInvite(inviteCode, inviteType)
             if (res.success) {
+                posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPTED, {
+                    invite_code: inviteCode,
+                    source: 'waitlist_page',
+                })
                 sessionStorage.setItem('showNoMoreJailModal', 'true')
                 fetchUser()
             } else {
+                posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPT_FAILED, {
+                    invite_code: inviteCode,
+                    error_message: 'API returned unsuccessful',
+                    source: 'waitlist_page',
+                })
                 setError('Something went wrong. Please try again or contact support.')
             }
         } catch {
+            posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPT_FAILED, {
+                invite_code: inviteCode,
+                error_message: 'Exception during invite acceptance',
+                source: 'waitlist_page',
+            })
             setError('Something went wrong. Please try again or contact support.')
         } finally {
             setIsAccepting(false)

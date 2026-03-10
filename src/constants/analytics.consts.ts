@@ -63,6 +63,20 @@ export const ANALYTICS_EVENTS = {
     WITHDRAW_COMPLETED: 'withdraw_completed',
     WITHDRAW_FAILED: 'withdraw_failed',
 
+    // ── Invites / Referrals ──
+    INVITE_LINK_SHARED: 'invite_link_shared',
+    INVITE_LINK_COPIED: 'invite_link_copied',
+    INVITE_PAGE_VIEWED: 'invite_page_viewed',
+    INVITE_CLAIM_CLICKED: 'invite_claim_clicked',
+    INVITE_ACCEPTED: 'invite_accepted',
+    INVITE_ACCEPT_FAILED: 'invite_accept_failed',
+    INVITE_MODAL_OPENED: 'invite_modal_opened',
+    INVITE_MODAL_DISMISSED: 'invite_modal_dismissed',
+
+    // ── Points / Cashback ──
+    POINTS_PAGE_VIEWED: 'points_page_viewed',
+    POINTS_EARNED: 'points_earned',
+
     // ── QR ──
     QR_SCANNED: 'qr_scanned',
 
