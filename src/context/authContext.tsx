@@ -77,11 +77,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 window.gtag('set', { user_id: user.user.userId })
             }
             // PostHog: identify user (stitches anonymous pre-login events to this user)
-            if (typeof window !== 'undefined') {
-                posthog.identify(user.user.userId, {
-                    username: user.user.username,
-                })
-            }
+            posthog.identify(user.user.userId, {
+                username: user.user.username,
+            })
         }
     }, [user])
 

@@ -112,7 +112,7 @@ const SetupPasskey = () => {
             posthog.capture('signup_passkey_succeeded', { device_type: deviceType })
             handleNext()
         }
-    }, [address, handleNext])
+    }, [address, handleNext, deviceType])
 
     return (
         <div>
