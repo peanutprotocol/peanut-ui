@@ -90,9 +90,12 @@ const JoinWaitlistPage = () => {
     // Step 3: Validate and accept invite code
     const validateInviteCode = async (code: string): Promise<boolean> => {
         setIsLoading(true)
-        const res = await invitesApi.validateInviteCode(code)
-        setIsLoading(false)
-        return res.success
+        try {
+            const res = await invitesApi.validateInviteCode(code)
+            return res.success
+        } finally {
+            setIsLoading(false)
+        }
     }
 
     const handleAcceptInvite = async () => {
@@ -114,9 +117,12 @@ const JoinWaitlistPage = () => {
 
     const handleLogout = async () => {
         setIsLoggingOut(true)
-        await logoutUser()
-        router.push('/setup')
-        setIsLoggingOut(false)
+        try {
+            await logoutUser()
+            router.push('/setup')
+        } finally {
+            setIsLoggingOut(false)
+        }
     }
 
     useEffect(() => {
@@ -150,6 +156,7 @@ const JoinWaitlistPage = () => {
 
                             <input
                                 type="email"
+                                aria-label="Email address"
                                 placeholder="you@example.com"
                                 value={emailValue}
                                 onChange={(e) => {
