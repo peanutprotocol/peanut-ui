@@ -25,6 +25,7 @@ export const SumsubKycModals = ({ flow, autoStartSdk }: SumsubKycModalsProps) =>
                 onComplete={flow.handleSdkComplete}
                 onRefreshToken={flow.refreshToken}
                 autoStart={autoStartSdk}
+                isMultiLevel={flow.isMultiLevel}
             />
 
             <KycVerificationInProgressModal

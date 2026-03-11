@@ -61,11 +61,13 @@ export const Profile = () => {
                     </div>
                     <div>
                         <ProfileMenuItem icon="user" label="Personal details" href="/profile/edit" position="first" />
+
                         <ProfileMenuItem
                             icon="globe-lock"
                             label="Regions & Verification"
                             href="/profile/identity-verification"
                             position="middle"
+                            highlight={!isUserKycApproved}
                         />
 
                         <ProfileMenuItem icon="meter" label="Payment limits" href="/limits" position="middle" />
