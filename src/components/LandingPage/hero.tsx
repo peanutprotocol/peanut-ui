@@ -1,9 +1,8 @@
 'use client'
 
-import { PeanutGuyGIF, Star } from '@/assets'
+import { ButterySmoothGlobalMoney, PeanutGuyGIF, Star } from '@/assets'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/0_Bruddle/Button'
-import Title from '@/components/0_Bruddle/Title'
 import { CloudsCss } from './CloudsCss'
 
 type CTAButton = {
@@ -82,11 +81,12 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 
             className="relative flex min-h-[85vh] w-full flex-col items-center justify-between bg-primary-1 px-4 py-4 xl:h-fit xl:justify-center"
         >
             <CloudsCss />
-            <div className="relative mt-10 flex w-full flex-col items-center md:mt-0">
-                <div className="z-0 mx-auto flex w-full max-w-[1000px] flex-col items-center md:w-[50%]">
-                    <Title text="GLOBAL CASH." className="text-[4.5rem] sm:text-[6rem] md:text-[7rem] lg:text-[9rem]" />
-                    <Title text="LOCAL FEEL." className="text-[4.5rem] sm:text-[6rem] md:text-[7rem] lg:text-[9rem]" />
-                </div>
+            <div className="relative mt-10 w-full md:mt-0">
+                <img
+                    src={ButterySmoothGlobalMoney.src}
+                    className="z-0 mx-auto w-full max-w-[1000px] object-contain md:w-[50%]"
+                    alt="Buttery Smooth Global Money"
+                />
 
                 <motion.img
                     initial={{ opacity: 0, translateY: 20, translateX: 5 }}
@@ -113,20 +113,15 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 
 
             <div className="relative z-20 mb-4 flex w-full flex-col items-center justify-center md:mb-0">
                 <h2 className="font-roboto-flex-extrabold mt-18 text-center text-[2.375rem] font-extraBlack text-black md:text-heading">
-                    RECEIVE. PAY. ANYWHERE.
+                    TAP. SEND. ANYWHERE
                 </h2>
                 <span
                     className="mt-2 block text-center text-xl leading-tight text-n-1 md:mt-4 md:text-5xl"
                     style={{ fontWeight: 500, letterSpacing: '-0.5px' }}
                 >
-                    BUENOS AIRES <br className="block lg:hidden" />
-                    · SÃO PAULO <br className="block md:hidden" />· MEXICO CITY
-                </span>
-                <span
-                    className="mt-2 block text-center text-sm leading-tight text-n-1 md:mt-3 md:text-xl"
-                    style={{ fontWeight: 400 }}
-                >
-                    No local ID or bank account required
+                    FROM NEW YORK <br className="block lg:hidden" />
+                    TO MADRID <br className="block md:hidden" />
+                    TO MEXICO CITY
                 </span>
                 {primaryCta && renderCTAButton(primaryCta, 'primary')}
                 {secondaryCta && renderCTAButton(secondaryCta, 'secondary')}
