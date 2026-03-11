@@ -1,6 +1,6 @@
 'use client'
 
-import { ButterySmoothGlobalMoney, PeanutGuyGIF, Star } from '@/assets'
+import { GlobalCashLocalFeel, PeanutGuyGIF, Star } from '@/assets'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/0_Bruddle/Button'
 import { CloudsCss } from './CloudsCss'
@@ -83,9 +83,9 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 
             <CloudsCss />
             <div className="relative mt-10 w-full md:mt-0">
                 <img
-                    src={ButterySmoothGlobalMoney.src}
+                    src={GlobalCashLocalFeel.src}
                     className="z-0 mx-auto w-full max-w-[1000px] object-contain md:w-[50%]"
-                    alt="Buttery Smooth Global Money"
+                    alt="Global Cash Local Feel"
                 />
 
                 <motion.img
@@ -113,15 +113,16 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 
 
             <div className="relative z-20 mb-4 flex w-full flex-col items-center justify-center md:mb-0">
                 <h2 className="font-roboto-flex-extrabold mt-18 text-center text-[2.375rem] font-extraBlack text-black md:text-heading">
-                    TAP. SEND. ANYWHERE
+                    TAP. SCAN. ANYWHERE.
                 </h2>
                 <span
                     className="mt-2 block text-center text-xl leading-tight text-n-1 md:mt-4 md:text-5xl"
                     style={{ fontWeight: 500, letterSpacing: '-0.5px' }}
                 >
-                    FROM NEW YORK <br className="block lg:hidden" />
-                    TO MADRID <br className="block md:hidden" />
-                    TO MEXICO CITY
+                    Buenos Aires. São Paulo. Floripa.
+                </span>
+                <span className="mt-2 block text-center text-sm text-n-1/70 md:text-base" style={{ fontWeight: 400 }}>
+                    No local ID or bank required.
                 </span>
                 {primaryCta && renderCTAButton(primaryCta, 'primary')}
                 {secondaryCta && renderCTAButton(secondaryCta, 'secondary')}
