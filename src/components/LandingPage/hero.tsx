@@ -1,6 +1,6 @@
 'use client'
 
-import { GlobalCashLocalFeel, PeanutGuyGIF, Star } from '@/assets'
+import { ButterySmoothGlobalMoney, PeanutGuyGIF, Star } from '@/assets'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/0_Bruddle/Button'
 import { CloudsCss } from './CloudsCss'
@@ -82,16 +82,11 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 
         >
             <CloudsCss />
             <div className="relative mt-10 w-full md:mt-0">
-                <div
-                    className="z-0 mx-auto flex w-full max-w-[1000px] items-center justify-center md:w-[50%]"
-                    style={{ aspectRatio: '915 / 306' }}
-                >
-                    <img
-                        src={GlobalCashLocalFeel.src}
-                        className="max-h-full max-w-full object-contain"
-                        alt="Global Cash Local Feel"
-                    />
-                </div>
+                <img
+                    src={ButterySmoothGlobalMoney.src}
+                    className="z-0 mx-auto w-full max-w-[1000px] object-contain md:w-[50%]"
+                    alt="Buttery Smooth Global Money"
+                />
 
                 <motion.img
                     initial={{ opacity: 0, translateY: 20, translateX: 5 }}
@@ -118,16 +113,15 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 
 
             <div className="relative z-20 mb-4 flex w-full flex-col items-center justify-center md:mb-0">
                 <h2 className="font-roboto-flex-extrabold mt-18 text-center text-[2.375rem] font-extraBlack text-black md:text-heading">
-                    TAP. SCAN. ANYWHERE.
+                    TAP. SEND. ANYWHERE
                 </h2>
                 <span
                     className="mt-2 block text-center text-xl leading-tight text-n-1 md:mt-4 md:text-5xl"
                     style={{ fontWeight: 500, letterSpacing: '-0.5px' }}
                 >
-                    Buenos Aires. São Paulo. Floripa.
-                </span>
-                <span className="mt-2 block text-center text-sm text-n-1/70 md:text-base" style={{ fontWeight: 400 }}>
-                    No local id or bank required.
+                    FROM NEW YORK <br className="block lg:hidden" />
+                    TO MADRID <br className="block md:hidden" />
+                    TO MEXICO CITY
                 </span>
                 {primaryCta && renderCTAButton(primaryCta, 'primary')}
                 {secondaryCta && renderCTAButton(secondaryCta, 'secondary')}

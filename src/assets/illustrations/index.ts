@@ -1,6 +1,5 @@
 export { default as PeanutGuyGIF } from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
 export { default as ButterySmoothGlobalMoney } from './buttery_smooth_global_money.svg'
-export { default as GlobalCashLocalFeel } from './global-cash-local-feel.png'
 export { default as ClaimChainsBadge } from './claim-chains-badge.svg'
 export { default as Cloud } from './cloud.svg'
 export { default as Eyes } from './eyes.svg'
