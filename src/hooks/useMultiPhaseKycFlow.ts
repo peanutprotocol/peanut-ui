@@ -269,6 +269,8 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
 
     const isModalOpen = isVerificationProgressModalOpen || forceShowModal
 
+    const isMultiLevel = regionIntent === 'LATAM'
+
     return {
         // initiation
         handleInitiateKyc,
@@ -282,6 +284,7 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
         handleSdkClose: handleClose,
         handleSdkComplete,
         refreshToken,
+        isMultiLevel,
 
         // multi-phase modal
         isModalOpen,

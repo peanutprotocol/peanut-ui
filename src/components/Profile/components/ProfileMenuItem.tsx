@@ -6,7 +6,6 @@ import NavigationArrow from '@/components/Global/NavigationArrow'
 import { Tooltip } from '@/components/Tooltip'
 import Link from 'next/link'
 import React from 'react'
-import { twMerge } from 'tailwind-merge'
 
 interface ProfileMenuItemProps {
     icon: IconName | React.ReactNode
@@ -21,6 +20,7 @@ interface ProfileMenuItemProps {
     showTooltip?: boolean
     toolTipText?: string
     badge?: string
+    highlight?: boolean
 }
 
 const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
@@ -36,6 +36,7 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
     showTooltip = false,
     toolTipText,
     badge,
+    highlight = false,
 }) => {
     const content = (
         <div className="flex items-center justify-between py-1">
@@ -47,7 +48,14 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
                         {icon}
                     </div>
                 )}
-                <span className="text-base font-medium">{label}</span>
+                <div className="flex items-center gap-2">
+                    <label className="text-base font-medium">{label}</label>
+                    {highlight && (
+                        <div className={'animate-pulse'} aria-label="highlight-indicator">
+                            <div className="h-2.5 w-2.5 rounded-full bg-primary-1" />
+                        </div>
+                    )}
+                </div>
                 {badge && <StatusBadge status="custom" customText={badge} />}
                 {showTooltip && (
                     <Tooltip content={toolTipText}>

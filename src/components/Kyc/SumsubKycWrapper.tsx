@@ -20,6 +20,8 @@ interface SumsubKycWrapperProps {
     onRefreshToken: () => Promise<string>
     /** skip StartVerificationView and launch SDK immediately (for re-submissions) */
     autoStart?: boolean
+    /** multi-level workflow (e.g. LATAM) — don't close SDK on Level 1 submission */
+    isMultiLevel?: boolean
 }
 
 export const SumsubKycWrapper = ({
@@ -30,6 +32,7 @@ export const SumsubKycWrapper = ({
     onError,
     onRefreshToken,
     autoStart,
+    isMultiLevel,
 }: SumsubKycWrapperProps) => {
     const [isVerificationStarted, setIsVerificationStarted] = useState(false)
     const [sdkLoaded, setSdkLoaded] = useState(false)
@@ -44,12 +47,14 @@ export const SumsubKycWrapper = ({
     const onCompleteRef = useRef(onComplete)
     const onErrorRef = useRef(onError)
     const onRefreshTokenRef = useRef(onRefreshToken)
+    const isMultiLevelRef = useRef(isMultiLevel)
 
     useEffect(() => {
         onCompleteRef.current = onComplete
         onErrorRef.current = onError
         onRefreshTokenRef.current = onRefreshToken
-    }, [onComplete, onError, onRefreshToken])
+        isMultiLevelRef.current = isMultiLevel
+    }, [onComplete, onError, onRefreshToken, isMultiLevel])
 
     // stable wrappers that read from refs
     const stableOnComplete = useCallback(() => onCompleteRef.current(), [])
@@ -96,8 +101,13 @@ export const SumsubKycWrapper = ({
 
             const handleSubmitted = () => {
                 console.log('[sumsub] onApplicantSubmitted fired')
+                // for multi-level workflows (LATAM), the SDK transitions to Level 2
+                // internally. don't close the modal on Level 1 submission.
+                if (isMultiLevelRef.current) return
                 stableOnComplete()
             }
+            // resubmission = user retried after rejection (ACTION_REQUIRED).
+            // always close SDK regardless of multi-level — the retry is a fresh submission.
             const handleResubmitted = () => {
                 console.log('[sumsub] onApplicantResubmitted fired')
                 stableOnComplete()
@@ -113,6 +123,9 @@ export const SumsubKycWrapper = ({
                     console.log('[sumsub] ignoring early onApplicantStatusChanged (pre-existing state)')
                     return
                 }
+                // for multi-level workflows (LATAM), Level 1 fires completed+GREEN
+                // before Level 2 is shown. don't close the SDK.
+                if (isMultiLevelRef.current) return
                 // auto-close when sumsub shows success screen
                 if (payload?.reviewStatus === 'completed' && payload?.reviewResult?.reviewAnswer === 'GREEN') {
                     stableOnComplete()
