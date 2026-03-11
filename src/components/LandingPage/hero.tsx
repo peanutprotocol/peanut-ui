@@ -83,15 +83,9 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 
         >
             <CloudsCss />
             <div className="relative mt-10 flex w-full flex-col items-center md:mt-0">
-                <div className="z-0 mx-auto flex w-full max-w-[600px] flex-col items-center md:max-w-[700px]">
-                    <Title
-                        text="GLOBAL CASH."
-                        className="text-[2rem] sm:text-[2.5rem] md:text-[3rem] lg:text-[3.5rem]"
-                    />
-                    <Title
-                        text="LOCAL FEEL."
-                        className="text-[2rem] sm:text-[2.5rem] md:text-[3rem] lg:text-[3.5rem]"
-                    />
+                <div className="z-0 mx-auto flex w-full max-w-[1000px] flex-col items-center md:w-[50%]">
+                    <Title text="GLOBAL CASH." className="text-[4.5rem] sm:text-[6rem] md:text-[7rem] lg:text-[9rem]" />
+                    <Title text="LOCAL FEEL." className="text-[4.5rem] sm:text-[6rem] md:text-[7rem] lg:text-[9rem]" />
                 </div>
 
                 <motion.img
