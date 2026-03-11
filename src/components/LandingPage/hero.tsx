@@ -82,11 +82,16 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 
         >
             <CloudsCss />
             <div className="relative mt-10 w-full md:mt-0">
-                <img
-                    src={GlobalCashLocalFeel.src}
-                    className="z-0 mx-auto w-full max-w-[1000px] object-contain md:w-[50%]"
-                    alt="Global Cash Local Feel"
-                />
+                <div
+                    className="z-0 mx-auto flex w-full max-w-[1000px] items-center justify-center md:w-[50%]"
+                    style={{ aspectRatio: '624 / 276' }}
+                >
+                    <img
+                        src={GlobalCashLocalFeel.src}
+                        className="max-h-full max-w-full object-contain"
+                        alt="Global Cash Local Feel"
+                    />
+                </div>
 
                 <motion.img
                     initial={{ opacity: 0, translateY: 20, translateX: 5 }}
