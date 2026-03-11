@@ -2,7 +2,7 @@
 
 import { GlobalCashLocalFeel, PeanutGuyGIF, Star } from '@/assets'
 import { motion } from 'framer-motion'
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import { CloudsCss } from './CloudsCss'
 
@@ -12,49 +12,60 @@ import { CloudsCss } from './CloudsCss'
  * and resize, then sets its own bottom edge to sit 3% into the h2.
  */
 function PeanutMascot() {
-    const [style, setStyle] = useState<React.CSSProperties>({})
+    const imgRef = useRef<HTMLImageElement>(null)
 
     const position = useCallback(() => {
+        const img = imgRef.current
         const hero = document.getElementById('hero')
         const h2 = hero?.querySelector('h2')
-        if (!hero || !h2) return
+        if (!img || !hero || !h2) return
 
         const heroRect = hero.getBoundingClientRect()
         const h2Rect = h2.getBoundingClientRect()
+        const peanutHeight = img.getBoundingClientRect().height
 
-        // We want the peanut bottom to be 3% of peanut height below the h2 top
-        // peanut bottom = h2Top + 0.03 * peanutHeight
-        // But we don't know peanut height yet — use max-h-[40vh] as estimate
-        const peanutHeight = Math.min(window.innerHeight * 0.4, 360)
+        if (peanutHeight === 0) return // not rendered yet
+
+        // Position so peanut's feet (bottom 3%) overlap with h2 top
         const overlap = peanutHeight * 0.03
         const peanutBottom = h2Rect.top - heroRect.top + overlap
         const peanutTop = peanutBottom - peanutHeight
 
-        setStyle({
-            position: 'absolute' as const,
-            top: `${peanutTop}px`,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 10,
-            height: 'auto',
-            maxHeight: '40vh',
-            width: 'auto',
-            maxWidth: '90%',
-            objectFit: 'contain' as const,
-        })
+        img.style.top = `${peanutTop}px`
     }, [])
 
     useEffect(() => {
-        // Position after fonts/images load
-        const timer = setTimeout(position, 200)
+        const img = imgRef.current
+        if (!img) return
+
+        // Position once image loads and on resize
+        const onLoad = () => {
+            position()
+            // Re-position after a short delay to account for layout shifts
+            setTimeout(position, 500)
+        }
+
+        if (img.complete) {
+            onLoad()
+        } else {
+            img.addEventListener('load', onLoad)
+        }
+
         window.addEventListener('resize', position)
         return () => {
-            clearTimeout(timer)
+            img.removeEventListener('load', onLoad)
             window.removeEventListener('resize', position)
         }
     }, [position])
 
-    return <img src={PeanutGuyGIF.src} alt="Peanut Guy" style={style} />
+    return (
+        <img
+            ref={imgRef}
+            src={PeanutGuyGIF.src}
+            alt="Peanut Guy"
+            className="absolute left-1/2 z-10 h-auto max-h-[40vh] w-auto max-w-[90%] -translate-x-1/2 object-contain"
+        />
+    )
 }
 
 type CTAButton = {
