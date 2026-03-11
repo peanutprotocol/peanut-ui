@@ -1,5 +1,5 @@
 {
-    "total_positive_mentions": 11,
+    "total_positive_mentions": 17,
     "date_range": "2025-10-01 to 2025-11-26",
     "scoring": "60% text enthusiasm + 30% user influence + 10% engagement | bots/shills capped | builders/VCs/EF boosted",
     "note": "Curated shortlist per LP audit (Mar 2026). Prioritises concrete savings, real-world use cases, and genuine delight.",
@@ -39,6 +39,44 @@
                 {
                     "type": "photo",
                     "url": "https://pbs.twimg.com/media/G6c5B6FWkAAqost.jpg"
+                }
+            ]
+        },
+        {
+            "url": "https://x.com/coinempress/status/1993349992669434169",
+            "author": "vana \ud83d\udd1c devconnect \ud83c\udde6\ud83c\uddf7",
+            "handle": "@coinempress",
+            "content": "28 people joined @joinpeanut with my invite after one genuine post. real adoption > forced marketing",
+            "timestamp": "2025-11-25T16:04:07.000Z",
+            "verified": true,
+            "followers_count": 52319,
+            "avatar": "https://pbs.twimg.com/profile_images/1905260917056589824/mAqMCh1h.jpg",
+            "impact_score": 0.96,
+            "is_reply": false,
+            "reply_to_url": null,
+            "media": [
+                {
+                    "type": "video",
+                    "url": "https://video.twimg.com/amplify_video/1993349938105790464/vid/avc1/320x692/idZNNMyP4Dz9J5co.mp4"
+                }
+            ]
+        },
+        {
+            "url": "https://x.com/on_datawarlock/status/1992974740689158301",
+            "author": "Datawarlock \ud83e\ude93",
+            "handle": "@on_datawarlock",
+            "content": "@joinpeanut just blasted past a quarter MILLION dollars in @USDC spent through QR payments on @arbitrum. This is what real world crypto payments look like",
+            "timestamp": "2025-11-24T15:13:00.000Z",
+            "verified": true,
+            "followers_count": 29841,
+            "avatar": "https://pbs.twimg.com/profile_images/1680218739143507969/5DfVVSvx.jpg",
+            "impact_score": 0.95,
+            "is_reply": false,
+            "reply_to_url": null,
+            "media": [
+                {
+                    "type": "photo",
+                    "url": "https://pbs.twimg.com/media/G6h3RyeaUAAi8UV.jpg"
                 }
             ]
         },
@@ -131,6 +169,20 @@
             ]
         },
         {
+            "url": "https://x.com/stutireal/status/1993417479448936657",
+            "author": "Stuti",
+            "handle": "@stutireal",
+            "content": "Payments \u2192 LatAm apps everywhere\u2026 @joinpeanut was crushing it on mindshare and app experience (loved the pink too)",
+            "timestamp": "2025-11-25T20:32:17.000Z",
+            "verified": true,
+            "followers_count": 25891,
+            "avatar": "https://pbs.twimg.com/profile_images/1980999778231058432/MtO6NX39.jpg",
+            "impact_score": 0.89,
+            "is_reply": false,
+            "reply_to_url": null,
+            "media": []
+        },
+        {
             "url": "https://x.com/Emmy_Wilz_01/status/1993198570225238514",
             "author": "Emmy Wilz (\ud83d\udc99,\ud83e\udde1)",
             "handle": "@Emmy_Wilz_01",
@@ -146,6 +198,39 @@
                 {
                     "type": "photo",
                     "url": "https://pbs.twimg.com/media/G6lDiA1XUAA7qRL.jpg"
+                }
+            ]
+        },
+        {
+            "url": "https://x.com/timokonkwo_/status/1993438728761885106",
+            "author": "Tim | Luxen Labs",
+            "handle": "@timokonkwo_",
+            "content": "Peanut @joinpeanut needs to give me an OG badge for the kind of volume I did on the app in BA \ud83c\udde6\ud83c\uddf7 gud tek",
+            "timestamp": "2025-11-25T21:56:43.000Z",
+            "verified": false,
+            "followers_count": 14012,
+            "avatar": "https://pbs.twimg.com/profile_images/1756479429289639936/kveuJ4km.jpg",
+            "impact_score": 0.87,
+            "is_reply": false,
+            "reply_to_url": null,
+            "media": []
+        },
+        {
+            "url": "https://x.com/0xmelch/status/1989765566219821300",
+            "author": "Melch",
+            "handle": "@0xmelch",
+            "content": "Big congratulations to the @joinpeanut team. In less than 2 min I made and funded an account and paid for gelato via mercadopago at a 20% savings to what my credit card would have charged me. It has been a while since I\u2019ve felt this kind of magic in crypto.",
+            "timestamp": "2025-11-15T18:40:53.000Z",
+            "verified": false,
+            "followers_count": 15123,
+            "avatar": "https://pbs.twimg.com/profile_images/1433234608330526749/q4uMEa8h.jpg",
+            "impact_score": 0.87,
+            "is_reply": false,
+            "reply_to_url": null,
+            "media": [
+                {
+                    "type": "photo",
+                    "url": "https://pbs.twimg.com/media/G50ROikWYAAodJi.jpg"
                 }
             ]
         },
@@ -167,6 +252,20 @@
                     "url": "https://pbs.twimg.com/media/G6hUEYEWoAALAAz.jpg"
                 }
             ]
+        },
+        {
+            "url": "https://x.com/cyberdrk/status/1992044070802497691",
+            "author": "\ud835\udc9f\ud835\udc52\ud835\udcc7\ud835\udc52\ud835\udcc0 \u2728",
+            "handle": "@cyberdrk",
+            "content": "I went from 0 crypto payments at DevCon last year to 100% this year: @SimpleFi_tech for @WalletConnect payments at DevConnect, @joinpeanut for MercadoPago, and @EtherFi Cash for card payments",
+            "timestamp": "2025-11-22T01:34:51.000Z",
+            "verified": false,
+            "followers_count": 25000,
+            "avatar": "https://pbs.twimg.com/profile_images/1334815316245929984/r65uf0Av.jpg",
+            "impact_score": 0.86,
+            "is_reply": false,
+            "reply_to_url": null,
+            "media": []
         },
         {
             "url": "https://x.com/candicekteo/status/1993420115509956930",
