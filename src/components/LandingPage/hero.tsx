@@ -86,11 +86,11 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 
                 <div className="z-0 mx-auto flex w-full max-w-[600px] flex-col items-center md:max-w-[700px]">
                     <Title
                         text="GLOBAL CASH."
-                        className="text-[1.5rem] sm:text-[1.75rem] md:text-[2rem] lg:text-[2.25rem]"
+                        className="text-[2rem] sm:text-[2.5rem] md:text-[3rem] lg:text-[3.5rem]"
                     />
                     <Title
                         text="LOCAL FEEL."
-                        className="text-[1.5rem] sm:text-[1.75rem] md:text-[2rem] lg:text-[2.25rem]"
+                        className="text-[2rem] sm:text-[2.5rem] md:text-[3rem] lg:text-[3.5rem]"
                     />
                 </div>
 
