@@ -72,6 +72,9 @@ export function RegulatedRails() {
             </div>
 
             <div className="w-full">
+                <p className="mb-4 text-center text-sm font-medium uppercase tracking-widest text-n-1 opacity-60">
+                    Works with
+                </p>
                 <MarqueeWrapper backgroundColor="#FFFFFF" direction="right" className="border-none ">
                     {logos.map((logo) => (
                         <div

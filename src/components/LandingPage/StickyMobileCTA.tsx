@@ -1,0 +1,64 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Button } from '@/components/0_Bruddle/Button'
+
+/**
+ * Sticky bottom CTA bar for mobile. Always visible except when
+ * the viewport overlaps a section that already has its own CTA button.
+ *
+ * Watches all <section> elements for CTA buttons/links and hides
+ * automatically to avoid doubling up.
+ */
+
+const CTA_SELECTOR = 'section a[href="/setup"], section a[href="/send"], section a[href="/lp/card"]'
+
+export function StickyMobileCTA() {
+    const [visible, setVisible] = useState(true)
+
+    useEffect(() => {
+        const check = () => {
+            const ctaEls = document.querySelectorAll(CTA_SELECTOR)
+            let overlapping = false
+
+            for (const el of ctaEls) {
+                const rect = el.getBoundingClientRect()
+                // Check if the CTA element is in the bottom 80px of the viewport (where our sticky bar lives)
+                if (rect.bottom > window.innerHeight - 100 && rect.top < window.innerHeight) {
+                    overlapping = true
+                    break
+                }
+            }
+
+            setVisible(!overlapping)
+        }
+
+        window.addEventListener('scroll', check, { passive: true })
+        check()
+        return () => window.removeEventListener('scroll', check)
+    }, [])
+
+    return (
+        <AnimatePresence>
+            {visible && (
+                <motion.div
+                    initial={{ y: 80, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: 80, opacity: 0 }}
+                    transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+                    className="fixed bottom-0 left-0 right-0 z-50 border-t-2 border-n-1 bg-white px-4 py-3 md:hidden"
+                >
+                    <a href="/setup" className="block">
+                        <Button
+                            shadowSize="4"
+                            className="w-full bg-primary-1 py-3 text-base font-extrabold hover:bg-primary-1/90"
+                        >
+                            GET PEANUT
+                        </Button>
+                    </a>
+                </motion.div>
+            )}
+        </AnimatePresence>
+    )
+}
