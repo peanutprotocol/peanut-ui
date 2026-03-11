@@ -1,219 +1,219 @@
 {
-  "total_positive_mentions": 11,
-  "date_range": "2025-10-01 to 2025-11-26",
-  "scoring": "60% text enthusiasm + 30% user influence + 10% engagement | bots/shills capped | builders/VCs/EF boosted",
-  "note": "Curated shortlist per LP audit (Mar 2026). Prioritises concrete savings, real-world use cases, and genuine delight.",
-  "tweets": [
-    {
-      "url": "https://x.com/arbitrum/status/1985785756930187576",
-      "author": "Arbitrum",
-      "handle": "@arbitrum",
-      "content": "Heading to Buenos Aires for Devconnect? \ud83c\udde6\ud83c\uddf7 You\u2019ll want @joinpeanut payments app! - send/receive USD payments to frens - instantly convert it into Argentine peso - spend it locally at stores and restaurants - earn rewards and repeat Peanut Everywhere. Arbitrum Everywhere",
-      "timestamp": "2025-11-04T19:06:33.000Z",
-      "verified": true,
-      "followers_count": 508127,
-      "avatar": "https://pbs.twimg.com/profile_images/1952411676621295616/KUOmiy3l.jpg",
-      "impact_score": 0.99,
-      "is_reply": false,
-      "reply_to_url": null,
-      "media": [
+    "total_positive_mentions": 11,
+    "date_range": "2025-10-01 to 2025-11-26",
+    "scoring": "60% text enthusiasm + 30% user influence + 10% engagement | bots/shills capped | builders/VCs/EF boosted",
+    "note": "Curated shortlist per LP audit (Mar 2026). Prioritises concrete savings, real-world use cases, and genuine delight.",
+    "tweets": [
         {
-          "type": "photo",
-          "url": "https://pbs.twimg.com/media/G47qQ4mXsAAUdFH.jpg"
-        }
-      ]
-    },
-    {
-      "url": "https://x.com/0xPumbi/status/1992624069657649220",
-      "author": "pumbi.eth | devconnect \ud83c\udde6\ud83c\uddf7",
-      "handle": "@0xPumbi",
-      "content": "Sunday morning. I head to a toy store to pick up some gifts for my kids. I pay with @joinpeanut. I get 20% cashback!! I fkin love Peanut, man.",
-      "timestamp": "2025-11-23T15:59:34.000Z",
-      "verified": false,
-      "followers_count": 18742,
-      "avatar": "https://pbs.twimg.com/profile_images/1808180527733620754/R19TequE.jpg",
-      "impact_score": 0.97,
-      "is_reply": false,
-      "reply_to_url": null,
-      "media": [
-        {
-          "type": "photo",
-          "url": "https://pbs.twimg.com/media/G6c5B6FWkAAqost.jpg"
-        }
-      ]
-    },
-    {
-      "url": "https://x.com/cxqmaggie/status/1993393875059441999",
-      "author": "maggie",
-      "handle": "@cxqmaggie",
-      "content": "bought the coolest cowgirl boots from arandu talabateria in recoleta using @joinpeanut \u2013 i\u2019m ready for patagonia \ud83d\udc0e\ud83c\udfd4\ufe0f",
-      "timestamp": "2025-11-25T18:58:29.000Z",
-      "verified": true,
-      "followers_count": 41289,
-      "avatar": "https://pbs.twimg.com/profile_images/1818038467776917504/Gj8mUdB8.jpg",
-      "impact_score": 0.94,
-      "is_reply": false,
-      "reply_to_url": null,
-      "media": [
-        {
-          "type": "photo",
-          "url": "https://pbs.twimg.com/media/G6n1JroWgAATraN.jpg"
+            "url": "https://x.com/arbitrum/status/1985785756930187576",
+            "author": "Arbitrum",
+            "handle": "@arbitrum",
+            "content": "Heading to Buenos Aires for Devconnect? \ud83c\udde6\ud83c\uddf7 You\u2019ll want @joinpeanut payments app! - send/receive USD payments to frens - instantly convert it into Argentine peso - spend it locally at stores and restaurants - earn rewards and repeat Peanut Everywhere. Arbitrum Everywhere",
+            "timestamp": "2025-11-04T19:06:33.000Z",
+            "verified": true,
+            "followers_count": 508127,
+            "avatar": "https://pbs.twimg.com/profile_images/1952411676621295616/KUOmiy3l.jpg",
+            "impact_score": 0.99,
+            "is_reply": false,
+            "reply_to_url": null,
+            "media": [
+                {
+                    "type": "photo",
+                    "url": "https://pbs.twimg.com/media/G47qQ4mXsAAUdFH.jpg"
+                }
+            ]
         },
         {
-          "type": "photo",
-          "url": "https://pbs.twimg.com/media/G6n1JroWEAAHzss.jpg"
-        }
-      ]
-    },
-    {
-      "url": "https://x.com/0xSuperKalo/status/1991674399234175167",
-      "author": "superKalo.eth",
-      "handle": "@0xSuperKalo",
-      "content": "I tested Peanut myself this week and got ~7% better ARS rate compared to Revolut \u2705 ... Shout-out to @joinpeanut for making something meaningful \ud83d\udc4f",
-      "timestamp": "2025-11-21T01:05:54.000Z",
-      "verified": false,
-      "followers_count": 22189,
-      "avatar": "https://pbs.twimg.com/profile_images/1869852109824299008/L1ow2MKZ.jpg",
-      "impact_score": 0.92,
-      "is_reply": false,
-      "reply_to_url": null,
-      "media": [
-        {
-          "type": "photo",
-          "url": "https://pbs.twimg.com/media/G6PYiQ4XkAA-A0U.jpg"
-        }
-      ]
-    },
-    {
-      "url": "https://x.com/kushagrasarathe/status/1991642890607685779",
-      "author": "kushagra.eth | Devconnect \ud83c\udde6\ud83c\uddf7",
-      "handle": "@kushagrasarathe",
-      "content": "if you are still sleeping on @joinpeanut whats the point of your existence? we shipped the best app for you to pay anywhere",
-      "timestamp": "2025-11-20T23:00:42.000Z",
-      "verified": false,
-      "followers_count": 19233,
-      "avatar": "https://pbs.twimg.com/profile_images/1867450825167224832/8bXUNWHwZ.jpg",
-      "impact_score": 0.91,
-      "is_reply": false,
-      "reply_to_url": null,
-      "media": [
-        {
-          "type": "photo",
-          "url": "https://pbs.twimg.com/media/G6O8pqsWoAEK6_w.jpg"
-        }
-      ]
-    },
-    {
-      "url": "https://x.com/leeederek/status/1986916400653607231",
-      "author": "Derek Lee",
-      "handle": "@leeederek",
-      "content": "first of many purchases with @joinpeanut for a Chorip\u00e1n! \u2705 took 5s \u2705 better rate than Dollar Blue \u2705 10% cash back \u2705 cute UX \u2705 delicious",
-      "timestamp": "2025-11-07T21:59:19.000Z",
-      "verified": false,
-      "followers_count": 18412,
-      "avatar": "https://pbs.twimg.com/profile_images/1948370491212775424/nMrSzewC.jpg",
-      "impact_score": 0.9,
-      "is_reply": false,
-      "reply_to_url": null,
-      "media": [
-        {
-          "type": "photo",
-          "url": "https://pbs.twimg.com/media/G5LxHmlWUAAI2On.jpg"
+            "url": "https://x.com/0xPumbi/status/1992624069657649220",
+            "author": "pumbi.eth | devconnect \ud83c\udde6\ud83c\uddf7",
+            "handle": "@0xPumbi",
+            "content": "Sunday morning. I head to a toy store to pick up some gifts for my kids. I pay with @joinpeanut. I get 20% cashback!! I fkin love Peanut, man.",
+            "timestamp": "2025-11-23T15:59:34.000Z",
+            "verified": false,
+            "followers_count": 18742,
+            "avatar": "https://pbs.twimg.com/profile_images/1808180527733620754/R19TequE.jpg",
+            "impact_score": 0.97,
+            "is_reply": false,
+            "reply_to_url": null,
+            "media": [
+                {
+                    "type": "photo",
+                    "url": "https://pbs.twimg.com/media/G6c5B6FWkAAqost.jpg"
+                }
+            ]
         },
         {
-          "type": "photo",
-          "url": "https://pbs.twimg.com/media/G5LxHnEWEAAkGaK.jpg"
+            "url": "https://x.com/cxqmaggie/status/1993393875059441999",
+            "author": "maggie",
+            "handle": "@cxqmaggie",
+            "content": "bought the coolest cowgirl boots from arandu talabateria in recoleta using @joinpeanut \u2013 i\u2019m ready for patagonia \ud83d\udc0e\ud83c\udfd4\ufe0f",
+            "timestamp": "2025-11-25T18:58:29.000Z",
+            "verified": true,
+            "followers_count": 41289,
+            "avatar": "https://pbs.twimg.com/profile_images/1818038467776917504/Gj8mUdB8.jpg",
+            "impact_score": 0.94,
+            "is_reply": false,
+            "reply_to_url": null,
+            "media": [
+                {
+                    "type": "photo",
+                    "url": "https://pbs.twimg.com/media/G6n1JroWgAATraN.jpg"
+                },
+                {
+                    "type": "photo",
+                    "url": "https://pbs.twimg.com/media/G6n1JroWEAAHzss.jpg"
+                }
+            ]
         },
         {
-          "type": "photo",
-          "url": "https://pbs.twimg.com/media/G5LxHmlWsAAK3nU.jpg"
-        }
-      ]
-    },
-    {
-      "url": "https://x.com/Emmy_Wilz_01/status/1993198570225238514",
-      "author": "Emmy Wilz (\ud83d\udc99,\ud83e\udde1)",
-      "handle": "@Emmy_Wilz_01",
-      "content": "@joinpeanut is too easy. Too smooth. Too convenient. Too\u2026 right. And it blows my mind that more people aren\u2019t screaming about this.",
-      "timestamp": "2025-11-25T06:02:25.000Z",
-      "verified": true,
-      "followers_count": 22018,
-      "avatar": "https://pbs.twimg.com/profile_images/1949406151906312192/3aIUcXqB.jpg",
-      "impact_score": 0.88,
-      "is_reply": false,
-      "reply_to_url": null,
-      "media": [
+            "url": "https://x.com/0xSuperKalo/status/1991674399234175167",
+            "author": "superKalo.eth",
+            "handle": "@0xSuperKalo",
+            "content": "I tested Peanut myself this week and got ~7% better ARS rate compared to Revolut \u2705 ... Shout-out to @joinpeanut for making something meaningful \ud83d\udc4f",
+            "timestamp": "2025-11-21T01:05:54.000Z",
+            "verified": false,
+            "followers_count": 22189,
+            "avatar": "https://pbs.twimg.com/profile_images/1869852109824299008/L1ow2MKZ.jpg",
+            "impact_score": 0.92,
+            "is_reply": false,
+            "reply_to_url": null,
+            "media": [
+                {
+                    "type": "photo",
+                    "url": "https://pbs.twimg.com/media/G6PYiQ4XkAA-A0U.jpg"
+                }
+            ]
+        },
         {
-          "type": "photo",
-          "url": "https://pbs.twimg.com/media/G6lDiA1XUAA7qRL.jpg"
-        }
-      ]
-    },
-    {
-      "url": "https://x.com/DAppaDanDev/status/1992935274523840902",
-      "author": "DappaDan",
-      "handle": "@DAppaDanDev",
-      "content": "convincing locals that I actually want to pay with Mercado Pago and seeing their mind blown when it works @joinpeanut",
-      "timestamp": "2025-11-24T12:36:11.000Z",
-      "verified": false,
-      "followers_count": 16800,
-      "avatar": "https://pbs.twimg.com/profile_images/1455825670102212608/lK4aLXrW.jpg",
-      "impact_score": 0.86,
-      "is_reply": false,
-      "reply_to_url": null,
-      "media": [
+            "url": "https://x.com/kushagrasarathe/status/1991642890607685779",
+            "author": "kushagra.eth | Devconnect \ud83c\udde6\ud83c\uddf7",
+            "handle": "@kushagrasarathe",
+            "content": "if you are still sleeping on @joinpeanut whats the point of your existence? we shipped the best app for you to pay anywhere",
+            "timestamp": "2025-11-20T23:00:42.000Z",
+            "verified": false,
+            "followers_count": 19233,
+            "avatar": "https://pbs.twimg.com/profile_images/1867450825167224832/8bXUNWHwZ.jpg",
+            "impact_score": 0.91,
+            "is_reply": false,
+            "reply_to_url": null,
+            "media": [
+                {
+                    "type": "photo",
+                    "url": "https://pbs.twimg.com/media/G6O8pqsWoAEK6_w.jpg"
+                }
+            ]
+        },
         {
-          "type": "photo",
-          "url": "https://pbs.twimg.com/media/G6hUEYEWoAALAAz.jpg"
-        }
-      ]
-    },
-    {
-      "url": "https://x.com/candicekteo/status/1993420115509956930",
-      "author": "Candice",
-      "handle": "@candicekteo",
-      "content": "Each time I go \"pagar con mercado pago\" to pay with Peanut... I feel so smooth like a local. Ahora soy latina!! Gracias @uwwgo \ud83d\ude01",
-      "timestamp": "2025-11-25T20:42:46.000Z",
-      "verified": true,
-      "followers_count": 21200,
-      "avatar": "https://pbs.twimg.com/profile_images/1974482470180691968/PGZylzgs.jpg",
-      "impact_score": 0.85,
-      "is_reply": true,
-      "reply_to_url": "https://x.com/DAppaDanDev/status/1992935274523840902",
-      "media": []
-    },
-    {
-      "url": "https://x.com/yssf_io/status/1993363153611374973",
-      "author": "yssf",
-      "handle": "@yssf_io",
-      "content": "the look of confusion when i barely speak spanish to a merchant but still pay with mercado pago @joinpeanut",
-      "timestamp": "2025-11-25T16:56:25.000Z",
-      "verified": false,
-      "followers_count": 13200,
-      "avatar": "https://pbs.twimg.com/profile_images/1990116476225720320/ipFdMuEi.jpg",
-      "impact_score": 0.84,
-      "is_reply": false,
-      "reply_to_url": null,
-      "media": [
+            "url": "https://x.com/leeederek/status/1986916400653607231",
+            "author": "Derek Lee",
+            "handle": "@leeederek",
+            "content": "first of many purchases with @joinpeanut for a Chorip\u00e1n! \u2705 took 5s \u2705 better rate than Dollar Blue \u2705 10% cash back \u2705 cute UX \u2705 delicious",
+            "timestamp": "2025-11-07T21:59:19.000Z",
+            "verified": false,
+            "followers_count": 18412,
+            "avatar": "https://pbs.twimg.com/profile_images/1948370491212775424/nMrSzewC.jpg",
+            "impact_score": 0.9,
+            "is_reply": false,
+            "reply_to_url": null,
+            "media": [
+                {
+                    "type": "photo",
+                    "url": "https://pbs.twimg.com/media/G5LxHmlWUAAI2On.jpg"
+                },
+                {
+                    "type": "photo",
+                    "url": "https://pbs.twimg.com/media/G5LxHnEWEAAkGaK.jpg"
+                },
+                {
+                    "type": "photo",
+                    "url": "https://pbs.twimg.com/media/G5LxHmlWsAAK3nU.jpg"
+                }
+            ]
+        },
         {
-          "type": "video",
-          "url": "https://video.twimg.com/amplify_video/1993363153611374973/vid/avc1/320x568/1ePUdTUJWR-tXv2k.mp4"
+            "url": "https://x.com/Emmy_Wilz_01/status/1993198570225238514",
+            "author": "Emmy Wilz (\ud83d\udc99,\ud83e\udde1)",
+            "handle": "@Emmy_Wilz_01",
+            "content": "@joinpeanut is too easy. Too smooth. Too convenient. Too\u2026 right. And it blows my mind that more people aren\u2019t screaming about this.",
+            "timestamp": "2025-11-25T06:02:25.000Z",
+            "verified": true,
+            "followers_count": 22018,
+            "avatar": "https://pbs.twimg.com/profile_images/1949406151906312192/3aIUcXqB.jpg",
+            "impact_score": 0.88,
+            "is_reply": false,
+            "reply_to_url": null,
+            "media": [
+                {
+                    "type": "photo",
+                    "url": "https://pbs.twimg.com/media/G6lDiA1XUAA7qRL.jpg"
+                }
+            ]
+        },
+        {
+            "url": "https://x.com/DAppaDanDev/status/1992935274523840902",
+            "author": "DappaDan",
+            "handle": "@DAppaDanDev",
+            "content": "convincing locals that I actually want to pay with Mercado Pago and seeing their mind blown when it works @joinpeanut",
+            "timestamp": "2025-11-24T12:36:11.000Z",
+            "verified": false,
+            "followers_count": 16800,
+            "avatar": "https://pbs.twimg.com/profile_images/1455825670102212608/lK4aLXrW.jpg",
+            "impact_score": 0.86,
+            "is_reply": false,
+            "reply_to_url": null,
+            "media": [
+                {
+                    "type": "photo",
+                    "url": "https://pbs.twimg.com/media/G6hUEYEWoAALAAz.jpg"
+                }
+            ]
+        },
+        {
+            "url": "https://x.com/candicekteo/status/1993420115509956930",
+            "author": "Candice",
+            "handle": "@candicekteo",
+            "content": "Each time I go \"pagar con mercado pago\" to pay with Peanut... I feel so smooth like a local. Ahora soy latina!! Gracias @uwwgo \ud83d\ude01",
+            "timestamp": "2025-11-25T20:42:46.000Z",
+            "verified": true,
+            "followers_count": 21200,
+            "avatar": "https://pbs.twimg.com/profile_images/1974482470180691968/PGZylzgs.jpg",
+            "impact_score": 0.85,
+            "is_reply": true,
+            "reply_to_url": "https://x.com/DAppaDanDev/status/1992935274523840902",
+            "media": []
+        },
+        {
+            "url": "https://x.com/yssf_io/status/1993363153611374973",
+            "author": "yssf",
+            "handle": "@yssf_io",
+            "content": "the look of confusion when i barely speak spanish to a merchant but still pay with mercado pago @joinpeanut",
+            "timestamp": "2025-11-25T16:56:25.000Z",
+            "verified": false,
+            "followers_count": 13200,
+            "avatar": "https://pbs.twimg.com/profile_images/1990116476225720320/ipFdMuEi.jpg",
+            "impact_score": 0.84,
+            "is_reply": false,
+            "reply_to_url": null,
+            "media": [
+                {
+                    "type": "video",
+                    "url": "https://video.twimg.com/amplify_video/1993363153611374973/vid/avc1/320x568/1ePUdTUJWR-tXv2k.mp4"
+                }
+            ]
+        },
+        {
+            "url": "https://x.com/theZeugh/status/1993446136867393834",
+            "author": "zeugh is in Buenos Aires \ud83c\udde6\ud83c\uddf7",
+            "handle": "@theZeugh",
+            "content": "I have definitely used @joinpeanut more than my wallet + credit card combined while in BA",
+            "timestamp": "2025-11-25T22:26:10.000Z",
+            "verified": false,
+            "followers_count": 12000,
+            "avatar": "https://pbs.twimg.com/profile_images/1945485194175119360/-oioFRN5.jpg",
+            "impact_score": 0.81,
+            "is_reply": false,
+            "reply_to_url": null,
+            "media": []
         }
-      ]
-    },
-    {
-      "url": "https://x.com/theZeugh/status/1993446136867393834",
-      "author": "zeugh is in Buenos Aires \ud83c\udde6\ud83c\uddf7",
-      "handle": "@theZeugh",
-      "content": "I have definitely used @joinpeanut more than my wallet + credit card combined while in BA",
-      "timestamp": "2025-11-25T22:26:10.000Z",
-      "verified": false,
-      "followers_count": 12000,
-      "avatar": "https://pbs.twimg.com/profile_images/1945485194175119360/-oioFRN5.jpg",
-      "impact_score": 0.81,
-      "is_reply": false,
-      "reply_to_url": null,
-      "media": []
-    }
-  ]
+    ]
 }

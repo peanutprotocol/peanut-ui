@@ -120,8 +120,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 
                     style={{ fontWeight: 500, letterSpacing: '-0.5px' }}
                 >
                     BUENOS AIRES <br className="block lg:hidden" />
-                    · SÃO PAULO <br className="block md:hidden" />
-                    · MEXICO CITY
+                    · SÃO PAULO <br className="block md:hidden" />· MEXICO CITY
                 </span>
                 <span
                     className="mt-2 block text-center text-sm leading-tight text-n-1 md:mt-3 md:text-xl"
