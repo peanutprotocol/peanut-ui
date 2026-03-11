@@ -2,8 +2,60 @@
 
 import { GlobalCashLocalFeel, PeanutGuyGIF, Star } from '@/assets'
 import { motion } from 'framer-motion'
+import { useEffect, useState, useCallback } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import { CloudsCss } from './CloudsCss'
+
+/**
+ * Peanut mascot that positions itself so only 3% of its height (the feet)
+ * overlaps with the h2 subtitle below. Measures the h2 position on mount
+ * and resize, then sets its own bottom edge to sit 3% into the h2.
+ */
+function PeanutMascot() {
+    const [style, setStyle] = useState<React.CSSProperties>({})
+
+    const position = useCallback(() => {
+        const hero = document.getElementById('hero')
+        const h2 = hero?.querySelector('h2')
+        if (!hero || !h2) return
+
+        const heroRect = hero.getBoundingClientRect()
+        const h2Rect = h2.getBoundingClientRect()
+
+        // We want the peanut bottom to be 3% of peanut height below the h2 top
+        // peanut bottom = h2Top + 0.03 * peanutHeight
+        // But we don't know peanut height yet — use max-h-[40vh] as estimate
+        const peanutHeight = Math.min(window.innerHeight * 0.4, 360)
+        const overlap = peanutHeight * 0.03
+        const peanutBottom = h2Rect.top - heroRect.top + overlap
+        const peanutTop = peanutBottom - peanutHeight
+
+        setStyle({
+            position: 'absolute' as const,
+            top: `${peanutTop}px`,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 10,
+            height: 'auto',
+            maxHeight: '40vh',
+            width: 'auto',
+            maxWidth: '90%',
+            objectFit: 'contain' as const,
+        })
+    }, [])
+
+    useEffect(() => {
+        // Position after fonts/images load
+        const timer = setTimeout(position, 200)
+        window.addEventListener('resize', position)
+        return () => {
+            clearTimeout(timer)
+            window.removeEventListener('resize', position)
+        }
+    }, [position])
+
+    return <img src={PeanutGuyGIF.src} alt="Peanut Guy" style={style} />
+}
 
 type CTAButton = {
     label: string
@@ -105,23 +157,20 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 
                     className="absolute right-[1.5%] top-[-12%] w-8 sm:right-[6%] sm:top-[8%] md:right-[5%] md:top-[8%] md:w-12 lg:right-[10%]"
                 />
             </div>
-            <img
-                src={PeanutGuyGIF.src}
-                className="mg:bottom-0 absolute bottom-[55%] left-1/2 z-10 mx-auto h-auto max-h-[40vh] w-auto max-w-[90%] -translate-x-1/2 translate-y-1/2 transform object-contain"
-                alt="Peanut Guy"
-            />
+            <PeanutMascot />
 
             <div className="relative z-20 mb-4 flex w-full flex-col items-center justify-center md:mb-0">
                 <h2 className="font-roboto-flex-extrabold mt-18 text-center text-[2.375rem] font-extraBlack text-black md:text-heading">
-                    TAP. SEND. ANYWHERE
+                    TAP. SCAN. ANYWHERE.
                 </h2>
                 <span
                     className="mt-2 block text-center text-xl leading-tight text-n-1 md:mt-4 md:text-5xl"
                     style={{ fontWeight: 500, letterSpacing: '-0.5px' }}
                 >
-                    FROM NEW YORK <br className="block lg:hidden" />
-                    TO MADRID <br className="block md:hidden" />
-                    TO MEXICO CITY
+                    Buenos Aires. São Paulo. Floripa.
+                </span>
+                <span className="mt-2 block text-center text-sm text-n-1/70 md:text-base" style={{ fontWeight: 400 }}>
+                    No local ID or bank required.
                 </span>
                 {primaryCta && renderCTAButton(primaryCta, 'primary')}
                 {secondaryCta && renderCTAButton(secondaryCta, 'secondary')}
