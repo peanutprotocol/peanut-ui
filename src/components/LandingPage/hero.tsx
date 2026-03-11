@@ -84,7 +84,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 
             <div className="relative mt-10 w-full md:mt-0">
                 <div
                     className="z-0 mx-auto flex w-full max-w-[1000px] items-center justify-center md:w-[50%]"
-                    style={{ aspectRatio: '624 / 276' }}
+                    style={{ aspectRatio: '915 / 306' }}
                 >
                     <img
                         src={GlobalCashLocalFeel.src}
