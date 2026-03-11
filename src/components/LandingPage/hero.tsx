@@ -27,7 +27,7 @@ function PeanutMascot() {
         if (peanutHeight === 0) return // not rendered yet
 
         // Position so peanut's feet (bottom 3%) overlap with h2 top
-        const overlap = peanutHeight * 0.03
+        const overlap = peanutHeight * 0.06
         const peanutBottom = h2Rect.top - heroRect.top + overlap
         const peanutTop = peanutBottom - peanutHeight
 
