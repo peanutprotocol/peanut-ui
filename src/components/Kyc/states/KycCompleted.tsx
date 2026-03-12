@@ -3,11 +3,11 @@ import InfoCard from '@/components/Global/InfoCard'
 import { KYCStatusDrawerItem } from '../KYCStatusDrawerItem'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { useMemo } from 'react'
+import { REGION_UNLOCK_ITEMS } from '@/components/IdentityVerification/StartVerificationModal'
 import { formatDate } from '@/utils/general.utils'
 import { CountryRegionRow } from '../CountryRegionRow'
 import Image from 'next/image'
 import { STAR_STRAIGHT_ICON } from '@/assets'
-import { REGION_UNLOCK_ITEMS } from '@/components/IdentityVerification/StartVerificationModal'
 
 // @dev TODO: Remove hardcoded KYC points - this should come from backend
 // See comment in KycStatusItem.tsx for proper implementation plan
@@ -35,10 +35,8 @@ export const KycCompleted = ({
         }
     }, [bridgeKycApprovedAt])
 
-    const benefits = useMemo(() => {
-        const regionPath = region === 'LATAM' ? 'latam' : 'europe'
-        return REGION_UNLOCK_ITEMS[regionPath] ?? []
-    }, [region])
+    const regionPath = region === 'LATAM' ? 'latam' : 'europe'
+    const benefits = REGION_UNLOCK_ITEMS[regionPath] ?? []
 
     return (
         <div className="space-y-4">
