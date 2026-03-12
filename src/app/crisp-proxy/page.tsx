@@ -24,6 +24,7 @@ function CrispProxyContent() {
                 lock_maximized: true,
                 lock_full_view: true,
                 cross_origin_cookies: true, // Essential for session persistence in iframes
+                session_merge: true, // Merge old cookie-based sessions into new token-based sessions
             }
         }
     }, [])
