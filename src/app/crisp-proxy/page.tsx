@@ -122,6 +122,7 @@ function CrispProxyContent() {
             if (event.origin !== window.location.origin) return
 
             if (event.data.type === 'CRISP_RESET_SESSION' && window.$crisp) {
+                window.CRISP_TOKEN_ID = null
                 window.$crisp.push(['do', 'session:reset'])
             }
         }
@@ -141,8 +142,8 @@ function CrispProxyContent() {
                         if(t) window.CRISP_TOKEN_ID=t;
                     })();
                     (function(){
-                        d=document;
-                        s=d.createElement("script");
+                        var d=document;
+                        var s=d.createElement("script");
                         s.src="https://client.crisp.chat/l.js";
                         s.async=1;
                         d.getElementsByTagName("head")[0].appendChild(s);
