@@ -1239,9 +1239,13 @@ export default function QRPayPage() {
                                             parseFloat(qrPayment?.details?.paymentAgainstAmount || '0') || 0
 
                                         // Always show actual dollar amount — never percentage (misleading due to dynamic caps)
+                                        // Tone scales with amount: small = factual + growth nudge, large = celebratory
                                         if (amountSponsored && typeof amountSponsored === 'number') {
                                             if (transactionUsd > 0 && amountSponsored >= transactionUsd) {
                                                 return `This bill can be covered by Peanut! $${amountSponsored.toFixed(2)} back. Claim it now.`
+                                            }
+                                            if (amountSponsored < 0.5) {
+                                                return `You earned $${amountSponsored.toFixed(2)} back. Invite friends to unlock bigger cashback!`
                                             }
                                             return `Peanut's got you! $${amountSponsored.toFixed(2)} back on this payment. Claim it now.`
                                         }
@@ -1268,10 +1272,16 @@ export default function QRPayPage() {
                                         const transactionUsd =
                                             parseFloat(qrPayment?.details?.paymentAgainstAmount || '0') || 0
 
-                                        // Always show actual dollar amount
+                                        // Tone scales with amount: small = growth nudge, large = celebratory
                                         if (amountSponsored && typeof amountSponsored === 'number') {
                                             if (transactionUsd > 0 && amountSponsored >= transactionUsd) {
                                                 return 'We paid for this bill! Earn points, climb tiers and unlock even better perks.'
+                                            }
+                                            if (amountSponsored < 0.5) {
+                                                return `You got $${amountSponsored.toFixed(2)} back. The more friends you invite, the more you earn!`
+                                            }
+                                            if (amountSponsored >= 5) {
+                                                return `We gave you $${amountSponsored.toFixed(2)} back! Your points are paying off.`
                                             }
                                             return `We gave you $${amountSponsored.toFixed(2)} back! Invite friends to unlock bigger rewards.`
                                         }
