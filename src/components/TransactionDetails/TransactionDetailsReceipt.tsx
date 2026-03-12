@@ -610,30 +610,17 @@ export const TransactionDetailsReceipt = ({
                             <span className="text-sm text-gray-600">
                                 {(() => {
                                     const perk = transaction.extraDataForDrawer.perk
-                                    const percentage = perk.discountPercentage
                                     const amount = perk.amountSponsored
-                                    const isCapped = perk.isCapped
-                                    const campaignCap = perk.campaignCapUsd
 
-                                    // If user hit their campaign cap, show special message
-                                    if (isCapped && campaignCap) {
-                                        if (amount !== undefined && amount !== null) {
-                                            return `$${amount.toFixed(2)} cashback — campaign limit reached! 🎉`
+                                    // Always show actual dollar amount — never percentage (misleading due to dynamic caps)
+                                    if (amount !== undefined && amount !== null) {
+                                        if (perk.isCapped && perk.campaignCapUsd) {
+                                            return `$${amount.toFixed(2)} cashback — campaign limit reached!`
                                         }
-                                        return `Campaign limit reached! 🎉`
+                                        return `You received $${amount.toFixed(2)} cashback!`
                                     }
 
-                                    // For non-capped messages, use amountStr
-                                    const amountStr =
-                                        amount !== undefined && amount !== null ? `$${amount.toFixed(2)}` : ''
-
-                                    if (percentage === 100) {
-                                        return `You received a full refund${amount ? ` (${amountStr})` : ''} as a Peanut Perk.`
-                                    } else if (percentage > 100) {
-                                        return `You received back${amount ? ` (${amountStr})` : ''} — that's more than you paid!`
-                                    } else {
-                                        return `You received a Peanut Perk! ${amount ? ` ${amountStr}` : ''} cashback.`
-                                    }
+                                    return 'You received a Peanut Perk!'
                                 })()}
                             </span>
                         </div>
