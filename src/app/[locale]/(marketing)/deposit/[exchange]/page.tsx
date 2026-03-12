@@ -14,7 +14,7 @@ import type { Locale } from '@/i18n/types'
 import { getTranslations, t, localizedPath } from '@/i18n'
 import { RelatedPages } from '@/components/Marketing/RelatedPages'
 import { ContentPage } from '@/components/Marketing/ContentPage'
-import { readPageContentLocalized } from '@/lib/content'
+import { readPageContentLocalized, type ContentFrontmatter } from '@/lib/content'
 import { renderContent } from '@/lib/mdx'
 
 interface PageProps {
@@ -45,17 +45,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     if (!ex) return {}
 
     // Try MDX content frontmatter first
-    const mdxContent = readPageContentLocalized<{ title: string; description: string; published?: boolean }>(
-        'deposit',
-        exchange,
-        locale
-    )
+    const mdxContent = readPageContentLocalized<ContentFrontmatter>('deposit', exchange, locale)
     if (mdxContent && mdxContent.frontmatter.published !== false) {
         return {
             ...metadataHelper({
                 title: mdxContent.frontmatter.title,
                 description: mdxContent.frontmatter.description,
                 canonical: `/${locale}/deposit/from-${exchange}`,
+                dynamicOg: true,
             }),
             alternates: {
                 canonical: `/${locale}/deposit/from-${exchange}`,
@@ -90,16 +87,27 @@ export default async function DepositPageLocalized({ params }: PageProps) {
     if (!ex) notFound()
 
     // Try MDX content first
-    const mdxSource = readPageContentLocalized('deposit', exchange, locale)
+    const mdxSource = readPageContentLocalized<ContentFrontmatter>('deposit', exchange, locale)
     if (mdxSource && mdxSource.frontmatter.published !== false) {
         const { content } = await renderContent(mdxSource.body)
         const i18n = getTranslations(locale)
+        const url = `/${locale}/deposit/from-${exchange}`
         return (
             <ContentPage
                 breadcrumbs={[
                     { name: i18n.home, href: '/' },
-                    { name: ex.name, href: `/${locale}/deposit/from-${exchange}` },
+                    { name: ex.name, href: url },
                 ]}
+                article={
+                    mdxSource.frontmatter.generated_at
+                        ? {
+                              title: mdxSource.frontmatter.title,
+                              description: mdxSource.frontmatter.description,
+                              url,
+                              datePublished: mdxSource.frontmatter.generated_at,
+                          }
+                        : undefined
+                }
             >
                 {content}
             </ContentPage>

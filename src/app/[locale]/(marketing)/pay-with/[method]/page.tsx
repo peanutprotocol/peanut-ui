@@ -5,7 +5,7 @@ import { PAYMENT_METHODS, PAYMENT_METHOD_SLUGS } from '@/data/seo'
 import { SUPPORTED_LOCALES, getAlternates, isValidLocale } from '@/i18n/config'
 import { getTranslations } from '@/i18n'
 import { ContentPage } from '@/components/Marketing/ContentPage'
-import { readPageContentLocalized } from '@/lib/content'
+import { readPageContentLocalized, type ContentFrontmatter } from '@/lib/content'
 import { renderContent } from '@/lib/mdx'
 
 interface PageProps {
@@ -24,11 +24,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const pm = PAYMENT_METHODS[method]
     if (!pm) return {}
 
-    const mdxContent = readPageContentLocalized<{ title: string; description: string; published?: boolean }>(
-        'pay-with',
-        method,
-        locale
-    )
+    const mdxContent = readPageContentLocalized<ContentFrontmatter>('pay-with', method, locale)
     if (!mdxContent || mdxContent.frontmatter.published === false) return {}
 
     return {
@@ -36,6 +32,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
             title: mdxContent.frontmatter.title,
             description: mdxContent.frontmatter.description,
             canonical: `/${locale}/pay-with/${method}`,
+            dynamicOg: true,
         }),
         alternates: {
             canonical: `/${locale}/pay-with/${method}`,
@@ -51,18 +48,29 @@ export default async function PayWithPage({ params }: PageProps) {
     const pm = PAYMENT_METHODS[method]
     if (!pm) notFound()
 
-    const mdxSource = readPageContentLocalized('pay-with', method, locale)
+    const mdxSource = readPageContentLocalized<ContentFrontmatter>('pay-with', method, locale)
     if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
 
     const { content } = await renderContent(mdxSource.body)
     const i18n = getTranslations(locale)
+    const url = `/${locale}/pay-with/${method}`
 
     return (
         <ContentPage
             breadcrumbs={[
                 { name: i18n.home, href: '/' },
-                { name: pm.name, href: `/${locale}/pay-with/${method}` },
+                { name: pm.name, href: url },
             ]}
+            article={
+                mdxSource.frontmatter.generated_at
+                    ? {
+                          title: mdxSource.frontmatter.title,
+                          description: mdxSource.frontmatter.description,
+                          url,
+                          datePublished: mdxSource.frontmatter.generated_at,
+                      }
+                    : undefined
+            }
         >
             {content}
         </ContentPage>

@@ -14,24 +14,24 @@ interface PasskeySetupHelpModalProps {
 }
 
 const getErrorTitle = (errorName: string): string => {
-    if (errorName === WebAuthnErrorName.NotReadable) return 'Credential Manager Busy'
-    if (errorName === WebAuthnErrorName.NotAllowed) return 'Passkey Setup Blocked'
+    if (errorName === WebAuthnErrorName.NotReadable) return 'Passkey Issue'
+    if (errorName === WebAuthnErrorName.NotAllowed) return 'Passkeys Not Enabled'
     if (errorName === WebAuthnErrorName.InvalidState) return 'Passkey Already Exists'
     if (errorName === WebAuthnErrorName.NotSupported) return 'Passkeys Not Supported'
-    return 'Setup Issue'
+    return 'Passkey Issue'
 }
 
 const getErrorDescription = (errorName: string, platform: 'android' | 'ios' | 'web'): string => {
     if (errorName === WebAuthnErrorName.NotReadable) {
-        return "Your device's credential manager is temporarily unavailable. This usually happens when the system is busy or needs to be restarted."
+        return "There's an issue with your device's passkey settings. Please try again."
     }
     if (errorName === WebAuthnErrorName.NotAllowed) {
-        return 'Your browser blocked passkey creation. This is most commonly caused by being in Incognito/Private mode, or having strict privacy settings enabled.'
+        return 'Passkeys are not enabled on your device. Check your device settings to enable them'
     }
     if (errorName === WebAuthnErrorName.InvalidState) {
         return 'A passkey already exists for this account on your device.'
     }
-    return 'An error occurred during passkey setup.'
+    return 'Something went wrong during passkey setup. This is likely a device issue.'
 }
 
 const getTroubleshootingSteps = (errorName: string, platform: 'android' | 'ios' | 'web'): readonly string[] => {

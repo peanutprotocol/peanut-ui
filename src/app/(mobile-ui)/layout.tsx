@@ -103,9 +103,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         return <OfflineScreen />
     }
 
-    // show backend error screen when user fetch fails after retries
-    // user can retry or force logout to clear stale state
-    if (userFetchError && !isFetchingUser && !isPublicPath) {
+    // show backend error screen only when user fetch fails AND there's no cached user data
+    // previously, a transient background refetch failure (e.g. refetchOnWindowFocus hitting
+    // a network blip) would replace the entire app with the error screen even though
+    // valid user data was still in the cache
+    if (userFetchError && !isFetchingUser && !isPublicPath && !user) {
         return <BackendErrorScreen />
     }
 

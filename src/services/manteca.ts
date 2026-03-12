@@ -14,6 +14,7 @@ import type { SignUserOperationReturnType } from '@zerodev/sdk/actions'
 export interface QrPaymentRequest {
     qrCode: string
     amount?: string
+    qrType?: string
 }
 
 export type QrPayment = {
@@ -146,8 +147,10 @@ export const mantecaApi = {
         signedUserOp,
         chainId,
         entryPointAddress,
+        qrType,
     }: {
         paymentLockCode: string
+        qrType?: string
         signedUserOp: Pick<
             SignUserOperationReturnType,
             | 'sender'
@@ -182,6 +185,7 @@ export const mantecaApi = {
                     signedUserOp,
                     chainId,
                     entryPointAddress,
+                    qrType,
                 }),
             },
             120000
