@@ -64,7 +64,7 @@ export function resetCrispSession(crispInstance: any): void {
         // Clear CRISP_TOKEN_ID before resetting session to fully unbind the user.
         // This prevents the next anonymous session from inheriting the previous user's conversation.
         // @see https://docs.crisp.chat/guides/chatbox-sdks/web-sdk/session-continuity/
-        ;(window as any).CRISP_TOKEN_ID = null
+        window.CRISP_TOKEN_ID = null
 
         crispInstance.push(['do', 'session:reset'])
     } catch (e) {

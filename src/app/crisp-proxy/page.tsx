@@ -25,17 +25,8 @@ function CrispProxyContent() {
                 lock_full_view: true,
                 cross_origin_cookies: true, // Essential for session persistence in iframes
             }
-
-            // Set CRISP_TOKEN_ID for session continuity — must be set before Crisp loads.
-            // This ensures the same user always gets the same conversation, even if
-            // cookies are cleared or they switch devices/browsers.
-            // @see https://docs.crisp.chat/guides/chatbox-sdks/web-sdk/session-continuity/
-            const crispTokenId = searchParams.get('crisp_token_id')
-            if (crispTokenId) {
-                ;(window as any).CRISP_TOKEN_ID = crispTokenId
-            }
         }
-    }, [searchParams])
+    }, [])
 
     useEffect(() => {
         if (typeof window === 'undefined') return
@@ -145,6 +136,10 @@ function CrispProxyContent() {
                 {`
                     window.$crisp=[];
                     window.CRISP_WEBSITE_ID="${CRISP_WEBSITE_ID}";
+                    (function(){
+                        var t=new URLSearchParams(window.location.search).get("crisp_token_id");
+                        if(t) window.CRISP_TOKEN_ID=t;
+                    })();
                     (function(){
                         d=document;
                         s=d.createElement("script");
