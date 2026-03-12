@@ -75,7 +75,7 @@ export function RegulatedRails() {
                 <p className="mb-4 text-center text-sm font-medium uppercase tracking-widest text-n-1 opacity-60">
                     Works with
                 </p>
-                <MarqueeWrapper backgroundColor="#FFFFFF" direction="right" className="border-none ">
+                <MarqueeWrapper backgroundColor="#FFFFFF" direction="right" className="border-none">
                     {logos.map((logo) => (
                         <div
                             key={logo.alt}

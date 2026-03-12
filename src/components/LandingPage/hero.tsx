@@ -2,14 +2,14 @@
 
 import { GlobalCashLocalFeel, PeanutGuyGIF, Star } from '@/assets'
 import { motion } from 'framer-motion'
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useCallback, useRef } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import { CloudsCss } from './CloudsCss'
 
 /**
- * Peanut mascot that positions itself so only 3% of its height (the feet)
+ * Peanut mascot that positions itself so only 6% of its height (the feet)
  * overlaps with the h2 subtitle below. Measures the h2 position on mount
- * and resize, then sets its own bottom edge to sit 3% into the h2.
+ * and resize, then sets its own bottom edge to sit 6% into the h2.
  */
 function PeanutMascot() {
     const imgRef = useRef<HTMLImageElement>(null)

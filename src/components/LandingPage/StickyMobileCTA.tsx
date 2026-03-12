@@ -1,32 +1,34 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/0_Bruddle/Button'
-
-/**
- * Sticky bottom CTA bar for mobile. Shows after scrolling past the hero,
- * hides when a section with its own CTA is visible, and hides at the
- * very bottom of the page to avoid blocking scroll-back.
- */
 
 const CTA_SELECTOR = 'section a[href="/setup"], section a[href="/send"], section a[href="/lp/card"]'
 
 export function StickyMobileCTA() {
     const [visible, setVisible] = useState(false)
+    const rafId = useRef(0)
+    const lastVisible = useRef(false)
 
     useEffect(() => {
         const check = () => {
-            // Hide if at the very bottom of the page (prevents scroll-back blocking)
-            const atBottom = window.innerHeight + window.scrollY >= document.body.scrollHeight - 20
+            // Hide if near the bottom of the page (accounts for momentum/elastic scroll)
+            const atBottom = window.innerHeight + window.scrollY >= document.body.scrollHeight - 100
             if (atBottom) {
-                setVisible(false)
+                if (lastVisible.current) {
+                    lastVisible.current = false
+                    setVisible(false)
+                }
                 return
             }
 
             // Only show after scrolling past the hero
             if (window.scrollY < 300) {
-                setVisible(false)
+                if (lastVisible.current) {
+                    lastVisible.current = false
+                    setVisible(false)
+                }
                 return
             }
 
@@ -42,12 +44,24 @@ export function StickyMobileCTA() {
                 }
             }
 
-            setVisible(!overlapping)
+            const next = !overlapping
+            if (next !== lastVisible.current) {
+                lastVisible.current = next
+                setVisible(next)
+            }
         }
 
-        window.addEventListener('scroll', check, { passive: true })
+        const onScroll = () => {
+            cancelAnimationFrame(rafId.current)
+            rafId.current = requestAnimationFrame(check)
+        }
+
+        window.addEventListener('scroll', onScroll, { passive: true })
         check()
-        return () => window.removeEventListener('scroll', check)
+        return () => {
+            window.removeEventListener('scroll', onScroll)
+            cancelAnimationFrame(rafId.current)
+        }
     }, [])
 
     return (
@@ -61,10 +75,7 @@ export function StickyMobileCTA() {
                     className="pointer-events-none fixed bottom-0 left-0 right-0 z-50 border-t-2 border-n-1 bg-white px-4 py-3 md:hidden"
                 >
                     <a href="/setup" className="pointer-events-auto block">
-                        <Button
-                            shadowSize="4"
-                            className="w-full bg-primary-1 py-3 text-base font-extrabold hover:bg-primary-1/90"
-                        >
+                        <Button variant="purple" shadowSize="4" className="w-full py-3 text-base font-extrabold">
                             SIGN UP NOW
                         </Button>
                     </a>
