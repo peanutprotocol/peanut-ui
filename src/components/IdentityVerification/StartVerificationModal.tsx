@@ -29,7 +29,7 @@ const BRIDGE_UNLOCK_ITEMS: Array<string | React.ReactNode> = [
 ]
 
 // unlock benefits shown per region
-const REGION_UNLOCK_ITEMS: Record<string, Array<string | React.ReactNode>> = {
+export const REGION_UNLOCK_ITEMS: Record<string, Array<string | React.ReactNode>> = {
     latam: [
         <p key="bank">
             Bank transfers to your own accounts in <b>LATAM</b>
