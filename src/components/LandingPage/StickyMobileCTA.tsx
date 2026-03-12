@@ -4,8 +4,6 @@ import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/0_Bruddle/Button'
 
-const CTA_SELECTOR = 'section a[href="/setup"], section a[href="/send"], section a[href="/lp/card"]'
-
 export function StickyMobileCTA() {
     const [visible, setVisible] = useState(false)
     const rafId = useRef(0)
@@ -13,38 +11,9 @@ export function StickyMobileCTA() {
 
     useEffect(() => {
         const check = () => {
-            // Hide if near the bottom of the page (accounts for momentum/elastic scroll)
             const atBottom = window.innerHeight + window.scrollY >= document.body.scrollHeight - 100
-            if (atBottom) {
-                if (lastVisible.current) {
-                    lastVisible.current = false
-                    setVisible(false)
-                }
-                return
-            }
+            const next = window.scrollY >= 300 && !atBottom
 
-            // Only show after scrolling past the hero
-            if (window.scrollY < 300) {
-                if (lastVisible.current) {
-                    lastVisible.current = false
-                    setVisible(false)
-                }
-                return
-            }
-
-            // Hide if overlapping an existing CTA
-            const ctaEls = document.querySelectorAll(CTA_SELECTOR)
-            let overlapping = false
-
-            for (const el of ctaEls) {
-                const rect = el.getBoundingClientRect()
-                if (rect.bottom > window.innerHeight - 100 && rect.top < window.innerHeight) {
-                    overlapping = true
-                    break
-                }
-            }
-
-            const next = !overlapping
             if (next !== lastVisible.current) {
                 lastVisible.current = next
                 setVisible(next)
