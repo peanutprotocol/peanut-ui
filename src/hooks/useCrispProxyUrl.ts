@@ -10,11 +10,16 @@ import { type CrispUserData } from '@/hooks/useCrispUserData'
  *
  * @param userData - User data to encode in URL
  * @param prefilledMessage - Optional message to prefill in chat
+ * @param crispTokenId - Stable token for Crisp session continuity (prevents duplicate conversations)
  * @returns URL path to crisp-proxy page with encoded parameters
  */
-export function useCrispProxyUrl(userData: CrispUserData, prefilledMessage?: string): string {
+export function useCrispProxyUrl(userData: CrispUserData, prefilledMessage?: string, crispTokenId?: string): string {
     return useMemo(() => {
         const params = new URLSearchParams()
+
+        if (crispTokenId) {
+            params.append('crisp_token_id', crispTokenId)
+        }
 
         if (userData.email) {
             params.append('user_email', userData.email)
@@ -55,6 +60,7 @@ export function useCrispProxyUrl(userData: CrispUserData, prefilledMessage?: str
         const queryString = params.toString()
         return queryString ? `/crisp-proxy?${queryString}` : '/crisp-proxy'
     }, [
+        crispTokenId,
         userData.email,
         userData.fullName,
         userData.username,
