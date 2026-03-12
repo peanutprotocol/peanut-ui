@@ -1235,13 +1235,12 @@ export default function QRPayPage() {
                                 <p className="text-sm text-gray-600">
                                     {(() => {
                                         const amountSponsored = qrPayment?.perk?.amountSponsored
-                                        const percentage = qrPayment?.perk?.discountPercentage || 100
                                         const transactionUsd =
                                             parseFloat(qrPayment?.details?.paymentAgainstAmount || '0') || 0
 
-                                        // Always prefer showing the actual dollar amount
+                                        // Always show actual dollar amount — never percentage (misleading due to dynamic caps)
                                         if (amountSponsored && typeof amountSponsored === 'number') {
-                                            if (percentage >= 100 && transactionUsd > 0 && amountSponsored >= transactionUsd) {
+                                            if (transactionUsd > 0 && amountSponsored >= transactionUsd) {
                                                 return `This bill can be covered by Peanut! $${amountSponsored.toFixed(2)} back. Claim it now.`
                                             }
                                             return `Peanut's got you! $${amountSponsored.toFixed(2)} back on this payment. Claim it now.`
