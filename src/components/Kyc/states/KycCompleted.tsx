@@ -1,4 +1,5 @@
 import Card from '@/components/Global/Card'
+import InfoCard from '@/components/Global/InfoCard'
 import { KYCStatusDrawerItem } from '../KYCStatusDrawerItem'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { useMemo } from 'react'
@@ -6,6 +7,7 @@ import { formatDate } from '@/utils/general.utils'
 import { CountryRegionRow } from '../CountryRegionRow'
 import Image from 'next/image'
 import { STAR_STRAIGHT_ICON } from '@/assets'
+import { REGION_UNLOCK_ITEMS } from '@/components/IdentityVerification/StartVerificationModal'
 
 // @dev TODO: Remove hardcoded KYC points - this should come from backend
 // See comment in KycStatusItem.tsx for proper implementation plan
@@ -16,10 +18,12 @@ export const KycCompleted = ({
     bridgeKycApprovedAt,
     countryCode,
     isBridge,
+    region,
 }: {
     bridgeKycApprovedAt?: string
     countryCode?: string | null
     isBridge?: boolean
+    region?: 'STANDARD' | 'LATAM'
 }) => {
     const verifiedOn = useMemo(() => {
         if (!bridgeKycApprovedAt) return 'N/A'
@@ -31,10 +35,15 @@ export const KycCompleted = ({
         }
     }, [bridgeKycApprovedAt])
 
+    const benefits = useMemo(() => {
+        const regionPath = region === 'LATAM' ? 'latam' : 'europe'
+        return REGION_UNLOCK_ITEMS[regionPath] ?? []
+    }, [region])
+
     return (
         <div className="space-y-4">
             <KYCStatusDrawerItem status="completed" customText="Verified" />
-            <Card position="single">
+            <Card position="single" className="pb-4">
                 <PaymentInfoRow label="Verified on" value={verifiedOn} />
                 <CountryRegionRow countryCode={countryCode} isBridge={isBridge} />
                 <PaymentInfoRow
@@ -46,7 +55,18 @@ export const KycCompleted = ({
                         </div>
                     }
                 />
-                <PaymentInfoRow label="Status" value="You are now verified. Enjoy Peanut!" hideBottomBorder />
+                {benefits.length > 0 && (
+                    <div className="mt-4">
+                        <h2 className="mb-2 text-xs font-bold">What you've unlocked:</h2>
+                        <InfoCard
+                            variant="info"
+                            itemIcon="check"
+                            itemIconSize={12}
+                            itemIconClassName="text-secondary-7"
+                            items={benefits}
+                        />
+                    </div>
+                )}
             </Card>
         </div>
     )

@@ -7,6 +7,7 @@ import { useAuth } from '@/context/authContext'
 import { MantecaKycStatus } from '@/interfaces'
 import { countryData, MantecaSupportedExchanges, type CountryData } from '@/components/AddMoney/consts'
 import useKycStatus from '@/hooks/useKycStatus'
+import useUnifiedKycStatus from '@/hooks/useUnifiedKycStatus'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 
 const KycCompletedModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
@@ -14,24 +15,19 @@ const KycCompletedModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =
     const [approvedCountryData, setApprovedCountryData] = useState<CountryData | null>(null)
 
     const { isUserBridgeKycApproved, isUserMantecaKycApproved, isUserSumsubKycApproved } = useKycStatus()
+    const { sumsubVerificationRegionIntent } = useUnifiedKycStatus()
     const { getVerificationUnlockItems } = useIdentityVerification()
 
     const kycApprovalType = useMemo(() => {
-        // sumsub covers all regions, treat as 'all'
         if (isUserSumsubKycApproved) {
-            return 'all'
-        }
-        if (isUserBridgeKycApproved && isUserMantecaKycApproved) {
-            return 'all'
-        }
-        if (isUserBridgeKycApproved) {
+            if (sumsubVerificationRegionIntent === 'LATAM') return 'manteca'
             return 'bridge'
         }
-        if (isUserMantecaKycApproved) {
-            return 'manteca'
-        }
+        if (isUserBridgeKycApproved && isUserMantecaKycApproved) return 'all'
+        if (isUserBridgeKycApproved) return 'bridge'
+        if (isUserMantecaKycApproved) return 'manteca'
         return 'none'
-    }, [isUserBridgeKycApproved, isUserMantecaKycApproved, isUserSumsubKycApproved])
+    }, [isUserBridgeKycApproved, isUserMantecaKycApproved, isUserSumsubKycApproved, sumsubVerificationRegionIntent])
 
     const items = useMemo(() => {
         return getVerificationUnlockItems(approvedCountryData?.title)
