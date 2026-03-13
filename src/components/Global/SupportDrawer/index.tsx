@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useCrispUserData } from '@/hooks/useCrispUserData'
+import { useCrispTokenId } from '@/hooks/useCrispTokenId'
 import { useCrispProxyUrl } from '@/hooks/useCrispProxyUrl'
 import { Drawer, DrawerContent, DrawerTitle } from '../Drawer'
 import PeanutLoading from '../PeanutLoading'
@@ -10,9 +11,10 @@ import PeanutLoading from '../PeanutLoading'
 const SupportDrawer = () => {
     const { isSupportModalOpen, setIsSupportModalOpen, supportPrefilledMessage: prefilledMessage } = useModalsContext()
     const userData = useCrispUserData()
+    const crispTokenId = useCrispTokenId()
     const [isLoading, setIsLoading] = useState(true)
 
-    const crispProxyUrl = useCrispProxyUrl(userData, prefilledMessage)
+    const crispProxyUrl = useCrispProxyUrl(userData, prefilledMessage, crispTokenId)
 
     useEffect(() => {
         // Listen for ready message from proxy iframe

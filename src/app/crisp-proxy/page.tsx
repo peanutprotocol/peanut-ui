@@ -19,16 +19,6 @@ function CrispProxyContent() {
     const searchParams = useSearchParams()
 
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            ;(window as any).CRISP_RUNTIME_CONFIG = {
-                lock_maximized: true,
-                lock_full_view: true,
-                cross_origin_cookies: true, // Essential for session persistence in iframes
-            }
-        }
-    }, [])
-
-    useEffect(() => {
         if (typeof window === 'undefined') return
 
         const email = searchParams.get('user_email')
@@ -82,6 +72,7 @@ function CrispProxyContent() {
                             ['wallet_address', data.wallet_address || ''],
                             ['bridge_user_id', data.bridge_user_id || ''],
                             ['manteca_user_id', data.manteca_user_id || ''],
+                            ['posthog_person', data.posthog_person || ''],
                         ],
                     ]
                     window.$crisp.push(['set', 'session:data', sessionDataArray])
@@ -122,6 +113,7 @@ function CrispProxyContent() {
             if (event.origin !== window.location.origin) return
 
             if (event.data.type === 'CRISP_RESET_SESSION' && window.$crisp) {
+                window.CRISP_TOKEN_ID = null
                 window.$crisp.push(['do', 'session:reset'])
             }
         }
@@ -136,9 +128,14 @@ function CrispProxyContent() {
                 {`
                     window.$crisp=[];
                     window.CRISP_WEBSITE_ID="${CRISP_WEBSITE_ID}";
+                    window.CRISP_RUNTIME_CONFIG={lock_maximized:true,lock_full_view:true,cross_origin_cookies:true,session_merge:true};
                     (function(){
-                        d=document;
-                        s=d.createElement("script");
+                        var t=new URLSearchParams(window.location.search).get("crisp_token_id");
+                        if(t) window.CRISP_TOKEN_ID=t;
+                    })();
+                    (function(){
+                        var d=document;
+                        var s=d.createElement("script");
                         s.src="https://client.crisp.chat/l.js";
                         s.async=1;
                         d.getElementsByTagName("head")[0].appendChild(s);

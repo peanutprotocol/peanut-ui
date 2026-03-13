@@ -10,11 +10,16 @@ import { type CrispUserData } from '@/hooks/useCrispUserData'
  *
  * @param userData - User data to encode in URL
  * @param prefilledMessage - Optional message to prefill in chat
+ * @param crispTokenId - Stable token for Crisp session continuity (prevents duplicate conversations)
  * @returns URL path to crisp-proxy page with encoded parameters
  */
-export function useCrispProxyUrl(userData: CrispUserData, prefilledMessage?: string): string {
+export function useCrispProxyUrl(userData: CrispUserData, prefilledMessage?: string, crispTokenId?: string): string {
     return useMemo(() => {
         const params = new URLSearchParams()
+
+        if (crispTokenId) {
+            params.append('crisp_token_id', crispTokenId)
+        }
 
         if (userData.email) {
             params.append('user_email', userData.email)
@@ -34,7 +39,8 @@ export function useCrispProxyUrl(userData: CrispUserData, prefilledMessage?: str
             userData.grafanaLink ||
             userData.walletAddressLink ||
             userData.bridgeUserId ||
-            userData.mantecaUserId
+            userData.mantecaUserId ||
+            userData.posthogPersonLink
         ) {
             const sessionData = JSON.stringify({
                 username: userData.username || '',
@@ -44,6 +50,7 @@ export function useCrispProxyUrl(userData: CrispUserData, prefilledMessage?: str
                 wallet_address: userData.walletAddressLink || '',
                 bridge_user_id: userData.bridgeUserId || '',
                 manteca_user_id: userData.mantecaUserId || '',
+                posthog_person: userData.posthogPersonLink || '',
             })
             params.append('session_data', sessionData)
         }
@@ -55,6 +62,7 @@ export function useCrispProxyUrl(userData: CrispUserData, prefilledMessage?: str
         const queryString = params.toString()
         return queryString ? `/crisp-proxy?${queryString}` : '/crisp-proxy'
     }, [
+        crispTokenId,
         userData.email,
         userData.fullName,
         userData.username,
@@ -64,6 +72,7 @@ export function useCrispProxyUrl(userData: CrispUserData, prefilledMessage?: str
         userData.walletAddressLink,
         userData.bridgeUserId,
         userData.mantecaUserId,
+        userData.posthogPersonLink,
         prefilledMessage,
     ])
 }
