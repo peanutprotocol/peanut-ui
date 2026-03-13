@@ -274,8 +274,6 @@ export default function WithdrawBankPage() {
                         setAmountToWithdraw('')
                         setSelectedMethod(null)
                     } else {
-                        setAmountToWithdraw('')
-                        setSelectedMethod(null)
                         router.back()
                     }
                 }}

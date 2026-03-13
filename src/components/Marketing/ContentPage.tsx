@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { JsonLd } from './JsonLd'
+import { articleSchema, type ArticleMeta } from '@/lib/seo/schemas'
 import { BASE_URL } from '@/constants/general.consts'
 import { MarketingErrorBoundary } from './MarketingErrorBoundary'
 
@@ -9,6 +10,8 @@ interface ContentPageProps {
     children: ReactNode
     /** Breadcrumb items: [{name, href}] */
     breadcrumbs: Array<{ name: string; href: string }>
+    /** Article schema data for freshness signals */
+    article?: ArticleMeta
 }
 
 /**
@@ -16,7 +19,7 @@ interface ContentPageProps {
  * Handles BreadcrumbList JSON-LD + visible breadcrumb nav.
  * The MDX body owns all layout (Hero is full-bleed, prose sections are contained).
  */
-export function ContentPage({ children, breadcrumbs }: ContentPageProps) {
+export function ContentPage({ children, breadcrumbs, article }: ContentPageProps) {
     const breadcrumbSchema = {
         '@context': 'https://schema.org',
         '@type': 'BreadcrumbList',
@@ -31,6 +34,7 @@ export function ContentPage({ children, breadcrumbs }: ContentPageProps) {
     return (
         <>
             <JsonLd data={breadcrumbSchema} />
+            {article && <JsonLd data={articleSchema(article)} />}
             <MarketingErrorBoundary>
                 <article className="content-page select-text bg-background">
                     {children}

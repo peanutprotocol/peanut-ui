@@ -7,6 +7,8 @@ interface FAQSectionProps {
 }
 
 export function FAQSection({ faqs, title = 'Frequently Asked Questions' }: FAQSectionProps) {
+    if (faqs.length === 0) return null
+
     const faqSchema = {
         '@context': 'https://schema.org',
         '@type': 'FAQPage',
