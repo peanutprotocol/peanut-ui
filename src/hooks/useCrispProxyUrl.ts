@@ -39,7 +39,8 @@ export function useCrispProxyUrl(userData: CrispUserData, prefilledMessage?: str
             userData.grafanaLink ||
             userData.walletAddressLink ||
             userData.bridgeUserId ||
-            userData.mantecaUserId
+            userData.mantecaUserId ||
+            userData.posthogPersonLink
         ) {
             const sessionData = JSON.stringify({
                 username: userData.username || '',
@@ -49,6 +50,7 @@ export function useCrispProxyUrl(userData: CrispUserData, prefilledMessage?: str
                 wallet_address: userData.walletAddressLink || '',
                 bridge_user_id: userData.bridgeUserId || '',
                 manteca_user_id: userData.mantecaUserId || '',
+                posthog_person: userData.posthogPersonLink || '',
             })
             params.append('session_data', sessionData)
         }
@@ -70,6 +72,7 @@ export function useCrispProxyUrl(userData: CrispUserData, prefilledMessage?: str
         userData.walletAddressLink,
         userData.bridgeUserId,
         userData.mantecaUserId,
+        userData.posthogPersonLink,
         prefilledMessage,
     ])
 }

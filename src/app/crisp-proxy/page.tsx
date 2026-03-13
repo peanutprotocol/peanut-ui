@@ -72,6 +72,7 @@ function CrispProxyContent() {
                             ['wallet_address', data.wallet_address || ''],
                             ['bridge_user_id', data.bridge_user_id || ''],
                             ['manteca_user_id', data.manteca_user_id || ''],
+                            ['posthog_person', data.posthog_person || ''],
                         ],
                     ]
                     window.$crisp.push(['set', 'session:data', sessionDataArray])
