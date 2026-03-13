@@ -160,7 +160,9 @@ export const TransactionDetailsReceipt = ({
                 !(
                     transaction.extraDataForDrawer?.originalType === EHistoryEntryType.SEND_LINK &&
                     transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER
-                )
+                ) &&
+                // hide token and network for refunded entries
+                transaction.status !== 'refunded'
             ),
             txId: !!transaction.txHash,
             // show cancelled row if status is cancelled, use cancelledDate or fallback to createdAt
@@ -1291,7 +1293,7 @@ export const TransactionDetailsReceipt = ({
                 </div>
             )}
 
-            {isQRPayment && (
+            {isQRPayment && transaction.status !== 'refunded' && (
                 <Button
                     onClick={() => {
                         router.push(`/request?amount=${transaction.amount}&merchant=${transaction.userName}`)
