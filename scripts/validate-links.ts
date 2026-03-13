@@ -104,9 +104,12 @@ function buildValidPaths(): Set<string> {
         }
 
         // Help: /{locale}/help and /{locale}/help/{slug}
+        // Also register without locale prefix since content uses bare /help/... links
         paths.add(`/${locale}/help`)
+        paths.add('/help')
         for (const slug of helpSlugs) {
             paths.add(`/${locale}/help/${slug}`)
+            paths.add(`/help/${slug}`)
         }
 
         // Use-cases: /{locale}/use-cases/{slug}

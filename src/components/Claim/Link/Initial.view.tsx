@@ -45,6 +45,8 @@ import { invitesApi } from '@/services/invites'
 import { EInviteType } from '@/services/services.types'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { ROUTE_NOT_FOUND_ERROR } from '@/constants/general.consts'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     // get campaign tag from claim link url
@@ -178,6 +180,18 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         }
         prevUser.current = user
     }, [user, resetClaimBankFlow])
+
+    const hasTrackedClaimView = useRef(false)
+    useEffect(() => {
+        if (claimLinkData && !hasTrackedClaimView.current) {
+            hasTrackedClaimView.current = true
+            posthog.capture(ANALYTICS_EVENTS.CLAIM_LINK_VIEWED, {
+                amount: formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals),
+                token_symbol: claimLinkData.tokenSymbol,
+                chain_id: claimLinkData.chainId,
+            })
+        }
+    }, [claimLinkData])
 
     const resetSelectedToken = useCallback(() => {
         if (isPeanutWallet) {
@@ -950,6 +964,11 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                                     })
                                 } else {
                                     setRecipientType(update.type)
+                                    if (update.isValid && !update.isChanging) {
+                                        posthog.capture(ANALYTICS_EVENTS.CLAIM_RECIPIENT_SELECTED, {
+                                            recipient_type: update.type,
+                                        })
+                                    }
                                 }
                                 setIsValidRecipient(update.isValid)
                                 setErrorState({

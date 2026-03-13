@@ -2,7 +2,7 @@ export const heroConfig = {
     primaryCta: {
         label: 'SIGN UP',
         href: '/setup',
-        subtext: 'currently in waitlist',
+        subtext: 'Join +10,000 cool people',
     },
 }
 

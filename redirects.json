@@ -20,6 +20,12 @@
         "permanent": true
     },
     {
+        "source": "/:path*",
+        "has": [{ "type": "host", "value": "docs.peanut.me" }],
+        "destination": "https://peanut.me/en/help",
+        "permanent": true
+    },
+    {
         "source": "/packet",
         "destination": "https://github.com/peanutprotocol/peanut-ui/tree/archive/legacy-peanut-to",
         "permanent": true

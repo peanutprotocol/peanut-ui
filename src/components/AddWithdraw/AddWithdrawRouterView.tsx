@@ -21,6 +21,8 @@ import { CountryList } from '../Common/CountryList'
 import PeanutLoading from '../Global/PeanutLoading'
 import SavedAccountsView from '../Common/SavedAccountsView'
 import TokenAndNetworkConfirmationModal from '../Global/TokenAndNetworkConfirmationModal'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 interface AddWithdrawRouterViewProps {
     flow: 'add' | 'withdraw'
@@ -126,6 +128,10 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
         (method: DepositMethod) => {
             if (flow === 'add' && user) {
                 saveRecentMethod(user.user.userId, method)
+                posthog.capture(ANALYTICS_EVENTS.DEPOSIT_METHOD_SELECTED, {
+                    method_type: method.type === 'crypto' ? 'crypto' : 'bank',
+                    country: method.path?.split('?')[0].split('/').filter(Boolean).at(-1),
+                })
             }
 
             // Handle "From Bank" specially for add flow
@@ -143,6 +149,11 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
             if (flow === 'withdraw') {
                 const methodType =
                     method.type === 'crypto' ? 'crypto' : isMantecaCountry(method.path) ? 'manteca' : 'bridge'
+
+                posthog.capture(ANALYTICS_EVENTS.WITHDRAW_METHOD_SELECTED, {
+                    method_type: methodType,
+                    country: method.path?.split('?')[0].split('/').filter(Boolean).at(-1),
+                })
 
                 setSelectedMethod({
                     type: methodType,
@@ -299,6 +310,18 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                 inputTitle={mainHeading}
                 viewMode="add-withdraw"
                 onCountryClick={(country) => {
+                    if (flow === 'add') {
+                        posthog.capture(ANALYTICS_EVENTS.DEPOSIT_METHOD_SELECTED, {
+                            method_type: 'bank',
+                            country: country.path,
+                        })
+                    } else {
+                        posthog.capture(ANALYTICS_EVENTS.WITHDRAW_METHOD_SELECTED, {
+                            method_type: isMantecaCountry(country.path) ? 'manteca' : 'bridge',
+                            country: country.path,
+                        })
+                    }
+
                     // from send flow (bank): set method in context and stay on /withdraw?method=bank
                     if (flow === 'withdraw' && isBankFromSend) {
                         if (isMantecaCountry(country.path)) {
@@ -333,8 +356,16 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                 }}
                 onCryptoClick={() => {
                     if (flow === 'add') {
+                        posthog.capture(ANALYTICS_EVENTS.DEPOSIT_METHOD_SELECTED, {
+                            method_type: 'crypto',
+                            country: 'crypto',
+                        })
                         setIsSupportedTokensModalOpen(true)
                     } else {
+                        posthog.capture(ANALYTICS_EVENTS.WITHDRAW_METHOD_SELECTED, {
+                            method_type: 'crypto',
+                            country: 'crypto',
+                        })
                         // preserve method param if coming from send flow (though crypto shouldn't show this screen)
                         const queryParams = methodParam ? `?method=${methodParam}` : ''
                         const cryptoPath = `${baseRoute}/crypto${queryParams}`

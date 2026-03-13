@@ -1,23 +1,31 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import ActionModal from '../ActionModal'
 import ShareButton from '../ShareButton'
 import { generateInviteCodeLink, generateInvitesShareText } from '@/utils/general.utils'
 import { useAuth } from '@/context/authContext'
 import { updateUserById } from '@/app/actions/users'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
 
 const EarlyUserModal = () => {
     const { user, fetchUser } = useAuth()
     const inviteLink = generateInviteCodeLink(user?.user.username ?? '').inviteLink
     const [showModal, setShowModal] = useState(false)
+    const hasTrackedShow = useRef(false)
 
     useEffect(() => {
         if (user && user.showEarlyUserModal) {
             setShowModal(true)
+            if (!hasTrackedShow.current) {
+                hasTrackedShow.current = true
+                posthog.capture(ANALYTICS_EVENTS.MODAL_SHOWN, { modal_type: MODAL_TYPES.EARLY_USER })
+            }
         }
     }, [user])
 
     const handleCloseModal = async () => {
+        posthog.capture(ANALYTICS_EVENTS.MODAL_DISMISSED, { modal_type: MODAL_TYPES.EARLY_USER })
         setShowModal(false)
         await updateUserById({ userId: user?.user.userId, hasSeenEarlyUserModal: true })
         fetchUser()
@@ -47,8 +55,9 @@ const EarlyUserModal = () => {
                     </ShareButton>
                     <a
                         className="text-sm text-grey-1 underline"
-                        href="https://docs.peanut.me/og-and-invites"
+                        href="/en/help"
                         target="_blank"
+                        rel="noopener noreferrer"
                     >
                         Learn more
                     </a>

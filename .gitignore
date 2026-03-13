@@ -77,3 +77,6 @@ public/swe-worker*
 # mobile POC
 android/
 .claude/
+
+# AI tool worktrees
+.claude/worktrees/

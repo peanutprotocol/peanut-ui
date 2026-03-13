@@ -4,6 +4,7 @@ import { useFooterVisibility } from '@/context/footerVisibility'
 import { useEffect, useState, useRef, useCallback, type ReactNode } from 'react'
 import { DropLink, FAQs, Hero, Marquee, NoFees, CardPioneers } from '@/components/LandingPage'
 import TweetCarousel from '@/components/LandingPage/TweetCarousel'
+import { StickyMobileCTA } from '@/components/LandingPage/StickyMobileCTA'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 
 type CTAButton = {
@@ -189,6 +190,8 @@ export function LandingPageClient({
             <Marquee {...marqueeProps} />
             {mantecaSlot}
             <Marquee {...marqueeProps} />
+            {yourMoneySlot}
+            <Marquee {...marqueeProps} />
             {!underMaintenanceConfig.disableCardPioneers && (
                 <>
                     <CardPioneers />
@@ -198,8 +201,6 @@ export function LandingPageClient({
             <TweetCarousel />
             <Marquee {...marqueeProps} />
             {regulatedRailsSlot}
-            <Marquee {...marqueeProps} />
-            {yourMoneySlot}
             <Marquee {...marqueeProps} />
             <DropLink />
             <Marquee {...marqueeProps} />
@@ -212,6 +213,7 @@ export function LandingPageClient({
             <FAQs heading={faqData.heading} questions={faqData.questions} marquee={faqData.marquee} />
             <Marquee {...marqueeProps} />
             {footerSlot}
+            <StickyMobileCTA />
         </>
     )
 }

@@ -8,7 +8,7 @@ import { printableAddress, isStableCoin } from '@/utils/general.utils'
 import { chargesApi } from '@/services/charges'
 import { parseAmountAndToken } from '@/lib/url-parser/parser'
 import { notFound } from 'next/navigation'
-import { RESERVED_ROUTES } from '@/constants/routes'
+import { isReservedRoute } from '@/constants/routes'
 
 type PageProps = {
     params: Promise<{ recipient?: string[] }>
@@ -19,8 +19,8 @@ export async function generateMetadata({ params, searchParams }: any) {
     const resolvedParams = await params
 
     // Guard: Don't generate metadata for reserved routes (handled by their specific routes)
-    const firstSegment = resolvedParams.recipient?.[0]?.toLowerCase()
-    if (firstSegment && RESERVED_ROUTES.includes(firstSegment)) {
+    const firstSegment = resolvedParams.recipient?.[0]
+    if (firstSegment && isReservedRoute(`/${firstSegment}`)) {
         return {}
     }
 
@@ -191,8 +191,8 @@ export default function Page(props: PageProps) {
 
     // Guard: Reserved routes should be handled by their specific route files
     // If we reach here, it means Next.js routing didn't catch it properly
-    const firstSegment = recipient[0]?.toLowerCase()
-    if (firstSegment && RESERVED_ROUTES.includes(firstSegment)) {
+    const firstSegment = recipient[0]
+    if (firstSegment && isReservedRoute(`/${firstSegment}`)) {
         notFound()
     }
 

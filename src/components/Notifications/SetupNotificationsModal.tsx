@@ -1,6 +1,8 @@
 'use client'
 import { useNotifications } from '@/hooks/useNotifications'
 import ActionModal from '../Global/ActionModal'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
 
 export default function SetupNotificationsModal() {
     const {
@@ -15,6 +17,8 @@ export default function SetupNotificationsModal() {
         // prevent event bubbling to avoid double-triggering
         e?.preventDefault()
         e?.stopPropagation()
+
+        posthog.capture(ANALYTICS_EVENTS.MODAL_CTA_CLICKED, { modal_type: MODAL_TYPES.NOTIFICATIONS, cta: 'enable' })
 
         try {
             // request permission - this shows the native dialog

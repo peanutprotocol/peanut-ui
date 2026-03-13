@@ -10,7 +10,8 @@ import { encodeFunctionData, erc20Abi, type Address, type Hex } from 'viem'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { capturePasskeyDebugInfo } from '@/utils/passkeyDebug'
 import * as Sentry from '@sentry/nextjs'
-import Link from 'next/link'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { twMerge } from 'tailwind-merge'
 
 const SignTestTransaction = () => {
@@ -81,6 +82,7 @@ const SignTestTransaction = () => {
         setIsSigning(true)
         setError(null)
         dispatch(setupActions.setLoading(true))
+        posthog.capture(ANALYTICS_EVENTS.SIGNUP_TEST_TX_STARTED)
 
         try {
             // if test transaction already completed, skip signing and go straight to account creation
@@ -107,6 +109,7 @@ const SignTestTransaction = () => {
                 console.log('[SignTestTransaction] Transaction signed successfully', {
                     userOpHash: result.userOpHash,
                 })
+                posthog.capture(ANALYTICS_EVENTS.SIGNUP_TEST_TX_SIGNED)
                 setTestTransactionCompleted(true)
             } else {
                 console.log('[SignTestTransaction] Test transaction already completed, retrying account creation')
@@ -128,6 +131,7 @@ const SignTestTransaction = () => {
 
                 // account setup complete - addAccount() already fetched and verified user data
                 console.log('[SignTestTransaction] Account setup complete, redirecting to the app')
+                posthog.capture(ANALYTICS_EVENTS.SIGNUP_COMPLETED)
 
                 // keep loading state active until redirect completes
             } else {
@@ -152,6 +156,7 @@ const SignTestTransaction = () => {
                 },
             })
 
+            posthog.capture(ANALYTICS_EVENTS.SIGNUP_TEST_TX_FAILED, { error_name: (e as Error).name })
             setError(
                 "We're having trouble setting up your account. Our team has been notified. Please contact support for help."
             )
@@ -188,14 +193,14 @@ const SignTestTransaction = () => {
                 </div>
                 <div>
                     <p className="border-t border-grey-1 pt-2 text-center text-xs text-grey-1">
-                        <Link
-                            rel="noopener noreferrer"
-                            target="_blank"
+                        <a
                             className="underline underline-offset-2"
-                            href="https://docs.peanut.me/passkeys"
+                            href="/en/help/passkeys"
+                            target="_blank"
+                            rel="noopener noreferrer"
                         >
                             Learn more about what Passkeys are
-                        </Link>{' '}
+                        </a>{' '}
                     </p>
                 </div>
             </div>
@@ -206,14 +211,14 @@ const SignTestTransaction = () => {
 export const PasskeyDocsLink = ({ className }: { className?: string }) => {
     return (
         <p className={twMerge('border-t border-grey-1 pt-2 text-center text-xs text-grey-1', className)}>
-            <Link
-                rel="noopener noreferrer"
-                target="_blank"
+            <a
                 className="underline underline-offset-2"
-                href="https://docs.peanut.me/passkeys"
+                href="/en/help/passkeys"
+                target="_blank"
+                rel="noopener noreferrer"
             >
                 Learn more about what Passkeys are
-            </Link>{' '}
+            </a>{' '}
         </p>
     )
 }

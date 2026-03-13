@@ -50,6 +50,7 @@ export interface Tweet {
     is_reply?: boolean
     reply_to_url?: string | null
     media?: TweetMedia[]
+    visible?: boolean
 }
 
 interface TweetsData {
@@ -76,7 +77,7 @@ export const TWEETS: Tweet[] = (() => {
     const authorCount = new Map<string, number>()
     const filtered: Tweet[] = []
 
-    for (const tweet of ALL_TWEETS) {
+    for (const tweet of ALL_TWEETS.filter((t) => t.visible !== false)) {
         const count = authorCount.get(tweet.handle) || 0
         if (count >= MAX_PER_AUTHOR) continue
 
