@@ -1,5 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
 import Image from 'next/image'
 import { PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
 import Modal from '../Modal'
@@ -10,6 +12,7 @@ const NoMoreJailModal = () => {
     const [isOpen, setisOpen] = useState(false)
 
     const onClose = () => {
+        posthog.capture(ANALYTICS_EVENTS.MODAL_CTA_CLICKED, { modal_type: MODAL_TYPES.POST_SIGNUP, cta: 'start_using' })
         setisOpen(false)
         sessionStorage.removeItem('showNoMoreJailModal')
     }
@@ -18,6 +21,7 @@ const NoMoreJailModal = () => {
         const showNoMoreJailModal = sessionStorage.getItem('showNoMoreJailModal')
         if (showNoMoreJailModal === 'true') {
             setisOpen(true)
+            posthog.capture(ANALYTICS_EVENTS.MODAL_SHOWN, { modal_type: MODAL_TYPES.POST_SIGNUP })
         }
     }, [])
 

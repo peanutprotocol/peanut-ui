@@ -30,6 +30,8 @@ import { useExchangeRate } from '@/hooks/useExchangeRate'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 // Step type for URL state
 type BridgeBankStep = 'inputAmount' | 'showDetails'
@@ -194,6 +196,11 @@ export default function OnrampBankPage() {
             return
         }
 
+        posthog.capture(ANALYTICS_EVENTS.DEPOSIT_AMOUNT_ENTERED, {
+            amount_usd: usdEquivalent,
+            method_type: 'bank',
+            country: selectedCountryPath,
+        })
         setShowWarningModal(true)
     }
 
@@ -215,6 +222,11 @@ export default function OnrampBankPage() {
             setOnrampData(onrampDataResponse)
 
             if (onrampDataResponse.transferId) {
+                posthog.capture(ANALYTICS_EVENTS.DEPOSIT_CONFIRMED, {
+                    amount_usd: usdEquivalent,
+                    method_type: 'bank',
+                    country: selectedCountryPath,
+                })
                 setUrlState({ step: 'showDetails' })
             } else {
                 setError({
@@ -224,6 +236,11 @@ export default function OnrampBankPage() {
             }
         } catch (error) {
             setShowWarningModal(false)
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+            posthog.capture(ANALYTICS_EVENTS.DEPOSIT_FAILED, {
+                method_type: 'bank',
+                error_message: errorMessage,
+            })
             if (onrampError) {
                 setError({
                     showError: true,

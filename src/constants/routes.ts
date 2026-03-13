@@ -56,10 +56,12 @@ export const DEDICATED_ROUTES = [
     'faq',
     'how-it-works',
 
-    // Locale prefixes
+    // Locale prefixes (current SUPPORTED_LOCALES)
     'en',
-    'es',
-    'pt',
+    'es-419',
+    'es-ar',
+    'es-es',
+    'pt-br',
 ] as const
 
 /**
@@ -143,11 +145,29 @@ export const MIDDLEWARE_ROUTES: readonly string[] = [
 ]
 
 /**
+ * Matches locale tags with a required subtag to avoid false-positives on short
+ * strings like "go", "no", "max" that are valid usernames. Covers patterns like
+ * "pt-br", "es-419", "zh-Hans", "zh-Hans-CN" but NOT bare 2-letter codes (those
+ * must be listed explicitly in DEDICATED_ROUTES).
+ */
+const LOCALE_WITH_SUBTAG = /^[a-z]{2,3}-[a-z0-9]{2,8}(-[a-z0-9]{2,8})*$/i
+
+/**
+ * Helper to check if a path segment looks like a locale code.
+ * Bare 2-3 letter codes (en, es, pt) are caught by DEDICATED_ROUTES.
+ * This handles subtag variants (pt-br, es-419, zh-Hans) that aren't listed explicitly.
+ */
+export function isLocaleSegment(segment: string): boolean {
+    return LOCALE_WITH_SUBTAG.test(segment)
+}
+
+/**
  * Helper to check if a path is reserved (should not be handled by catch-all)
  */
 export function isReservedRoute(path: string): boolean {
     const firstSegment = path.split('/')[1]?.toLowerCase()
-    return RESERVED_ROUTES.includes(firstSegment as any)
+    if (!firstSegment) return false
+    return RESERVED_ROUTES.includes(firstSegment as any) || isLocaleSegment(firstSegment)
 }
 
 /**

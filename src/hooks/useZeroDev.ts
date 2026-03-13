@@ -13,6 +13,8 @@ import { useCallback, useContext } from 'react'
 import type { TransactionReceipt, Hex, Hash } from 'viem'
 import { captureException } from '@sentry/nextjs'
 import { invitesApi } from '@/services/invites'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 // types
 type UserOpEncodedParams = {
@@ -87,7 +89,17 @@ export const useZeroDev = () => {
             if (userInviteCode?.trim().length > 0) {
                 try {
                     const result = await invitesApi.acceptInvite(userInviteCode, inviteType, campaignTag)
-                    if (!result.success) {
+                    if (result.success) {
+                        posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPTED, {
+                            invite_code: userInviteCode,
+                            invite_type: inviteType,
+                            campaign_tag: campaignTag,
+                        })
+                    } else {
+                        posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPT_FAILED, {
+                            invite_code: userInviteCode,
+                            error_message: 'API returned unsuccessful',
+                        })
                         console.error('Error accepting invite', result)
                     }
                     if (inviteCodeFromCookie) {
@@ -97,6 +109,10 @@ export const useZeroDev = () => {
                         removeFromCookie('campaignTag')
                     }
                 } catch (e) {
+                    posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPT_FAILED, {
+                        invite_code: userInviteCode,
+                        error_message: String(e),
+                    })
                     console.error('Error accepting invite', e)
                 }
             }

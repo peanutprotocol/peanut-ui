@@ -4,3 +4,4 @@ node_modules/
 pnpm-lock.yaml
 **.md
 src/assets/
+src/content/

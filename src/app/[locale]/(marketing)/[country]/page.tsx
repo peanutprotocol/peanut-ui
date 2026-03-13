@@ -58,7 +58,7 @@ export default async function CountryHubPage({ params }: PageProps) {
     return (
         <ContentPage
             breadcrumbs={[
-                { name: i18n.home, href: '/' },
+                { name: i18n.home, href: `/${locale}` },
                 { name: countryName, href: url },
             ]}
             article={

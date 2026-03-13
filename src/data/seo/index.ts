@@ -4,7 +4,7 @@ export type { CountrySEO, Corridor } from './corridors'
 export { COMPETITORS } from './comparisons'
 export type { Competitor } from './comparisons'
 
-export { EXCHANGES } from './exchanges'
+export { EXCHANGES, DEPOSIT_RAILS } from './exchanges'
 export type { Exchange } from './exchanges'
 
 export { PAYMENT_METHODS, PAYMENT_METHOD_SLUGS } from './payment-methods'

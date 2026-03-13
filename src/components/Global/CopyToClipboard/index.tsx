@@ -14,18 +14,20 @@ interface Props {
     iconSize?: '2' | '3' | '4' | '6' | '8'
     type?: 'button' | 'icon'
     buttonSize?: ButtonSize
+    onCopy?: () => void
 }
 
 const CopyToClipboard = forwardRef<CopyToClipboardRef, Props>(
-    ({ textToCopy, fill = 'black', className, iconSize = '6', type = 'icon', buttonSize }, ref) => {
+    ({ textToCopy, fill = 'black', className, iconSize = '6', type = 'icon', buttonSize, onCopy }, ref) => {
         const [copied, setCopied] = useState(false)
 
         const copy = useCallback(() => {
             navigator.clipboard.writeText(textToCopy).then(() => {
                 setCopied(true)
                 setTimeout(() => setCopied(false), 2000)
+                onCopy?.()
             })
-        }, [textToCopy])
+        }, [textToCopy, onCopy])
 
         useImperativeHandle(ref, () => ({ copy }), [copy])
 

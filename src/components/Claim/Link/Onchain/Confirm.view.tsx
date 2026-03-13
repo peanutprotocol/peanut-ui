@@ -19,6 +19,8 @@ import useClaimLink from '../../useClaimLink'
 import { useAuth } from '@/context/authContext'
 import { sendLinksApi } from '@/services/sendLinks'
 import { useSearchParams } from 'next/navigation'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 export const ConfirmClaimLinkView = ({
     onNext,
@@ -83,6 +85,15 @@ export const ConfirmClaimLinkView = ({
             errorMessage: '',
         })
 
+        const formattedAmount = formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)
+
+        posthog.capture(ANALYTICS_EVENTS.CLAIM_LINK_STARTED, {
+            amount: formattedAmount,
+            token_symbol: claimLinkData.tokenSymbol,
+            chain_id: claimLinkData.chainId,
+            is_xchain: !!selectedRoute,
+        })
+
         try {
             let claimTxHash: string | undefined = ''
             if (selectedRoute) {
@@ -119,6 +130,12 @@ export const ConfirmClaimLinkView = ({
                 }
             }
             setTransactionHash(claimTxHash)
+            posthog.capture(ANALYTICS_EVENTS.CLAIM_LINK_COMPLETED, {
+                amount: formattedAmount,
+                token_symbol: claimLinkData.tokenSymbol,
+                chain_id: claimLinkData.chainId,
+                is_xchain: !!selectedRoute,
+            })
             onNext()
             // Note: Balance/transaction refresh handled by mutation or SUCCESS view
         } catch (error) {
@@ -126,6 +143,11 @@ export const ConfirmClaimLinkView = ({
             setErrorState({
                 showError: true,
                 errorMessage: errorString,
+            })
+            posthog.capture(ANALYTICS_EVENTS.CLAIM_LINK_FAILED, {
+                amount: formattedAmount,
+                error_message: errorString,
+                is_xchain: !!selectedRoute,
             })
             Sentry.captureException(error)
         } finally {
