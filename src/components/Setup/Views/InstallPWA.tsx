@@ -1,7 +1,6 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import ErrorAlert from '@/components/Global/ErrorAlert'
-import { Icon } from '@/components/Global/Icons/Icon'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import { type BeforeInstallPromptEvent, type ScreenId } from '@/components/Setup/Setup.types'
 import { useAuth } from '@/context/authContext'
@@ -13,8 +12,6 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { DeviceType } from '@/hooks/useGetDeviceType'
 import { useBravePWAInstallState } from '@/hooks/useBravePWAInstallState'
-
-const StepTitle = ({ text }: { text: string }) => <h3 className="text-xl font-extrabold leading-6">{text}</h3>
 
 const InstallPWA = ({
     canInstall,
@@ -217,15 +214,6 @@ const InstallPWA = ({
 
     const DesktopInstructions = () => (
         <div className="flex flex-col items-center justify-center gap-6">
-            <div className={'flex size-12 items-center justify-center rounded-full bg-primary-1'}>
-                <Icon name="mobile-install" size={24} />
-            </div>
-            <div className="space-y-3 text-center">
-                <StepTitle text="Peanut works best on your phone" />
-                <p className="max-w-[220px] text-lg font-normal text-grey-1">
-                    Scan the QR code to get started on mobile — it takes 30 seconds.
-                </p>
-            </div>
             <div className="mx-auto rounded-lg">
                 <QRCodeWrapper url={process.env.NEXT_PUBLIC_BASE_URL + '/setup' || window.location.origin} />
             </div>

@@ -34,8 +34,8 @@ export const setupSteps: ISetupStep[] = [
     {
         screenId: 'pwa-install',
         layoutType: 'standard',
-        title: 'Install Peanut on your phone',
-        description: 'Please install Peanut on your phone for the best experience!',
+        title: 'Peanut works best on your phone',
+        description: 'Get the full experience by adding Peanut to your home screen.',
         image: PEANUTMAN_MOBILE,
         component: InstallPWA,
         showBackButton: false,
