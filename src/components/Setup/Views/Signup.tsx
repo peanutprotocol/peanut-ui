@@ -8,6 +8,8 @@ import { setupActions } from '@/redux/slices/setup-slice'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import * as Sentry from '@sentry/nextjs'
 import Link from 'next/link'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 
@@ -53,13 +55,22 @@ const SignupStep = () => {
             switch (res.status) {
                 case 200:
                     setError('Username already taken')
+                    posthog.capture(ANALYTICS_EVENTS.SIGNUP_USERNAME_VALIDATED, {
+                        is_valid: false,
+                        error_type: 'taken',
+                    })
                     return false
                 case 400:
                     setError('Username is invalid, please use a different one')
+                    posthog.capture(ANALYTICS_EVENTS.SIGNUP_USERNAME_VALIDATED, {
+                        is_valid: false,
+                        error_type: 'invalid',
+                    })
                     return false
                 case 404:
                     // handle is available
                     setError('')
+                    posthog.capture(ANALYTICS_EVENTS.SIGNUP_USERNAME_VALIDATED, { is_valid: true })
                     return true
                 default:
                     // we dont expect any other status code

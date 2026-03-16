@@ -1,4 +1,5 @@
 import { countryData, ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
+import { isValidEmail } from '@/utils/format.utils'
 
 /**
  * Extracts the country name from an IBAN by parsing the first 2 characters (country code)
@@ -271,8 +272,7 @@ export const validatePixKey = (pixKey: string): { valid: boolean; message?: stri
     }
 
     // 4. Email: Standard email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (emailRegex.test(trimmed)) {
+    if (isValidEmail(trimmed)) {
         if (trimmed.length > 77) {
             return { valid: false, message: 'Email is too long (max 77 characters)' }
         }

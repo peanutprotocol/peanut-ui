@@ -1,9 +1,72 @@
 'use client'
 
-import { ButterySmoothGlobalMoney, PeanutGuyGIF, Star } from '@/assets'
+import { GlobalCashLocalFeel, PeanutGuyGIF, Star } from '@/assets'
 import { motion } from 'framer-motion'
+import { useEffect, useCallback, useRef } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import { CloudsCss } from './CloudsCss'
+
+/**
+ * Peanut mascot that positions itself so only 6% of its height (the feet)
+ * overlaps with the h2 subtitle below. Measures the h2 position on mount
+ * and resize, then sets its own bottom edge to sit 6% into the h2.
+ */
+function PeanutMascot() {
+    const imgRef = useRef<HTMLImageElement>(null)
+
+    const position = useCallback(() => {
+        const img = imgRef.current
+        const hero = document.getElementById('hero')
+        const h2 = hero?.querySelector('h2')
+        if (!img || !hero || !h2) return
+
+        const heroRect = hero.getBoundingClientRect()
+        const h2Rect = h2.getBoundingClientRect()
+        const peanutHeight = img.getBoundingClientRect().height
+
+        if (peanutHeight === 0) return // not rendered yet
+
+        // Position so peanut's feet (bottom 3%) overlap with h2 top
+        const overlap = peanutHeight * 0.06
+        const peanutBottom = h2Rect.top - heroRect.top + overlap
+        const peanutTop = peanutBottom - peanutHeight
+
+        img.style.top = `${peanutTop}px`
+    }, [])
+
+    useEffect(() => {
+        const img = imgRef.current
+        if (!img) return
+
+        // Position once image loads and on resize
+        const onLoad = () => {
+            position()
+            // Re-position after a short delay to account for layout shifts
+            setTimeout(position, 500)
+        }
+
+        if (img.complete) {
+            onLoad()
+        } else {
+            img.addEventListener('load', onLoad)
+        }
+
+        window.addEventListener('resize', position)
+        return () => {
+            img.removeEventListener('load', onLoad)
+            window.removeEventListener('resize', position)
+        }
+    }, [position])
+
+    return (
+        <img
+            ref={imgRef}
+            src={PeanutGuyGIF.src}
+            alt="Peanut Guy"
+            className="absolute left-1/2 z-10 h-auto max-h-[40vh] w-auto max-w-[90%] -translate-x-1/2 object-contain"
+        />
+    )
+}
 
 type CTAButton = {
     label: string
@@ -83,9 +146,9 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 
             <CloudsCss />
             <div className="relative mt-10 w-full md:mt-0">
                 <img
-                    src={ButterySmoothGlobalMoney.src}
+                    src={GlobalCashLocalFeel.src}
                     className="z-0 mx-auto w-full max-w-[1000px] object-contain md:w-[50%]"
-                    alt="Buttery Smooth Global Money"
+                    alt="Global Cash Local Feel"
                 />
 
                 <motion.img
@@ -105,23 +168,20 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 
                     className="absolute right-[1.5%] top-[-12%] w-8 sm:right-[6%] sm:top-[8%] md:right-[5%] md:top-[8%] md:w-12 lg:right-[10%]"
                 />
             </div>
-            <img
-                src={PeanutGuyGIF.src}
-                className="mg:bottom-0 absolute bottom-[55%] left-1/2 z-10 mx-auto h-auto max-h-[40vh] w-auto max-w-[90%] -translate-x-1/2 translate-y-1/2 transform object-contain"
-                alt="Peanut Guy"
-            />
+            <PeanutMascot />
 
             <div className="relative z-20 mb-4 flex w-full flex-col items-center justify-center md:mb-0">
                 <h2 className="font-roboto-flex-extrabold mt-18 text-center text-[2.375rem] font-extraBlack text-black md:text-heading">
-                    TAP. SEND. ANYWHERE
+                    TAP. SCAN. ANYWHERE.
                 </h2>
                 <span
                     className="mt-2 block text-center text-xl leading-tight text-n-1 md:mt-4 md:text-5xl"
                     style={{ fontWeight: 500, letterSpacing: '-0.5px' }}
                 >
-                    FROM NEW YORK <br className="block lg:hidden" />
-                    TO MADRID <br className="block md:hidden" />
-                    TO MEXICO CITY
+                    Buenos Aires. São Paulo. Floripa.
+                </span>
+                <span className="mt-2 block text-center text-sm text-n-1/70 md:text-base" style={{ fontWeight: 400 }}>
+                    No local ID or bank required.
                 </span>
                 {primaryCta && renderCTAButton(primaryCta, 'primary')}
                 {secondaryCta && renderCTAButton(secondaryCta, 'secondary')}

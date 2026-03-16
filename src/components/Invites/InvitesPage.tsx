@@ -1,5 +1,5 @@
 'use client'
-import { Suspense, useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useRef, useState, useCallback } from 'react'
 import PeanutLoading from '../Global/PeanutLoading'
 import ValidationErrorView from '../Payment/Views/Error.validation.view'
 import InvitesPageLayout from './InvitesPageLayout'
@@ -16,6 +16,8 @@ import { EInviteType } from '@/services/services.types'
 import { saveToCookie } from '@/utils/general.utils'
 import { useLogin } from '@/hooks/useLogin'
 import UnsupportedBrowserModal from '../Global/UnsupportedBrowserModal'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 // mapping of special invite codes to their campaign tags
 // when these invite codes are used, the corresponding campaign tag is automatically applied
@@ -54,6 +56,18 @@ function InvitePageContent() {
         queryFn: () => invitesApi.validateInviteCode(inviteCode!),
         enabled: !!inviteCode,
     })
+
+    // track invite page view (ref guard prevents duplicate fires when shouldShowContent toggles)
+    const hasTrackedPageView = useRef(false)
+    useEffect(() => {
+        if (shouldShowContent && inviteCodeData?.success && !hasTrackedPageView.current) {
+            hasTrackedPageView.current = true
+            posthog.capture(ANALYTICS_EVENTS.INVITE_PAGE_VIEWED, {
+                invite_code: inviteCode,
+                inviter_username: inviteCodeData.username,
+            })
+        }
+    }, [shouldShowContent, inviteCodeData, inviteCode])
 
     // determine if we should show content based on user state
     useEffect(() => {
@@ -123,6 +137,9 @@ function InvitePageContent() {
 
     const handleClaimInvite = async () => {
         if (inviteCode) {
+            posthog.capture(ANALYTICS_EVENTS.INVITE_CLAIM_CLICKED, {
+                invite_code: inviteCode,
+            })
             dispatch(setupActions.setInviteCode(inviteCode))
             dispatch(setupActions.setInviteType(EInviteType.PAYMENT_LINK))
             saveToCookie('inviteCode', inviteCode) // Save to cookies as well, so that if user installs PWA, they can still use the invite code

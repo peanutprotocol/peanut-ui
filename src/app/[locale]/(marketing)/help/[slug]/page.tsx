@@ -64,7 +64,7 @@ export default async function HelpArticlePage({ params }: PageProps) {
     return (
         <ContentPage
             breadcrumbs={[
-                { name: i18n.home, href: '/' },
+                { name: i18n.home, href: `/${locale}` },
                 { name: i18n.help, href: `/${locale}/help` },
                 { name: displayTitle, href: url },
             ]}

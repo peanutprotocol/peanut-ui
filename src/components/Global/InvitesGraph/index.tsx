@@ -140,6 +140,9 @@ interface BaseProps {
         handleResetView: () => void
         handleReset: () => void
         handleRecalculate: () => void
+        /** Set of activity statuses to hide visually (no re-layout). Values: 'new' | 'active' | 'inactive' | 'jailed' */
+        hiddenStatuses: Set<string>
+        setHiddenStatuses: (v: Set<string>) => void
     }) => React.ReactNode
 }
 
@@ -252,6 +255,8 @@ export default function InvitesGraph(props: InvitesGraphProps) {
     const [showUsernames, setShowUsernames] = useState(initialShowUsernames)
     // topNodes: limit to top N by points (0 = all). Backend-filtered, triggers refetch.
     const [topNodes, setTopNodes] = useState(initialTopNodes)
+    // Hidden activity statuses — purely visual toggle (no re-layout)
+    const [hiddenStatuses, setHiddenStatuses] = useState<Set<string>>(new Set())
 
     // Particle arrival popups for user mode (+1 pt animations)
     // Map: linkId → { timestamp, x, y, nodeId }
@@ -841,6 +846,9 @@ export default function InvitesGraph(props: InvitesGraphProps) {
 
     // Fetch graph data on mount and when topNodes changes (only in full mode)
     // Note: topNodes filtering only applies to full mode (payment mode has fixed 5000 limit in backend)
+    // topNodes is debounced so the slider doesn't trigger a refetch on every tick
+    const topNodesDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const isInitialFetchRef = useRef(true)
     useEffect(() => {
         if (isMinimal) return
 
@@ -852,9 +860,11 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             const apiMode = mode === 'payment' ? 'payment' : 'full'
             // Pass topNodes for both modes - payment mode now supports it via Performance button
             // Pass password for payment mode authentication
+            // Pass includeNewDays so backend always includes recent signups regardless of topNodes
             const result = await pointsApi.getInvitesGraph(props.apiKey, {
                 mode: apiMode,
                 topNodes: topNodes > 0 ? topNodes : undefined,
+                includeNewDays: displaySettingsRef.current.activityFilter.activityDays,
                 password: mode === 'payment' ? props.password : undefined,
             })
 
@@ -866,7 +876,18 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             setLoading(false)
         }
 
-        fetchData()
+        // First fetch is immediate, subsequent topNodes changes are debounced (500ms)
+        if (isInitialFetchRef.current) {
+            isInitialFetchRef.current = false
+            fetchData()
+        } else {
+            if (topNodesDebounceRef.current) clearTimeout(topNodesDebounceRef.current)
+            topNodesDebounceRef.current = setTimeout(fetchData, 500)
+        }
+
+        return () => {
+            if (topNodesDebounceRef.current) clearTimeout(topNodesDebounceRef.current)
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isMinimal, !isMinimal && props.apiKey, mode, topNodes])
 
@@ -932,6 +953,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         externalNodesConfig,
         p2pActiveNodes,
         inviterNodes,
+        hiddenStatuses,
     })
     useEffect(() => {
         displaySettingsRef.current = {
@@ -944,6 +966,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             externalNodesConfig,
             p2pActiveNodes,
             inviterNodes,
+            hiddenStatuses,
         }
     }, [
         showUsernames,
@@ -955,6 +978,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         externalNodesConfig,
         p2pActiveNodes,
         inviterNodes,
+        hiddenStatuses,
     ])
 
     // Helper to determine user activity status
@@ -1118,7 +1142,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             } else {
                 // Activity filter enabled - three states
                 if (activityStatus === 'new') {
-                    fillColor = 'rgba(144, 168, 237, 0.85)' // secondary-3 #90A8ED for new signups
+                    fillColor = 'rgba(74, 222, 128, 0.85)' // green-400 for new signups
                 } else if (activityStatus === 'active') {
                     fillColor = 'rgba(255, 144, 232, 0.85)' // primary-1 for active
                 } else {
@@ -1151,30 +1175,40 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                 }
             }
 
+            // Check if this node's status is hidden via legend toggle
+            const { hiddenStatuses: hidden } = displaySettingsRef.current
+            const isJailed = !hasAccess
+            const isHidden = hidden.size > 0 && (hidden.has(activityStatus) || (isJailed && hidden.has('jailed')))
+            if (isHidden) {
+                ctx.globalAlpha = 0.03 // Nearly invisible but keeps layout stable
+            }
+
             // Draw fill
             ctx.beginPath()
             ctx.arc(node.x, node.y, size, 0, 2 * Math.PI)
             ctx.fillStyle = fillColor
             ctx.fill()
 
-            // Draw outline based on access/selection
-            ctx.globalAlpha = 1
-            if (isSelected) {
-                // Selected: golden outline
-                ctx.strokeStyle = '#FFC900'
-                ctx.lineWidth = 3
-                ctx.stroke()
-            } else if (!hasAccess) {
-                // Jailed (no app access): black outline
-                ctx.strokeStyle = '#000000'
-                ctx.lineWidth = 2
-                ctx.stroke()
+            // Draw outline based on access/selection (skip if hidden)
+            if (!isHidden) {
+                ctx.globalAlpha = 1
+                if (isSelected) {
+                    // Selected: golden outline
+                    ctx.strokeStyle = '#FFC900'
+                    ctx.lineWidth = 3
+                    ctx.stroke()
+                } else if (!hasAccess) {
+                    // Jailed (no app access): black outline
+                    ctx.strokeStyle = '#000000'
+                    ctx.lineWidth = 2
+                    ctx.stroke()
+                }
             }
 
             ctx.globalAlpha = 1 // Reset alpha
 
             // In minimal mode, always show labels; otherwise require closer zoom
-            if (showNames && (minimal || globalScale > 1.2)) {
+            if (!isHidden && showNames && (minimal || globalScale > 1.2)) {
                 const label = node.username
                 const fontSize = minimal ? 4 : 12 / globalScale
                 const { inviterNodes: inviterNodesSet } = displaySettingsRef.current
@@ -2193,6 +2227,8 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                         handleResetView,
                         handleReset,
                         handleRecalculate,
+                        hiddenStatuses,
+                        setHiddenStatuses,
                     })}
                 </div>
             </>
@@ -2528,6 +2564,8 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                     handleResetView,
                     handleReset,
                     handleRecalculate,
+                    hiddenStatuses,
+                    setHiddenStatuses,
                 })}
             </div>
         </>

@@ -95,6 +95,7 @@ let nextConfig = {
         return config
     },
     reactStrictMode: false,
+    skipTrailingSlashRedirect: true,
     async rewrites() {
         return {
             beforeFiles: [
@@ -109,6 +110,17 @@ let nextConfig = {
                 {
                     source: '/.well-known/assetLinks.json',
                     destination: '/api/assetLinks',
+                },
+            ],
+            afterFiles: [
+                // PostHog reverse proxy — bypasses ad blockers
+                {
+                    source: '/ingest/static/:path*',
+                    destination: 'https://eu-assets.i.posthog.com/static/:path*',
+                },
+                {
+                    source: '/ingest/:path*',
+                    destination: 'https://eu.i.posthog.com/:path*',
                 },
             ],
         }

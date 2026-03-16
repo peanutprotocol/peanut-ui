@@ -1,8 +1,8 @@
 {
-    "total_positive_mentions": 78,
+    "total_positive_mentions": 17,
     "date_range": "2025-10-01 to 2025-11-26",
     "scoring": "60% text enthusiasm + 30% user influence + 10% engagement | bots/shills capped | builders/VCs/EF boosted",
-    "note": "78 real, deduped, third-party positive mentions. Enriched with timestamps, accurate followers, reply info, and full media arrays. Copy-paste ready for carousel.",
+    "note": "Curated shortlist per LP audit (Mar 2026). Prioritises concrete savings, real-world use cases, and genuine delight.",
     "tweets": [
         {
             "url": "https://x.com/arbitrum/status/1985785756930187576",
@@ -21,7 +21,8 @@
                     "type": "photo",
                     "url": "https://pbs.twimg.com/media/G47qQ4mXsAAUdFH.jpg"
                 }
-            ]
+            ],
+            "visible": true
         },
         {
             "url": "https://x.com/arbitrum/status/1992999478295502877",
@@ -35,7 +36,8 @@
             "impact_score": 0.99,
             "is_reply": false,
             "reply_to_url": null,
-            "media": []
+            "media": [],
+            "visible": false
         },
         {
             "url": "https://x.com/diego_defi/status/1993341996627267698",
@@ -54,7 +56,8 @@
                     "type": "video",
                     "url": "https://video.twimg.com/amplify_video/1993340416100323328/vid/avc1/352x270/1YCZYGDXTzixcfq3.mp4"
                 }
-            ]
+            ],
+            "visible": false
         },
         {
             "url": "https://x.com/0xPumbi/status/1992624069657649220",
@@ -73,7 +76,8 @@
                     "type": "photo",
                     "url": "https://pbs.twimg.com/media/G6c5B6FWkAAqost.jpg"
                 }
-            ]
+            ],
+            "visible": true
         },
         {
             "url": "https://x.com/tkstanczak/status/1987523341134016699",
@@ -87,7 +91,8 @@
             "impact_score": 0.97,
             "is_reply": false,
             "reply_to_url": null,
-            "media": []
+            "media": [],
+            "visible": false
         },
         {
             "url": "https://x.com/coinempress/status/1993349992669434169",
@@ -106,7 +111,8 @@
                     "type": "video",
                     "url": "https://video.twimg.com/amplify_video/1993349938105790464/vid/avc1/320x692/idZNNMyP4Dz9J5co.mp4"
                 }
-            ]
+            ],
+            "visible": true
         },
         {
             "url": "https://x.com/on_datawarlock/status/1992974740689158301",
@@ -125,7 +131,8 @@
                     "type": "photo",
                     "url": "https://pbs.twimg.com/media/G6h3RyeaUAAi8UV.jpg"
                 }
-            ]
+            ],
+            "visible": true
         },
         {
             "url": "https://x.com/cxqmaggie/status/1993393875059441999",
@@ -148,7 +155,8 @@
                     "type": "photo",
                     "url": "https://pbs.twimg.com/media/G6n1JroWEAAHzss.jpg"
                 }
-            ]
+            ],
+            "visible": true
         },
         {
             "url": "https://x.com/hummusonrails/status/1993351948372754451",
@@ -167,7 +175,8 @@
                     "type": "video",
                     "url": "https://video.twimg.com/amplify_video/1993351337963048960/vid/avc1/480x270/YkRo7tDTCl54DRE7.mp4"
                 }
-            ]
+            ],
+            "visible": false
         },
         {
             "url": "https://x.com/0xSuperKalo/status/1991674399234175167",
@@ -186,7 +195,8 @@
                     "type": "photo",
                     "url": "https://pbs.twimg.com/media/G6PYiQ4XkAA-A0U.jpg"
                 }
-            ]
+            ],
+            "visible": true
         },
         {
             "url": "https://x.com/on_datawarlock/status/1989885400387870990",
@@ -205,7 +215,8 @@
                     "type": "photo",
                     "url": "https://pbs.twimg.com/media/G5197XWbIAAeUN-.jpg"
                 }
-            ]
+            ],
+            "visible": false
         },
         {
             "url": "https://x.com/kushagrasarathe/status/1991642890607685779",
@@ -224,7 +235,8 @@
                     "type": "photo",
                     "url": "https://pbs.twimg.com/media/G6O8pqsWoAEK6_w.jpg"
                 }
-            ]
+            ],
+            "visible": true
         },
         {
             "url": "https://x.com/on_datawarlock/status/1988300376878293106",
@@ -247,7 +259,8 @@
                     "type": "photo",
                     "url": "https://pbs.twimg.com/media/G5far_obcAIVrOQ.jpg"
                 }
-            ]
+            ],
+            "visible": false
         },
         {
             "url": "https://x.com/leeederek/status/1986916400653607231",
@@ -274,7 +287,8 @@
                     "type": "photo",
                     "url": "https://pbs.twimg.com/media/G5LxHmlWsAAK3nU.jpg"
                 }
-            ]
+            ],
+            "visible": true
         },
         {
             "url": "https://x.com/stutireal/status/1993417479448936657",
@@ -288,7 +302,8 @@
             "impact_score": 0.89,
             "is_reply": false,
             "reply_to_url": null,
-            "media": []
+            "media": [],
+            "visible": true
         },
         {
             "url": "https://x.com/Emmy_Wilz_01/status/1993198570225238514",
@@ -307,7 +322,8 @@
                     "type": "photo",
                     "url": "https://pbs.twimg.com/media/G6lDiA1XUAA7qRL.jpg"
                 }
-            ]
+            ],
+            "visible": true
         },
         {
             "url": "https://x.com/Emmy_Wilz_01/status/1988569730118983756",
@@ -326,7 +342,8 @@
                     "type": "photo",
                     "url": "https://pbs.twimg.com/media/G5jRoD1XwAA0Is-.jpg"
                 }
-            ]
+            ],
+            "visible": false
         },
         {
             "url": "https://x.com/timokonkwo_/status/1993438728761885106",
@@ -340,7 +357,8 @@
             "impact_score": 0.87,
             "is_reply": false,
             "reply_to_url": null,
-            "media": []
+            "media": [],
+            "visible": true
         },
         {
             "url": "https://x.com/Emmy_Wilz_01/status/1993233039208395149",
@@ -359,7 +377,8 @@
                     "type": "photo",
                     "url": "https://pbs.twimg.com/media/G6li4p2WAAAnCdS.jpg"
                 }
-            ]
+            ],
+            "visible": false
         },
         {
             "url": "https://x.com/0xmelch/status/1989765566219821300",
@@ -378,7 +397,8 @@
                     "type": "photo",
                     "url": "https://pbs.twimg.com/media/G50ROikWYAAodJi.jpg"
                 }
-            ]
+            ],
+            "visible": true
         },
         {
             "url": "https://x.com/DAppaDanDev/status/1992935274523840902",
@@ -397,7 +417,8 @@
                     "type": "photo",
                     "url": "https://pbs.twimg.com/media/G6hUEYEWoAALAAz.jpg"
                 }
-            ]
+            ],
+            "visible": true
         },
         {
             "url": "https://x.com/cyberdrk/status/1992044070802497691",
@@ -411,7 +432,8 @@
             "impact_score": 0.86,
             "is_reply": false,
             "reply_to_url": null,
-            "media": []
+            "media": [],
+            "visible": true
         },
         {
             "url": "https://x.com/candicekteo/status/1993420115509956930",
@@ -425,7 +447,8 @@
             "impact_score": 0.85,
             "is_reply": true,
             "reply_to_url": "https://x.com/DAppaDanDev/status/1992935274523840902",
-            "media": []
+            "media": [],
+            "visible": true
         },
         {
             "url": "https://x.com/BFreshHB/status/1987912195489878346",
@@ -444,7 +467,8 @@
                     "type": "video",
                     "url": "https://video.twimg.com/amplify_video/1987910823243595776/vid/avc1/480x270/9ya2Bv7IuwD92lmS.mp4"
                 }
-            ]
+            ],
+            "visible": false
         },
         {
             "url": "https://x.com/cxqmaggie/status/1993394627148497206",
@@ -458,7 +482,8 @@
             "impact_score": 0.85,
             "is_reply": true,
             "reply_to_url": "https://x.com/joinpeanut/status/1993394429261234640",
-            "media": []
+            "media": [],
+            "visible": false
         },
         {
             "url": "https://x.com/yssf_io/status/1993363153611374973",
@@ -477,7 +502,8 @@
                     "type": "video",
                     "url": "https://video.twimg.com/amplify_video/1993363153611374973/vid/avc1/320x568/1ePUdTUJWR-tXv2k.mp4"
                 }
-            ]
+            ],
+            "visible": true
         },
         {
             "url": "https://x.com/andxqueen/status/1980274681040310657",
@@ -496,7 +522,8 @@
                     "type": "photo",
                     "url": "https://pbs.twimg.com/media/G3tZU7FXkAEyn4D.jpg"
                 }
-            ]
+            ],
+            "visible": false
         },
         {
             "url": "https://x.com/0xJim/status/1991138208906703041",
@@ -510,7 +537,8 @@
             "impact_score": 0.84,
             "is_reply": false,
             "reply_to_url": null,
-            "media": []
+            "media": [],
+            "visible": false
         },
         {
             "url": "https://x.com/Estheroche1/status/1993695756273012766",
@@ -529,7 +557,8 @@
                     "type": "photo",
                     "url": "https://pbs.twimg.com/media/G6sHtqpWMAA2-Nr.jpg"
                 }
-            ]
+            ],
+            "visible": false
         },
         {
             "url": "https://x.com/kalashnikovapv/status/1991179700564341201",
@@ -548,7 +577,8 @@
                     "type": "photo",
                     "url": "https://pbs.twimg.com/media/G6IXYRPbcAAVO8v.jpg"
                 }
-            ]
+            ],
+            "visible": false
         },
         {
             "url": "https://x.com/korneltrg/status/1990097531859239294",
@@ -567,7 +597,8 @@
                     "type": "photo",
                     "url": "https://pbs.twimg.com/media/G54-_00bwAIhiX4.jpg"
                 }
-            ]
+            ],
+            "visible": false
         },
         {
             "url": "https://x.com/zkLumi/status/1988983944335724602",
@@ -586,7 +617,8 @@
                     "type": "photo",
                     "url": "https://pbs.twimg.com/media/G5l4InfXEAAJqaX.jpg"
                 }
-            ]
+            ],
+            "visible": false
         },
         {
             "url": "https://x.com/korneltrg/status/1989080195522081271",
@@ -605,7 +637,8 @@
                     "type": "photo",
                     "url": "https://pbs.twimg.com/media/G5qdgM2aAAEU_ZB.jpg"
                 }
-            ]
+            ],
+            "visible": false
         },
         {
             "url": "https://x.com/bonis_crypto/status/1992237891783639051",
@@ -624,7 +657,8 @@
                     "type": "video",
                     "url": "https://video.twimg.com/amplify_video/1992233946516455424/vid/avc1/320x568/JgI9D9m2jqjm9cBx.mp4"
                 }
-            ]
+            ],
+            "visible": false
         },
         {
             "url": "https://x.com/Churro808/status/1986509791636955382",
@@ -643,7 +677,8 @@
                     "type": "photo",
                     "url": "https://pbs.twimg.com/media/G5F_PcNXkAAL3FF.jpg"
                 }
-            ]
+            ],
+            "visible": false
         },
         {
             "url": "https://x.com/stoczek_eth/status/1989728703245385791",
@@ -662,7 +697,8 @@
                     "type": "photo",
                     "url": "https://pbs.twimg.com/media/G5zvtPMXQAAylVB.jpg"
                 }
-            ]
+            ],
+            "visible": false
         },
         {
             "url": "https://x.com/rnaayem/status/1986836999219650810",
@@ -676,7 +712,8 @@
             "impact_score": 0.82,
             "is_reply": false,
             "reply_to_url": null,
-            "media": []
+            "media": [],
+            "visible": false
         },
         {
             "url": "https://x.com/pedro_breuer/status/1981707623255679118",
@@ -690,7 +727,8 @@
             "impact_score": 0.82,
             "is_reply": false,
             "reply_to_url": null,
-            "media": []
+            "media": [],
+            "visible": false
         },
         {
             "url": "https://x.com/theZeugh/status/1993446136867393834",
@@ -704,7 +742,8 @@
             "impact_score": 0.81,
             "is_reply": false,
             "reply_to_url": null,
-            "media": []
+            "media": [],
+            "visible": true
         },
         {
             "url": "https://x.com/Dablendo01/status/1986750858323783928",
@@ -723,7 +762,8 @@
                     "type": "photo",
                     "url": "https://pbs.twimg.com/media/G5JbYCRWwAAFkjv.jpg"
                 }
-            ]
+            ],
+            "visible": false
         },
         {
             "url": "https://x.com/yssf_io/status/1991964675307937824",
@@ -737,7 +777,8 @@
             "impact_score": 0.81,
             "is_reply": false,
             "reply_to_url": null,
-            "media": []
+            "media": [],
+            "visible": false
         },
         {
             "url": "https://x.com/gabipuricelli/status/1981205768595788271",
@@ -751,7 +792,8 @@
             "impact_score": 0.68,
             "is_reply": false,
             "reply_to_url": null,
-            "media": []
+            "media": [],
+            "visible": false
         },
         {
             "url": "https://x.com/imgacevi/status/1992320489759662200",
@@ -765,7 +807,8 @@
             "impact_score": 0.67,
             "is_reply": false,
             "reply_to_url": null,
-            "media": []
+            "media": [],
+            "visible": false
         },
         {
             "url": "https://x.com/AnInternetter/status/1993404987452670098",
@@ -779,7 +822,8 @@
             "impact_score": 0.67,
             "is_reply": true,
             "reply_to_url": "https://x.com/AnInternetter/status/1993349829888540978",
-            "media": []
+            "media": [],
+            "visible": false
         },
         {
             "url": "https://x.com/not_qz/status/1993077330895052982",
@@ -793,7 +837,8 @@
             "impact_score": 0.67,
             "is_reply": false,
             "reply_to_url": null,
-            "media": []
+            "media": [],
+            "visible": false
         },
         {
             "url": "https://x.com/loemrzva/status/1990850591980208148",
@@ -812,7 +857,8 @@
                     "type": "video",
                     "url": "https://video.twimg.com/amplify_video/1990850284713660417/vid/avc1/320x568/NIFcx2qvtpcYRGjR.mp4"
                 }
-            ]
+            ],
+            "visible": false
         },
         {
             "url": "https://x.com/goyabean/status/1989752309057032505",
@@ -826,7 +872,8 @@
             "impact_score": 0.67,
             "is_reply": false,
             "reply_to_url": null,
-            "media": []
+            "media": [],
+            "visible": false
         },
         {
             "url": "https://x.com/Leoninweb3/status/1993394963615564084",
@@ -840,7 +887,8 @@
             "impact_score": 0.66,
             "is_reply": true,
             "reply_to_url": "https://x.com/cxqmaggie/status/1993393875059441999",
-            "media": []
+            "media": [],
+            "visible": false
         },
         {
             "url": "https://x.com/nick_hollins/status/1991869587504451710",
@@ -859,7 +907,8 @@
                     "type": "video",
                     "url": "https://video.twimg.com/amplify_video/1991869426149265408/vid/avc1/320x568/1ePUdTUJWR-tXv2k.mp4"
                 }
-            ]
+            ],
+            "visible": false
         },
         {
             "url": "https://x.com/fakundirekt/status/1992479033091912117",
@@ -878,7 +927,8 @@
                     "type": "photo",
                     "url": "https://pbs.twimg.com/media/G6a1HgxWQAAbVEa.jpg"
                 }
-            ]
+            ],
+            "visible": false
         },
         {
             "url": "https://x.com/jnptzl/status/1990821927137452166",
@@ -905,7 +955,8 @@
                     "type": "photo",
                     "url": "https://pbs.twimg.com/media/G6DR8SHXMAAytOl.jpg"
                 }
-            ]
+            ],
+            "visible": false
         },
         {
             "url": "https://x.com/Ifee_lovee/status/1987260441567846816",
@@ -924,7 +975,8 @@
                     "type": "photo",
                     "url": "https://pbs.twimg.com/media/G5Qq1u5WwAAD0Ez.jpg"
                 }
-            ]
+            ],
+            "visible": false
         },
         {
             "url": "https://x.com/simoneDotDev/status/1993461126198096216",
@@ -938,7 +990,8 @@
             "impact_score": 0.64,
             "is_reply": true,
             "reply_to_url": "https://x.com/cxqmaggie/status/1993393875059441999",
-            "media": []
+            "media": [],
+            "visible": false
         },
         {
             "url": "https://x.com/piggywallet_app/status/1991877872076877953",
@@ -957,7 +1010,8 @@
                     "type": "photo",
                     "url": "https://pbs.twimg.com/media/G6SSXLpWoAABovW.jpg"
                 }
-            ]
+            ],
+            "visible": false
         },
         {
             "url": "https://x.com/0xShayan/status/1993381760764117121",
@@ -988,7 +1042,8 @@
                     "type": "photo",
                     "url": "https://pbs.twimg.com/media/G6nqHncXEAAnyZm.jpg"
                 }
-            ]
+            ],
+            "visible": false
         },
         {
             "url": "https://x.com/mattff3/status/1993027674730852494",
@@ -1007,7 +1062,8 @@
                     "type": "photo",
                     "url": "https://pbs.twimg.com/media/G6ioGsNX0AAboEK.jpg"
                 }
-            ]
+            ],
+            "visible": false
         },
         {
             "url": "https://x.com/zhiyangxyz/status/1993394901183348853",
@@ -1021,7 +1077,8 @@
             "impact_score": 0.62,
             "is_reply": true,
             "reply_to_url": "https://x.com/AriEiberman/status/1992945656944828667",
-            "media": []
+            "media": [],
+            "visible": false
         },
         {
             "url": "https://x.com/notAlddo/status/1993380368825925809",
@@ -1035,7 +1092,8 @@
             "impact_score": 0.62,
             "is_reply": true,
             "reply_to_url": "https://x.com/AnInternetter/status/1993349829888540978",
-            "media": []
+            "media": [],
+            "visible": false
         },
         {
             "url": "https://x.com/stutireal/status/1993499051070025962",
@@ -1049,7 +1107,8 @@
             "impact_score": 0.62,
             "is_reply": true,
             "reply_to_url": "https://x.com/cxqmaggie/status/1993393875059441999",
-            "media": []
+            "media": [],
+            "visible": false
         },
         {
             "url": "https://x.com/Churro808/status/1993493484104564907",
@@ -1063,7 +1122,8 @@
             "impact_score": 0.62,
             "is_reply": true,
             "reply_to_url": "https://x.com/hummusonrails/status/1993351948372754451",
-            "media": []
+            "media": [],
+            "visible": false
         },
         {
             "url": "https://x.com/Real_sweetone/status/1989758885301796919",
@@ -1086,7 +1146,8 @@
                     "type": "photo",
                     "url": "https://pbs.twimg.com/media/G50LJVRXAAAXxa0.jpg"
                 }
-            ]
+            ],
+            "visible": false
         },
         {
             "url": "https://x.com/hummusonrails/status/1989373688685167011",
@@ -1105,7 +1166,8 @@
                     "type": "photo",
                     "url": "https://pbs.twimg.com/media/G5us0jFWAAEasmo.jpg"
                 }
-            ]
+            ],
+            "visible": false
         },
         {
             "url": "https://x.com/lucilajuliana/status/1992487381661110589",
@@ -1124,7 +1186,8 @@
                     "type": "photo",
                     "url": "https://pbs.twimg.com/media/G6a8tyLWQAAoO6I.jpg"
                 }
-            ]
+            ],
+            "visible": false
         },
         {
             "url": "https://x.com/Churro808/status/1993491550836535519",
@@ -1138,7 +1201,8 @@
             "impact_score": 0.61,
             "is_reply": true,
             "reply_to_url": "https://x.com/hummusonrails/status/1993351948372754451",
-            "media": []
+            "media": [],
+            "visible": false
         },
         {
             "url": "https://x.com/yotamha1/status/1993368603916485020",
@@ -1152,7 +1216,8 @@
             "impact_score": 0.61,
             "is_reply": true,
             "reply_to_url": "https://x.com/hummusonrails/status/1993351948372754451",
-            "media": []
+            "media": [],
+            "visible": false
         },
         {
             "url": "https://x.com/BFreshHB/status/1993490982307090874",
@@ -1166,7 +1231,8 @@
             "impact_score": 0.6,
             "is_reply": true,
             "reply_to_url": "https://x.com/hummusonrails/status/1993351948372754451",
-            "media": []
+            "media": [],
+            "visible": false
         },
         {
             "url": "https://x.com/Player1Taco/status/1988070662179864981",
@@ -1180,7 +1246,8 @@
             "impact_score": 0.6,
             "is_reply": false,
             "reply_to_url": null,
-            "media": []
+            "media": [],
+            "visible": false
         },
         {
             "url": "https://x.com/simoneDotDev/status/1993461948416246275",
@@ -1194,7 +1261,8 @@
             "impact_score": 0.6,
             "is_reply": true,
             "reply_to_url": "https://x.com/cxqmaggie/status/1993393875059441999",
-            "media": []
+            "media": [],
+            "visible": false
         },
         {
             "url": "https://x.com/JuanJoseBTC/status/1992054753778405664",
@@ -1208,7 +1276,8 @@
             "impact_score": 0.6,
             "is_reply": true,
             "reply_to_url": "https://x.com/0xPumbi/status/1992624069657649220",
-            "media": []
+            "media": [],
+            "visible": false
         },
         {
             "url": "https://x.com/guillermdk/status/1981930130881626610",
@@ -1222,7 +1291,8 @@
             "impact_score": 0.6,
             "is_reply": false,
             "reply_to_url": null,
-            "media": []
+            "media": [],
+            "visible": false
         },
         {
             "url": "https://x.com/linuxcity/status/1989229851622941155",
@@ -1236,7 +1306,8 @@
             "impact_score": 0.6,
             "is_reply": false,
             "reply_to_url": null,
-            "media": []
+            "media": [],
+            "visible": false
         },
         {
             "url": "https://x.com/Yosoyraymon/status/1988225946734694809",
@@ -1250,7 +1321,8 @@
             "impact_score": 0.6,
             "is_reply": false,
             "reply_to_url": null,
-            "media": []
+            "media": [],
+            "visible": false
         },
         {
             "url": "https://x.com/guillermdk/status/1981048731173638203",
@@ -1264,7 +1336,8 @@
             "impact_score": 0.6,
             "is_reply": false,
             "reply_to_url": null,
-            "media": []
+            "media": [],
+            "visible": false
         },
         {
             "url": "https://x.com/paul_ironforce/status/1983907078541373827",
@@ -1278,7 +1351,8 @@
             "impact_score": 0.6,
             "is_reply": false,
             "reply_to_url": null,
-            "media": []
+            "media": [],
+            "visible": false
         },
         {
             "url": "https://x.com/0xMhiskall/status/1989225577233219874",
@@ -1292,7 +1366,8 @@
             "impact_score": 0.6,
             "is_reply": false,
             "reply_to_url": null,
-            "media": []
+            "media": [],
+            "visible": false
         },
         {
             "url": "https://x.com/AufDerSuche23/status/1987524924479590708",
@@ -1306,7 +1381,8 @@
             "impact_score": 0.6,
             "is_reply": false,
             "reply_to_url": null,
-            "media": []
+            "media": [],
+            "visible": false
         },
         {
             "url": "https://x.com/ferminrp/status/1981044335459078643",
@@ -1320,7 +1396,8 @@
             "impact_score": 0.6,
             "is_reply": false,
             "reply_to_url": null,
-            "media": []
+            "media": [],
+            "visible": false
         }
     ]
 }

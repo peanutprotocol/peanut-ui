@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/0_Bruddle/Button'
 import BaseModal from '@/components/Global/Modal'
@@ -44,17 +46,23 @@ const CardPioneerModal = ({ hasPurchased }: CardPioneerModalProps) => {
         // Show modal with a small delay for better UX
         const timer = setTimeout(() => {
             setIsVisible(true)
+            posthog.capture(ANALYTICS_EVENTS.MODAL_SHOWN, { modal_type: MODAL_TYPES.CARD_PIONEER })
         }, 1000)
 
         return () => clearTimeout(timer)
     }, [hasPurchased])
 
     const handleDismiss = () => {
+        posthog.capture(ANALYTICS_EVENTS.MODAL_DISMISSED, { modal_type: MODAL_TYPES.CARD_PIONEER })
         localStorage.setItem(STORAGE_KEY, new Date().toISOString())
         setIsVisible(false)
     }
 
     const handleJoinNow = () => {
+        posthog.capture(ANALYTICS_EVENTS.MODAL_CTA_CLICKED, {
+            modal_type: MODAL_TYPES.CARD_PIONEER,
+            cta: 'get_early_access',
+        })
         setIsVisible(false)
         router.push('/card')
     }

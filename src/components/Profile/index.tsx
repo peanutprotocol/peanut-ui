@@ -133,6 +133,7 @@ export const Profile = () => {
                 visible={isInviteFriendsModalOpen}
                 onClose={() => setIsInviteFriendsModalOpen(false)}
                 username={user?.user.username ?? ''}
+                source="profile"
             />
         </div>
     )
