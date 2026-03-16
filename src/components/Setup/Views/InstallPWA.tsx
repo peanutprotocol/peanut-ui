@@ -2,7 +2,6 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { Icon } from '@/components/Global/Icons/Icon'
-import Modal from '@/components/Global/Modal'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import { type BeforeInstallPromptEvent, type ScreenId } from '@/components/Setup/Setup.types'
 import { useAuth } from '@/context/authContext'
@@ -32,7 +31,6 @@ const InstallPWA = ({
 }) => {
     const toast = useToast()
     const { handleNext, isLoading: isSetupFlowLoading } = useSetupFlow()
-    const [showModal, setShowModal] = useState(false)
     const [installComplete, setInstallComplete] = useState(false)
     const [installCancelled, setInstallCancelled] = useState(false)
     const [isInstallInProgress, setIsInstallInProgress] = useState(false)
@@ -111,15 +109,6 @@ const InstallPWA = ({
             setShowBraveSuccessMessage?.(false)
         }
     }, [isBrave, isPWAInstalled, installComplete, setShowBraveSuccessMessage])
-
-    useEffect(() => {
-        if (screenId === 'pwa-install' && (deviceType === DeviceType.WEB || deviceType === DeviceType.IOS)) {
-            const timer = setTimeout(() => {
-                setShowModal(true)
-            }, 500)
-            return () => clearTimeout(timer)
-        }
-    }, [deviceType, screenId])
 
     const handleInstall = useCallback(async () => {
         if (!deferredPrompt?.prompt) return
@@ -232,9 +221,9 @@ const InstallPWA = ({
                 <Icon name="mobile-install" size={24} />
             </div>
             <div className="space-y-3 text-center">
-                <StepTitle text="Peanut is mobile first!" />
+                <StepTitle text="Peanut works best on your phone" />
                 <p className="max-w-[220px] text-lg font-normal text-grey-1">
-                    For a better experience, use Peanut on your phone.
+                    Scan the QR code to get started on mobile — it takes 30 seconds.
                 </p>
             </div>
             <div className="mx-auto rounded-lg">
@@ -252,38 +241,16 @@ const InstallPWA = ({
             }
             if (deviceType === DeviceType.WEB) {
                 return (
-                    <>
-                        <div className="flex flex-col gap-4">
-                            <Button
-                                onClick={() => setShowModal(true)}
-                                className="w-full"
-                                shadowSize="4"
-                                variant="purple"
-                            >
-                                {installComplete ? 'Open in the App' : 'Install App'}
-                            </Button>
-                        </div>
-                        {showModal && (
-                            <Modal
-                                visible={showModal}
-                                onClose={() => setShowModal(false)}
-                                className="items-center rounded-none"
-                                classWrap="sm:m-auto sm:self-center self-center bg-background m-4 rounded-none border-0"
-                            >
-                                <div className="space-y-4 p-6">
-                                    <DesktopInstructions />
-                                    <Button
-                                        onClick={() => setShowModal(false)}
-                                        className="mt-4 w-full"
-                                        shadowSize="4"
-                                        variant="purple"
-                                    >
-                                        Got it!
-                                    </Button>
-                                </div>
-                            </Modal>
-                        )}
-                    </>
+                    <div className="flex flex-col items-center gap-6">
+                        <DesktopInstructions />
+                        <button
+                            onClick={() => handleNext()}
+                            className="text-sm font-medium text-grey-1 underline"
+                            disabled={isSetupFlowLoading}
+                        >
+                            Continue on desktop
+                        </button>
+                    </div>
                 )
             }
 
