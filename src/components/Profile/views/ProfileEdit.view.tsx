@@ -14,7 +14,7 @@ import useKycStatus from '@/hooks/useKycStatus'
 export const ProfileEditView = () => {
     const router = useRouter()
     const { user, fetchUser } = useAuth()
-    const { isUserBridgeKycApproved } = useKycStatus()
+    const { isUserKycApproved } = useKycStatus()
 
     const [isLoading, setIsLoading] = useState(false)
     const [errorMessage, setErrorMessage] = useState('')
@@ -98,7 +98,7 @@ export const ProfileEditView = () => {
             // refresh user data
             await fetchUser()
 
-            router.push('/profile')
+            router.replace('/profile')
         } catch (error) {
             console.error('Error updating profile:', error)
             setErrorMessage('Something went wrong. Please try again or contact support.')
@@ -113,9 +113,9 @@ export const ProfileEditView = () => {
 
     return (
         <div className="space-y-8">
-            <NavHeader title="Edit Profile" onPrev={() => router.push('/profile')} />
+            <NavHeader title="Edit Profile" onPrev={() => router.back()} />
 
-            <ProfileHeader name={fullName} username={username} isVerified={isUserBridgeKycApproved} />
+            <ProfileHeader name={fullName} username={username} isVerified={isUserKycApproved} />
 
             <div className="space-y-4">
                 <ProfileEditField
@@ -123,7 +123,7 @@ export const ProfileEditView = () => {
                     value={formData.name}
                     onChange={(value) => handleChange('name', value)}
                     placeholder="Add your name"
-                    disabled={user?.user.bridgeKycStatus === 'approved'}
+                    disabled={isUserKycApproved}
                 />
 
                 <ProfileEditField
@@ -131,7 +131,7 @@ export const ProfileEditView = () => {
                     value={formData.surname}
                     onChange={(value) => handleChange('surname', value)}
                     placeholder="Add your surname"
-                    disabled={user?.user.bridgeKycStatus === 'approved'}
+                    disabled={isUserKycApproved}
                 />
 
                 <ProfileEditField

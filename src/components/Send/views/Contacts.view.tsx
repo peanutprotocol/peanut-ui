@@ -13,6 +13,7 @@ import PeanutLoading from '@/components/Global/PeanutLoading'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { Button } from '@/components/0_Bruddle/Button'
 import { useDebounce } from '@/hooks/useDebounce'
+import { isUserKycVerified } from '@/constants/kyc.consts'
 import { ContactsListSkeleton } from '@/components/Common/ContactsListSkeleton'
 
 export default function ContactsView() {
@@ -138,7 +139,7 @@ export default function ContactsView() {
                             <h2 className="text-base font-bold">Your contacts</h2>
                             <div className="flex-1 space-y-0 overflow-y-auto">
                                 {contacts.map((contact, index) => {
-                                    const isVerified = contact.bridgeKycStatus === 'approved'
+                                    const isVerified = isUserKycVerified(contact)
                                     const displayName = contact.showFullName
                                         ? contact.fullName || contact.username
                                         : contact.username

@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { PeanutWebSocket, getWebSocketInstance, type PendingPerk } from '@/services/websocket'
+import { PeanutWebSocket, getWebSocketInstance, type PendingPerk, type RailStatusUpdate } from '@/services/websocket'
 import { type HistoryEntry } from './useTransactionHistory'
 
 type WebSocketStatus = 'connecting' | 'connected' | 'disconnected' | 'error'
@@ -10,8 +10,10 @@ interface UseWebSocketOptions {
     onHistoryEntry?: (entry: HistoryEntry) => void
     onKycStatusUpdate?: (status: string) => void
     onMantecaKycStatusUpdate?: (status: string) => void
+    onSumsubKycStatusUpdate?: (status: string, rejectLabels?: string[]) => void
     onTosUpdate?: (data: { accepted: boolean }) => void
     onPendingPerk?: (perk: PendingPerk) => void
+    onRailStatusUpdate?: (data: RailStatusUpdate) => void
     onConnect?: () => void
     onDisconnect?: () => void
     onError?: (error: Event) => void
@@ -24,8 +26,10 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         onHistoryEntry,
         onKycStatusUpdate,
         onMantecaKycStatusUpdate,
+        onSumsubKycStatusUpdate,
         onTosUpdate,
         onPendingPerk,
+        onRailStatusUpdate,
         onConnect,
         onDisconnect,
         onError,
@@ -39,8 +43,10 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         onHistoryEntry,
         onKycStatusUpdate,
         onMantecaKycStatusUpdate,
+        onSumsubKycStatusUpdate,
         onTosUpdate,
         onPendingPerk,
+        onRailStatusUpdate,
         onConnect,
         onDisconnect,
         onError,
@@ -52,8 +58,10 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
             onHistoryEntry,
             onKycStatusUpdate,
             onMantecaKycStatusUpdate,
+            onSumsubKycStatusUpdate,
             onTosUpdate,
             onPendingPerk,
+            onRailStatusUpdate,
             onConnect,
             onDisconnect,
             onError,
@@ -62,8 +70,10 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         onHistoryEntry,
         onKycStatusUpdate,
         onMantecaKycStatusUpdate,
+        onSumsubKycStatusUpdate,
         onTosUpdate,
         onPendingPerk,
+        onRailStatusUpdate,
         onConnect,
         onDisconnect,
         onError,
@@ -154,6 +164,14 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
             }
         }
 
+        const handleSumsubKycStatusUpdate = (data: { status: string; rejectLabels?: string[] }) => {
+            if (callbacksRef.current.onSumsubKycStatusUpdate) {
+                callbacksRef.current.onSumsubKycStatusUpdate(data.status, data.rejectLabels)
+            } else {
+                console.log(`[WebSocket] No onSumsubKycStatusUpdate callback registered for user: ${username}`)
+            }
+        }
+
         const handleTosUpdate = (data: { status: string }) => {
             if (callbacksRef.current.onTosUpdate) {
                 callbacksRef.current.onTosUpdate({ accepted: data.status === 'approved' })
@@ -168,6 +186,12 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
             }
         }
 
+        const handleRailStatusUpdate = (data: RailStatusUpdate) => {
+            if (callbacksRef.current.onRailStatusUpdate) {
+                callbacksRef.current.onRailStatusUpdate(data)
+            }
+        }
+
         // Register event handlers
         ws.on('connect', handleConnect)
         ws.on('disconnect', handleDisconnect)
@@ -175,8 +199,10 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         ws.on('history_entry', handleHistoryEntry)
         ws.on('kyc_status_update', handleKycStatusUpdate)
         ws.on('manteca_kyc_status_update', handleMantecaKycStatusUpdate)
+        ws.on('sumsub_kyc_status_update', handleSumsubKycStatusUpdate)
         ws.on('persona_tos_status_update', handleTosUpdate)
         ws.on('pending_perk', handlePendingPerk)
+        ws.on('user_rail_status_changed', handleRailStatusUpdate)
 
         // Auto-connect if enabled
         if (autoConnect) {
@@ -191,8 +217,10 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
             ws.off('history_entry', handleHistoryEntry)
             ws.off('kyc_status_update', handleKycStatusUpdate)
             ws.off('manteca_kyc_status_update', handleMantecaKycStatusUpdate)
+            ws.off('sumsub_kyc_status_update', handleSumsubKycStatusUpdate)
             ws.off('persona_tos_status_update', handleTosUpdate)
             ws.off('pending_perk', handlePendingPerk)
+            ws.off('user_rail_status_changed', handleRailStatusUpdate)
         }
     }, [autoConnect, connect, username])
 

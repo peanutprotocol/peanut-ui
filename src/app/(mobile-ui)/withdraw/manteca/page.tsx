@@ -17,22 +17,28 @@ import { loadingStateContext } from '@/context'
 import { countryData } from '@/components/AddMoney/consts'
 import Image from 'next/image'
 import { formatAmount, formatNumberForDisplay } from '@/utils/general.utils'
-import { validateCbuCvuAlias, validatePixKey, normalizePixPhoneNumber, isPixPhoneNumber } from '@/utils/withdraw.utils'
+import {
+    validateCbuCvuAlias,
+    validatePixKey,
+    normalizePixPhoneNumber,
+    isPixPhoneNumber,
+    isPixEmvcoQr,
+} from '@/utils/withdraw.utils'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import AmountInput from '@/components/Global/AmountInput'
 import { formatUnits, parseUnits } from 'viem'
 import type { TransactionReceipt, Hash } from 'viem'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
-import { useMantecaKycFlow } from '@/hooks/useMantecaKycFlow'
-import { MantecaGeoSpecificKycModal } from '@/components/Kyc/InitiateMantecaKYCModal'
 import { useAuth } from '@/context/authContext'
-import { useWebSocket } from '@/hooks/useWebSocket'
 import { useModalsContext } from '@/context/ModalsContext'
 import Select from '@/components/Global/Select'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { useQueryClient } from '@tanstack/react-query'
 import { captureException } from '@sentry/nextjs'
 import useKycStatus from '@/hooks/useKycStatus'
+import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
+import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
+import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 import { PointsAction } from '@/services/services.types'
 import { usePointsConfetti } from '@/hooks/usePointsConfetti'
@@ -70,7 +76,6 @@ export default function MantecaWithdrawFlow() {
     const [selectedBank, setSelectedBank] = useState<MantecaBankCode | null>(null)
     const [accountType, setAccountType] = useState<MantecaAccountType | null>(null)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
-    const [isKycModalOpen, setIsKycModalOpen] = useState(false)
     const [isDestinationAddressValid, setIsDestinationAddressValid] = useState(false)
     const [isDestinationAddressChanging, setIsDestinationAddressChanging] = useState(false)
     // price lock state - holds the locked price from /withdraw/init
@@ -80,11 +85,17 @@ export default function MantecaWithdrawFlow() {
     const { sendMoney, balance } = useWallet()
     const { signTransferUserOp } = useSignUserOp()
     const { isLoading, loadingState, setLoadingState } = useContext(loadingStateContext)
-    const { user, fetchUser } = useAuth()
+    const { user } = useAuth()
     const { setIsSupportModalOpen } = useModalsContext()
     const queryClient = useQueryClient()
-    const { isUserBridgeKycApproved } = useKycStatus()
+    const { isUserMantecaKycApproved } = useKycStatus()
     const { hasPendingTransactions } = usePendingTransactions()
+
+    // inline sumsub kyc flow for manteca users who need LATAM verification
+    // regionIntent is NOT passed here to avoid creating a backend record on mount.
+    // intent is passed at call time: handleInitiateKyc('LATAM')
+    const sumsubFlow = useMultiPhaseKycFlow({})
+    const [showKycModal, setShowKycModal] = useState(false)
     // Get method and country from URL parameters
     const selectedMethodType = searchParams.get('method') // mercadopago, pix, bank-transfer, etc.
     const countryFromUrl = searchParams.get('country') // argentina, brazil, etc.
@@ -108,28 +119,12 @@ export default function MantecaWithdrawFlow() {
         isLoading: isCurrencyLoading,
     } = useCurrency(selectedCountry?.currency!)
 
-    // Initialize KYC flow hook
-    const { isMantecaKycRequired } = useMantecaKycFlow({ country: selectedCountry })
-
     // validates withdrawal against user's limits
     // currency comes from country config - hook normalizes it internally
     const limitsValidation = useLimitsValidation({
         flowType: 'offramp',
         amount: usdAmount,
         currency: selectedCountry?.currency,
-    })
-
-    // WebSocket listener for KYC status updates
-    useWebSocket({
-        username: user?.user.username ?? undefined,
-        autoConnect: !!user?.user.username,
-        onMantecaKycStatusUpdate: (newStatus) => {
-            if (newStatus === 'ACTIVE' || newStatus === 'WIDGET_FINISHED') {
-                fetchUser()
-                setIsKycModalOpen(false)
-                setStep('review') // Proceed to review after successful KYC
-            }
-        },
     })
 
     // Get country flag code
@@ -166,6 +161,7 @@ export default function MantecaWithdrawFlow() {
                 }
                 break
             case 'brazil':
+                value = isPixEmvcoQr(value.trim()) ? value.trim() : value.replace(/\s/g, '')
                 const pixResult = validatePixKey(value)
                 isValid = pixResult.valid
                 if (!pixResult.valid) {
@@ -202,14 +198,8 @@ export default function MantecaWithdrawFlow() {
         }
         setErrorMessage(null)
 
-        // check if we still need to determine KYC status
-        if (isMantecaKycRequired === null) {
-            return
-        }
-
-        // check KYC status before proceeding to review
-        if (isMantecaKycRequired === true) {
-            setIsKycModalOpen(true)
+        if (!isUserMantecaKycApproved) {
+            setShowKycModal(true)
             return
         }
 
@@ -252,7 +242,7 @@ export default function MantecaWithdrawFlow() {
         usdAmount,
         currencyCode,
         currencyAmount,
-        isMantecaKycRequired,
+        isUserMantecaKycApproved,
         isLockingPrice,
     ])
 
@@ -364,7 +354,6 @@ export default function MantecaWithdrawFlow() {
         setSelectedBank(null)
         setAccountType(null)
         setErrorMessage(null)
-        setIsKycModalOpen(false)
         setIsDestinationAddressValid(false)
         setIsDestinationAddressChanging(false)
         setBalanceErrorMessage(null)
@@ -490,6 +479,16 @@ export default function MantecaWithdrawFlow() {
     }
     return (
         <div className="flex min-h-[inherit] flex-col gap-8">
+            <InitiateKycModal
+                visible={showKycModal}
+                onClose={() => setShowKycModal(false)}
+                onVerify={async () => {
+                    await sumsubFlow.handleInitiateKyc('LATAM')
+                    setShowKycModal(false)
+                }}
+                isLoading={sumsubFlow.isLoading}
+            />
+            <SumsubKycModals flow={sumsubFlow} />
             <NavHeader
                 title="Withdraw"
                 onPrev={() => {
@@ -608,10 +607,15 @@ export default function MantecaWithdrawFlow() {
                                 value={destinationAddress}
                                 placeholder={countryConfig!.accountNumberLabel}
                                 onUpdate={(update) => {
-                                    // Auto-normalize PIX phone numbers for Brazil
+                                    // Auto-normalize PIX keys for Brazil: strip whitespace and normalize phone numbers
                                     let normalizedValue = update.value
-                                    if (countryPath === 'brazil' && isPixPhoneNumber(update.value)) {
-                                        normalizedValue = normalizePixPhoneNumber(update.value)
+                                    if (countryPath === 'brazil') {
+                                        normalizedValue = isPixEmvcoQr(normalizedValue.trim())
+                                            ? normalizedValue.trim()
+                                            : normalizedValue.replace(/\s/g, '')
+                                        if (isPixPhoneNumber(normalizedValue)) {
+                                            normalizedValue = normalizePixPhoneNumber(normalizedValue)
+                                        }
                                     }
                                     setDestinationAddress(normalizedValue)
                                     setIsDestinationAddressValid(update.isValid)
@@ -671,23 +675,6 @@ export default function MantecaWithdrawFlow() {
 
                         {errorMessage && <ErrorAlert description={errorMessage} />}
                     </div>
-
-                    {/* KYC Modal */}
-                    {isKycModalOpen && selectedCountry && (
-                        <MantecaGeoSpecificKycModal
-                            isUserBridgeKycApproved={isUserBridgeKycApproved}
-                            isMantecaModalOpen={isKycModalOpen}
-                            setIsMantecaModalOpen={setIsKycModalOpen}
-                            onClose={() => setIsKycModalOpen(false)}
-                            onManualClose={() => setIsKycModalOpen(false)}
-                            onKycSuccess={() => {
-                                setIsKycModalOpen(false)
-                                fetchUser()
-                                setStep('review')
-                            }}
-                            selectedCountry={selectedCountry}
-                        />
-                    )}
                 </div>
             )}
 

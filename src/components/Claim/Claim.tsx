@@ -22,6 +22,7 @@ import {
     getTokenLogo,
     getChainLogo,
 } from '@/utils/general.utils'
+import { isUserKycVerified } from '@/constants/kyc.consts'
 import * as Sentry from '@sentry/nextjs'
 import { useQuery } from '@tanstack/react-query'
 import type { Hash } from 'viem'
@@ -189,7 +190,7 @@ export const Claim = ({}) => {
             peanutFeeDetails: {
                 amountDisplay: '$ 0.00',
             },
-            isVerified: claimLinkData.sender?.bridgeKycStatus === 'approved',
+            isVerified: isUserKycVerified(claimLinkData.sender),
             haveSentMoneyToUser: claimLinkData.sender?.userId
                 ? interactions[claimLinkData.sender?.userId] || false
                 : false,
@@ -396,7 +397,7 @@ export const Claim = ({}) => {
     // redirect to bank flow if user is KYC approved and step is bank
     useEffect(() => {
         const stepFromURL = searchParams.get('step')
-        if (user?.user.bridgeKycStatus === 'approved' && stepFromURL === 'bank') {
+        if (isUserKycVerified(user?.user) && stepFromURL === 'bank') {
             setClaimBankFlowStep(ClaimBankFlowStep.BankCountryList)
         }
     }, [user])

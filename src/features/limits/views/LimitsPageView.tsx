@@ -6,6 +6,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import { useIdentityVerification, type Region } from '@/hooks/useIdentityVerification'
 import useKycStatus from '@/hooks/useKycStatus'
+import { useLimits } from '@/hooks/useLimits'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useMemo } from 'react'
@@ -18,7 +19,8 @@ import { getProviderRoute } from '../utils'
 const LimitsPageView = () => {
     const router = useRouter()
     const { unlockedRegions, lockedRegions } = useIdentityVerification()
-    const { isUserKycApproved, isUserBridgeKycUnderReview, isUserMantecaKycApproved } = useKycStatus()
+    const { isUserKycApproved, isUserBridgeKycUnderReview } = useKycStatus()
+    const { hasMantecaLimits } = useLimits()
 
     // check if user has any kyc at all
     const hasAnyKyc = isUserKycApproved
@@ -63,7 +65,7 @@ const LimitsPageView = () => {
 
             {/* unlocked regions */}
             {unlockedRegions.length > 0 && (
-                <UnlockedRegionsList regions={unlockedRegions} hasMantecaKyc={isUserMantecaKycApproved} />
+                <UnlockedRegionsList regions={unlockedRegions} hasMantecaKyc={hasMantecaLimits} />
             )}
 
             {/* locked regions - only render if there are actual locked regions */}
@@ -175,7 +177,7 @@ const LockedRegionsList = ({ regions, isBridgeKycPending }: LockedRegionsListPro
                         title={region.name}
                         onClick={() => {
                             if (!isPending) {
-                                router.push(`/profile/identity-verification/${region.path}`)
+                                router.push('/profile/identity-verification')
                             }
                         }}
                         isDisabled={isPending}

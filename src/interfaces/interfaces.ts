@@ -1,6 +1,20 @@
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import { type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
 
 export type RecipientType = 'address' | 'ens' | 'iban' | 'us' | 'username'
+
+// phases for the multi-phase kyc verification modal
+export type KycModalPhase = 'verifying' | 'preparing' | 'bridge_tos' | 'complete'
+
+// per-provider rail status for tracking after kyc approval
+export type ProviderDisplayStatus = 'setting_up' | 'requires_tos' | 'requires_documents' | 'enabled' | 'failed'
+
+export interface ProviderStatus {
+    providerCode: string
+    displayName: string
+    status: ProviderDisplayStatus
+    rails: IUserRail[]
+}
 
 // Moved here from bridge-accounts.utils.ts to avoid circular dependency
 export type BridgeKycStatus = 'not_started' | 'under_review' | 'approved' | 'rejected' | 'incomplete'
@@ -231,13 +245,17 @@ export enum MantecaKycStatus {
 }
 
 export interface IUserKycVerification {
-    provider: 'MANTECA' | 'BRIDGE'
+    provider: 'MANTECA' | 'BRIDGE' | 'SUMSUB'
     mantecaGeo?: string | null
     bridgeGeo?: string | null
-    status: MantecaKycStatus
+    status: MantecaKycStatus | SumsubKycStatus | string
     approvedAt?: string | null
     providerUserId?: string | null
     providerRawStatus?: string | null
+    sumsubApplicantId?: string | null
+    rejectLabels?: string[] | null
+    rejectType?: 'RETRY' | 'FINAL' | null
+    metadata?: { regionIntent?: string; [key: string]: unknown } | null
     createdAt: string
     updatedAt: string
 }
@@ -321,6 +339,26 @@ interface userInvites {
     inviteeUsername: string
 }
 
+export type UserRailStatus =
+    | 'PENDING'
+    | 'ENABLED'
+    | 'REQUIRES_INFORMATION'
+    | 'REQUIRES_EXTRA_INFORMATION'
+    | 'REJECTED'
+    | 'FAILED'
+
+export interface IUserRail {
+    id: string
+    railId: string
+    status: UserRailStatus
+    metadata?: { bridgeCustomerId?: string; additionalRequirements?: string[]; [key: string]: unknown } | null
+    rail: {
+        id: string
+        provider: { code: string; name: string }
+        method: { code: string; name: string; country: string; currency: string }
+    }
+}
+
 export interface IUserProfile {
     // OLD Points V1 fields removed - use pointsV2 in stats instead
     // Points V2: Use stats.pointsV2.totalPoints, pointsV2.inviteCount, etc.
@@ -331,6 +369,7 @@ export interface IUserProfile {
     totalPoints: number // Kept for backward compatibility - same as pointsV2.totalPoints
     hasPwaInstalled: boolean
     user: User
+    rails: IUserRail[]
     invitesSent: userInvites[]
     showEarlyUserModal: boolean
     invitedBy: string | null // Username of the person who invited this user

@@ -3,6 +3,7 @@ import { useAuth } from '@/context/authContext'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useEffect, useState } from 'react'
 import useKycStatus from './useKycStatus'
+import { isUserKycVerified } from '@/constants/kyc.consts'
 
 export enum BankClaimType {
     GuestBankClaim = 'guest-bank-claim',
@@ -23,12 +24,12 @@ export function useDetermineBankClaimType(senderUserId: string): {
     const { user } = useAuth()
     const [claimType, setClaimType] = useState<BankClaimType>(BankClaimType.ReceiverKycNeeded)
     const { setSenderDetails } = useClaimBankFlow()
-    const { isUserBridgeKycApproved } = useKycStatus()
+    const { isUserKycApproved } = useKycStatus()
 
     useEffect(() => {
         const determineBankClaimType = async () => {
             // check if receiver (logged in user) exists and is KYC approved
-            const receiverKycApproved = isUserBridgeKycApproved
+            const receiverKycApproved = isUserKycApproved
 
             if (receiverKycApproved) {
                 // condition 1: Receiver is KYC approved → UserBankClaim
@@ -48,7 +49,7 @@ export function useDetermineBankClaimType(senderUserId: string): {
 
             try {
                 const senderDetails = await getUserById(senderUserId)
-                const senderKycApproved = senderDetails?.bridgeKycStatus === 'approved'
+                const senderKycApproved = isUserKycVerified(senderDetails)
 
                 if (senderKycApproved) {
                     // condition 3: Receiver not KYC approved BUT sender is → GuestBankClaim

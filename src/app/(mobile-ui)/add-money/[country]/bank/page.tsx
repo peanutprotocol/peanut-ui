@@ -9,33 +9,32 @@ import { useOnrampFlow } from '@/context/OnrampFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { formatAmount } from '@/utils/general.utils'
 import { countryData } from '@/components/AddMoney/consts'
-import { type BridgeKycStatus } from '@/utils/bridge-accounts.utils'
-import { useWebSocket } from '@/hooks/useWebSocket'
 import { useAuth } from '@/context/authContext'
+import useKycStatus from '@/hooks/useKycStatus'
 import { useCreateOnramp } from '@/hooks/useCreateOnramp'
 import { useRouter, useParams } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import countryCurrencyMappings, { isNonEuroSepaCountry, isUKCountry } from '@/constants/countryCurrencyMapping'
 import { formatUnits } from 'viem'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
-import { UserDetailsForm, type UserDetailsFormData } from '@/components/AddMoney/UserDetailsForm'
-import { updateUserById } from '@/app/actions/users'
 import AddMoneyBankDetails from '@/components/AddMoney/components/AddMoneyBankDetails'
 import { getCurrencyConfig, getCurrencySymbol, getMinimumAmount } from '@/utils/bridge.utils'
 import { OnrampConfirmationModal } from '@/components/AddMoney/components/OnrampConfirmationModal'
-import { InitiateBridgeKYCModal } from '@/components/Kyc/InitiateBridgeKYCModal'
 import InfoCard from '@/components/Global/InfoCard'
 import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
 import { getLimitsWarningCardProps } from '@/features/limits/utils'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
+import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
+import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
+import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 // Step type for URL state
-type BridgeBankStep = 'inputAmount' | 'kyc' | 'collectUserDetails' | 'showDetails'
+type BridgeBankStep = 'inputAmount' | 'showDetails'
 
 export default function OnrampBankPage() {
     const router = useRouter()
@@ -45,7 +44,7 @@ export default function OnrampBankPage() {
     // Example: /add-money/mexico/bank?step=inputAmount&amount=500
     const [urlState, setUrlState] = useQueryStates(
         {
-            step: parseAsStringEnum<BridgeBankStep>(['inputAmount', 'kyc', 'collectUserDetails', 'showDetails']),
+            step: parseAsStringEnum<BridgeBankStep>(['inputAmount', 'showDetails']),
             amount: parseAsString,
         },
         { history: 'push' }
@@ -56,19 +55,22 @@ export default function OnrampBankPage() {
 
     // Local UI state (not URL-appropriate - transient)
     const [showWarningModal, setShowWarningModal] = useState<boolean>(false)
+    const [showKycModal, setShowKycModal] = useState<boolean>(false)
     const [isRiskAccepted, setIsRiskAccepted] = useState<boolean>(false)
-    const [isKycModalOpen, setIsKycModalOpen] = useState(false)
-    const [liveKycStatus, setLiveKycStatus] = useState<BridgeKycStatus | undefined>(undefined)
-    const [isUpdatingUser, setIsUpdatingUser] = useState(false)
-    const [userUpdateError, setUserUpdateError] = useState<string | null>(null)
-    const [isUserDetailsFormValid, setIsUserDetailsFormValid] = useState(false)
-
     const { setError, error, setOnrampData, onrampData } = useOnrampFlow()
-    const formRef = useRef<{ handleSubmit: () => void }>(null)
 
     const { balance } = useWallet()
     const { user, fetchUser } = useAuth()
     const { createOnramp, isLoading: isCreatingOnramp, error: onrampError } = useCreateOnramp()
+
+    // inline sumsub kyc flow for bridge bank onramp
+    // regionIntent is NOT passed here to avoid creating a backend record on mount.
+    // intent is passed at call time: handleInitiateKyc('STANDARD')
+    const sumsubFlow = useMultiPhaseKycFlow({
+        onKycSuccess: () => {
+            setUrlState({ step: 'inputAmount' })
+        },
+    })
 
     const selectedCountryPath = params.country as string
 
@@ -89,19 +91,7 @@ export default function OnrampBankPage() {
     // uk-specific check
     const isUK = isUKCountry(selectedCountryPath)
 
-    useWebSocket({
-        username: user?.user.username ?? undefined,
-        autoConnect: !!user?.user.username,
-        onKycStatusUpdate: (newStatus) => {
-            setLiveKycStatus(newStatus as BridgeKycStatus)
-        },
-    })
-
-    useEffect(() => {
-        if (user?.user.bridgeKycStatus) {
-            setLiveKycStatus(user.user.bridgeKycStatus as BridgeKycStatus)
-        }
-    }, [user?.user.bridgeKycStatus])
+    const { isUserKycApproved } = useKycStatus()
 
     useEffect(() => {
         fetchUser()
@@ -152,30 +142,12 @@ export default function OnrampBankPage() {
         currency: 'USD',
     })
 
-    // Determine initial step based on KYC status (only when URL has no step)
+    // Default to inputAmount step when no step in URL
     useEffect(() => {
-        // If URL already has a step, respect it (allows deep linking)
         if (urlState.step) return
-
-        // Wait for user to be fetched before determining initial step
         if (user === null) return
-
-        const currentKycStatus = liveKycStatus || user?.user.bridgeKycStatus
-        const isUserKycVerified = currentKycStatus === 'approved'
-
-        if (!isUserKycVerified) {
-            setUrlState({ step: 'collectUserDetails' })
-        } else {
-            setUrlState({ step: 'inputAmount' })
-        }
-    }, [liveKycStatus, user, urlState.step, setUrlState])
-
-    // Handle KYC completion
-    useEffect(() => {
-        if (urlState.step === 'kyc' && liveKycStatus === 'approved') {
-            setUrlState({ step: 'inputAmount' })
-        }
-    }, [liveKycStatus, urlState.step, setUrlState])
+        setUrlState({ step: 'inputAmount' })
+    }, [user, urlState.step, setUrlState])
 
     const validateAmount = useCallback(
         (amountStr: string): boolean => {
@@ -217,14 +189,19 @@ export default function OnrampBankPage() {
     }, [rawTokenAmount, validateAmount, setError])
 
     const handleAmountContinue = () => {
-        if (validateAmount(rawTokenAmount)) {
-            posthog.capture(ANALYTICS_EVENTS.DEPOSIT_AMOUNT_ENTERED, {
-                amount_usd: usdEquivalent,
-                method_type: 'bank',
-                country: selectedCountryPath,
-            })
-            setShowWarningModal(true)
+        if (!validateAmount(rawTokenAmount)) return
+
+        if (!isUserKycApproved) {
+            setShowKycModal(true)
+            return
         }
+
+        posthog.capture(ANALYTICS_EVENTS.DEPOSIT_AMOUNT_ENTERED, {
+            amount_usd: usdEquivalent,
+            method_type: 'bank',
+            country: selectedCountryPath,
+        })
+        setShowWarningModal(true)
     }
 
     const handleWarningConfirm = async () => {
@@ -278,39 +255,6 @@ export default function OnrampBankPage() {
         setIsRiskAccepted(false)
     }
 
-    const handleKycSuccess = () => {
-        setIsKycModalOpen(false)
-        setUrlState({ step: 'inputAmount' })
-    }
-
-    const handleKycModalClose = () => {
-        setIsKycModalOpen(false)
-    }
-
-    const handleUserDetailsSubmit = async (data: UserDetailsFormData) => {
-        setIsUpdatingUser(true)
-        setUserUpdateError(null)
-        try {
-            if (!user?.user.userId) throw new Error('User not found')
-            const result = await updateUserById({
-                userId: user.user.userId,
-                fullName: data.fullName,
-                email: data.email,
-            })
-            if (result.error) {
-                throw new Error(result.error)
-            }
-            await fetchUser()
-            setUrlState({ step: 'kyc' })
-        } catch (error: any) {
-            setUserUpdateError(error.message)
-            return { error: error.message }
-        } finally {
-            setIsUpdatingUser(false)
-        }
-        return {}
-    }
-
     const handleBack = () => {
         if (selectedCountry) {
             router.push(`/add-money/${selectedCountry.path}`)
@@ -318,20 +262,6 @@ export default function OnrampBankPage() {
             router.push('/add-money')
         }
     }
-
-    const initialUserDetails: Partial<UserDetailsFormData> = useMemo(
-        () => ({
-            fullName: user?.user.fullName ?? '',
-            email: user?.user.email ?? '',
-        }),
-        [user?.user.fullName, user?.user.email]
-    )
-
-    useEffect(() => {
-        if (urlState.step === 'kyc') {
-            setIsKycModalOpen(true)
-        }
-    }, [urlState.step])
 
     // Redirect to inputAmount if showDetails is accessed without required data (deep link / back navigation)
     useEffect(() => {
@@ -357,49 +287,6 @@ export default function OnrampBankPage() {
     // Still determining initial step
     if (!urlState.step) {
         return <PeanutLoading />
-    }
-
-    if (urlState.step === 'collectUserDetails') {
-        return (
-            <div className="flex flex-col justify-start space-y-8">
-                <NavHeader onPrev={handleBack} title="Identity Verification" />
-                <div className="flex flex-grow flex-col justify-center space-y-4">
-                    <h3 className="text-sm font-bold">Verify your details</h3>
-                    <UserDetailsForm
-                        ref={formRef}
-                        onSubmit={handleUserDetailsSubmit}
-                        isSubmitting={isUpdatingUser}
-                        onValidChange={setIsUserDetailsFormValid}
-                        initialData={initialUserDetails}
-                    />
-                    <Button
-                        onClick={() => formRef.current?.handleSubmit()}
-                        loading={isUpdatingUser}
-                        variant="purple"
-                        shadowSize="4"
-                        className="w-full"
-                        disabled={!isUserDetailsFormValid || isUpdatingUser}
-                    >
-                        Continue
-                    </Button>
-                    {userUpdateError && <ErrorAlert description={userUpdateError} />}
-                </div>
-            </div>
-        )
-    }
-
-    if (urlState.step === 'kyc') {
-        return (
-            <div className="flex flex-col justify-start space-y-8">
-                <InitiateBridgeKYCModal
-                    isOpen={isKycModalOpen}
-                    onClose={handleKycModalClose}
-                    onKycSuccess={handleKycSuccess}
-                    onManualClose={() => router.push(`/add-money/${selectedCountry.path}`)}
-                    flow="add"
-                />
-            </div>
-        )
     }
 
     if (urlState.step === 'showDetails') {
@@ -494,6 +381,18 @@ export default function OnrampBankPage() {
                     amount={rawTokenAmount}
                     currency={getCurrencySymbol(getCurrencyConfig(selectedCountry.id, 'onramp').currency)}
                 />
+
+                <InitiateKycModal
+                    visible={showKycModal}
+                    onClose={() => setShowKycModal(false)}
+                    onVerify={async () => {
+                        await sumsubFlow.handleInitiateKyc('STANDARD')
+                        setShowKycModal(false)
+                    }}
+                    isLoading={sumsubFlow.isLoading}
+                />
+
+                <SumsubKycModals flow={sumsubFlow} autoStartSdk />
             </div>
         )
     }

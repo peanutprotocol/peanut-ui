@@ -30,8 +30,9 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className, size = 'sm
                 return 'bg-secondary-4 text-yellow-6 border border-yellow-7'
             case 'failed':
             case 'cancelled':
-            case 'refunded':
                 return 'bg-error-1 text-error border border-error-2'
+            case 'refunded':
+                return 'bg-secondary-4 text-yellow-6 border border-yellow-7'
             case 'soon':
             case 'custom':
                 return 'bg-primary-3 text-primary-4'
@@ -41,6 +42,10 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className, size = 'sm
     }
 
     const getStatusText = () => {
+        // customText overrides the default label for any status type,
+        // allowing callers to use a specific status style with custom text
+        if (customText) return customText
+
         switch (status) {
             case 'completed':
                 return 'Completed'
@@ -59,7 +64,7 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className, size = 'sm
             case 'closed':
                 return 'Closed'
             case 'custom':
-                return customText
+                return 'Custom'
             default:
                 return status
         }

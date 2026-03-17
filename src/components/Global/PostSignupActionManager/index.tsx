@@ -7,6 +7,7 @@ import ActionModal from '../ActionModal'
 import { POST_SIGNUP_ACTIONS } from './post-signup-action.consts'
 import { type IconName } from '../Icons/Icon'
 import { useAuth } from '@/context/authContext'
+import { isUserKycVerified } from '@/constants/kyc.consts'
 
 export const PostSignupActionManager = ({
     onActionModalVisibilityChange,
@@ -26,7 +27,7 @@ export const PostSignupActionManager = ({
 
     const checkClaimModalAfterKYC = () => {
         const redirectUrl = getRedirectUrl()
-        if (user?.user.bridgeKycStatus === 'approved' && redirectUrl) {
+        if (isUserKycVerified(user?.user) && redirectUrl) {
             const matchedAction = POST_SIGNUP_ACTIONS.find((action) => action.pathPattern.test(redirectUrl))
             if (matchedAction) {
                 setActionConfig({
