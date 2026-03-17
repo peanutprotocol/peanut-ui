@@ -51,7 +51,14 @@ export function useDirectSendFlow() {
     const { user } = useAuth()
     const { createCharge, isCreating: isCreatingCharge } = useChargeManager()
     const { recordPayment, isRecording } = usePaymentRecorder()
-    const { isConnected, address: walletAddress, sendMoney, formattedBalance, hasSufficientBalance } = useWallet()
+    const {
+        isConnected,
+        address: walletAddress,
+        sendMoney,
+        formattedBalance,
+        hasSufficientBalance,
+        isFetchingBalance,
+    } = useWallet()
 
     const isLoggedIn = !!user?.user?.userId
 
@@ -84,9 +91,18 @@ export function useDirectSendFlow() {
     }, [amount, hasSufficientBalance])
 
     // check if should show insufficient balance error
+    // gate on !isFetchingBalance to avoid flash while balance is still loading
     const isInsufficientBalance = useMemo(() => {
-        return isLoggedIn && !!amount && !hasEnoughBalance && !isLoading && !isCreatingCharge && !isRecording
-    }, [isLoggedIn, amount, hasEnoughBalance, isLoading, isCreatingCharge, isRecording])
+        return (
+            isLoggedIn &&
+            !!amount &&
+            !hasEnoughBalance &&
+            !isFetchingBalance &&
+            !isLoading &&
+            !isCreatingCharge &&
+            !isRecording
+        )
+    }, [isLoggedIn, amount, hasEnoughBalance, isFetchingBalance, isLoading, isCreatingCharge, isRecording])
 
     // execute the payment (called from input view)
     const executePayment = useCallback(async () => {

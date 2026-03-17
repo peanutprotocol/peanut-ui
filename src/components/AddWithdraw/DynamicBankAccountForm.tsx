@@ -430,12 +430,6 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                 })}
                             </div>
                         )}
-                        {flow !== 'claim' &&
-                            !hideEmailInput &&
-                            !user?.user?.email &&
-                            renderInput('email', 'E-mail', {
-                                required: 'Email is required',
-                            })}
 
                         {isMx
                             ? renderInput('clabe', 'CLABE', {

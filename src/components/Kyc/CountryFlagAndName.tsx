@@ -16,6 +16,7 @@ export const CountryFlagAndName = ({ countryCode, isBridgeRegion }: CountryFlagA
                     icons={[
                         'https://flagcdn.com/w160/us.png',
                         'https://flagcdn.com/w160/eu.png',
+                        'https://flagcdn.com/w160/gb.png',
                         'https://flagcdn.com/w160/mx.png',
                     ]}
                     iconSize={80}
@@ -31,7 +32,7 @@ export const CountryFlagAndName = ({ countryCode, isBridgeRegion }: CountryFlagA
                     loading="lazy"
                 />
             )}
-            {isBridgeRegion ? 'US/EU/MX' : countryName}
+            {isBridgeRegion ? 'US/EU/UK/MX' : countryName}
         </div>
     )
 }

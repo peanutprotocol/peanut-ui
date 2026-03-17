@@ -1,0 +1,234 @@
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
+import { useWebSocket } from '@/hooks/useWebSocket'
+import { useUserStore } from '@/redux/hooks'
+import { initiateSumsubKyc } from '@/app/actions/sumsub'
+import { type KYCRegionIntent, type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
+
+interface UseSumsubKycFlowOptions {
+    onKycSuccess?: () => void
+    onManualClose?: () => void
+    regionIntent?: KYCRegionIntent
+}
+
+export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: UseSumsubKycFlowOptions = {}) => {
+    const { user } = useUserStore()
+    const router = useRouter()
+
+    const [accessToken, setAccessToken] = useState<string | null>(null)
+    const [showWrapper, setShowWrapper] = useState(false)
+    const [isLoading, setIsLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+    const [isVerificationProgressModalOpen, setIsVerificationProgressModalOpen] = useState(false)
+    const [liveKycStatus, setLiveKycStatus] = useState<SumsubKycStatus | undefined>(undefined)
+    const [rejectLabels, setRejectLabels] = useState<string[] | undefined>(undefined)
+    const prevStatusRef = useRef(liveKycStatus)
+    const showWrapperRef = useRef(showWrapper)
+    showWrapperRef.current = showWrapper
+    // tracks the effective region intent across initiate + refresh so the correct template is always used
+    const regionIntentRef = useRef<KYCRegionIntent | undefined>(regionIntent)
+    // tracks the level name across initiate + refresh (e.g. 'peanut-additional-docs')
+    const levelNameRef = useRef<string | undefined>(undefined)
+    // guard: only fire onKycSuccess when the user initiated a kyc flow in this session.
+    // prevents stale websocket events or mount-time fetches from auto-closing the drawer.
+    const userInitiatedRef = useRef(false)
+
+    useEffect(() => {
+        regionIntentRef.current = regionIntent
+    }, [regionIntent])
+
+    // listen for sumsub kyc status updates via websocket
+    useWebSocket({
+        username: user?.user.username ?? undefined,
+        autoConnect: true,
+        onSumsubKycStatusUpdate: (newStatus, newRejectLabels) => {
+            setLiveKycStatus(newStatus as SumsubKycStatus)
+            if (newRejectLabels) setRejectLabels(newRejectLabels)
+        },
+    })
+
+    // react to status transitions
+    useEffect(() => {
+        const prevStatus = prevStatusRef.current
+        prevStatusRef.current = liveKycStatus
+
+        if (prevStatus !== 'APPROVED' && liveKycStatus === 'APPROVED') {
+            // if SDK is still open (LATAM multi-level), close it now —
+            // applicantWorkflowCompleted has fired, all levels are done.
+            if (showWrapperRef.current) {
+                setShowWrapper(false)
+                setIsVerificationProgressModalOpen(true)
+                userInitiatedRef.current = true
+            }
+            if (userInitiatedRef.current) {
+                onKycSuccess?.()
+            }
+        } else if (
+            liveKycStatus &&
+            liveKycStatus !== prevStatus &&
+            liveKycStatus !== 'APPROVED' &&
+            liveKycStatus !== 'PENDING'
+        ) {
+            // close modal for any non-success terminal state (REJECTED, ACTION_REQUIRED, FAILED, etc.)
+            setIsVerificationProgressModalOpen(false)
+        }
+    }, [liveKycStatus, onKycSuccess])
+
+    // fetch current status to recover from missed websocket events.
+    // skip when regionIntent is undefined to avoid creating an applicant with the wrong template
+    // (e.g. RegionsVerification mounts with no region selected yet).
+    useEffect(() => {
+        if (!regionIntent) return
+
+        const fetchCurrentStatus = async () => {
+            try {
+                const response = await initiateSumsubKyc({ regionIntent })
+                if (response.data?.status) {
+                    setLiveKycStatus(response.data.status)
+                }
+            } catch {
+                // silent failure - we just show the user an error when they try to initiate the kyc flow if the api call is failing
+            }
+        }
+
+        fetchCurrentStatus()
+    }, [regionIntent])
+
+    // polling fallback for missed websocket events.
+    // when the verification progress modal is open, poll status every 5s
+    // so the flow can transition even if the websocket event never arrives.
+    useEffect(() => {
+        if (!isVerificationProgressModalOpen) return
+
+        const pollStatus = async () => {
+            try {
+                const response = await initiateSumsubKyc({
+                    regionIntent: regionIntentRef.current,
+                    levelName: levelNameRef.current,
+                })
+                if (response.data?.status) {
+                    setLiveKycStatus(response.data.status)
+                }
+            } catch {
+                // silent — polling is a best-effort fallback
+            }
+        }
+
+        const interval = setInterval(pollStatus, 5000)
+        return () => clearInterval(interval)
+    }, [isVerificationProgressModalOpen])
+
+    const handleInitiateKyc = useCallback(
+        async (overrideIntent?: KYCRegionIntent, levelName?: string) => {
+            userInitiatedRef.current = true
+            setIsLoading(true)
+            setError(null)
+
+            try {
+                const response = await initiateSumsubKyc({
+                    regionIntent: overrideIntent ?? regionIntent,
+                    levelName,
+                })
+
+                if (response.error) {
+                    setError(response.error)
+                    return
+                }
+
+                // sync status from api response, but skip when a token is returned
+                // alongside APPROVED — that means the SDK should open (e.g. additional-docs flow),
+                // not that kyc is finished. syncing APPROVED here would trigger the useEffect
+                // which fires onKycSuccess and closes everything before the SDK opens.
+                if (response.data?.status && !(response.data.status === 'APPROVED' && response.data.token)) {
+                    setLiveKycStatus(response.data.status)
+                }
+
+                // update effective intent + level for token refresh
+                const effectiveIntent = overrideIntent ?? regionIntent
+                if (effectiveIntent) regionIntentRef.current = effectiveIntent
+                levelNameRef.current = levelName
+
+                // if already approved and no token returned, kyc is done.
+                // set prevStatusRef so the transition effect doesn't fire onKycSuccess a second time.
+                // when a token IS returned (e.g. additional-docs flow), we still need to show the SDK.
+                if (response.data?.status === 'APPROVED' && !response.data?.token) {
+                    prevStatusRef.current = 'APPROVED'
+                    onKycSuccess?.()
+                    return
+                }
+
+                if (response.data?.token) {
+                    setAccessToken(response.data.token)
+                    setShowWrapper(true)
+                } else {
+                    setError('Could not initiate verification. Please try again.')
+                }
+            } catch (e: unknown) {
+                const message = e instanceof Error ? e.message : 'An unexpected error occurred'
+                setError(message)
+            } finally {
+                setIsLoading(false)
+            }
+        },
+        [regionIntent, onKycSuccess]
+    )
+
+    // called when sdk signals applicant submitted
+    const handleSdkComplete = useCallback(() => {
+        userInitiatedRef.current = true
+        setShowWrapper(false)
+        setIsVerificationProgressModalOpen(true)
+    }, [])
+
+    // called when user manually closes the sdk modal
+    const handleClose = useCallback(() => {
+        setShowWrapper(false)
+        onManualClose?.()
+    }, [onManualClose])
+
+    // token refresh function passed to the sdk for when the token expires.
+    // uses regionIntentRef + levelNameRef so refresh always matches the template used during initiation.
+    const refreshToken = useCallback(async (): Promise<string> => {
+        const response = await initiateSumsubKyc({
+            regionIntent: regionIntentRef.current,
+            levelName: levelNameRef.current,
+        })
+
+        if (response.error || !response.data?.token) {
+            throw new Error(response.error || 'Failed to refresh token')
+        }
+
+        setAccessToken(response.data.token)
+        return response.data.token
+    }, [])
+
+    const closeVerificationProgressModal = useCallback(() => {
+        setIsVerificationProgressModalOpen(false)
+    }, [])
+
+    const closeVerificationModalAndGoHome = useCallback(() => {
+        setIsVerificationProgressModalOpen(false)
+        router.push('/home')
+    }, [router])
+
+    const resetError = useCallback(() => {
+        setError(null)
+    }, [])
+
+    return {
+        isLoading,
+        error,
+        showWrapper,
+        accessToken,
+        liveKycStatus,
+        rejectLabels,
+        handleInitiateKyc,
+        handleSdkComplete,
+        handleClose,
+        refreshToken,
+        isVerificationProgressModalOpen,
+        closeVerificationProgressModal,
+        closeVerificationModalAndGoHome,
+        resetError,
+    }
+}

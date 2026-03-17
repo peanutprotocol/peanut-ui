@@ -4,9 +4,10 @@ import { CountryFlagAndName } from './CountryFlagAndName'
 interface CountryRegionRowProps {
     countryCode?: string | null
     isBridge?: boolean
+    hideBottomBorder?: boolean
 }
 
-export const CountryRegionRow = ({ countryCode, isBridge }: CountryRegionRowProps) => {
+export const CountryRegionRow = ({ countryCode, isBridge, hideBottomBorder }: CountryRegionRowProps) => {
     if (!isBridge && !countryCode) {
         return null
     }
@@ -15,6 +16,7 @@ export const CountryRegionRow = ({ countryCode, isBridge }: CountryRegionRowProp
         <PaymentInfoRow
             label="Country/Region"
             value={<CountryFlagAndName countryCode={countryCode ?? ''} isBridgeRegion={isBridge} />}
+            hideBottomBorder={hideBottomBorder}
         />
     )
 }

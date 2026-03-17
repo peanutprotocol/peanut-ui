@@ -3,7 +3,7 @@
 import { useCallback, useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/context/authContext'
 import { MantecaKycStatus } from '@/interfaces'
-import { getBridgeCustomerCountry } from '@/app/actions/bridge/get-customer'
+import { isKycStatusApproved, isSumsubStatusInProgress } from '@/constants/kyc.consts'
 
 export enum QrKycState {
     LOADING = 'loading',
@@ -61,6 +61,16 @@ export function useQrKycGate(paymentProcessor?: 'MANTECA' | 'SIMPLEFI' | null): 
             return
         }
 
+        // sumsub approved users (including foreign users) can proceed to qr pay.
+        // note: backend enforces per-rail access separately — frontend gate only checks identity verification.
+        const hasSumsubApproved = currentUser.kycVerifications?.some(
+            (v) => v.provider === 'SUMSUB' && isKycStatusApproved(v.status)
+        )
+        if (hasSumsubApproved) {
+            setKycGateState(QrKycState.PROCEED_TO_PAY)
+            return
+        }
+
         const mantecaKycs = currentUser.kycVerifications?.filter((v) => v.provider === 'MANTECA') ?? []
 
         const hasAnyMantecaKyc = mantecaKycs.length > 0
@@ -73,18 +83,8 @@ export function useQrKycGate(paymentProcessor?: 'MANTECA' | 'SIMPLEFI' | null): 
             return
         }
 
-        if (currentUser.bridgeKycStatus === 'approved' && currentUser.bridgeCustomerId) {
-            try {
-                const { countryCode } = await getBridgeCustomerCountry(currentUser.bridgeCustomerId)
-                // if (countryCode && countryCode.toUpperCase() === 'AR') {
-                if (false) {
-                } else {
-                    setKycGateState(QrKycState.PROCEED_TO_PAY)
-                }
-            } catch {
-                // fail to require identity verification to avoid blocking pay due to rare outages
-                setKycGateState(QrKycState.REQUIRES_IDENTITY_VERIFICATION)
-            }
+        if (currentUser.bridgeKycStatus === 'approved') {
+            setKycGateState(QrKycState.PROCEED_TO_PAY)
             return
         }
 
@@ -96,6 +96,15 @@ export function useQrKycGate(paymentProcessor?: 'MANTECA' | 'SIMPLEFI' | null): 
         }
 
         if (hasAnyMantecaKyc) {
+            setKycGateState(QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS)
+            return
+        }
+
+        // sumsub verification in progress
+        const hasSumsubInProgress = currentUser.kycVerifications?.some(
+            (v) => v.provider === 'SUMSUB' && isSumsubStatusInProgress(v.status)
+        )
+        if (hasSumsubInProgress) {
             setKycGateState(QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS)
             return
         }

@@ -1,41 +1,38 @@
+import { KycActionRequired } from './states/KycActionRequired'
 import { KycCompleted } from './states/KycCompleted'
 import { KycFailed } from './states/KycFailed'
+import { KycNotStarted } from './states/KycNotStarted'
 import { KycProcessing } from './states/KycProcessing'
+import { KycRequiresDocuments } from './states/KycRequiresDocuments'
+import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { Drawer, DrawerContent, DrawerTitle } from '../Global/Drawer'
 import { type BridgeKycStatus } from '@/utils/bridge-accounts.utils'
-import { type IUserKycVerification, MantecaKycStatus } from '@/interfaces'
+import { type IUserKycVerification } from '@/interfaces'
 import { useUserStore } from '@/redux/hooks'
-import { useBridgeKycFlow } from '@/hooks/useBridgeKycFlow'
-import { useMantecaKycFlow } from '@/hooks/useMantecaKycFlow'
-import { type CountryData, countryData } from '@/components/AddMoney/consts'
-import IFrameWrapper from '@/components/Global/IframeWrapper'
-
-// a helper to categorize the kyc status from the user object
-const getKycStatusCategory = (status: BridgeKycStatus | MantecaKycStatus): 'processing' | 'completed' | 'failed' => {
-    switch (status) {
-        case 'approved':
-        case MantecaKycStatus.ACTIVE:
-            return 'completed'
-        case 'rejected':
-        case MantecaKycStatus.INACTIVE:
-            return 'failed'
-        case 'under_review':
-        case 'incomplete':
-        case MantecaKycStatus.ONBOARDING:
-        default:
-            return 'processing'
-    }
-}
+import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
+import { getKycStatusCategory, isKycStatusNotStarted } from '@/constants/kyc.consts'
+import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
+import { useCallback } from 'react'
 
 interface KycStatusDrawerProps {
     isOpen: boolean
     onClose: () => void
     verification?: IUserKycVerification
     bridgeKycStatus?: BridgeKycStatus
+    region?: 'STANDARD' | 'LATAM'
+    /** keep this component mounted even after drawer closes (so SumsubKycModals persists) */
+    onKeepMounted?: (keep: boolean) => void
 }
 
 // this component determines which kyc state to show inside the drawer and fetches rejection reasons if the kyc has failed.
-export const KycStatusDrawer = ({ isOpen, onClose, verification, bridgeKycStatus }: KycStatusDrawerProps) => {
+export const KycStatusDrawer = ({
+    isOpen,
+    onClose,
+    verification,
+    bridgeKycStatus,
+    region,
+    onKeepMounted,
+}: KycStatusDrawerProps) => {
     const { user } = useUserStore()
 
     const status = verification ? verification.status : bridgeKycStatus
@@ -43,39 +40,85 @@ export const KycStatusDrawer = ({ isOpen, onClose, verification, bridgeKycStatus
     const countryCode = verification ? verification.mantecaGeo || verification.bridgeGeo : null
     const isBridgeKyc = !verification && !!bridgeKycStatus
     const provider = verification ? verification.provider : 'BRIDGE'
+    // derive region intent from sumsub verification metadata so token uses correct level
+    const sumsubRegionIntent = (
+        verification?.provider === 'SUMSUB' ? verification?.metadata?.regionIntent : undefined
+    ) as KYCRegionIntent | undefined
 
-    const {
-        handleInitiateKyc: initiateBridgeKyc,
-        iframeOptions: bridgeIframeOptions,
-        handleIframeClose: handleBridgeIframeClose,
-        isLoading: isBridgeLoading,
-    } = useBridgeKycFlow({ onKycSuccess: onClose, onManualClose: onClose })
+    // close drawer and release the keep-mounted hold
+    const handleFlowDone = useCallback(() => {
+        onClose()
+        onKeepMounted?.(false)
+    }, [onClose, onKeepMounted])
 
-    const country = countryCode ? countryData.find((c) => c.id.toUpperCase() === countryCode.toUpperCase()) : undefined
-
-    const {
-        openMantecaKyc,
-        iframeOptions: mantecaIframeOptions,
-        handleIframeClose: handleMantecaIframeClose,
-        isLoading: isMantecaLoading,
-    } = useMantecaKycFlow({
-        onSuccess: onClose,
-        onClose: onClose,
-        onManualClose: onClose,
-        country: country as CountryData,
+    const sumsubFlow = useMultiPhaseKycFlow({
+        onKycSuccess: handleFlowDone,
+        onManualClose: handleFlowDone,
+        // don't pass regionIntent for completed kyc — prevents the mount effect
+        // in useSumsubKycFlow from calling initiateSumsubKyc(), which triggers
+        // the undefined->APPROVED transition that auto-closes the drawer
+        regionIntent: statusCategory === 'completed' ? undefined : sumsubRegionIntent,
     })
 
-    const onRetry = async () => {
-        if (provider === 'MANTECA') {
-            await openMantecaKyc(country as CountryData)
-        } else {
-            await initiateBridgeKyc()
-        }
-    }
+    // close drawer but keep mounted so SumsubKycModals persists, then start kyc
+    const closeAndStartKyc = useCallback(
+        async (regionIntent?: KYCRegionIntent, levelName?: string) => {
+            onKeepMounted?.(true)
+            onClose()
+            try {
+                await sumsubFlow.handleInitiateKyc(regionIntent, levelName)
+            } catch (e) {
+                onKeepMounted?.(false)
+                throw e
+            }
+        },
+        [onKeepMounted, onClose, sumsubFlow]
+    )
 
-    const isLoadingKyc = isBridgeLoading || isMantecaLoading
+    // check if any bridge rail needs additional documents
+    const bridgeRailsNeedingDocs = (user?.rails ?? []).filter(
+        (r) => r.status === 'REQUIRES_EXTRA_INFORMATION' && r.rail.provider.code === 'BRIDGE'
+    )
+    const needsAdditionalDocs = bridgeRailsNeedingDocs.length > 0
+    // aggregate requirements across all rails and deduplicate
+    const additionalRequirements: string[] = needsAdditionalDocs
+        ? [
+              ...new Set(
+                  bridgeRailsNeedingDocs.flatMap((r) => {
+                      const reqs = r.metadata?.additionalRequirements
+                      return Array.isArray(reqs) ? reqs : []
+                  })
+              ),
+          ]
+        : []
+
+    // count sumsub rejections for failure lockout.
+    const sumsubFailureCount =
+        user?.user?.kycVerifications?.filter((v) => v.provider === 'SUMSUB' && v.status === 'REJECTED').length ?? 0
+
+    const handleSubmitAdditionalDocs = useCallback(
+        () => closeAndStartKyc(undefined, 'peanut-additional-docs'),
+        [closeAndStartKyc]
+    )
 
     const renderContent = () => {
+        // user initiated kyc but abandoned before submitting — close drawer visually
+        // but keep component mounted so SumsubKycModals persists for the SDK flow
+        if (verification && isKycStatusNotStarted(status)) {
+            return <KycNotStarted onResume={closeAndStartKyc} />
+        }
+
+        // bridge additional document requirement — but don't mask terminal kyc states
+        if (needsAdditionalDocs && statusCategory !== 'failed' && statusCategory !== 'action_required') {
+            return (
+                <KycRequiresDocuments
+                    requirements={additionalRequirements}
+                    onSubmitDocuments={handleSubmitAdditionalDocs}
+                    isLoading={sumsubFlow.isLoading}
+                />
+            )
+        }
+
         switch (statusCategory) {
             case 'processing':
                 return (
@@ -90,18 +133,31 @@ export const KycStatusDrawer = ({ isOpen, onClose, verification, bridgeKycStatus
                     <KycCompleted
                         bridgeKycApprovedAt={verification?.approvedAt ?? user?.user?.bridgeKycApprovedAt}
                         countryCode={countryCode ?? undefined}
-                        isBridge={isBridgeKyc}
+                        isBridge={isBridgeKyc || region === 'STANDARD'}
+                        region={region}
+                    />
+                )
+            case 'action_required':
+                return (
+                    <KycActionRequired
+                        onResume={closeAndStartKyc}
+                        isLoading={sumsubFlow.isLoading}
+                        rejectLabels={verification?.rejectLabels}
                     />
                 )
             case 'failed':
                 return (
                     <KycFailed
-                        reason={user?.user?.bridgeKycRejectionReasonString ?? ''}
+                        rejectLabels={verification?.rejectLabels}
+                        bridgeReason={user?.user?.bridgeKycRejectionReasonString}
+                        isSumsub={provider === 'SUMSUB'}
+                        rejectType={verification?.rejectType}
+                        failureCount={sumsubFailureCount}
                         bridgeKycRejectedAt={verification?.updatedAt ?? user?.user?.bridgeKycRejectedAt}
                         countryCode={countryCode ?? undefined}
                         isBridge={isBridgeKyc}
-                        onRetry={onRetry}
-                        isLoading={isLoadingKyc}
+                        onRetry={closeAndStartKyc}
+                        isLoading={sumsubFlow.isLoading}
                     />
                 )
             default:
@@ -109,8 +165,9 @@ export const KycStatusDrawer = ({ isOpen, onClose, verification, bridgeKycStatus
         }
     }
 
-    // don't render the drawer if the kyc status is unknown or not started
-    if (status === 'not_started' || !status) {
+    // don't render the drawer if the kyc status is unknown or not started.
+    // if a verification record exists, the user has initiated KYC — show the drawer.
+    if (!verification && isKycStatusNotStarted(status)) {
         return null
     }
 
@@ -120,10 +177,12 @@ export const KycStatusDrawer = ({ isOpen, onClose, verification, bridgeKycStatus
                 <DrawerContent className="p-5 pb-12">
                     <DrawerTitle className="sr-only">KYC Status</DrawerTitle>
                     {renderContent()}
+                    {sumsubFlow.error && provider === 'SUMSUB' && (
+                        <p className="text-red-500 mt-3 text-center text-sm">{sumsubFlow.error}</p>
+                    )}
                 </DrawerContent>
             </Drawer>
-            <IFrameWrapper {...bridgeIframeOptions} onClose={handleBridgeIframeClose} />
-            <IFrameWrapper {...mantecaIframeOptions} onClose={handleMantecaIframeClose} />
+            <SumsubKycModals flow={sumsubFlow} autoStartSdk />
         </>
     )
 }
