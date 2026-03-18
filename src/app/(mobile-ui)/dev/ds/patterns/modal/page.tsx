@@ -331,8 +331,8 @@ export default function ModalPage() {
             <DocSection title="Easter Egg Modal">
                 <DocSection.Content>
                     <p className="text-sm text-grey-1">
-                        Fun modal shown when users tap uninhabited/weird countries (Antarctica, Bouvet Island, etc.)
-                        in the country selector. Uses base Modal with an image and humorous caption.
+                        Fun modal shown when users tap uninhabited/weird countries (Antarctica, Bouvet Island, etc.) in
+                        the country selector. Uses base Modal with an image and humorous caption.
                     </p>
 
                     <div>
@@ -347,7 +347,10 @@ export default function ModalPage() {
                     </div>
                 </DocSection.Content>
                 <DocSection.Code>
-                    <CodeBlock label="Import" code={`import EasterEggModal from '@/components/Global/EasterEggModal'`} />
+                    <CodeBlock
+                        label="Import"
+                        code={`import EasterEggModal from '@/components/Global/EasterEggModal'`}
+                    />
                     <CodeBlock
                         label="Usage"
                         code={`<EasterEggModal

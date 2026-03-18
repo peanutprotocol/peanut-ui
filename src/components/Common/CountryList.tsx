@@ -199,7 +199,10 @@ export const CountryList = ({
                                         onCountryClick(country)
                                     }}
                                     position={position}
-                                    isDisabled={(!isSupported && !EASTER_EGG_COUNTRIES[country.id]) || clickedCountryId === country.id}
+                                    isDisabled={
+                                        (!isSupported && !EASTER_EGG_COUNTRIES[country.id]) ||
+                                        clickedCountryId === country.id
+                                    }
                                     leftIcon={
                                         <div className="relative h-8 w-8">
                                             <Image
