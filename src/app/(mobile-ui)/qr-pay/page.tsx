@@ -702,8 +702,8 @@ export default function QRPayPage() {
             }
             // Map backend field name (sponsoredUsd) to frontend field name (amountSponsored)
             const perkResponse = qrPayment.perk as Record<string, unknown> | undefined
-            if (qrPayment.perk && perkResponse?.sponsoredUsd !== undefined) {
-                qrPayment.perk.amountSponsored = perkResponse.sponsoredUsd as number
+            if (qrPayment.perk && typeof perkResponse?.sponsoredUsd === 'number') {
+                qrPayment.perk.amountSponsored = perkResponse.sponsoredUsd
             }
 
             setQrPayment(qrPayment)
@@ -712,7 +712,7 @@ export default function QRPayPage() {
             // The backend already claimed the perk at payment time, so this is just a UI shortcut.
             if (
                 qrPayment.perk?.eligible &&
-                qrPayment.perk.amountSponsored !== undefined &&
+                typeof qrPayment.perk.amountSponsored === 'number' &&
                 qrPayment.perk.amountSponsored < 0.5
             ) {
                 setPerkClaimed(true)
