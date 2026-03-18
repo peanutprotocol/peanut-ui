@@ -96,6 +96,7 @@ export default function MantecaWithdrawFlow() {
     // intent is passed at call time: handleInitiateKyc('LATAM')
     const sumsubFlow = useMultiPhaseKycFlow({})
     const [showKycModal, setShowKycModal] = useState(false)
+    const [isRedirectingToOnboarding, setIsRedirectingToOnboarding] = useState(false)
     // Get method and country from URL parameters
     const selectedMethodType = searchParams.get('method') // mercadopago, pix, bank-transfer, etc.
     const countryFromUrl = searchParams.get('country') // argentina, brazil, etc.
@@ -176,6 +177,29 @@ export default function MantecaWithdrawFlow() {
         return isValid
     }
 
+    /**
+     * Detect Manteca onboarding-incomplete errors and redirect user to complete their profile.
+     * Returns true if the error was handled (caller should return early).
+     */
+    const handleOnboardingError = useCallback(async (error: string): Promise<boolean> => {
+        const onboardingErrorPatterns = ['fund origin', 'profile incomplete', 'onboarding required']
+        const normalizedError = error.toLowerCase()
+        const isOnboardingError = onboardingErrorPatterns.some((pattern) => normalizedError.includes(pattern))
+        if (!isOnboardingError) return false
+
+        setIsRedirectingToOnboarding(true)
+        try {
+            const result = await mantecaApi.initiateOnboarding({
+                returnUrl: window.location.href,
+            })
+            window.location.href = result.url
+        } catch {
+            setErrorMessage('Please complete your account setup. Go to Settings to update your profile.')
+            setIsRedirectingToOnboarding(false)
+        }
+        return true
+    }, [])
+
     const isCompleteBankDetails = useMemo<boolean>(() => {
         return (
             !!destinationAddress.trim() &&
@@ -215,6 +239,7 @@ export default function MantecaWithdrawFlow() {
             })
 
             if (result.error) {
+                if (await handleOnboardingError(result.error)) return
                 setErrorMessage(result.error)
                 return
             }
@@ -244,6 +269,7 @@ export default function MantecaWithdrawFlow() {
         currencyAmount,
         isUserMantecaKycApproved,
         isLockingPrice,
+        handleOnboardingError,
     ])
 
     const handleWithdraw = async () => {
@@ -313,6 +339,9 @@ export default function MantecaWithdrawFlow() {
                     method_type: 'manteca',
                     error_message: result.error,
                 })
+
+                // handle onboarding-incomplete errors by redirecting to complete profile
+                if (await handleOnboardingError(result.message ?? result.error)) return
 
                 // handle third-party account error with user-friendly message
                 if (result.error === 'TAX_ID_MISMATCH' || result.error === 'CUIT_MISMATCH') {
@@ -664,13 +693,18 @@ export default function MantecaWithdrawFlow() {
                                 !isCompleteBankDetails ||
                                 isDestinationAddressChanging ||
                                 !isDestinationAddressValid ||
-                                isLockingPrice
+                                isLockingPrice ||
+                                isRedirectingToOnboarding
                             }
-                            loading={isDestinationAddressChanging || isLockingPrice}
+                            loading={isDestinationAddressChanging || isLockingPrice || isRedirectingToOnboarding}
                             className="w-full"
                             shadowSize="4"
                         >
-                            {isLockingPrice ? 'Locking rate...' : 'Review'}
+                            {isRedirectingToOnboarding
+                                ? 'Redirecting...'
+                                : isLockingPrice
+                                  ? 'Locking rate...'
+                                  : 'Review'}
                         </Button>
 
                         {errorMessage && <ErrorAlert description={errorMessage} />}
