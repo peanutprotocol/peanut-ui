@@ -432,7 +432,7 @@ export default function MantecaWithdrawFlow() {
 
     // redirect to withdraw page if country is not supported by manteca
     useEffect(() => {
-        if (selectedCountry && !MANTECA_COUNTRIES_CONFIG[selectedCountry.id]) {
+        if (!selectedCountry || !MANTECA_COUNTRIES_CONFIG[selectedCountry.id]) {
             router.replace('/withdraw')
         }
     }, [selectedCountry, router])
