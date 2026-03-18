@@ -1,6 +1,6 @@
 'use client'
 
-import Modal from '@/components/Global/Modal'
+import ActionModal from '@/components/Global/ActionModal'
 import Image from 'next/image'
 
 export interface EasterEggCountryConfig {
@@ -40,8 +40,12 @@ const EasterEggModal = ({ visible, onClose, countryCode }: EasterEggModalProps) 
     if (!config) return null
 
     return (
-        <Modal visible={visible} onClose={onClose} classWrap="max-w-[22rem] overflow-hidden !rounded-2xl">
-            <div className="relative w-full">
+        <ActionModal
+            visible={visible}
+            onClose={onClose}
+            title={config.caption}
+            description={config.subtitle}
+            icon={
                 <Image
                     src={config.image}
                     alt="Easter egg"
@@ -50,12 +54,16 @@ const EasterEggModal = ({ visible, onClose, countryCode }: EasterEggModalProps) 
                     className="h-auto w-full"
                     priority
                 />
-            </div>
-            <div className="px-4 py-5 text-center">
-                <p className="text-base font-bold">{config.caption}</p>
-                <p className="mt-1 text-xs text-grey-1">{config.subtitle}</p>
-            </div>
-        </Modal>
+            }
+            iconContainerClassName="size-auto rounded-none bg-transparent w-full"
+            ctas={[
+                {
+                    text: 'Got it',
+                    variant: 'stroke',
+                    onClick: onClose,
+                },
+            ]}
+        />
     )
 }
 
