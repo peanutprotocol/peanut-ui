@@ -53,11 +53,23 @@ const HomeHistory = ({ username, hideTxnAmount = false }: { username?: string; h
         username, // Pass the username to the WebSocket hook
         onHistoryEntry: useCallback(
             (entry: HistoryEntry) => {
-                // for direct send and completed requests, fetch the balance
-                if (
-                    entry.type === EHistoryEntryType.DIRECT_SEND ||
-                    (entry.type === EHistoryEntryType.REQUEST && entry.status.toUpperCase() === 'COMPLETED')
-                ) {
+                // refresh balance for transaction types that affect the user's wallet
+                const BALANCE_AFFECTING_TYPES: string[] = [
+                    EHistoryEntryType.DIRECT_SEND,
+                    EHistoryEntryType.DEPOSIT,
+                    EHistoryEntryType.WITHDRAW,
+                    EHistoryEntryType.BRIDGE_OFFRAMP,
+                    EHistoryEntryType.BRIDGE_ONRAMP,
+                    EHistoryEntryType.MANTECA_OFFRAMP,
+                    EHistoryEntryType.MANTECA_ONRAMP,
+                    EHistoryEntryType.SEND_LINK,
+                    EHistoryEntryType.BANK_SEND_LINK_CLAIM,
+                    EHistoryEntryType.PERK_REWARD,
+                ]
+                const isCompleted = !entry.status || entry.status.toUpperCase() === 'COMPLETED'
+                const isBalanceAffecting = BALANCE_AFFECTING_TYPES.includes(entry.type)
+
+                if (isBalanceAffecting || (entry.type === EHistoryEntryType.REQUEST && isCompleted)) {
                     fetchBalance()
                 }
             },
