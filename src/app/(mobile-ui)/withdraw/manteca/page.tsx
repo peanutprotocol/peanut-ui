@@ -182,8 +182,9 @@ export default function MantecaWithdrawFlow() {
      * Returns true if the error was handled (caller should return early).
      */
     const handleOnboardingError = useCallback(async (error: string): Promise<boolean> => {
-        const onboardingErrors = ['fund origin', 'onboarding', 'profile incomplete']
-        const isOnboardingError = onboardingErrors.some((keyword) => error.toLowerCase().includes(keyword))
+        const onboardingErrorPatterns = ['fund origin', 'profile incomplete', 'onboarding required']
+        const normalizedError = error.toLowerCase()
+        const isOnboardingError = onboardingErrorPatterns.some((pattern) => normalizedError.includes(pattern))
         if (!isOnboardingError) return false
 
         setIsRedirectingToOnboarding(true)
@@ -268,6 +269,7 @@ export default function MantecaWithdrawFlow() {
         currencyAmount,
         isUserMantecaKycApproved,
         isLockingPrice,
+        handleOnboardingError,
     ])
 
     const handleWithdraw = async () => {
@@ -339,7 +341,7 @@ export default function MantecaWithdrawFlow() {
                 })
 
                 // handle onboarding-incomplete errors by redirecting to complete profile
-                if (await handleOnboardingError(result.error)) return
+                if (await handleOnboardingError(result.message ?? result.error)) return
 
                 // handle third-party account error with user-friendly message
                 if (result.error === 'TAX_ID_MISMATCH' || result.error === 'CUIT_MISMATCH') {
@@ -691,13 +693,18 @@ export default function MantecaWithdrawFlow() {
                                 !isCompleteBankDetails ||
                                 isDestinationAddressChanging ||
                                 !isDestinationAddressValid ||
-                                isLockingPrice
+                                isLockingPrice ||
+                                isRedirectingToOnboarding
                             }
-                            loading={isDestinationAddressChanging || isLockingPrice}
+                            loading={isDestinationAddressChanging || isLockingPrice || isRedirectingToOnboarding}
                             className="w-full"
                             shadowSize="4"
                         >
-                            {isLockingPrice ? 'Locking rate...' : 'Review'}
+                            {isRedirectingToOnboarding
+                                ? 'Redirecting...'
+                                : isLockingPrice
+                                  ? 'Locking rate...'
+                                  : 'Review'}
                         </Button>
 
                         {errorMessage && <ErrorAlert description={errorMessage} />}
