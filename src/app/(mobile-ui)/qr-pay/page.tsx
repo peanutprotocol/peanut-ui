@@ -700,7 +700,24 @@ export default function QRPayPage() {
                 clearTimeout(payingStateTimerRef.current)
                 payingStateTimerRef.current = null
             }
+            // Map backend field name (sponsoredUsd) to frontend field name (amountSponsored)
+            const perkResponse = qrPayment.perk as Record<string, unknown> | undefined
+            if (qrPayment.perk && perkResponse?.sponsoredUsd !== undefined) {
+                qrPayment.perk.amountSponsored = perkResponse.sponsoredUsd as number
+            }
+
             setQrPayment(qrPayment)
+
+            // Auto-claim small perks (<$0.50) — skip the hold-to-claim ceremony.
+            // The backend already claimed the perk at payment time, so this is just a UI shortcut.
+            if (
+                qrPayment.perk?.eligible &&
+                qrPayment.perk.amountSponsored !== undefined &&
+                qrPayment.perk.amountSponsored < 0.5
+            ) {
+                setPerkClaimed(true)
+            }
+
             setIsSuccess(true)
         } catch (error) {
             // clear the timer on error to prevent race condition
