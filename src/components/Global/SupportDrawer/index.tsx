@@ -47,6 +47,8 @@ const SupportDrawer = () => {
                             <PeanutLoading />
                         </div>
                     )}
+                    {/* TODO: Keep iframe alive between drawer open/close (hide with CSS instead of unmounting) */}
+                    {/* to avoid re-initializing Crisp on every open. Currently causes noticeable load delay. */}
                     <iframe
                         src={crispProxyUrl}
                         className="h-full w-full"
