@@ -700,7 +700,24 @@ export default function QRPayPage() {
                 clearTimeout(payingStateTimerRef.current)
                 payingStateTimerRef.current = null
             }
+            // Map backend field name (sponsoredUsd) to frontend field name (amountSponsored)
+            const perkResponse = qrPayment.perk as Record<string, unknown> | undefined
+            if (qrPayment.perk && typeof perkResponse?.sponsoredUsd === 'number') {
+                qrPayment.perk.amountSponsored = perkResponse.sponsoredUsd
+            }
+
             setQrPayment(qrPayment)
+
+            // Auto-claim small perks (<$0.50) — skip the hold-to-claim ceremony.
+            // The backend already claimed the perk at payment time, so this is just a UI shortcut.
+            if (
+                qrPayment.perk?.eligible &&
+                typeof qrPayment.perk.amountSponsored === 'number' &&
+                qrPayment.perk.amountSponsored < 0.5
+            ) {
+                setPerkClaimed(true)
+            }
+
             setIsSuccess(true)
         } catch (error) {
             // clear the timer on error to prevent race condition
@@ -1234,31 +1251,21 @@ export default function QRPayPage() {
                                 <h2 className="text-lg font-bold">Eligible for a Peanut Perk!</h2>
                                 <p className="text-sm text-gray-600">
                                     {(() => {
-                                        const percentage = qrPayment?.perk?.discountPercentage || 100
                                         const amountSponsored = qrPayment?.perk?.amountSponsored
                                         const transactionUsd =
                                             parseFloat(qrPayment?.details?.paymentAgainstAmount || '0') || 0
 
-                                        // Check if percentage matches the actual math (within 1% tolerance)
-                                        let percentageMatches = false
-                                        if (amountSponsored && transactionUsd > 0) {
-                                            const actualPercentage = (amountSponsored / transactionUsd) * 100
-                                            percentageMatches = Math.abs(actualPercentage - percentage) < 1
-                                        }
-
-                                        if (percentageMatches) {
-                                            if (percentage === 100) {
-                                                return 'This bill can be covered by Peanut. Claim it now to unlock your reward.'
-                                            } else if (percentage > 100) {
-                                                return `You're getting ${percentage}% back — that's more than you paid! Claim it now.`
-                                            } else {
-                                                return `You're getting ${percentage}% cashback! Claim it now to unlock your reward.`
+                                        // Always show actual dollar amount — never percentage (misleading due to dynamic caps)
+                                        // Note: perks <$0.50 are auto-claimed and skip this banner entirely
+                                        if (amountSponsored && typeof amountSponsored === 'number') {
+                                            if (transactionUsd > 0 && amountSponsored >= transactionUsd) {
+                                                return `This bill can be covered by Peanut! $${amountSponsored.toFixed(2)} back. Claim it now.`
                                             }
+                                            return `Peanut's got you! $${amountSponsored.toFixed(2)} back on this payment. Claim it now.`
                                         }
 
-                                        return amountSponsored && typeof amountSponsored === 'number'
-                                            ? `Get $${amountSponsored.toFixed(2)} back!`
-                                            : 'Claim it now to unlock your reward.'
+                                        // Fallback: no amount available yet
+                                        return 'You earned a Peanut Perk! Claim it now to unlock your reward.'
                                     })()}
                                 </p>
                             </div>
@@ -1278,17 +1285,22 @@ export default function QRPayPage() {
                                         const amountSponsored = qrPayment?.perk?.amountSponsored
                                         const transactionUsd =
                                             parseFloat(qrPayment?.details?.paymentAgainstAmount || '0') || 0
-                                        const percentage =
-                                            amountSponsored && transactionUsd > 0
-                                                ? Math.round((amountSponsored / transactionUsd) * 100)
-                                                : qrPayment?.perk?.discountPercentage || 100
-                                        if (percentage === 100) {
-                                            return 'We paid for this bill! Earn points, climb tiers and unlock even better perks.'
-                                        } else if (percentage > 100) {
-                                            return `We gave you ${percentage}% back — that's more than you paid! Earn points, climb tiers and unlock even better perks.`
-                                        } else {
-                                            return `We gave you ${percentage}% cashback! Earn points, climb tiers and unlock even better perks.`
+
+                                        // Tone scales with amount: small = growth nudge, large = celebratory
+                                        if (amountSponsored && typeof amountSponsored === 'number') {
+                                            if (transactionUsd > 0 && amountSponsored >= transactionUsd) {
+                                                return 'We paid for this bill! Earn points, climb tiers and unlock even better perks.'
+                                            }
+                                            if (amountSponsored < 0.5) {
+                                                return `You got $${amountSponsored.toFixed(2)} back. The more friends you invite, the more you earn!`
+                                            }
+                                            if (amountSponsored >= 5) {
+                                                return `We gave you $${amountSponsored.toFixed(2)} back! Your points are paying off.`
+                                            }
+                                            return `We gave you $${amountSponsored.toFixed(2)} back! Invite friends to unlock bigger rewards.`
                                         }
+
+                                        return 'We gave you cashback! Earn points, climb tiers and unlock even better perks.'
                                     })()}
                                 </p>
                             </div>
