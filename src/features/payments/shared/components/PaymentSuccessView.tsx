@@ -37,6 +37,8 @@ import { type ReactNode, useEffect, useMemo, useRef } from 'react'
 import { usePointsConfetti } from '@/hooks/usePointsConfetti'
 import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
 import { useHaptic } from 'use-haptic'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import PointsCard from '@/components/Common/PointsCard'
 import { BASE_URL } from '@/constants/general.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
@@ -193,6 +195,15 @@ const PaymentSuccessView = ({
 
     const pointsDivRef = useRef<HTMLDivElement>(null)
     usePointsConfetti(points, pointsDivRef)
+
+    useEffect(() => {
+        if (points) {
+            posthog.capture(ANALYTICS_EVENTS.POINTS_EARNED, {
+                points,
+                flow_type: isWithdrawFlow ? 'withdraw' : type?.toLowerCase(),
+            })
+        }
+    }, [points, isWithdrawFlow, type])
 
     useEffect(() => {
         // invalidate queries to refetch history

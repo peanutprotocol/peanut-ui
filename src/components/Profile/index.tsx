@@ -7,7 +7,6 @@ import NavHeader from '../Global/NavHeader'
 import ProfileHeader from './components/ProfileHeader'
 import ProfileMenuItem from './components/ProfileMenuItem'
 import { useRouter } from 'next/navigation'
-import { checkIfInternalNavigation } from '@/utils/general.utils'
 import { useState } from 'react'
 import useKycStatus from '@/hooks/useKycStatus'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
@@ -35,20 +34,7 @@ export const Profile = () => {
 
     return (
         <div className="h-full w-full bg-background">
-            <NavHeader
-                hideLabel
-                showLogoutBtn
-                onPrev={() => {
-                    // Check if the referrer is from the same domain (internal navigation)
-                    const isInternalReferrer = checkIfInternalNavigation()
-
-                    if (isInternalReferrer && window.history.length > 1) {
-                        router.back()
-                    } else {
-                        router.push('/home')
-                    }
-                }}
-            />
+            <NavHeader hideLabel showLogoutBtn onPrev={() => router.push('/home')} />
             <div className="space-y-8">
                 <ProfileHeader name={displayName} username={username} isVerified={isUserKycApproved} />
                 <div className="space-y-4">
@@ -75,11 +61,13 @@ export const Profile = () => {
                     </div>
                     <div>
                         <ProfileMenuItem icon="user" label="Personal details" href="/profile/edit" position="first" />
+
                         <ProfileMenuItem
                             icon="globe-lock"
                             label="Regions & Verification"
                             href="/profile/identity-verification"
                             position="middle"
+                            highlight={!isUserKycApproved}
                         />
 
                         <ProfileMenuItem icon="meter" label="Payment limits" href="/limits" position="middle" />
@@ -145,6 +133,7 @@ export const Profile = () => {
                 visible={isInviteFriendsModalOpen}
                 onClose={() => setIsInviteFriendsModalOpen(false)}
                 username={user?.user.username ?? ''}
+                source="profile"
             />
         </div>
     )

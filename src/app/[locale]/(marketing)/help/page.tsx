@@ -55,6 +55,33 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     }
 }
 
+/** Lightweight skeleton shown while HelpLanding JS hydrates */
+function HelpLandingSkeleton() {
+    return (
+        <div className="mx-auto mb-8 mt-10 max-w-[640px] px-6 md:mt-12 md:px-4">
+            {/* Search bar placeholder */}
+            <div className="h-12 w-full animate-pulse rounded-sm border border-n-1 bg-n-2" />
+
+            {/* Category / article rows */}
+            <div className="mt-10 flex flex-col gap-10">
+                {[1, 2, 3].map((i) => (
+                    <div key={i}>
+                        <div className="mb-4 h-3 w-32 animate-pulse rounded bg-n-2" />
+                        <div className="flex flex-col gap-px overflow-hidden rounded-sm border border-n-1">
+                            {[1, 2, 3].map((j) => (
+                                <div key={j} className="flex flex-col gap-1.5 bg-white px-5 py-4">
+                                    <div className="h-4 w-3/4 animate-pulse rounded bg-n-2" />
+                                    <div className="h-3 w-1/2 animate-pulse rounded bg-n-2" />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    )
+}
+
 export default async function HelpPage({ params }: PageProps) {
     const { locale } = await params
     if (!isValidLocale(locale)) notFound()
@@ -84,12 +111,12 @@ export default async function HelpPage({ params }: PageProps) {
     return (
         <ContentPage
             breadcrumbs={[
-                { name: i18n.home, href: '/' },
+                { name: i18n.home, href: `/${locale}` },
                 { name: i18n.help, href: `/${locale}/help` },
             ]}
         >
             <Hero title={i18n.helpCenter} subtitle={i18n.helpCenterDescription} />
-            <Suspense>
+            <Suspense fallback={<HelpLandingSkeleton />}>
                 <HelpLanding
                     articles={translatedArticles}
                     categories={categories}

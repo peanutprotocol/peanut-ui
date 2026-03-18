@@ -75,8 +75,13 @@ export async function getPostBySlug(
                 theme: 'github-light',
             })
         } catch {
-            // Fallback for unsupported languages
-            return `<pre><code class="language-${language}">${text}</code></pre>`
+            // Fallback for unsupported languages — escape HTML to prevent XSS
+            const escaped = text
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+            return `<pre><code class="language-${language}">${escaped}</code></pre>`
         }
     }
 

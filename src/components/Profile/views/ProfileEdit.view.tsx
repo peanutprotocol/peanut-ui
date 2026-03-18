@@ -98,7 +98,7 @@ export const ProfileEditView = () => {
             // refresh user data
             await fetchUser()
 
-            router.push('/profile')
+            router.replace('/profile')
         } catch (error) {
             console.error('Error updating profile:', error)
             setErrorMessage('Something went wrong. Please try again or contact support.')
@@ -113,7 +113,7 @@ export const ProfileEditView = () => {
 
     return (
         <div className="space-y-8">
-            <NavHeader title="Edit Profile" onPrev={() => router.push('/profile')} />
+            <NavHeader title="Edit Profile" onPrev={() => router.back()} />
 
             <ProfileHeader name={fullName} username={username} isVerified={isUserKycApproved} />
 

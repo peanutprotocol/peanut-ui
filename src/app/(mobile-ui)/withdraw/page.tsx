@@ -19,6 +19,8 @@ import { formatUnits } from 'viem'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
 import { getLimitsWarningCardProps } from '@/features/limits/utils'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 type WithdrawStep = 'inputAmount' | 'selectMethod'
 
@@ -41,6 +43,7 @@ export default function WithdrawPage() {
         setUsdAmount,
         selectedMethod,
         selectedBankAccount,
+        setSelectedBankAccount,
         setSelectedMethod,
         setShowAllWithdrawMethods,
     } = useWithdrawFlow()
@@ -251,12 +254,21 @@ export default function WithdrawPage() {
             setAmountToWithdraw(rawTokenAmount)
             const usdVal = (selectedTokenData?.price ?? 1) * parseFloat(rawTokenAmount)
             setUsdAmount(usdVal.toString())
+            posthog.capture(ANALYTICS_EVENTS.WITHDRAW_AMOUNT_ENTERED, {
+                amount_usd: usdVal,
+                method_type: selectedMethod.type,
+                country: selectedMethod.countryPath,
+                from_send_flow: isFromSendFlow,
+            })
 
-            // Route based on selected method type
+            // Route based on selected method type (check method type first to avoid stale bank account taking priority)
             // preserve method param if coming from send flow
             const methodQueryParam = isFromSendFlow ? `method=${methodParam}` : ''
 
-            if (selectedBankAccount) {
+            if (selectedMethod.type === 'crypto') {
+                const queryParams = isFromSendFlow ? `?${methodQueryParam}` : ''
+                router.push(`/withdraw/crypto${queryParams}`)
+            } else if (selectedBankAccount) {
                 const country = getCountryFromAccount(selectedBankAccount)
                 if (country) {
                     const queryParams = isFromSendFlow ? `?${methodQueryParam}` : ''
@@ -264,9 +276,6 @@ export default function WithdrawPage() {
                 } else {
                     throw new Error('Failed to get country from bank account')
                 }
-            } else if (selectedMethod.type === 'crypto') {
-                const queryParams = isFromSendFlow ? `?${methodQueryParam}` : ''
-                router.push(`/withdraw/crypto${queryParams}`)
             } else if (selectedMethod.type === 'manteca') {
                 // Route directly to Manteca with method and country params
                 const mantecaMethodParam = selectedMethod.title?.toLowerCase().replace(/\s+/g, '-') || 'bank-transfer'
@@ -315,7 +324,11 @@ export default function WithdrawPage() {
                             router.push('/send')
                         } else {
                             // otherwise go back to method selection
+                            // clear amount so it doesn't carry over to a different method
+                            setAmountToWithdraw('')
+                            setUsdAmount('')
                             setSelectedMethod(null)
+                            setSelectedBankAccount(null)
                             setStep('selectMethod')
                         }
                     }}

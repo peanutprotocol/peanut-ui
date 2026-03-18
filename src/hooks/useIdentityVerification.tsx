@@ -184,7 +184,10 @@ export const useIdentityVerification = () => {
             if (isSumsubApproved) {
                 if (regionName === 'Rest of the world') return true
                 if (sumsubVerificationRegionIntent === 'LATAM') {
-                    return hasProviderAccess('MANTECA') && MANTECA_SUPPORTED_REGIONS.includes(regionName)
+                    // LATAM is always unlocked for LATAM-intent sumsub users
+                    // (QR payments work without manteca rails via superuser fallback)
+                    if (MANTECA_SUPPORTED_REGIONS.includes(regionName)) return true
+                    return false
                 }
                 return hasProviderAccess('BRIDGE') && BRIDGE_SUPPORTED_REGIONS.includes(regionName)
             }

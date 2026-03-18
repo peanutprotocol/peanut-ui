@@ -5,12 +5,16 @@ import Card from '@/components/Global/Card'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import ShareButton from '@/components/Global/ShareButton'
 import { generateInviteCodeLink, generateInvitesShareText } from '@/utils/general.utils'
+import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
+import posthog from 'posthog-js'
+import { useEffect, useRef } from 'react'
 import QRCode from 'react-qr-code'
 
 interface InviteFriendsModalProps {
     visible: boolean
     onClose: () => void
     username: string
+    source?: string
 }
 
 /**
@@ -19,13 +23,26 @@ interface InviteFriendsModalProps {
  *
  * Used in: CardSuccessScreen, Profile, PointsPage
  */
-export default function InviteFriendsModal({ visible, onClose, username }: InviteFriendsModalProps) {
+export default function InviteFriendsModal({ visible, onClose, username, source }: InviteFriendsModalProps) {
     const { inviteCode, inviteLink } = generateInviteCodeLink(username)
+
+    const hasTrackedShow = useRef(false)
+    useEffect(() => {
+        if (visible && !hasTrackedShow.current) {
+            hasTrackedShow.current = true
+            posthog.capture(ANALYTICS_EVENTS.MODAL_SHOWN, { modal_type: MODAL_TYPES.INVITE, source })
+        }
+    }, [visible, source])
+
+    const handleClose = () => {
+        posthog.capture(ANALYTICS_EVENTS.MODAL_DISMISSED, { modal_type: MODAL_TYPES.INVITE, source })
+        onClose()
+    }
 
     return (
         <ActionModal
             visible={visible}
-            onClose={onClose}
+            onClose={handleClose}
             title="Invite friends!"
             description="Invite friends to Peanut and help them skip ahead on the waitlist. Once they're onboarded and start using the app, you'll earn rewards from their activity too."
             icon="user-plus"
@@ -47,12 +64,17 @@ export default function InviteFriendsModal({ visible, onClose, username }: Invit
                             <p className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-bold">
                                 {inviteCode}
                             </p>
-                            <CopyToClipboard textToCopy={inviteCode} iconSize="4" />
+                            <CopyToClipboard
+                                textToCopy={inviteCode}
+                                iconSize="4"
+                                onCopy={() => posthog.capture(ANALYTICS_EVENTS.INVITE_LINK_COPIED, { source })}
+                            />
                         </Card>
                     </div>
                     <ShareButton
                         generateText={() => Promise.resolve(generateInvitesShareText(inviteLink))}
                         title="Share your invite link"
+                        onSuccess={() => posthog.capture(ANALYTICS_EVENTS.INVITE_LINK_SHARED, { source })}
                     >
                         Share Invite Link
                     </ShareButton>

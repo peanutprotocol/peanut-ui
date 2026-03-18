@@ -39,16 +39,14 @@ const Manteca = () => {
 
             <div className="relative flex flex-col items-center justify-center px-4">
                 <h1 className="font-roboto-flex-extrabold text-center text-[4rem] font-extraBlack md:text-left lg:text-headingMedium">
-                    SCAN. PAY. DONE.
+                    GET PAID. PAY. DONE.
                 </h1>
 
                 <h2 className="font-roboto-flex mt-6 text-center text-xl md:text-5xl">
-                    PAY INSTANTLY IN <b>ARGENTINA</b> AND <b>BRAZIL</b>.
+                    RECEIVE FROM ANYWHERE. NO LOCAL ID NEEDED.
                 </h2>
 
-                <h2 className="font-roboto-flex mt-6 text-center text-xl md:text-4xl">
-                    JUST SCAN LOCAL QR CODES. NO BANK DETAILS NEEDED.
-                </h2>
+                <h2 className="font-roboto-flex mt-6 text-center text-xl md:text-4xl">Get best exchange rate.</h2>
 
                 <h3 className="font-roboto-flex mt-6 text-center text-xl md:text-xl">
                     up to <b>~15% cheaper</b> than Visa & Mastercard.

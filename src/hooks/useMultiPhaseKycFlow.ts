@@ -5,6 +5,8 @@ import { useRailStatusTracking } from '@/hooks/useRailStatusTracking'
 import { getBridgeTosLink, confirmBridgeTos } from '@/app/actions/users'
 import { type KycModalPhase } from '@/interfaces'
 import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 const PREPARING_TIMEOUT_MS = 30000
 
@@ -74,6 +76,10 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
 
     // complete the flow — close everything, call original onKycSuccess
     const completeFlow = useCallback(() => {
+        posthog.capture(
+            regionIntent === 'LATAM' ? ANALYTICS_EVENTS.MANTECA_KYC_COMPLETED : ANALYTICS_EVENTS.KYC_APPROVED,
+            { region_intent: regionIntent }
+        )
         isRealtimeFlowRef.current = false
         setForceShowModal(false)
         setModalPhase('verifying')
@@ -85,7 +91,7 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
         stopTracking()
         closeVerificationModalRef.current()
         onKycSuccess?.()
-    }, [onKycSuccess, clearPreparingTimer, stopTracking])
+    }, [onKycSuccess, clearPreparingTimer, stopTracking, regionIntent])
 
     // called when sumsub status transitions to APPROVED
     const handleSumsubApproved = useCallback(async () => {
@@ -146,19 +152,30 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
     // so the drawer/status item reads the updated verification record
     useEffect(() => {
         if (liveKycStatus === 'ACTION_REQUIRED' || liveKycStatus === 'REJECTED') {
+            posthog.capture(ANALYTICS_EVENTS.KYC_REJECTED, {
+                region_intent: regionIntent,
+                status: liveKycStatus,
+            })
             fetchUser()
         }
-    }, [liveKycStatus, fetchUser])
+    }, [liveKycStatus, fetchUser, regionIntent])
 
     // wrap handleSdkComplete to track real-time flow
     const handleSdkComplete = useCallback(() => {
+        posthog.capture(ANALYTICS_EVENTS.KYC_SUBMITTED, { region_intent: regionIntent })
         isRealtimeFlowRef.current = true
         originalHandleSdkComplete()
-    }, [originalHandleSdkComplete])
+    }, [originalHandleSdkComplete, regionIntent])
 
     // wrap handleInitiateKyc to reset state for new attempts
     const handleInitiateKyc = useCallback(
         async (overrideIntent?: KYCRegionIntent, levelName?: string) => {
+            const intent = overrideIntent ?? regionIntent
+            posthog.capture(
+                intent === 'LATAM' ? ANALYTICS_EVENTS.MANTECA_KYC_INITIATED : ANALYTICS_EVENTS.KYC_INITIATED,
+                { region_intent: intent }
+            )
+
             setModalPhase('verifying')
             setForceShowModal(false)
             setPreparingTimedOut(false)
@@ -170,7 +187,7 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
 
             await originalHandleInitiateKyc(overrideIntent, levelName)
         },
-        [originalHandleInitiateKyc, clearPreparingTimer]
+        [originalHandleInitiateKyc, clearPreparingTimer, regionIntent]
     )
 
     // 30s timeout for preparing phase
@@ -235,6 +252,7 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
             setShowTosIframe(false)
 
             if (source === 'tos_accepted') {
+                posthog.capture(ANALYTICS_EVENTS.KYC_TOS_ACCEPTED)
                 // show loading state while confirming + polling
                 setModalPhase('preparing')
                 await confirmBridgeTosAndAwaitRails(fetchUser)
@@ -252,12 +270,16 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
 
     // handle modal close (Go to Home, etc.)
     const handleModalClose = useCallback(() => {
+        posthog.capture(
+            regionIntent === 'LATAM' ? ANALYTICS_EVENTS.MANTECA_KYC_ABANDONED : ANALYTICS_EVENTS.KYC_ABANDONED,
+            { region_intent: regionIntent, phase: modalPhase }
+        )
         isRealtimeFlowRef.current = false
         setForceShowModal(false)
         clearPreparingTimer()
         stopTracking()
         closeVerificationProgressModal()
-    }, [clearPreparingTimer, stopTracking, closeVerificationProgressModal])
+    }, [clearPreparingTimer, stopTracking, closeVerificationProgressModal, regionIntent, modalPhase])
 
     // cleanup on unmount
     useEffect(() => {
@@ -268,6 +290,8 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
     }, [clearPreparingTimer, stopTracking])
 
     const isModalOpen = isVerificationProgressModalOpen || forceShowModal
+
+    const isMultiLevel = regionIntent === 'LATAM'
 
     return {
         // initiation
@@ -282,6 +306,7 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
         handleSdkClose: handleClose,
         handleSdkComplete,
         refreshToken,
+        isMultiLevel,
 
         // multi-phase modal
         isModalOpen,

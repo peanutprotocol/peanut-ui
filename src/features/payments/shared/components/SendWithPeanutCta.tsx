@@ -44,10 +44,15 @@ export default function SendWithPeanutCta({
     const { user, isFetchingUser } = useAuth()
 
     const isLoggedIn = !!user?.user?.userId
+    // assume logged in while fetching to prevent "Join Peanut" flash
+    const showAsLoggedIn = isFetchingUser || isLoggedIn
 
     const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+        // don't act while auth is still resolving
+        if (isFetchingUser) return
+
         // if auth is required and user is not logged in, redirect to login
-        if (requiresAuth && !user?.user?.userId && !isFetchingUser) {
+        if (requiresAuth && !isLoggedIn) {
             saveRedirectUrl()
             router.push('/setup')
             return
@@ -66,14 +71,14 @@ export default function SendWithPeanutCta({
     }
 
     const icon = useMemo((): IconName | undefined => {
-        if (!isLoggedIn) {
+        if (!showAsLoggedIn) {
             return undefined
         }
         if (insufficientBalance) {
             return 'arrow-down'
         }
         return 'arrow-up-right'
-    }, [isLoggedIn, insufficientBalance])
+    }, [showAsLoggedIn, insufficientBalance])
 
     const peanutLogo = useMemo((): React.ReactNode => {
         return (
@@ -94,7 +99,7 @@ export default function SendWithPeanutCta({
             onClick={handleClick}
             {...props}
         >
-            {!isLoggedIn ? (
+            {!showAsLoggedIn ? (
                 <div className="flex items-center gap-1">
                     <div>Join </div>
                     {peanutLogo}

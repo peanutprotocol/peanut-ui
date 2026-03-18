@@ -32,6 +32,8 @@ import { PointsAction } from '@/services/services.types'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import { useSearchParams } from 'next/navigation'
 import { parseUnits } from 'viem'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 type View = 'INITIAL' | 'SUCCESS'
 
@@ -153,6 +155,12 @@ export default function WithdrawBankPage() {
             return
         }
 
+        posthog.capture(ANALYTICS_EVENTS.WITHDRAW_CONFIRMED, {
+            amount_usd: amountToWithdraw,
+            method_type: 'bridge',
+            country,
+        })
+
         try {
             // Step 1: create the transfer to get deposit instructions
             const destination = destinationDetails(bankAccount)
@@ -213,8 +221,17 @@ export default function WithdrawBankPage() {
             }
 
             setView('SUCCESS')
+            posthog.capture(ANALYTICS_EVENTS.WITHDRAW_COMPLETED, {
+                amount_usd: amountToWithdraw,
+                method_type: 'bridge',
+                country,
+            })
         } catch (e: any) {
             const error = ErrorHandler(e)
+            posthog.capture(ANALYTICS_EVENTS.WITHDRAW_FAILED, {
+                method_type: 'bridge',
+                error_message: error,
+            })
             if (error.includes('Something failed. Please try again.')) {
                 setError({ showError: true, errorMessage: e.message })
             } else {
@@ -274,8 +291,6 @@ export default function WithdrawBankPage() {
                         setAmountToWithdraw('')
                         setSelectedMethod(null)
                     } else {
-                        setAmountToWithdraw('')
-                        setSelectedMethod(null)
                         router.back()
                     }
                 }}

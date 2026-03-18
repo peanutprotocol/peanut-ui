@@ -47,6 +47,14 @@ export interface MarkdownContent<T = Record<string, unknown>> {
     body: string
 }
 
+/** Common frontmatter fields shared by all generated marketing content pages. */
+export interface ContentFrontmatter {
+    title: string
+    description: string
+    published?: boolean
+    generated_at?: string
+}
+
 // --- Low-level readers ---
 
 function parseMarkdownFile<T = Record<string, unknown>>(filePath: string): MarkdownContent<T> | null {

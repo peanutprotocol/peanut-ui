@@ -50,7 +50,7 @@ export const OnrampConfirmationModal = ({
                                 </b>{' '}
                                 (the exact amount shown)
                             </>,
-                            'Copy the reference code exactly',
+                            'Copy the one-time reference code exactly',
                             'Paste it in the description/reference field',
                         ]}
                     />
@@ -60,7 +60,7 @@ export const OnrampConfirmationModal = ({
                         icon="alert"
                         iconClassName="text-error-5"
                         title="If the amount or reference don't match:"
-                        description="Your deposit will fail and it will take 2 to 10 days to return to your bank and might incur fees."
+                        description="Your deposit will fail and it will take 2 to 10 days to return to your bank and might incur fees. The reference code is single use."
                     />
                 </div>
             }

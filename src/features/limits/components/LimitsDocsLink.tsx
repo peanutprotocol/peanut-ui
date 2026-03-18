@@ -1,7 +1,7 @@
 export default function LimitsDocsLink() {
     return (
         <a
-            href="https://docs.peanut.me/limits"
+            href="/en/help/transaction-limits"
             target="_blank"
             rel="noopener noreferrer"
             className="text-center text-sm underline"

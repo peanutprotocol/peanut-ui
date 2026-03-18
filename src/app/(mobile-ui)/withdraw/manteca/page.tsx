@@ -54,6 +54,8 @@ import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import { MIN_MANTECA_WITHDRAW_AMOUNT } from '@/constants/payment.consts'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
 import { getLimitsWarningCardProps } from '@/features/limits/utils'
 
@@ -271,6 +273,12 @@ export default function MantecaWithdrawFlow() {
     const handleWithdraw = async () => {
         if (!destinationAddress || !usdAmount || !currencyCode || !priceLock) return
 
+        posthog.capture(ANALYTICS_EVENTS.WITHDRAW_CONFIRMED, {
+            amount_usd: usdAmount,
+            method_type: 'manteca',
+            country: countryPath,
+        })
+
         try {
             setLoadingState('Preparing transaction')
 
@@ -325,8 +333,14 @@ export default function MantecaWithdrawFlow() {
             })
 
             if (result.error) {
+                posthog.capture(ANALYTICS_EVENTS.WITHDRAW_FAILED, {
+                    method_type: 'manteca',
+                    error_message: result.error,
+                })
+
                 // handle onboarding-incomplete errors by redirecting to complete profile
                 if (await handleOnboardingError(result.error)) return
+
                 // handle third-party account error with user-friendly message
                 if (result.error === 'TAX_ID_MISMATCH' || result.error === 'CUIT_MISMATCH') {
                     setErrorMessage('You can only withdraw to accounts under your name.')
@@ -340,8 +354,17 @@ export default function MantecaWithdrawFlow() {
             }
 
             setStep('success')
+            posthog.capture(ANALYTICS_EVENTS.WITHDRAW_COMPLETED, {
+                amount_usd: usdAmount,
+                method_type: 'manteca',
+                country: countryPath,
+            })
         } catch (error) {
             console.error('Manteca withdraw error:', error)
+            posthog.capture(ANALYTICS_EVENTS.WITHDRAW_FAILED, {
+                method_type: 'manteca',
+                error_message: 'Withdraw failed unexpectedly',
+            })
             setErrorMessage('Withdraw failed unexpectedly. If problem persists contact support')
             setStep('failure')
         } finally {

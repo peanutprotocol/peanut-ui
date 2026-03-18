@@ -23,6 +23,8 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const [liveKycStatus, setLiveKycStatus] = useState<SumsubKycStatus | undefined>(undefined)
     const [rejectLabels, setRejectLabels] = useState<string[] | undefined>(undefined)
     const prevStatusRef = useRef(liveKycStatus)
+    const showWrapperRef = useRef(showWrapper)
+    showWrapperRef.current = showWrapper
     // tracks the effective region intent across initiate + refresh so the correct template is always used
     const regionIntentRef = useRef<KYCRegionIntent | undefined>(regionIntent)
     // tracks the level name across initiate + refresh (e.g. 'peanut-additional-docs')
@@ -51,6 +53,13 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         prevStatusRef.current = liveKycStatus
 
         if (prevStatus !== 'APPROVED' && liveKycStatus === 'APPROVED') {
+            // if SDK is still open (LATAM multi-level), close it now —
+            // applicantWorkflowCompleted has fired, all levels are done.
+            if (showWrapperRef.current) {
+                setShowWrapper(false)
+                setIsVerificationProgressModalOpen(true)
+                userInitiatedRef.current = true
+            }
             if (userInitiatedRef.current) {
                 onKycSuccess?.()
             }

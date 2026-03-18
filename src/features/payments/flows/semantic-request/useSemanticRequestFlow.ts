@@ -84,6 +84,7 @@ export function useSemanticRequestFlow() {
         sendTransactions,
         formattedBalance,
         hasSufficientBalance,
+        isFetchingBalance,
     } = useWallet()
 
     // use token selector context for ui integration
@@ -174,11 +175,13 @@ export function useSemanticRequestFlow() {
     }, [amount, hasSufficientBalance])
 
     // check if should show insufficient balance error
+    // gate on !isFetchingBalance to avoid flash while balance is still loading
     const isInsufficientBalance = useMemo(() => {
         return (
             isLoggedIn &&
             !!amount &&
             !hasEnoughBalance &&
+            !isFetchingBalance &&
             !isLoading &&
             !isCreatingCharge &&
             !isFetchingCharge &&
@@ -189,6 +192,7 @@ export function useSemanticRequestFlow() {
         isLoggedIn,
         amount,
         hasEnoughBalance,
+        isFetchingBalance,
         isLoading,
         isCreatingCharge,
         isFetchingCharge,

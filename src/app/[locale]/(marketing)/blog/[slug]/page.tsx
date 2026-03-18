@@ -86,7 +86,7 @@ export default async function BlogPostPageLocalized({ params }: PageProps) {
         : null
 
     const breadcrumbs = [
-        { name: i18n.home, href: '/' },
+        { name: i18n.home, href: `/${locale}` },
         { name: i18n.blog, href: `/${locale}/blog` },
         { name: post.frontmatter.title, href: `/${locale}/blog/${slug}` },
     ]

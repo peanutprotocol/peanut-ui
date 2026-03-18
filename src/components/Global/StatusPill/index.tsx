@@ -13,7 +13,7 @@ const StatusPill = ({ status }: StatusPillProps) => {
         completed: 'border-success-5 bg-success-2 text-success-4',
         pending: 'border-yellow-8 bg-secondary-4 text-yellow-6',
         cancelled: 'border-error-2 bg-error-1 text-error',
-        refunded: 'border-error-2 bg-error-1 text-error',
+        refunded: 'border-yellow-8 bg-secondary-4 text-yellow-6',
         failed: 'border-error-2 bg-error-1 text-error',
         processing: 'border-yellow-8 bg-secondary-4 text-yellow-6',
         soon: 'border-yellow-8 bg-secondary-4 text-yellow-6',
@@ -27,7 +27,7 @@ const StatusPill = ({ status }: StatusPillProps) => {
         soon: 'pending',
         pending: 'pending',
         cancelled: 'cancel',
-        refunded: 'cancel',
+        refunded: 'undo',
         closed: 'success',
     }
 
@@ -38,7 +38,7 @@ const StatusPill = ({ status }: StatusPillProps) => {
         soon: 7,
         pending: 8,
         cancelled: 6,
-        refunded: 6,
+        refunded: 8,
         closed: 7,
     }
 

@@ -8,6 +8,8 @@ import type { RhinoChainType } from '@/services/services.types'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { useCallback, useState } from 'react'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 const AddMoneyCryptoPage = () => {
     const { user } = useAuth()
@@ -25,10 +27,18 @@ const AddMoneyCryptoPage = () => {
         staleTime: 1000 * 60 * 60 * 24, // 24 hours
     })
 
-    const handleSuccess = useCallback((amount: number) => {
-        setDepositedAmount(amount)
-        setShowSuccessView(true)
-    }, [])
+    const handleSuccess = useCallback(
+        (amount: number) => {
+            posthog.capture(ANALYTICS_EVENTS.DEPOSIT_COMPLETED, {
+                amount,
+                chain_type: chainType,
+                method_type: 'crypto',
+            })
+            setDepositedAmount(amount)
+            setShowSuccessView(true)
+        },
+        [chainType]
+    )
 
     if (showSuccessView) {
         return <PaymentSuccessView type="DEPOSIT" amount={depositedAmount.toString()} />

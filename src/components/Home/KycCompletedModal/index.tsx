@@ -1,37 +1,42 @@
 'use client'
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import ActionModal from '@/components/Global/ActionModal'
 import type { IconName } from '@/components/Global/Icons/Icon'
 import InfoCard from '@/components/Global/InfoCard'
 import { useAuth } from '@/context/authContext'
 import { MantecaKycStatus } from '@/interfaces'
 import { countryData, MantecaSupportedExchanges, type CountryData } from '@/components/AddMoney/consts'
-import useKycStatus from '@/hooks/useKycStatus'
+import useUnifiedKycStatus from '@/hooks/useUnifiedKycStatus'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
 
 const KycCompletedModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
     const { user } = useAuth()
     const [approvedCountryData, setApprovedCountryData] = useState<CountryData | null>(null)
 
-    const { isUserBridgeKycApproved, isUserMantecaKycApproved, isUserSumsubKycApproved } = useKycStatus()
+    const { isBridgeApproved, isMantecaApproved, isSumsubApproved, sumsubVerificationRegionIntent } =
+        useUnifiedKycStatus()
+
+    const hasTrackedShow = useRef(false)
+    useEffect(() => {
+        if (isOpen && !hasTrackedShow.current) {
+            hasTrackedShow.current = true
+            posthog.capture(ANALYTICS_EVENTS.MODAL_SHOWN, { modal_type: MODAL_TYPES.KYC_COMPLETED })
+        }
+    }, [isOpen])
     const { getVerificationUnlockItems } = useIdentityVerification()
 
     const kycApprovalType = useMemo(() => {
-        // sumsub covers all regions, treat as 'all'
-        if (isUserSumsubKycApproved) {
-            return 'all'
-        }
-        if (isUserBridgeKycApproved && isUserMantecaKycApproved) {
-            return 'all'
-        }
-        if (isUserBridgeKycApproved) {
+        if (isSumsubApproved) {
+            if (sumsubVerificationRegionIntent === 'LATAM') return 'manteca'
             return 'bridge'
         }
-        if (isUserMantecaKycApproved) {
-            return 'manteca'
-        }
+        if (isBridgeApproved && isMantecaApproved) return 'all'
+        if (isBridgeApproved) return 'bridge'
+        if (isMantecaApproved) return 'manteca'
         return 'none'
-    }, [isUserBridgeKycApproved, isUserMantecaKycApproved, isUserSumsubKycApproved])
+    }, [isBridgeApproved, isMantecaApproved, isSumsubApproved, sumsubVerificationRegionIntent])
 
     const items = useMemo(() => {
         return getVerificationUnlockItems(approvedCountryData?.title)
@@ -39,7 +44,7 @@ const KycCompletedModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =
 
     useEffect(() => {
         // If manteca KYC is approved, then we need to get the approved country
-        if (isUserMantecaKycApproved) {
+        if (isMantecaApproved) {
             const supportedCountries = Object.keys(MantecaSupportedExchanges)
             let approvedCountry: string | undefined | null
 
@@ -61,7 +66,7 @@ const KycCompletedModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                 setApprovedCountryData(_approvedCountryData || null)
             }
         }
-    }, [isUserMantecaKycApproved, user])
+    }, [isMantecaApproved, user])
 
     return (
         <ActionModal
@@ -73,7 +78,13 @@ const KycCompletedModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =
             ctas={[
                 {
                     text: 'Start sending money',
-                    onClick: onClose,
+                    onClick: () => {
+                        posthog.capture(ANALYTICS_EVENTS.MODAL_CTA_CLICKED, {
+                            modal_type: MODAL_TYPES.KYC_COMPLETED,
+                            cta: 'start_sending',
+                        })
+                        onClose()
+                    },
                     variant: 'purple',
                     className: 'w-full',
                     shadowSize: '4',

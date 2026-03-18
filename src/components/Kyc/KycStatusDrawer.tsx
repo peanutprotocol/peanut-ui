@@ -134,6 +134,7 @@ export const KycStatusDrawer = ({
                         bridgeKycApprovedAt={verification?.approvedAt ?? user?.user?.bridgeKycApprovedAt}
                         countryCode={countryCode ?? undefined}
                         isBridge={isBridgeKyc || region === 'STANDARD'}
+                        region={region}
                     />
                 )
             case 'action_required':

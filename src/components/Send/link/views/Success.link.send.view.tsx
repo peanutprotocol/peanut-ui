@@ -17,6 +17,8 @@ import { useEffect, useState } from 'react'
 import useClaimLink from '@/components/Claim/useClaimLink'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { TRANSACTIONS } from '@/constants/query.consts'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 const LinkSendSuccessView = () => {
     const router = useRouter()
@@ -62,7 +64,15 @@ const LinkSendSuccessView = () => {
 
                 {link && (
                     <div className="flex w-full flex-col items-center justify-center gap-4">
-                        <ShareButton url={link} title="Share link">
+                        <ShareButton
+                            url={link}
+                            title="Share link"
+                            onSuccess={() => {
+                                posthog.capture(ANALYTICS_EVENTS.SEND_LINK_SHARED, {
+                                    amount: tokenValue,
+                                })
+                            }}
+                        >
                             Share link
                         </ShareButton>
                         <Button

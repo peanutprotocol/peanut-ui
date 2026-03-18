@@ -1,4 +1,9 @@
-// https://wagmi.sh/core/chains
+// How to add a new chain:
+// 1. If available in wagmi/chains (https://wagmi.sh/core/api/chains), import it directly.
+// 2. If NOT in wagmi/chains, create a custom chain object (see `milkomeda` below for reference).
+// 3. Add it to the `supportedPeanutChains` array at the bottom of this file.
+// Note: Every chain used in the SDK MUST be listed here, or wallet interactions will break.
+//       Chains can be listed here even if not yet supported in the SDK.
 
 import type { Chain } from 'viem'
 import * as wagmiChains from 'wagmi/chains'

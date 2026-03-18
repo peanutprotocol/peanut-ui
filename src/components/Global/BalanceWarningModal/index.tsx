@@ -2,8 +2,10 @@
 
 import { Icon } from '@/components/Global/Icons/Icon'
 import Modal from '@/components/Global/Modal'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { Slider } from '@/components/Slider'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
 
 enum Platform {
     IOS = 'ios',
@@ -74,6 +76,14 @@ export default function BalanceWarningModal({ visible, onCloseAction }: BalanceW
         const platform = detectPlatform()
         return PLATFORM_INFO[platform]
     }, [])
+
+    const hasTrackedShow = useRef(false)
+    useEffect(() => {
+        if (visible && !hasTrackedShow.current) {
+            hasTrackedShow.current = true
+            posthog.capture(ANALYTICS_EVENTS.MODAL_SHOWN, { modal_type: MODAL_TYPES.BALANCE_WARNING })
+        }
+    }, [visible])
     return (
         <Modal
             visible={visible}
@@ -118,7 +128,16 @@ export default function BalanceWarningModal({ visible, onCloseAction }: BalanceW
                     </div>
                 </div>
 
-                <Slider onAccepted={onCloseAction} title="Slide to Continue" />
+                <Slider
+                    onAccepted={() => {
+                        posthog.capture(ANALYTICS_EVENTS.MODAL_CTA_CLICKED, {
+                            modal_type: MODAL_TYPES.BALANCE_WARNING,
+                            cta: 'slide_to_continue',
+                        })
+                        onCloseAction()
+                    }}
+                    title="Slide to Continue"
+                />
             </div>
         </Modal>
     )

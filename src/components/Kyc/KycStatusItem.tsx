@@ -98,11 +98,6 @@ export const KycStatusItem = ({
         return 'Unknown'
     }, [hasBridgeDocsNeeded, isInitiatedButNotStarted, isActionRequired, isPending, isApproved, isRejected])
 
-    const title = useMemo(() => {
-        if (region === 'LATAM') return 'LATAM verification'
-        return 'Identity verification'
-    }, [region])
-
     // only hide for bridge's default "not_started" state.
     // if a verification record exists, the user has initiated KYC — show it.
     if (!verification && !hasBridgeDocsNeeded && isKycStatusNotStarted(kycStatus)) {
@@ -122,7 +117,7 @@ export const KycStatusItem = ({
                     <div className="flex items-center gap-4">
                         <KYCStatusIcon />
                         <div className="flex-1">
-                            <p className="font-semibold">{title}</p>
+                            <p className="font-semibold">Identity verification</p>
                             <div className="flex items-center gap-2">
                                 <p className="text-sm text-grey-1">{subtitle}</p>
                                 <StatusPill
