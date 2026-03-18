@@ -142,7 +142,10 @@ export const fetchWithSentry = async (
                 })
             })
 
-            throw timeoutError
+            const userError = new Error('Service temporarily unavailable. Please try again.')
+            userError.name = 'ServiceUnavailableError'
+            userError.cause = timeoutError
+            throw userError
         }
 
         let errorMessage: string
@@ -175,6 +178,9 @@ export const fetchWithSentry = async (
             })
         })
 
-        throw error
+        const userError = new Error('Something went wrong. Please try again.')
+        userError.name = 'ServiceUnavailableError'
+        userError.cause = error
+        throw userError
     }
 }
