@@ -430,7 +430,14 @@ export default function MantecaWithdrawFlow() {
         }
     }, [step, queryClient])
 
-    if (isCurrencyLoading || !currencyPrice || !selectedCountry) {
+    // redirect to withdraw page if country is not supported by manteca
+    useEffect(() => {
+        if (!selectedCountry || !MANTECA_COUNTRIES_CONFIG[selectedCountry.id]) {
+            router.replace('/withdraw')
+        }
+    }, [selectedCountry, router])
+
+    if (isCurrencyLoading || !currencyPrice || !selectedCountry || !countryConfig) {
         return <PeanutLoading />
     }
 

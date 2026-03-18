@@ -309,6 +309,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
             <CountryList
                 inputTitle={mainHeading}
                 viewMode="add-withdraw"
+                enforceSupportedCountries={isBankFromSend}
                 onCountryClick={(country) => {
                     if (flow === 'add') {
                         posthog.capture(ANALYTICS_EVENTS.DEPOSIT_METHOD_SELECTED, {
