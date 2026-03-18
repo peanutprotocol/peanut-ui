@@ -11,9 +11,11 @@ import { DocSection } from '../../_components/DocSection'
 import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
+import EasterEggModal from '@/components/Global/EasterEggModal'
 
 export default function ModalPage() {
     const [showModal, setShowModal] = useState(false)
+    const [showEasterEgg, setShowEasterEgg] = useState(false)
     const [showActionModal, setShowActionModal] = useState(false)
     const [actionCheckbox, setActionCheckbox] = useState(false)
 
@@ -321,6 +323,40 @@ export default function ModalPage() {
                         </tbody>
                     </table>
                 </div>
+            </DocSection>
+
+            <SectionDivider />
+
+            {/* Easter Egg Modal */}
+            <DocSection title="Easter Egg Modal">
+                <DocSection.Content>
+                    <p className="text-sm text-grey-1">
+                        Fun modal shown when users tap uninhabited/weird countries (Antarctica, Bouvet Island, etc.)
+                        in the country selector. Uses base Modal with an image and humorous caption.
+                    </p>
+
+                    <div>
+                        <Button variant="stroke" onClick={() => setShowEasterEgg(true)}>
+                            Open Easter Egg (Antarctica)
+                        </Button>
+                        <EasterEggModal
+                            visible={showEasterEgg}
+                            onClose={() => setShowEasterEgg(false)}
+                            countryCode="AQ"
+                        />
+                    </div>
+                </DocSection.Content>
+                <DocSection.Code>
+                    <CodeBlock label="Import" code={`import EasterEggModal from '@/components/Global/EasterEggModal'`} />
+                    <CodeBlock
+                        label="Usage"
+                        code={`<EasterEggModal
+  visible={showEasterEgg}
+  onClose={() => setShowEasterEgg(false)}
+  countryCode="AQ"
+/>`}
+                    />
+                </DocSection.Code>
             </DocSection>
         </DocPage>
     )
