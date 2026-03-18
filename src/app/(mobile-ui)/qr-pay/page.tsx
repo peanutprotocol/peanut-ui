@@ -1256,13 +1256,10 @@ export default function QRPayPage() {
                                             parseFloat(qrPayment?.details?.paymentAgainstAmount || '0') || 0
 
                                         // Always show actual dollar amount — never percentage (misleading due to dynamic caps)
-                                        // Tone scales with amount: small = factual + growth nudge, large = celebratory
+                                        // Note: perks <$0.50 are auto-claimed and skip this banner entirely
                                         if (amountSponsored && typeof amountSponsored === 'number') {
                                             if (transactionUsd > 0 && amountSponsored >= transactionUsd) {
                                                 return `This bill can be covered by Peanut! $${amountSponsored.toFixed(2)} back. Claim it now.`
-                                            }
-                                            if (amountSponsored < 0.5) {
-                                                return `You earned $${amountSponsored.toFixed(2)} back. Invite friends to unlock bigger cashback!`
                                             }
                                             return `Peanut's got you! $${amountSponsored.toFixed(2)} back on this payment. Claim it now.`
                                         }
