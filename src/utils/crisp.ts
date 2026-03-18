@@ -22,7 +22,7 @@ export function setCrispUserData(crispInstance: any, userData: CrispUserData, pr
         avatar,
         grafanaLink,
         walletAddressLink,
-        bridgeUserId,
+        bridgeCustomerLink,
         mantecaUserId,
         posthogPersonLink,
     } = userData
@@ -51,7 +51,7 @@ export function setCrispUserData(crispInstance: any, userData: CrispUserData, pr
                 ['full_name', fullName || ''],
                 ['grafana_dashboard', grafanaLink || ''],
                 ['wallet_address', walletAddressLink || ''],
-                ['bridge_user_id', bridgeUserId || ''],
+                ['bridge_user_id', bridgeCustomerLink || ''],
                 ['manteca_user_id', mantecaUserId || ''],
                 ['posthog_person', posthogPersonLink || ''],
             ],

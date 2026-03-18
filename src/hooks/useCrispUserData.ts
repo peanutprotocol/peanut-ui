@@ -1,7 +1,12 @@
 import { useAuth } from '@/context/authContext'
 import { AccountType } from '@/interfaces'
 import { useMemo } from 'react'
-import { GRAFANA_DASHBOARD_BASE_URL, ARBISCAN_ADDRESS_BASE_URL, POSTHOG_PERSON_BASE_URL } from '@/constants/support'
+import {
+    GRAFANA_DASHBOARD_BASE_URL,
+    ARBISCAN_ADDRESS_BASE_URL,
+    POSTHOG_PERSON_BASE_URL,
+    BRIDGE_DASHBOARD_BASE_URL,
+} from '@/constants/support'
 
 export interface CrispUserData {
     username: string | undefined
@@ -12,7 +17,7 @@ export interface CrispUserData {
     grafanaLink: string | undefined
     walletAddress: string | undefined
     walletAddressLink: string | undefined
-    bridgeUserId: string | undefined
+    bridgeCustomerLink: string | undefined
     mantecaUserId: string | undefined
     posthogPersonLink: string | undefined
 }
@@ -37,7 +42,8 @@ export function useCrispUserData(): CrispUserData {
             user?.accounts?.find((account) => account.type === AccountType.PEANUT_WALLET)?.identifier || undefined
         const walletAddressLink = walletAddress ? `${ARBISCAN_ADDRESS_BASE_URL}/${walletAddress}` : undefined
 
-        const bridgeUserId = user?.user?.bridgeCustomerId || undefined
+        const bridgeCustomerId = user?.user?.bridgeCustomerId || undefined
+        const bridgeCustomerLink = bridgeCustomerId ? `${BRIDGE_DASHBOARD_BASE_URL}/${bridgeCustomerId}` : undefined
         const mantecaUserId =
             user?.user?.kycVerifications?.find((kyc) => kyc.provider === 'MANTECA')?.providerUserId || undefined
 
@@ -52,7 +58,7 @@ export function useCrispUserData(): CrispUserData {
             grafanaLink,
             walletAddress,
             walletAddressLink,
-            bridgeUserId,
+            bridgeCustomerLink,
             mantecaUserId,
             posthogPersonLink,
         }
