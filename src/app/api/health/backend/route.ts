@@ -1,14 +1,21 @@
 import { NextResponse } from 'next/server'
-import { fetchWithSentry } from '@/utils/sentry.utils'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 export const fetchCache = 'force-no-store'
 
+const NO_CACHE_HEADERS = {
+    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+    Pragma: 'no-cache',
+    Expires: '0',
+    'Surrogate-Control': 'no-store',
+}
+
 /**
- * Health check for Peanut API backend
- * Tests connectivity to the main peanut-api-ts backend service
+ * Health check for Peanut API backend.
+ * Uses the backend's dedicated /healthz endpoint (checks DB connectivity).
+ * Uses plain fetch to avoid health check errors polluting Sentry.
  */
 export async function GET() {
     const startTime = Date.now()
@@ -23,28 +30,28 @@ export async function GET() {
                     error: 'PEANUT_API_URL not configured',
                     responseTime: Date.now() - startTime,
                 },
-                { status: 500 }
+                { status: 500, headers: NO_CACHE_HEADERS }
             )
         }
 
-        // Test backend connectivity by fetching a specific user endpoint
         const backendTestStart = Date.now()
-        const backendResponse = await fetchWithSentry(`${PEANUT_API_URL}/users/username/hugo`, {
+        const backendResponse = await fetch(`${PEANUT_API_URL}/healthz`, {
             method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             cache: 'no-store',
-            next: { revalidate: 0 },
+            signal: AbortSignal.timeout(8000),
         })
 
         const backendResponseTime = Date.now() - backendTestStart
 
-        // Backend is healthy if we get any response (200, 404, etc.) - what matters is connectivity
-        if (!backendResponse.ok && backendResponse.status >= 500) {
-            throw new Error(`Backend API returned server error ${backendResponse.status}`)
+        if (!backendResponse.ok) {
+            const errorData = await backendResponse.json().catch(() => null)
+            throw new Error(
+                errorData?.error || `Backend /healthz returned ${backendResponse.status}`
+            )
         }
 
+        const healthData = await backendResponse.json()
         const totalResponseTime = Date.now() - startTime
 
         return NextResponse.json(
@@ -54,29 +61,16 @@ export async function GET() {
                 timestamp: new Date().toISOString(),
                 responseTime: totalResponseTime,
                 details: {
-                    apiConnectivity: {
+                    healthz: {
                         status: 'healthy',
                         responseTime: backendResponseTime,
                         httpStatus: backendResponse.status,
                         apiUrl: PEANUT_API_URL,
-                        testEndpoint: '/users/username/hugo',
-                        message: backendResponse.ok
-                            ? 'Backend responding normally'
-                            : backendResponse.status === 404
-                              ? 'Backend accessible (user not found as expected)'
-                              : 'Backend accessible',
+                        dbConnected: healthData.dbConnected ?? true,
                     },
                 },
             },
-            {
-                status: 200,
-                headers: {
-                    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-                    Pragma: 'no-cache',
-                    Expires: '0',
-                    'Surrogate-Control': 'no-store',
-                },
-            }
+            { status: 200, headers: NO_CACHE_HEADERS }
         )
     } catch (error) {
         const totalResponseTime = Date.now() - startTime
@@ -89,15 +83,7 @@ export async function GET() {
                 error: error instanceof Error ? error.message : 'Unknown error',
                 responseTime: totalResponseTime,
             },
-            {
-                status: 500,
-                headers: {
-                    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-                    Pragma: 'no-cache',
-                    Expires: '0',
-                    'Surrogate-Control': 'no-store',
-                },
-            }
+            { status: 500, headers: NO_CACHE_HEADERS }
         )
     }
 }

@@ -41,6 +41,8 @@ export const rpcUrls: Record<number, string[]> = {
         infuraUrl('polygon-mainnet'),
         alchemyUrl('polygon-mainnet'),
         'https://polygon-rpc.com', // Official public RPC
+        'https://polygon-bor-rpc.publicnode.com', // Public fallback
+        'https://rpc.ankr.com/polygon', // Public fallback
     ].filter(Boolean) as string[],
     [optimism.id]: [
         infuraUrl('optimism-mainnet'),
