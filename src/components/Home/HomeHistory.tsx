@@ -25,6 +25,21 @@ import { useHaptic } from 'use-haptic'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { Icon } from '../Global/Icons/Icon'
 
+/** Transaction types that affect the user's wallet balance. Hoisted to module scope to avoid re-allocation. */
+const BALANCE_AFFECTING_TYPES: EHistoryEntryType[] = [
+    EHistoryEntryType.DIRECT_SEND,
+    EHistoryEntryType.DEPOSIT,
+    EHistoryEntryType.WITHDRAW,
+    EHistoryEntryType.BRIDGE_OFFRAMP,
+    EHistoryEntryType.BRIDGE_ONRAMP,
+    EHistoryEntryType.BRIDGE_GUEST_OFFRAMP,
+    EHistoryEntryType.MANTECA_OFFRAMP,
+    EHistoryEntryType.MANTECA_ONRAMP,
+    EHistoryEntryType.SEND_LINK,
+    EHistoryEntryType.BANK_SEND_LINK_CLAIM,
+    EHistoryEntryType.PERK_REWARD,
+]
+
 /**
  * component to display a preview of the most recent transactions on the home page.
  */
@@ -53,11 +68,11 @@ const HomeHistory = ({ username, hideTxnAmount = false }: { username?: string; h
         username, // Pass the username to the WebSocket hook
         onHistoryEntry: useCallback(
             (entry: HistoryEntry) => {
-                // for direct send and completed requests, fetch the balance
-                if (
-                    entry.type === EHistoryEntryType.DIRECT_SEND ||
-                    (entry.type === EHistoryEntryType.REQUEST && entry.status.toUpperCase() === 'COMPLETED')
-                ) {
+                const isCompleted = entry.status?.toUpperCase() === 'COMPLETED'
+                const isBalanceAffecting =
+                    BALANCE_AFFECTING_TYPES.includes(entry.type as EHistoryEntryType) && isCompleted
+
+                if (isBalanceAffecting || (entry.type === EHistoryEntryType.REQUEST && isCompleted)) {
                     fetchBalance()
                 }
             },
