@@ -46,9 +46,7 @@ export async function GET() {
 
         if (!backendResponse.ok) {
             const errorData = await backendResponse.json().catch(() => null)
-            throw new Error(
-                errorData?.error || `Backend /healthz returned ${backendResponse.status}`
-            )
+            throw new Error(errorData?.error || `Backend /healthz returned ${backendResponse.status}`)
         }
 
         const healthData = await backendResponse.json()
