@@ -12,6 +12,9 @@ import { PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
 import { Button, type ButtonProps } from '@/components/0_Bruddle/Button'
 import type { IconName } from '@/components/Global/Icons/Icon'
 import { useAuth } from '@/context/authContext'
+import { useAppDispatch } from '@/redux/hooks'
+import { setupActions } from '@/redux/slices/setup-slice'
+import { EInviteType } from '@/services/services.types'
 import { saveRedirectUrl, saveToLocalStorage } from '@/utils/general.utils'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -22,6 +25,8 @@ interface SendWithPeanutCtaProps extends ButtonProps {
     // when true, will redirect to login if user is not logged in
     requiresAuth?: boolean
     insufficientBalance?: boolean
+    // username of the person who created the request/link — used to generate an invite code for non-logged-in users
+    inviterUsername?: string
 }
 
 /**
@@ -38,9 +43,11 @@ export default function SendWithPeanutCta({
     requiresAuth = true,
     onClick,
     insufficientBalance = false,
+    inviterUsername,
     ...props
 }: SendWithPeanutCtaProps) {
     const router = useRouter()
+    const dispatch = useAppDispatch()
     const { user, isFetchingUser } = useAuth()
 
     const isLoggedIn = !!user?.user?.userId
@@ -51,10 +58,20 @@ export default function SendWithPeanutCta({
         // don't act while auth is still resolving
         if (isFetchingUser) return
 
-        // if auth is required and user is not logged in, redirect to login
+        // if auth is required and user is not logged in, redirect to signup
         if (requiresAuth && !isLoggedIn) {
-            saveRedirectUrl()
-            router.push('/setup')
+            const redirectUri = encodeURIComponent(
+                window.location.pathname + window.location.search + window.location.hash
+            )
+            if (inviterUsername) {
+                const inviteCode = `${inviterUsername.toUpperCase()}INVITESYOU`
+                dispatch(setupActions.setInviteCode(inviteCode))
+                dispatch(setupActions.setInviteType(EInviteType.PAYMENT_LINK))
+                router.push(`/invite?code=${inviteCode}&redirect_uri=${redirectUri}`)
+            } else {
+                saveRedirectUrl()
+                router.push('/setup')
+            }
             return
         }
 
