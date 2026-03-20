@@ -1267,9 +1267,9 @@ export default function QRPayPage() {
 
                     {/* Perk Success Banner - Show after claiming */}
                     {(perkClaimed || qrPayment?.perk?.claimed) && (
-                        <Card className="flex items-start gap-4 bg-white p-6">
-                            <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full bg-yellow-400">
-                                <Image src={STAR_STRAIGHT_ICON} alt="star" width={36} height={36} />
+                        <Card className="flex items-start gap-3 bg-white p-4">
+                            <div className="flex max-w-[15%] flex-shrink-0 items-center justify-center rounded-full bg-yellow-400 p-2">
+                                <Image src={STAR_STRAIGHT_ICON} alt="star" width={28} height={28} />
                             </div>
                             <div className="flex flex-col gap-2">
                                 <h2 className="text-2xl font-bold">Peanut got you!</h2>
@@ -1332,7 +1332,7 @@ export default function QRPayPage() {
                                     WebkitTapHighlightColor: 'transparent',
                                 }}
                             >
-                                {/* Black progress fill from left to right */}
+                                {/* progress fill from left to right */}
                                 <div
                                     className="absolute inset-0 bg-black transition-all duration-100"
                                     style={{
@@ -1340,7 +1340,20 @@ export default function QRPayPage() {
                                         left: 0,
                                     }}
                                 />
-                                <span className="relative z-10">Claim Peanut Perk Now!</span>
+                                {(() => {
+                                    const label = 'Claim Peanut Perk Now!'
+                                    return (
+                                        <>
+                                            <span className="relative z-10">{label}</span>
+                                            <span
+                                                className="absolute inset-0 z-20 flex items-center justify-center text-white transition-all duration-75"
+                                                style={{ clipPath: `inset(0 ${100 - holdProgress}% 0 0)` }}
+                                            >
+                                                {label}
+                                            </span>
+                                        </>
+                                    )
+                                })()}
                             </Button>
                         ) : (
                             <>
