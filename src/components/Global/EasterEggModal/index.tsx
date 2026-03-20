@@ -87,6 +87,7 @@ const EasterEggModal = ({ visible, onClose, countryCode }: EasterEggModalProps) 
                 {
                     text: 'Got it',
                     variant: 'stroke',
+                    shadowSize: '4',
                     onClick: onClose,
                 },
             ]}
