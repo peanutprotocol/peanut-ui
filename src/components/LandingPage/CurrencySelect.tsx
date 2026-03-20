@@ -24,7 +24,7 @@ const currencies = countryCurrencyMappings.map((mapping) => ({
     comingSoon: mapping.comingSoon || false,
 }))
 
-const popularCurrencies = ['USD', 'EUR', 'MXN']
+const popularCurrencies = ['USD', 'EUR', 'ARS', 'BRL', 'MXN']
 
 const CurrencySelect = ({
     selectedCurrency,
