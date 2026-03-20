@@ -56,7 +56,6 @@ import {
     VerifiedUserOutlined,
     EmojiEventsOutlined,
     LockOutlined,
-    CallSplitRounded,
     GroupsRounded,
     VpnLockOutlined,
     CameraswitchRounded,
