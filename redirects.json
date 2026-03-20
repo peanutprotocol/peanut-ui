@@ -21,7 +21,12 @@
     },
     {
         "source": "/:path*",
-        "has": [{ "type": "host", "value": "docs.peanut.me" }],
+        "has": [
+            {
+                "type": "host",
+                "value": "docs.peanut.me"
+            }
+        ],
         "destination": "https://peanut.me/en/help",
         "permanent": true
     },
@@ -74,5 +79,15 @@
         "source": "/seedlings",
         "destination": "https://peanutprotocol.notion.site/Influencer-information-form-2af8381175798067b271cd95a04d922a",
         "permanent": false
+    },
+    {
+        "source": "/presskit",
+        "destination": "https://peanutprotocol.notion.site/Press-Kit-12f83811757981fc9ca5de581b20f50d",
+        "permanent": true
+    },
+    {
+        "source": "/press-kit",
+        "destination": "https://peanutprotocol.notion.site/Press-Kit-12f83811757981fc9ca5de581b20f50d",
+        "permanent": true
     }
 ]
