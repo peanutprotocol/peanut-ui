@@ -65,7 +65,7 @@ const Slider = React.forwardRef<React.ElementRef<typeof SliderPrimitive.Root>, S
             >
                 <SliderPrimitive.Track className="pointer-events-none relative h-full w-full grow overflow-hidden rounded-none bg-white">
                     <SliderPrimitive.Range className="absolute h-full bg-primary-1" />
-                    <div className="absolute left-0 top-0 flex h-full w-full items-center justify-center text-sm font-bold text-black">
+                    <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center text-sm font-bold text-black">
                         {title ? title : 'Slide to Proceed'}
                     </div>
                 </SliderPrimitive.Track>

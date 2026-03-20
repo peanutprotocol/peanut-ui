@@ -28,6 +28,9 @@ import useKycStatus from '@/hooks/useKycStatus'
 import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermineBankRequestType'
 import { ACTION_METHODS, type PaymentMethod } from '@/constants/actionlist.consts'
 import { MIN_BANK_TRANSFER_AMOUNT, validateMinimumAmount } from '@/constants/payment.consts'
+import { useAppDispatch } from '@/redux/hooks'
+import { setupActions } from '@/redux/slices/setup-slice'
+import { EInviteType } from '@/services/services.types'
 import { saveRedirectUrl, saveToLocalStorage } from '@/utils/general.utils'
 import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPeanutCta'
 
@@ -35,8 +38,10 @@ interface RequestPotActionListProps {
     isAmountEntered: boolean
     usdAmount: string
     recipientUserId?: string
+    recipientUsername?: string
     onPayWithPeanut: () => void
     isPaymentLoading?: boolean
+    isExternalWalletLoading?: boolean
     onPayWithExternalWallet: () => void
 }
 
@@ -44,11 +49,14 @@ export function RequestPotActionList({
     isAmountEntered,
     usdAmount,
     recipientUserId,
+    recipientUsername,
     onPayWithPeanut,
     isPaymentLoading = false,
+    isExternalWalletLoading = false,
     onPayWithExternalWallet,
 }: RequestPotActionListProps) {
     const router = useRouter()
+    const dispatch = useAppDispatch()
     const { user } = useAuth()
     const { hasSufficientBalance, isFetchingBalance } = useWallet()
     const { isUserMantecaKycApproved } = useKycStatus()
@@ -122,19 +130,16 @@ export function RequestPotActionList({
                     router.push('/add-money')
                 } else {
                     const redirectUri = encodeURIComponent('/add-money')
-                    router.push(`/setup?redirect_uri=${redirectUri}`)
+                    if (recipientUsername) {
+                        const inviteCode = `${recipientUsername.toUpperCase()}INVITESYOU`
+                        dispatch(setupActions.setInviteCode(inviteCode))
+                        dispatch(setupActions.setInviteType(EInviteType.PAYMENT_LINK))
+                        router.push(`/invite?code=${inviteCode}&redirect_uri=${redirectUri}`)
+                    } else {
+                        router.push(`/setup?redirect_uri=${redirectUri}`)
+                    }
                 }
                 break
-        }
-    }
-
-    // handle continue with peanut (for non-logged in users)
-    const handleContinueWithPeanut = () => {
-        if (!isLoggedIn) {
-            saveRedirectUrl()
-            router.push('/setup')
-        } else {
-            onPayWithPeanut()
         }
     }
 
@@ -150,10 +155,11 @@ export function RequestPotActionList({
         <div className="space-y-2">
             {/* pay with peanut button */}
             <SendWithPeanutCta
-                onClick={handleContinueWithPeanut}
-                disabled={!isAmountEntered || isPaymentLoading}
+                onClick={onPayWithPeanut}
+                disabled={!isAmountEntered || isPaymentLoading || isExternalWalletLoading}
                 loading={isPaymentLoading}
                 insufficientBalance={!userHasSufficientPeanutBalance}
+                inviterUsername={recipientUsername}
             />
 
             <Divider text="or" />
