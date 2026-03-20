@@ -1057,25 +1057,25 @@ export default function QRPayPage() {
         )
     }
 
+    // get user-facing payment method name for maintenance screen
+    const paymentMethodName = useMemo(() => {
+        if (paymentProcessor === 'MANTECA') {
+            switch (qrType) {
+                case EQrType.PIX:
+                    return 'PIX'
+                case EQrType.MERCADO_PAGO:
+                    return 'Mercado Pago'
+                case EQrType.ARGENTINA_QR3:
+                    return 'QR'
+                default:
+                    return 'QR'
+            }
+        }
+        return 'SimpleFi'
+    }, [paymentProcessor, qrType])
+
     // Show maintenance error if provider is disabled
     if (isProviderDisabled) {
-        // Get user-facing payment method name
-        const paymentMethodName = useMemo(() => {
-            if (paymentProcessor === 'MANTECA') {
-                switch (qrType) {
-                    case EQrType.PIX:
-                        return 'PIX'
-                    case EQrType.MERCADO_PAGO:
-                        return 'Mercado Pago'
-                    case EQrType.ARGENTINA_QR3:
-                        return 'QR'
-                    default:
-                        return 'QR'
-                }
-            }
-            return 'SimpleFi'
-        }, [])
-
         return (
             <div className="my-auto flex h-full w-full flex-col justify-center space-y-4">
                 <Card className="flex w-full flex-col items-center gap-2 p-4">

@@ -209,7 +209,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                         <span
                                             className={twMerge(
                                                 'font-semibold',
-                                                status === 'refunded' && 'text-grey-1 line-through'
+                                                status === 'refunded' && 'text-gray-1 line-through'
                                             )}
                                         >
                                             {displayAmount}
