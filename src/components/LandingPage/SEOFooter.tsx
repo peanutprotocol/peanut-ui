@@ -1,112 +1,84 @@
 import Link from 'next/link'
+import footerManifest from '@/content/generated/footer-manifest.json'
 
-// Curated "seed list" for Google crawl discovery. Renders below the main footer
-// on non-marketing pages (homepage, /exchange, /lp, etc.). Marketing pages don't
-// need this — they already have RelatedPages + CountryGrid linking to sibling content.
+// SEO footer driven by peanut-content's generated/footer-manifest.json.
+// To update: add `featured: true` to content frontmatter, run
+// `node scripts/generate-footer-manifest.js` in peanut-content, and deploy.
 //
-// Data is inlined (not imported from @/data/seo) because Footer.tsx is bundled
-// by webpack for client-routed pages (e.g. /exchange) — importing fs-dependent
-// modules would break the build.
-//
-// IMPORTANT: Only list slugs that have published content in peanut-content.
-// The validate-links CI in peanut-content catches broken internal links, but
-// this file lives in peanut-ui — verify manually when editing.
+// JSON import is webpack-safe for client bundles (no fs dependency).
 
-const TOP_COUNTRIES: Array<{ slug: string; name: string }> = [
-    { slug: 'argentina', name: 'Argentina' },
-    { slug: 'brazil', name: 'Brazil' },
-    { slug: 'mexico', name: 'Mexico' },
-    { slug: 'colombia', name: 'Colombia' },
-    { slug: 'philippines', name: 'Philippines' },
-    { slug: 'nigeria', name: 'Nigeria' },
-    { slug: 'india', name: 'India' },
-    { slug: 'chile', name: 'Chile' },
-]
+interface FooterLink {
+    slug: string
+    name: string
+    href: string
+    external?: boolean
+}
 
-const COMPETITORS: Array<{ slug: string; name: string }> = [
-    { slug: 'wise', name: 'Wise' },
-    { slug: 'western-union', name: 'Western Union' },
-    { slug: 'paypal', name: 'PayPal' },
-    { slug: 'revolut', name: 'Revolut' },
-    { slug: 'binance-p2p', name: 'Binance P2P' },
-]
+const linkClass = 'text-xs text-white underline hover:text-white/70'
 
-const EXCHANGES: Array<{ slug: string; name: string }> = [
-    { slug: 'binance', name: 'Binance' },
-    { slug: 'coinbase', name: 'Coinbase' },
-    { slug: 'bybit', name: 'Bybit' },
-    { slug: 'kraken', name: 'Kraken' },
-]
+function FooterColumn({ title, children }: { title: string; children: React.ReactNode }) {
+    return (
+        <div>
+            <h3 className="mb-3 text-xs font-bold text-white">{title}</h3>
+            <ul className="space-y-1">{children}</ul>
+        </div>
+    )
+}
+
+function FooterLink({ link, prefix }: { link: FooterLink; prefix?: string }) {
+    const label = prefix ? `${prefix} ${link.name}` : link.name
+
+    if (link.external) {
+        return (
+            <li>
+                <a href={link.href} className={linkClass} target="_blank" rel="noopener noreferrer">
+                    {label}
+                </a>
+            </li>
+        )
+    }
+
+    return (
+        <li>
+            <Link href={link.href} className={linkClass}>
+                {label}
+            </Link>
+        </li>
+    )
+}
 
 export function SEOFooter() {
+    const { sendMoney, compare, articles, resources } = footerManifest
+
     return (
         <nav aria-label="Site directory" className="bg-black px-8 py-8 md:px-20">
             <div className="flex flex-wrap justify-between gap-y-8">
-                <div>
-                    <h3 className="mb-3 text-xs font-bold text-white">Send Money</h3>
-                    <ul className="space-y-1">
-                        {TOP_COUNTRIES.map(({ slug, name }) => (
-                            <li key={slug}>
-                                <Link
-                                    href={`/en/send-money-to/${slug}`}
-                                    className="text-xs text-white underline hover:text-white/70"
-                                >
-                                    Send to {name}
-                                </Link>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
+                <FooterColumn title="Send Money">
+                    {(sendMoney.to as FooterLink[]).map((link) => (
+                        <FooterLink key={link.slug} link={link} prefix="Send to" />
+                    ))}
+                    {(sendMoney.from as FooterLink[]).map((link) => (
+                        <FooterLink key={link.slug} link={link} prefix="Send from" />
+                    ))}
+                </FooterColumn>
 
-                <div>
-                    <h3 className="mb-3 text-xs font-bold text-white">Countries</h3>
-                    <ul className="space-y-1">
-                        {TOP_COUNTRIES.map(({ slug, name }) => (
-                            <li key={slug}>
-                                <Link href={`/en/${slug}`} className="text-xs text-white underline hover:text-white/70">
-                                    Peanut in {name}
-                                </Link>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
+                <FooterColumn title="Compare">
+                    {(compare as FooterLink[]).map((link) => (
+                        <FooterLink key={link.slug} link={link} prefix="Peanut vs" />
+                    ))}
+                </FooterColumn>
 
-                <div>
-                    <h3 className="mb-3 text-xs font-bold text-white">Compare</h3>
-                    <ul className="space-y-1">
-                        {COMPETITORS.map(({ slug, name }) => (
-                            <li key={slug}>
-                                <Link
-                                    href={`/en/compare/peanut-vs-${slug}`}
-                                    className="text-xs text-white underline hover:text-white/70"
-                                >
-                                    Peanut vs {name}
-                                </Link>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
+                <FooterColumn title="Articles">
+                    {(articles as FooterLink[]).map((link) => (
+                        <FooterLink key={link.slug} link={link} />
+                    ))}
+                </FooterColumn>
 
-                <div>
-                    <h3 className="mb-3 text-xs font-bold text-white">Resources</h3>
-                    <ul className="space-y-1">
-                        <li>
-                            <Link href="/en/help" className="text-xs text-white underline hover:text-white/70">
-                                Help Center
-                            </Link>
-                        </li>
-                        {EXCHANGES.map(({ slug, name }) => (
-                            <li key={slug}>
-                                <Link
-                                    href={`/en/deposit/from-${slug}`}
-                                    className="text-xs text-white underline hover:text-white/70"
-                                >
-                                    Deposit from {name}
-                                </Link>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
+                <FooterColumn title="Resources">
+                    {(resources as FooterLink[]).map((link) => (
+                        <FooterLink key={link.slug} link={link} />
+                    ))}
+                </FooterColumn>
             </div>
         </nav>
     )
