@@ -4,6 +4,7 @@ import { JsonLd } from './JsonLd'
 import { articleSchema, type ArticleMeta } from '@/lib/seo/schemas'
 import { BASE_URL } from '@/constants/general.consts'
 import { MarketingErrorBoundary } from './MarketingErrorBoundary'
+import { ContentSEOFooter } from './ContentSEOFooter'
 
 interface ContentPageProps {
     /** Compiled MDX content element */
@@ -12,6 +13,8 @@ interface ContentPageProps {
     breadcrumbs: Array<{ name: string; href: string }>
     /** Article schema data for freshness signals */
     article?: ArticleMeta
+    /** Locale for SEO footer link localization. When provided, renders the content SEO footer. */
+    locale?: string
 }
 
 /**
@@ -19,7 +22,7 @@ interface ContentPageProps {
  * Handles BreadcrumbList JSON-LD + visible breadcrumb nav.
  * The MDX body owns all layout (Hero is full-bleed, prose sections are contained).
  */
-export function ContentPage({ children, breadcrumbs, article }: ContentPageProps) {
+export function ContentPage({ children, breadcrumbs, article, locale }: ContentPageProps) {
     const breadcrumbSchema = {
         '@context': 'https://schema.org',
         '@type': 'BreadcrumbList',
@@ -59,6 +62,7 @@ export function ContentPage({ children, breadcrumbs, article }: ContentPageProps
                     </nav>
                 </article>
             </MarketingErrorBoundary>
+            {locale && <ContentSEOFooter locale={locale} />}
         </>
     )
 }

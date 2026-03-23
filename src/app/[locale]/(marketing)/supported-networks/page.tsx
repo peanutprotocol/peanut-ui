@@ -1,73 +1,59 @@
 import { notFound } from 'next/navigation'
 import { type Metadata } from 'next'
 import { generateMetadata as metadataHelper } from '@/app/metadata'
-import { SUPPORTED_LOCALES, getAlternates, isValidLocale } from '@/i18n/config'
+import { SUPPORTED_LOCALES, getBareAlternates, isValidLocale } from '@/i18n/config'
 import { getTranslations } from '@/i18n'
 import { ContentPage } from '@/components/Marketing/ContentPage'
-import { readPageContentLocalized, listContentSlugs } from '@/lib/content'
+import { readSingletonContentLocalized, type ContentFrontmatter } from '@/lib/content'
 import { renderContent } from '@/lib/mdx'
 
 interface PageProps {
-    params: Promise<{ locale: string; slug: string }>
+    params: Promise<{ locale: string }>
 }
-
-interface HelpFrontmatter {
-    title: string
-    description: string
-    slug: string
-    category?: string
-    published?: boolean
-    generated_at?: string
-}
-
-const HELP_SLUGS = listContentSlugs('help')
 
 export async function generateStaticParams() {
-    return SUPPORTED_LOCALES.flatMap((locale) => HELP_SLUGS.map((slug) => ({ locale, slug })))
+    return SUPPORTED_LOCALES.map((locale) => ({ locale }))
 }
 export const dynamicParams = false
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-    const { locale, slug } = await params
+    const { locale } = await params
     if (!isValidLocale(locale)) return {}
 
-    const mdxContent = readPageContentLocalized<HelpFrontmatter>('help', slug, locale)
+    const mdxContent = readSingletonContentLocalized<ContentFrontmatter>('supported-networks', locale)
     if (!mdxContent || mdxContent.frontmatter.published === false) return {}
 
     return {
         ...metadataHelper({
             title: mdxContent.frontmatter.title,
             description: mdxContent.frontmatter.description,
-            canonical: `/${locale}/help/${slug}`,
+            canonical: `/${locale}/supported-networks`,
             dynamicOg: true,
         }),
         alternates: {
-            canonical: `/${locale}/help/${slug}`,
-            languages: getAlternates('help', slug),
+            canonical: `/${locale}/supported-networks`,
+            languages: getBareAlternates('supported-networks'),
         },
     }
 }
 
-export default async function HelpArticlePage({ params }: PageProps) {
-    const { locale, slug } = await params
+export default async function SupportedNetworksPage({ params }: PageProps) {
+    const { locale } = await params
     if (!isValidLocale(locale)) notFound()
 
-    const mdxSource = readPageContentLocalized<HelpFrontmatter>('help', slug, locale)
+    const mdxSource = readSingletonContentLocalized<ContentFrontmatter>('supported-networks', locale)
     if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
 
     const { content } = await renderContent(mdxSource.body)
     const i18n = getTranslations(locale)
-
-    const displayTitle = mdxSource.frontmatter.title.replace(/\s*\|\s*Peanut Help$/, '')
-    const url = `/${locale}/help/${slug}`
+    const url = `/${locale}/supported-networks`
 
     return (
         <ContentPage
             locale={locale}
             breadcrumbs={[
                 { name: i18n.home, href: `/${locale}` },
-                { name: i18n.help, href: `/${locale}/help` },
-                { name: displayTitle, href: url },
+                { name: mdxSource.frontmatter.title, href: url },
             ]}
             article={
                 mdxSource.frontmatter.generated_at
