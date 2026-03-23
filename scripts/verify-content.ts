@@ -492,6 +492,102 @@ function checkContentPolish() {
     )
 }
 
+// --- Pass 7: Published field must be explicit ---
+
+function checkExplicitPublished() {
+    const files = getAllMdFiles(CONTENT_DIR)
+    let issues = 0
+
+    for (const file of files) {
+        const content = fs.readFileSync(file, 'utf-8')
+        const fm = parseFrontmatter(content)
+
+        if (fm.published === undefined) {
+            error(
+                'no-published-field',
+                'File has no explicit published field — add published: true or published: false',
+                rel(file)
+            )
+            issues++
+        }
+    }
+
+    // Also check singleton content (files directly in content/{type}/ not in a subdir)
+    const singletonDirs = ['pricing', 'supported-networks']
+    for (const dir of singletonDirs) {
+        const dirPath = path.join(CONTENT_DIR, dir)
+        if (!fs.existsSync(dirPath)) continue
+        for (const f of fs.readdirSync(dirPath)) {
+            if (!f.endsWith('.md')) continue
+            const filePath = path.join(dirPath, f)
+            const stat = fs.statSync(filePath)
+            if (stat.isDirectory()) continue
+            // Already checked above in getAllMdFiles, skip duplicate
+        }
+    }
+
+    console.log(
+        `  Pass 7 — Explicit published: ${issues === 0 ? 'all files have published field' : `${issues} files missing published field`}`
+    )
+}
+
+// --- Pass 8: isPublished consistency ---
+// The page-level check uses `published === false` (permissive: undefined = published)
+// The lib isPublished uses `published === true` (strict: undefined = unpublished)
+// Flag files where these disagree — they'll render on the page but won't appear in generateStaticParams
+
+function checkPublishedConsistency() {
+    const files = getAllMdFiles(CONTENT_DIR)
+    let issues = 0
+
+    for (const file of files) {
+        const content = fs.readFileSync(file, 'utf-8')
+        const fm = parseFrontmatter(content)
+
+        // Permissive: page renders (published !== false)
+        const pageWouldRender = fm.published !== false
+        // Strict: generateStaticParams includes it (published === true)
+        const buildWouldInclude = fm.published === true
+
+        if (pageWouldRender && !buildWouldInclude) {
+            error(
+                'published-mismatch',
+                `published=${String(fm.published)} — page would render but generateStaticParams excludes it. Set published: true or published: false explicitly.`,
+                rel(file)
+            )
+            issues++
+        }
+    }
+
+    console.log(
+        `  Pass 8 — Published consistency: ${issues === 0 ? 'no mismatches' : `${issues} files with ambiguous published state`}`
+    )
+}
+
+// --- Pass 9: Submodule freshness ---
+// Warn if content submodule is behind origin/main
+
+function checkSubmoduleFreshness() {
+    const contentGitDir = path.join(ROOT, '.git')
+    if (!fs.existsSync(contentGitDir)) return
+
+    try {
+        const { execSync } = require('child_process')
+        const behindCount = execSync('git -C ' + ROOT + ' rev-list --count HEAD..origin/main 2>/dev/null', {
+            encoding: 'utf-8',
+        }).trim()
+        const behind = parseInt(behindCount, 10)
+        if (behind > 0) {
+            warn('submodule', `Content submodule is ${behind} commit(s) behind origin/main — consider bumping`)
+        }
+        console.log(
+            `  Pass 9 — Submodule freshness: ${behind === 0 ? 'up to date' : `${behind} commits behind origin/main`}`
+        )
+    } catch {
+        console.log('  Pass 9 — Submodule freshness: skipped (not a git repo)')
+    }
+}
+
 // --- Main ---
 
 function main() {
@@ -508,6 +604,9 @@ function main() {
     checkFrontmatter()
     checkLocaleCoverage()
     checkContentPolish()
+    checkExplicitPublished()
+    checkPublishedConsistency()
+    checkSubmoduleFreshness()
 
     // Report
     const errors = diagnostics.filter((d) => d.level === 'error')
