@@ -42,6 +42,24 @@ function buildValidPaths(): Set<string> {
         paths.add(p)
     }
 
+    // App routes (behind auth / mobile-ui) — content may link to these
+    for (const p of [
+        '/profile',
+        '/profile/backup',
+        '/profile/edit',
+        '/profile/exchange-rate',
+        '/profile/identity-verification',
+        '/home',
+        '/send',
+        '/request',
+        '/settings',
+        '/history',
+        '/points',
+        '/recover-funds',
+    ]) {
+        paths.add(p)
+    }
+
     const countrySlugs = listDirs(path.join(CONTENT_DIR, 'countries'))
     const competitorSlugs = listDirs(path.join(CONTENT_DIR, 'compare'))
     const payWithSlugs = listDirs(path.join(CONTENT_DIR, 'pay-with'))
