@@ -609,6 +609,47 @@ function checkSubmoduleFreshness() {
     }
 }
 
+// --- Pass 10: Published page count regression ---
+// Prevents accidental mass-unpublish (like the 72-page incident from commit 79cb1cd).
+// Stores the last known count in a .verify-content-baseline file.
+
+const BASELINE_FILE = path.join(process.cwd(), '.verify-content-baseline')
+
+function checkPageCountRegression() {
+    const files = getAllMdFiles(CONTENT_DIR)
+    const publishedCount = files.filter((f) => {
+        const content = fs.readFileSync(f, 'utf-8')
+        return isPublished(content)
+    }).length
+
+    let baseline = 0
+    let hasBaseline = false
+
+    if (fs.existsSync(BASELINE_FILE)) {
+        const raw = fs.readFileSync(BASELINE_FILE, 'utf-8').trim()
+        baseline = parseInt(raw, 10)
+        hasBaseline = true
+    }
+
+    if (hasBaseline && publishedCount < baseline) {
+        const drop = baseline - publishedCount
+        const pct = Math.round((drop / baseline) * 100)
+        error(
+            'page-count',
+            `Published page count dropped from ${baseline} to ${publishedCount} (−${drop}, −${pct}%). This may indicate accidental mass-unpublish. If intentional, run: echo ${publishedCount} > .verify-content-baseline`
+        )
+    }
+
+    // Update baseline (only if count went up or file doesn't exist)
+    if (publishedCount >= baseline) {
+        fs.writeFileSync(BASELINE_FILE, String(publishedCount) + '\n')
+    }
+
+    console.log(
+        `  Pass 10 — Page count: ${publishedCount} published${hasBaseline ? ` (baseline: ${baseline})` : ' (baseline set)'}`
+    )
+}
+
 // --- Main ---
 
 function main() {
@@ -628,6 +669,7 @@ function main() {
     checkExplicitPublished()
     checkPublishedConsistency()
     checkSubmoduleFreshness()
+    checkPageCountRegression()
 
     // Report
     const errors = diagnostics.filter((d) => d.level === 'error')
