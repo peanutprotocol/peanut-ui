@@ -459,6 +459,39 @@ function checkLocaleCoverage() {
     console.log(`  Pass 5 — Locale coverage: ${warnings} missing translations (warnings only)`)
 }
 
+// --- Pass 6: Content polish (MDX component usage) ---
+
+/** MDX components that indicate a polished page */
+const MDX_COMPONENT_PATTERNS = [
+    /<Hero\b/,
+    /<Callout\b/,
+    /<RelatedPages\b/,
+    /<CountryGrid\b/,
+    /<ComparisonTable\b/,
+    /<FAQ\b/,
+    /<Steps\b/,
+]
+
+function checkContentPolish() {
+    const files = getAllMdFiles(CONTENT_DIR)
+    let issues = 0
+
+    for (const file of files) {
+        const content = fs.readFileSync(file, 'utf-8')
+        if (!isPublished(content)) continue
+
+        const hasMdxComponent = MDX_COMPONENT_PATTERNS.some((pattern) => pattern.test(content))
+        if (!hasMdxComponent) {
+            warn('polish', 'Published page uses plain markdown — no MDX components (Hero, Callout, etc.)', rel(file))
+            issues++
+        }
+    }
+
+    console.log(
+        `  Pass 6 — Content polish: ${issues === 0 ? 'all published pages use MDX components' : `${issues} plain-markdown pages (warnings)`}`
+    )
+}
+
 // --- Main ---
 
 function main() {
@@ -474,6 +507,7 @@ function main() {
     checkFooterManifest(validPaths)
     checkFrontmatter()
     checkLocaleCoverage()
+    checkContentPolish()
 
     // Report
     const errors = diagnostics.filter((d) => d.level === 'error')
