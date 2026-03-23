@@ -187,6 +187,30 @@ function isInternalLink(url: string): boolean {
     return true
 }
 
+// --- Frontmatter parsing ---
+
+function parseFrontmatter(content: string): Record<string, unknown> {
+    const match = content.match(/^---\n([\s\S]*?)\n---/)
+    if (!match) return {}
+    const frontmatter: Record<string, unknown> = {}
+    for (const line of match[1].split('\n')) {
+        const colonIdx = line.indexOf(':')
+        if (colonIdx === -1) continue
+        const key = line.slice(0, colonIdx).trim()
+        const value = line.slice(colonIdx + 1).trim()
+        if (value === 'true') frontmatter[key] = true
+        else if (value === 'false') frontmatter[key] = false
+        else frontmatter[key] = value
+    }
+    return frontmatter
+}
+
+function isPublished(content: string): boolean {
+    const fm = parseFrontmatter(content)
+    // If published is explicitly false, skip the file
+    return fm.published !== false
+}
+
 // --- Scan content files ---
 
 function getAllMdFiles(dir: string): string[] {
@@ -225,8 +249,17 @@ function main() {
     const broken: BrokenLink[] = []
     let totalLinks = 0
 
+    let skippedUnpublished = 0
+
     for (const file of files) {
         const content = fs.readFileSync(file, 'utf-8')
+
+        // Skip unpublished/draft content — links to not-yet-built routes are expected
+        if (!isPublished(content)) {
+            skippedUnpublished++
+            continue
+        }
+
         const links = extractLinks(content)
         totalLinks += links.length
 
@@ -246,7 +279,10 @@ function main() {
     }
 
     // --- Report ---
-    console.log(`Checked ${totalLinks} internal links across ${files.length} files\n`)
+    if (skippedUnpublished > 0) {
+        console.log(`  Skipped ${skippedUnpublished} unpublished files\n`)
+    }
+    console.log(`Checked ${totalLinks} internal links across ${files.length - skippedUnpublished} published files\n`)
 
     if (broken.length === 0) {
         console.log('✓ No broken internal links found!')
