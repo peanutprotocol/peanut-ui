@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useCrispUserData } from '@/hooks/useCrispUserData'
+import { useCrispTokenId } from '@/hooks/useCrispTokenId'
 import { useCrispProxyUrl } from '@/hooks/useCrispProxyUrl'
 import PeanutLoading from '../PeanutLoading'
 
@@ -11,9 +12,10 @@ const DISMISS_THRESHOLD = 100
 const SupportDrawer = () => {
     const { isSupportModalOpen, setIsSupportModalOpen, supportPrefilledMessage: prefilledMessage } = useModalsContext()
     const userData = useCrispUserData()
+    const crispTokenId = useCrispTokenId()
     const [isCrispReady, setIsCrispReady] = useState(false)
 
-    const crispProxyUrl = useCrispProxyUrl(userData, prefilledMessage)
+    const crispProxyUrl = useCrispProxyUrl(userData, prefilledMessage, crispTokenId)
 
     // drag-to-dismiss state
     const panelRef = useRef<HTMLDivElement>(null)

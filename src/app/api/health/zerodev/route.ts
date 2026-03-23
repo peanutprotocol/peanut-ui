@@ -49,6 +49,7 @@ export async function GET() {
             const bundlerResponse = await fetch(BUNDLER_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                signal: AbortSignal.timeout(5000),
                 body: JSON.stringify({
                     jsonrpc: '2.0',
                     method: 'eth_supportedEntryPoints',
@@ -98,6 +99,7 @@ export async function GET() {
             const paymasterResponse = await fetch(PAYMASTER_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                signal: AbortSignal.timeout(5000),
                 body: JSON.stringify({
                     jsonrpc: '2.0',
                     method: 'eth_chainId',
