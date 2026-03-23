@@ -472,23 +472,44 @@ const MDX_COMPONENT_PATTERNS = [
     /<Steps\b/,
 ]
 
+/** Minimum MDX component count for a page to be considered polished */
+const MIN_MDX_COMPONENTS = 2
+
 function checkContentPolish() {
     const files = getAllMdFiles(CONTENT_DIR)
-    let issues = 0
+    let errors = 0
+    let warnings = 0
 
     for (const file of files) {
         const content = fs.readFileSync(file, 'utf-8')
         if (!isPublished(content)) continue
 
-        const hasMdxComponent = MDX_COMPONENT_PATTERNS.some((pattern) => pattern.test(content))
-        if (!hasMdxComponent) {
-            warn('polish', 'Published page uses plain markdown — no MDX components (Hero, Callout, etc.)', rel(file))
-            issues++
+        const fm = parseFrontmatter(content)
+
+        // Frontmatter override: skip_polish_check: true bypasses this check
+        if (fm.skip_polish_check === true) continue
+
+        const mdxCount = MDX_COMPONENT_PATTERNS.filter((pattern) => pattern.test(content)).length
+
+        if (mdxCount === 0) {
+            error(
+                'polish',
+                'Published page has zero MDX components — needs at least Hero + one other (FAQ, Steps, RelatedPages). Add skip_polish_check: true to frontmatter to override.',
+                rel(file)
+            )
+            errors++
+        } else if (mdxCount < MIN_MDX_COMPONENTS) {
+            warn(
+                'polish',
+                `Only ${mdxCount} MDX component type(s) — consider adding FAQ, Steps, or RelatedPages for better SEO/UX. Add skip_polish_check: true to override.`,
+                rel(file)
+            )
+            warnings++
         }
     }
 
     console.log(
-        `  Pass 6 — Content polish: ${issues === 0 ? 'all published pages use MDX components' : `${issues} plain-markdown pages (warnings)`}`
+        `  Pass 6 — Content polish: ${errors} errors, ${warnings} warnings (${errors + warnings === 0 ? 'all pages polished' : 'see details'})`
     )
 }
 
