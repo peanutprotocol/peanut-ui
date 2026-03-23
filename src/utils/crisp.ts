@@ -14,8 +14,18 @@ import { type CrispUserData } from '@/hooks/useCrispUserData'
 export function setCrispUserData(crispInstance: any, userData: CrispUserData, prefilledMessage?: string): void {
     if (!crispInstance) return
 
-    const { username, userId, email, fullName, avatar, grafanaLink, walletAddressLink, bridgeUserId, mantecaUserId } =
-        userData
+    const {
+        username,
+        userId,
+        email,
+        fullName,
+        avatar,
+        grafanaLink,
+        walletAddressLink,
+        bridgeCustomerLink,
+        mantecaUserId,
+        posthogPersonLink,
+    } = userData
 
     if (email) {
         crispInstance.push(['set', 'user:email', [email]])
@@ -41,8 +51,9 @@ export function setCrispUserData(crispInstance: any, userData: CrispUserData, pr
                 ['full_name', fullName || ''],
                 ['grafana_dashboard', grafanaLink || ''],
                 ['wallet_address', walletAddressLink || ''],
-                ['bridge_user_id', bridgeUserId || ''],
+                ['bridge_user_id', bridgeCustomerLink || ''],
                 ['manteca_user_id', mantecaUserId || ''],
+                ['posthog_person', posthogPersonLink || ''],
             ],
         ],
     ])
@@ -61,6 +72,11 @@ export function resetCrispSession(crispInstance: any): void {
     if (!crispInstance || typeof window === 'undefined') return
 
     try {
+        // Clear CRISP_TOKEN_ID before resetting session to fully unbind the user.
+        // This prevents the next anonymous session from inheriting the previous user's conversation.
+        // @see https://docs.crisp.chat/guides/chatbox-sdks/web-sdk/session-continuity/
+        window.CRISP_TOKEN_ID = null
+
         crispInstance.push(['do', 'session:reset'])
     } catch (e) {
         console.debug('[Crisp] Could not reset session:', e)

@@ -66,6 +66,7 @@ function buildValidPaths(): Set<string> {
     const depositSlugs = listDirs(path.join(CONTENT_DIR, 'deposit'))
     const helpSlugs = listDirs(path.join(CONTENT_DIR, 'help'))
     const useCaseSlugs = listDirs(path.join(CONTENT_DIR, 'use-cases'))
+    const storySlugs = listDirs(path.join(CONTENT_DIR, 'stories')).filter((s) => s !== 'index')
     const withdrawSlugs = listDirs(path.join(CONTENT_DIR, 'withdraw'))
     const exchangeSlugs = listEntitySlugs('exchanges')
 
@@ -133,6 +134,14 @@ function buildValidPaths(): Set<string> {
         // Use-cases: /{locale}/use-cases/{slug}
         for (const slug of useCaseSlugs) {
             paths.add(`/${locale}/use-cases/${slug}`)
+        }
+
+        // Stories: /{locale}/stories and /{locale}/stories/{slug}
+        if (storySlugs.length > 0) {
+            paths.add(`/${locale}/stories`)
+            for (const slug of storySlugs) {
+                paths.add(`/${locale}/stories/${slug}`)
+            }
         }
 
         // Withdraw: /{locale}/withdraw/{slug}
