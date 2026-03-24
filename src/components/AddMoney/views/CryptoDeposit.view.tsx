@@ -141,7 +141,7 @@ const CryptoDepositView = ({ network, depositAddressData, isLoading, onSuccess, 
                                         setShowSupportedNetworks(true)
                                     }
                                 }}
-                                className="cursor-pointer border-t border-black p-4"
+                                className={`border-t border-black p-4 ${isEvm ? 'cursor-pointer' : ''}`}
                             >
                                 <p className="mb-2 text-sm font-bold">Supported Networks:</p>
                                 <div className="flex items-center gap-2">

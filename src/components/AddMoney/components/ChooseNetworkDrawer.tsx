@@ -54,7 +54,7 @@ const ChooseNetworkDrawer = ({ open, onClose, onSelect }: ChooseNetworkDrawerPro
                     {/* solana */}
                     <ActionListCard
                         title="Solana"
-                        description={`${getSupportedTokens('SOL').length} Supported tokens`}
+                        description={`${getSupportedTokens('SOL').length} Supported token${getSupportedTokens('SOL').length !== 1 ? 's' : ''}`}
                         position="middle"
                         leftIcon={
                             <Image
@@ -71,7 +71,7 @@ const ChooseNetworkDrawer = ({ open, onClose, onSelect }: ChooseNetworkDrawerPro
                     {/* tron */}
                     <ActionListCard
                         title="Tron"
-                        description={`${getSupportedTokens('TRON').length} Supported token`}
+                        description={`${getSupportedTokens('TRON').length} Supported token${getSupportedTokens('TRON').length !== 1 ? 's' : ''}`}
                         position="last"
                         leftIcon={
                             <Image src={CHAIN_LOGOS.TRON} alt="Tron" width={32} height={32} className="rounded-full" />

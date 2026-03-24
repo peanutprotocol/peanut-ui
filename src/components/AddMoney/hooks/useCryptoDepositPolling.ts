@@ -63,6 +63,9 @@ export function useCryptoDepositPolling(depositAddress: string | undefined, onSu
             await rhinoApi.resetDepositAddressStatus(depositAddress)
             hasCalledSuccess.current = false
             await queryClient.invalidateQueries({ queryKey })
+        } catch (error) {
+            console.error('Failed to reset deposit status:', error)
+            throw error
         } finally {
             isResettingRef.current = false
             setIsResetting(false)
