@@ -117,7 +117,15 @@ const CryptoDepositView = ({ network, depositAddressData, isLoading, onSuccess, 
                                     </Tooltip>
                                 </div>
                                 <div className="flex items-start justify-between gap-2">
-                                    <p className="break-all font-mono text-sm">{depositAddressData.depositAddress}</p>
+                                    <p className="break-all text-sm">
+                                        <span className="font-semibold">
+                                            {depositAddressData.depositAddress.slice(0, 6)}
+                                        </span>
+                                        {depositAddressData.depositAddress.slice(6, -6)}
+                                        <span className="font-semibold">
+                                            {depositAddressData.depositAddress.slice(-6)}
+                                        </span>
+                                    </p>
                                     <CopyToClipboard
                                         textToCopy={depositAddressData.depositAddress}
                                         iconSize="4"
