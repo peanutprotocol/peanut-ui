@@ -54,7 +54,6 @@ export const RHINO_SUPPORTED_OTHER_CHAINS = RHINO_SUPPORTED_CHAINS.filter((chain
     (OTHER_SUPPORTED_CHAINS as readonly string[]).includes(chain.name)
 )
 
-
 export const NETWORK_LABELS: Record<RhinoChainType, string> = {
     EVM: 'EVM',
     SOL: 'Solana',
