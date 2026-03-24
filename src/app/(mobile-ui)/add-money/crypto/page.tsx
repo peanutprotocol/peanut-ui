@@ -1,13 +1,15 @@
 'use client'
-import RhinoDepositView from '@/components/AddMoney/views/RhinoDeposit.view'
-import { useAuth } from '@/context/authContext'
+
+import CryptoDepositView from '@/components/AddMoney/views/CryptoDeposit.view'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
+import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { rhinoApi } from '@/services/rhino'
 import type { RhinoChainType } from '@/services/services.types'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { useCallback, useState } from 'react'
+import { useQueryState, parseAsStringEnum } from 'nuqs'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
@@ -15,14 +17,17 @@ const AddMoneyCryptoPage = () => {
     const { user } = useAuth()
     const router = useRouter()
     const { address: peanutWalletAddress } = useWallet()
-    const [chainType, setChainType] = useState<RhinoChainType>('EVM')
+    const [network] = useQueryState(
+        'network',
+        parseAsStringEnum<RhinoChainType>(['EVM', 'SOL', 'TRON']).withDefault('EVM')
+    )
     const [showSuccessView, setShowSuccessView] = useState(false)
     const [depositedAmount, setDepositedAmount] = useState(0)
 
     const { data: depositAddressData, isLoading } = useQuery({
-        queryKey: ['rhino-deposit-address', user?.user.userId, chainType],
+        queryKey: ['rhino-deposit-address', user?.user.userId, network],
         queryFn: () =>
-            rhinoApi.createDepositAddress(peanutWalletAddress as string, chainType, user?.user.userId as string),
+            rhinoApi.createDepositAddress(peanutWalletAddress as string, network, user?.user.userId as string),
         enabled: !!user && !!peanutWalletAddress,
         staleTime: 1000 * 60 * 60 * 24, // 24 hours
     })
@@ -31,28 +36,26 @@ const AddMoneyCryptoPage = () => {
         (amount: number) => {
             posthog.capture(ANALYTICS_EVENTS.DEPOSIT_COMPLETED, {
                 amount,
-                chain_type: chainType,
+                chain_type: network,
                 method_type: 'crypto',
             })
             setDepositedAmount(amount)
             setShowSuccessView(true)
         },
-        [chainType]
+        [network]
     )
 
     if (showSuccessView) {
-        return <PaymentSuccessView type="DEPOSIT" amount={depositedAmount.toString()} />
+        return <PaymentSuccessView type="DEPOSIT" usdAmount={depositedAmount.toString()} />
     }
 
     return (
-        <RhinoDepositView
-            headerTitle="Add Money"
-            onBack={() => router.back()}
-            chainType={chainType}
+        <CryptoDepositView
+            network={network}
             depositAddressData={depositAddressData}
-            isDepositAddressDataLoading={isLoading}
-            setChainType={setChainType}
+            isLoading={isLoading}
             onSuccess={handleSuccess}
+            onBack={() => router.push('/add-money')}
         />
     )
 }
