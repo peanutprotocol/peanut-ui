@@ -1,6 +1,7 @@
 'use client'
 
 import { rhinoApi } from '@/services/rhino'
+import type { DepositAddressStatusResponse } from '@/services/services.types'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 
@@ -8,7 +9,10 @@ const POLLING_DELAY = 15_000
 
 type DepositStatus = 'not_started' | 'loading' | 'failed' | 'completed'
 
-export function useCryptoDepositPolling(depositAddress: string | undefined, onSuccess: (amount: number) => void) {
+export function useCryptoDepositPolling(
+    depositAddress: string | undefined,
+    onSuccess: (amount: number, statusData?: DepositAddressStatusResponse) => void
+) {
     const [isDelayComplete, setIsDelayComplete] = useState(false)
     const [isResetting, setIsResetting] = useState(false)
     const hasCalledSuccess = useRef(false)
@@ -31,6 +35,7 @@ export function useCryptoDepositPolling(depositAddress: string | undefined, onSu
             return rhinoApi.getDepositAddressStatus(depositAddress)
         },
         enabled: !!depositAddress && isDelayComplete,
+        gcTime: 0, // don't cache across navigations — prevents stale success state
         refetchInterval: (query: { state: { data?: { status?: string } } }) => {
             const s = query.state.data?.status
             return s === 'completed' || s === 'failed' ? false : 5000
@@ -51,7 +56,7 @@ export function useCryptoDepositPolling(depositAddress: string | undefined, onSu
     useEffect(() => {
         if (status === 'completed' && statusData?.amount && !hasCalledSuccess.current) {
             hasCalledSuccess.current = true
-            onSuccess(statusData.amount)
+            onSuccess(statusData.amount, statusData)
         }
     }, [statusData, status, onSuccess])
 

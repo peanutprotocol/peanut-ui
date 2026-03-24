@@ -18,7 +18,11 @@ import {
     NETWORK_LOGOS,
     getSupportedTokens,
 } from '@/constants/rhino.consts'
-import type { CreateDepositAddressResponse, RhinoChainType } from '@/services/services.types'
+import type {
+    CreateDepositAddressResponse,
+    DepositAddressStatusResponse,
+    RhinoChainType,
+} from '@/services/services.types'
 import InfoCard from '@/components/Global/InfoCard'
 import { Tooltip } from '@/components/Tooltip'
 import { useState } from 'react'
@@ -28,7 +32,7 @@ interface CryptoDepositViewProps {
     network: RhinoChainType
     depositAddressData: CreateDepositAddressResponse | undefined
     isLoading: boolean
-    onSuccess: (amount: number) => void
+    onSuccess: (amount: number, statusData?: DepositAddressStatusResponse) => void
     onBack: () => void
 }
 

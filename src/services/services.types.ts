@@ -479,3 +479,12 @@ export interface CreateDepositAddressResponse {
     maxDepositLimitUsd: number
     supportedChains: string[]
 }
+
+export interface DepositAddressStatusResponse {
+    status: string
+    amount?: number
+    txHash?: string
+    chainIn?: string
+    tokenSymbol?: string
+    tokenAmount?: string
+}

@@ -5,7 +5,7 @@ import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuc
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { rhinoApi } from '@/services/rhino'
-import type { RhinoChainType } from '@/services/services.types'
+import type { DepositAddressStatusResponse, RhinoChainType } from '@/services/services.types'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { useCallback, useState } from 'react'
@@ -22,7 +22,7 @@ const AddMoneyCryptoPage = () => {
         parseAsStringEnum<RhinoChainType>(['EVM', 'SOL', 'TRON']).withDefault('EVM')
     )
     const [showSuccessView, setShowSuccessView] = useState(false)
-    const [depositedAmount, setDepositedAmount] = useState(0)
+    const [depositResult, setDepositResult] = useState<DepositAddressStatusResponse | null>(null)
 
     const { data: depositAddressData, isLoading } = useQuery({
         queryKey: ['rhino-deposit-address', user?.user.userId, network],
@@ -33,20 +33,32 @@ const AddMoneyCryptoPage = () => {
     })
 
     const handleSuccess = useCallback(
-        (amount: number) => {
+        (amount: number, statusData?: DepositAddressStatusResponse) => {
             posthog.capture(ANALYTICS_EVENTS.DEPOSIT_COMPLETED, {
                 amount,
                 chain_type: network,
                 method_type: 'crypto',
             })
-            setDepositedAmount(amount)
+            setDepositResult(statusData ?? { status: 'completed', amount })
             setShowSuccessView(true)
         },
         [network]
     )
 
-    if (showSuccessView) {
-        return <PaymentSuccessView type="DEPOSIT" usdAmount={depositedAmount.toString()} />
+    if (showSuccessView && depositResult) {
+        return (
+            <PaymentSuccessView
+                type="DEPOSIT"
+                headerTitle="Deposited Crypto"
+                usdAmount={depositResult.amount?.toString()}
+                amount={depositResult.tokenAmount}
+                redirectTo="/add-money"
+                onComplete={() => {
+                    setShowSuccessView(false)
+                    setDepositResult(null)
+                }}
+            />
+        )
     }
 
     return (

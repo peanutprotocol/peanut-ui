@@ -214,7 +214,7 @@ const PaymentSuccessView = ({
         // Navigate first, then call onComplete - otherwise onComplete may reset state
         // causing this component to unmount before router.push executes
         if (!!authUser?.user.userId) {
-            router.push('/home')
+            router.push(redirectTo)
         } else {
             router.push('/setup')
         }
@@ -237,14 +237,14 @@ const PaymentSuccessView = ({
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
             <SoundPlayer sound="success" />
-            {type === 'SEND' && (
+            {(type === 'SEND' || type === 'DEPOSIT') && (
                 <div className="md:hidden">
                     <NavHeader
                         icon="cancel"
                         title={headerTitle}
                         onPrev={() => {
-                            onComplete?.()
                             router.push(redirectTo)
+                            onComplete?.()
                         }}
                     />
                 </div>

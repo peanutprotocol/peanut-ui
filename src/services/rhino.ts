@@ -1,4 +1,4 @@
-import type { CreateDepositAddressResponse, RhinoChainType } from './services.types'
+import type { CreateDepositAddressResponse, DepositAddressStatusResponse, RhinoChainType } from './services.types'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import Cookies from 'js-cookie'
 
@@ -28,7 +28,7 @@ export const rhinoApi = {
         return data as CreateDepositAddressResponse
     },
 
-    getDepositAddressStatus: async (depositAddress: string): Promise<{ status: string; amount?: number }> => {
+    getDepositAddressStatus: async (depositAddress: string): Promise<DepositAddressStatusResponse> => {
         const response = await fetch(`${PEANUT_API_URL}/rhino/status/${depositAddress}`, {
             method: 'GET',
             headers: {
