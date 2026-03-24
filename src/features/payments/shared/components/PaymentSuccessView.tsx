@@ -68,6 +68,8 @@ type DirectSuccessViewProps = {
     paymentDetails?: PaymentCreationResponse | null
     parsedPaymentData?: ParsedURL | null
     usdAmount?: string
+    // optional pre-built transaction details (e.g. for deposit receipts where chargeDetails doesn't exist)
+    transactionDetails?: TransactionDetails | null
 }
 
 const PaymentSuccessView = ({
@@ -87,6 +89,7 @@ const PaymentSuccessView = ({
     paymentDetails,
     parsedPaymentData,
     usdAmount,
+    transactionDetails: transactionDetailsProp,
 }: DirectSuccessViewProps) => {
     const router = useRouter()
     const { isDrawerOpen, selectedTransaction, openTransactionDetails, closeTransactionDetails } =
@@ -301,16 +304,16 @@ const PaymentSuccessView = ({
                     ) : (
                         <CreateAccountButton onClick={() => router.push('/setup')} />
                     )}
-                    {type === 'SEND' && !isExternalWalletFlow && !isWithdrawFlow && (
+                    {!isExternalWalletFlow && (transactionDetailsProp || transactionForDrawer) && (
                         <Button
                             variant="primary-soft"
                             shadowSize="4"
                             onClick={() => {
-                                if (transactionForDrawer) {
-                                    openTransactionDetails(transactionForDrawer)
+                                const txDetails = transactionDetailsProp ?? transactionForDrawer
+                                if (txDetails) {
+                                    openTransactionDetails(txDetails)
                                 }
                             }}
-                            disabled={!transactionForDrawer}
                         >
                             See receipt
                         </Button>
@@ -320,7 +323,7 @@ const PaymentSuccessView = ({
 
             {/* Transaction Details Drawer */}
             <TransactionDetailsDrawer
-                isOpen={isDrawerOpen && selectedTransaction?.id === transactionForDrawer?.id}
+                isOpen={isDrawerOpen}
                 onClose={closeTransactionDetails}
                 transaction={selectedTransaction}
             />
