@@ -9,12 +9,11 @@ import ChainChip from '../components/ChainChip'
 import InfoCard from '@/components/Global/InfoCard'
 import { Root, List, Trigger } from '@radix-ui/react-tabs'
 import PeanutLoading from '@/components/Global/PeanutLoading'
-import { useQuery } from '@tanstack/react-query'
-import { rhinoApi } from '@/services/rhino'
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useRef } from 'react'
+import { useCryptoDepositPolling } from '../hooks/useCryptoDepositPolling'
 import type { CreateDepositAddressResponse, RhinoChainType } from '@/services/services.types'
 import { useAutoTruncatedAddress } from '@/hooks/useAutoTruncatedAddress'
-import { CHAIN_LOGOS, RHINO_SUPPORTED_TOKENS, SUPPORTED_EVM_CHAINS } from '@/constants/rhino.consts'
+import { CHAIN_LOGOS, SUPPORTED_EVM_CHAINS, NETWORK_LABELS, getSupportedTokens } from '@/constants/rhino.consts'
 import UserCard from '@/components/User/UserCard'
 import { isCryptoAddress, printableAddress } from '@/utils/general.utils'
 
@@ -43,74 +42,16 @@ const RhinoDepositView = ({
     amount,
     identifier,
 }: RhinoDepositViewProps) => {
-    const [isDelayComplete, setIsDelayComplete] = useState(false)
-    const [isUpdatingDepositAddresStatus, setisUpdatingDepositAddresStatus] = useState(false)
     const copyRef = useRef<CopyToClipboardRef>(null)
-
-    const POLLING_DELAY = 15_000
-
-    useEffect(() => {
-        const timer = setTimeout(() => setIsDelayComplete(true), POLLING_DELAY)
-        return () => clearTimeout(timer)
-    }, [])
-
-    const { data: depositAddressStatusData } = useQuery({
-        queryKey: ['rhino-deposit-address-status', depositAddressData?.depositAddress],
-        queryFn: () => {
-            if (!depositAddressData?.depositAddress) {
-                throw new Error('Deposit address is required')
-            }
-            return rhinoApi.getDepositAddressStatus(depositAddressData.depositAddress as string)
-        },
-        enabled: !!depositAddressData?.depositAddress && isDelayComplete, // Add some delay to start polling after the deposit address is created
-        refetchInterval: (query: { state: { data?: { status?: string } } }) =>
-            query.state.data?.status === 'completed' ? false : 5000,
-    })
+    const {
+        status: depositAddressStatus,
+        resetStatus,
+        isResetting,
+    } = useCryptoDepositPolling(depositAddressData?.depositAddress, onSuccess)
 
     const { containerRef, truncatedAddress } = useAutoTruncatedAddress(depositAddressData?.depositAddress ?? '')
 
-    const depositAddressStatus = useMemo(() => {
-        if (depositAddressStatusData?.status === 'accepted') {
-            return 'loading'
-        } else if (depositAddressStatusData?.status === 'pending') {
-            return 'loading'
-        } else if (depositAddressStatusData?.status === 'failed') {
-            return 'failed'
-        } else if (depositAddressStatusData?.status === 'completed') {
-            return 'completed'
-        } else {
-            return 'not_started'
-        }
-    }, [depositAddressStatusData])
-
-    // Optimistic update of the deposit address status
-    const updateDepositAddressStatus = async () => {
-        if (isUpdatingDepositAddresStatus) return // Prevent concurrent calls
-
-        if (!depositAddressData?.depositAddress) {
-            return
-        }
-
-        setisUpdatingDepositAddresStatus(true)
-        await rhinoApi.resetDepositAddressStatus(depositAddressData.depositAddress)
-        setisUpdatingDepositAddresStatus(false)
-    }
-
-    const amountLimitsTitle = useMemo(() => {
-        if (chainType === 'EVM') {
-            return 'EVM networks'
-        } else if (chainType === 'SOL') {
-            return 'Solana'
-        } else if (chainType === 'TRON') {
-            return 'Tron'
-        }
-    }, [chainType])
-
-    useEffect(() => {
-        if (depositAddressStatus === 'completed' && depositAddressStatusData?.amount) {
-            onSuccess(depositAddressStatusData?.amount)
-        }
-    }, [depositAddressStatusData, depositAddressStatus, onSuccess])
+    const amountLimitsTitle = chainType === 'EVM' ? 'EVM networks' : NETWORK_LABELS[chainType]
 
     if (depositAddressStatus === 'failed') {
         return (
@@ -134,12 +75,7 @@ const RhinoDepositView = ({
                             </p>
                         </div>
                     </Card>
-                    <Button
-                        onClick={updateDepositAddressStatus}
-                        shadowSize="4"
-                        loading={isUpdatingDepositAddresStatus}
-                        disabled={isUpdatingDepositAddresStatus}
-                    >
+                    <Button onClick={resetStatus} shadowSize="4" loading={isResetting} disabled={isResetting}>
                         Try Again
                     </Button>
                 </div>
@@ -198,7 +134,7 @@ const RhinoDepositView = ({
                     </div>
                 )}
 
-                {depositAddressData && !isDepositAddressDataLoading && (
+                {depositAddressData && !isDepositAddressDataLoading && depositAddressStatus !== 'loading' && (
                     <>
                         <div className="flex items-center justify-center">
                             <QRCodeWrapper url={depositAddressData?.depositAddress} />
@@ -225,12 +161,7 @@ const RhinoDepositView = ({
                             customContent={
                                 <div className="flex items-center gap-2">
                                     <p className="text-sm">Supported tokens:</p>
-                                    {RHINO_SUPPORTED_TOKENS.filter((token) => {
-                                        if (chainType === 'TRON') {
-                                            return token.name !== 'USDC'
-                                        }
-                                        return true
-                                    }).map((token) => (
+                                    {getSupportedTokens(chainType).map((token) => (
                                         <ChainChip
                                             key={token.name}
                                             chainName={token.name}
