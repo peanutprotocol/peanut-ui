@@ -242,14 +242,7 @@ const PaymentSuccessView = ({
             <SoundPlayer sound="success" />
             {(type === 'SEND' || type === 'DEPOSIT') && (
                 <div className="md:hidden">
-                    <NavHeader
-                        icon="cancel"
-                        title={headerTitle}
-                        onPrev={() => {
-                            router.push(redirectTo)
-                            onComplete?.()
-                        }}
-                    />
+                    <NavHeader icon="cancel" title={headerTitle} onPrev={handleDone} />
                 </div>
             )}
             <div className="relative z-10 my-auto flex h-full flex-col justify-center space-y-4">
@@ -276,6 +269,7 @@ const PaymentSuccessView = ({
                             {getTitle()}
                             {!isExternalWalletFlow &&
                                 !isWithdrawFlow &&
+                                type !== 'DEPOSIT' &&
                                 (recipientType !== 'USERNAME' ? (
                                     <AddressLink
                                         className="text-sm font-normal text-grey-1 no-underline"

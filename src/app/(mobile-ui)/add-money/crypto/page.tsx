@@ -33,7 +33,7 @@ const AddMoneyCryptoPage = () => {
     const [depositResult, setDepositResult] = useState<DepositAddressStatusResponse | null>(null)
 
     const { data: depositAddressData, isLoading } = useQuery({
-        queryKey: ['rhino-deposit-address', user?.user.userId, network],
+        queryKey: ['rhino-deposit-address', user?.user.userId, peanutWalletAddress, network],
         queryFn: () =>
             rhinoApi.createDepositAddress(peanutWalletAddress as string, network, user?.user.userId as string),
         enabled: !!user && !!peanutWalletAddress,
