@@ -114,10 +114,13 @@ const CryptoDepositView = ({ network, depositAddressData, isLoading, onSuccess, 
                             {/* address section */}
                             <div className="flex flex-col gap-2 p-4">
                                 <div className="flex items-center gap-1">
-                                    {isEvm && <span className="text-sm font-bold text-primary-1">Universal</span>}
-                                    <span className="text-sm font-bold">Deposit Address</span>
                                     <Tooltip content={TOOLTIP_TEXT[network]} position="bottom">
-                                        <Icon name="info" size={16} className="text-grey-1" />
+                                        <span className="flex items-center gap-1">
+                                            <span className="text-sm font-bold">
+                                                {isEvm ? 'Universal Deposit Address' : 'Deposit Address'}
+                                            </span>
+                                            <Icon name="info" size={18} className="text-grey-1" />
+                                        </span>
                                     </Tooltip>
                                 </div>
                                 <div className="flex items-start justify-between gap-2">
@@ -159,7 +162,7 @@ const CryptoDepositView = ({ network, depositAddressData, isLoading, onSuccess, 
                                                         alt={chain}
                                                         width={22}
                                                         height={22}
-                                                        className="shadow-2 h-5 w-5 rounded-full border border-black object-cover"
+                                                        className="h-5 w-5 rounded-full border border-black object-cover"
                                                     />
                                                 ))}
                                             </>

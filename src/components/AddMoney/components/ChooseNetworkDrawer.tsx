@@ -42,7 +42,7 @@ const ChooseNetworkDrawer = ({ open, onClose, onSelect }: ChooseNetworkDrawerPro
                             onClick={() => onSelect('EVM')}
                         />
                         {/* expanded chain list */}
-                        <div className="mx-4 border-t border-dashed border-black py-3">
+                        <div onClick={() => onSelect('EVM')} className="mx-4 border-t border-dashed border-black py-3">
                             <div className="flex flex-wrap gap-2">
                                 {SUPPORTED_EVM_CHAINS.map((chain) => (
                                     <ChainChip key={chain} chainName={chain} chainSymbol={CHAIN_LOGOS[chain]} />
