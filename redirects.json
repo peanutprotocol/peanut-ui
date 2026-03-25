@@ -1,5 +1,30 @@
 [
     {
+        "source": "/en",
+        "destination": "/",
+        "permanent": false
+    },
+    {
+        "source": "/es-419",
+        "destination": "/",
+        "permanent": false
+    },
+    {
+        "source": "/es-ar",
+        "destination": "/",
+        "permanent": false
+    },
+    {
+        "source": "/es-es",
+        "destination": "/",
+        "permanent": false
+    },
+    {
+        "source": "/pt-br",
+        "destination": "/",
+        "permanent": false
+    },
+    {
         "source": "/support",
         "destination": "/en/help",
         "permanent": true
