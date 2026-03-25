@@ -664,7 +664,6 @@ function checkPageCountRegression() {
     )
 }
 
-
 // --- Pass 11: Sitemap coverage (content types) ---
 
 function checkSitemapCoverage() {
