@@ -23,6 +23,9 @@ const APP_DIR = path.join(process.cwd(), 'src/app/[locale]/(marketing)')
 const SUPPORTED_LOCALES = ['en', 'es-419', 'es-ar', 'es-es', 'pt-br']
 const PRIMARY_LOCALES = ['en', 'es-419', 'pt-br']
 
+// Exchange entity slugs (from input/data/exchanges/) — used to distinguish from- vs via- deposit URLs
+const exchangeSlugs = listEntitySlugs('exchanges')
+
 // --- Diagnostics ---
 
 interface Diagnostic {
@@ -148,7 +151,6 @@ function discoverRoutes(): Set<string> {
     const useCaseSlugs = listDirs(path.join(CONTENT_DIR, 'use-cases'))
     const storySlugs = listDirs(path.join(CONTENT_DIR, 'stories')).filter((s) => s !== 'index')
     const withdrawSlugs = listDirs(path.join(CONTENT_DIR, 'withdraw'))
-    const exchangeSlugs = listEntitySlugs('exchanges')
 
     // Corridors
     const corridors: Array<{ to: string; from: string }> = []
@@ -197,10 +199,16 @@ function discoverRoutes(): Set<string> {
             for (const slug of payWithSlugs) routes.add(`/${locale}/pay-with/${slug}`)
         }
 
-        // Deposit
+        // Deposit — exchanges use from- prefix, rails use via- prefix
         if (hasRoute('deposit/[exchange]')) {
-            for (const slug of depositSlugs) routes.add(`/${locale}/deposit/from-${slug}`)
             for (const slug of exchangeSlugs) routes.add(`/${locale}/deposit/from-${slug}`)
+            for (const slug of depositSlugs) {
+                if (exchangeSlugs.includes(slug)) {
+                    routes.add(`/${locale}/deposit/from-${slug}`)
+                } else {
+                    routes.add(`/${locale}/deposit/via-${slug}`)
+                }
+            }
         }
 
         // Help
@@ -327,7 +335,13 @@ function checkPublishedHasRoute(validPaths: Set<string>) {
         { dir: 'help', urlPattern: (l, s) => `/${l}/help/${s}` },
         { dir: 'compare', urlPattern: (l, s) => `/${l}/compare/peanut-vs-${s}` },
         { dir: 'pay-with', urlPattern: (l, s) => `/${l}/pay-with/${s}` },
-        { dir: 'deposit', urlPattern: (l, s) => `/${l}/deposit/from-${s}` },
+        {
+            dir: 'deposit',
+            urlPattern: (l, s) => {
+                const isExchange = exchangeSlugs.includes(s)
+                return `/${l}/deposit/${isExchange ? 'from' : 'via'}-${s}`
+            },
+        },
         { dir: 'use-cases', urlPattern: (l, s) => `/${l}/use-cases/${s}` },
         { dir: 'stories', urlPattern: (l, s) => `/${l}/stories/${s}` },
         { dir: 'withdraw', urlPattern: (l, s) => `/${l}/withdraw/${s}` },
