@@ -57,6 +57,7 @@ export default async function PayWithPage({ params }: PageProps) {
 
     return (
         <ContentPage
+            locale={locale}
             breadcrumbs={[
                 { name: i18n.home, href: `/${locale}` },
                 { name: pm.name, href: url },

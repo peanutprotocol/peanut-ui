@@ -216,3 +216,37 @@ export function listPublishedSlugs(intent: string): string[] {
         return isPublished(content)
     })
 }
+
+// --- Singleton content readers (content/{intent}/{lang}.md — no slug subdir) ---
+
+/** Read singleton content directly: content/{intent}/{lang}.md */
+export function readSingletonContent<T = Record<string, unknown>>(
+    intent: string,
+    lang: string
+): MarkdownContent<T> | null {
+    const key = `singleton:${intent}/${lang}`
+    if (!isDev && pageCache.has(key)) return pageCache.get(key) as MarkdownContent<T> | null
+
+    const filePath = path.join(CONTENT_ROOT, 'content', intent, `${lang}.md`)
+    const result = parseMarkdownFile<T>(filePath)
+    pageCache.set(key, result)
+    return result
+}
+
+/** Read singleton content with locale fallback */
+export function readSingletonContentLocalized<T = Record<string, unknown>>(
+    intent: string,
+    lang: string
+): MarkdownContent<T> | null {
+    for (const locale of getLocaleFallbacks(lang)) {
+        const content = readSingletonContent<T>(intent, locale)
+        if (content) return content
+    }
+    return null
+}
+
+/** Check if a singleton content page is published */
+export function isSingletonPublished(intent: string): boolean {
+    const content = readSingletonContent<PublishableContent>(intent, 'en')
+    return isPublished(content)
+}

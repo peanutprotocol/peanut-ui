@@ -110,6 +110,7 @@ export default async function HelpPage({ params }: PageProps) {
 
     return (
         <ContentPage
+            locale={locale}
             breadcrumbs={[
                 { name: i18n.home, href: `/${locale}` },
                 { name: i18n.help, href: `/${locale}/help` },
