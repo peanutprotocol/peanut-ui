@@ -12,6 +12,8 @@ interface ContentPageProps {
     breadcrumbs: Array<{ name: string; href: string }>
     /** Article schema data for freshness signals */
     article?: ArticleMeta
+    /** @deprecated locale prop is no longer used — SEO footer moved to layout */
+    locale?: string
 }
 
 /**
