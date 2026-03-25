@@ -1,7 +1,12 @@
 import { useAuth } from '@/context/authContext'
 import { AccountType } from '@/interfaces'
 import { useMemo } from 'react'
-import { GRAFANA_DASHBOARD_BASE_URL, ARBISCAN_ADDRESS_BASE_URL } from '@/constants/support'
+import {
+    GRAFANA_DASHBOARD_BASE_URL,
+    ARBISCAN_ADDRESS_BASE_URL,
+    POSTHOG_PERSON_BASE_URL,
+    BRIDGE_DASHBOARD_BASE_URL,
+} from '@/constants/support'
 
 export interface CrispUserData {
     username: string | undefined
@@ -12,8 +17,9 @@ export interface CrispUserData {
     grafanaLink: string | undefined
     walletAddress: string | undefined
     walletAddressLink: string | undefined
-    bridgeUserId: string | undefined
+    bridgeCustomerLink: string | undefined
     mantecaUserId: string | undefined
+    posthogPersonLink: string | undefined
 }
 
 /**
@@ -36,9 +42,15 @@ export function useCrispUserData(): CrispUserData {
             user?.accounts?.find((account) => account.type === AccountType.PEANUT_WALLET)?.identifier || undefined
         const walletAddressLink = walletAddress ? `${ARBISCAN_ADDRESS_BASE_URL}/${walletAddress}` : undefined
 
-        const bridgeUserId = user?.user?.bridgeCustomerId || undefined
+        const bridgeCustomerId = user?.user?.bridgeCustomerId || undefined
+        const bridgeCustomerLink = bridgeCustomerId ? `${BRIDGE_DASHBOARD_BASE_URL}/${bridgeCustomerId}` : undefined
+        // TODO: Manteca dashboard uses a numeric short ID (e.g. 2685955), but we only store
+        // the long UUID (providerUserId). Converting requires an extra API call to Manteca.
+        // When/if we add that, change this to a full link like bridgeCustomerLink.
         const mantecaUserId =
             user?.user?.kycVerifications?.find((kyc) => kyc.provider === 'MANTECA')?.providerUserId || undefined
+
+        const posthogPersonLink = userId ? `${POSTHOG_PERSON_BASE_URL}/${userId}` : undefined
 
         return {
             username,
@@ -49,8 +61,9 @@ export function useCrispUserData(): CrispUserData {
             grafanaLink,
             walletAddress,
             walletAddressLink,
-            bridgeUserId,
+            bridgeCustomerLink,
             mantecaUserId,
+            posthogPersonLink,
         }
     }, [username, userId, user])
 }

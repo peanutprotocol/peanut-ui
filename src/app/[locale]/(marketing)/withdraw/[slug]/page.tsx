@@ -4,26 +4,17 @@ import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { SUPPORTED_LOCALES, getAlternates, isValidLocale } from '@/i18n/config'
 import { getTranslations } from '@/i18n'
 import { ContentPage } from '@/components/Marketing/ContentPage'
-import { readPageContentLocalized, listContentSlugs } from '@/lib/content'
+import { readPageContentLocalized, listPublishedSlugs, type ContentFrontmatter } from '@/lib/content'
 import { renderContent } from '@/lib/mdx'
 
 interface PageProps {
     params: Promise<{ locale: string; slug: string }>
 }
 
-interface HelpFrontmatter {
-    title: string
-    description: string
-    slug: string
-    category?: string
-    published?: boolean
-    generated_at?: string
-}
-
-const HELP_SLUGS = listContentSlugs('help')
+const WITHDRAW_SLUGS = listPublishedSlugs('withdraw')
 
 export async function generateStaticParams() {
-    return SUPPORTED_LOCALES.flatMap((locale) => HELP_SLUGS.map((slug) => ({ locale, slug })))
+    return SUPPORTED_LOCALES.flatMap((locale) => WITHDRAW_SLUGS.map((slug) => ({ locale, slug })))
 }
 export const dynamicParams = false
 
@@ -31,43 +22,40 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const { locale, slug } = await params
     if (!isValidLocale(locale)) return {}
 
-    const mdxContent = readPageContentLocalized<HelpFrontmatter>('help', slug, locale)
+    const mdxContent = readPageContentLocalized<ContentFrontmatter>('withdraw', slug, locale)
     if (!mdxContent || mdxContent.frontmatter.published === false) return {}
 
     return {
         ...metadataHelper({
             title: mdxContent.frontmatter.title,
             description: mdxContent.frontmatter.description,
-            canonical: `/${locale}/help/${slug}`,
+            canonical: `/${locale}/withdraw/${slug}`,
             dynamicOg: true,
         }),
         alternates: {
-            canonical: `/${locale}/help/${slug}`,
-            languages: getAlternates('help', slug),
+            canonical: `/${locale}/withdraw/${slug}`,
+            languages: getAlternates('withdraw', slug),
         },
     }
 }
 
-export default async function HelpArticlePage({ params }: PageProps) {
+export default async function WithdrawPage({ params }: PageProps) {
     const { locale, slug } = await params
     if (!isValidLocale(locale)) notFound()
 
-    const mdxSource = readPageContentLocalized<HelpFrontmatter>('help', slug, locale)
+    const mdxSource = readPageContentLocalized<ContentFrontmatter>('withdraw', slug, locale)
     if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
 
     const { content } = await renderContent(mdxSource.body)
     const i18n = getTranslations(locale)
-
-    const displayTitle = mdxSource.frontmatter.title.replace(/\s*\|\s*Peanut Help$/, '')
-    const url = `/${locale}/help/${slug}`
+    const url = `/${locale}/withdraw/${slug}`
 
     return (
         <ContentPage
             locale={locale}
             breadcrumbs={[
                 { name: i18n.home, href: `/${locale}` },
-                { name: i18n.help, href: `/${locale}/help` },
-                { name: displayTitle, href: url },
+                { name: mdxSource.frontmatter.title, href: url },
             ]}
             article={
                 mdxSource.frontmatter.generated_at
