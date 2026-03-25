@@ -664,6 +664,67 @@ function checkPageCountRegression() {
     )
 }
 
+
+// --- Pass 11: Sitemap coverage (content types) ---
+
+function checkSitemapCoverage() {
+    const sitemapPath = path.join(process.cwd(), 'src/app/sitemap.ts')
+    if (!fs.existsSync(sitemapPath)) {
+        warn('sitemap', 'No sitemap.ts found')
+        return
+    }
+
+    const sitemapSource = fs.readFileSync(sitemapPath, 'utf-8')
+
+    // Content types that have routes — each must appear in sitemap.ts
+    const contentDirChecks: Array<{ dir: string; sitemapPattern: string }> = [
+        { dir: 'countries', sitemapPattern: 'COUNTRIES_SEO' },
+        { dir: 'help', sitemapPattern: "listContentSlugs('help')" },
+        { dir: 'compare', sitemapPattern: 'COMPETITORS' },
+        { dir: 'pay-with', sitemapPattern: 'PAYMENT_METHOD' },
+        { dir: 'deposit', sitemapPattern: 'deposit' },
+        { dir: 'use-cases', sitemapPattern: "listPublishedSlugs('use-cases')" },
+        { dir: 'stories', sitemapPattern: "listPublishedSlugs('stories')" },
+        { dir: 'withdraw', sitemapPattern: "listPublishedSlugs('withdraw')" },
+    ]
+
+    let issues = 0
+    for (const check of contentDirChecks) {
+        const contentDir = path.join(CONTENT_DIR, check.dir)
+        if (!fs.existsSync(contentDir)) continue
+
+        const slugs = listDirs(contentDir).filter((s) => s !== 'index')
+        const hasPublished = slugs.some((slug) => {
+            const enFile = path.join(contentDir, slug, 'en.md')
+            return fs.existsSync(enFile) && isPublished(fs.readFileSync(enFile, 'utf-8'))
+        })
+        if (!hasPublished) continue
+
+        if (!sitemapSource.includes(check.sitemapPattern)) {
+            error(
+                'sitemap',
+                `Content type "${check.dir}" has published pages but is not referenced in sitemap.ts (expected: ${check.sitemapPattern})`,
+                'src/app/sitemap.ts'
+            )
+            issues++
+        }
+    }
+
+    for (const singleton of ['supported-networks', 'pricing']) {
+        const enFile = path.join(CONTENT_DIR, singleton, 'en.md')
+        if (!fs.existsSync(enFile)) continue
+        if (!isPublished(fs.readFileSync(enFile, 'utf-8'))) continue
+        if (!sitemapSource.includes(singleton)) {
+            error('sitemap', `Singleton "${singleton}" is published but not in sitemap.ts`, 'src/app/sitemap.ts')
+            issues++
+        }
+    }
+
+    console.log(
+        `  Pass 11 — Sitemap coverage: ${issues === 0 ? 'all content types represented' : `${issues} content types missing from sitemap`}`
+    )
+}
+
 // --- Main ---
 
 function main() {
@@ -684,6 +745,7 @@ function main() {
     checkPublishedConsistency()
     checkSubmoduleFreshness()
     checkPageCountRegression()
+    checkSitemapCoverage()
 
     // Report
     const errors = diagnostics.filter((d) => d.level === 'error')
