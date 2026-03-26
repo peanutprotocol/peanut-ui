@@ -184,14 +184,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                                 });
 
                                 // Reload when new SW takes control (more reliable than statechange).
-                                // Guard prevents double-reloads. Skip in standalone PWA mode because
+                                // Guards: (1) refreshing prevents double-reloads, (2) hadController
+                                // skips first-ever install (no previous SW = initial registration, not
+                                // an update — reloading on first visit would flash/reload for every new
+                                // user and SEO crawler), (3) isStandalone skips PWA mode because
                                 // window.location.reload() in Android PWA standalone context can break
                                 // the standalone session and bounce the user back to Chrome — causing
                                 // a PWA ↔ Chrome redirect loop (the new SW still activates via
                                 // skipWaiting + clientsClaim, so the user gets new code on next navigation).
                                 let refreshing = false;
+                                const hadController = !!navigator.serviceWorker.controller;
                                 navigator.serviceWorker.addEventListener('controllerchange', () => {
-                                    if (refreshing) return;
+                                    if (refreshing || !hadController) return;
                                     const isStandalone = window.matchMedia('(display-mode: standalone)').matches
                                         || navigator.standalone === true;
                                     if (!isStandalone) {
