@@ -40,7 +40,11 @@ export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
             mainElement: 'body',
             onRefresh: () => {
                 window.location.reload()
-                return Promise.resolve()
+                // Don't return a resolved promise — it resets the library's internal
+                // state to 'pending' before the reload completes, which on Android
+                // allows a new pull gesture to trigger immediately (infinite loop).
+                // Returning nothing lets the library's refreshTimeout handle cleanup,
+                // but the page will be gone by then anyway.
             },
             instructionsPullToRefresh: 'Pull down to refresh',
             instructionsReleaseToRefresh: 'Release to refresh',

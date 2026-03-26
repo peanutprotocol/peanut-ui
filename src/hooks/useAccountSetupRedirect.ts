@@ -28,6 +28,13 @@ export const useAccountSetupRedirect = () => {
                 '[useAccountSetupRedirect] User logged in without peanut wallet account, redirecting to /setup/finish'
             )
             router.push('/setup/finish')
+            // Hard navigation fallback in case soft navigation silently fails.
+            // Without this, needsRedirect stays true and the loading gate in
+            // layout.tsx blocks rendering indefinitely.
+            const fallback = setTimeout(() => {
+                window.location.replace('/setup/finish')
+            }, 3000)
+            return () => clearTimeout(fallback)
         }
     }, [needsRedirect, router])
 
