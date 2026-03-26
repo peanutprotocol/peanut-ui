@@ -71,7 +71,7 @@ export const ANALYTICS_EVENTS = {
     INVITE_ACCEPTED: 'invite_accepted',
     INVITE_ACCEPT_FAILED: 'invite_accept_failed',
 
-    // ── Points / Cashback ──
+    // ── Points / Rewards ──
     POINTS_PAGE_VIEWED: 'points_page_viewed',
     POINTS_EARNED: 'points_earned',
 
