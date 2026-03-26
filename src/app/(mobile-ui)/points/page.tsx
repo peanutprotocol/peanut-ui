@@ -23,7 +23,6 @@ import { useEffect, useRef, useState } from 'react'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import InvitesGraph from '@/components/Global/InvitesGraph'
-import { CashCard } from '@/components/Points/CashCard'
 import InviteFriendsModal from '@/components/Global/InviteFriendsModal'
 import { formatPoints, shortenPoints } from '@/utils/format.utils'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -112,36 +111,70 @@ const PointsPage = () => {
 
     return (
         <PageContainer className="flex flex-col">
-            <NavHeader title="Points" onPrev={() => router.back()} />
+            <NavHeader title="Rewards" onPrev={() => router.back()} />
 
             <section className="mx-auto mb-auto mt-10 w-full space-y-4">
-                {/* consolidated points and cash card */}
+                {/* rewards hero — $ amount is primary, points de-emphasized */}
                 <Card className="flex flex-col gap-4 p-6">
-                    {/* points section */}
-                    <div className="flex items-center justify-center gap-2">
-                        <Image src={STAR_STRAIGHT_ICON} alt="star" width={24} height={24} />
-                        <h2 className="text-4xl font-black text-black">
-                            {(() => {
-                                const { number, suffix } = shortenPoints(animatedTotal)
-                                return (
-                                    <>
-                                        {number}
-                                        {suffix && <span>{suffix}</span>}
-                                    </>
-                                )
-                            })()}{' '}
-                            {tierInfo.data.totalPoints === 1 ? 'Point' : 'Points'}
-                        </h2>
+                    {/* primary: lifetime rewards in USD */}
+                    {cashStatus?.success && cashStatus.data && (
+                        <div className="flex flex-col items-center gap-3">
+                            <p className="text-sm text-grey-1">Lifetime rewards earned</p>
+                            <h2 className="text-4xl font-black text-black">
+                                $
+                                {(cashStatus.data.rewards?.lifetimeEarnedUsd ?? cashStatus.data.lifetimeEarned).toFixed(
+                                    2
+                                )}
+                            </h2>
+                            {cashStatus.data.hasCashbackLeft && (
+                                <p className="text-center text-sm text-grey-1">
+                                    You have unclaimed rewards! Make a payment to claim them.
+                                </p>
+                            )}
+                        </div>
+                    )}
+
+                    {/* invite CTA */}
+                    <div className="flex flex-col items-center gap-2">
+                        <p className="text-sm text-grey-1">Invite friends to earn more rewards</p>
+                        <Button
+                            variant="purple"
+                            shadowSize="4"
+                            onClick={() => setIsInviteModalOpen(true)}
+                            className="w-full"
+                        >
+                            Invite Now
+                        </Button>
                     </div>
 
-                    {/* de-emphasized tier progress - smaller and flatter */}
-                    <div className="flex flex-col gap-0.5 pb-1">
+                    {/* separator */}
+                    <div className="border-t border-grey-2" />
+
+                    {/* secondary: points + tier (de-emphasized) */}
+                    <div className="flex flex-col gap-2">
+                        <div className="flex items-center justify-center gap-2">
+                            <Image src={STAR_STRAIGHT_ICON} alt="star" width={16} height={16} />
+                            <p className="text-base font-medium text-grey-1">
+                                {(() => {
+                                    const { number, suffix } = shortenPoints(animatedTotal)
+                                    return (
+                                        <>
+                                            {number}
+                                            {suffix && <span>{suffix}</span>}
+                                        </>
+                                    )
+                                })()}{' '}
+                                {tierInfo.data.totalPoints === 1 ? 'point' : 'points'}
+                            </p>
+                        </div>
+
+                        {/* tier progress - compact */}
                         <div className="flex items-center gap-2">
                             <Image
                                 src={getTierBadge(tierInfo?.data.currentTier)}
                                 alt={`Tier ${tierInfo?.data.currentTier}`}
-                                width={24}
-                                height={24}
+                                width={20}
+                                height={20}
                             />
                             <div className="relative h-1 flex-1 overflow-hidden rounded-full bg-grey-2">
                                 <div
@@ -168,26 +201,18 @@ const PointsPage = () => {
                                 <Image
                                     src={getTierBadge(tierInfo?.data.currentTier + 1)}
                                     alt={`Tier ${tierInfo?.data.currentTier + 1}`}
-                                    width={24}
-                                    height={24}
+                                    width={20}
+                                    height={20}
                                 />
                             )}
                         </div>
                         {tierInfo?.data.currentTier < 2 && (
-                            <p className="text-center text-sm text-grey-1">
+                            <p className="text-center text-xs text-grey-1">
                                 {formatPoints(tierInfo.data.pointsToNextTier)}{' '}
                                 {tierInfo.data.pointsToNextTier === 1 ? 'point' : 'points'} to next tier
                             </p>
                         )}
                     </div>
-
-                    {/* cash section */}
-                    {cashStatus?.success && cashStatus.data && (
-                        <CashCard
-                            hasCashbackLeft={cashStatus.data.hasCashbackLeft}
-                            lifetimeEarned={cashStatus.data.lifetimeEarned}
-                        />
-                    )}
                 </Card>
 
                 {/* invite graph with consolidated explanation */}
@@ -222,15 +247,6 @@ const PointsPage = () => {
                 {/* if user has invites: show button above people list */}
                 {invites && invites?.invitees && invites.invitees.length > 0 ? (
                     <>
-                        <Button
-                            variant="purple"
-                            shadowSize="4"
-                            onClick={() => setIsInviteModalOpen(true)}
-                            className="!mt-8 w-full"
-                        >
-                            Share Invite link
-                        </Button>
-
                         {/* people you invited */}
                         <div
                             className="flex cursor-pointer items-center justify-between"
@@ -273,7 +289,11 @@ const PointsPage = () => {
                                                     isVerified={isVerified}
                                                 />
                                             </div>
-                                            <InviteePointsBadge points={pointsEarned} inView={inviteesInView} />
+                                            <InviteePointsBadge
+                                                points={pointsEarned}
+                                                inView={inviteesInView}
+                                                lifetimeEarnedUsd={invite.lifetimeEarnedUsd}
+                                            />
                                         </div>
                                     </Card>
                                 )
