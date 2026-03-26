@@ -27,6 +27,7 @@ export default function InviteFriendsModal({ visible, onClose, username, source 
     const { inviteCode, inviteLink } = generateInviteCodeLink(username)
 
     const hasTrackedShow = useRef(false)
+
     useEffect(() => {
         if (visible && !hasTrackedShow.current) {
             hasTrackedShow.current = true
@@ -44,7 +45,7 @@ export default function InviteFriendsModal({ visible, onClose, username, source 
             visible={visible}
             onClose={handleClose}
             title="Invite friends!"
-            description="Invite friends to Peanut and help them skip ahead on the waitlist. Once they're onboarded and start using the app, you'll earn rewards from their activity too."
+            description="Invite friends to Peanut. Every time they make a payment, you earn rewards."
             icon="user-plus"
             content={
                 <>

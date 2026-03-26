@@ -1289,18 +1289,18 @@ export default function QRPayPage() {
                                         // Tone scales with amount: small = growth nudge, large = celebratory
                                         if (amountSponsored && typeof amountSponsored === 'number') {
                                             if (transactionUsd > 0 && amountSponsored >= transactionUsd) {
-                                                return 'We paid for this bill! Earn points, climb tiers and unlock even better perks.'
+                                                return 'We paid for this bill! Invite friends to earn even more rewards.'
                                             }
                                             if (amountSponsored < 0.5) {
-                                                return `You got $${amountSponsored.toFixed(2)} back. The more friends you invite, the more you earn!`
+                                                return `You earned a $${amountSponsored.toFixed(2)} reward. The more friends you invite, the more you earn!`
                                             }
                                             if (amountSponsored >= 5) {
-                                                return `We gave you $${amountSponsored.toFixed(2)} back! Your points are paying off.`
+                                                return `You earned a $${amountSponsored.toFixed(2)} reward! Your referrals are paying off.`
                                             }
-                                            return `We gave you $${amountSponsored.toFixed(2)} back! Invite friends to unlock bigger rewards.`
+                                            return `You earned a $${amountSponsored.toFixed(2)} reward! Invite friends to earn even more.`
                                         }
 
-                                        return 'We gave you cashback! Earn points, climb tiers and unlock even better perks.'
+                                        return 'You earned a reward! Invite friends to earn even more.'
                                     })()}
                                 </p>
                             </div>
