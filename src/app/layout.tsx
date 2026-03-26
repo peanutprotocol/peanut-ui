@@ -164,28 +164,39 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                             if ('serviceWorker' in navigator) {
                                 window.addEventListener('load', async () => {
                                     try {
-                                        // Register service worker - skipWaiting & clientsClaim handle updates
                                         const registration = await navigator.serviceWorker.register('/sw.js', {
                                             scope: '/',
                                             updateViaCache: 'none'
                                         });
                                         console.log('SW registered:', registration.scope);
-                                        
-                                        // Handle updates: reload page when new SW is waiting
-                                        registration.addEventListener('updatefound', () => {
-                                            const newWorker = registration.installing;
-                                            if (newWorker) {
-                                                newWorker.addEventListener('statechange', () => {
-                                                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                                        // New SW installed, reload to activate
-                                                        console.log('New SW available, reloading...');
-                                                        window.location.reload();
-                                                    }
-                                                });
+
+                                        // Check for SW updates when user returns to app/tab.
+                                        // Without this, PWA users can stay on stale SWs indefinitely
+                                        // (browser's 24h auto-check is unreliable for backgrounded PWAs).
+                                        document.addEventListener('visibilitychange', () => {
+                                            if (!document.hidden) {
+                                                registration.update();
                                             }
                                         });
                                     } catch (error) {
                                         console.error('SW registration failed:', error);
+                                    }
+                                });
+
+                                // Reload when new SW takes control (more reliable than statechange).
+                                // Guard prevents double-reloads. Skip in standalone PWA mode because
+                                // window.location.reload() in Android PWA standalone context can break
+                                // the standalone session and bounce the user back to Chrome — causing
+                                // a PWA ↔ Chrome redirect loop (the new SW still activates via
+                                // skipWaiting + clientsClaim, so the user gets new code on next navigation).
+                                let refreshing = false;
+                                navigator.serviceWorker.addEventListener('controllerchange', () => {
+                                    if (refreshing) return;
+                                    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                                        || navigator.standalone === true;
+                                    if (!isStandalone) {
+                                        refreshing = true;
+                                        window.location.reload();
                                     }
                                 });
                             }
