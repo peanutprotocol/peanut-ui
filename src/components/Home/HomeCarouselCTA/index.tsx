@@ -12,7 +12,6 @@ import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { extractInviteeName } from '@/utils/general.utils'
 import PerkClaimModal from '../PerkClaimModal'
-import underMaintenanceConfig from '@/config/underMaintenance.config'
 
 const HomeCarouselCTA = () => {
     const { carouselCTAs, setCarouselCTAs, showBridgeTos, setShowBridgeTos } = useHomeCarouselCTAs()
@@ -42,20 +41,23 @@ const HomeCarouselCTA = () => {
         }, [queryClient]),
     })
 
-    // Filter for Card Pioneer inviter rewards that haven't been claimed
-    const cardPioneerPerks = useMemo(() => {
-        if (underMaintenanceConfig.disableCardPioneers) return []
-        return (
-            pendingPerksData?.perks?.filter(
-                (p) => p.name === 'Card Pioneer Inviter Reward' && !claimedPerkIds.has(p.id)
-            ) || []
-        )
+    // filter all claimable perks (not just card pioneer)
+    const claimablePerks = useMemo(() => {
+        return pendingPerksData?.perks?.filter((p) => !claimedPerkIds.has(p.id)) || []
     }, [pendingPerksData?.perks, claimedPerkIds])
 
-    // Convert perks to carousel CTAs (these come first!)
+    // convert perks to carousel CTAs (these come first!)
     const perkCTAs: CarouselCTAType[] = useMemo(() => {
-        return cardPioneerPerks.map((perk) => {
+        return claimablePerks.map((perk) => {
             const inviteeName = extractInviteeName(perk.reason)
+            const description = inviteeName ? (
+                <p>
+                    <b>{inviteeName}</b> used Peanut. Tap to claim.
+                </p>
+            ) : (
+                <p>Tap to claim your reward.</p>
+            )
+
             return {
                 id: `perk-${perk.id}`,
                 title: (
@@ -63,11 +65,7 @@ const HomeCarouselCTA = () => {
                         <b>+${perk.amountUsd}</b> reward ready!
                     </p>
                 ),
-                description: (
-                    <p>
-                        <b>{inviteeName}</b> joined Pioneers. Tap to claim.
-                    </p>
-                ),
+                description,
                 icon: 'gift' as IconName,
                 iconContainerClassName: 'bg-primary-1',
                 onClick: () => setSelectedPerk(perk),
@@ -75,7 +73,7 @@ const HomeCarouselCTA = () => {
                 iconSize: 16,
             }
         })
-    }, [cardPioneerPerks])
+    }, [claimablePerks])
 
     // Combine perk CTAs (first) with regular CTAs
     const allCTAs = useMemo(() => {
