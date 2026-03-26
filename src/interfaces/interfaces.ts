@@ -277,6 +277,8 @@ export interface User {
     fullName: string
     telegram: string | null
     hasAppAccess: boolean
+    isActivated?: boolean
+    activatedAt?: string | null
     showFullName: boolean
     showKycCompletedModal?: boolean
     createdAt: string
