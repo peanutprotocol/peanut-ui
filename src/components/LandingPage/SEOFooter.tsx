@@ -42,29 +42,22 @@ export function SEOFooter() {
     const compare = (manifest.compare ?? []) as ManifestEntry[]
     const articles = ((manifest as Record<string, unknown>).articles ?? []) as ManifestEntry[]
     const resources = (manifest.resources ?? []) as ManifestEntry[]
+    const hasSendMoney = sendTo.length > 0 || sendFrom.length > 0
 
     return (
         <nav aria-label="Site directory" className="bg-black px-8 py-8 md:px-20">
             <div className="flex flex-wrap justify-between gap-y-8">
-                {sendTo.length > 0 && (
+                {hasSendMoney && (
                     <div>
-                        <h3 className="mb-3 text-xs font-bold text-white">Send To</h3>
+                        <h3 className="mb-3 text-xs font-bold text-white">Send Money</h3>
                         <ul className="space-y-1">
                             {sendTo.map((entry) => (
-                                <FooterLink key={entry.slug} href={entry.href}>
+                                <FooterLink key={`to-${entry.slug}`} href={entry.href}>
                                     Send to {entry.name}
                                 </FooterLink>
                             ))}
-                        </ul>
-                    </div>
-                )}
-
-                {sendFrom.length > 0 && (
-                    <div>
-                        <h3 className="mb-3 text-xs font-bold text-white">Send From</h3>
-                        <ul className="space-y-1">
                             {sendFrom.map((entry) => (
-                                <FooterLink key={entry.slug} href={entry.href}>
+                                <FooterLink key={`from-${entry.slug}`} href={entry.href}>
                                     Send from {entry.name}
                                 </FooterLink>
                             ))}

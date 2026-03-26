@@ -68,23 +68,20 @@ export function ContentSEOFooter({ locale }: { locale: string }) {
     const manifest = loadManifest()
     if (!manifest) return null
 
+    const hasSendMoney = manifest.sendMoney.to.length > 0 || manifest.sendMoney.from.length > 0
+
     return (
         <nav aria-label="Site directory" className="bg-black px-8 py-8 md:px-20">
             <div className="flex flex-wrap justify-between gap-y-8">
-                {manifest.sendMoney.to.length > 0 && (
-                    <FooterSection title="Send To">
+                {hasSendMoney && (
+                    <FooterSection title="Send Money">
                         {manifest.sendMoney.to.map((entry) => (
-                            <FooterLink key={entry.slug} href={localizeHref(entry.href, locale)}>
+                            <FooterLink key={`to-${entry.slug}`} href={localizeHref(entry.href, locale)}>
                                 Send to {entry.name}
                             </FooterLink>
                         ))}
-                    </FooterSection>
-                )}
-
-                {manifest.sendMoney.from.length > 0 && (
-                    <FooterSection title="Send From">
                         {manifest.sendMoney.from.map((entry) => (
-                            <FooterLink key={entry.slug} href={localizeHref(entry.href, locale)}>
+                            <FooterLink key={`from-${entry.slug}`} href={localizeHref(entry.href, locale)}>
                                 Send from {entry.name}
                             </FooterLink>
                         ))}
