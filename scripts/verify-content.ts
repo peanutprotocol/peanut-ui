@@ -437,9 +437,7 @@ function checkFrontmatter() {
             error('frontmatter', 'Published file missing description', rel(file))
             issues++
         }
-        if (fm.published === undefined) {
-            warn('frontmatter', 'No explicit published field (defaults to true)', rel(file))
-        }
+        // published field is now optional — missing defaults to published
     }
 
     console.log(`  Pass 4 — Frontmatter: ${issues === 0 ? 'all published files valid' : `${issues} issues`}`)
@@ -527,76 +525,35 @@ function checkContentPolish() {
     )
 }
 
-// --- Pass 7: Published field must be explicit ---
+// --- Pass 7: Check for published: false files (drafts) ---
+// With the flipped default (missing = published), only published: false is meaningful.
+// This pass just reports how many drafts exist for visibility.
 
 function checkExplicitPublished() {
     const files = getAllMdFiles(CONTENT_DIR)
-    let issues = 0
+    let drafts = 0
 
     for (const file of files) {
         const content = fs.readFileSync(file, 'utf-8')
         const fm = parseFrontmatter(content)
 
-        if (fm.published === undefined) {
-            error(
-                'no-published-field',
-                'File has no explicit published field — add published: true or published: false',
-                rel(file)
-            )
-            issues++
-        }
-    }
-
-    // Also check singleton content (files directly in content/{type}/ not in a subdir)
-    const singletonDirs = ['pricing', 'supported-networks']
-    for (const dir of singletonDirs) {
-        const dirPath = path.join(CONTENT_DIR, dir)
-        if (!fs.existsSync(dirPath)) continue
-        for (const f of fs.readdirSync(dirPath)) {
-            if (!f.endsWith('.md')) continue
-            const filePath = path.join(dirPath, f)
-            const stat = fs.statSync(filePath)
-            if (stat.isDirectory()) continue
-            // Already checked above in getAllMdFiles, skip duplicate
+        if (fm.published === false) {
+            warn('draft-content', 'File is explicitly unpublished (draft)', rel(file))
+            drafts++
         }
     }
 
     console.log(
-        `  Pass 7 — Explicit published: ${issues === 0 ? 'all files have published field' : `${issues} files missing published field`}`
+        `  Pass 7 — Drafts: ${drafts === 0 ? 'no draft files' : `${drafts} files marked as drafts (published: false)`}`
     )
 }
 
 // --- Pass 8: isPublished consistency ---
-// The page-level check uses `published === false` (permissive: undefined = published)
-// The lib isPublished uses `published === true` (strict: undefined = unpublished)
-// Flag files where these disagree — they'll render on the page but won't appear in generateStaticParams
+// Both page-level and lib now agree: missing/true = published, false = unpublished.
+// This pass is kept as a no-op placeholder for numbering stability.
 
 function checkPublishedConsistency() {
-    const files = getAllMdFiles(CONTENT_DIR)
-    let issues = 0
-
-    for (const file of files) {
-        const content = fs.readFileSync(file, 'utf-8')
-        const fm = parseFrontmatter(content)
-
-        // Permissive: page renders (published !== false)
-        const pageWouldRender = fm.published !== false
-        // Strict: generateStaticParams includes it (published === true)
-        const buildWouldInclude = fm.published === true
-
-        if (pageWouldRender && !buildWouldInclude) {
-            error(
-                'published-mismatch',
-                `published=${String(fm.published)} — page would render but generateStaticParams excludes it. Set published: true or published: false explicitly.`,
-                rel(file)
-            )
-            issues++
-        }
-    }
-
-    console.log(
-        `  Pass 8 — Published consistency: ${issues === 0 ? 'no mismatches' : `${issues} files with ambiguous published state`}`
-    )
+    console.log('  Pass 8 — Published consistency: unified (both default to published)')
 }
 
 // --- Pass 9: Submodule freshness ---

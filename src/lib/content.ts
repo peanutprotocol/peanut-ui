@@ -203,10 +203,10 @@ interface PublishableContent {
     published?: boolean
 }
 
-/** Check if content is published (defaults to false if field missing) */
+/** Check if content is published (defaults to true if field missing) */
 export function isPublished(content: MarkdownContent<PublishableContent> | null): boolean {
     if (!content) return false
-    return content.frontmatter.published === true
+    return content.frontmatter.published !== false
 }
 
 /** List published content slugs for an intent */
