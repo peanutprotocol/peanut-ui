@@ -173,7 +173,7 @@ const SignTestTransaction = () => {
     const getButtonText = () => {
         if (isFetchingUser || !user) return 'Loading...'
         if (testTransactionCompleted && displayError) return 'Retry account setup'
-        return 'Sign test transaction'
+        return 'Confirm & finish'
     }
 
     return (
