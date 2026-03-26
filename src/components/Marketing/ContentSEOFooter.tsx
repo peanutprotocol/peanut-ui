@@ -72,10 +72,20 @@ export function ContentSEOFooter({ locale }: { locale: string }) {
         <nav aria-label="Site directory" className="bg-black px-8 py-8 md:px-20">
             <div className="flex flex-wrap justify-between gap-y-8">
                 {manifest.sendMoney.to.length > 0 && (
-                    <FooterSection title="Send Money">
+                    <FooterSection title="Send To">
                         {manifest.sendMoney.to.map((entry) => (
                             <FooterLink key={entry.slug} href={localizeHref(entry.href, locale)}>
                                 Send to {entry.name}
+                            </FooterLink>
+                        ))}
+                    </FooterSection>
+                )}
+
+                {manifest.sendMoney.from.length > 0 && (
+                    <FooterSection title="Send From">
+                        {manifest.sendMoney.from.map((entry) => (
+                            <FooterLink key={entry.slug} href={localizeHref(entry.href, locale)}>
+                                Send from {entry.name}
                             </FooterLink>
                         ))}
                     </FooterSection>
