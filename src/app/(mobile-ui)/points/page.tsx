@@ -126,7 +126,7 @@ const PointsPage = () => {
                                 return (
                                     <>
                                         {number}
-                                        {suffix && <span className="text-primary-1">{suffix}</span>}
+                                        {suffix && <span>{suffix}</span>}
                                     </>
                                 )
                             })()}{' '}

@@ -24,7 +24,6 @@ import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { PostSignupActionManager } from '@/components/Global/PostSignupActionManager'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
-import { useDeviceType } from '@/hooks/useGetDeviceType'
 import { useNotifications } from '@/hooks/useNotifications'
 import useKycStatus from '@/hooks/useKycStatus'
 import { useCardPioneerInfo } from '@/hooks/useCardPioneerInfo'
@@ -57,7 +56,6 @@ export default function Home() {
     const { balance, isFetchingBalance } = useWallet()
     const { resetFlow: resetClaimBankFlow } = useClaimBankFlow()
     const { resetWithdrawFlow } = useWithdrawFlow()
-    const { deviceType } = useDeviceType()
     const { user } = useUserStore()
     const [isBalanceHidden, setIsBalanceHidden] = useState(() => {
         const prefs = user ? getUserPreferences(user.user.userId) : undefined

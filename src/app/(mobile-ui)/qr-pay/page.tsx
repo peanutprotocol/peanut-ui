@@ -1074,25 +1074,25 @@ export default function QRPayPage() {
         )
     }
 
+    // get user-facing payment method name for maintenance screen
+    const paymentMethodName = useMemo(() => {
+        if (paymentProcessor === 'MANTECA') {
+            switch (qrType) {
+                case EQrType.PIX:
+                    return 'PIX'
+                case EQrType.MERCADO_PAGO:
+                    return 'Mercado Pago'
+                case EQrType.ARGENTINA_QR3:
+                    return 'QR'
+                default:
+                    return 'QR'
+            }
+        }
+        return 'SimpleFi'
+    }, [paymentProcessor, qrType])
+
     // Show maintenance error if provider is disabled
     if (isProviderDisabled) {
-        // Get user-facing payment method name
-        const paymentMethodName = useMemo(() => {
-            if (paymentProcessor === 'MANTECA') {
-                switch (qrType) {
-                    case EQrType.PIX:
-                        return 'PIX'
-                    case EQrType.MERCADO_PAGO:
-                        return 'Mercado Pago'
-                    case EQrType.ARGENTINA_QR3:
-                        return 'QR'
-                    default:
-                        return 'QR'
-                }
-            }
-            return 'SimpleFi'
-        }, [])
-
         return (
             <div className="my-auto flex h-full w-full flex-col justify-center space-y-4">
                 <Card className="flex w-full flex-col items-center gap-2 p-4">
@@ -1274,9 +1274,9 @@ export default function QRPayPage() {
 
                     {/* Perk Success Banner - Show after claiming */}
                     {(perkClaimed || qrPayment?.perk?.claimed) && (
-                        <Card className="flex items-start gap-4 bg-white p-6">
-                            <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full bg-yellow-400">
-                                <Image src={STAR_STRAIGHT_ICON} alt="star" width={36} height={36} />
+                        <Card className="flex items-start gap-3 bg-white p-4">
+                            <div className="flex max-w-[15%] flex-shrink-0 items-center justify-center rounded-full bg-yellow-400 p-2">
+                                <Image src={STAR_STRAIGHT_ICON} alt="star" width={28} height={28} />
                             </div>
                             <div className="flex flex-col gap-2">
                                 <h2 className="text-2xl font-bold">Peanut got you!</h2>
@@ -1344,7 +1344,7 @@ export default function QRPayPage() {
                                     WebkitTapHighlightColor: 'transparent',
                                 }}
                             >
-                                {/* Black progress fill from left to right */}
+                                {/* progress fill from left to right */}
                                 <div
                                     className="absolute inset-0 bg-black transition-all duration-100"
                                     style={{
@@ -1352,7 +1352,20 @@ export default function QRPayPage() {
                                         left: 0,
                                     }}
                                 />
-                                <span className="relative z-10">Claim Peanut Perk Now!</span>
+                                {(() => {
+                                    const label = 'Claim Peanut Perk Now!'
+                                    return (
+                                        <>
+                                            <span className="relative z-10">{label}</span>
+                                            <span
+                                                className="absolute inset-0 z-20 flex items-center justify-center text-white transition-all duration-75"
+                                                style={{ clipPath: `inset(0 ${100 - holdProgress}% 0 0)` }}
+                                            >
+                                                {label}
+                                            </span>
+                                        </>
+                                    )
+                                })()}
                             </Button>
                         ) : (
                             <>
