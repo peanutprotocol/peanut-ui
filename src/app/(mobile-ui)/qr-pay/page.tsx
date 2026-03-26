@@ -633,7 +633,11 @@ export default function QRPayPage() {
         if (finalPaymentLock.code === '') {
             setLoadingState('Fetching details')
             try {
-                finalPaymentLock = await mantecaApi.initiateQrPayment({ qrCode, amount: currencyAmount })
+                finalPaymentLock = await mantecaApi.initiateQrPayment({
+                    qrCode,
+                    amount: currencyAmount,
+                    qrType: qrType ?? undefined,
+                })
                 setPaymentLock(finalPaymentLock)
             } catch (error) {
                 captureException(error)
