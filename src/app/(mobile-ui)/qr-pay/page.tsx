@@ -1001,6 +1001,24 @@ export default function QRPayPage() {
 
     const isLoadingKycState = kycGateState === QrKycState.LOADING
 
+    // get user-facing payment method name for maintenance screen
+    // NOTE: must be above early returns to comply with React's Rules of Hooks
+    const paymentMethodName = useMemo(() => {
+        if (paymentProcessor === 'MANTECA') {
+            switch (qrType) {
+                case EQrType.PIX:
+                    return 'PIX'
+                case EQrType.MERCADO_PAGO:
+                    return 'Mercado Pago'
+                case EQrType.ARGENTINA_QR3:
+                    return 'QR'
+                default:
+                    return 'QR'
+            }
+        }
+        return 'SimpleFi'
+    }, [paymentProcessor, qrType])
+
     // only show KYC modals after KYC state has loaded
     // explicitly check for KYC states that require blocking (not PROCEED_TO_PAY)
     // important: this check must come BEFORE errorInitiatingPayment check
@@ -1073,23 +1091,6 @@ export default function QRPayPage() {
             </div>
         )
     }
-
-    // get user-facing payment method name for maintenance screen
-    const paymentMethodName = useMemo(() => {
-        if (paymentProcessor === 'MANTECA') {
-            switch (qrType) {
-                case EQrType.PIX:
-                    return 'PIX'
-                case EQrType.MERCADO_PAGO:
-                    return 'Mercado Pago'
-                case EQrType.ARGENTINA_QR3:
-                    return 'QR'
-                default:
-                    return 'QR'
-            }
-        }
-        return 'SimpleFi'
-    }, [paymentProcessor, qrType])
 
     // Show maintenance error if provider is disabled
     if (isProviderDisabled) {
