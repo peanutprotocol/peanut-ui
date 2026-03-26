@@ -96,11 +96,7 @@ export function SEOFooter() {
                         <h3 className="mb-3 text-xs font-bold text-white">Resources</h3>
                         <ul className="space-y-1">
                             {resources.map((entry) => (
-                                <FooterLink
-                                    key={entry.slug}
-                                    href={entry.href}
-                                    external={entry.external}
-                                >
+                                <FooterLink key={entry.slug} href={entry.href} external={entry.external}>
                                     {entry.name}
                                 </FooterLink>
                             ))}
