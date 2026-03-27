@@ -279,6 +279,7 @@ export interface User {
     hasAppAccess: boolean
     isActivated?: boolean
     activatedAt?: string | null
+    activationMilestone?: 'registered' | 'verified' | 'funded' | 'activated'
     showFullName: boolean
     showKycCompletedModal?: boolean
     createdAt: string

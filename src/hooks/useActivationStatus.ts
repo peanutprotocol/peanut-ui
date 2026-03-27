@@ -39,17 +39,30 @@ export function useActivationStatus(): ActivationStatus {
             return { isActivated: false, activatedAt: null, activationStep: 'verify' as ActivationStep }
         }
 
-        // TODO(rewards-v2): REVERT TO `?? true` before merging — this forces non-activated state for testing
         const isActivated = user.user.isActivated ?? true
         const activatedAt = user.user.activatedAt ?? null
 
+        // Use BE activationMilestone when available, otherwise derive locally
+        const beMilestone = user.user.activationMilestone
         let activationStep: ActivationStep = 'completed'
         if (!isActivated) {
-            if (!isUserKycApproved) {
-                activationStep = 'verify'
+            if (beMilestone) {
+                // Map BE milestone to FE step
+                const milestoneToStep: Record<string, ActivationStep> = {
+                    registered: 'verify',
+                    verified: 'deposit',
+                    funded: 'outbound',
+                    activated: 'completed',
+                }
+                activationStep = milestoneToStep[beMilestone] ?? 'verify'
             } else {
-                const hasBalance = balance !== undefined && balance !== null && Number(balance) > 0
-                activationStep = hasBalance ? 'outbound' : 'deposit'
+                // Fallback: derive locally from KYC + balance
+                if (!isUserKycApproved) {
+                    activationStep = 'verify'
+                } else {
+                    const hasBalance = balance !== undefined && balance !== null && Number(balance) > 0
+                    activationStep = hasBalance ? 'outbound' : 'deposit'
+                }
             }
         }
 

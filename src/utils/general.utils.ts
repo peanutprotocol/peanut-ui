@@ -949,8 +949,13 @@ export const generateInviteCodeLink = (username: string) => {
  */
 export const extractInviteeName = (reason: string | undefined | null, fallback = 'Your friend'): string => {
     if (!reason) return fallback
-    const name = reason.split(' became')[0]
-    return name || fallback
+    // Rewards v2: "Alice just used Peanut. You earned $0.66."
+    const justUsedMatch = reason.match(/^(.+?) just used Peanut/)
+    if (justUsedMatch) return justUsedMatch[1]
+    // Legacy: "Alice became a Pioneer"
+    const becameMatch = reason.match(/^(.+?) became/)
+    if (becameMatch) return becameMatch[1]
+    return fallback
 }
 
 export const getValidRedirectUrl = (redirectUrl: string, fallbackRoute: string) => {

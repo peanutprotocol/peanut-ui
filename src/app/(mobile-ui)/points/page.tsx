@@ -126,11 +126,16 @@ const PointsPage = () => {
                                     2
                                 )}
                             </h2>
-                            {cashStatus.data.hasCashbackLeft && (
+                            {(cashStatus.data.rewards?.pendingUsd ?? 0) > 0 ? (
+                                <p className="text-center text-sm text-grey-1">
+                                    You have ${cashStatus.data.rewards!.pendingUsd.toFixed(2)} in pending rewards. Make
+                                    a payment to claim.
+                                </p>
+                            ) : cashStatus.data.hasCashbackLeft ? (
                                 <p className="text-center text-sm text-grey-1">
                                     You have unclaimed rewards! Make a payment to claim them.
                                 </p>
-                            )}
+                            ) : null}
                         </div>
                     )}
 
