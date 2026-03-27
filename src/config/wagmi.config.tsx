@@ -116,31 +116,32 @@ export const initializeAppKit = async (): Promise<void> => {
     return initPromise
 }
 
-// Initialize AppKit (required for components using useAppKit/useDisconnect hooks)
-// Components on critical paths (TokenSelector, PaymentForm, home page) need this
-// Note: createAppKit() itself is lightweight - expensive network requests (wallet icons,
-// analytics) only happen when user actually opens the modal
-try {
-    createAppKit({
-        adapters: [wagmiAdapter],
-        defaultNetwork: mainnet,
-        networks,
-        metadata,
-        projectId,
-        features: {
-            analytics: false, // Disable Coinbase analytics tracking
-            socials: false,
-            email: false,
-            onramp: true,
-        },
-        themeVariables: {
-            '--w3m-border-radius-master': '0px',
-            '--w3m-color-mix': 'white',
-        },
-    })
-    appKitInitialized = true
-} catch (error) {
-    console.warn('AppKit initialization failed:', error)
+// Initialize AppKit eagerly in the browser (required for useAppKit/useDisconnect hooks)
+// Guarded by typeof window to prevent SSR bailout — createAppKit accesses browser APIs
+// which causes Next.js to abandon server rendering and send an empty HTML shell
+if (typeof window !== 'undefined') {
+    try {
+        createAppKit({
+            adapters: [wagmiAdapter],
+            defaultNetwork: mainnet,
+            networks,
+            metadata,
+            projectId,
+            features: {
+                analytics: false,
+                socials: false,
+                email: false,
+                onramp: true,
+            },
+            themeVariables: {
+                '--w3m-border-radius-master': '0px',
+                '--w3m-color-mix': 'white',
+            },
+        })
+        appKitInitialized = true
+    } catch (error) {
+        console.warn('AppKit initialization failed:', error)
+    }
 }
 
 export function ContextProvider({ children, cookies }: { children: React.ReactNode; cookies: string | null }) {
