@@ -129,7 +129,11 @@ export const useZeroDev = () => {
         }
     }
 
-    // login function
+    // TODO: Consider implementing conditional mediation (WebAuthn autofill) for login.
+    // Currently, discoverable credential requests cause conflicts on Samsung devices with
+    // dual passkey providers (Google Credential Manager + Samsung Pass). Conditional mediation
+    // surfaces passkeys from ALL providers in the autofill UI, bypassing provider priority issues.
+    // See: https://web.dev/articles/passkey-form-autofill
     const handleLogin = async () => {
         dispatch(zerodevActions.setIsLoggingIn(true))
         try {
