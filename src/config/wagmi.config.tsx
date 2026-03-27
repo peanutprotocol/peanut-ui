@@ -116,10 +116,11 @@ export const initializeAppKit = async (): Promise<void> => {
     return initPromise
 }
 
-// Initialize AppKit eagerly in the browser (required for useAppKit/useDisconnect hooks)
-// Guarded by typeof window to prevent SSR bailout — createAppKit accesses browser APIs
-// which causes Next.js to abandon server rendering and send an empty HTML shell
-if (typeof window !== 'undefined') {
+// Eagerly initialize AppKit on first client render (required for useAppKit/useDisconnect hooks).
+// Must NOT run at module level — createAppKit() accesses browser APIs which causes Next.js
+// to emit BAILOUT_TO_CLIENT_SIDE_RENDERING and send an empty HTML shell to crawlers.
+function ensureAppKit() {
+    if (appKitInitialized) return
     try {
         createAppKit({
             adapters: [wagmiAdapter],
@@ -145,13 +146,10 @@ if (typeof window !== 'undefined') {
 }
 
 export function ContextProvider({ children, cookies }: { children: React.ReactNode; cookies: string | null }) {
-    /**
-     * converts the provided cookies into an initial state for the application.
-     *
-     * @param {Config} wagmiConfig - The configuration object for the wagmi adapter.
-     * @param {Record<string, string>} cookies - An object representing the cookies.
-     * @returns {InitialState} The initial state derived from the cookies.
-     */
+    // Initialize AppKit synchronously on first client render.
+    // Guarded to skip during SSR where browser APIs aren't available.
+    if (typeof window !== 'undefined') ensureAppKit()
+
     const initialState = cookieToInitialState(wagmiAdapter.wagmiConfig as Config, cookies)
 
     return (
