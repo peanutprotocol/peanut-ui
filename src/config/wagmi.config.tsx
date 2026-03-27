@@ -64,10 +64,9 @@ const wagmiAdapter = new WagmiAdapter({
     ssr: true,
 })
 
-// 6. AppKit initialization with SSR compatibility and PWA resilience
-// Strategy:
-// - Initialize eagerly for SSR (Next.js prerendering requires it)
-// - Handle PWA cold launch failures gracefully with retry mechanism
+// 6. AppKit initialization — single source of truth for createAppKit() config.
+// Called from ContextProvider on first client render (NOT at module level).
+// Module-level calls access browser APIs and cause Next.js SSR bailout.
 
 let appKitInitialized = false
 let initPromise: Promise<void> | null = null
@@ -116,39 +115,18 @@ export const initializeAppKit = async (): Promise<void> => {
     return initPromise
 }
 
-// Eagerly initialize AppKit on first client render (required for useAppKit/useDisconnect hooks).
-// Must NOT run at module level — createAppKit() accesses browser APIs which causes Next.js
-// to emit BAILOUT_TO_CLIENT_SIDE_RENDERING and send an empty HTML shell to crawlers.
-function ensureAppKit() {
-    if (appKitInitialized) return
-    try {
-        createAppKit({
-            adapters: [wagmiAdapter],
-            defaultNetwork: mainnet,
-            networks,
-            metadata,
-            projectId,
-            features: {
-                analytics: false,
-                socials: false,
-                email: false,
-                onramp: true,
-            },
-            themeVariables: {
-                '--w3m-border-radius-master': '0px',
-                '--w3m-color-mix': 'white',
-            },
-        })
-        appKitInitialized = true
-    } catch (error) {
-        console.warn('AppKit initialization failed:', error)
-    }
-}
-
 export function ContextProvider({ children, cookies }: { children: React.ReactNode; cookies: string | null }) {
-    // Initialize AppKit synchronously on first client render.
-    // Guarded to skip during SSR where browser APIs aren't available.
-    if (typeof window !== 'undefined') ensureAppKit()
+    // Initialize AppKit on first client render (required for useAppKit/useDisconnect hooks).
+    // Must NOT run at module level — createAppKit() accesses browser APIs which causes Next.js
+    // to emit BAILOUT_TO_CLIENT_SIDE_RENDERING and send an empty HTML shell to crawlers.
+    // Note: createAppKit() inside initializeAppKit runs synchronously (no await before it),
+    // so AppKit is ready before child hooks execute in the same render pass.
+    if (typeof window !== 'undefined') {
+        void initializeAppKit().catch(() => {
+            // initializeAppKit already resets initPromise and logs — suppress the thrown error
+            // so the app can still render without wallet connection
+        })
+    }
 
     const initialState = cookieToInitialState(wagmiAdapter.wagmiConfig as Config, cookies)
 
