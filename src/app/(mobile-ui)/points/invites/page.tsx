@@ -68,7 +68,6 @@ const InvitesPage = () => {
             <NavHeader title="Rewards" onPrev={() => router.back()} />
 
             <section className="mx-auto mb-auto mt-10 w-full space-y-4">
-                {/* Summary Card — show USD when available, points as secondary */}
                 <Card className="flex flex-col items-center justify-center gap-2 p-4">
                     {invites?.summary?.totalLifetimeEarnedUsd !== undefined &&
                     invites.summary.totalLifetimeEarnedUsd > 0 ? (
