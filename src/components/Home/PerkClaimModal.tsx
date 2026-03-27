@@ -21,14 +21,15 @@ type ClaimPhase = 'idle' | 'holding' | 'opening' | 'revealed' | 'exiting'
 
 const SURPRISE_CLAIM_COUNT_KEY = 'rewards_surprise_claim_count'
 
+// Approved copy — see notion: notifs-copy-33083811757980638a27effc79a033f3
 const SURPRISE_COPY = {
     first: {
-        title: '🎉 You unlocked your first reward!',
-        description: "Invite friends to start earning. Your rewards are based on your friends' activity.",
+        title: 'You just earned $0.35!',
+        description: 'Check out your rewards now and earn more.',
     },
     subsequent: {
-        title: '🎉 You unlocked another reward!',
-        description: "To get more rewards, invite friends to Peanut. Your rewards are based on your friends' activity.",
+        title: 'You just earned $0.65!',
+        description: 'Check out your rewards and how to earn more.',
     },
 } as const
 
@@ -160,7 +161,7 @@ interface SuccessModalProps {
  * Uses icon/title/description props for standard vertical centered layout.
  */
 function SuccessModal({ perk, claimPhase, onClose, onDismiss }: SuccessModalProps) {
-    const inviteeName = extractInviteeName(perk.reason)
+    const inviteeName = perk.inviteeName ?? extractInviteeName(perk.reason)
     const { triggerHaptic } = useHaptic()
     const router = useRouter()
     const { user } = useAuth()
@@ -310,7 +311,7 @@ function GiftBoxContent({ perk, onHoldComplete, claimPhase }: GiftBoxContentProp
         return ''
     }
 
-    const inviteeName = extractInviteeName(perk.reason)
+    const inviteeName = perk.inviteeName ?? extractInviteeName(perk.reason)
 
     return (
         <div className="flex flex-col items-center">
