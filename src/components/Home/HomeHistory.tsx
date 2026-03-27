@@ -46,12 +46,12 @@ const BALANCE_AFFECTING_TYPES: EHistoryEntryType[] = [
 const HomeHistory = ({
     username,
     hideTxnAmount = false,
-    isActivated = true,
+    hideEmptyState = false,
 }: {
     username?: string
     hideTxnAmount?: boolean
-    /** passed from parent to avoid duplicate hook invocation on the home screen */
-    isActivated?: boolean
+    /** when true, hides the "No activity yet" empty state (pre-activation users) but still shows history if exists */
+    hideEmptyState?: boolean
 }) => {
     const { user } = useUserStore()
     const isLoggedIn = !!user?.user.userId || false
@@ -275,9 +275,9 @@ const HomeHistory = ({
     }
 
     // show empty state if no transactions exist
-    // hide empty activity section for non-activated users (activation steps are shown above)
+    // hide empty activity section for pre-activation users (activation CTAs are shown above)
     if (!isLoading && !combinedEntries.length) {
-        if (!isActivated && isViewingOwnHistory) {
+        if (hideEmptyState && isViewingOwnHistory) {
             return null
         }
 
