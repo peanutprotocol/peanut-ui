@@ -39,7 +39,8 @@ export function useActivationStatus(): ActivationStatus {
             return { isActivated: false, activatedAt: null, activationStep: 'verify' as ActivationStep }
         }
 
-        const isActivated = user.user.isActivated ?? true
+        // Default false: if BE omits the field (bug/outage), gate the referral UI rather than expose it
+        const isActivated = user.user.isActivated ?? false
         const activatedAt = user.user.activatedAt ?? null
 
         // Use BE activationMilestone when available, otherwise derive locally
