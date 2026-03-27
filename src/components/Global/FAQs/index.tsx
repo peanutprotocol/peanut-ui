@@ -30,7 +30,7 @@ export function FAQsPanel({ heading, questions }: FAQsProps) {
 
     // helper to convert markdown links [text](url) and raw urls in text to clickable links
     const linkifyText = useCallback((text: string) => {
-        const markdownLinkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g
+        const markdownLinkRegex = /\[([^\]]+)\]\(([^\s)]+)\)/g
         const parts: (string | JSX.Element)[] = []
         let lastIndex = 0
 
@@ -40,12 +40,12 @@ export function FAQsPanel({ heading, questions }: FAQsProps) {
             if (match.index > lastIndex) {
                 parts.push(text.slice(lastIndex, match.index))
             }
+            const isExternal = match[2].startsWith('http')
             parts.push(
                 <a
                     key={match.index}
                     href={match[2]}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    {...(isExternal ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                     className="text-black underline hover:text-accent"
                 >
                     {match[1]}
