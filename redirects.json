@@ -56,6 +56,31 @@
         "permanent": true
     },
     {
+        "source": "/stories",
+        "destination": "/en/stories",
+        "permanent": false
+    },
+    {
+        "source": "/stories/:path*",
+        "destination": "/en/stories/:path*",
+        "permanent": false
+    },
+    {
+        "source": "/blog",
+        "destination": "/en/blog",
+        "permanent": false
+    },
+    {
+        "source": "/blog/:path*",
+        "destination": "/en/blog/:path*",
+        "permanent": false
+    },
+    {
+        "source": "/team",
+        "destination": "/en/team",
+        "permanent": false
+    },
+    {
         "source": "/packet",
         "destination": "https://github.com/peanutprotocol/peanut-ui/tree/archive/legacy-peanut-to",
         "permanent": true
