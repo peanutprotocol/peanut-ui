@@ -15,15 +15,14 @@ interface PageProps {
 }
 
 export async function generateStaticParams() {
-    if (process.env.NODE_ENV === 'production') return []
     return SUPPORTED_LOCALES.flatMap((locale) => {
-        // Use English categories as fallback
         const cats = getAllCategories(locale as Locale)
         const fallbackCats = cats.length > 0 ? cats : getAllCategories('en')
         return fallbackCats.map((cat) => ({ locale, cat }))
     })
 }
-export const dynamicParams = false
+
+export const dynamicParams = true
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
     const { locale, cat } = await params

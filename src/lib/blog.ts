@@ -6,8 +6,11 @@ import path from 'path'
 
 import type { Locale } from '@/i18n/types'
 
-function getBlogDir(locale: Locale = 'en') {
-    return path.join(process.cwd(), `src/content/blog/${locale}`)
+/** Blog content lives in the peanut-content submodule at src/content/content/blog/.
+ *  Structure: content/blog/{slug}/{locale}.md  (e.g. content/blog/pay-in-argentina/en.md)
+ */
+function getBlogDir() {
+    return path.join(process.cwd(), 'src/content/content/blog')
 }
 
 export interface BlogPost {
@@ -36,20 +39,26 @@ async function getHighlighter(): Promise<Highlighter> {
 }
 
 export function getAllPosts(locale: Locale = 'en'): BlogPost[] {
-    const dir = getBlogDir(locale)
-    if (!fs.existsSync(dir)) return []
+    const blogDir = getBlogDir()
+    if (!fs.existsSync(blogDir)) return []
 
-    const files = fs.readdirSync(dir).filter((f) => f.endsWith('.md'))
-    return files
-        .map((file) => {
-            const raw = fs.readFileSync(path.join(dir, file), 'utf8')
+    // Each subfolder is a slug, each file inside is {locale}.md
+    const slugDirs = fs.readdirSync(blogDir).filter((f) => fs.statSync(path.join(blogDir, f)).isDirectory())
+
+    return slugDirs
+        .map((slug) => {
+            const filePath = path.join(blogDir, slug, `${locale}.md`)
+            if (!fs.existsSync(filePath)) return null
+
+            const raw = fs.readFileSync(filePath, 'utf8')
             const { data, content } = matter(raw)
             return {
-                slug: file.replace('.md', ''),
+                slug,
                 frontmatter: data as BlogPost['frontmatter'],
                 content,
             }
         })
+        .filter((post): post is BlogPost => post !== null)
         .sort((a, b) => new Date(b.frontmatter.date).getTime() - new Date(a.frontmatter.date).getTime())
 }
 
@@ -57,7 +66,7 @@ export async function getPostBySlug(
     slug: string,
     locale: Locale = 'en'
 ): Promise<{ frontmatter: BlogPost['frontmatter']; html: string } | null> {
-    const filePath = path.join(getBlogDir(locale), `${slug}.md`)
+    const filePath = path.join(getBlogDir(), slug, `${locale}.md`)
     if (!fs.existsSync(filePath)) return null
 
     const raw = fs.readFileSync(filePath, 'utf8')
