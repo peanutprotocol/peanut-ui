@@ -44,7 +44,7 @@ export const faqData = {
         {
             id: '6',
             question: 'My question is not here',
-            answer: 'Check out our [help center](/en/help) or visit our [support page](https://peanut.me/support) for more help.',
+            answer: 'Check out our [help center](/en/help) for more help.',
         },
     ],
     marquee: {
