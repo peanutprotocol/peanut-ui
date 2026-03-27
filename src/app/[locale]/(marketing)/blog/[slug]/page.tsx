@@ -14,20 +14,15 @@ interface PageProps {
 }
 
 export async function generateStaticParams() {
-    if (process.env.NODE_ENV === 'production') return []
-    // Generate params for locales that have blog content (fall back to en slugs)
     return SUPPORTED_LOCALES.flatMap((locale) => {
         let posts = getAllPosts(locale as Locale)
         if (posts.length === 0) posts = getAllPosts('en')
         return posts.map((post) => ({ locale, slug: post.slug }))
     })
 }
-// TODO: when blog content is added to src/content/blog/, either remove the
-// production guard in generateStaticParams above, or set dynamicParams = true.
-// Currently no blog posts exist so this has no effect, but with content present
-// the combination of returning [] in prod + dynamicParams = false would 404 all
-// blog pages.
-export const dynamicParams = false
+
+// Allow dynamic rendering for slugs not in static params (e.g. newly added content)
+export const dynamicParams = true
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
     const { locale, slug } = await params
@@ -54,8 +49,10 @@ export default async function BlogPostPageLocalized({ params }: PageProps) {
     const { locale, slug } = await params
     if (!isValidLocale(locale)) notFound()
 
-    const post = (await getPostBySlug(slug, locale as Locale)) ?? (await getPostBySlug(slug, 'en'))
+    const localizedPost = await getPostBySlug(slug, locale as Locale)
+    const post = localizedPost ?? (await getPostBySlug(slug, 'en'))
     if (!post) notFound()
+    const contentLocale: Locale = localizedPost ? (locale as Locale) : 'en'
 
     const i18n = getTranslations(locale)
 
@@ -65,7 +62,7 @@ export default async function BlogPostPageLocalized({ params }: PageProps) {
         headline: post.frontmatter.title,
         description: post.frontmatter.description,
         datePublished: post.frontmatter.date,
-        inLanguage: locale,
+        inLanguage: contentLocale,
         author: { '@type': 'Organization', name: post.frontmatter.author ?? 'Peanut' },
         publisher: { '@type': 'Organization', name: 'Peanut', url: 'https://peanut.me' },
         mainEntityOfPage: `https://peanut.me/${locale}/blog/${slug}`,

@@ -15,15 +15,14 @@ interface PageProps {
 }
 
 export async function generateStaticParams() {
-    if (process.env.NODE_ENV === 'production') return []
     return SUPPORTED_LOCALES.flatMap((locale) => {
-        // Use English categories as fallback
         const cats = getAllCategories(locale as Locale)
         const fallbackCats = cats.length > 0 ? cats : getAllCategories('en')
         return fallbackCats.map((cat) => ({ locale, cat }))
     })
 }
-export const dynamicParams = false
+
+export const dynamicParams = true
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
     const { locale, cat } = await params
@@ -52,11 +51,12 @@ export default async function BlogCategoryPageLocalized({ params }: PageProps) {
     const i18n = getTranslations(typedLocale)
 
     let posts = getPostsByCategory(cat, typedLocale)
+    const resolvedLocale: Locale = posts.length > 0 ? typedLocale : 'en'
     if (posts.length === 0) posts = getPostsByCategory(cat, 'en')
     if (posts.length === 0) notFound()
 
     const label = cat.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
-    const categories = getAllCategories(typedLocale).length > 0 ? getAllCategories(typedLocale) : getAllCategories('en')
+    const categories = getAllCategories(resolvedLocale)
 
     return (
         <>
