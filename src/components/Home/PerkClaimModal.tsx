@@ -168,26 +168,27 @@ function SuccessModal({ perk, claimPhase, onClose, onDismiss }: SuccessModalProp
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
     const isExiting = claimPhase === 'exiting'
 
-    // track surprise moment claim count: 0=first, 1=second, 2+=normal
-    const claimCount = useRef(0)
-    const hasTrackedClaim = useRef(false)
+    // Surprise moment claim count: read synchronously so first render has correct copy.
+    // 0=first surprise, 1=second, 2+=normal referral claim.
+    // NOTE: stored in localStorage per-user. Cross-device users may see surprise copy again.
+    // TODO: move to BE (perk_usage count for surprise campaigns) for authoritative tracking.
+    const [claimCount] = useState(() => {
+        const prefs = user?.user.userId ? getUserPreferences(user.user.userId) : null
+        return prefs?.[SURPRISE_CLAIM_COUNT_KEY] ?? 0
+    })
     useEffect(() => {
-        if (!user?.user.userId || hasTrackedClaim.current) return
-        hasTrackedClaim.current = true
-        const prefs = getUserPreferences(user.user.userId)
-        const count = prefs?.[SURPRISE_CLAIM_COUNT_KEY] ?? 0
-        claimCount.current = count
-        updateUserPreferences(user.user.userId, { [SURPRISE_CLAIM_COUNT_KEY]: count + 1 })
-    }, [user?.user.userId])
+        if (!user?.user.userId) return
+        updateUserPreferences(user.user.userId, { [SURPRISE_CLAIM_COUNT_KEY]: claimCount + 1 })
+    }, []) // eslint-disable-line react-hooks/exhaustive-deps — fire once on mount
 
     useEffect(() => {
         triggerHaptic()
         const dismissTimer = setTimeout(() => setCanDismiss(true), 2000)
         return () => clearTimeout(dismissTimer)
-    }, [triggerHaptic])
+    }, []) // eslint-disable-line react-hooks/exhaustive-deps — triggerHaptic is stable
 
-    const isSurpriseMoment = claimCount.current < 2
-    const surpriseCopy = SURPRISE_COPY[claimCount.current === 0 ? 'first' : 'subsequent']
+    const isSurpriseMoment = claimCount < 2
+    const surpriseCopy = SURPRISE_COPY[claimCount === 0 ? 'first' : 'subsequent']
 
     return (
         <>
@@ -316,7 +317,7 @@ function GiftBoxContent({ perk, onHoldComplete, claimPhase }: GiftBoxContentProp
             {/* Title */}
             <p className="mb-6 text-center text-sm text-grey-1">
                 <Icon name="invite-heart" size={14} className="mr-1 inline" />
-                <span className="font-medium">{inviteeName}</span> joined Pioneers!
+                <span className="font-medium">{inviteeName}</span> used Peanut
             </p>
 
             {/* Gift box wrapper - only this shakes */}

@@ -116,26 +116,30 @@ const PointsPage = () => {
             <section className="mx-auto mb-auto mt-10 w-full space-y-4">
                 {/* rewards hero — $ amount is primary, points de-emphasized */}
                 <Card className="flex flex-col gap-4 p-6">
-                    {/* primary: lifetime rewards in USD */}
+                    {/* primary: lifetime rewards in USD (only show if BE has rewards data) */}
                     {cashStatus?.success && cashStatus.data && (
                         <div className="flex flex-col items-center gap-3">
-                            <p className="text-sm text-grey-1">Lifetime rewards earned</p>
-                            <h2 className="text-4xl font-black text-black">
-                                $
-                                {(cashStatus.data.rewards?.lifetimeEarnedUsd ?? cashStatus.data.lifetimeEarned).toFixed(
-                                    2
-                                )}
-                            </h2>
-                            {(cashStatus.data.rewards?.pendingUsd ?? 0) > 0 ? (
-                                <p className="text-center text-sm text-grey-1">
-                                    You have ${cashStatus.data.rewards!.pendingUsd.toFixed(2)} in pending rewards. Make
-                                    a payment to claim.
-                                </p>
-                            ) : cashStatus.data.hasCashbackLeft ? (
-                                <p className="text-center text-sm text-grey-1">
-                                    You have unclaimed rewards! Make a payment to claim them.
-                                </p>
-                            ) : null}
+                            {cashStatus.data.rewards ? (
+                                <>
+                                    <p className="text-sm text-grey-1">Lifetime rewards earned</p>
+                                    <h2 className="text-4xl font-black text-black">
+                                        ${cashStatus.data.rewards.lifetimeEarnedUsd.toFixed(2)}
+                                    </h2>
+                                    {cashStatus.data.rewards.pendingUsd > 0 && (
+                                        <p className="text-center text-sm text-grey-1">
+                                            You have ${cashStatus.data.rewards.pendingUsd.toFixed(2)} in pending
+                                            rewards. Make a payment to claim.
+                                        </p>
+                                    )}
+                                </>
+                            ) : (
+                                <>
+                                    <p className="text-sm text-grey-1">Lifetime cashback claimed</p>
+                                    <h2 className="text-4xl font-black text-black">
+                                        ${cashStatus.data.lifetimeEarned.toFixed(2)}
+                                    </h2>
+                                </>
+                            )}
                         </div>
                     )}
 

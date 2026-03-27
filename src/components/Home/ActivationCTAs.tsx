@@ -60,7 +60,7 @@ export default function ActivationCTAs({ activationStep }: ActivationCTAsProps) 
     if (activationStep === 'completed') return null
 
     const currentIdx = STEP_ORDER.indexOf(activationStep)
-    const remainingSteps = STEPS.filter((_, i) => i >= currentIdx)
+    const remainingSteps = STEPS.filter((step) => STEP_ORDER.indexOf(step.id) >= currentIdx)
 
     return (
         <Carousel>
