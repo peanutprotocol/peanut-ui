@@ -13,6 +13,7 @@ import { usePWAStatus } from './usePWAStatus'
 import { useGeoLocation } from './useGeoLocation'
 import { useCardPioneerInfo } from './useCardPioneerInfo'
 import { useBridgeTosStatus } from './useBridgeTosStatus'
+import { useActivationStatus } from './useActivationStatus'
 import { STAR_STRAIGHT_ICON } from '@/assets'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 
@@ -52,6 +53,7 @@ export const useHomeCarouselCTAs = () => {
         isLoading: isCardPioneerLoading,
     } = useCardPioneerInfo()
     const { needsBridgeTos } = useBridgeTosStatus()
+    const { isActivated } = useActivationStatus()
     const [showBridgeTos, setShowBridgeTos] = useState(false)
 
     const generateCarouselCTAs = useCallback(() => {
@@ -98,12 +100,12 @@ export const useHomeCarouselCTAs = () => {
             })
         }
 
-        // Generic invite CTA for non-LATAM users
-        if (!isLatamUser) {
+        // Generic invite CTA for non-LATAM activated users only
+        if (!isLatamUser && isActivated) {
             _carouselCTAs.push({
                 id: 'invite-friends',
-                title: 'Invite friends. Get cashback',
-                description: "Your friends' activity earns you badges, perks & rewards.",
+                title: 'Invite friends. Earn rewards',
+                description: 'Earn rewards every time your friends use Peanut.',
                 icon: 'invite-heart',
                 logo: STAR_STRAIGHT_ICON,
                 logoSize: 30,
@@ -167,19 +169,19 @@ export const useHomeCarouselCTAs = () => {
         }
 
         // ------------------------------------------------------------------------------------------------
-        // LATAM Cashback CTA - show to all users in Argentina or Brazil
-        // Encourage them to invite friends to earn more cashback (and complete KYC if needed)
-        if (isLatamUser) {
+        // LATAM rewards CTA - show to activated users in Argentina or Brazil only
+        // Encourage them to invite friends to earn more rewards (and complete KYC if needed)
+        if (isLatamUser && isActivated) {
             _carouselCTAs.push({
                 id: 'latam-cashback-invite',
                 title: (
                     <span>
-                        Earn <b>cashback</b> on QR payments
+                        Earn <b>rewards</b> on QR payments
                     </span>
                 ),
                 description: (
                     <span>
-                        Invite friends to <b>unlock more rewards</b>. The more they use, the more you earn!
+                        Invite friends to <b>earn more rewards</b>. The more they use, the more you earn!
                     </span>
                 ),
                 iconContainerClassName: 'bg-secondary-1',
@@ -231,6 +233,7 @@ export const useHomeCarouselCTAs = () => {
         hasCardPioneerPurchased,
         isCardPioneerLoading,
         needsBridgeTos,
+        isActivated,
     ])
 
     useEffect(() => {

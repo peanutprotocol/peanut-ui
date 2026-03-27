@@ -43,7 +43,16 @@ const BALANCE_AFFECTING_TYPES: EHistoryEntryType[] = [
 /**
  * component to display a preview of the most recent transactions on the home page.
  */
-const HomeHistory = ({ username, hideTxnAmount = false }: { username?: string; hideTxnAmount?: boolean }) => {
+const HomeHistory = ({
+    username,
+    hideTxnAmount = false,
+    isActivated = true,
+}: {
+    username?: string
+    hideTxnAmount?: boolean
+    /** passed from parent to avoid duplicate hook invocation on the home screen */
+    isActivated?: boolean
+}) => {
     const { user } = useUserStore()
     const isLoggedIn = !!user?.user.userId || false
     // Only filter when user is requesting for some different user's history
@@ -128,8 +137,9 @@ const HomeHistory = ({ username, hideTxnAmount = false }: { username?: string; h
                 const entries: Array<HistoryEntry | KycHistoryEntry> = [...historyData.entries]
 
                 // inject badge entries using user's badges (newest first) and earnedAt chronology
+                // filter out beta tester badge — it creates confusing first impressions for new users
                 if (isViewingOwnHistory) {
-                    const badges = user?.user?.badges ?? []
+                    const badges = (user?.user?.badges ?? []).filter((b) => b.code !== 'BETA_TESTER')
                     badges.forEach((b) => {
                         if (!b.earnedAt) return
                         entries.push({
@@ -265,7 +275,12 @@ const HomeHistory = ({ username, hideTxnAmount = false }: { username?: string; h
     }
 
     // show empty state if no transactions exist
+    // hide empty activity section for non-activated users (activation steps are shown above)
     if (!isLoading && !combinedEntries.length) {
+        if (!isActivated && isViewingOwnHistory) {
+            return null
+        }
+
         return (
             <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
                 <h2 className="text-base font-bold">Activity</h2>

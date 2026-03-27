@@ -11,8 +11,26 @@ import { shootDoubleStarConfetti } from '@/utils/confetti'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { useHaptic } from 'use-haptic'
 import ActionModal from '@/components/Global/ActionModal'
+import { Button } from '@/components/0_Bruddle/Button'
+import InviteFriendsModal from '@/components/Global/InviteFriendsModal'
+import { useRouter } from 'next/navigation'
+import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
+import { useAuth } from '@/context/authContext'
 
 type ClaimPhase = 'idle' | 'holding' | 'opening' | 'revealed' | 'exiting'
+
+const SURPRISE_CLAIM_COUNT_KEY = 'rewards_surprise_claim_count'
+
+const SURPRISE_COPY = {
+    first: {
+        title: '🎉 You unlocked your first reward!',
+        description: "Invite friends to start earning. Your rewards are based on your friends' activity.",
+    },
+    subsequent: {
+        title: '🎉 You unlocked another reward!',
+        description: "To get more rewards, invite friends to Peanut. Your rewards are based on your friends' activity.",
+    },
+} as const
 
 interface PerkClaimModalProps {
     perk: PendingPerk
@@ -144,38 +162,118 @@ interface SuccessModalProps {
 function SuccessModal({ perk, claimPhase, onClose, onDismiss }: SuccessModalProps) {
     const inviteeName = extractInviteeName(perk.reason)
     const { triggerHaptic } = useHaptic()
+    const router = useRouter()
+    const { user } = useAuth()
     const [canDismiss, setCanDismiss] = useState(false)
+    const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
     const isExiting = claimPhase === 'exiting'
+
+    // Surprise moment claim count: read synchronously so first render has correct copy.
+    // 0=first surprise, 1=second, 2+=normal referral claim.
+    // NOTE: stored in localStorage per-user. Cross-device users may see surprise copy again.
+    // TODO: move to BE (perk_usage count for surprise campaigns) for authoritative tracking.
+    const [claimCount] = useState(() => {
+        const prefs = user?.user.userId ? getUserPreferences(user.user.userId) : null
+        return prefs?.[SURPRISE_CLAIM_COUNT_KEY] ?? 0
+    })
+    useEffect(() => {
+        if (!user?.user.userId) return
+        updateUserPreferences(user.user.userId, { [SURPRISE_CLAIM_COUNT_KEY]: claimCount + 1 })
+    }, []) // eslint-disable-line react-hooks/exhaustive-deps — fire once on mount
 
     useEffect(() => {
         triggerHaptic()
         const dismissTimer = setTimeout(() => setCanDismiss(true), 2000)
         return () => clearTimeout(dismissTimer)
-    }, [triggerHaptic])
+    }, []) // eslint-disable-line react-hooks/exhaustive-deps — triggerHaptic is stable
+
+    const isSurpriseMoment = claimCount < 2
+    const surpriseCopy = SURPRISE_COPY[claimCount === 0 ? 'first' : 'subsequent']
 
     return (
-        <ActionModal
-            visible={true}
-            onClose={onClose}
-            hideModalCloseButton
-            preventClose={isExiting}
-            icon="check"
-            iconProps={{ className: 'text-white' }}
-            iconContainerClassName="bg-success-3"
-            title=""
-            description={
-                <div className={isExiting ? 'animate-gift-exit' : 'animate-gift-revealed'}>
-                    <p className="text-3xl font-extrabold text-black">+${perk.amountUsd}</p>
-                    <p className="mt-1 flex items-center justify-center gap-1 text-sm text-grey-1">
-                        <Icon name="invite-heart" size={14} />
-                        <span className="font-medium">{inviteeName}</span>
-                        <span>joined Pioneers</span>
-                    </p>
-                </div>
-            }
-            ctas={canDismiss ? [{ text: 'Done', onClick: onDismiss, variant: 'purple' as const }] : undefined}
-            content={<SoundPlayer sound="success" />}
-        />
+        <>
+            <ActionModal
+                visible={true}
+                onClose={onClose}
+                hideModalCloseButton
+                preventClose={isExiting}
+                icon="check"
+                iconProps={{ className: 'text-white' }}
+                iconContainerClassName="bg-success-3"
+                title=""
+                description={
+                    <div className={isExiting ? 'animate-gift-exit' : 'animate-gift-revealed'}>
+                        <p className="text-3xl font-extrabold text-black">+${perk.amountUsd}</p>
+                        {isSurpriseMoment ? (
+                            <>
+                                <p className="mt-2 text-center text-base font-semibold text-n-1">
+                                    {surpriseCopy.title}
+                                </p>
+                                <p className="mt-1 text-center text-sm text-grey-1">{surpriseCopy.description}</p>
+                            </>
+                        ) : inviteeName ? (
+                            <p className="mt-1 flex items-center justify-center gap-1 text-sm text-grey-1">
+                                <Icon name="invite-heart" size={14} />
+                                <span className="font-medium">{inviteeName}</span>
+                                <span>used Peanut</span>
+                            </p>
+                        ) : (
+                            <p className="mt-1 text-sm text-grey-1">Reward claimed!</p>
+                        )}
+                    </div>
+                }
+                content={
+                    <>
+                        <SoundPlayer sound="success" />
+                        {canDismiss && (
+                            <div className="mt-4 flex flex-col items-center gap-2">
+                                {isSurpriseMoment ? (
+                                    <>
+                                        <Button
+                                            variant="purple"
+                                            shadowSize="4"
+                                            className="w-full"
+                                            onClick={() => {
+                                                onDismiss()
+                                                setIsInviteModalOpen(true)
+                                            }}
+                                        >
+                                            Share & earn
+                                        </Button>
+                                        <button className="text-sm text-grey-1 underline" onClick={onDismiss}>
+                                            Maybe later
+                                        </button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Button variant="purple" shadowSize="4" className="w-full" onClick={onDismiss}>
+                                            Done
+                                        </Button>
+                                        <p
+                                            className="cursor-pointer text-center text-sm text-grey-1 underline"
+                                            onClick={() => {
+                                                onDismiss()
+                                                router.push('/points')
+                                            }}
+                                        >
+                                            Invite friends to earn more
+                                        </p>
+                                    </>
+                                )}
+                            </div>
+                        )}
+                    </>
+                }
+            />
+            {user?.user.username && (
+                <InviteFriendsModal
+                    visible={isInviteModalOpen}
+                    onClose={() => setIsInviteModalOpen(false)}
+                    username={user.user.username}
+                    source="surprise_moment"
+                />
+            )}
+        </>
     )
 }
 
@@ -219,7 +317,7 @@ function GiftBoxContent({ perk, onHoldComplete, claimPhase }: GiftBoxContentProp
             {/* Title */}
             <p className="mb-6 text-center text-sm text-grey-1">
                 <Icon name="invite-heart" size={14} className="mr-1 inline" />
-                <span className="font-medium">{inviteeName}</span> joined Pioneers!
+                <span className="font-medium">{inviteeName}</span> used Peanut
             </p>
 
             {/* Gift box wrapper - only this shakes */}

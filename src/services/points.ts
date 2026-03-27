@@ -353,6 +353,11 @@ export const pointsApi = {
                 depositPerks: number
                 other: number
             }
+            /** rewards v2 fields — present once backend ships */
+            rewards?: {
+                pendingUsd: number
+                lifetimeEarnedUsd: number
+            }
         } | null
     }> => {
         try {

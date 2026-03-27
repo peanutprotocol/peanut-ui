@@ -65,18 +65,34 @@ const InvitesPage = () => {
 
     return (
         <PageContainer className="flex flex-col">
-            <NavHeader title="Points" onPrev={() => router.back()} />
+            <NavHeader title="Rewards" onPrev={() => router.back()} />
 
             <section className="mx-auto mb-auto mt-10 w-full space-y-4">
-                {/* Summary Card */}
+                {/* Summary Card — show USD when available, points as secondary */}
                 <Card className="flex flex-col items-center justify-center gap-2 p-4">
-                    <h2 className="text-center font-medium text-black">Your friends earned you</h2>
-                    <span className="flex items-center gap-2">
-                        <Image src={STAR_STRAIGHT_ICON} alt="star" width={20} height={20} />
-                        <span className="text-3xl font-extrabold text-black">
-                            {formatPoints(animatedTotal)} {totalPointsEarned === 1 ? 'Point' : 'Points'}
-                        </span>
-                    </span>
+                    {invites?.summary?.totalLifetimeEarnedUsd !== undefined &&
+                    invites.summary.totalLifetimeEarnedUsd > 0 ? (
+                        <>
+                            <h2 className="text-center font-medium text-black">Your friends earned you</h2>
+                            <span className="text-3xl font-extrabold text-black">
+                                ${invites.summary.totalLifetimeEarnedUsd.toFixed(2)}
+                            </span>
+                            <span className="flex items-center gap-1 text-sm text-grey-1">
+                                <Image src={STAR_STRAIGHT_ICON} alt="star" width={14} height={14} />
+                                {formatPoints(totalPointsEarned)} {totalPointsEarned === 1 ? 'point' : 'points'}
+                            </span>
+                        </>
+                    ) : (
+                        <>
+                            <h2 className="text-center font-medium text-black">Your friends earned you</h2>
+                            <span className="flex items-center gap-2">
+                                <Image src={STAR_STRAIGHT_ICON} alt="star" width={20} height={20} />
+                                <span className="text-3xl font-extrabold text-black">
+                                    {formatPoints(animatedTotal)} {totalPointsEarned === 1 ? 'point' : 'points'}
+                                </span>
+                            </span>
+                        </>
+                    )}
                 </Card>
 
                 <h2 className="font-bold">People you invited</h2>
@@ -115,7 +131,11 @@ const InvitesPage = () => {
                                             isVerified={isVerified}
                                         />
                                     </div>
-                                    <InviteePointsBadge points={pointsEarned} inView={listInView} />
+                                    <InviteePointsBadge
+                                        points={pointsEarned}
+                                        inView={listInView}
+                                        lifetimeEarnedUsd={invite.lifetimeEarnedUsd}
+                                    />
                                 </div>
                             </Card>
                         )
