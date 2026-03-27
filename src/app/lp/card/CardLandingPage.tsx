@@ -95,7 +95,7 @@ const CardLandingPage = () => {
                             Pay with the peanut card. Earn with every purchase, yours or your friends.
                             <br />
                             <br />
-                            <strong>Self-custodial. Best rates. No hidden fees.</strong>
+                            <strong>Non-custodial. Best rates. No hidden fees.</strong>
                         </motion.p>
 
                         <motion.div
