@@ -49,8 +49,10 @@ export default async function BlogPostPageLocalized({ params }: PageProps) {
     const { locale, slug } = await params
     if (!isValidLocale(locale)) notFound()
 
-    const post = (await getPostBySlug(slug, locale as Locale)) ?? (await getPostBySlug(slug, 'en'))
+    const localizedPost = await getPostBySlug(slug, locale as Locale)
+    const post = localizedPost ?? (await getPostBySlug(slug, 'en'))
     if (!post) notFound()
+    const contentLocale: Locale = localizedPost ? (locale as Locale) : 'en'
 
     const i18n = getTranslations(locale)
 
@@ -60,7 +62,7 @@ export default async function BlogPostPageLocalized({ params }: PageProps) {
         headline: post.frontmatter.title,
         description: post.frontmatter.description,
         datePublished: post.frontmatter.date,
-        inLanguage: locale,
+        inLanguage: contentLocale,
         author: { '@type': 'Organization', name: post.frontmatter.author ?? 'Peanut' },
         publisher: { '@type': 'Organization', name: 'Peanut', url: 'https://peanut.me' },
         mainEntityOfPage: `https://peanut.me/${locale}/blog/${slug}`,
