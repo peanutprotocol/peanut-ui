@@ -169,7 +169,7 @@ export default function Home() {
                 <div className="flex items-center justify-between gap-2">
                     <UserHeader username={username!} fullName={userFullName} isVerified={isUserKycApproved} />
                     {isActivated && (
-                        <Link onClick={() => triggerHaptic()} href="/points" className="flex items-center gap-0">
+                        <Link onClick={() => triggerHaptic()} href="/rewards" className="flex items-center gap-0">
                             <InvitesIcon />
                             <span className="whitespace-nowrap pl-1 text-sm font-semibold md:text-base">Rewards</span>
                             <NavigationArrow size={16} className="fill-black" />

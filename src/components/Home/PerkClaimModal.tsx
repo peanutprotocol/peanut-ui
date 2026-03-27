@@ -254,7 +254,7 @@ function SuccessModal({ perk, claimPhase, onClose, onDismiss }: SuccessModalProp
                                             className="cursor-pointer text-center text-sm text-grey-1 underline"
                                             onClick={() => {
                                                 onDismiss()
-                                                router.push('/points')
+                                                router.push('/rewards')
                                             }}
                                         >
                                             Invite friends to earn more
