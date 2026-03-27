@@ -807,7 +807,7 @@ export default function QRPayPage() {
             // If claim fails, show error but keep user in success state
             // (they already saw confetti, better UX than reverting)
             captureException(error)
-            setErrorMessage('Perk claim is being processed. If you do not see it in your history, contact support.')
+            setErrorMessage('Reward is being processed. If you do not see it in your history, contact support.')
         } finally {
             setIsClaimingPerk(false)
         }
@@ -1211,7 +1211,7 @@ export default function QRPayPage() {
                 <SoundPlayer sound="success" />
                 <NavHeader title="Pay" />
                 <div className="my-auto flex h-full flex-col justify-center space-y-4">
-                    {/* Only show payment card if perk was not claimed */}
+                    {/* Only show payment card if reward was not claimed */}
                     {!perkClaimed && !qrPayment?.perk?.claimed && (
                         <Card className="flex flex-row items-center gap-3 p-4">
                             <div className="flex items-center gap-3">
@@ -1246,66 +1246,48 @@ export default function QRPayPage() {
                         </Card>
                     )}
 
-                    {/* Perk Eligibility Card - Show before claiming */}
+                    {/* Reward Eligibility Card - Show before claiming */}
                     {qrPayment?.perk?.eligible && !perkClaimed && !qrPayment.perk.claimed && (
                         <Card ref={pointsDivRef} className="flex items-start gap-3 bg-white p-4">
                             <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-yellow-400">
                                 <Image src={STAR_STRAIGHT_ICON} alt="star" width={24} height={24} />
                             </div>
                             <div className="flex flex-col gap-2">
-                                <h2 className="text-lg font-bold">Eligible for a Peanut Perk!</h2>
+                                <h2 className="text-lg font-bold">You earned a reward!</h2>
                                 <p className="text-sm text-gray-600">
                                     {(() => {
                                         const amountSponsored = qrPayment?.perk?.amountSponsored
                                         const transactionUsd =
                                             parseFloat(qrPayment?.details?.paymentAgainstAmount || '0') || 0
 
-                                        // Always show actual dollar amount — never percentage (misleading due to dynamic caps)
-                                        // Note: perks <$0.50 are auto-claimed and skip this banner entirely
                                         if (amountSponsored && typeof amountSponsored === 'number') {
-                                            if (transactionUsd > 0 && amountSponsored >= transactionUsd) {
-                                                return `This bill can be covered by Peanut! $${amountSponsored.toFixed(2)} back. Claim it now.`
-                                            }
-                                            return `Peanut's got you! $${amountSponsored.toFixed(2)} back on this payment. Claim it now.`
+                                            return `You earned $${amountSponsored.toFixed(2)}! Hold to claim your reward.`
                                         }
 
-                                        // Fallback: no amount available yet
-                                        return 'You earned a Peanut Perk! Claim it now to unlock your reward.'
+                                        return 'You earned a reward! Hold to claim.'
                                     })()}
                                 </p>
                             </div>
                         </Card>
                     )}
 
-                    {/* Perk Success Banner - Show after claiming */}
+                    {/* Reward Success Banner - Show after claiming */}
                     {(perkClaimed || qrPayment?.perk?.claimed) && (
                         <Card className="flex items-start gap-3 bg-white p-4">
                             <div className="flex max-w-[15%] flex-shrink-0 items-center justify-center rounded-full bg-yellow-400 p-2">
                                 <Image src={STAR_STRAIGHT_ICON} alt="star" width={28} height={28} />
                             </div>
                             <div className="flex flex-col gap-2">
-                                <h2 className="text-2xl font-bold">Peanut got you!</h2>
+                                <h2 className="text-2xl font-bold">You earned a reward!</h2>
                                 <p className="text-base text-gray-900">
                                     {(() => {
                                         const amountSponsored = qrPayment?.perk?.amountSponsored
-                                        const transactionUsd =
-                                            parseFloat(qrPayment?.details?.paymentAgainstAmount || '0') || 0
 
-                                        // Tone scales with amount: small = growth nudge, large = celebratory
                                         if (amountSponsored && typeof amountSponsored === 'number') {
-                                            if (transactionUsd > 0 && amountSponsored >= transactionUsd) {
-                                                return 'We paid for this bill! Invite friends to earn even more rewards.'
-                                            }
-                                            if (amountSponsored < 0.5) {
-                                                return `You earned a $${amountSponsored.toFixed(2)} reward. The more friends you invite, the more you earn!`
-                                            }
-                                            if (amountSponsored >= 5) {
-                                                return `You earned a $${amountSponsored.toFixed(2)} reward! Your referrals are paying off.`
-                                            }
-                                            return `You earned a $${amountSponsored.toFixed(2)} reward! Invite friends to earn even more.`
+                                            return `You earned $${amountSponsored.toFixed(2)}! Invite friends to earn even more.`
                                         }
 
-                                        return 'You earned a reward! Invite friends to earn even more.'
+                                        return 'Invite friends to earn even more rewards.'
                                     })()}
                                 </p>
                             </div>
@@ -1318,7 +1300,7 @@ export default function QRPayPage() {
                     )}
 
                     <div className="w-full space-y-5">
-                        {/* Show Claim Perk button if eligible and not claimed yet */}
+                        {/* Show Claim Reward button if eligible and not claimed yet */}
                         {qrPayment?.perk?.eligible && !perkClaimed && !qrPayment.perk.claimed ? (
                             <Button
                                 onPointerDown={startHold}
@@ -1358,7 +1340,7 @@ export default function QRPayPage() {
                                     }}
                                 />
                                 {(() => {
-                                    const label = 'Claim Peanut Perk Now!'
+                                    const label = 'Claim Reward'
                                     return (
                                         <>
                                             <span className="relative z-10">{label}</span>
