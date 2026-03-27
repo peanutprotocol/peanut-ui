@@ -1,112 +1,108 @@
 import Link from 'next/link'
+import manifest from '@/content/generated/footer-manifest.json'
 
-// Curated "seed list" for Google crawl discovery. Renders below the main footer
-// on non-marketing pages (homepage, /exchange, /lp, etc.). Marketing pages don't
-// need this — they already have RelatedPages + CountryGrid linking to sibling content.
-//
-// Data is inlined (not imported from @/data/seo) because Footer.tsx is bundled
-// by webpack for client-routed pages (e.g. /exchange) — importing fs-dependent
-// modules would break the build.
-//
-// IMPORTANT: Only list slugs that have published content in peanut-content.
-// The validate-links CI in peanut-content catches broken internal links, but
-// this file lives in peanut-ui — verify manually when editing.
+// SEO footer driven by the content manifest (peanut-content/generated/footer-manifest.json).
+// Data is imported as a JSON module — works in both client and server components
+// without fs. The manifest is bundled at build time by webpack.
 
-const TOP_COUNTRIES: Array<{ slug: string; name: string }> = [
-    { slug: 'argentina', name: 'Argentina' },
-    { slug: 'brazil', name: 'Brazil' },
-    { slug: 'mexico', name: 'Mexico' },
-    { slug: 'colombia', name: 'Colombia' },
-    { slug: 'philippines', name: 'Philippines' },
-    { slug: 'nigeria', name: 'Nigeria' },
-    { slug: 'india', name: 'India' },
-    { slug: 'chile', name: 'Chile' },
-]
+interface ManifestEntry {
+    slug: string
+    name: string
+    href: string
+    external?: boolean
+}
 
-const COMPETITORS: Array<{ slug: string; name: string }> = [
-    { slug: 'wise', name: 'Wise' },
-    { slug: 'western-union', name: 'Western Union' },
-    { slug: 'paypal', name: 'PayPal' },
-    { slug: 'revolut', name: 'Revolut' },
-    { slug: 'binance-p2p', name: 'Binance P2P' },
-]
-
-const EXCHANGES: Array<{ slug: string; name: string }> = [
-    { slug: 'binance', name: 'Binance' },
-    { slug: 'coinbase', name: 'Coinbase' },
-    { slug: 'bybit', name: 'Bybit' },
-    { slug: 'kraken', name: 'Kraken' },
-]
+function FooterLink({ href, external, children }: { href: string; external?: boolean; children: React.ReactNode }) {
+    if (external) {
+        return (
+            <li>
+                <a
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-white underline hover:text-white/70"
+                >
+                    {children}
+                </a>
+            </li>
+        )
+    }
+    return (
+        <li>
+            <Link href={href} className="text-xs text-white underline hover:text-white/70">
+                {children}
+            </Link>
+        </li>
+    )
+}
 
 export function SEOFooter() {
+    const sendTo = (manifest.sendMoney?.to ?? []) as ManifestEntry[]
+    const sendFrom = (manifest.sendMoney?.from ?? []) as ManifestEntry[]
+    const compare = (manifest.compare ?? []) as ManifestEntry[]
+    const articles = ((manifest as Record<string, unknown>).articles ?? []) as ManifestEntry[]
+    const resources = (manifest.resources ?? []) as ManifestEntry[]
+    const hasSendMoney = sendTo.length > 0 || sendFrom.length > 0
+
     return (
         <nav aria-label="Site directory" className="bg-black px-8 py-8 md:px-20">
             <div className="flex flex-wrap justify-between gap-y-8">
-                <div>
-                    <h3 className="mb-3 text-xs font-bold text-white">Send Money</h3>
-                    <ul className="space-y-1">
-                        {TOP_COUNTRIES.map(({ slug, name }) => (
-                            <li key={slug}>
-                                <Link
-                                    href={`/en/send-money-to/${slug}`}
-                                    className="text-xs text-white underline hover:text-white/70"
-                                >
-                                    Send to {name}
-                                </Link>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
+                {hasSendMoney && (
+                    <div>
+                        <h3 className="mb-3 text-xs font-bold text-white">Send Money</h3>
+                        <ul className="space-y-1">
+                            {sendTo.map((entry) => (
+                                <FooterLink key={`to-${entry.slug}`} href={entry.href}>
+                                    Send to {entry.name}
+                                </FooterLink>
+                            ))}
+                            {sendFrom.map((entry) => (
+                                <FooterLink key={`from-${entry.slug}`} href={entry.href}>
+                                    Send from {entry.name}
+                                </FooterLink>
+                            ))}
+                        </ul>
+                    </div>
+                )}
 
-                <div>
-                    <h3 className="mb-3 text-xs font-bold text-white">Countries</h3>
-                    <ul className="space-y-1">
-                        {TOP_COUNTRIES.map(({ slug, name }) => (
-                            <li key={slug}>
-                                <Link href={`/en/${slug}`} className="text-xs text-white underline hover:text-white/70">
-                                    Peanut in {name}
-                                </Link>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
+                {compare.length > 0 && (
+                    <div>
+                        <h3 className="mb-3 text-xs font-bold text-white">Compare</h3>
+                        <ul className="space-y-1">
+                            {compare.map((entry) => (
+                                <FooterLink key={entry.slug} href={entry.href}>
+                                    Peanut vs {entry.name}
+                                </FooterLink>
+                            ))}
+                        </ul>
+                    </div>
+                )}
 
-                <div>
-                    <h3 className="mb-3 text-xs font-bold text-white">Compare</h3>
-                    <ul className="space-y-1">
-                        {COMPETITORS.map(({ slug, name }) => (
-                            <li key={slug}>
-                                <Link
-                                    href={`/en/compare/peanut-vs-${slug}`}
-                                    className="text-xs text-white underline hover:text-white/70"
-                                >
-                                    Peanut vs {name}
-                                </Link>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
+                {articles.length > 0 && (
+                    <div>
+                        <h3 className="mb-3 text-xs font-bold text-white">Learn More</h3>
+                        <ul className="space-y-1">
+                            {articles.map((entry) => (
+                                <FooterLink key={entry.slug} href={entry.href}>
+                                    {entry.name}
+                                </FooterLink>
+                            ))}
+                        </ul>
+                    </div>
+                )}
 
-                <div>
-                    <h3 className="mb-3 text-xs font-bold text-white">Resources</h3>
-                    <ul className="space-y-1">
-                        <li>
-                            <Link href="/en/help" className="text-xs text-white underline hover:text-white/70">
-                                Help Center
-                            </Link>
-                        </li>
-                        {EXCHANGES.map(({ slug, name }) => (
-                            <li key={slug}>
-                                <Link
-                                    href={`/en/deposit/from-${slug}`}
-                                    className="text-xs text-white underline hover:text-white/70"
-                                >
-                                    Deposit from {name}
-                                </Link>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
+                {resources.length > 0 && (
+                    <div>
+                        <h3 className="mb-3 text-xs font-bold text-white">Resources</h3>
+                        <ul className="space-y-1">
+                            {resources.map((entry) => (
+                                <FooterLink key={entry.slug} href={entry.href} external={entry.external}>
+                                    {entry.name}
+                                </FooterLink>
+                            ))}
+                        </ul>
+                    </div>
+                )}
             </div>
         </nav>
     )
