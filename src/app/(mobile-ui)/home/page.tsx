@@ -204,9 +204,11 @@ export default function Home() {
 
                 <div className="space-y-2">
                     {isActivated ? <HomeCarouselCTA /> : <ActivationCTAs activationStep={activationStep} />}
-                    {isActivated && (
-                        <HomeHistory username={username ?? undefined} hideTxnAmount={isBalanceHidden} />
-                    )}
+                    <HomeHistory
+                        username={username ?? undefined}
+                        hideTxnAmount={isBalanceHidden}
+                        hideEmptyState={!isActivated}
+                    />
                 </div>
 
                 {showPermissionModal && !showBalanceWarningModal && (
