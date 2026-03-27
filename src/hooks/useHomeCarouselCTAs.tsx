@@ -110,7 +110,7 @@ export const useHomeCarouselCTAs = () => {
                 logo: STAR_STRAIGHT_ICON,
                 logoSize: 30,
                 onClick: () => {
-                    router.push('/points')
+                    router.push('/rewards')
                 },
             })
         }
@@ -187,7 +187,7 @@ export const useHomeCarouselCTAs = () => {
                 iconContainerClassName: 'bg-secondary-1',
                 icon: 'gift',
                 onClick: () => {
-                    router.push('/points')
+                    router.push('/rewards')
                 },
                 iconSize: 16,
             })
