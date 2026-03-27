@@ -134,34 +134,47 @@ export const useZeroDev = () => {
     // dual passkey providers (Google Credential Manager + Samsung Pass). Conditional mediation
     // surfaces passkeys from ALL providers in the autofill UI, bypassing provider priority issues.
     // See: https://web.dev/articles/passkey-form-autofill
+    const _attemptLogin = async () => {
+        const passkeyServerHeaders: Record<string, string> = {}
+
+        if (user?.user?.username) {
+            passkeyServerHeaders['x-username'] = user.user.username
+        }
+
+        const webAuthnKey = await toWebAuthnKey({
+            passkeyName: '[]',
+            passkeyServerUrl: consts.PASSKEY_SERVER_URL as string,
+            mode: WebAuthnMode.Login,
+            passkeyServerHeaders,
+            rpID: window.location.hostname.replace(/^www\./, ''),
+        })
+
+        setWebAuthnKey(webAuthnKey)
+        saveToCookie(WEB_AUTHN_COOKIE_KEY, webAuthnKey, 90)
+    }
+
     const handleLogin = async () => {
         dispatch(zerodevActions.setIsLoggingIn(true))
         try {
-            const passkeyServerHeaders: Record<string, string> = {}
-
-            if (user?.user?.username) {
-                passkeyServerHeaders['x-username'] = user.user.username
-            }
-
-            const webAuthnKey = await toWebAuthnKey({
-                passkeyName: '[]',
-                passkeyServerUrl: consts.PASSKEY_SERVER_URL as string,
-                mode: WebAuthnMode.Login,
-                passkeyServerHeaders,
-                rpID: window.location.hostname.replace(/^www\./, ''),
-            })
-
-            setWebAuthnKey(webAuthnKey)
-            saveToCookie(WEB_AUTHN_COOKIE_KEY, webAuthnKey, 90)
+            await _attemptLogin()
         } catch (e) {
             const error = e as Error
             if (error.name === 'NotAllowedError') {
-                // User cancelled - no state was saved, just let them retry
-                dispatch(zerodevActions.setIsLoggingIn(false))
-                throw new PasskeyError(
-                    'Login was canceled or no passkey found. Please try again or register.',
-                    'LOGIN_CANCELED'
-                )
+                // On devices with multiple passkey providers (e.g. Samsung with Google + Samsung Pass),
+                // the first provider may intercept and report "no passkeys" while the actual passkey
+                // lives in the other provider. Auto-retry once to give the second provider a chance.
+                console.warn('[useZeroDev] Login NotAllowedError, retrying once for multi-provider devices')
+                try {
+                    await _attemptLogin()
+                    return // retry succeeded
+                } catch (retryError) {
+                    // retry also failed — throw user-facing error
+                    dispatch(zerodevActions.setIsLoggingIn(false))
+                    throw new PasskeyError(
+                        'Login was canceled or no passkey found. Please try again or register.',
+                        'LOGIN_CANCELED'
+                    )
+                }
             }
 
             // Other login errors - clear any stale state
