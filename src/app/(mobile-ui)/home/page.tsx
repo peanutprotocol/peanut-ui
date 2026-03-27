@@ -12,11 +12,9 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { useUserStore } from '@/redux/hooks'
 import { formatExtendedNumber, getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { printableUsdc } from '@/utils/balance.utils'
-import { useDisconnect } from '@reown/appkit/react'
 import Link from 'next/link'
 import { useEffect, useMemo, useState, useCallback, lazy, Suspense } from 'react'
 import { twMerge } from 'tailwind-merge'
-import { useAccount } from 'wagmi'
 // import ReferralCampaignModal from '@/components/Home/ReferralCampaignModal'
 // import FloatingReferralButton from '@/components/Home/FloatingReferralButton'
 import { formatUnits } from 'viem'
@@ -61,8 +59,6 @@ export default function Home() {
         const prefs = user ? getUserPreferences(user.user.userId) : undefined
         return prefs?.balanceHidden ?? false
     })
-    const { isConnected: isWagmiConnected } = useAccount()
-    const { disconnect: disconnectWagmi } = useDisconnect()
     const { triggerHaptic } = useHaptic()
 
     const { isFetchingUser, fetchUser } = useAuth()
@@ -119,13 +115,6 @@ export default function Home() {
         resetClaimBankFlow()
         resetWithdrawFlow()
     }, [resetClaimBankFlow, resetWithdrawFlow])
-
-    // always reset external wallet connection on home page
-    useEffect(() => {
-        if (isWagmiConnected) {
-            disconnectWagmi()
-        }
-    }, [isWagmiConnected, disconnectWagmi])
 
     // effect for showing balance warning modal
     // modal priority order: notifications -> kyc -> post signup -> ios pwa -> balance warning
