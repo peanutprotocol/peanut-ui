@@ -308,7 +308,7 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
     const isMultiLevel = regionIntent === 'LATAM'
 
     // Derive preparing stage from elapsed time for progressive copy
-    const preparingStage = useMemo(() => {
+    const preparingStage = useMemo<'initial' | 'configuring' | 'slow'>(() => {
         if (preparingElapsed < 3) return 'initial'
         if (preparingElapsed < 8) return 'configuring'
         return 'slow'
