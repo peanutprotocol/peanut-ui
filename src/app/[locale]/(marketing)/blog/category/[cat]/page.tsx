@@ -51,11 +51,12 @@ export default async function BlogCategoryPageLocalized({ params }: PageProps) {
     const i18n = getTranslations(typedLocale)
 
     let posts = getPostsByCategory(cat, typedLocale)
+    const resolvedLocale: Locale = posts.length > 0 ? typedLocale : 'en'
     if (posts.length === 0) posts = getPostsByCategory(cat, 'en')
     if (posts.length === 0) notFound()
 
     const label = cat.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
-    const categories = getAllCategories(typedLocale).length > 0 ? getAllCategories(typedLocale) : getAllCategories('en')
+    const categories = getAllCategories(resolvedLocale)
 
     return (
         <>

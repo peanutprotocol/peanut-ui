@@ -54,7 +54,11 @@ export function getAllPosts(locale: Locale = 'en'): BlogPost[] {
             const { data, content } = matter(raw)
             return {
                 slug,
-                frontmatter: data as BlogPost['frontmatter'],
+                frontmatter: {
+                    ...data,
+                    // gray-matter parses YAML dates as Date objects, but we need strings for React rendering
+                    date: data.date instanceof Date ? data.date.toISOString().split('T')[0] : String(data.date ?? ''),
+                } as BlogPost['frontmatter'],
                 content,
             }
         })
@@ -96,7 +100,12 @@ export async function getPostBySlug(
 
     const html = (await marked(content, { renderer })) as string
 
-    return { frontmatter: data as BlogPost['frontmatter'], html }
+    const frontmatter = {
+        ...data,
+        date: data.date instanceof Date ? data.date.toISOString().split('T')[0] : String(data.date ?? ''),
+    } as BlogPost['frontmatter']
+
+    return { frontmatter, html }
 }
 
 export function getPostsByCategory(category: string, locale: Locale = 'en'): BlogPost[] {
