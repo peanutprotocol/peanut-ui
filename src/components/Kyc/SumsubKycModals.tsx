@@ -38,6 +38,7 @@ export const SumsubKycModals = ({ flow, autoStartSdk }: SumsubKycModalsProps) =>
                 tosError={flow.tosError}
                 isLoadingTos={flow.isLoadingTos}
                 preparingTimedOut={flow.preparingTimedOut}
+                preparingStage={flow.preparingStage}
             />
 
             {flow.tosLink && (

@@ -14,6 +14,7 @@ interface KycVerificationInProgressModalProps {
     tosError?: string | null
     isLoadingTos?: boolean
     preparingTimedOut?: boolean
+    preparingStage?: 'initial' | 'configuring' | 'slow'
 }
 
 // multi-phase modal shown during and after kyc verification.
@@ -28,6 +29,7 @@ export const KycVerificationInProgressModal = ({
     tosError,
     isLoadingTos,
     preparingTimedOut,
+    preparingStage = 'initial',
 }: KycVerificationInProgressModalProps) => {
     const router = useRouter()
 
@@ -67,18 +69,48 @@ export const KycVerificationInProgressModal = ({
     }
 
     if (phase === 'preparing') {
+        // Progressive copy based on elapsed time in preparing phase
+        const getPreparingCopy = () => {
+            if (preparingTimedOut) {
+                return {
+                    title: 'Taking longer than expected',
+                    description: "You can continue and we'll notify you when it's ready.",
+                }
+            }
+            switch (preparingStage) {
+                case 'initial':
+                    return {
+                        title: 'Setting up your account',
+                        description: 'Preparing your payment methods...',
+                    }
+                case 'configuring':
+                    return {
+                        title: 'Setting up your account',
+                        description: 'Configuring your regions...',
+                    }
+                case 'slow':
+                    return {
+                        title: 'Almost there',
+                        description: 'This is taking a bit longer than usual. Hang tight.',
+                    }
+                default:
+                    return {
+                        title: 'Setting up your account',
+                        description: 'Preparing your payment methods...',
+                    }
+            }
+        }
+
+        const { title, description } = getPreparingCopy()
+
         return (
             <ActionModal
                 visible={isOpen}
                 onClose={onClose}
                 isLoadingIcon
                 iconContainerClassName="bg-yellow-1 text-black"
-                title="Verification in progress"
-                description={
-                    preparingTimedOut
-                        ? "This is taking longer than expected. You can continue and we'll notify you when it's ready."
-                        : 'Submitting your information and preparing your account. This usually takes less than a minute.'
-                }
+                title={title}
+                description={description}
                 ctas={
                     preparingTimedOut
                         ? [
