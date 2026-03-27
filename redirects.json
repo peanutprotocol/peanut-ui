@@ -56,6 +56,91 @@
         "permanent": true
     },
     {
+        "source": "/stories",
+        "destination": "/en/stories",
+        "permanent": false
+    },
+    {
+        "source": "/stories/:path*",
+        "destination": "/en/stories/:path*",
+        "permanent": false
+    },
+    {
+        "source": "/blog",
+        "destination": "/en/blog",
+        "permanent": false
+    },
+    {
+        "source": "/blog/:path*",
+        "destination": "/en/blog/:path*",
+        "permanent": false
+    },
+    {
+        "source": "/compare",
+        "destination": "/en/compare",
+        "permanent": false
+    },
+    {
+        "source": "/compare/:path*",
+        "destination": "/en/compare/:path*",
+        "permanent": false
+    },
+    {
+        "source": "/team",
+        "destination": "/en/team",
+        "permanent": false
+    },
+    {
+        "source": "/pay-with",
+        "destination": "/en/pay-with",
+        "permanent": false
+    },
+    {
+        "source": "/pay-with/:path*",
+        "destination": "/en/pay-with/:path*",
+        "permanent": false
+    },
+    {
+        "source": "/deposit",
+        "destination": "/en/deposit",
+        "permanent": false
+    },
+    {
+        "source": "/deposit/:path*",
+        "destination": "/en/deposit/:path*",
+        "permanent": false
+    },
+    {
+        "source": "/send-money-to",
+        "destination": "/en/send-money-to",
+        "permanent": false
+    },
+    {
+        "source": "/send-money-to/:path*",
+        "destination": "/en/send-money-to/:path*",
+        "permanent": false
+    },
+    {
+        "source": "/send-money-from",
+        "destination": "/en/send-money-from",
+        "permanent": false
+    },
+    {
+        "source": "/send-money-from/:path*",
+        "destination": "/en/send-money-from/:path*",
+        "permanent": false
+    },
+    {
+        "source": "/receive-money-from",
+        "destination": "/en/receive-money-from",
+        "permanent": false
+    },
+    {
+        "source": "/receive-money-from/:path*",
+        "destination": "/en/receive-money-from/:path*",
+        "permanent": false
+    },
+    {
         "source": "/packet",
         "destination": "https://github.com/peanutprotocol/peanut-ui/tree/archive/legacy-peanut-to",
         "permanent": true
