@@ -19,9 +19,7 @@ import { useBridgeTosStatus } from './useBridgeTosStatus'
  *   <BridgeTosStep {...tosProps} onComplete={() => { tosProps.onComplete(); handleSubmit() }} />
  */
 export function useBridgeTosGuard() {
-    const { needsBridgeTos: needsBridgeTos } = useBridgeTosStatus()
-    // TODO(rewards-v2): REVERT TO `_needsBridgeTos` before merging — this forces TOS prompt for testing
-    // const needsBridgeTos = true // eslint-disable-line @typescript-eslint/no-unused-vars
+    const { needsBridgeTos } = useBridgeTosStatus()
     const [showBridgeTos, setShowBridgeTos] = useState(false)
 
     /** returns true if TOS is needed (and shows the modal). caller should return early. */

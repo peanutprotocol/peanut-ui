@@ -24,11 +24,11 @@ const SURPRISE_CLAIM_COUNT_KEY = 'rewards_surprise_claim_count'
 // Approved copy — see notion: notifs-copy-33083811757980638a27effc79a033f3
 const SURPRISE_COPY = {
     first: {
-        title: 'You just earned $0.35!',
+        title: (amount: number) => `You just earned $${amount}!`,
         description: 'Check out your rewards now and earn more.',
     },
     subsequent: {
-        title: 'You just earned $0.65!',
+        title: (amount: number) => `You just earned $${amount}!`,
         description: 'Check out your rewards and how to earn more.',
     },
 } as const
@@ -208,7 +208,7 @@ function SuccessModal({ perk, claimPhase, onClose, onDismiss }: SuccessModalProp
                         {isSurpriseMoment ? (
                             <>
                                 <p className="mt-2 text-center text-base font-semibold text-n-1">
-                                    {surpriseCopy.title}
+                                    {surpriseCopy.title(perk.amountUsd)}
                                 </p>
                                 <p className="mt-1 text-center text-sm text-grey-1">{surpriseCopy.description}</p>
                             </>

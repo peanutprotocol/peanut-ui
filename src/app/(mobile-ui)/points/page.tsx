@@ -116,7 +116,6 @@ const PointsPage = () => {
             <section className="mx-auto mb-auto mt-10 w-full space-y-4">
                 {/* rewards hero — $ amount is primary, points de-emphasized */}
                 <Card className="flex flex-col gap-4 p-6">
-                    {/* primary: lifetime rewards in USD (only show if BE has rewards data) */}
                     {cashStatus?.success && cashStatus.data && (
                         <div className="flex flex-col items-center gap-3">
                             {cashStatus.data.rewards ? (
@@ -143,7 +142,6 @@ const PointsPage = () => {
                         </div>
                     )}
 
-                    {/* invite CTA */}
                     <div className="flex flex-col items-center gap-2">
                         <p className="text-sm text-grey-1">Invite friends to earn more rewards</p>
                         <Button
@@ -156,10 +154,8 @@ const PointsPage = () => {
                         </Button>
                     </div>
 
-                    {/* separator */}
                     <div className="border-t border-grey-2" />
 
-                    {/* secondary: points + tier (de-emphasized) */}
                     <div className="flex flex-col gap-2">
                         <div className="flex items-center justify-center gap-2">
                             <Image src={STAR_STRAIGHT_ICON} alt="star" width={16} height={16} />
