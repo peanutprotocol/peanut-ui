@@ -2,7 +2,7 @@
 
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useState, useCallback, useMemo, useEffect, useContext, useRef } from 'react'
-import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/KycVerificationInProgressModal'
+import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
 import Card from '@/components/Global/Card'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
@@ -633,7 +633,11 @@ export default function QRPayPage() {
         if (finalPaymentLock.code === '') {
             setLoadingState('Fetching details')
             try {
-                finalPaymentLock = await mantecaApi.initiateQrPayment({ qrCode, amount: currencyAmount })
+                finalPaymentLock = await mantecaApi.initiateQrPayment({
+                    qrCode,
+                    amount: currencyAmount,
+                    qrType: qrType ?? undefined,
+                })
                 setPaymentLock(finalPaymentLock)
             } catch (error) {
                 captureException(error)
@@ -700,7 +704,24 @@ export default function QRPayPage() {
                 clearTimeout(payingStateTimerRef.current)
                 payingStateTimerRef.current = null
             }
+            // Map backend field name (sponsoredUsd) to frontend field name (amountSponsored)
+            const perkResponse = qrPayment.perk as Record<string, unknown> | undefined
+            if (qrPayment.perk && typeof perkResponse?.sponsoredUsd === 'number') {
+                qrPayment.perk.amountSponsored = perkResponse.sponsoredUsd
+            }
+
             setQrPayment(qrPayment)
+
+            // Auto-claim small perks (<$0.50) — skip the hold-to-claim ceremony.
+            // The backend already claimed the perk at payment time, so this is just a UI shortcut.
+            if (
+                qrPayment.perk?.eligible &&
+                typeof qrPayment.perk.amountSponsored === 'number' &&
+                qrPayment.perk.amountSponsored < 0.5
+            ) {
+                setPerkClaimed(true)
+            }
+
             setIsSuccess(true)
         } catch (error) {
             // clear the timer on error to prevent race condition
@@ -984,6 +1005,24 @@ export default function QRPayPage() {
 
     const isLoadingKycState = kycGateState === QrKycState.LOADING
 
+    // get user-facing payment method name for maintenance screen
+    // NOTE: must be above early returns to comply with React's Rules of Hooks
+    const paymentMethodName = useMemo(() => {
+        if (paymentProcessor === 'MANTECA') {
+            switch (qrType) {
+                case EQrType.PIX:
+                    return 'PIX'
+                case EQrType.MERCADO_PAGO:
+                    return 'Mercado Pago'
+                case EQrType.ARGENTINA_QR3:
+                    return 'QR'
+                default:
+                    return 'QR'
+            }
+        }
+        return 'SimpleFi'
+    }, [paymentProcessor, qrType])
+
     // only show KYC modals after KYC state has loaded
     // explicitly check for KYC states that require blocking (not PROCEED_TO_PAY)
     // important: this check must come BEFORE errorInitiatingPayment check
@@ -1059,23 +1098,6 @@ export default function QRPayPage() {
 
     // Show maintenance error if provider is disabled
     if (isProviderDisabled) {
-        // Get user-facing payment method name
-        const paymentMethodName = useMemo(() => {
-            if (paymentProcessor === 'MANTECA') {
-                switch (qrType) {
-                    case EQrType.PIX:
-                        return 'PIX'
-                    case EQrType.MERCADO_PAGO:
-                        return 'Mercado Pago'
-                    case EQrType.ARGENTINA_QR3:
-                        return 'QR'
-                    default:
-                        return 'QR'
-                }
-            }
-            return 'SimpleFi'
-        }, [])
-
         return (
             <div className="my-auto flex h-full w-full flex-col justify-center space-y-4">
                 <Card className="flex w-full flex-col items-center gap-2 p-4">
@@ -1234,31 +1256,21 @@ export default function QRPayPage() {
                                 <h2 className="text-lg font-bold">Eligible for a Peanut Perk!</h2>
                                 <p className="text-sm text-gray-600">
                                     {(() => {
-                                        const percentage = qrPayment?.perk?.discountPercentage || 100
                                         const amountSponsored = qrPayment?.perk?.amountSponsored
                                         const transactionUsd =
                                             parseFloat(qrPayment?.details?.paymentAgainstAmount || '0') || 0
 
-                                        // Check if percentage matches the actual math (within 1% tolerance)
-                                        let percentageMatches = false
-                                        if (amountSponsored && transactionUsd > 0) {
-                                            const actualPercentage = (amountSponsored / transactionUsd) * 100
-                                            percentageMatches = Math.abs(actualPercentage - percentage) < 1
-                                        }
-
-                                        if (percentageMatches) {
-                                            if (percentage === 100) {
-                                                return 'This bill can be covered by Peanut. Claim it now to unlock your reward.'
-                                            } else if (percentage > 100) {
-                                                return `You're getting ${percentage}% back — that's more than you paid! Claim it now.`
-                                            } else {
-                                                return `You're getting ${percentage}% cashback! Claim it now to unlock your reward.`
+                                        // Always show actual dollar amount — never percentage (misleading due to dynamic caps)
+                                        // Note: perks <$0.50 are auto-claimed and skip this banner entirely
+                                        if (amountSponsored && typeof amountSponsored === 'number') {
+                                            if (transactionUsd > 0 && amountSponsored >= transactionUsd) {
+                                                return `This bill can be covered by Peanut! $${amountSponsored.toFixed(2)} back. Claim it now.`
                                             }
+                                            return `Peanut's got you! $${amountSponsored.toFixed(2)} back on this payment. Claim it now.`
                                         }
 
-                                        return amountSponsored && typeof amountSponsored === 'number'
-                                            ? `Get $${amountSponsored.toFixed(2)} back!`
-                                            : 'Claim it now to unlock your reward.'
+                                        // Fallback: no amount available yet
+                                        return 'You earned a Peanut Perk! Claim it now to unlock your reward.'
                                     })()}
                                 </p>
                             </div>
@@ -1267,9 +1279,9 @@ export default function QRPayPage() {
 
                     {/* Perk Success Banner - Show after claiming */}
                     {(perkClaimed || qrPayment?.perk?.claimed) && (
-                        <Card className="flex items-start gap-4 bg-white p-6">
-                            <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full bg-yellow-400">
-                                <Image src={STAR_STRAIGHT_ICON} alt="star" width={36} height={36} />
+                        <Card className="flex items-start gap-3 bg-white p-4">
+                            <div className="flex max-w-[15%] flex-shrink-0 items-center justify-center rounded-full bg-yellow-400 p-2">
+                                <Image src={STAR_STRAIGHT_ICON} alt="star" width={28} height={28} />
                             </div>
                             <div className="flex flex-col gap-2">
                                 <h2 className="text-2xl font-bold">Peanut got you!</h2>
@@ -1278,17 +1290,22 @@ export default function QRPayPage() {
                                         const amountSponsored = qrPayment?.perk?.amountSponsored
                                         const transactionUsd =
                                             parseFloat(qrPayment?.details?.paymentAgainstAmount || '0') || 0
-                                        const percentage =
-                                            amountSponsored && transactionUsd > 0
-                                                ? Math.round((amountSponsored / transactionUsd) * 100)
-                                                : qrPayment?.perk?.discountPercentage || 100
-                                        if (percentage === 100) {
-                                            return 'We paid for this bill! Earn points, climb tiers and unlock even better perks.'
-                                        } else if (percentage > 100) {
-                                            return `We gave you ${percentage}% back — that's more than you paid! Earn points, climb tiers and unlock even better perks.`
-                                        } else {
-                                            return `We gave you ${percentage}% cashback! Earn points, climb tiers and unlock even better perks.`
+
+                                        // Tone scales with amount: small = growth nudge, large = celebratory
+                                        if (amountSponsored && typeof amountSponsored === 'number') {
+                                            if (transactionUsd > 0 && amountSponsored >= transactionUsd) {
+                                                return 'We paid for this bill! Invite friends to earn even more rewards.'
+                                            }
+                                            if (amountSponsored < 0.5) {
+                                                return `You earned a $${amountSponsored.toFixed(2)} reward. The more friends you invite, the more you earn!`
+                                            }
+                                            if (amountSponsored >= 5) {
+                                                return `You earned a $${amountSponsored.toFixed(2)} reward! Your referrals are paying off.`
+                                            }
+                                            return `You earned a $${amountSponsored.toFixed(2)} reward! Invite friends to earn even more.`
                                         }
+
+                                        return 'You earned a reward! Invite friends to earn even more.'
                                     })()}
                                 </p>
                             </div>
@@ -1332,7 +1349,7 @@ export default function QRPayPage() {
                                     WebkitTapHighlightColor: 'transparent',
                                 }}
                             >
-                                {/* Black progress fill from left to right */}
+                                {/* progress fill from left to right */}
                                 <div
                                     className="absolute inset-0 bg-black transition-all duration-100"
                                     style={{
@@ -1340,7 +1357,20 @@ export default function QRPayPage() {
                                         left: 0,
                                     }}
                                 />
-                                <span className="relative z-10">Claim Peanut Perk Now!</span>
+                                {(() => {
+                                    const label = 'Claim Peanut Perk Now!'
+                                    return (
+                                        <>
+                                            <span className="relative z-10">{label}</span>
+                                            <span
+                                                className="absolute inset-0 z-20 flex items-center justify-center text-white transition-all duration-75"
+                                                style={{ clipPath: `inset(0 ${100 - holdProgress}% 0 0)` }}
+                                            >
+                                                {label}
+                                            </span>
+                                        </>
+                                    )
+                                })()}
                             </Button>
                         ) : (
                             <>

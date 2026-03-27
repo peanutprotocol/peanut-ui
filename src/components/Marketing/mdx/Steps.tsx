@@ -73,7 +73,7 @@ export function Steps({ title = 'How It Works', children }: StepsProps) {
     }
 
     return (
-        <section className="relative overflow-hidden bg-secondary-1 px-4 py-16 md:py-24">
+        <section className="relative mb-10 overflow-hidden bg-secondary-1 px-4 py-16 md:py-24">
             <CloudsCss clouds={stepsClouds} />
             <Stars />
             <div className="relative z-10 mx-auto max-w-3xl">

@@ -3,7 +3,7 @@
 import { type IClaimScreenProps } from '../../Claim.consts'
 import { DynamicBankAccountForm, type IBankAccountDetails } from '@/components/AddWithdraw/DynamicBankAccountForm'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
-import { useCallback, useContext, useState, useRef, useEffect } from 'react'
+import { useCallback, useContext, useState, useRef } from 'react'
 import { loadingStateContext } from '@/context'
 import { createBridgeExternalAccountForGuest } from '@/app/actions/external-accounts'
 import { confirmOfframp, createOfframp, createOfframpForGuest } from '@/app/actions/offramp'
@@ -18,21 +18,20 @@ import { type TCreateOfframpRequest, type TCreateOfframpResponse } from '@/servi
 import { getOfframpCurrencyConfig } from '@/utils/bridge.utils'
 import { getBridgeChainName, getBridgeTokenName } from '@/utils/bridge-accounts.utils'
 import peanut from '@squirrel-labs/peanut-sdk'
-import { addBankAccount, getUserById, updateUserById } from '@/app/actions/users'
+import { addBankAccount, getUserById } from '@/app/actions/users'
 import SavedAccountsView from '../../../Common/SavedAccountsView'
 import { BankClaimType, useDetermineBankClaimType } from '@/hooks/useDetermineBankClaimType'
 import useSavedAccounts from '@/hooks/useSavedAccounts'
 import { ConfirmBankClaimView } from './Confirm.bank-claim.view'
 import { CountryListRouter } from '@/components/Common/CountryListRouter'
 import NavHeader from '@/components/Global/NavHeader'
-import { useWebSocket } from '@/hooks/useWebSocket'
-import { type BridgeKycStatus } from '@/utils/bridge-accounts.utils'
 import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
 import { useAppDispatch } from '@/redux/hooks'
 import { bankFormActions } from '@/redux/slices/bank-form-slice'
 import { sendLinksApi } from '@/services/sendLinks'
-import { InitiateBridgeKYCModal } from '@/components/Kyc/InitiateBridgeKYCModal'
 import { useSearchParams } from 'next/navigation'
+import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
+import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 
 type BankAccountWithId = IBankAccountDetails &
     (
@@ -76,32 +75,27 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
     const { claimLink } = useClaimLink()
     const dispatch = useAppDispatch()
 
+    // inline sumsub kyc flow for users who need verification
+    // regionIntent is NOT passed here to avoid creating a backend record on mount.
+    // intent is passed at call time: handleInitiateKyc('STANDARD')
+    const sumsubFlow = useMultiPhaseKycFlow({
+        onKycSuccess: async () => {
+            if (justCompletedKyc) return
+            setIsKycModalOpen(false)
+            await fetchUser()
+            setJustCompletedKyc(true)
+            setClaimBankFlowStep(ClaimBankFlowStep.BankDetailsForm)
+        },
+        onManualClose: () => setIsKycModalOpen(false),
+    })
+
     // local states for this component
     const [localBankDetails, setLocalBankDetails] = useState<BankAccountWithId | null>(null)
     const [receiverFullName, setReceiverFullName] = useState<string>('')
     const [error, setError] = useState<string | null>(null)
     const formRef = useRef<{ handleSubmit: () => void }>(null)
-    const [liveKycStatus, setLiveKycStatus] = useState<BridgeKycStatus | undefined>(
-        user?.user?.bridgeKycStatus as BridgeKycStatus
-    )
     const [isProcessingKycSuccess, setIsProcessingKycSuccess] = useState(false)
     const [offrampData, setOfframpData] = useState<TCreateOfframpResponse | null>(null)
-
-    // websocket for real-time KYC status updates
-    useWebSocket({
-        username: user?.user.username ?? undefined,
-        autoConnect: !!user?.user.username,
-        onKycStatusUpdate: (newStatus) => {
-            setLiveKycStatus(newStatus as BridgeKycStatus)
-        },
-    })
-
-    // effect to update live KYC status from user object
-    useEffect(() => {
-        if (user?.user.bridgeKycStatus) {
-            setLiveKycStatus(user.user.bridgeKycStatus as BridgeKycStatus)
-        }
-    }, [user?.user.bridgeKycStatus])
 
     /**
      * @name handleConfirmClaim
@@ -241,23 +235,9 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
         setError(null)
 
         // scenario 1: receiver needs KYC
+        // name and email are now collected by sumsub sdk — no need to save them beforehand
         if (bankClaimType === BankClaimType.ReceiverKycNeeded && !justCompletedKyc) {
-            // update user's name and email if they are not present
-            const hasNameOnLoad = !!user?.user.fullName
-            const hasEmailOnLoad = !!user?.user.email
-            if (!hasNameOnLoad || !hasEmailOnLoad) {
-                if (user?.user.userId && rawData.firstName && rawData.lastName && rawData.email) {
-                    const result = await updateUserById({
-                        userId: user.user.userId,
-                        fullName: `${rawData.firstName} ${rawData.lastName}`.trim(),
-                        email: rawData.email,
-                    })
-                    if (result.error) return { error: result.error }
-                    await fetchUser()
-                }
-            }
-
-            setIsKycModalOpen(true)
+            await sumsubFlow.handleInitiateKyc('STANDARD')
             return {}
         }
 
@@ -391,19 +371,6 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
         return {}
     }
 
-    /**
-     * @name handleKycSuccess
-     * @description callback for when the KYC process is successfully completed.
-     */
-    const handleKycSuccess = useCallback(async () => {
-        if (justCompletedKyc) return
-
-        setIsKycModalOpen(false)
-        await fetchUser()
-        setJustCompletedKyc(true)
-        setClaimBankFlowStep(ClaimBankFlowStep.BankDetailsForm)
-    }, [fetchUser, setClaimBankFlowStep, setIsKycModalOpen, setJustCompletedKyc, justCompletedKyc])
-
     // main render logic based on the current flow step
     switch (claimBankFlowStep) {
         case ClaimBankFlowStep.SavedAccountsList:
@@ -492,11 +459,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                         initialData={{}}
                         error={error}
                     />
-                    <InitiateBridgeKYCModal
-                        isOpen={isKycModalOpen}
-                        onClose={() => setIsKycModalOpen(false)}
-                        onKycSuccess={handleKycSuccess}
-                    />
+                    <SumsubKycModals flow={sumsubFlow} />
                 </div>
             )
         case ClaimBankFlowStep.BankConfirmClaim:

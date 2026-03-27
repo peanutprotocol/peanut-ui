@@ -6,7 +6,7 @@ import InfoCard from '@/components/Global/InfoCard'
 import { useAuth } from '@/context/authContext'
 import { MantecaKycStatus } from '@/interfaces'
 import { countryData, MantecaSupportedExchanges, type CountryData } from '@/components/AddMoney/consts'
-import useKycStatus from '@/hooks/useKycStatus'
+import useUnifiedKycStatus from '@/hooks/useUnifiedKycStatus'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
@@ -15,6 +15,9 @@ const KycCompletedModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =
     const { user } = useAuth()
     const [approvedCountryData, setApprovedCountryData] = useState<CountryData | null>(null)
 
+    const { isBridgeApproved, isMantecaApproved, isSumsubApproved, sumsubVerificationRegionIntent } =
+        useUnifiedKycStatus()
+
     const hasTrackedShow = useRef(false)
     useEffect(() => {
         if (isOpen && !hasTrackedShow.current) {
@@ -22,23 +25,18 @@ const KycCompletedModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =
             posthog.capture(ANALYTICS_EVENTS.MODAL_SHOWN, { modal_type: MODAL_TYPES.KYC_COMPLETED })
         }
     }, [isOpen])
-
-    const { isUserBridgeKycApproved, isUserMantecaKycApproved } = useKycStatus()
     const { getVerificationUnlockItems } = useIdentityVerification()
 
     const kycApprovalType = useMemo(() => {
-        if (isUserBridgeKycApproved && isUserMantecaKycApproved) {
-            return 'all'
-        }
-
-        if (isUserBridgeKycApproved) {
+        if (isSumsubApproved) {
+            if (sumsubVerificationRegionIntent === 'LATAM') return 'manteca'
             return 'bridge'
         }
-        if (isUserMantecaKycApproved) {
-            return 'manteca'
-        }
+        if (isBridgeApproved && isMantecaApproved) return 'all'
+        if (isBridgeApproved) return 'bridge'
+        if (isMantecaApproved) return 'manteca'
         return 'none'
-    }, [isUserBridgeKycApproved, isUserMantecaKycApproved])
+    }, [isBridgeApproved, isMantecaApproved, isSumsubApproved, sumsubVerificationRegionIntent])
 
     const items = useMemo(() => {
         return getVerificationUnlockItems(approvedCountryData?.title)
@@ -46,7 +44,7 @@ const KycCompletedModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =
 
     useEffect(() => {
         // If manteca KYC is approved, then we need to get the approved country
-        if (isUserMantecaKycApproved) {
+        if (isMantecaApproved) {
             const supportedCountries = Object.keys(MantecaSupportedExchanges)
             let approvedCountry: string | undefined | null
 
@@ -68,7 +66,7 @@ const KycCompletedModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                 setApprovedCountryData(_approvedCountryData || null)
             }
         }
-    }, [isUserMantecaKycApproved, user])
+    }, [isMantecaApproved, user])
 
     return (
         <ActionModal

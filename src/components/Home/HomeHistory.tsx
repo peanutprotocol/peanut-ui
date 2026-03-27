@@ -13,8 +13,8 @@ import { twMerge } from 'tailwind-merge'
 import Card from '../Global/Card'
 import { type CardPosition, getCardPosition } from '../Global/Card/card.utils'
 import EmptyState from '../Global/EmptyStates/EmptyState'
-import { KycStatusItem } from '../Kyc/KycStatusItem'
-import { isKycStatusItem, type KycHistoryEntry } from '@/hooks/useBridgeKycFlow'
+import { KycStatusItem, isKycStatusItem, type KycHistoryEntry } from '../Kyc/KycStatusItem'
+import { groupKycByRegion } from '@/utils/kyc-grouping.utils'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { BadgeStatusItem } from '@/components/Badges/BadgeStatusItem'
 import { isBadgeHistoryItem } from '@/components/Badges/badge.types'
@@ -25,10 +25,34 @@ import { useHaptic } from 'use-haptic'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { Icon } from '../Global/Icons/Icon'
 
+/** Transaction types that affect the user's wallet balance. Hoisted to module scope to avoid re-allocation. */
+const BALANCE_AFFECTING_TYPES: EHistoryEntryType[] = [
+    EHistoryEntryType.DIRECT_SEND,
+    EHistoryEntryType.DEPOSIT,
+    EHistoryEntryType.WITHDRAW,
+    EHistoryEntryType.BRIDGE_OFFRAMP,
+    EHistoryEntryType.BRIDGE_ONRAMP,
+    EHistoryEntryType.BRIDGE_GUEST_OFFRAMP,
+    EHistoryEntryType.MANTECA_OFFRAMP,
+    EHistoryEntryType.MANTECA_ONRAMP,
+    EHistoryEntryType.SEND_LINK,
+    EHistoryEntryType.BANK_SEND_LINK_CLAIM,
+    EHistoryEntryType.PERK_REWARD,
+]
+
 /**
  * component to display a preview of the most recent transactions on the home page.
  */
-const HomeHistory = ({ username, hideTxnAmount = false }: { username?: string; hideTxnAmount?: boolean }) => {
+const HomeHistory = ({
+    username,
+    hideTxnAmount = false,
+    hideEmptyState = false,
+}: {
+    username?: string
+    hideTxnAmount?: boolean
+    /** when true, hides the "No activity yet" empty state (pre-activation users) but still shows history if exists */
+    hideEmptyState?: boolean
+}) => {
     const { user } = useUserStore()
     const isLoggedIn = !!user?.user.userId || false
     // Only filter when user is requesting for some different user's history
@@ -43,7 +67,6 @@ const HomeHistory = ({ username, hideTxnAmount = false }: { username?: string; h
     const { fetchBalance } = useWallet()
     const { triggerHaptic } = useHaptic()
     const { fetchUser } = useAuth()
-
     const isViewingOwnHistory = useMemo(
         () => (isLoggedIn && !username) || (isLoggedIn && username === user?.user.username),
         [isLoggedIn, username, user?.user.username]
@@ -54,11 +77,11 @@ const HomeHistory = ({ username, hideTxnAmount = false }: { username?: string; h
         username, // Pass the username to the WebSocket hook
         onHistoryEntry: useCallback(
             (entry: HistoryEntry) => {
-                // for direct send and completed requests, fetch the balance
-                if (
-                    entry.type === EHistoryEntryType.DIRECT_SEND ||
-                    (entry.type === EHistoryEntryType.REQUEST && entry.status.toUpperCase() === 'COMPLETED')
-                ) {
+                const isCompleted = entry.status?.toUpperCase() === 'COMPLETED'
+                const isBalanceAffecting =
+                    BALANCE_AFFECTING_TYPES.includes(entry.type as EHistoryEntryType) && isCompleted
+
+                if (isBalanceAffecting || (entry.type === EHistoryEntryType.REQUEST && isCompleted)) {
                     fetchBalance()
                 }
             },
@@ -68,6 +91,13 @@ const HomeHistory = ({ username, hideTxnAmount = false }: { username?: string; h
             async (newStatus: string) => {
                 // refetch user data when kyc status changes so the status item appears immediately
                 console.log('KYC status updated via WebSocket:', newStatus)
+                await fetchUser()
+            },
+            [fetchUser]
+        ),
+        onSumsubKycStatusUpdate: useCallback(
+            async (newStatus: string) => {
+                console.log('Sumsub KYC status updated via WebSocket:', newStatus)
                 await fetchUser()
             },
             [fetchUser]
@@ -107,8 +137,9 @@ const HomeHistory = ({ username, hideTxnAmount = false }: { username?: string; h
                 const entries: Array<HistoryEntry | KycHistoryEntry> = [...historyData.entries]
 
                 // inject badge entries using user's badges (newest first) and earnedAt chronology
+                // filter out beta tester badge — it creates confusing first impressions for new users
                 if (isViewingOwnHistory) {
-                    const badges = user?.user?.badges ?? []
+                    const badges = (user?.user?.badges ?? []).filter((b) => b.code !== 'BETA_TESTER')
                     badges.forEach((b) => {
                         if (!b.earnedAt) return
                         entries.push({
@@ -177,32 +208,10 @@ const HomeHistory = ({ username, hideTxnAmount = false }: { username?: string; h
                     }
                 }
 
-                // Add KYC status item if applicable and the user is
-                // viewing their own history
-                if (isViewingOwnHistory) {
-                    if (user?.user?.bridgeKycStatus && user.user.bridgeKycStatus !== 'not_started') {
-                        // Use appropriate timestamp based on KYC status
-                        const bridgeKycTimestamp = (() => {
-                            const status = user.user.bridgeKycStatus
-                            if (status === 'approved') return user.user.bridgeKycApprovedAt
-                            if (status === 'rejected') return user.user.bridgeKycRejectedAt
-                            return user.user.bridgeKycStartedAt
-                        })()
-                        entries.push({
-                            isKyc: true,
-                            timestamp: bridgeKycTimestamp ?? user.user.createdAt ?? new Date().toISOString(),
-                            uuid: 'bridge-kyc-status-item',
-                            bridgeKycStatus: user.user.bridgeKycStatus,
-                        })
-                    }
-                    user?.user.kycVerifications?.forEach((verification) => {
-                        entries.push({
-                            isKyc: true,
-                            timestamp: verification.approvedAt ?? verification.updatedAt ?? verification.createdAt,
-                            uuid: verification.providerUserId ?? `${verification.provider}-${verification.mantecaGeo}`,
-                            verification,
-                        })
-                    })
+                // add one kyc entry per region (STANDARD, LATAM)
+                if (isViewingOwnHistory && user?.user) {
+                    const regionEntries = groupKycByRegion(user.user)
+                    entries.push(...regionEntries)
                 }
 
                 // Check cancellation before setting state
@@ -266,43 +275,39 @@ const HomeHistory = ({ username, hideTxnAmount = false }: { username?: string; h
     }
 
     // show empty state if no transactions exist
+    // hide empty activity section for pre-activation users (activation CTAs are shown above)
     if (!isLoading && !combinedEntries.length) {
+        if (hideEmptyState && isViewingOwnHistory) {
+            return null
+        }
+
         return (
             <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
                 <h2 className="text-base font-bold">Activity</h2>
                 {isViewingOwnHistory &&
-                    ((user?.user.bridgeKycStatus && user?.user.bridgeKycStatus !== 'not_started') ||
-                        (user?.user.kycVerifications && user?.user.kycVerifications.length > 0)) && (
-                        <div className="space-y-3">
-                            {user?.user.bridgeKycStatus && user?.user.bridgeKycStatus !== 'not_started' && (
-                                <KycStatusItem
-                                    position="single"
-                                    bridgeKycStatus={user.user.bridgeKycStatus}
-                                    bridgeKycStartedAt={user.user.bridgeKycStartedAt}
-                                />
-                            )}
-                            {user?.user.kycVerifications?.map((verification) => (
-                                <KycStatusItem
-                                    key={
-                                        verification.providerUserId ??
-                                        `${verification.provider}-${verification.mantecaGeo}`
-                                    }
-                                    position="single"
-                                    verification={verification}
-                                />
-                            ))}
-                        </div>
-                    )}
-
-                {isViewingOwnHistory &&
-                    !user?.user.bridgeKycStatus &&
-                    (!user?.user.kycVerifications || user?.user.kycVerifications.length === 0) && (
-                        <EmptyState
-                            icon="txn-off"
-                            title="No activity yet!"
-                            description="Start by sending or requesting money"
-                        />
-                    )}
+                    user?.user &&
+                    (() => {
+                        const regionEntries = groupKycByRegion(user.user)
+                        return regionEntries.length > 0 ? (
+                            <div className="space-y-3">
+                                {regionEntries.map((entry) => (
+                                    <KycStatusItem
+                                        key={entry.uuid}
+                                        position="single"
+                                        verification={entry.verification}
+                                        bridgeKycStatus={entry.bridgeKycStatus}
+                                        region={entry.region}
+                                    />
+                                ))}
+                            </div>
+                        ) : (
+                            <EmptyState
+                                icon="txn-off"
+                                title="No activity yet!"
+                                description="Start by sending or requesting money"
+                            />
+                        )
+                    })()}
 
                 {!isViewingOwnHistory && (
                     <EmptyState
@@ -380,6 +385,7 @@ const HomeHistory = ({ username, hideTxnAmount = false }: { username?: string; h
                                     bridgeKycStartedAt={
                                         item.bridgeKycStatus ? user?.user.bridgeKycStartedAt : undefined
                                     }
+                                    region={item.region}
                                 />
                             )
                         }

@@ -10,23 +10,22 @@ import Image, { type StaticImageData } from 'next/image'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import EmptyState from '../Global/EmptyStates/EmptyState'
 import { useAuth } from '@/context/authContext'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { DynamicBankAccountForm, type IBankAccountDetails } from './DynamicBankAccountForm'
-import { addBankAccount, updateUserById } from '@/app/actions/users'
-import { type BridgeKycStatus } from '@/utils/bridge-accounts.utils'
+import { addBankAccount } from '@/app/actions/users'
 import { type AddBankAccountPayload } from '@/app/actions/types/users.types'
-import { useWebSocket } from '@/hooks/useWebSocket'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { type Account } from '@/interfaces'
 import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useAppDispatch } from '@/redux/hooks'
 import { bankFormActions } from '@/redux/slices/bank-form-slice'
-import { InitiateBridgeKYCModal } from '../Kyc/InitiateBridgeKYCModal'
 import useKycStatus from '@/hooks/useKycStatus'
 import KycVerifiedOrReviewModal from '../Global/KycVerifiedOrReviewModal'
 import { ActionListCard } from '@/components/ActionListCard'
 import TokenAndNetworkConfirmationModal from '../Global/TokenAndNetworkConfirmationModal'
+import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
+import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 
 interface AddWithdrawCountriesListProps {
     flow: 'add' | 'withdraw'
@@ -48,31 +47,25 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const { setSelectedBankAccount, amountToWithdraw, setSelectedMethod, setAmountToWithdraw } = useWithdrawFlow()
     const dispatch = useAppDispatch()
 
+    // inline sumsub kyc flow for bridge bank users who need verification
+    // regionIntent is NOT passed here to avoid creating a backend record on mount.
+    // intent is passed at call time: handleInitiateKyc('STANDARD')
+    const sumsubFlow = useMultiPhaseKycFlow({
+        onKycSuccess: () => {
+            setIsKycModalOpen(false)
+            setView('form')
+        },
+        onManualClose: () => setIsKycModalOpen(false),
+    })
+
     // component level states
     const [view, setView] = useState<'list' | 'form'>(flow === 'withdraw' && amountToWithdraw ? 'form' : 'list')
     const [isKycModalOpen, setIsKycModalOpen] = useState(false)
     const formRef = useRef<{ handleSubmit: () => void }>(null)
-    const [liveKycStatus, setLiveKycStatus] = useState<BridgeKycStatus | undefined>(
-        user?.user?.bridgeKycStatus as BridgeKycStatus
-    )
     const [isSupportedTokensModalOpen, setIsSupportedTokensModalOpen] = useState(false)
 
-    const { isUserBridgeKycUnderReview } = useKycStatus()
+    const { isUserKycApproved, isUserBridgeKycUnderReview } = useKycStatus()
     const [showKycStatusModal, setShowKycStatusModal] = useState(false)
-
-    useWebSocket({
-        username: user?.user.username ?? undefined,
-        autoConnect: !!user?.user.username,
-        onKycStatusUpdate: (newStatus) => {
-            setLiveKycStatus(newStatus as BridgeKycStatus)
-        },
-    })
-
-    useEffect(() => {
-        if (user?.user.bridgeKycStatus) {
-            setLiveKycStatus(user.user.bridgeKycStatus as BridgeKycStatus)
-        }
-    }, [user?.user.bridgeKycStatus])
 
     const countryPathParts = Array.isArray(params.country) ? params.country : [params.country]
     const isBankPage = countryPathParts[countryPathParts.length - 1] === 'bank'
@@ -86,15 +79,14 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         payload: AddBankAccountPayload,
         rawData: IBankAccountDetails
     ): Promise<{ error?: string }> => {
-        const currentKycStatus = liveKycStatus || user?.user.bridgeKycStatus
-        const isUserKycVerified = currentKycStatus === 'approved'
-
-        const hasEmailOnLoad = !!user?.user.email
+        // re-fetch user to ensure we have the latest KYC status
+        // (the multi-phase flow may have completed but websocket/state not yet propagated)
+        await fetchUser()
 
         // scenario (1): happy path: if the user has already completed kyc, we can add the bank account directly
-        // note: we no longer check for fullName as account owner name is now always collected from the form
-        if (isUserKycVerified && (hasEmailOnLoad || rawData.email)) {
-            const currentAccountIds = new Set(user?.accounts.map((acc) => acc.id) ?? [])
+        // email and name are now collected by sumsub — no need to check them here
+        if (isUserKycApproved) {
+            const currentAccountIds = new Set((user?.accounts ?? []).map((acc) => acc.id))
 
             const result = await addBankAccount(payload)
             if (result.error) {
@@ -135,51 +127,12 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         }
 
         // scenario (2): if the user hasn't completed kyc yet
-        if (!isUserKycVerified) {
-            // update user's name and email if they are not present
-            const hasNameOnLoad = !!user?.user.fullName
-            const hasEmailOnLoad = !!user?.user.email
-
-            if (!hasNameOnLoad || !hasEmailOnLoad) {
-                if (user?.user.userId) {
-                    // Build update payload to only update missing fields
-                    const updatePayload: Record<string, any> = { userId: user.user.userId }
-
-                    if (!hasNameOnLoad && rawData.accountOwnerName) {
-                        updatePayload.fullName = rawData.accountOwnerName.trim()
-                    }
-
-                    if (!hasEmailOnLoad && rawData.email) {
-                        updatePayload.email = rawData.email.trim()
-                    }
-
-                    // Only call update if we have fields to update
-                    if (Object.keys(updatePayload).length > 1) {
-                        const result = await updateUserById(updatePayload)
-                        if (result.error) {
-                            return { error: result.error }
-                        }
-                        try {
-                            await fetchUser()
-                        } catch (err) {
-                            console.error('Failed to refresh user data after update:', err)
-                        }
-                    }
-                }
-            }
-
-            setIsKycModalOpen(true)
+        // name and email are now collected by sumsub sdk — no need to save them beforehand
+        if (!isUserKycApproved) {
+            await sumsubFlow.handleInitiateKyc('STANDARD')
         }
 
         return {}
-    }
-
-    const handleKycSuccess = () => {
-        // only transition to form if this component initiated the KYC modal
-        if (isKycModalOpen) {
-            setIsKycModalOpen(false)
-            setView('form')
-        }
     }
 
     const handleWithdrawMethodClick = (method: SpecificPaymentMethod) => {
@@ -312,11 +265,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                     initialData={{}}
                     error={null}
                 />
-                <InitiateBridgeKYCModal
-                    isOpen={isKycModalOpen}
-                    onClose={() => setIsKycModalOpen(false)}
-                    onKycSuccess={handleKycSuccess}
-                />
+                <SumsubKycModals flow={sumsubFlow} />
             </div>
         )
     }
@@ -394,7 +343,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 onPrev={() => {
                     setAmountToWithdraw('')
                     if (flow === 'add') {
-                        router.push('/add-money')
+                        router.push('/add-money?method=bank')
                     } else if (isBankFromSend) {
                         // if coming from bank send flow: set method and go to amount input view
                         setSelectedMethod({
@@ -431,11 +380,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 isKycApprovedModalOpen={showKycStatusModal}
                 onClose={() => setShowKycStatusModal(false)}
             />
-            <InitiateBridgeKYCModal
-                isOpen={isKycModalOpen}
-                onClose={() => setIsKycModalOpen(false)}
-                onKycSuccess={handleKycSuccess}
-            />
+            <SumsubKycModals flow={sumsubFlow} />
         </div>
     )
 }

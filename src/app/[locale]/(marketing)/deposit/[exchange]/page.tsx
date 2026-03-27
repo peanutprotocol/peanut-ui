@@ -98,6 +98,7 @@ export default async function DepositPageLocalized({ params }: PageProps) {
 
     return (
         <ContentPage
+            locale={locale}
             breadcrumbs={[
                 { name: i18n.home, href: `/${locale}` },
                 { name: deposit.displayName, href: url },

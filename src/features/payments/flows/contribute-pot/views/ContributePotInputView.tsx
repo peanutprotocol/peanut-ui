@@ -19,6 +19,7 @@ import ErrorAlert from '@/components/Global/ErrorAlert'
 import SupportCTA from '@/components/Global/SupportCTA'
 import { useContributePotFlow } from '../useContributePotFlow'
 import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import { useAuth } from '@/context/authContext'
 import { RequestPotActionList } from '../components/RequestPotActionList'
 
@@ -62,12 +63,18 @@ export function ContributePotInputView() {
     }
 
     // handle External Wallet click
+    const [isExternalWalletLoading, setIsExternalWalletLoading] = useState(false)
     const handleOpenExternalWalletFlow = async () => {
         if (canProceed && !isLoading) {
-            const res = await executeContribution(true, true) // return after creating charge
-            // Proceed only if charge is created successfully
-            if (res && res.success) {
-                setCurrentView('EXTERNAL_WALLET')
+            setIsExternalWalletLoading(true)
+            try {
+                const res = await executeContribution(true, true) // return after creating charge
+                // proceed only if charge is created successfully
+                if (res && res.success) {
+                    setCurrentView('EXTERNAL_WALLET')
+                }
+            } finally {
+                setIsExternalWalletLoading(false)
             }
         }
     }
@@ -122,8 +129,10 @@ export function ContributePotInputView() {
                     isAmountEntered={isAmountEntered}
                     usdAmount={amount}
                     recipientUserId={recipient?.userId}
+                    recipientUsername={recipient?.username}
                     onPayWithPeanut={handlePayWithPeanut}
-                    isPaymentLoading={isLoading}
+                    isPaymentLoading={isLoading && !isExternalWalletLoading}
+                    isExternalWalletLoading={isExternalWalletLoading}
                     onPayWithExternalWallet={handleOpenExternalWalletFlow}
                 />
             </div>

@@ -2,7 +2,7 @@ import { type MetadataRoute } from 'next'
 import { BASE_URL } from '@/constants/general.consts'
 import { COUNTRIES_SEO, CORRIDORS, COMPETITORS, EXCHANGES, DEPOSIT_RAILS, PAYMENT_METHOD_SLUGS } from '@/data/seo'
 import { SUPPORTED_LOCALES } from '@/i18n/config'
-import { listContentSlugs } from '@/lib/content'
+import { listContentSlugs, listPublishedSlugs } from '@/lib/content'
 
 // TODO (infra): Update GitHub org, Twitter bio, LinkedIn, npm package.json → peanut.me
 // TODO (GA4): Create data filter to exclude trafficheap.com referral traffic
@@ -119,6 +119,54 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
                 changeFrequency: 'monthly',
             })
         }
+
+        // Use cases
+        for (const slug of listPublishedSlugs('use-cases')) {
+            pages.push({
+                path: `/${locale}/use-cases/${slug}`,
+                priority: 0.7 * basePriority,
+                changeFrequency: 'monthly',
+            })
+        }
+
+        // User stories
+        for (const slug of listPublishedSlugs('stories')) {
+            if (slug === 'index') continue
+            pages.push({
+                path: `/${locale}/stories/${slug}`,
+                priority: 0.6 * basePriority,
+                changeFrequency: 'monthly',
+            })
+        }
+        // Stories index
+        pages.push({
+            path: `/${locale}/stories`,
+            priority: 0.5 * basePriority,
+            changeFrequency: 'monthly',
+        })
+
+        // Withdraw pages
+        for (const slug of listPublishedSlugs('withdraw')) {
+            pages.push({
+                path: `/${locale}/withdraw/${slug}`,
+                priority: 0.6 * basePriority,
+                changeFrequency: 'monthly',
+            })
+        }
+
+        // Supported networks
+        pages.push({
+            path: `/${locale}/supported-networks`,
+            priority: 0.6 * basePriority,
+            changeFrequency: 'monthly',
+        })
+
+        // Pricing
+        pages.push({
+            path: `/${locale}/pricing`,
+            priority: 0.7 * basePriority,
+            changeFrequency: 'monthly',
+        })
 
         // Blog and team pages excluded from production sitemap (not yet launched)
     }

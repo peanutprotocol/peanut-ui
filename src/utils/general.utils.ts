@@ -19,6 +19,7 @@ import { type ChargeEntry } from '@/services/services.types'
 import { toWebAuthnKey } from '@zerodev/passkey-validator'
 import { USER_OPERATION_REVERT_REASON_TOPIC } from '@/constants/zerodev.consts'
 import { CHAIN_LOGOS, type ChainName } from '@/constants/rhino.consts'
+import { isUserKycVerified } from '@/constants/kyc.consts'
 
 export function urlBase64ToUint8Array(base64String: string) {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -492,6 +493,8 @@ export type UserPreferences = {
     notifBannerShowAt?: number
     notifModalClosed?: boolean
     hasSeenBalanceWarning?: { value: boolean; expiry: number }
+    /** tracks surprise moment claim count for referral CTA copy (rewards v2). 0=first, 1=second, 2+=normal */
+    rewards_surprise_claim_count?: number
 }
 
 export const updateUserPreferences = (
@@ -946,8 +949,13 @@ export const generateInviteCodeLink = (username: string) => {
  */
 export const extractInviteeName = (reason: string | undefined | null, fallback = 'Your friend'): string => {
     if (!reason) return fallback
-    const name = reason.split(' became')[0]
-    return name || fallback
+    // Rewards v2: "Alice just used Peanut. You earned $0.66."
+    const justUsedMatch = reason.match(/^(.+?) just used Peanut/)
+    if (justUsedMatch) return justUsedMatch[1]
+    // Legacy: "Alice became a Pioneer"
+    const becameMatch = reason.match(/^(.+?) became/)
+    if (becameMatch) return becameMatch[1]
+    return fallback
 }
 
 export const getValidRedirectUrl = (redirectUrl: string, fallbackRoute: string) => {
@@ -984,7 +992,7 @@ export const getContributorsFromCharge = (charges: ChargeEntry[]) => {
             amount: charge.tokenAmount,
             username,
             fulfillmentPayment: charge.fulfillmentPayment,
-            isUserVerified: successfulPayment?.payerAccount?.user?.bridgeKycStatus === 'approved',
+            isUserVerified: isUserKycVerified(successfulPayment?.payerAccount?.user),
             isPeanutUser,
         }
     })

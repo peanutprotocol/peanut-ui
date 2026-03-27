@@ -68,6 +68,10 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zer
 import ContributorCard from '../Global/Contributors/ContributorCard'
 import { requestsApi } from '@/services/requests'
 import { PasskeyDocsLink } from '../Setup/Views/SignTestTransaction'
+import { useActivationStatus } from '@/hooks/useActivationStatus'
+import { generateInviteCodeLink, generateInvitesShareText } from '@/utils/general.utils'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 export const TransactionDetailsReceipt = ({
     transaction,
@@ -106,6 +110,7 @@ export const TransactionDetailsReceipt = ({
     const { setIsSupportModalOpen } = useModalsContext()
     const toast = useToast()
     const router = useRouter()
+    const { isActivated } = useActivationStatus()
     const [cancelLinkText, setCancelLinkText] = useState<'Cancelling' | 'Cancelled' | 'Cancel link'>('Cancel link')
 
     // Sync modal state to parent if callback is provided
@@ -161,7 +166,9 @@ export const TransactionDetailsReceipt = ({
                 !(
                     transaction.extraDataForDrawer?.originalType === EHistoryEntryType.SEND_LINK &&
                     transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER
-                )
+                ) &&
+                // hide token and network for refunded entries
+                transaction.status !== 'refunded'
             ),
             txId: !!transaction.txHash,
             // show cancelled row if status is cancelled, use cancelledDate or fallback to createdAt
@@ -481,7 +488,7 @@ export const TransactionDetailsReceipt = ({
                         <div className="flex items-center gap-3">
                             <PerkIcon size="medium" />
                             <div className="flex flex-col">
-                                <h2 className="text-lg font-semibold text-gray-900">Peanut Perk</h2>
+                                <h2 className="text-lg font-semibold text-gray-900">Peanut Reward</h2>
                                 <p className="text-2xl font-bold text-gray-900">{amountDisplay}</p>
                             </div>
                         </div>
@@ -501,9 +508,7 @@ export const TransactionDetailsReceipt = ({
                             )}
                         </div>
                     </div>
-                    <p className="mt-3 text-sm text-gray-600">
-                        Earn points, climb tiers, and unlock even better perks.
-                    </p>
+                    <p className="mt-3 text-sm text-gray-600">Earn rewards every time your friends use Peanut.</p>
                 </Card>
 
                 {/* Perk Details - Middle section with date, reason, and link */}
@@ -606,34 +611,21 @@ export const TransactionDetailsReceipt = ({
                     <div className="flex items-center gap-3">
                         <PerkIcon size="small" />
                         <div className="flex flex-col gap-1">
-                            <span className="font-semibold text-gray-900">Eligible for a Peanut Perk!</span>
+                            <span className="font-semibold text-gray-900">You earned a reward!</span>
                             <span className="text-sm text-gray-600">
                                 {(() => {
                                     const perk = transaction.extraDataForDrawer.perk
-                                    const percentage = perk.discountPercentage
                                     const amount = perk.amountSponsored
-                                    const isCapped = perk.isCapped
-                                    const campaignCap = perk.campaignCapUsd
 
-                                    // If user hit their campaign cap, show special message
-                                    if (isCapped && campaignCap) {
-                                        if (amount !== undefined && amount !== null) {
-                                            return `$${amount.toFixed(2)} cashback — campaign limit reached! 🎉`
+                                    // Always show actual dollar amount — never percentage (misleading due to dynamic caps)
+                                    if (amount !== undefined && amount !== null) {
+                                        if (perk.isCapped && perk.campaignCapUsd) {
+                                            return `$${amount.toFixed(2)} reward — campaign limit reached!`
                                         }
-                                        return `Campaign limit reached! 🎉`
+                                        return `You received a $${amount.toFixed(2)} reward!`
                                     }
 
-                                    // For non-capped messages, use amountStr
-                                    const amountStr =
-                                        amount !== undefined && amount !== null ? `$${amount.toFixed(2)}` : ''
-
-                                    if (percentage === 100) {
-                                        return `You received a full refund${amount ? ` (${amountStr})` : ''} as a Peanut Perk.`
-                                    } else if (percentage > 100) {
-                                        return `You received back${amount ? ` (${amountStr})` : ''} — that's more than you paid!`
-                                    } else {
-                                        return `You received a Peanut Perk! ${amount ? ` ${amountStr}` : ''} cashback.`
-                                    }
+                                    return 'You received a Peanut reward!'
                                 })()}
                             </span>
                         </div>
@@ -1298,7 +1290,7 @@ export const TransactionDetailsReceipt = ({
                 </div>
             )}
 
-            {isQRPayment && (
+            {isQRPayment && transaction.status !== 'refunded' && (
                 <Button
                     onClick={() => {
                         router.push(`/request?amount=${transaction.amount}&merchant=${transaction.userName}`)
@@ -1440,6 +1432,35 @@ export const TransactionDetailsReceipt = ({
                             <span>Cancel Request</span>
                         </Button>
                     </div>
+                )}
+
+            {/* referral nudge for activated users on completed outbound transactions */}
+            {isActivated &&
+                transaction.status === 'completed' &&
+                transaction.direction === 'send' &&
+                !isPerkReward &&
+                user?.user.username && (
+                    <Button
+                        variant="primary-soft"
+                        shadowSize="4"
+                        onClick={async () => {
+                            const { inviteLink } = generateInviteCodeLink(user.user.username!)
+                            const text = generateInvitesShareText(inviteLink)
+                            posthog.capture(ANALYTICS_EVENTS.INVITE_LINK_SHARED, { source: 'transaction_receipt' })
+                            try {
+                                if (navigator.share) {
+                                    await navigator.share({ text })
+                                } else {
+                                    await navigator.clipboard.writeText(text)
+                                }
+                            } catch {
+                                // user cancelled share sheet — ignore
+                            }
+                        }}
+                    >
+                        <Icon name="invite-heart" size={16} />
+                        <span className="text-sm font-medium">Invite friends to earn more rewards</span>
+                    </Button>
                 )}
 
             {/* support link section or passkey docs for test transactions */}

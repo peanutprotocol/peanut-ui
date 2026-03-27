@@ -4,7 +4,7 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { type FC, useCallback, useEffect, useMemo } from 'react'
+import { type FC, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Icon, type IconName } from '../Icons/Icon'
 import { Button } from '@/components/0_Bruddle/Button'
 
@@ -90,6 +90,28 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
         [updateUrlParams, sourceCurrency]
     )
 
+    const [isSwapping, setIsSwapping] = useState(false)
+    const skipNextDebounceSyncRef = useRef(false)
+
+    const swapCurrencies = useCallback(() => {
+        setIsSwapping(true)
+        skipNextDebounceSyncRef.current = true
+        const newAmount =
+            typeof destinationAmount === 'number' && destinationAmount > 0
+                ? Math.round(destinationAmount * 100) / 100
+                : undefined
+        updateUrlParams({ from: destinationCurrency, to: sourceCurrency, amount: newAmount })
+    }, [sourceCurrency, destinationCurrency, destinationAmount, updateUrlParams])
+
+    // clear swapping state once exchange rate hook finishes recalculating
+    useEffect(() => {
+        if (isSwapping && !isLoading) {
+            setIsSwapping(false)
+        }
+    }, [isSwapping, isLoading])
+
+    const showLoading = isLoading || isSwapping
+
     // Enforce USD rule: at least one currency must be USD
     useEffect(() => {
         if (sourceCurrency !== 'USD' && destinationCurrency !== 'USD') {
@@ -100,6 +122,10 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
 
     // Update URL when source amount changes (only for valid numbers)
     useEffect(() => {
+        if (skipNextDebounceSyncRef.current) {
+            skipNextDebounceSyncRef.current = false
+            return
+        }
         if (typeof debouncedSourceAmount === 'number' && debouncedSourceAmount !== urlSourceAmount) {
             updateUrlParams({ amount: debouncedSourceAmount })
         }
@@ -125,7 +151,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
             <div className="w-full">
                 <h2 className="text-left text-sm">You Send</h2>
                 <div className="btn btn-shadow-primary-4 mt-2 flex w-full items-center justify-center gap-4 bg-white p-4">
-                    {isLoading ? (
+                    {showLoading ? (
                         <div className="flex w-full items-center">
                             <div className="h-8 w-40 animate-pulse rounded-full bg-grey-2" />
                         </div>
@@ -167,10 +193,18 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
                 </div>
             </div>
 
+            <button
+                onClick={swapCurrencies}
+                className="flex h-8 w-8 items-center justify-center self-center rounded-full hover:bg-grey-4"
+                aria-label="Swap currencies"
+            >
+                <Icon name="arrow-exchange" size={18} className="rotate-90 transition-transform duration-300" />
+            </button>
+
             <div className="w-full">
                 <h2 className="text-left text-sm">Recipient Gets</h2>
                 <div className="btn btn-shadow-primary-4 mt-2 flex w-full items-center justify-center gap-4 bg-white p-4">
-                    {isLoading ? (
+                    {showLoading ? (
                         <div className="flex w-full items-center">
                             <div className="h-8 w-40 animate-pulse rounded-full bg-grey-2" />
                         </div>
@@ -212,7 +246,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
             </div>
 
             <div className="rounded-full bg-grey-4 px-2 py-[2px] text-xs font-bold text-gray-1">
-                {isLoading ? (
+                {showLoading ? (
                     <div className="mx-auto h-3 w-28 animate-pulse rounded-full bg-grey-2" />
                 ) : isError ? (
                     <span>Rate currently unavailable</span>

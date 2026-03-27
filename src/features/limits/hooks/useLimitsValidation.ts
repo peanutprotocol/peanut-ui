@@ -2,7 +2,6 @@
 
 import { useMemo } from 'react'
 import { useLimits } from '@/hooks/useLimits'
-import useKycStatus from '@/hooks/useKycStatus'
 import type { MantecaLimit } from '@/interfaces'
 import {
     MAX_QR_PAYMENT_AMOUNT_FOREIGN,
@@ -42,20 +41,17 @@ interface UseLimitsValidationOptions {
 }
 
 /**
- * hook to validate amounts against user's transaction limits
- * automatically determines if user is local (manteca) or foreign (bridge) based on their kyc status
- * returns warning/blocking state based on remaining limits
+ * hook to validate amounts against user's transaction limits.
+ * uses the presence of API-returned limits (which are gated behind ENABLED rails on the backend)
  */
 export function useLimitsValidation({ flowType, amount, currency: currencyInput }: UseLimitsValidationOptions) {
     const { mantecaLimits, bridgeLimits, isLoading, hasMantecaLimits, hasBridgeLimits } = useLimits()
-    const { isUserMantecaKycApproved, isUserBridgeKycApproved } = useKycStatus()
 
     // normalize currency to valid LimitCurrency type
     const currency = mapToLimitCurrency(currencyInput)
 
-    // determine if user is "local" (has manteca kyc for latam operations)
-    // this replaces the external isLocalUser parameter
-    const isLocalUser = isUserMantecaKycApproved
+    // determine if user is "local" (has manteca limits = enabled manteca rails)
+    const isLocalUser = hasMantecaLimits
 
     // parse amount to number - strip commas to handle "1,200" format
     const numericAmount = useMemo(() => {
@@ -81,7 +77,7 @@ export function useLimitsValidation({ flowType, amount, currency: currencyInput 
 
     // validate for manteca users (argentina/brazil)
     const mantecaValidation = useMemo<LimitValidationResult>(() => {
-        if (!isUserMantecaKycApproved || !relevantMantecaLimit) {
+        if (!hasMantecaLimits || !relevantMantecaLimit) {
             return {
                 isBlocking: false,
                 isWarning: false,
@@ -155,12 +151,12 @@ export function useLimitsValidation({ flowType, amount, currency: currencyInput 
             daysUntilReset: daysUntilMonthlyReset,
             limitCurrency: currency,
         }
-    }, [isUserMantecaKycApproved, relevantMantecaLimit, numericAmount, currency, daysUntilMonthlyReset, flowType])
+    }, [hasMantecaLimits, relevantMantecaLimit, numericAmount, currency, daysUntilMonthlyReset, flowType])
 
     // validate for bridge users (us/europe/mexico) - per transaction limits
     // bridge limits are always in USD
     const bridgeValidation = useMemo<LimitValidationResult>(() => {
-        if (!isUserBridgeKycApproved || !bridgeLimits) {
+        if (!hasBridgeLimits || !bridgeLimits) {
             return {
                 isBlocking: false,
                 isWarning: false,
@@ -213,7 +209,7 @@ export function useLimitsValidation({ flowType, amount, currency: currencyInput 
             daysUntilReset: null,
             limitCurrency: 'USD',
         }
-    }, [isUserBridgeKycApproved, bridgeLimits, flowType, numericAmount])
+    }, [hasBridgeLimits, bridgeLimits, flowType, numericAmount])
 
     // qr payment validation for foreign users (non-manteca kyc)
     // foreign qr limits are always in USD
@@ -258,8 +254,8 @@ export function useLimitsValidation({ flowType, amount, currency: currencyInput 
     const validation = useMemo<LimitValidationResult>(() => {
         // for qr payments
         if (flowType === 'qr-payment') {
-            // local users (manteca kyc) use manteca limits
-            if (isLocalUser && isUserMantecaKycApproved) {
+            // local users (manteca limits) use manteca limits
+            if (isLocalUser && hasMantecaLimits) {
                 return mantecaValidation
             }
             // foreign users have fixed per-tx limit
@@ -268,14 +264,14 @@ export function useLimitsValidation({ flowType, amount, currency: currencyInput 
 
         // for onramp/offramp - check which provider applies
         // only use manteca if there's a relevant limit for the currency (prevents skipping bridge validation)
-        if (isUserMantecaKycApproved && hasMantecaLimits && relevantMantecaLimit) {
+        if (hasMantecaLimits && relevantMantecaLimit) {
             return mantecaValidation
         }
-        if (isUserBridgeKycApproved && hasBridgeLimits) {
+        if (hasBridgeLimits) {
             return bridgeValidation
         }
 
-        // no kyc - no limits to validate
+        // no enabled rails - no limits to validate
         return {
             isBlocking: false,
             isWarning: false,
@@ -288,8 +284,6 @@ export function useLimitsValidation({ flowType, amount, currency: currencyInput 
     }, [
         flowType,
         isLocalUser,
-        isUserMantecaKycApproved,
-        isUserBridgeKycApproved,
         hasMantecaLimits,
         hasBridgeLimits,
         relevantMantecaLimit,
@@ -305,7 +299,7 @@ export function useLimitsValidation({ flowType, amount, currency: currencyInput 
         currency,
         // convenience getters
         hasLimits: hasMantecaLimits || hasBridgeLimits,
-        isMantecaUser: isUserMantecaKycApproved,
-        isBridgeUser: isUserBridgeKycApproved,
+        isMantecaUser: hasMantecaLimits,
+        isBridgeUser: hasBridgeLimits,
     }
 }

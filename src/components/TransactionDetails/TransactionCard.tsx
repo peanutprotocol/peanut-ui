@@ -14,6 +14,7 @@ import {
 } from '@/utils/general.utils'
 import { getAvatarUrl, getTransactionSign } from '@/utils/history.utils'
 import React, { lazy, Suspense } from 'react'
+import { twMerge } from 'tailwind-merge'
 import Image from 'next/image'
 import StatusPill, { type StatusPillType } from '../Global/StatusPill'
 import { VerifiedUserLabel } from '../UserHeader'
@@ -182,9 +183,13 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                             </div>
                             {/* display the action icon and type text */}
                             <div className="flex items-center gap-1 text-xs font-medium text-gray-1">
-                                {!isTestTransaction && getActionIcon(type, transaction.direction)}
+                                {!isTestTransaction && getActionIcon(type, transaction.direction, status)}
                                 <span className="capitalize">
-                                    {isTestTransaction ? 'Setup' : isPerkReward ? 'Cashback' : getActionText(type)}
+                                    {isTestTransaction
+                                        ? 'Setup'
+                                        : isPerkReward
+                                          ? 'Reward'
+                                          : getActionText(type, status)}
                                 </span>
                                 {status && <StatusPill status={status} />}
                             </div>
@@ -201,9 +206,21 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                     <span className="text-2xl font-bold">****</span>
                                 ) : (
                                     <>
-                                        <span className="font-semibold">{displayAmount}</span>
+                                        <span
+                                            className={twMerge(
+                                                'font-semibold',
+                                                status === 'refunded' && 'text-gray-1 line-through'
+                                            )}
+                                        >
+                                            {displayAmount}
+                                        </span>
                                         {currencyDisplayAmount && (
-                                            <span className="text-sm font-medium text-gray-1">
+                                            <span
+                                                className={twMerge(
+                                                    'text-sm font-medium text-gray-1',
+                                                    status === 'refunded' && 'line-through'
+                                                )}
+                                            >
                                                 {currencyDisplayAmount}
                                             </span>
                                         )}
@@ -232,7 +249,15 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
 }
 
 // helper functions
-function getActionIcon(type: TransactionType, direction: TransactionDirection): React.ReactNode {
+function getActionIcon(
+    type: TransactionType,
+    direction: TransactionDirection,
+    status?: StatusPillType
+): React.ReactNode {
+    if (status === 'refunded') {
+        return <Icon name="arrow-down-left" size={7} fill="currentColor" />
+    }
+
     let iconName: IconName | null = null
     let iconSize = 7
 
@@ -275,7 +300,9 @@ function getActionIcon(type: TransactionType, direction: TransactionDirection): 
     return <Icon name={iconName} size={iconSize} fill="currentColor" />
 }
 
-function getActionText(type: TransactionType): string {
+function getActionText(type: TransactionType, status?: StatusPillType): string {
+    if (status === 'refunded') return 'Refund'
+
     let actionText: string = type
     switch (type) {
         case 'bank_withdraw':

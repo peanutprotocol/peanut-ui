@@ -56,7 +56,7 @@ import {
     VerifiedUserOutlined,
     EmojiEventsOutlined,
     LockOutlined,
-    CallSplitRounded,
+    GroupsRounded,
     VpnLockOutlined,
     CameraswitchRounded,
     ControlPointRounded,
@@ -66,6 +66,7 @@ import {
     WarningRounded,
     SpeedRounded,
     InfoRounded,
+    UndoRounded,
 } from '@mui/icons-material'
 import { DocsIcon } from './docs'
 import { PeanutSupportIcon } from './peanut-support'
@@ -148,6 +149,7 @@ export type IconName =
     | 'split'
     | 'globe-lock'
     | 'bulb'
+    | 'undo'
     | 'upload-cloud'
     | 'alert-filled'
     | 'paste'
@@ -278,7 +280,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     shield: (props) => <MaterialIconWrapper Icon={VerifiedUserOutlined} {...props} />,
     trophy: (props) => <MaterialIconWrapper Icon={EmojiEventsOutlined} {...props} />,
     lock: (props) => <MaterialIconWrapper Icon={LockOutlined} {...props} />,
-    split: (props) => <MaterialIconWrapper Icon={CallSplitRounded} {...props} />,
+    split: (props) => <MaterialIconWrapper Icon={GroupsRounded} {...props} />,
     'globe-lock': (props) => <MaterialIconWrapper Icon={VpnLockOutlined} {...props} />,
     'plus-circle': (props) => <MaterialIconWrapper Icon={ControlPointRounded} {...props} />,
     'minus-circle': (props) => <MaterialIconWrapper Icon={RemoveCircleOutlineRounded} {...props} />,
@@ -288,6 +290,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     'txn-off': TxnOffIcon,
     docs: DocsIcon,
     bulb: BulbIcon,
+    undo: (props) => <MaterialIconWrapper Icon={UndoRounded} {...props} />,
     'upload-cloud': (props) => <MaterialIconWrapper Icon={CloudUploadOutlined} {...props} />,
     'invite-heart': InviteHeartIcon,
     'alert-filled': (props) => <MaterialIconWrapper Icon={WarningRounded} {...props} />,
