@@ -21,6 +21,7 @@ type ClaimPhase = 'idle' | 'holding' | 'opening' | 'revealed' | 'exiting'
 
 const SURPRISE_CLAIM_COUNT_KEY = 'rewards_surprise_claim_count'
 
+// Approved copy — see notion: notifs-copy-33083811757980638a27effc79a033f3
 const SURPRISE_COPY = {
     first: {
         title: (amount: number) => `You just earned $${amount}!`,
