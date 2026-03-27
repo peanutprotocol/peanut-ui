@@ -134,10 +134,9 @@ export default async function BlogPostPageLocalized({ params }: PageProps) {
                     <p className="mt-2 text-gray-600">{post.frontmatter.description}</p>
                     <time className="mt-3 block text-sm text-gray-400">{post.frontmatter.date}</time>
                 </header>
-                <article
-                    className="prose prose-lg prose-headings:font-bold prose-a:text-black prose-a:underline prose-pre:border prose-pre:border-n-1 prose-pre:bg-white max-w-none"
-                    dangerouslySetInnerHTML={{ __html: post.html }}
-                />
+                <article className="prose prose-lg prose-headings:font-bold prose-a:text-black prose-a:underline prose-pre:border prose-pre:border-n-1 prose-pre:bg-white max-w-none">
+                    {post.content}
+                </article>
             </MarketingShell>
         </>
     )
