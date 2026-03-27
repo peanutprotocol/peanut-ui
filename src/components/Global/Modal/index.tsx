@@ -99,8 +99,8 @@ const Modal = ({
 
                                 <button
                                     className={twMerge(
-                                        `absolute right-4 top-4 text-0 outline-none hover:fill-primary-1 dark:fill-white dark:hover:fill-primary-1 ${
-                                            video ? 'absolute right-5 top-5 h-10 w-10 fill-white' : ''
+                                        `absolute right-2 top-2 p-2 text-0 outline-none hover:fill-primary-1 dark:fill-white dark:hover:fill-primary-1 ${
+                                            video ? 'absolute right-3 top-3 h-14 w-14 fill-white' : ''
                                         } ${classButtonClose}`
                                     )}
                                     onClick={onClose}

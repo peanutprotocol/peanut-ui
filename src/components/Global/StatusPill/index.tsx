@@ -13,7 +13,7 @@ const StatusPill = ({ status }: StatusPillProps) => {
         completed: 'border-success-5 bg-success-2 text-success-4',
         pending: 'border-yellow-8 bg-secondary-4 text-yellow-6',
         cancelled: 'border-error-2 bg-error-1 text-error',
-        refunded: 'border-yellow-8 bg-secondary-4 text-yellow-6',
+        refunded: 'border-success-5 bg-success-2 text-success-4',
         failed: 'border-error-2 bg-error-1 text-error',
         processing: 'border-yellow-8 bg-secondary-4 text-yellow-6',
         soon: 'border-yellow-8 bg-secondary-4 text-yellow-6',

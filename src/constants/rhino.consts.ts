@@ -1,3 +1,5 @@
+import type { RhinoChainType } from '@/services/services.types'
+
 /** Chain name to logo URL mapping - reusable across the app */
 export const CHAIN_LOGOS = {
     ARBITRUM: 'https://assets.coingecko.com/asset_platforms/images/33/standard/AO_logomark.png?1706606717',
@@ -51,6 +53,23 @@ export const RHINO_SUPPORTED_EVM_CHAINS = RHINO_SUPPORTED_CHAINS.filter((chain) 
 export const RHINO_SUPPORTED_OTHER_CHAINS = RHINO_SUPPORTED_CHAINS.filter((chain) =>
     (OTHER_SUPPORTED_CHAINS as readonly string[]).includes(chain.name)
 )
+
+export const NETWORK_LABELS: Record<RhinoChainType, string> = {
+    EVM: 'EVM',
+    SOL: 'Solana',
+    TRON: 'Tron',
+}
+
+/** representative logo per chain type (ethereum for EVM) */
+export const NETWORK_LOGOS: Record<RhinoChainType, string> = {
+    EVM: CHAIN_LOGOS.ETHEREUM,
+    SOL: CHAIN_LOGOS.SOLANA,
+    TRON: CHAIN_LOGOS.TRON,
+}
+
+/** returns supported tokens for a given chain type (TRON has no USDC) */
+export const getSupportedTokens = (network: RhinoChainType) =>
+    RHINO_SUPPORTED_TOKENS.filter((token) => (network === 'TRON' ? token.name !== 'USDC' : true))
 
 /** Rhino-supported tokens with their logos */
 export const RHINO_SUPPORTED_TOKENS = (Object.keys(TOKEN_LOGOS) as TokenName[]).map((name) => ({

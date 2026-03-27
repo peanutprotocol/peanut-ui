@@ -60,6 +60,7 @@ export default async function FromToCorridorPage({ params }: PageProps) {
 
     return (
         <ContentPage
+            locale={locale}
             breadcrumbs={[
                 { name: i18n.home, href: `/${locale}` },
                 { name: `${fromName} → ${toName}`, href: url },

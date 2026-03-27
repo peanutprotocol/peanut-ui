@@ -32,7 +32,7 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className, size = 'sm
             case 'cancelled':
                 return 'bg-error-1 text-error border border-error-2'
             case 'refunded':
-                return 'bg-secondary-4 text-yellow-6 border border-yellow-7'
+                return 'bg-success-2 text-success-4 border border-success-5'
             case 'soon':
             case 'custom':
                 return 'bg-primary-3 text-primary-4'

@@ -10,9 +10,16 @@ interface QRCodeWrapperProps {
     isLoading?: boolean
     disabled?: boolean
     isBlurred?: boolean
+    centerImage?: string
 }
 
-const QRCodeWrapper = ({ url, isLoading = false, disabled = false, isBlurred = false }: QRCodeWrapperProps) => {
+const QRCodeWrapper = ({
+    url,
+    isLoading = false,
+    disabled = false,
+    isBlurred = false,
+    centerImage,
+}: QRCodeWrapperProps) => {
     const [qrRendered, setQrRendered] = useState(false)
 
     // Mark QR as rendered after a short delay to ensure it's painted on iOS
@@ -53,8 +60,8 @@ const QRCodeWrapper = ({ url, isLoading = false, disabled = false, isBlurred = f
                         {/* Centered Logo */}
                         <div className="absolute left-1/2 top-1/2 flex h-1/5 w-1/5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white p-0.5">
                             <Image
-                                src={PEANUTMAN_PFP}
-                                alt="profile image"
+                                src={centerImage ?? PEANUTMAN_PFP}
+                                alt="qr center logo"
                                 className="h-full w-full rounded-full object-contain"
                                 width={48}
                                 height={48}

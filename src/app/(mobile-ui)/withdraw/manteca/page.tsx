@@ -12,7 +12,6 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { mantecaApi, type WithdrawPriceLock } from '@/services/manteca'
 import { useCurrency } from '@/hooks/useCurrency'
-import { isTxReverted } from '@/utils/general.utils'
 import { loadingStateContext } from '@/context'
 import { countryData } from '@/components/AddMoney/consts'
 import Image from 'next/image'
@@ -27,7 +26,6 @@ import {
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import AmountInput from '@/components/Global/AmountInput'
 import { formatUnits, parseUnits } from 'viem'
-import type { TransactionReceipt, Hash } from 'viem'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { useAuth } from '@/context/authContext'
 import { useModalsContext } from '@/context/ModalsContext'
@@ -96,6 +94,7 @@ export default function MantecaWithdrawFlow() {
     // intent is passed at call time: handleInitiateKyc('LATAM')
     const sumsubFlow = useMultiPhaseKycFlow({})
     const [showKycModal, setShowKycModal] = useState(false)
+    const [isRedirectingToOnboarding, setIsRedirectingToOnboarding] = useState(false)
     // Get method and country from URL parameters
     const selectedMethodType = searchParams.get('method') // mercadopago, pix, bank-transfer, etc.
     const countryFromUrl = searchParams.get('country') // argentina, brazil, etc.
@@ -176,6 +175,29 @@ export default function MantecaWithdrawFlow() {
         return isValid
     }
 
+    /**
+     * Detect Manteca onboarding-incomplete errors and redirect user to complete their profile.
+     * Returns true if the error was handled (caller should return early).
+     */
+    const handleOnboardingError = useCallback(async (error: string): Promise<boolean> => {
+        const onboardingErrorPatterns = ['fund origin', 'profile incomplete', 'onboarding required']
+        const normalizedError = error.toLowerCase()
+        const isOnboardingError = onboardingErrorPatterns.some((pattern) => normalizedError.includes(pattern))
+        if (!isOnboardingError) return false
+
+        setIsRedirectingToOnboarding(true)
+        try {
+            const result = await mantecaApi.initiateOnboarding({
+                returnUrl: window.location.href,
+            })
+            window.location.href = result.url
+        } catch {
+            setErrorMessage('Please complete your account setup. Go to Settings to update your profile.')
+            setIsRedirectingToOnboarding(false)
+        }
+        return true
+    }, [])
+
     const isCompleteBankDetails = useMemo<boolean>(() => {
         return (
             !!destinationAddress.trim() &&
@@ -215,6 +237,7 @@ export default function MantecaWithdrawFlow() {
             })
 
             if (result.error) {
+                if (await handleOnboardingError(result.error)) return
                 setErrorMessage(result.error)
                 return
             }
@@ -244,6 +267,7 @@ export default function MantecaWithdrawFlow() {
         currencyAmount,
         isUserMantecaKycApproved,
         isLockingPrice,
+        handleOnboardingError,
     ])
 
     const handleWithdraw = async () => {
@@ -313,6 +337,9 @@ export default function MantecaWithdrawFlow() {
                     method_type: 'manteca',
                     error_message: result.error,
                 })
+
+                // handle onboarding-incomplete errors by redirecting to complete profile
+                if (await handleOnboardingError(result.message ?? result.error)) return
 
                 // handle third-party account error with user-friendly message
                 if (result.error === 'TAX_ID_MISMATCH' || result.error === 'CUIT_MISMATCH') {
@@ -401,7 +428,14 @@ export default function MantecaWithdrawFlow() {
         }
     }, [step, queryClient])
 
-    if (isCurrencyLoading || !currencyPrice || !selectedCountry) {
+    // redirect to withdraw page if country is not supported by manteca
+    useEffect(() => {
+        if (!selectedCountry || !MANTECA_COUNTRIES_CONFIG[selectedCountry.id]) {
+            router.replace('/withdraw')
+        }
+    }, [selectedCountry, router])
+
+    if (isCurrencyLoading || !currencyPrice || !selectedCountry || !countryConfig) {
         return <PeanutLoading />
     }
 
@@ -587,7 +621,7 @@ export default function MantecaWithdrawFlow() {
                             </div>
                             <div>
                                 <p className="flex items-center gap-1 text-center text-sm text-gray-600">
-                                    <Icon name="arrow-up" size={10} /> You're withdrawing
+                                    <Icon name="arrow-up" size={10} /> You're sending
                                 </p>
                                 <p className="text-2xl font-bold">
                                     {currencyCode} {formatNumberForDisplay(currencyAmount, { maxDecimals: 2 })}
@@ -664,13 +698,18 @@ export default function MantecaWithdrawFlow() {
                                 !isCompleteBankDetails ||
                                 isDestinationAddressChanging ||
                                 !isDestinationAddressValid ||
-                                isLockingPrice
+                                isLockingPrice ||
+                                isRedirectingToOnboarding
                             }
-                            loading={isDestinationAddressChanging || isLockingPrice}
+                            loading={isDestinationAddressChanging || isLockingPrice || isRedirectingToOnboarding}
                             className="w-full"
                             shadowSize="4"
                         >
-                            {isLockingPrice ? 'Locking rate...' : 'Review'}
+                            {isRedirectingToOnboarding
+                                ? 'Redirecting...'
+                                : isLockingPrice
+                                  ? 'Locking rate...'
+                                  : 'Review'}
                         </Button>
 
                         {errorMessage && <ErrorAlert description={errorMessage} />}
@@ -696,7 +735,7 @@ export default function MantecaWithdrawFlow() {
                             </div>
                             <div>
                                 <p className="flex items-center gap-1 text-center text-sm text-gray-600">
-                                    <Icon name="arrow-up" size={10} /> You're withdrawing
+                                    <Icon name="arrow-up" size={10} /> You're sending
                                 </p>
                                 <p className="text-2xl font-bold">
                                     {currencyCode}{' '}

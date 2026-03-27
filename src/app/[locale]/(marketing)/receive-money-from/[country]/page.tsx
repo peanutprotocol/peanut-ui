@@ -62,6 +62,7 @@ export default async function ReceiveMoneyPage({ params }: PageProps) {
 
     return (
         <ContentPage
+            locale={locale}
             breadcrumbs={[
                 { name: i18n.home, href: `/${locale}` },
                 { name: countryName, href: `/${locale}/receive-money-from/${country}` },
