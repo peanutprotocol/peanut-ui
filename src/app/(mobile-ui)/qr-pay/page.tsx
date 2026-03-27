@@ -712,12 +712,12 @@ export default function QRPayPage() {
 
             setQrPayment(qrPayment)
 
-            // Auto-claim small perks (<$0.50) — skip the hold-to-claim ceremony.
-            // The backend already claimed the perk at payment time, so this is just a UI shortcut.
+            // Auto-claim tiny perks (<$0.25) — skip the hold-to-claim ceremony.
+            // Surprise moments ($0.35, $0.65) and referral rewards go through hold-to-claim.
             if (
                 qrPayment.perk?.eligible &&
                 typeof qrPayment.perk.amountSponsored === 'number' &&
-                qrPayment.perk.amountSponsored < 0.5
+                qrPayment.perk.amountSponsored < 0.25
             ) {
                 setPerkClaimed(true)
             }
