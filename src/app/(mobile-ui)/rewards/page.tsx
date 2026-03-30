@@ -134,9 +134,7 @@ const PointsPage = () => {
                                             </p>
                                         </>
                                     ) : (
-                                        <p className="text-center text-sm text-grey-1">
-                                            No pending rewards right now.
-                                        </p>
+                                        <p className="text-center text-sm text-grey-1">No pending rewards right now.</p>
                                     )}
                                     <p className="mt-2 text-center text-sm text-grey-1">
                                         Lifetime rewards: ${lifetimeUsd.toFixed(2)}. To earn more, invite friends.
