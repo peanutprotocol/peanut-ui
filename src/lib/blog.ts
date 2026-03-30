@@ -1,13 +1,16 @@
 import matter from 'gray-matter'
-import { marked } from 'marked'
-import { createHighlighter, type Highlighter } from 'shiki'
 import fs from 'fs'
 import path from 'path'
+import { renderContent } from '@/lib/mdx'
 
 import type { Locale } from '@/i18n/types'
+import type { ReactNode } from 'react'
 
-function getBlogDir(locale: Locale = 'en') {
-    return path.join(process.cwd(), `src/content/blog/${locale}`)
+/** Blog content lives in the peanut-content submodule at src/content/content/blog/.
+ *  Structure: content/blog/{slug}/{locale}.md  (e.g. content/blog/pay-in-argentina/en.md)
+ */
+function getBlogDir() {
+    return path.join(process.cwd(), 'src/content/content/blog')
 }
 
 export interface BlogPost {
@@ -23,71 +26,49 @@ export interface BlogPost {
     content: string
 }
 
-// Singleton highlighter — created once, reused across all posts
-let _highlighter: Highlighter | null = null
-
-async function getHighlighter(): Promise<Highlighter> {
-    if (_highlighter) return _highlighter
-    _highlighter = await createHighlighter({
-        themes: ['github-light'],
-        langs: ['javascript', 'typescript', 'bash', 'json', 'yaml', 'html', 'css', 'python', 'solidity'],
-    })
-    return _highlighter
+function coerceDate(date: unknown): string {
+    if (date instanceof Date) return date.toISOString().split('T')[0]
+    return String(date ?? '')
 }
 
 export function getAllPosts(locale: Locale = 'en'): BlogPost[] {
-    const dir = getBlogDir(locale)
-    if (!fs.existsSync(dir)) return []
+    const blogDir = getBlogDir()
+    if (!fs.existsSync(blogDir)) return []
 
-    const files = fs.readdirSync(dir).filter((f) => f.endsWith('.md'))
-    return files
-        .map((file) => {
-            const raw = fs.readFileSync(path.join(dir, file), 'utf8')
+    const slugDirs = fs.readdirSync(blogDir).filter((f) => fs.statSync(path.join(blogDir, f)).isDirectory())
+
+    return slugDirs
+        .map((slug) => {
+            const filePath = path.join(blogDir, slug, `${locale}.md`)
+            if (!fs.existsSync(filePath)) return null
+
+            const raw = fs.readFileSync(filePath, 'utf8')
             const { data, content } = matter(raw)
             return {
-                slug: file.replace('.md', ''),
-                frontmatter: data as BlogPost['frontmatter'],
+                slug,
+                frontmatter: { ...data, date: coerceDate(data.date) } as BlogPost['frontmatter'],
                 content,
             }
         })
+        .filter((post): post is BlogPost => post !== null)
         .sort((a, b) => new Date(b.frontmatter.date).getTime() - new Date(a.frontmatter.date).getTime())
 }
 
 export async function getPostBySlug(
     slug: string,
     locale: Locale = 'en'
-): Promise<{ frontmatter: BlogPost['frontmatter']; html: string } | null> {
-    const filePath = path.join(getBlogDir(locale), `${slug}.md`)
+): Promise<{ frontmatter: BlogPost['frontmatter']; content: ReactNode } | null> {
+    const filePath = path.join(getBlogDir(), slug, `${locale}.md`)
     if (!fs.existsSync(filePath)) return null
 
     const raw = fs.readFileSync(filePath, 'utf8')
-    const { data, content } = matter(raw)
+    const { data, content: body } = matter(raw)
 
-    const highlighter = await getHighlighter()
+    const { content } = await renderContent(body)
 
-    // Custom renderer for code blocks with shiki syntax highlighting
-    const renderer = new marked.Renderer()
-    renderer.code = ({ text, lang }: { text: string; lang?: string }) => {
-        const language = lang || 'text'
-        try {
-            return highlighter.codeToHtml(text, {
-                lang: language,
-                theme: 'github-light',
-            })
-        } catch {
-            // Fallback for unsupported languages — escape HTML to prevent XSS
-            const escaped = text
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-            return `<pre><code class="language-${language}">${escaped}</code></pre>`
-        }
-    }
+    const frontmatter = { ...data, date: coerceDate(data.date) } as BlogPost['frontmatter']
 
-    const html = (await marked(content, { renderer })) as string
-
-    return { frontmatter: data as BlogPost['frontmatter'], html }
+    return { frontmatter, content }
 }
 
 export function getPostsByCategory(category: string, locale: Locale = 'en'): BlogPost[] {

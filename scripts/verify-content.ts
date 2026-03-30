@@ -564,8 +564,8 @@ function checkSubmoduleFreshness() {
     if (!fs.existsSync(contentGitDir)) return
 
     try {
-        const { execSync } = require('child_process')
-        const behindCount = execSync('git -C ' + ROOT + ' rev-list --count HEAD..origin/main 2>/dev/null', {
+        const { execFileSync } = require('child_process')
+        const behindCount = execFileSync('git', ['-C', ROOT, 'rev-list', '--count', 'HEAD..origin/main'], {
             encoding: 'utf-8',
         }).trim()
         const behind = parseInt(behindCount, 10)

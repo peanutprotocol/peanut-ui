@@ -724,16 +724,7 @@ export const countryData: CountryData[] = [
         iso3: 'CRI',
         region: 'latam',
     },
-    {
-        id: 'CU',
-        type: 'country',
-        title: 'Cuba',
-        currency: 'CUP',
-        path: 'cuba',
-        iso2: 'CU',
-        iso3: 'CUB',
-        region: 'north-america',
-    },
+
     {
         id: 'CV',
         type: 'country',
@@ -1294,16 +1285,7 @@ export const countryData: CountryData[] = [
         iso3: 'IRQ',
         region: 'rest-of-the-world',
     },
-    {
-        id: 'IR',
-        type: 'country',
-        title: 'Iran',
-        currency: 'IRR',
-        path: 'iran',
-        iso2: 'IR',
-        iso3: 'IRN',
-        region: 'rest-of-the-world',
-    },
+
     {
         id: 'ISL',
         type: 'country',
@@ -1424,16 +1406,7 @@ export const countryData: CountryData[] = [
         iso3: 'KNA',
         region: 'latam',
     },
-    {
-        id: 'KP',
-        type: 'country',
-        title: 'North Korea',
-        currency: 'KPW',
-        path: 'north-korea',
-        iso2: 'KP',
-        iso3: 'PRK',
-        region: 'rest-of-the-world',
-    },
+
     {
         id: 'KR',
         type: 'country',
@@ -1657,7 +1630,7 @@ export const countryData: CountryData[] = [
     {
         id: 'MK',
         type: 'country',
-        title: 'Macedonia',
+        title: 'North Macedonia',
         currency: 'MKD',
         path: 'macedonia',
         iso2: 'MK',
@@ -1674,16 +1647,7 @@ export const countryData: CountryData[] = [
         iso3: 'MLI',
         region: 'rest-of-the-world',
     },
-    {
-        id: 'MM',
-        type: 'country',
-        title: 'Myanmar',
-        currency: 'MMK',
-        path: 'myanmar',
-        iso2: 'MM',
-        iso3: 'MMR',
-        region: 'rest-of-the-world',
-    },
+
     {
         id: 'MN',
         type: 'country',
@@ -2124,16 +2088,7 @@ export const countryData: CountryData[] = [
         iso3: 'SRB',
         region: 'europe',
     },
-    {
-        id: 'RU',
-        type: 'country',
-        title: 'Russia',
-        currency: 'RUB',
-        path: 'russia',
-        iso2: 'RU',
-        iso3: 'RUS',
-        region: 'europe',
-    },
+
     {
         id: 'RW',
         type: 'country',
@@ -2334,16 +2289,7 @@ export const countryData: CountryData[] = [
         iso3: 'SXM',
         region: 'north-america',
     },
-    {
-        id: 'SY',
-        type: 'country',
-        title: 'Syria',
-        currency: 'SYP',
-        path: 'syria',
-        iso2: 'SY',
-        iso3: 'SYR',
-        region: 'rest-of-the-world',
-    },
+
     {
         id: 'SZ',
         type: 'country',
@@ -2736,7 +2682,6 @@ const LATAM_COUNTRY_CODES = [
     'CL',
     'CO',
     'CR',
-    'CU',
     'DO',
     'EC',
     'SV',
