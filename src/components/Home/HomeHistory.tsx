@@ -274,13 +274,16 @@ const HomeHistory = ({
         )
     }
 
-    // show empty state if no transactions exist
-    // hide empty activity section for pre-activation users (activation CTAs are shown above)
-    if (!isLoading && !combinedEntries.length) {
-        if (hideEmptyState && isViewingOwnHistory) {
-            return null
-        }
+    // check source data directly — combinedEntries lags behind due to async processing
+    const hasSourceEntries = (historyData?.entries?.length ?? 0) > 0 || wsHistoryEntries.length > 0
 
+    // hide empty activity for pre-activation users when there's genuinely nothing
+    if (!isLoading && !hasSourceEntries && hideEmptyState && isViewingOwnHistory) {
+        return null
+    }
+
+    // show empty state UI if no processed entries yet (but source data may still be processing)
+    if (!isLoading && !combinedEntries.length && !hasSourceEntries) {
         return (
             <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
                 <h2 className="text-base font-bold">Activity</h2>
