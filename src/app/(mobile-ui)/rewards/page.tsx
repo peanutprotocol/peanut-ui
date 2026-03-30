@@ -135,7 +135,7 @@ const PointsPage = () => {
                                         </>
                                     ) : (
                                         <p className="text-center text-sm text-grey-1">
-                                            No pending rewards right now. Invite friends to start earning!
+                                            No pending rewards right now.
                                         </p>
                                     )}
                                     <p className="mt-2 text-center text-sm text-grey-1">
