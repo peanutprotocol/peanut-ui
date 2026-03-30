@@ -75,6 +75,21 @@ export const ANALYTICS_EVENTS = {
     POINTS_PAGE_VIEWED: 'points_page_viewed',
     POINTS_EARNED: 'points_earned',
 
+    // ── Activation Funnel ──
+    ACTIVATION_STEP_VIEWED: 'activation_step_viewed',
+
+    // ── Surprise Moment (funnel handoff) ──
+    SURPRISE_MOMENT_SHOWN: 'surprise_moment_shown',
+
+    // ── Reward Claim Lifecycle ──
+    REWARD_CLAIM_SHOWN: 'reward_claim_shown',
+    REWARD_CLAIMED: 'reward_claimed',
+    REWARD_CLAIM_DISMISSED: 'reward_claim_dismissed',
+
+    // ── Referral Funnel ──
+    REFERRAL_CTA_SHOWN: 'referral_cta_shown',
+    REFERRAL_CTA_CLICKED: 'referral_cta_clicked',
+
     // ── Notifications ──
     NOTIFICATION_PERMISSION_REQUESTED: 'notification_permission_requested',
     NOTIFICATION_PERMISSION_GRANTED: 'notification_permission_granted',

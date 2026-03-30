@@ -204,6 +204,7 @@ const PaymentSuccessView = ({
             posthog.capture(ANALYTICS_EVENTS.POINTS_EARNED, {
                 points,
                 flow_type: isWithdrawFlow ? 'withdraw' : type?.toLowerCase(),
+                acquisition_source: authUser?.invitedBy ? 'referred' : 'organic',
             })
         }
     }, [points, isWithdrawFlow, type])

@@ -12,6 +12,7 @@ import { capturePasskeyDebugInfo } from '@/utils/passkeyDebug'
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { getFromCookie } from '@/utils/general.utils'
 import { twMerge } from 'tailwind-merge'
 
 const SignTestTransaction = () => {
@@ -131,7 +132,11 @@ const SignTestTransaction = () => {
 
                 // account setup complete - addAccount() already fetched and verified user data
                 console.log('[SignTestTransaction] Account setup complete, redirecting to the app')
-                posthog.capture(ANALYTICS_EVENTS.SIGNUP_COMPLETED)
+                const inviteCode = getFromCookie('inviteCode')
+                posthog.capture(ANALYTICS_EVENTS.SIGNUP_COMPLETED, {
+                    acquisition_source: inviteCode ? 'referred' : 'organic',
+                    invite_code: inviteCode || undefined,
+                })
 
                 // keep loading state active until redirect completes
             } else {

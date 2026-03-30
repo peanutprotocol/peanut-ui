@@ -4,6 +4,9 @@ import { PEANUTMAN_WAVING } from '@/assets'
 import ActionModal, { type ActionModalButtonProps } from '@/components/Global/ActionModal'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 interface ReferralCampaignModalProps {
     visible: boolean
@@ -13,7 +16,14 @@ interface ReferralCampaignModalProps {
 const ReferralCampaignModal: React.FC<ReferralCampaignModalProps> = ({ visible, onClose }) => {
     const router = useRouter()
 
+    useEffect(() => {
+        if (visible) {
+            posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_SHOWN, { source: 'campaign_modal' })
+        }
+    }, [visible])
+
     const handleInviteFriends = () => {
+        posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, { source: 'campaign_modal' })
         router.push('/send?createLink=true')
         onClose()
     }

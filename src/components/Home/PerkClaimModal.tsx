@@ -16,6 +16,8 @@ import InviteFriendsModal from '@/components/Global/InviteFriendsModal'
 import { useRouter } from 'next/navigation'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { useAuth } from '@/context/authContext'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 type ClaimPhase = 'idle' | 'holding' | 'opening' | 'revealed' | 'exiting'
 
@@ -47,6 +49,7 @@ interface PerkClaimModalProps {
  */
 export function PerkClaimModal({ perk, visible, onClose, onClaimed }: PerkClaimModalProps) {
     const queryClient = useQueryClient()
+    const { user } = useAuth()
     const [claimPhase, setClaimPhase] = useState<ClaimPhase>('idle')
     const [lastClaimedPerk, setLastClaimedPerk] = useState<PendingPerk | null>(null)
     const apiCallRef = useRef<Promise<void> | null>(null)
@@ -66,8 +69,21 @@ export function PerkClaimModal({ perk, visible, onClose, onClaimed }: PerkClaimM
         if (visible) {
             setClaimPhase('idle')
             setLastClaimedPerk(null)
+
+            const prefs = getUserPreferences(perk.id) // just need any stable key for claim count
+            const eventProps = { amount_usd: perk.amountUsd, perk_name: perk.name }
+            posthog.capture(ANALYTICS_EVENTS.REWARD_CLAIM_SHOWN, eventProps)
+
+            // Read claim count from user prefs to determine if this is a surprise moment
+            const claimCount = getUserPreferences(user?.user.userId ?? '')?.[SURPRISE_CLAIM_COUNT_KEY] ?? 0
+            if (claimCount < 2) {
+                posthog.capture(ANALYTICS_EVENTS.SURPRISE_MOMENT_SHOWN, {
+                    ...eventProps,
+                    claim_number: claimCount + 1,
+                })
+            }
         }
-    }, [visible, perk.id])
+    }, [visible, perk.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
     // Optimistic claim: trigger animation immediately, API call in background
     const handleHoldComplete = useCallback(async () => {
@@ -79,6 +95,11 @@ export function PerkClaimModal({ perk, visible, onClose, onClaimed }: PerkClaimM
             try {
                 const result = await perksApi.claimPerk(perk.id)
                 if (result.success) {
+                    posthog.capture(ANALYTICS_EVENTS.REWARD_CLAIMED, {
+                        amount_usd: perk.amountUsd,
+                        perk_name: perk.name,
+                        invitee_name: perk.inviteeName ?? extractInviteeName(perk.reason),
+                    })
                     onClaimed(perk.id)
                     queryClient.invalidateQueries({ queryKey: ['pendingPerks'] })
                     queryClient.invalidateQueries({ queryKey: ['transactions'] })
@@ -117,10 +138,14 @@ export function PerkClaimModal({ perk, visible, onClose, onClaimed }: PerkClaimM
         if (claimPhase === 'revealed') {
             handleDismissSuccess()
         } else if (claimPhase === 'idle') {
+            posthog.capture(ANALYTICS_EVENTS.REWARD_CLAIM_DISMISSED, {
+                amount_usd: perk.amountUsd,
+                perk_name: perk.name,
+            })
             onClose()
         }
         // Don't allow closing during opening/exiting phases
-    }, [claimPhase, handleDismissSuccess, onClose])
+    }, [claimPhase, handleDismissSuccess, onClose, perk])
 
     if (!visible) return null
 
@@ -235,6 +260,9 @@ function SuccessModal({ perk, claimPhase, onClose, onDismiss }: SuccessModalProp
                                             shadowSize="4"
                                             className="w-full"
                                             onClick={() => {
+                                                posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
+                                                    source: 'surprise_moment',
+                                                })
                                                 onDismiss()
                                                 setIsInviteModalOpen(true)
                                             }}

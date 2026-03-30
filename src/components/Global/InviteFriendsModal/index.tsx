@@ -32,6 +32,7 @@ export default function InviteFriendsModal({ visible, onClose, username, source 
         if (visible && !hasTrackedShow.current) {
             hasTrackedShow.current = true
             posthog.capture(ANALYTICS_EVENTS.MODAL_SHOWN, { modal_type: MODAL_TYPES.INVITE, source })
+            posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_SHOWN, { source: source ?? 'invite_modal' })
         }
     }, [visible, source])
 
