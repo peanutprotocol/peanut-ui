@@ -17,7 +17,7 @@ import { useRouter } from 'next/navigation'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { useAuth } from '@/context/authContext'
 import posthog from 'posthog-js'
-import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts'
 
 type ClaimPhase = 'idle' | 'holding' | 'opening' | 'revealed' | 'exiting'
 
@@ -262,7 +262,7 @@ function SuccessModal({ perk, claimPhase, onClose, onDismiss }: SuccessModalProp
                                             className="w-full"
                                             onClick={() => {
                                                 posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
-                                                    source: 'surprise_moment',
+                                                    source: REFERRAL_SOURCES.SURPRISE_MOMENT,
                                                 })
                                                 onDismiss()
                                                 setIsInviteModalOpen(true)

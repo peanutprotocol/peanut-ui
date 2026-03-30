@@ -5,7 +5,7 @@ import Card from '@/components/Global/Card'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import ShareButton from '@/components/Global/ShareButton'
 import { generateInviteCodeLink, generateInvitesShareText } from '@/utils/general.utils'
-import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
+import { ANALYTICS_EVENTS, MODAL_TYPES, REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import posthog from 'posthog-js'
 import { useEffect, useRef } from 'react'
 import QRCode from 'react-qr-code'
@@ -32,7 +32,7 @@ export default function InviteFriendsModal({ visible, onClose, username, source 
         if (visible && !hasTrackedShow.current) {
             hasTrackedShow.current = true
             posthog.capture(ANALYTICS_EVENTS.MODAL_SHOWN, { modal_type: MODAL_TYPES.INVITE, source })
-            posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_SHOWN, { source: source ?? 'invite_modal' })
+            posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_SHOWN, { source: source ?? REFERRAL_SOURCES.INVITE_MODAL })
         }
     }, [visible, source])
 
@@ -79,7 +79,7 @@ export default function InviteFriendsModal({ visible, onClose, username, source 
                         onSuccess={() => {
                             posthog.capture(ANALYTICS_EVENTS.INVITE_LINK_SHARED, { source })
                             posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
-                                source: source ?? 'invite_modal',
+                                source: source ?? REFERRAL_SOURCES.INVITE_MODAL,
                             })
                         }}
                     >

@@ -126,4 +126,14 @@ export const MODAL_TYPES = {
     INVITE: 'invite',
 } as const
 
+/**
+ * Valid source values for REFERRAL_CTA_SHOWN / REFERRAL_CTA_CLICKED events.
+ */
+export const REFERRAL_SOURCES = {
+    FLOATING_BUTTON: 'floating_button',
+    CAMPAIGN_MODAL: 'campaign_modal',
+    INVITE_MODAL: 'invite_modal',
+    SURPRISE_MOMENT: 'surprise_moment',
+} as const
+
 export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[keyof typeof ANALYTICS_EVENTS]
