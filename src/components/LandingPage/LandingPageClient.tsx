@@ -1,7 +1,7 @@
 'use client'
 
 import { useFooterVisibility } from '@/context/footerVisibility'
-import { useEffect, useState, useRef, useCallback, type ReactNode } from 'react'
+import { Suspense, useEffect, useState, useRef, useCallback, type ReactNode } from 'react'
 import { DropLink, FAQs, Hero, Marquee, NoFees, CardPioneers } from '@/components/LandingPage'
 import TweetCarousel from '@/components/LandingPage/TweetCarousel'
 import { StickyMobileCTA } from '@/components/LandingPage/StickyMobileCTA'
@@ -208,7 +208,12 @@ export function LandingPageClient({
             <Marquee {...marqueeProps} />
             <div ref={sendInSecondsRef}>{sendInSecondsSlot}</div>
             <Marquee {...marqueeProps} />
-            <NoFees />
+            {/* Suspense needed: NoFees renders ExchangeRateWidget which uses useSearchParams().
+               Without this boundary, the entire LandingPageClient suspends during SSR,
+               sending an empty HTML shell to crawlers and killing SEO. */}
+            <Suspense>
+                <NoFees />
+            </Suspense>
             <Marquee {...marqueeProps} />
             <FAQs heading={faqData.heading} questions={faqData.questions} marquee={faqData.marquee} />
             <Marquee {...marqueeProps} />

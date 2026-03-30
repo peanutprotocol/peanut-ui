@@ -163,7 +163,7 @@ let nextConfig = {
                 headers: [
                     {
                         key: 'Permissions-Policy',
-                        value: 'camera=(self "*"), microphone=(self "*"), clipboard-read=(self), clipboard-write=(self)',
+                        value: 'camera=*, microphone=*, clipboard-read=(self), clipboard-write=(self)',
                     },
                     // Security headers - prevents clickjacking and other attacks
                     // Using frame-ancestors instead of X-Frame-Options to allow specific domains
