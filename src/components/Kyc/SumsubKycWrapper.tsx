@@ -94,6 +94,9 @@ export const SumsubKycWrapper = ({
             }
         }
 
+        // declared outside try so cleanup can access it
+        let iframeObserver: MutationObserver | null = null
+
         try {
             // track sdk init time so we can ignore stale onApplicantStatusChanged events
             // that fire immediately when the applicant is already approved (e.g. additional-docs flow)
@@ -151,12 +154,33 @@ export const SumsubKycWrapper = ({
 
             sdk.launch(sdkContainerRef.current)
             sdkInstanceRef.current = sdk
+
+            // ensure the sdk-created iframe gets camera/microphone permissions.
+            // some sdk versions don't set the allow attribute, which blocks
+            // media device access in cross-origin iframes.
+            iframeObserver = new MutationObserver((mutations) => {
+                for (const mutation of mutations) {
+                    for (const node of mutation.addedNodes) {
+                        if (node instanceof HTMLIFrameElement && !node.allow?.includes('camera')) {
+                            node.allow = 'camera; microphone; fullscreen'
+                        }
+                    }
+                }
+            })
+            iframeObserver.observe(sdkContainerRef.current, { childList: true })
+
+            // also patch any iframe that was added before the observer
+            const existingIframe = sdkContainerRef.current.querySelector('iframe')
+            if (existingIframe && !existingIframe.allow?.includes('camera')) {
+                existingIframe.allow = 'camera; microphone; fullscreen'
+            }
         } catch (error) {
             console.error('[sumsub] failed to initialize sdk', error)
             stableOnError(error)
         }
 
         return () => {
+            iframeObserver?.disconnect()
             if (sdkInstanceRef.current) {
                 try {
                     sdkInstanceRef.current.destroy()
