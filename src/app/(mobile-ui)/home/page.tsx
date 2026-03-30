@@ -89,6 +89,11 @@ export default function Home() {
         return sessionStorage.getItem('showNoMoreJailModal') === 'true'
     })
 
+    // re-fetch user on mount to pick up activation status changes (e.g. after QR payment)
+    useEffect(() => {
+        fetchUser()
+    }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
     // sync modal state with user data when it changes
     useEffect(() => {
         if (user?.user.showKycCompletedModal !== undefined) {

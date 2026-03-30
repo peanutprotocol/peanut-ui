@@ -119,7 +119,7 @@ const AddMoneyCryptoPage = () => {
             depositAddressData={depositAddressData}
             isLoading={isLoading}
             onSuccess={handleSuccess}
-            onBack={() => router.push('/add-money')}
+            onBack={() => router.back()}
         />
     )
 }

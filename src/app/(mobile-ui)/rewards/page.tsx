@@ -114,45 +114,43 @@ const PointsPage = () => {
             <NavHeader title="Rewards" onPrev={() => router.back()} />
 
             <section className="mx-auto mb-auto mt-10 w-full space-y-4">
-                {/* rewards hero — $ amount is primary, points de-emphasized */}
+                {/* rewards hero — pending claimable as primary, lifetime as secondary */}
                 <Card className="flex flex-col gap-4 p-6">
-                    {cashStatus?.success && cashStatus.data && (
-                        <div className="flex flex-col items-center gap-3">
-                            {cashStatus.data.rewards ? (
-                                <>
-                                    <p className="text-sm text-grey-1">Lifetime rewards earned</p>
-                                    <h2 className="text-4xl font-black text-black">
-                                        ${cashStatus.data.rewards.lifetimeEarnedUsd.toFixed(2)}
-                                    </h2>
-                                    {cashStatus.data.rewards.pendingUsd > 0 && (
-                                        <p className="text-center text-sm text-grey-1">
-                                            You have ${cashStatus.data.rewards.pendingUsd.toFixed(2)} in pending
-                                            rewards. Make a payment to claim.
-                                        </p>
-                                    )}
-                                </>
-                            ) : (
-                                <>
-                                    <p className="text-sm text-grey-1">Lifetime cashback claimed</p>
-                                    <h2 className="text-4xl font-black text-black">
-                                        ${cashStatus.data.lifetimeEarned.toFixed(2)}
-                                    </h2>
-                                </>
-                            )}
-                        </div>
-                    )}
+                    {cashStatus?.success &&
+                        cashStatus.data &&
+                        (() => {
+                            const rewards = cashStatus.data.rewards
+                            const pendingUsd = rewards?.pendingUsd ?? 0
+                            const lifetimeUsd = rewards?.lifetimeEarnedUsd ?? cashStatus.data.lifetimeEarned
 
-                    <div className="flex flex-col items-center gap-2">
-                        <p className="text-sm text-grey-1">Invite friends to earn more rewards</p>
-                        <Button
-                            variant="purple"
-                            shadowSize="4"
-                            onClick={() => setIsInviteModalOpen(true)}
-                            className="w-full"
-                        >
-                            Invite Now
-                        </Button>
-                    </div>
+                            return (
+                                <div className="flex flex-col items-center gap-1">
+                                    {pendingUsd > 0 ? (
+                                        <>
+                                            <p className="text-sm text-grey-1">You have</p>
+                                            <h2 className="text-4xl font-black text-black">${pendingUsd.toFixed(2)}</h2>
+                                            <p className="text-center text-sm text-grey-1">
+                                                waiting for you. Start spending to claim.
+                                            </p>
+                                        </>
+                                    ) : (
+                                        <p className="text-center text-sm text-grey-1">No pending rewards right now.</p>
+                                    )}
+                                    <p className="mt-2 text-center text-sm text-grey-1">
+                                        Lifetime rewards: ${lifetimeUsd.toFixed(2)}. To earn more, invite friends.
+                                    </p>
+                                </div>
+                            )
+                        })()}
+
+                    <Button
+                        variant="purple"
+                        shadowSize="4"
+                        onClick={() => setIsInviteModalOpen(true)}
+                        className="w-full"
+                    >
+                        Invite Now
+                    </Button>
 
                     <div className="border-t border-grey-2" />
 

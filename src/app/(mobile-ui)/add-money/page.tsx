@@ -41,13 +41,9 @@ export default function AddMoneyPage() {
             return
         }
 
-        const isInternalReferrer = checkIfInternalNavigation()
-
-        if (isInternalReferrer && window.history.length > 1) {
-            router.back()
-        } else {
-            router.push('/home')
-        }
+        // always navigate to /home from root add-money page — router.back() causes
+        // loops because sub-pages (crypto, country) are in the history stack
+        router.push('/home')
     }
 
     const handleCountryClick = (country: CountryData) => {

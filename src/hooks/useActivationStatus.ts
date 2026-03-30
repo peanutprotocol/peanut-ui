@@ -43,12 +43,12 @@ export function useActivationStatus(): ActivationStatus {
         const isActivated = user.user.isActivated ?? false
         const activatedAt = user.user.activatedAt ?? null
 
-        // Use BE activationMilestone when available, otherwise derive locally
+        // derive activation step from BE milestone + local balance
         const beMilestone = user.user.activationMilestone
+        const hasBalance = balance !== undefined && balance !== null && Number(balance) > 0
         let activationStep: ActivationStep = 'completed'
         if (!isActivated) {
             if (beMilestone) {
-                // Map BE milestone to FE step
                 const milestoneToStep: Record<string, ActivationStep> = {
                     registered: 'verify',
                     verified: 'deposit',
@@ -56,12 +56,16 @@ export function useActivationStatus(): ActivationStatus {
                     activated: 'completed',
                 }
                 activationStep = milestoneToStep[beMilestone] ?? 'verify'
+                // BE hasFunded only checks bridge/manteca deposits, not P2P or crypto.
+                // if BE says "deposit" but user has balance (e.g. received via direct transfer),
+                // skip to outbound step.
+                if (activationStep === 'deposit' && hasBalance) {
+                    activationStep = 'outbound'
+                }
             } else {
-                // Fallback: derive locally from KYC + balance
                 if (!isUserKycApproved) {
                     activationStep = 'verify'
                 } else {
-                    const hasBalance = balance !== undefined && balance !== null && Number(balance) > 0
                     activationStep = hasBalance ? 'outbound' : 'deposit'
                 }
             }
