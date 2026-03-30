@@ -45,9 +45,7 @@ const HomeCarouselCTA = () => {
     // Referral rewards and surprise moments are claimed inline after QR payment, not from home.
     const claimablePerks = useMemo(() => {
         return (
-            pendingPerksData?.perks?.filter(
-                (p) => !claimedPerkIds.has(p.id) && p.name?.includes('Card Pioneer')
-            ) || []
+            pendingPerksData?.perks?.filter((p) => !claimedPerkIds.has(p.id) && p.name?.includes('Card Pioneer')) || []
         )
     }, [pendingPerksData?.perks, claimedPerkIds])
 
