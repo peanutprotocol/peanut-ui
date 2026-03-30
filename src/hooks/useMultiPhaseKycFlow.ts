@@ -46,7 +46,8 @@ interface UseMultiPhaseKycFlowOptions {
  * for the modal rendering.
  */
 export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: UseMultiPhaseKycFlowOptions) => {
-    const { fetchUser } = useAuth()
+    const { fetchUser, user } = useAuth()
+    const acquisitionSource = user?.invitedBy ? 'referred' : 'organic'
 
     // multi-phase modal state
     const [modalPhase, setModalPhase] = useState<KycModalPhase>('verifying')
@@ -78,7 +79,7 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
     const completeFlow = useCallback(() => {
         posthog.capture(
             regionIntent === 'LATAM' ? ANALYTICS_EVENTS.MANTECA_KYC_COMPLETED : ANALYTICS_EVENTS.KYC_APPROVED,
-            { region_intent: regionIntent }
+            { region_intent: regionIntent, acquisition_source: acquisitionSource }
         )
         isRealtimeFlowRef.current = false
         setForceShowModal(false)
@@ -91,7 +92,7 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
         stopTracking()
         closeVerificationModalRef.current()
         onKycSuccess?.()
-    }, [onKycSuccess, clearPreparingTimer, stopTracking, regionIntent])
+    }, [onKycSuccess, clearPreparingTimer, stopTracking, regionIntent, acquisitionSource])
 
     // called when sumsub status transitions to APPROVED
     const handleSumsubApproved = useCallback(async () => {
@@ -173,7 +174,7 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
             const intent = overrideIntent ?? regionIntent
             posthog.capture(
                 intent === 'LATAM' ? ANALYTICS_EVENTS.MANTECA_KYC_INITIATED : ANALYTICS_EVENTS.KYC_INITIATED,
-                { region_intent: intent }
+                { region_intent: intent, acquisition_source: acquisitionSource }
             )
 
             setModalPhase('verifying')
@@ -187,7 +188,7 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
 
             await originalHandleInitiateKyc(overrideIntent, levelName)
         },
-        [originalHandleInitiateKyc, clearPreparingTimer, regionIntent]
+        [originalHandleInitiateKyc, clearPreparingTimer, regionIntent, acquisitionSource]
     )
 
     // 30s timeout for preparing phase

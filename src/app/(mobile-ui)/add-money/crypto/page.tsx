@@ -46,11 +46,12 @@ const AddMoneyCryptoPage = () => {
                 amount,
                 chain_type: network,
                 method_type: 'crypto',
+                acquisition_source: user?.invitedBy ? 'referred' : 'organic',
             })
             setDepositResult(statusData ?? { status: 'completed', amount })
             setShowSuccessView(true)
         },
-        [network]
+        [network, user?.invitedBy]
     )
 
     // build minimal transaction details for the receipt drawer

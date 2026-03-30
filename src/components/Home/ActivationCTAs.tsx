@@ -6,6 +6,9 @@ import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import { useRouter } from 'next/navigation'
 import { useModalsContext } from '@/context/ModalsContext'
 import Card from '../Global/Card'
+import { useEffect, useRef } from 'react'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 interface ActivationCTAsProps {
     activationStep: ActivationStep
@@ -45,6 +48,16 @@ const STEPS: Record<
 export default function ActivationCTAs({ activationStep }: ActivationCTAsProps) {
     const router = useRouter()
     const { setIsQRScannerOpen } = useModalsContext()
+
+    const lastTrackedStep = useRef<ActivationStep | null>(null)
+    useEffect(() => {
+        if (activationStep !== 'completed' && activationStep !== lastTrackedStep.current) {
+            lastTrackedStep.current = activationStep
+            posthog.capture(ANALYTICS_EVENTS.ACTIVATION_STEP_VIEWED, {
+                step: activationStep,
+            })
+        }
+    }, [activationStep])
 
     if (activationStep === 'completed') return null
 
