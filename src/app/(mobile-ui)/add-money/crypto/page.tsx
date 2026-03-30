@@ -51,7 +51,7 @@ const AddMoneyCryptoPage = () => {
             setDepositResult(statusData ?? { status: 'completed', amount })
             setShowSuccessView(true)
         },
-        [network]
+        [network, user?.invitedBy]
     )
 
     // build minimal transaction details for the receipt drawer

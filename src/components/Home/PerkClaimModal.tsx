@@ -70,12 +70,12 @@ export function PerkClaimModal({ perk, visible, onClose, onClaimed }: PerkClaimM
             setClaimPhase('idle')
             setLastClaimedPerk(null)
 
-            const prefs = getUserPreferences(perk.id) // just need any stable key for claim count
             const eventProps = { amount_usd: perk.amountUsd, perk_name: perk.name }
             posthog.capture(ANALYTICS_EVENTS.REWARD_CLAIM_SHOWN, eventProps)
 
             // Read claim count from user prefs to determine if this is a surprise moment
-            const claimCount = getUserPreferences(user?.user.userId ?? '')?.[SURPRISE_CLAIM_COUNT_KEY] ?? 0
+            const userId = user?.user.userId ?? ''
+            const claimCount = getUserPreferences(userId)?.[SURPRISE_CLAIM_COUNT_KEY] ?? 0
             if (claimCount < 2) {
                 posthog.capture(ANALYTICS_EVENTS.SURPRISE_MOMENT_SHOWN, {
                     ...eventProps,
@@ -83,7 +83,8 @@ export function PerkClaimModal({ perk, visible, onClose, onClaimed }: PerkClaimM
                 })
             }
         }
-    }, [visible, perk.id]) // eslint-disable-line react-hooks/exhaustive-deps
+        // perk props and user are stable while modal is open — deps kept minimal to fire once per open
+    }, [visible, perk.id, perk.amountUsd, perk.name, user?.user.userId])
 
     // Optimistic claim: trigger animation immediately, API call in background
     const handleHoldComplete = useCallback(async () => {

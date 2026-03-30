@@ -92,7 +92,7 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
         stopTracking()
         closeVerificationModalRef.current()
         onKycSuccess?.()
-    }, [onKycSuccess, clearPreparingTimer, stopTracking, regionIntent])
+    }, [onKycSuccess, clearPreparingTimer, stopTracking, regionIntent, acquisitionSource])
 
     // called when sumsub status transitions to APPROVED
     const handleSumsubApproved = useCallback(async () => {
@@ -188,7 +188,7 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
 
             await originalHandleInitiateKyc(overrideIntent, levelName)
         },
-        [originalHandleInitiateKyc, clearPreparingTimer, regionIntent]
+        [originalHandleInitiateKyc, clearPreparingTimer, regionIntent, acquisitionSource]
     )
 
     // 30s timeout for preparing phase

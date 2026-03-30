@@ -76,7 +76,12 @@ export default function InviteFriendsModal({ visible, onClose, username, source 
                     <ShareButton
                         generateText={() => Promise.resolve(generateInvitesShareText(inviteLink))}
                         title="Share your invite link"
-                        onSuccess={() => posthog.capture(ANALYTICS_EVENTS.INVITE_LINK_SHARED, { source })}
+                        onSuccess={() => {
+                            posthog.capture(ANALYTICS_EVENTS.INVITE_LINK_SHARED, { source })
+                            posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
+                                source: source ?? 'invite_modal',
+                            })
+                        }}
                     >
                         Share Invite Link
                     </ShareButton>

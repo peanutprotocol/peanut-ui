@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
@@ -9,8 +9,13 @@ interface FloatingReferralButtonProps {
 }
 
 const FloatingReferralButton: React.FC<FloatingReferralButtonProps> = ({ onClick }) => {
+    const hasTrackedShow = useRef(false)
+
     useEffect(() => {
-        posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_SHOWN, { source: 'floating_button' })
+        if (!hasTrackedShow.current) {
+            hasTrackedShow.current = true
+            posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_SHOWN, { source: 'floating_button' })
+        }
     }, [])
 
     return (

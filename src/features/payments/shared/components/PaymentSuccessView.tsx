@@ -207,7 +207,7 @@ const PaymentSuccessView = ({
                 acquisition_source: authUser?.invitedBy ? 'referred' : 'organic',
             })
         }
-    }, [points, isWithdrawFlow, type])
+    }, [points, isWithdrawFlow, type, authUser?.invitedBy])
 
     useEffect(() => {
         // invalidate queries to refetch history
