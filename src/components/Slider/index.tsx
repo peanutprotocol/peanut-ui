@@ -5,10 +5,11 @@ import * as SliderPrimitive from '@radix-ui/react-slider'
 import { twMerge } from 'tailwind-merge'
 import { Icon } from '../Global/Icons/Icon'
 
-export interface SliderProps extends Omit<
-    React.ComponentPropsWithoutRef<typeof SliderPrimitive.Root>,
-    'value' | 'onValueChange' | 'max' | 'step' | 'defaultValue'
-> {
+export interface SliderProps
+    extends Omit<
+        React.ComponentPropsWithoutRef<typeof SliderPrimitive.Root>,
+        'value' | 'onValueChange' | 'max' | 'step' | 'defaultValue'
+    > {
     value?: boolean
     onValueChange?: (value: boolean) => void
     defaultValue?: boolean
