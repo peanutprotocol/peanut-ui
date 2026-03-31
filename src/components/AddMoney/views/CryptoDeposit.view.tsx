@@ -37,9 +37,9 @@ interface CryptoDepositViewProps {
 }
 
 const TOOLTIP_TEXT: Record<RhinoChainType, string> = {
-    EVM: `This is Universal Address for ${SUPPORTED_EVM_CHAINS.length} EVM Networks`,
-    SOL: 'This is your Solana deposit address',
-    TRON: 'This is your Tron deposit address',
+    EVM: `${SUPPORTED_EVM_CHAINS.length} EVM networks supported. For exact amounts, deposit USDC on Arbitrum. Other chains/tokens are bridged (±0.1%).`,
+    SOL: 'Your Solana deposit address. Deposits are bridged to Arbitrum (±0.1% variance).',
+    TRON: 'Your Tron deposit address. Deposits are bridged to Arbitrum (±0.1% variance).',
 }
 
 const CryptoDepositView = ({ network, depositAddressData, isLoading, onSuccess, onBack }: CryptoDepositViewProps) => {
