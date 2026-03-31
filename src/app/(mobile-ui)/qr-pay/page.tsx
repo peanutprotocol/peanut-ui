@@ -712,15 +712,8 @@ export default function QRPayPage() {
 
             setQrPayment(qrPayment)
 
-            // Auto-claim tiny perks (<$0.25) — skip the hold-to-claim ceremony.
-            // Surprise moments ($0.35, $0.65) and referral rewards go through hold-to-claim.
-            if (
-                qrPayment.perk?.eligible &&
-                typeof qrPayment.perk.amountSponsored === 'number' &&
-                qrPayment.perk.amountSponsored < 0.25
-            ) {
-                setPerkClaimed(true)
-            }
+            // all eligible perks go through hold-to-claim — no auto-claiming.
+            // this ensures a consistent reward experience regardless of amount.
 
             setIsSuccess(true)
         } catch (error) {
@@ -1356,17 +1349,26 @@ export default function QRPayPage() {
                             </Button>
                         ) : (
                             <>
-                                <Button
-                                    onClick={() => {
-                                        router.push(
-                                            `/request?amount=${formatNumberForDisplay(usdAmount ?? undefined, { maxDecimals: 2 })}&merchant=${qrPayment!.details.merchant.name}`
-                                        )
-                                    }}
-                                    icon="split"
-                                    shadowSize="4"
-                                >
-                                    Split this bill
-                                </Button>
+                                {/* after claiming a reward, primary CTA is "Done" — not "Split this bill" */}
+                                {perkClaimed || qrPayment?.perk?.claimed ? (
+                                    <Button shadowSize="4" onClick={() => router.push('/home')}>
+                                        Go to Home
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        onClick={() => {
+                                            const params = new URLSearchParams({
+                                                amount: String(usdAmount ?? ''),
+                                                merchant: qrPayment!.details.merchant.name,
+                                            })
+                                            router.push(`/request?${params.toString()}`)
+                                        }}
+                                        icon="split"
+                                        shadowSize="4"
+                                    >
+                                        Split this bill
+                                    </Button>
+                                )}
                                 <Button
                                     variant="primary-soft"
                                     shadowSize="4"

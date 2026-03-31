@@ -1,92 +1,160 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 /**
- * NETWORK RESILIENCE: Detects online/offline status using navigator.onLine
+ * NETWORK RESILIENCE: Detects online/offline status with fetch verification.
  *
- * ⚠️ LIMITATION: navigator.onLine has false positives (WiFi connected but no internet,
- * captive portals, VPN/firewall issues). Use as UI hint only. TanStack Query's network
- * detection tests actual connectivity and is more reliable for request retries.
+ * navigator.onLine is unreliable on some desktop browsers (Brave especially) — it
+ * reports false negatives (says offline when user is online) due to shields, VPN,
+ * multiple network adapters, etc. Mobile browsers are more reliable since they
+ * directly control the network radio.
  *
- * 🔄 AUTO-RELOAD: When connection is restored, page automatically reloads to fetch fresh data
+ * Strategy:
+ *   navigator.onLine === true  → trust it (user is online)
+ *   navigator.onLine === false → verify with HEAD fetch to /favicon.ico
+ *     → fetch succeeds → user is online (navigator lied)
+ *     → fetch fails    → user is truly offline → show offline screen
  *
- * @returns isOnline - Current connection status per navigator.onLine
- * @returns wasOffline - Deprecated (kept for backward compatibility, always false)
- * @returns isInitialized - True after component has mounted (prevents showing offline screen on initial load)
+ * @returns isOnline - Current verified connection status
+ * @returns isInitialized - True after initial connectivity check completes
  */
+
+const VERIFICATION_TIMEOUT_MS = 3000
+
+/**
+ * verify actual connectivity by fetching a static asset.
+ * uses HEAD /favicon.ico with cache-busting to bypass browser http cache.
+ * the service worker may still serve from its cache — that's intentional:
+ * if the SW can serve assets, the app is functional.
+ */
+export async function verifyConnectivity(): Promise<boolean> {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), VERIFICATION_TIMEOUT_MS)
+
+    try {
+        const response = await fetch(`/favicon.ico?_cb=${Date.now()}`, {
+            method: 'HEAD',
+            cache: 'no-store',
+            signal: controller.signal,
+        })
+        return response.ok
+    } catch {
+        return false
+    } finally {
+        clearTimeout(timeoutId)
+    }
+}
+
 export function useNetworkStatus() {
-    const [isOnline, setIsOnline] = useState<boolean>(() =>
-        typeof navigator !== 'undefined' ? navigator.onLine : true
-    )
-    const [wasOffline, setWasOffline] = useState<boolean>(false)
+    const [isOnline, setIsOnline] = useState<boolean>(true)
     const [isInitialized, setIsInitialized] = useState<boolean>(false)
 
+    // ref to track latest online state inside event handlers without stale closures
+    const isOnlineRef = useRef<boolean>(true)
+
+    // prevent concurrent verification fetches
+    const isVerifyingRef = useRef<boolean>(false)
+    // generation counter to invalidate stale offline verifications
+    const verificationGenRef = useRef<number>(0)
+
+    // prevent reload loops from rapid navigator.onLine flickers
+    const reloadScheduledRef = useRef<boolean>(false)
+
     useEffect(() => {
-        let timeoutId: ReturnType<typeof setTimeout> | null = null
-        let pollIntervalId: ReturnType<typeof setInterval> | null = null
+        let mounted = true
+        let initTimeoutId: ReturnType<typeof setTimeout> | null = null
 
-        const handleOnline = () => {
-            setIsOnline(true)
-            // reload immediately when connection is restored to get fresh content
-            // skip the "back online" screen for faster/cleaner ux
-            window.location.reload()
+        const updateOnlineStatus = (online: boolean) => {
+            if (!mounted) return
+            isOnlineRef.current = online
+            setIsOnline(online)
         }
 
-        const handleOffline = () => {
-            setIsOnline(false)
-            setWasOffline(false)
-            if (timeoutId) {
-                clearTimeout(timeoutId)
-                timeoutId = null
-            }
-        }
+        // when navigator.onLine reports offline, verify with a real fetch
+        // before showing the offline screen. catches brave/desktop false negatives.
+        const handlePossiblyOffline = async () => {
+            if (isVerifyingRef.current) return
+            isVerifyingRef.current = true
+            const generation = ++verificationGenRef.current
 
-        // check current status after mount and mark as initialized
-        const checkOnlineStatus = () => {
-            const currentStatus = navigator.onLine
-            if (currentStatus !== isOnline) {
-                if (currentStatus) {
-                    handleOnline()
+            try {
+                const reallyOnline = await verifyConnectivity()
+                // ignore stale result if handleOnline() fired while we were verifying
+                if (!mounted || generation !== verificationGenRef.current) return
+
+                if (reallyOnline) {
+                    updateOnlineStatus(true)
                 } else {
-                    handleOffline()
+                    updateOnlineStatus(false)
+                }
+            } finally {
+                if (generation === verificationGenRef.current) {
+                    isVerifyingRef.current = false
                 }
             }
         }
 
-        // initial check and mark as initialized after short delay
-        // this ensures we catch the actual status after mount
-        setTimeout(() => {
-            checkOnlineStatus()
-            setIsInitialized(true)
-        }, 100)
+        const handleOnline = () => {
+            // invalidate any in-flight offline verification
+            verificationGenRef.current++
+            isVerifyingRef.current = false
+            const wasShowingOffline = !isOnlineRef.current
+            updateOnlineStatus(true)
 
-        // poll every 2 seconds to catch DevTools offline toggle
-        // necessary because online/offline events don't always fire reliably in DevTools
-        pollIntervalId = setInterval(checkOnlineStatus, 2000)
-
-        // listen to standard events (works in production/real network changes)
-        window.addEventListener('online', handleOnline)
-        window.addEventListener('offline', handleOffline)
-
-        // also check on visibility change (user returns to tab)
-        const handleVisibilityChange = () => {
-            if (!document.hidden) {
-                checkOnlineStatus()
+            // reload to get fresh content, but only if we were showing the offline
+            // screen. short delay avoids reload loops from rapid flickers.
+            if (wasShowingOffline && !reloadScheduledRef.current) {
+                reloadScheduledRef.current = true
+                setTimeout(() => {
+                    if (mounted && isOnlineRef.current) {
+                        window.location.reload()
+                    }
+                    reloadScheduledRef.current = false
+                }, 1000)
             }
         }
+
+        const handleOffline = () => {
+            handlePossiblyOffline()
+        }
+
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                if (!navigator.onLine) {
+                    handlePossiblyOffline()
+                } else if (!isOnlineRef.current) {
+                    // was showing offline but navigator now says online
+                    handleOnline()
+                }
+            }
+        }
+
+        // initial check after hydration settles
+        initTimeoutId = setTimeout(async () => {
+            if (!mounted) return
+
+            if (navigator.onLine) {
+                updateOnlineStatus(true)
+            } else {
+                await handlePossiblyOffline()
+            }
+
+            if (mounted) {
+                setIsInitialized(true)
+            }
+        }, 100)
+
+        window.addEventListener('online', handleOnline)
+        window.addEventListener('offline', handleOffline)
         document.addEventListener('visibilitychange', handleVisibilityChange)
 
         return () => {
+            mounted = false
             window.removeEventListener('online', handleOnline)
             window.removeEventListener('offline', handleOffline)
             document.removeEventListener('visibilitychange', handleVisibilityChange)
-            if (timeoutId) {
-                clearTimeout(timeoutId)
-            }
-            if (pollIntervalId) {
-                clearInterval(pollIntervalId)
-            }
+            if (initTimeoutId) clearTimeout(initTimeoutId)
         }
-    }, [isOnline])
+    }, [])
 
-    return { isOnline, wasOffline, isInitialized }
+    return { isOnline, isInitialized }
 }

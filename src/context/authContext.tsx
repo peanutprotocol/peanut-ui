@@ -4,6 +4,7 @@ import { useUserQuery } from '@/hooks/query/user'
 import * as interfaces from '@/interfaces'
 import { useAppDispatch } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
+import { userActions } from '@/redux/slices/user-slice'
 import { zerodevActions } from '@/redux/slices/zerodev-slice'
 import {
     removeFromCookie,
@@ -173,10 +174,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // invalidate all queries
         queryClient.invalidateQueries()
 
-        // reset redux state (setup and zerodev)
+        // reset redux state (user, setup, zerodev)
+        dispatch(userActions.setUser(null))
         dispatch(setupActions.resetSetup())
         dispatch(zerodevActions.resetZeroDevState())
-        console.log('[Logout] Cleared redux state (setup and zerodev)')
 
         // Clear service worker caches to prevent user data leakage
         // When User A logs out and User B logs in on the same device, cached API responses
