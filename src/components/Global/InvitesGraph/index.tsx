@@ -1249,39 +1249,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                 }
             }
 
-            // Render "+1" popups for particle arrivals in user mode
-            // currentMode is already defined above, reuse it
-            if (currentMode === 'user' && minimal) {
-                const now = performance.now()
-                const popupDuration = 1500 // 1.5 seconds
-                const arrivals = particleArrivalsRef.current
-
-                // Clean up old arrivals and render active ones
-                const toDelete: string[] = []
-                arrivals.forEach((arrival, linkId) => {
-                    const age = now - arrival.timestamp
-                    if (age > popupDuration) {
-                        toDelete.push(linkId)
-                    } else {
-                        // Render popup with fade-out - start from node center, rise up
-                        const progress = age / popupDuration
-                        const alpha = 1 - progress
-                        const yOffset = -progress * 15 // Rise up 15px from node center
-
-                        ctx.save()
-                        ctx.globalAlpha = alpha
-                        ctx.font = 'bold 5px Inter, system-ui, -apple-system, sans-serif'
-                        ctx.fillStyle = '#fbbf24' // Gold color
-                        ctx.textAlign = 'center'
-                        ctx.textBaseline = 'middle'
-                        ctx.fillText('+1 point', arrival.x, arrival.y + yOffset)
-                        ctx.restore()
-                    }
-                })
-
-                // Clean up expired arrivals
-                toDelete.forEach((linkId) => arrivals.delete(linkId))
-            }
+            // points particle arrival popups removed (rewards v2 separates points from rewards)
         },
         [getUserActivityStatus]
     )
@@ -1492,47 +1460,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                 ctx.lineTo(target.x, target.y)
                 ctx.stroke()
 
-                // In user mode: Draw animated points flowing UP the tree (invitee → inviter)
-                // This visualizes "points flowing to the inviter"
-                if (currentMode === 'user' && !inactive) {
-                    const time = performance.now()
-                    // Slow, pulsing animation - slower than P2P
-                    const baseSpeed = 0.00015
-                    const particleCount = 3
-                    const particleSize = 3
-
-                    // Gold color for points
-                    ctx.fillStyle = 'rgba(255, 201, 0, 0.9)' // secondary-1 #FFC900 with alpha
-
-                    for (let i = 0; i < particleCount; i++) {
-                        // Flow direction: source → target (invitee → inviter)
-                        // Note: Edges are REVERSED for graph rendering (see graphData mapping)
-                        // After reversal: link.source = invitee, link.target = inviter
-                        // So particles flow from source (invitee) to target (inviter)
-                        const t = (time * baseSpeed + i / particleCount) % 1
-                        const px = source.x + (target.x - source.x) * t
-                        const py = source.y + (target.y - source.y) * t
-
-                        // Detect arrival: when particle is close to target (t > 0.95)
-                        // Track arrival to show "+1 pt" popup
-                        if (t > 0.95 && t < 0.99) {
-                            const linkId = `${link.source.id}_${link.target.id}_${i}`
-                            const arrivals = particleArrivalsRef.current
-                            if (!arrivals.has(linkId)) {
-                                arrivals.set(linkId, {
-                                    timestamp: time,
-                                    x: target.x,
-                                    y: target.y,
-                                    nodeId: link.target.id,
-                                })
-                            }
-                        }
-
-                        ctx.beginPath()
-                        ctx.arc(px, py, particleSize, 0, 2 * Math.PI)
-                        ctx.fill()
-                    }
-                } else {
+                {
                     // Full/Payment mode: Draw arrows along the line (every ~60px, minimum 2)
                     // Skip the last arrow to prevent bunching near target node
                     const arrowSpacing = 60
