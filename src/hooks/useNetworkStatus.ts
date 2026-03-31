@@ -51,8 +51,6 @@ export function useNetworkStatus() {
     // ref to track latest online state inside event handlers without stale closures
     const isOnlineRef = useRef<boolean>(true)
 
-    // prevent concurrent verification fetches
-    const isVerifyingRef = useRef<boolean>(false)
     // generation counter to invalidate stale offline verifications
     const verificationGenRef = useRef<number>(0)
 
@@ -62,6 +60,9 @@ export function useNetworkStatus() {
     useEffect(() => {
         let mounted = true
         let initTimeoutId: ReturnType<typeof setTimeout> | null = null
+        // shared promise so concurrent callers (e.g. offline event + init timeout)
+        // await the same verification instead of one silently skipping
+        let activeVerification: Promise<void> | null = null
 
         const updateOnlineStatus = (online: boolean) => {
             if (!mounted) return
@@ -72,31 +73,34 @@ export function useNetworkStatus() {
         // when navigator.onLine reports offline, verify with a real fetch
         // before showing the offline screen. catches brave/desktop false negatives.
         const handlePossiblyOffline = async () => {
-            if (isVerifyingRef.current) return
-            isVerifyingRef.current = true
+            // if a verification is already in-flight, await it instead of skipping
+            if (activeVerification) {
+                await activeVerification
+                return
+            }
+
             const generation = ++verificationGenRef.current
 
-            try {
-                const reallyOnline = await verifyConnectivity()
-                // ignore stale result if handleOnline() fired while we were verifying
-                if (!mounted || generation !== verificationGenRef.current) return
+            activeVerification = (async () => {
+                try {
+                    const reallyOnline = await verifyConnectivity()
+                    // ignore stale result if handleOnline() fired while we were verifying
+                    if (!mounted || generation !== verificationGenRef.current) return
+                    updateOnlineStatus(reallyOnline)
+                } finally {
+                    if (generation === verificationGenRef.current) {
+                        activeVerification = null
+                    }
+                }
+            })()
 
-                if (reallyOnline) {
-                    updateOnlineStatus(true)
-                } else {
-                    updateOnlineStatus(false)
-                }
-            } finally {
-                if (generation === verificationGenRef.current) {
-                    isVerifyingRef.current = false
-                }
-            }
+            await activeVerification
         }
 
         const handleOnline = () => {
             // invalidate any in-flight offline verification
             verificationGenRef.current++
-            isVerifyingRef.current = false
+            activeVerification = null
             const wasShowingOffline = !isOnlineRef.current
             updateOnlineStatus(true)
 
@@ -114,13 +118,13 @@ export function useNetworkStatus() {
         }
 
         const handleOffline = () => {
-            handlePossiblyOffline()
+            void handlePossiblyOffline()
         }
 
         const handleVisibilityChange = () => {
             if (!document.hidden) {
                 if (!navigator.onLine) {
-                    handlePossiblyOffline()
+                    void handlePossiblyOffline()
                 } else if (!isOnlineRef.current) {
                     // was showing offline but navigator now says online
                     handleOnline()
