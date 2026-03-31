@@ -8,15 +8,13 @@ import { type IconName } from '@/components/Global/Icons/Icon'
 import { useHomeCarouselCTAs, type CarouselCTA as CarouselCTAType } from '@/hooks/useHomeCarouselCTAs'
 import { perksApi, type PendingPerk } from '@/services/perks'
 import { useAuth } from '@/context/authContext'
-import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { extractInviteeName } from '@/utils/general.utils'
 import PerkClaimModal from '../PerkClaimModal'
-import underMaintenanceConfig from '@/config/underMaintenance.config'
 
 const HomeCarouselCTA = () => {
-    const { carouselCTAs, setCarouselCTAs, showBridgeTos, setShowBridgeTos } = useHomeCarouselCTAs()
-    const { user, fetchUser } = useAuth()
+    const { carouselCTAs, setCarouselCTAs } = useHomeCarouselCTAs()
+    const { user } = useAuth()
     const queryClient = useQueryClient()
 
     // Perk claim modal state
@@ -42,20 +40,26 @@ const HomeCarouselCTA = () => {
         }, [queryClient]),
     })
 
-    // Filter for Card Pioneer inviter rewards that haven't been claimed
-    const cardPioneerPerks = useMemo(() => {
-        if (underMaintenanceConfig.disableCardPioneers) return []
+    // Only show card waitlist perks on home carousel.
+    // Referral rewards and surprise moments are claimed inline after QR payment, not from home.
+    const claimablePerks = useMemo(() => {
         return (
-            pendingPerksData?.perks?.filter(
-                (p) => p.name === 'Card Pioneer Inviter Reward' && !claimedPerkIds.has(p.id)
-            ) || []
+            pendingPerksData?.perks?.filter((p) => !claimedPerkIds.has(p.id) && p.name?.includes('Card Pioneer')) || []
         )
     }, [pendingPerksData?.perks, claimedPerkIds])
 
-    // Convert perks to carousel CTAs (these come first!)
+    // convert perks to carousel CTAs (these come first!)
     const perkCTAs: CarouselCTAType[] = useMemo(() => {
-        return cardPioneerPerks.map((perk) => {
+        return claimablePerks.map((perk) => {
             const inviteeName = extractInviteeName(perk.reason)
+            const description = inviteeName ? (
+                <p>
+                    <b>{inviteeName}</b> used Peanut. Tap to claim.
+                </p>
+            ) : (
+                <p>Tap to claim your reward.</p>
+            )
+
             return {
                 id: `perk-${perk.id}`,
                 title: (
@@ -63,11 +67,7 @@ const HomeCarouselCTA = () => {
                         <b>+${perk.amountUsd}</b> reward ready!
                     </p>
                 ),
-                description: (
-                    <p>
-                        <b>{inviteeName}</b> joined Pioneers. Tap to claim.
-                    </p>
-                ),
+                description,
                 icon: 'gift' as IconName,
                 iconContainerClassName: 'bg-primary-1',
                 onClick: () => setSelectedPerk(perk),
@@ -75,7 +75,7 @@ const HomeCarouselCTA = () => {
                 iconSize: 16,
             }
         })
-    }, [cardPioneerPerks])
+    }, [claimablePerks])
 
     // Combine perk CTAs (first) with regular CTAs
     const allCTAs = useMemo(() => {
@@ -89,17 +89,6 @@ const HomeCarouselCTA = () => {
     const handleModalClose = useCallback(() => {
         setSelectedPerk(null)
     }, [])
-
-    // bridge ToS handlers
-    const handleTosComplete = useCallback(async () => {
-        setShowBridgeTos(false)
-        setCarouselCTAs((prev) => prev.filter((c) => c.id !== 'bridge-tos'))
-        await fetchUser()
-    }, [setShowBridgeTos, setCarouselCTAs, fetchUser])
-
-    const handleTosSkip = useCallback(() => {
-        setShowBridgeTos(false)
-    }, [setShowBridgeTos])
 
     // don't render carousel if there are no CTAs
     if (!allCTAs.length) return null
@@ -142,9 +131,6 @@ const HomeCarouselCTA = () => {
                     onClaimed={handlePerkClaimed}
                 />
             )}
-
-            {/* Bridge ToS iframe */}
-            <BridgeTosStep visible={showBridgeTos} onComplete={handleTosComplete} onSkip={handleTosSkip} />
         </>
     )
 }

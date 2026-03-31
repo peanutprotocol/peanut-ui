@@ -55,7 +55,7 @@ export const Profile = () => {
                         <ProfileMenuItem
                             icon={<Image src={STAR_STRAIGHT_ICON} alt="star" width={20} height={20} />}
                             label="Points"
-                            href="/points"
+                            href="/rewards"
                             position="last"
                         />
                     </div>

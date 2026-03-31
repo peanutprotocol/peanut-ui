@@ -12,7 +12,7 @@ import { DeviceType, useDeviceType } from './useGetDeviceType'
 import { usePWAStatus } from './usePWAStatus'
 import { useGeoLocation } from './useGeoLocation'
 import { useCardPioneerInfo } from './useCardPioneerInfo'
-import { useBridgeTosStatus } from './useBridgeTosStatus'
+import { useActivationStatus } from './useActivationStatus'
 import { STAR_STRAIGHT_ICON } from '@/assets'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 
@@ -51,8 +51,7 @@ export const useHomeCarouselCTAs = () => {
         hasPurchased: hasCardPioneerPurchased,
         isLoading: isCardPioneerLoading,
     } = useCardPioneerInfo()
-    const { needsBridgeTos } = useBridgeTosStatus()
-    const [showBridgeTos, setShowBridgeTos] = useState(false)
+    const { isActivated } = useActivationStatus()
 
     const generateCarouselCTAs = useCallback(() => {
         const _carouselCTAs: CarouselCTA[] = []
@@ -60,18 +59,6 @@ export const useHomeCarouselCTAs = () => {
         // DRY: Check KYC approval status once
         const hasKycApproval = isUserKycApproved || isUserMantecaKycApproved
         const isLatamUser = userCountryCode === 'AR' || userCountryCode === 'BR'
-
-        // Bridge ToS acceptance — must be first CTA when user has pending ToS
-        if (needsBridgeTos) {
-            _carouselCTAs.push({
-                id: 'bridge-tos',
-                title: 'Accept terms of service',
-                description: 'Required to enable bank transfers',
-                icon: 'alert',
-                iconContainerClassName: 'bg-yellow-1',
-                onClick: () => setShowBridgeTos(true),
-            })
-        }
 
         // Card Pioneer CTA - show to all users who haven't purchased yet
         // Eligibility check happens during the flow (geo screen)
@@ -98,17 +85,17 @@ export const useHomeCarouselCTAs = () => {
             })
         }
 
-        // Generic invite CTA for non-LATAM users
-        if (!isLatamUser) {
+        // Generic invite CTA for non-LATAM activated users only
+        if (!isLatamUser && isActivated) {
             _carouselCTAs.push({
                 id: 'invite-friends',
-                title: 'Invite friends. Get cashback',
-                description: "Your friends' activity earns you badges, perks & rewards.",
+                title: 'Invite friends. Earn rewards',
+                description: 'Earn rewards every time your friends use Peanut.',
                 icon: 'invite-heart',
                 logo: STAR_STRAIGHT_ICON,
                 logoSize: 30,
                 onClick: () => {
-                    router.push('/points')
+                    router.push('/rewards')
                 },
             })
         }
@@ -167,25 +154,25 @@ export const useHomeCarouselCTAs = () => {
         }
 
         // ------------------------------------------------------------------------------------------------
-        // LATAM Cashback CTA - show to all users in Argentina or Brazil
-        // Encourage them to invite friends to earn more cashback (and complete KYC if needed)
-        if (isLatamUser) {
+        // LATAM rewards CTA - show to activated users in Argentina or Brazil only
+        // Encourage them to invite friends to earn more rewards (and complete KYC if needed)
+        if (isLatamUser && isActivated) {
             _carouselCTAs.push({
                 id: 'latam-cashback-invite',
                 title: (
                     <span>
-                        Earn <b>cashback</b> on QR payments
+                        Earn <b>rewards</b> on QR payments
                     </span>
                 ),
                 description: (
                     <span>
-                        Invite friends to <b>unlock more rewards</b>. The more they use, the more you earn!
+                        Invite friends to <b>earn more rewards</b>. The more they use, the more you earn!
                     </span>
                 ),
                 iconContainerClassName: 'bg-secondary-1',
                 icon: 'gift',
                 onClick: () => {
-                    router.push('/points')
+                    router.push('/rewards')
                 },
                 iconSize: 16,
             })
@@ -230,7 +217,7 @@ export const useHomeCarouselCTAs = () => {
         isCardPioneerEligible,
         hasCardPioneerPurchased,
         isCardPioneerLoading,
-        needsBridgeTos,
+        isActivated,
     ])
 
     useEffect(() => {
@@ -242,5 +229,5 @@ export const useHomeCarouselCTAs = () => {
         generateCarouselCTAs()
     }, [user, generateCarouselCTAs, isPermissionGranted])
 
-    return { carouselCTAs, setCarouselCTAs, showBridgeTos, setShowBridgeTos }
+    return { carouselCTAs, setCarouselCTAs }
 }

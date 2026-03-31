@@ -26,6 +26,8 @@ import { getBridgeChainName } from '@/utils/bridge-accounts.utils'
 import { getOfframpCurrencyConfig, getCountryFromPath } from '@/utils/bridge.utils'
 import { createOfframp, confirmOfframp } from '@/app/actions/offramp'
 import { useAuth } from '@/context/authContext'
+import { useBridgeTosGuard } from '@/hooks/useBridgeTosGuard'
+import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import ExchangeRate from '@/components/ExchangeRate'
 import countryCurrencyMappings, { isNonEuroSepaCountry } from '@/constants/countryCurrencyMapping'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
@@ -49,6 +51,7 @@ export default function WithdrawBankPage() {
     } = useWithdrawFlow()
     const { user, fetchUser } = useAuth()
     const { address, sendMoney, balance } = useWallet()
+    const { guardWithTos, showBridgeTos, hideTos } = useBridgeTosGuard()
     const router = useRouter()
     const searchParams = useSearchParams()
     const [isLoading, setIsLoading] = useState(false)
@@ -152,6 +155,8 @@ export default function WithdrawBankPage() {
     }
 
     const handleCreateAndInitiateOfframp = async () => {
+        if (guardWithTos()) return
+
         setIsLoading(true)
         setError({ showError: false, errorMessage: '' })
 
@@ -414,6 +419,15 @@ export default function WithdrawBankPage() {
                     }}
                 />
             )}
+
+            <BridgeTosStep
+                visible={showBridgeTos}
+                onComplete={() => {
+                    hideTos()
+                    handleCreateAndInitiateOfframp()
+                }}
+                onSkip={hideTos}
+            />
         </div>
     )
 }

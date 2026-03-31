@@ -43,7 +43,16 @@ const BALANCE_AFFECTING_TYPES: EHistoryEntryType[] = [
 /**
  * component to display a preview of the most recent transactions on the home page.
  */
-const HomeHistory = ({ username, hideTxnAmount = false }: { username?: string; hideTxnAmount?: boolean }) => {
+const HomeHistory = ({
+    username,
+    hideTxnAmount = false,
+    hideEmptyState = false,
+}: {
+    username?: string
+    hideTxnAmount?: boolean
+    /** when true, hides the "No activity yet" empty state (pre-activation users) but still shows history if exists */
+    hideEmptyState?: boolean
+}) => {
     const { user } = useUserStore()
     const isLoggedIn = !!user?.user.userId || false
     // Only filter when user is requesting for some different user's history
@@ -128,8 +137,9 @@ const HomeHistory = ({ username, hideTxnAmount = false }: { username?: string; h
                 const entries: Array<HistoryEntry | KycHistoryEntry> = [...historyData.entries]
 
                 // inject badge entries using user's badges (newest first) and earnedAt chronology
+                // filter out beta tester badge — it creates confusing first impressions for new users
                 if (isViewingOwnHistory) {
-                    const badges = user?.user?.badges ?? []
+                    const badges = (user?.user?.badges ?? []).filter((b) => b.code !== 'BETA_TESTER')
                     badges.forEach((b) => {
                         if (!b.earnedAt) return
                         entries.push({
@@ -264,8 +274,16 @@ const HomeHistory = ({ username, hideTxnAmount = false }: { username?: string; h
         )
     }
 
-    // show empty state if no transactions exist
-    if (!isLoading && !combinedEntries.length) {
+    // check source data directly — combinedEntries lags behind due to async processing
+    const hasSourceEntries = (historyData?.entries?.length ?? 0) > 0 || wsHistoryEntries.length > 0
+
+    // hide empty activity for pre-activation users when there's genuinely nothing
+    if (!isLoading && !hasSourceEntries && hideEmptyState && isViewingOwnHistory) {
+        return null
+    }
+
+    // show empty state UI if no processed entries yet (but source data may still be processing)
+    if (!isLoading && !combinedEntries.length && !hasSourceEntries) {
         return (
             <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
                 <h2 className="text-base font-bold">Activity</h2>

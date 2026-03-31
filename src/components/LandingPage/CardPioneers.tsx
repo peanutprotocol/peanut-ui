@@ -55,7 +55,7 @@ const CardPioneers = () => {
                         </li>
                         <li className="flex items-center justify-center gap-3 md:justify-start">
                             <Icon name="check-circle" className="h-6 w-6 flex-shrink-0 text-n-1" />
-                            Self-custodial - your funds, your control
+                            Non-custodial - your funds, your control
                         </li>
                     </ul>
 

@@ -5,7 +5,7 @@ import Card from '@/components/Global/Card'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import ShareButton from '@/components/Global/ShareButton'
 import { generateInviteCodeLink, generateInvitesShareText } from '@/utils/general.utils'
-import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
+import { ANALYTICS_EVENTS, MODAL_TYPES, REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import posthog from 'posthog-js'
 import { useEffect, useRef } from 'react'
 import QRCode from 'react-qr-code'
@@ -27,10 +27,12 @@ export default function InviteFriendsModal({ visible, onClose, username, source 
     const { inviteCode, inviteLink } = generateInviteCodeLink(username)
 
     const hasTrackedShow = useRef(false)
+
     useEffect(() => {
         if (visible && !hasTrackedShow.current) {
             hasTrackedShow.current = true
             posthog.capture(ANALYTICS_EVENTS.MODAL_SHOWN, { modal_type: MODAL_TYPES.INVITE, source })
+            posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_SHOWN, { source: source ?? REFERRAL_SOURCES.INVITE_MODAL })
         }
     }, [visible, source])
 
@@ -44,7 +46,7 @@ export default function InviteFriendsModal({ visible, onClose, username, source 
             visible={visible}
             onClose={handleClose}
             title="Invite friends!"
-            description="Invite friends to Peanut and help them skip ahead on the waitlist. Once they're onboarded and start using the app, you'll earn rewards from their activity too."
+            description="Invite friends to Peanut. Every time they make a payment, you earn rewards."
             icon="user-plus"
             content={
                 <>
@@ -74,7 +76,12 @@ export default function InviteFriendsModal({ visible, onClose, username, source 
                     <ShareButton
                         generateText={() => Promise.resolve(generateInvitesShareText(inviteLink))}
                         title="Share your invite link"
-                        onSuccess={() => posthog.capture(ANALYTICS_EVENTS.INVITE_LINK_SHARED, { source })}
+                        onSuccess={() => {
+                            posthog.capture(ANALYTICS_EVENTS.INVITE_LINK_SHARED, { source })
+                            posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
+                                source: source ?? REFERRAL_SOURCES.INVITE_MODAL,
+                            })
+                        }}
                     >
                         Share Invite Link
                     </ShareButton>

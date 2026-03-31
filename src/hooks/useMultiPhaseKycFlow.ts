@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useAuth } from '@/context/authContext'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
 import { useRailStatusTracking } from '@/hooks/useRailStatusTracking'
@@ -46,13 +46,16 @@ interface UseMultiPhaseKycFlowOptions {
  * for the modal rendering.
  */
 export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: UseMultiPhaseKycFlowOptions) => {
-    const { fetchUser } = useAuth()
+    const { fetchUser, user } = useAuth()
+    const acquisitionSource = user?.invitedBy ? 'referred' : 'organic'
 
     // multi-phase modal state
     const [modalPhase, setModalPhase] = useState<KycModalPhase>('verifying')
     const [forceShowModal, setForceShowModal] = useState(false)
     const [preparingTimedOut, setPreparingTimedOut] = useState(false)
+    const [preparingElapsed, setPreparingElapsed] = useState(0)
     const preparingTimerRef = useRef<NodeJS.Timeout | null>(null)
+    const preparingElapsedIntervalRef = useRef<NodeJS.Timeout | null>(null)
     const isRealtimeFlowRef = useRef(false)
 
     // bridge ToS state
@@ -72,13 +75,17 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
             clearTimeout(preparingTimerRef.current)
             preparingTimerRef.current = null
         }
+        if (preparingElapsedIntervalRef.current) {
+            clearInterval(preparingElapsedIntervalRef.current)
+            preparingElapsedIntervalRef.current = null
+        }
     }, [])
 
     // complete the flow — close everything, call original onKycSuccess
     const completeFlow = useCallback(() => {
         posthog.capture(
             regionIntent === 'LATAM' ? ANALYTICS_EVENTS.MANTECA_KYC_COMPLETED : ANALYTICS_EVENTS.KYC_APPROVED,
-            { region_intent: regionIntent }
+            { region_intent: regionIntent, acquisition_source: acquisitionSource }
         )
         isRealtimeFlowRef.current = false
         setForceShowModal(false)
@@ -91,7 +98,7 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
         stopTracking()
         closeVerificationModalRef.current()
         onKycSuccess?.()
-    }, [onKycSuccess, clearPreparingTimer, stopTracking, regionIntent])
+    }, [onKycSuccess, clearPreparingTimer, stopTracking, regionIntent, acquisitionSource])
 
     // called when sumsub status transitions to APPROVED
     const handleSumsubApproved = useCallback(async () => {
@@ -173,7 +180,7 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
             const intent = overrideIntent ?? regionIntent
             posthog.capture(
                 intent === 'LATAM' ? ANALYTICS_EVENTS.MANTECA_KYC_INITIATED : ANALYTICS_EVENTS.KYC_INITIATED,
-                { region_intent: intent }
+                { region_intent: intent, acquisition_source: acquisitionSource }
             )
 
             setModalPhase('verifying')
@@ -187,18 +194,26 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
 
             await originalHandleInitiateKyc(overrideIntent, levelName)
         },
-        [originalHandleInitiateKyc, clearPreparingTimer, regionIntent]
+        [originalHandleInitiateKyc, clearPreparingTimer, regionIntent, acquisitionSource]
     )
 
-    // 30s timeout for preparing phase
+    // 30s timeout for preparing phase + elapsed time counter for progressive copy
     useEffect(() => {
         if (modalPhase === 'preparing' && !preparingTimedOut) {
             clearPreparingTimer()
             preparingTimerRef.current = setTimeout(() => {
                 setPreparingTimedOut(true)
             }, PREPARING_TIMEOUT_MS)
+            // Start elapsed time counter for progressive copy stages
+            preparingElapsedIntervalRef.current = setInterval(() => {
+                setPreparingElapsed((prev) => prev + 1)
+            }, 1000)
         } else {
             clearPreparingTimer()
+            // Reset elapsed time when leaving preparing phase
+            if (modalPhase !== 'preparing') {
+                setPreparingElapsed(0)
+            }
         }
     }, [modalPhase, preparingTimedOut, clearPreparingTimer])
 
@@ -293,6 +308,13 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
 
     const isMultiLevel = regionIntent === 'LATAM'
 
+    // Derive preparing stage from elapsed time for progressive copy
+    const preparingStage = useMemo<'initial' | 'configuring' | 'slow'>(() => {
+        if (preparingElapsed < 3) return 'initial'
+        if (preparingElapsed < 8) return 'configuring'
+        return 'slow'
+    }, [preparingElapsed])
+
     return {
         // initiation
         handleInitiateKyc,
@@ -318,6 +340,7 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
         tosError,
         isLoadingTos,
         preparingTimedOut,
+        preparingStage,
 
         // ToS iframe
         tosLink,

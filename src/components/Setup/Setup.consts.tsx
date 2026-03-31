@@ -89,8 +89,8 @@ export const setupSteps: ISetupStep[] = [
     {
         screenId: 'sign-test-transaction',
         layoutType: 'signup',
-        title: 'Sign a test transaction',
-        description: "Let's make sure your passkey is working and you have everything set up correctly.",
+        title: 'Your wallet is ready',
+        description: "Just confirm it's you — one tap and you're in.",
         image: chillPeanutAnim.src,
         component: SignTestTransaction,
         showBackButton: false,
