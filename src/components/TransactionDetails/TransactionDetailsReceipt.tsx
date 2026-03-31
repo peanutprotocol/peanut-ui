@@ -1437,7 +1437,7 @@ export const TransactionDetailsReceipt = ({
             {/* referral nudge for activated users on completed outbound transactions */}
             {isActivated &&
                 transaction.status === 'completed' &&
-                transaction.direction === 'send' &&
+                ['send', 'qr_payment', 'withdraw', 'bank_withdraw'].includes(transaction.direction) &&
                 !isPerkReward &&
                 user?.user.username && (
                     <Button
