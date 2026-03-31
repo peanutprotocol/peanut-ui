@@ -53,6 +53,8 @@ export function useNetworkStatus() {
 
     // prevent concurrent verification fetches
     const isVerifyingRef = useRef<boolean>(false)
+    // generation counter to invalidate stale offline verifications
+    const verificationGenRef = useRef<number>(0)
 
     // prevent reload loops from rapid navigator.onLine flickers
     const reloadScheduledRef = useRef<boolean>(false)
@@ -72,24 +74,29 @@ export function useNetworkStatus() {
         const handlePossiblyOffline = async () => {
             if (isVerifyingRef.current) return
             isVerifyingRef.current = true
+            const generation = ++verificationGenRef.current
 
             try {
                 const reallyOnline = await verifyConnectivity()
-                if (!mounted) return
+                // ignore stale result if handleOnline() fired while we were verifying
+                if (!mounted || generation !== verificationGenRef.current) return
 
                 if (reallyOnline) {
-                    // navigator.onLine was wrong — user is actually online
                     updateOnlineStatus(true)
                 } else {
-                    // confirmed offline
                     updateOnlineStatus(false)
                 }
             } finally {
-                isVerifyingRef.current = false
+                if (generation === verificationGenRef.current) {
+                    isVerifyingRef.current = false
+                }
             }
         }
 
         const handleOnline = () => {
+            // invalidate any in-flight offline verification
+            verificationGenRef.current++
+            isVerifyingRef.current = false
             const wasShowingOffline = !isOnlineRef.current
             updateOnlineStatus(true)
 

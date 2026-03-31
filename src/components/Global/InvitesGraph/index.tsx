@@ -2123,7 +2123,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                             backgroundColor={backgroundColor}
                             width={minimalWidth}
                             height={graphHeight}
-                            autoPauseRedraw={false}
+                            autoPauseRedraw={mode === 'user'}
                         />
                     )}
                     {/* Reset camera button when focused on a user */}

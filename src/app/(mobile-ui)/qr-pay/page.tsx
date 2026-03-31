@@ -1357,9 +1357,11 @@ export default function QRPayPage() {
                                 ) : (
                                     <Button
                                         onClick={() => {
-                                            router.push(
-                                                `/request?amount=${formatNumberForDisplay(usdAmount ?? undefined, { maxDecimals: 2 })}&merchant=${qrPayment!.details.merchant.name}`
-                                            )
+                                            const params = new URLSearchParams({
+                                                amount: String(usdAmount ?? ''),
+                                                merchant: qrPayment!.details.merchant.name,
+                                            })
+                                            router.push(`/request?${params.toString()}`)
                                         }}
                                         icon="split"
                                         shadowSize="4"
