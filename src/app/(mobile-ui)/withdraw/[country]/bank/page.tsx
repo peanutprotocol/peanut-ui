@@ -23,11 +23,12 @@ import { useEffect, useState } from 'react'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
 import { ErrorHandler } from '@/utils/sdkErrorHandler.utils'
 import { getBridgeChainName } from '@/utils/bridge-accounts.utils'
-import { getOfframpCurrencyConfig } from '@/utils/bridge.utils'
+import { getOfframpCurrencyConfig, getCountryFromPath } from '@/utils/bridge.utils'
 import { createOfframp, confirmOfframp } from '@/app/actions/offramp'
 import { useAuth } from '@/context/authContext'
 import ExchangeRate from '@/components/ExchangeRate'
 import countryCurrencyMappings, { isNonEuroSepaCountry } from '@/constants/countryCurrencyMapping'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { PointsAction } from '@/services/services.types'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import { useSearchParams } from 'next/navigation'
@@ -56,6 +57,17 @@ export default function WithdrawBankPage() {
     const country = params.country as string
     const [balanceErrorMessage, setBalanceErrorMessage] = useState<string | null>(null)
     const { hasPendingTransactions } = usePendingTransactions()
+    const { isBridgeSupportedCountry } = useIdentityVerification()
+
+    // validate country is supported for bank withdrawals
+    useEffect(() => {
+        if (country) {
+            const countryInfo = getCountryFromPath(country)
+            if (!countryInfo || !isBridgeSupportedCountry(countryInfo.id)) {
+                router.replace('/withdraw')
+            }
+        }
+    }, [country, isBridgeSupportedCountry, router])
 
     // check if we came from send flow - using method param to detect (only bank goes through this page)
     const methodParam = searchParams.get('method')
