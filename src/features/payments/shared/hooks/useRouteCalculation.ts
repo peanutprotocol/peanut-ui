@@ -124,7 +124,9 @@ export const useRouteCalculation = (): UseRouteCalculationReturn => {
                 setIsDiffToken(_isDiffToken)
 
                 if (_isXChain || _isDiffToken) {
-                    if (useRhino) {
+                    // Rhino bridge only handles cross-chain withdrawals — same-chain token
+                    // swaps or ambiguous symbol+chain combos must fall through to Squid.
+                    if (useRhino && _isXChain) {
                         // ── Rhino bridge path (withdraw flow) ───────────────────
                         // Use mode='receive' so user specifies exact amount to receive
                         const token = rhinoToken ?? 'USDC'

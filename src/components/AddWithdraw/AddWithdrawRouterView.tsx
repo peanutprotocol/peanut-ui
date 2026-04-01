@@ -358,7 +358,10 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                     }
 
                     // otherwise, use toggle logic for better ux when user manually navigated to "select new method"
-                    if (shouldShowAllMethods && (recentMethodsState.length > 0 || savedAccounts.length > 0)) {
+                    if (
+                        shouldShowAllMethods &&
+                        (recentMethodsState.length > 0 || savedAccounts.length > 0 || savedCryptoAddresses.length > 0)
+                    ) {
                         setShouldShowAllMethods(false)
                     } else if (onBackClick) {
                         onBackClick()

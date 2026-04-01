@@ -81,18 +81,18 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
         }
     }, [])
 
-    // Pre-fill recipient if user tapped a saved crypto address card
+    // Pre-fill recipient when user selects a saved crypto address card.
+    // Runs on every savedCryptoAddress change (including switching between cards).
     useEffect(() => {
         const savedAddr = selectedMethod?.savedCryptoAddress
-        if (savedAddr && !recipient.address) {
-            setRecipient({ address: savedAddr.address, name: savedAddr.label ?? '' })
-            setIsValidRecipient(true)
-            // also switch chain selector to the saved address's chain
-            if (savedAddr.chainId) {
-                setSelectedChainID(savedAddr.chainId)
-            }
+        if (!savedAddr) return
+
+        setRecipient({ address: savedAddr.address, name: savedAddr.label ?? '' })
+        setIsValidRecipient(true)
+        // also switch chain selector to the saved address's chain
+        if (savedAddr.chainId) {
+            setSelectedChainID(savedAddr.chainId)
         }
-        // only run when the saved address changes
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedMethod?.savedCryptoAddress?.id])
 

@@ -116,6 +116,11 @@ export default function MantecaWithdrawFlow() {
         )
     }, [countryPath])
 
+    // Canonical country key derived from selectedCountry — use this instead of raw
+    // countryPath for validation, analytics, and branching to avoid mismatches when
+    // the URL param is a title ("Argentina") or id ("AR") instead of slug ("argentina").
+    const canonicalCountryPath = selectedCountry?.path ?? countryPath.toLowerCase()
+
     const countryConfig = useMemo(() => {
         if (!selectedCountry) return undefined
         return MANTECA_COUNTRIES_CONFIG[selectedCountry.id]
@@ -160,7 +165,7 @@ export default function MantecaWithdrawFlow() {
         }
 
         let isValid = false
-        switch (countryPath) {
+        switch (canonicalCountryPath) {
             case 'argentina':
                 const argResult = validateCbuCvuAlias(value)
                 isValid = argResult.valid
@@ -285,7 +290,7 @@ export default function MantecaWithdrawFlow() {
         posthog.capture(ANALYTICS_EVENTS.WITHDRAW_CONFIRMED, {
             amount_usd: usdAmount,
             method_type: 'manteca',
-            country: countryPath,
+            country: canonicalCountryPath,
         })
 
         try {
@@ -366,7 +371,7 @@ export default function MantecaWithdrawFlow() {
             posthog.capture(ANALYTICS_EVENTS.WITHDRAW_COMPLETED, {
                 amount_usd: usdAmount,
                 method_type: 'manteca',
-                country: countryPath,
+                country: canonicalCountryPath,
             })
         } catch (error) {
             console.error('Manteca withdraw error:', error)
@@ -652,7 +657,7 @@ export default function MantecaWithdrawFlow() {
                                 onUpdate={(update) => {
                                     // Auto-normalize PIX keys for Brazil: strip whitespace and normalize phone numbers
                                     let normalizedValue = update.value
-                                    if (countryPath === 'brazil') {
+                                    if (canonicalCountryPath === 'brazil') {
                                         normalizedValue = isPixEmvcoQr(normalizedValue.trim())
                                             ? normalizedValue.trim()
                                             : normalizedValue.replace(/\s/g, '')

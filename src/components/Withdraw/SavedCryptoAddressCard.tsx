@@ -40,7 +40,7 @@ export function SavedCryptoAddressCard({
             onClick={() => onClick(savedAddress)}
             role="button"
             tabIndex={0}
-            onKeyDown={(e) => e.key === 'Enter' && onClick(savedAddress)}
+            onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), onClick(savedAddress))}
         >
             <div className="flex items-center gap-3">
                 {/* chain icon placeholder — purple circle with chain initial */}

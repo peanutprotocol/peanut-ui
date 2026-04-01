@@ -141,7 +141,7 @@ export async function getRhinoWithdrawStatus(bridgeId: string): Promise<RhinoSta
 export async function getRhinoWithdrawChains(): Promise<RhinoChainConfig[]> {
     const response = await fetchWithSentry(`${PEANUT_API_URL}/rhino/withdraw/chains`, {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
     })
 
     if (!response.ok) {
