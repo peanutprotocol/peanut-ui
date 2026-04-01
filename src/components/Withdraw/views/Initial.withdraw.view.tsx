@@ -27,7 +27,7 @@ interface InitialWithdrawViewProps {
 }
 
 export default function InitialWithdrawView({ amount, onReview, onBack, isProcessing }: InitialWithdrawViewProps) {
-    const { usdAmount, withdrawData } = useWithdrawFlow()
+    const { usdAmount, withdrawData, selectedMethod } = useWithdrawFlow()
     const router = useRouter()
     const {
         selectedTokenData,
@@ -80,6 +80,21 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
             setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
         }
     }, [])
+
+    // Pre-fill recipient if user tapped a saved crypto address card
+    useEffect(() => {
+        const savedAddr = selectedMethod?.savedCryptoAddress
+        if (savedAddr && !recipient.address) {
+            setRecipient({ address: savedAddr.address, name: savedAddr.label ?? '' })
+            setIsValidRecipient(true)
+            // also switch chain selector to the saved address's chain
+            if (savedAddr.chainId) {
+                setSelectedChainID(savedAddr.chainId)
+            }
+        }
+        // only run when the saved address changes
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedMethod?.savedCryptoAddress?.id])
 
     return (
         <div className="space-y-8">

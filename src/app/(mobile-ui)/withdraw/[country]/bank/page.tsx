@@ -94,6 +94,11 @@ export default function WithdrawBankPage() {
         // Skip redirects when on success view — clearing state during navigation
         // would race with router.push('/home') and redirect back to /withdraw
         if (view === 'SUCCESS') return
+
+        // Don't redirect into an unsupported country's flow
+        const countryInfo = country ? getCountryFromPath(country) : null
+        if (countryInfo && !isBridgeSupportedCountry(countryInfo.id)) return
+
         if (!amountToWithdraw) {
             // If no amount, go back to main page
             router.replace('/withdraw')
@@ -101,7 +106,7 @@ export default function WithdrawBankPage() {
             // If amount is set but no bank account, go to country method selection
             router.replace(`/withdraw/${country}`)
         }
-    }, [bankAccount, router, amountToWithdraw, country, view])
+    }, [bankAccount, router, amountToWithdraw, country, view, isBridgeSupportedCountry])
 
     const destinationDetails = (account: Account) => {
         let countryId: string

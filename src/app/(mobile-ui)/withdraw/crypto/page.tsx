@@ -33,6 +33,7 @@ import { isTxReverted } from '@/utils/general.utils'
 import { ErrorHandler } from '@/utils/sdkErrorHandler.utils'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { touchSavedAddress } from '@/utils/savedAddresses'
 
 export default function WithdrawCryptoPage() {
     const router = useRouter()
@@ -126,7 +127,7 @@ export default function WithdrawCryptoPage() {
     // prepare transaction when entering confirm view
     useEffect(() => {
         if (currentView === 'CONFIRM' && chargeDetails && withdrawData && address) {
-            console.log('Preparing withdraw transaction details...')
+            console.log('Preparing withdraw transaction details (Rhino)...')
             console.dir(chargeDetails)
             calculateRoute({
                 source: {
@@ -144,6 +145,9 @@ export default function WithdrawCryptoPage() {
                 },
                 usdAmount: usdAmount,
                 skipGasEstimate: true, // peanut wallet handles gas
+                // Use Rhino bridge for cross-chain withdrawals instead of Squid
+                useRhino: true,
+                rhinoToken: withdrawData.token?.symbol ?? 'USDC',
             })
         }
     }, [currentView, chargeDetails, withdrawData, calculateRoute, usdAmount, address])
@@ -292,6 +296,19 @@ export default function WithdrawCryptoPage() {
                 amount_usd: usdAmount,
                 method_type: 'crypto',
             })
+
+            // Auto-save the withdrawal address for future use
+            if (withdrawData?.address && withdrawData?.chain) {
+                try {
+                    touchSavedAddress(
+                        withdrawData.address,
+                        withdrawData.chain.chainId.toString(),
+                        withdrawData.chain.networkName ?? withdrawData.chain.chainId.toString()
+                    )
+                } catch {
+                    // non-critical — don't surface to user
+                }
+            }
         } catch (err) {
             console.error('Withdrawal execution failed:', err)
             const errMsg = ErrorHandler(err)
@@ -321,7 +338,7 @@ export default function WithdrawCryptoPage() {
 
     const handleRouteRefresh = useCallback(async () => {
         if (!chargeDetails || !address) return
-        console.log('Refreshing withdraw route due to expiry...')
+        console.log('Refreshing withdraw route due to expiry (Rhino)...')
         await calculateRoute({
             source: {
                 address: address as Address,
@@ -338,8 +355,10 @@ export default function WithdrawCryptoPage() {
             },
             usdAmount: usdAmount,
             skipGasEstimate: true,
+            useRhino: true,
+            rhinoToken: withdrawData?.token?.symbol ?? 'USDC',
         })
-    }, [chargeDetails, calculateRoute, usdAmount, address])
+    }, [chargeDetails, calculateRoute, usdAmount, address, withdrawData])
 
     const handleBackFromConfirm = useCallback(() => {
         setCurrentView('INITIAL')

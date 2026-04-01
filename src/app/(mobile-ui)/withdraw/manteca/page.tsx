@@ -106,7 +106,14 @@ export default function MantecaWithdrawFlow() {
 
     // Map country path to CountryData for KYC
     const selectedCountry = useMemo(() => {
-        return countryData.find((country) => country.type === 'country' && country.path === countryPath)
+        const normalizedPath = countryPath.toLowerCase()
+        return countryData.find(
+            (country) =>
+                country.type === 'country' &&
+                (country.path === normalizedPath ||
+                    country.title.toLowerCase() === normalizedPath ||
+                    country.id.toLowerCase() === normalizedPath)
+        )
     }, [countryPath])
 
     const countryConfig = useMemo(() => {

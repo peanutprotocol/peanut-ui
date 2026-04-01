@@ -12,6 +12,15 @@ export interface WithdrawMethod {
     minimumAmount?: number
     savedAccount?: Account
     title?: string
+    /** Pre-selected saved crypto address (set when user taps a saved address card) */
+    savedCryptoAddress?: {
+        id: string
+        label?: string
+        address: string
+        chainId: string
+        chainName: string
+        lastUsed: string
+    }
 }
 
 export type WithdrawView = 'INITIAL' | 'CONFIRM' | 'STATUS'

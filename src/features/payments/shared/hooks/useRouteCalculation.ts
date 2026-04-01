@@ -5,14 +5,15 @@
  *
  * handles two scenarios:
  * 1. same chain + same token: prepares a simple transfer
- * 2. cross-chain or different token: uses squid router to find best route
- * todo: @dev squid to be updated in deposit v2
+ * 2. cross-chain or different token:
+ *    - withdraw flows: uses Rhino bridge (quote → commit) to get calldata
+ *    - other flows: uses Squid router (legacy, kept as fallback)
  *
  * returns unsigned transactions ready to be sent via wallet
  *
  * @example
  * const { calculateRoute, transactions, estimatedGasCostUsd } = useRouteCalculation()
- * await calculateRoute({ source: { ... }, destination: { ... } })
+ * await calculateRoute({ source: { ... }, destination: { ... }, useRhino: true })
  */
 
 import { useState, useCallback } from 'react'
@@ -20,6 +21,7 @@ import { parseUnits } from 'viem'
 import { type Address, type Hex } from 'viem'
 import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { getRoute, type PeanutCrossChainRoute } from '@/services/swap'
+import { getRhinoWithdrawQuote, commitRhinoWithdraw } from '@/services/rhinoBridge'
 import { estimateTransactionCostUsd } from '@/app/actions/tokens'
 import { areEvmAddressesEqual } from '@/utils/general.utils'
 import { captureException } from '@sentry/nextjs'
@@ -66,6 +68,10 @@ export interface UseRouteCalculationReturn {
         usdAmount?: string
         disableCoral?: boolean
         skipGasEstimate?: boolean
+        /** When true, use Rhino bridge for cross-chain instead of Squid */
+        useRhino?: boolean
+        /** Token symbol for Rhino quote (e.g. 'USDC') */
+        rhinoToken?: string
     }) => Promise<void>
     reset: () => void
 }
@@ -92,12 +98,16 @@ export const useRouteCalculation = (): UseRouteCalculationReturn => {
             usdAmount,
             disableCoral = false,
             skipGasEstimate = false,
+            useRhino = false,
+            rhinoToken,
         }: {
             source: RouteSourceInfo
             destination: RouteDestinationInfo
             usdAmount?: string
             disableCoral?: boolean
             skipGasEstimate?: boolean
+            useRhino?: boolean
+            rhinoToken?: string
         }) => {
             setIsCalculating(true)
             setError(null)
@@ -114,43 +124,89 @@ export const useRouteCalculation = (): UseRouteCalculationReturn => {
                 setIsDiffToken(_isDiffToken)
 
                 if (_isXChain || _isDiffToken) {
-                    // cross-chain or token swap needed
-                    const amount = usdAmount
-                        ? { fromUsd: usdAmount }
-                        : { toAmount: parseUnits(destination.tokenAmount, destination.tokenDecimals) }
+                    if (useRhino) {
+                        // ── Rhino bridge path (withdraw flow) ───────────────────
+                        // Use mode='receive' so user specifies exact amount to receive
+                        const token = rhinoToken ?? 'USDC'
 
-                    const xChainRoute = await getRoute(
-                        {
-                            from: source,
-                            to: {
-                                address: destination.recipientAddress,
-                                tokenAddress: destination.tokenAddress,
-                                chainId: destination.chainId,
+                        const quote = await getRhinoWithdrawQuote({
+                            amount: destination.tokenAmount,
+                            token,
+                            chainOut: destination.chainId,
+                            recipient: destination.recipientAddress,
+                            mode: 'receive',
+                        })
+
+                        const commit = await commitRhinoWithdraw(quote.quoteId)
+
+                        // Build a PeanutCrossChainRoute-compatible object from Rhino data
+                        const rhinoRoute: PeanutCrossChainRoute = {
+                            expiry: quote.expiresAt,
+                            type: 'rfq',
+                            fromAmount: quote.amountIn,
+                            transactions: [
+                                {
+                                    to: commit.calldata.to as Address,
+                                    data: commit.calldata.data as Hex,
+                                    value: commit.calldata.value,
+                                },
+                            ],
+                            feeCostsUsd: quote.feeUsd + quote.gasFeeUsd,
+                            // rawResponse is required by the type but not used downstream
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            rawResponse: {} as any,
+                        }
+
+                        setRoute(rhinoRoute)
+                        setTransactions([
+                            {
+                                to: commit.calldata.to as Address,
+                                data: commit.calldata.data as Hex,
+                                value: BigInt(commit.calldata.value),
                             },
-                            ...amount,
-                        },
-                        { disableCoral }
-                    )
+                        ])
+                        setEstimatedGasCostUsd(rhinoRoute.feeCostsUsd)
+                        setEstimatedFromValue(quote.amountIn)
+                        setSlippagePercentage(undefined) // Rhino quotes are deterministic, no slippage
+                    } else {
+                        // ── Squid path (legacy / non-withdraw flows) ─────────────
+                        const amount = usdAmount
+                            ? { fromUsd: usdAmount }
+                            : { toAmount: parseUnits(destination.tokenAmount, destination.tokenDecimals) }
 
-                    if (xChainRoute.error) {
-                        throw new Error(xChainRoute.error)
+                        const xChainRoute = await getRoute(
+                            {
+                                from: source,
+                                to: {
+                                    address: destination.recipientAddress,
+                                    tokenAddress: destination.tokenAddress,
+                                    chainId: destination.chainId,
+                                },
+                                ...amount,
+                            },
+                            { disableCoral }
+                        )
+
+                        if (xChainRoute.error) {
+                            throw new Error(xChainRoute.error)
+                        }
+
+                        const slippage = Number(xChainRoute.fromAmount) / Number(destination.tokenAmount) - 1
+
+                        setRoute(xChainRoute)
+                        setTransactions(
+                            xChainRoute.transactions.map((tx) => ({
+                                to: tx.to,
+                                data: tx.data,
+                                value: BigInt(tx.value),
+                            }))
+                        )
+                        setEstimatedGasCostUsd(xChainRoute.feeCostsUsd)
+                        setEstimatedFromValue(xChainRoute.fromAmount)
+                        setSlippagePercentage(slippage)
                     }
-
-                    const slippage = Number(xChainRoute.fromAmount) / Number(destination.tokenAmount) - 1
-
-                    setRoute(xChainRoute)
-                    setTransactions(
-                        xChainRoute.transactions.map((tx) => ({
-                            to: tx.to,
-                            data: tx.data,
-                            value: BigInt(tx.value),
-                        }))
-                    )
-                    setEstimatedGasCostUsd(xChainRoute.feeCostsUsd)
-                    setEstimatedFromValue(xChainRoute.fromAmount)
-                    setSlippagePercentage(slippage)
                 } else {
-                    // same chain, same token - prepare simple transfer
+                    // ── Same chain, same token — simple transfer ──────────────────
                     const tx = peanut.prepareRequestLinkFulfillmentTransaction({
                         recipientAddress: destination.recipientAddress,
                         tokenAddress: destination.tokenAddress,
