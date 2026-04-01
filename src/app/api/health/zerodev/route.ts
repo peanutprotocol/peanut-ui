@@ -1,22 +1,26 @@
 import { NextResponse } from 'next/server'
-import { fetchWithSentry } from '@/utils/sentry.utils'
 
 /**
  * ZeroDev health check endpoint
- * Tests bundler and paymaster services for supported chains
+ * Tests bundler and paymaster services for Arbitrum (the only chain using ZeroDev in production).
+ *
+ * Uses `eth_supportedEntryPoints` for the bundler — this is a mandatory ERC-4337 method
+ * that all compliant bundlers must support. Previous `eth_chainId` calls returned 400 on
+ * some bundlers since it's not part of the ERC-4337 spec.
+ *
+ * Paymaster is tested with `eth_chainId` and treats any response < 503 as healthy,
+ * since paymasters may return 400/500 for bare RPC calls while still being operational.
+ *
+ * Uses plain fetch (not fetchWithSentry) to avoid health check failures polluting Sentry.
  */
 export async function GET() {
     const startTime = Date.now()
 
     try {
-        // Get configuration from environment variables (same as zerodev.consts.ts)
         const BUNDLER_URL = process.env.NEXT_PUBLIC_ZERO_DEV_BUNDLER_URL
         const PAYMASTER_URL = process.env.NEXT_PUBLIC_ZERO_DEV_PAYMASTER_URL
         const PROJECT_ID = process.env.NEXT_PUBLIC_ZERO_DEV_PASSKEY_PROJECT_ID
-        const POLYGON_BUNDLER_URL = process.env.NEXT_PUBLIC_POLYGON_BUNDLER_URL
-        const POLYGON_PAYMASTER_URL = process.env.NEXT_PUBLIC_POLYGON_PAYMASTER_URL
 
-        // Check configuration
         if (!BUNDLER_URL || !PAYMASTER_URL || !PROJECT_ID) {
             return NextResponse.json(
                 {
@@ -31,46 +35,115 @@ export async function GET() {
         }
 
         const results: any = {
-            arbitrum: {},
-            polygon: {},
+            arbitrum: { bundler: {}, paymaster: {} },
             configuration: {
-                projectId: PROJECT_ID ? 'configured' : 'missing',
-                bundlerUrl: BUNDLER_URL ? 'configured' : 'missing',
-                paymasterUrl: PAYMASTER_URL ? 'configured' : 'missing',
-                polygonBundlerUrl: POLYGON_BUNDLER_URL ? 'configured' : 'missing',
-                polygonPaymasterUrl: POLYGON_PAYMASTER_URL ? 'configured' : 'missing',
+                projectId: 'configured',
+                bundlerUrl: 'configured',
+                paymasterUrl: 'configured',
             },
         }
 
-        // Test Arbitrum endpoints
-        await testChainEndpoints('arbitrum', BUNDLER_URL, PAYMASTER_URL, results)
+        // Test Arbitrum bundler with eth_supportedEntryPoints (mandatory ERC-4337 method)
+        const bundlerTestStart = Date.now()
+        try {
+            const bundlerResponse = await fetch(BUNDLER_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                signal: AbortSignal.timeout(5000),
+                body: JSON.stringify({
+                    jsonrpc: '2.0',
+                    method: 'eth_supportedEntryPoints',
+                    params: [],
+                    id: 1,
+                }),
+            })
 
-        // Test Polygon endpoints (if configured)
-        if (POLYGON_BUNDLER_URL && POLYGON_PAYMASTER_URL) {
-            await testChainEndpoints('polygon', POLYGON_BUNDLER_URL, POLYGON_PAYMASTER_URL, results)
-        } else {
-            results.polygon = {
-                status: 'not_configured',
-                message: 'Polygon ZeroDev services not configured',
+            const bundlerResponseTime = Date.now() - bundlerTestStart
+
+            // Any HTTP response means the bundler is reachable.
+            // 200 = fully healthy, 4xx = reachable but method issue (still alive), 5xx = server error
+            if (bundlerResponse.ok) {
+                const bundlerData = await bundlerResponse.json()
+                results.arbitrum.bundler = {
+                    status: 'healthy',
+                    responseTime: bundlerResponseTime,
+                    httpStatus: bundlerResponse.status,
+                    entryPoints: bundlerData?.result,
+                }
+            } else if (bundlerResponse.status < 500) {
+                // 4xx means the endpoint is reachable but rejected the call — degraded, not dead
+                results.arbitrum.bundler = {
+                    status: 'degraded',
+                    responseTime: bundlerResponseTime,
+                    httpStatus: bundlerResponse.status,
+                    message: 'Bundler reachable but returned client error',
+                }
+            } else {
+                results.arbitrum.bundler = {
+                    status: 'unhealthy',
+                    responseTime: bundlerResponseTime,
+                    httpStatus: bundlerResponse.status,
+                }
+            }
+        } catch (error) {
+            results.arbitrum.bundler = {
+                status: 'unhealthy',
+                responseTime: Date.now() - bundlerTestStart,
+                error: error instanceof Error ? error.message : 'Unknown error',
             }
         }
 
-        // Determine overall status
-        let overallStatus = 'healthy'
-        const arbitrumHealthy =
-            results.arbitrum.bundler?.status === 'healthy' && results.arbitrum.paymaster?.status === 'healthy'
-        const polygonHealthy =
-            results.polygon.status === 'not_configured' ||
-            (results.polygon.bundler?.status === 'healthy' && results.polygon.paymaster?.status === 'healthy')
+        // Test Arbitrum paymaster
+        const paymasterTestStart = Date.now()
+        try {
+            const paymasterResponse = await fetch(PAYMASTER_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                signal: AbortSignal.timeout(5000),
+                body: JSON.stringify({
+                    jsonrpc: '2.0',
+                    method: 'eth_chainId',
+                    params: [],
+                    id: 1,
+                }),
+            })
 
-        if (!arbitrumHealthy || !polygonHealthy) {
-            // If any critical service is down, mark as unhealthy
+            const paymasterResponseTime = Date.now() - paymasterTestStart
+
+            // Paymaster often returns 400/500 for basic RPC calls — that's expected.
+            // Only mark unhealthy if we can't reach it at all (503+) or network error.
+            results.arbitrum.paymaster = {
+                status: paymasterResponse.status < 503 ? 'healthy' : 'unhealthy',
+                responseTime: paymasterResponseTime,
+                httpStatus: paymasterResponse.status,
+            }
+
+            if (paymasterResponse.ok) {
+                const paymasterData = await paymasterResponse.json()
+                results.arbitrum.paymaster.chainId = paymasterData?.result
+            }
+        } catch (error) {
+            results.arbitrum.paymaster = {
+                status: 'unhealthy',
+                responseTime: Date.now() - paymasterTestStart,
+                error: error instanceof Error ? error.message : 'Unknown error',
+            }
+        }
+
+        // Determine overall status — only Arbitrum matters for production
+        const bundlerOk =
+            results.arbitrum.bundler.status === 'healthy' || results.arbitrum.bundler.status === 'degraded'
+        const paymasterOk = results.arbitrum.paymaster.status === 'healthy'
+
+        let overallStatus = 'healthy'
+        if (!bundlerOk || !paymasterOk) {
             overallStatus = 'unhealthy'
+        } else if (results.arbitrum.bundler.status === 'degraded') {
+            overallStatus = 'degraded'
         }
 
         const responseTime = Date.now() - startTime
 
-        // Return 500 if unhealthy
         if (overallStatus === 'unhealthy') {
             return NextResponse.json(
                 {
@@ -92,92 +165,15 @@ export async function GET() {
             details: results,
         })
     } catch (error) {
-        const responseTime = Date.now() - startTime
-
         return NextResponse.json(
             {
                 status: 'unhealthy',
                 service: 'zerodev',
                 timestamp: new Date().toISOString(),
                 error: error instanceof Error ? error.message : 'Unknown error',
-                responseTime,
+                responseTime: Date.now() - startTime,
             },
             { status: 500 }
         )
-    }
-}
-
-async function testChainEndpoints(chainName: string, bundlerUrl: string, paymasterUrl: string, results: any) {
-    results[chainName] = {
-        bundler: {},
-        paymaster: {},
-    }
-
-    // Test Bundler - using a simple JSON-RPC call that bundlers should support
-    const bundlerTestStart = Date.now()
-    try {
-        const bundlerResponse = await fetchWithSentry(bundlerUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                jsonrpc: '2.0',
-                method: 'eth_chainId',
-                params: [],
-                id: 1,
-            }),
-        })
-
-        results[chainName].bundler = {
-            status: bundlerResponse.ok ? 'healthy' : 'unhealthy',
-            responseTime: Date.now() - bundlerTestStart,
-            httpStatus: bundlerResponse.status,
-        }
-
-        if (bundlerResponse.ok) {
-            const bundlerData = await bundlerResponse.json()
-            results[chainName].bundler.chainId = bundlerData?.result
-        }
-    } catch (error) {
-        results[chainName].bundler = {
-            status: 'unhealthy',
-            responseTime: Date.now() - bundlerTestStart,
-            error: error instanceof Error ? error.message : 'Unknown error',
-        }
-    }
-
-    // Test Paymaster - using a simple JSON-RPC call
-    const paymasterTestStart = Date.now()
-    try {
-        const paymasterResponse = await fetchWithSentry(paymasterUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                jsonrpc: '2.0',
-                method: 'eth_chainId',
-                params: [],
-                id: 1,
-            }),
-        })
-
-        results[chainName].paymaster = {
-            status: paymasterResponse.status >= 200 && paymasterResponse.status < 503 ? 'healthy' : 'unhealthy', // 500 is expected for basic calls
-            responseTime: Date.now() - paymasterTestStart,
-            httpStatus: paymasterResponse.status,
-        }
-
-        if (paymasterResponse.ok) {
-            const paymasterData = await paymasterResponse.json()
-            results[chainName].paymaster.chainId = paymasterData?.result
-        }
-    } catch (error) {
-        results[chainName].paymaster = {
-            status: 'unhealthy',
-            responseTime: Date.now() - paymasterTestStart,
-            error: error instanceof Error ? error.message : 'Unknown error',
-        }
     }
 }

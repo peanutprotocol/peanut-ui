@@ -633,7 +633,11 @@ export default function QRPayPage() {
         if (finalPaymentLock.code === '') {
             setLoadingState('Fetching details')
             try {
-                finalPaymentLock = await mantecaApi.initiateQrPayment({ qrCode, amount: currencyAmount })
+                finalPaymentLock = await mantecaApi.initiateQrPayment({
+                    qrCode,
+                    amount: currencyAmount,
+                    qrType: qrType ?? undefined,
+                })
                 setPaymentLock(finalPaymentLock)
             } catch (error) {
                 captureException(error)
@@ -700,7 +704,17 @@ export default function QRPayPage() {
                 clearTimeout(payingStateTimerRef.current)
                 payingStateTimerRef.current = null
             }
+            // Map backend field name (sponsoredUsd) to frontend field name (amountSponsored)
+            const perkResponse = qrPayment.perk as Record<string, unknown> | undefined
+            if (qrPayment.perk && typeof perkResponse?.sponsoredUsd === 'number') {
+                qrPayment.perk.amountSponsored = perkResponse.sponsoredUsd
+            }
+
             setQrPayment(qrPayment)
+
+            // all eligible perks go through hold-to-claim — no auto-claiming.
+            // this ensures a consistent reward experience regardless of amount.
+
             setIsSuccess(true)
         } catch (error) {
             // clear the timer on error to prevent race condition
@@ -786,7 +800,7 @@ export default function QRPayPage() {
             // If claim fails, show error but keep user in success state
             // (they already saw confetti, better UX than reverting)
             captureException(error)
-            setErrorMessage('Perk claim is being processed. If you do not see it in your history, contact support.')
+            setErrorMessage('Reward is being processed. If you do not see it in your history, contact support.')
         } finally {
             setIsClaimingPerk(false)
         }
@@ -984,6 +998,24 @@ export default function QRPayPage() {
 
     const isLoadingKycState = kycGateState === QrKycState.LOADING
 
+    // get user-facing payment method name for maintenance screen
+    // NOTE: must be above early returns to comply with React's Rules of Hooks
+    const paymentMethodName = useMemo(() => {
+        if (paymentProcessor === 'MANTECA') {
+            switch (qrType) {
+                case EQrType.PIX:
+                    return 'PIX'
+                case EQrType.MERCADO_PAGO:
+                    return 'Mercado Pago'
+                case EQrType.ARGENTINA_QR3:
+                    return 'QR'
+                default:
+                    return 'QR'
+            }
+        }
+        return 'SimpleFi'
+    }, [paymentProcessor, qrType])
+
     // only show KYC modals after KYC state has loaded
     // explicitly check for KYC states that require blocking (not PROCEED_TO_PAY)
     // important: this check must come BEFORE errorInitiatingPayment check
@@ -1059,23 +1091,6 @@ export default function QRPayPage() {
 
     // Show maintenance error if provider is disabled
     if (isProviderDisabled) {
-        // Get user-facing payment method name
-        const paymentMethodName = useMemo(() => {
-            if (paymentProcessor === 'MANTECA') {
-                switch (qrType) {
-                    case EQrType.PIX:
-                        return 'PIX'
-                    case EQrType.MERCADO_PAGO:
-                        return 'Mercado Pago'
-                    case EQrType.ARGENTINA_QR3:
-                        return 'QR'
-                    default:
-                        return 'QR'
-                }
-            }
-            return 'SimpleFi'
-        }, [])
-
         return (
             <div className="my-auto flex h-full w-full flex-col justify-center space-y-4">
                 <Card className="flex w-full flex-col items-center gap-2 p-4">
@@ -1189,7 +1204,7 @@ export default function QRPayPage() {
                 <SoundPlayer sound="success" />
                 <NavHeader title="Pay" />
                 <div className="my-auto flex h-full flex-col justify-center space-y-4">
-                    {/* Only show payment card if perk was not claimed */}
+                    {/* Only show payment card if reward was not claimed */}
                     {!perkClaimed && !qrPayment?.perk?.claimed && (
                         <Card className="flex flex-row items-center gap-3 p-4">
                             <div className="flex items-center gap-3">
@@ -1224,71 +1239,48 @@ export default function QRPayPage() {
                         </Card>
                     )}
 
-                    {/* Perk Eligibility Card - Show before claiming */}
+                    {/* Reward Eligibility Card - Show before claiming */}
                     {qrPayment?.perk?.eligible && !perkClaimed && !qrPayment.perk.claimed && (
                         <Card ref={pointsDivRef} className="flex items-start gap-3 bg-white p-4">
                             <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-yellow-400">
                                 <Image src={STAR_STRAIGHT_ICON} alt="star" width={24} height={24} />
                             </div>
                             <div className="flex flex-col gap-2">
-                                <h2 className="text-lg font-bold">Eligible for a Peanut Perk!</h2>
+                                <h2 className="text-lg font-bold">You earned a reward!</h2>
                                 <p className="text-sm text-gray-600">
                                     {(() => {
-                                        const percentage = qrPayment?.perk?.discountPercentage || 100
                                         const amountSponsored = qrPayment?.perk?.amountSponsored
                                         const transactionUsd =
                                             parseFloat(qrPayment?.details?.paymentAgainstAmount || '0') || 0
 
-                                        // Check if percentage matches the actual math (within 1% tolerance)
-                                        let percentageMatches = false
-                                        if (amountSponsored && transactionUsd > 0) {
-                                            const actualPercentage = (amountSponsored / transactionUsd) * 100
-                                            percentageMatches = Math.abs(actualPercentage - percentage) < 1
+                                        if (amountSponsored && typeof amountSponsored === 'number') {
+                                            return `You earned $${amountSponsored.toFixed(2)}! Hold to claim your reward.`
                                         }
 
-                                        if (percentageMatches) {
-                                            if (percentage === 100) {
-                                                return 'This bill can be covered by Peanut. Claim it now to unlock your reward.'
-                                            } else if (percentage > 100) {
-                                                return `You're getting ${percentage}% back — that's more than you paid! Claim it now.`
-                                            } else {
-                                                return `You're getting ${percentage}% cashback! Claim it now to unlock your reward.`
-                                            }
-                                        }
-
-                                        return amountSponsored && typeof amountSponsored === 'number'
-                                            ? `Get $${amountSponsored.toFixed(2)} back!`
-                                            : 'Claim it now to unlock your reward.'
+                                        return 'You earned a reward! Hold to claim.'
                                     })()}
                                 </p>
                             </div>
                         </Card>
                     )}
 
-                    {/* Perk Success Banner - Show after claiming */}
+                    {/* Reward Success Banner - Show after claiming */}
                     {(perkClaimed || qrPayment?.perk?.claimed) && (
-                        <Card className="flex items-start gap-4 bg-white p-6">
-                            <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full bg-yellow-400">
-                                <Image src={STAR_STRAIGHT_ICON} alt="star" width={36} height={36} />
+                        <Card className="flex items-start gap-3 bg-white p-4">
+                            <div className="flex max-w-[15%] flex-shrink-0 items-center justify-center rounded-full bg-yellow-400 p-2">
+                                <Image src={STAR_STRAIGHT_ICON} alt="star" width={28} height={28} />
                             </div>
                             <div className="flex flex-col gap-2">
-                                <h2 className="text-2xl font-bold">Peanut got you!</h2>
+                                <h2 className="text-2xl font-bold">You earned a reward!</h2>
                                 <p className="text-base text-gray-900">
                                     {(() => {
                                         const amountSponsored = qrPayment?.perk?.amountSponsored
-                                        const transactionUsd =
-                                            parseFloat(qrPayment?.details?.paymentAgainstAmount || '0') || 0
-                                        const percentage =
-                                            amountSponsored && transactionUsd > 0
-                                                ? Math.round((amountSponsored / transactionUsd) * 100)
-                                                : qrPayment?.perk?.discountPercentage || 100
-                                        if (percentage === 100) {
-                                            return 'We paid for this bill! Earn points, climb tiers and unlock even better perks.'
-                                        } else if (percentage > 100) {
-                                            return `We gave you ${percentage}% back — that's more than you paid! Earn points, climb tiers and unlock even better perks.`
-                                        } else {
-                                            return `We gave you ${percentage}% cashback! Earn points, climb tiers and unlock even better perks.`
+
+                                        if (amountSponsored && typeof amountSponsored === 'number') {
+                                            return `You earned $${amountSponsored.toFixed(2)}! Invite friends to earn even more.`
                                         }
+
+                                        return 'Invite friends to earn even more rewards.'
                                     })()}
                                 </p>
                             </div>
@@ -1301,7 +1293,7 @@ export default function QRPayPage() {
                     )}
 
                     <div className="w-full space-y-5">
-                        {/* Show Claim Perk button if eligible and not claimed yet */}
+                        {/* Show Claim Reward button if eligible and not claimed yet */}
                         {qrPayment?.perk?.eligible && !perkClaimed && !qrPayment.perk.claimed ? (
                             <Button
                                 onPointerDown={startHold}
@@ -1332,7 +1324,7 @@ export default function QRPayPage() {
                                     WebkitTapHighlightColor: 'transparent',
                                 }}
                             >
-                                {/* Black progress fill from left to right */}
+                                {/* progress fill from left to right */}
                                 <div
                                     className="absolute inset-0 bg-black transition-all duration-100"
                                     style={{
@@ -1340,21 +1332,43 @@ export default function QRPayPage() {
                                         left: 0,
                                     }}
                                 />
-                                <span className="relative z-10">Claim Peanut Perk Now!</span>
+                                {(() => {
+                                    const label = 'Claim Reward'
+                                    return (
+                                        <>
+                                            <span className="relative z-10">{label}</span>
+                                            <span
+                                                className="absolute inset-0 z-20 flex items-center justify-center text-white transition-all duration-75"
+                                                style={{ clipPath: `inset(0 ${100 - holdProgress}% 0 0)` }}
+                                            >
+                                                {label}
+                                            </span>
+                                        </>
+                                    )
+                                })()}
                             </Button>
                         ) : (
                             <>
-                                <Button
-                                    onClick={() => {
-                                        router.push(
-                                            `/request?amount=${formatNumberForDisplay(usdAmount ?? undefined, { maxDecimals: 2 })}&merchant=${qrPayment!.details.merchant.name}`
-                                        )
-                                    }}
-                                    icon="split"
-                                    shadowSize="4"
-                                >
-                                    Split this bill
-                                </Button>
+                                {/* after claiming a reward, primary CTA is "Done" — not "Split this bill" */}
+                                {perkClaimed || qrPayment?.perk?.claimed ? (
+                                    <Button shadowSize="4" onClick={() => router.push('/home')}>
+                                        Go to Home
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        onClick={() => {
+                                            const params = new URLSearchParams({
+                                                amount: String(usdAmount ?? ''),
+                                                merchant: qrPayment!.details.merchant.name,
+                                            })
+                                            router.push(`/request?${params.toString()}`)
+                                        }}
+                                        icon="split"
+                                        shadowSize="4"
+                                    >
+                                        Split this bill
+                                    </Button>
+                                )}
                                 <Button
                                     variant="primary-soft"
                                     shadowSize="4"

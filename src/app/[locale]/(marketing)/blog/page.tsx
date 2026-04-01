@@ -15,7 +15,6 @@ interface PageProps {
 }
 
 export async function generateStaticParams() {
-    if (process.env.NODE_ENV === 'production') return []
     return SUPPORTED_LOCALES.map((locale) => ({ locale }))
 }
 

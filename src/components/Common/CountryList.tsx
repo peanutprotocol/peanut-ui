@@ -13,6 +13,7 @@ import { getCardPosition } from '../Global/Card/card.utils'
 import { useGeoLocation } from '@/hooks/useGeoLocation'
 import { CountryListSkeleton } from './CountryListSkeleton'
 import AvatarWithBadge from '../Profile/AvatarWithBadge'
+import EasterEggModal, { EASTER_EGG_COUNTRIES } from '@/components/Global/EasterEggModal'
 import StatusBadge from '../Global/Badges/StatusBadge'
 import Loading from '../Global/Loading'
 import { useSearchParams } from 'next/navigation'
@@ -68,6 +69,9 @@ export const CountryList = ({
     // track which country is being clicked to show loading state
     const [clickedCountryId, setClickedCountryId] = useState<string | null>(null)
     const { isBridgeSupportedCountry: isBridgeSupportedCountryHook } = useIdentityVerification()
+
+    // easter egg modal state
+    const [easterEggCountry, setEasterEggCountry] = useState<string | null>(null)
 
     const supportedCountries = countryData.filter((country) => country.type === 'country')
 
@@ -179,18 +183,26 @@ export const CountryList = ({
                                         customRight ??
                                         (showLoadingState && clickedCountryId === country.id ? (
                                             <Loading />
-                                        ) : !isSupported ? (
+                                        ) : !isSupported && !EASTER_EGG_COUNTRIES[country.id] ? (
                                             <StatusBadge status="soon" />
                                         ) : undefined)
                                     }
                                     description={country.currency}
                                     onClick={() => {
+                                        // check for easter egg countries first
+                                        if (EASTER_EGG_COUNTRIES[country.id]) {
+                                            setEasterEggCountry(country.id)
+                                            return
+                                        }
                                         // set loading state immediately for visual feedback
                                         setClickedCountryId(country.id)
                                         onCountryClick(country)
                                     }}
                                     position={position}
-                                    isDisabled={!isSupported || clickedCountryId === country.id}
+                                    isDisabled={
+                                        (!isSupported && !EASTER_EGG_COUNTRIES[country.id]) ||
+                                        clickedCountryId === country.id
+                                    }
                                     leftIcon={
                                         <div className="relative h-8 w-8">
                                             <Image
@@ -220,6 +232,13 @@ export const CountryList = ({
                     )}
                 </div>
             )}
+
+            {/* Easter egg modal for weird/uninhabited countries */}
+            <EasterEggModal
+                visible={!!easterEggCountry}
+                onClose={() => setEasterEggCountry(null)}
+                countryCode={easterEggCountry ?? ''}
+            />
         </div>
     )
 }

@@ -41,7 +41,7 @@ export default function BackupPage() {
                 <NavHeader title="Backup" onPrev={() => router.replace('/profile')} />
 
                 <EmptyState
-                    title="Self-custody wallet"
+                    title="Non-custodial wallet"
                     description="Only you control this wallet. We can't recover it if you lose access. Your backup is your responsibility."
                     icon="upload-cloud"
                 />

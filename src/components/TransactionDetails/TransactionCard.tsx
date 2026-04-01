@@ -14,6 +14,7 @@ import {
 } from '@/utils/general.utils'
 import { getAvatarUrl, getTransactionSign } from '@/utils/history.utils'
 import React, { lazy, Suspense } from 'react'
+import { twMerge } from 'tailwind-merge'
 import Image from 'next/image'
 import StatusPill, { type StatusPillType } from '../Global/StatusPill'
 import { VerifiedUserLabel } from '../UserHeader'
@@ -187,7 +188,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                     {isTestTransaction
                                         ? 'Setup'
                                         : isPerkReward
-                                          ? 'Cashback'
+                                          ? 'Reward'
                                           : getActionText(type, status)}
                                 </span>
                                 {status && <StatusPill status={status} />}
@@ -205,9 +206,21 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                     <span className="text-2xl font-bold">****</span>
                                 ) : (
                                     <>
-                                        <span className="font-semibold">{displayAmount}</span>
+                                        <span
+                                            className={twMerge(
+                                                'font-semibold',
+                                                status === 'refunded' && 'text-gray-1 line-through'
+                                            )}
+                                        >
+                                            {displayAmount}
+                                        </span>
                                         {currencyDisplayAmount && (
-                                            <span className="text-sm font-medium text-gray-1">
+                                            <span
+                                                className={twMerge(
+                                                    'text-sm font-medium text-gray-1',
+                                                    status === 'refunded' && 'line-through'
+                                                )}
+                                            >
                                                 {currencyDisplayAmount}
                                             </span>
                                         )}

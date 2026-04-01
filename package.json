@@ -25,7 +25,8 @@
         "ping-indexnow": "tsx scripts/ping-indexnow.ts",
         "script": "NODE_OPTIONS=\"--experimental-json-modules\" tsx",
         "validate-content": "tsx scripts/validate-content.ts",
-        "validate-links": "tsx scripts/validate-links.ts"
+        "validate-links": "tsx scripts/verify-content.ts",
+        "verify-content": "tsx scripts/verify-content.ts"
     },
     "dependencies": {
         "@dicebear/collection": "^9.2.2",

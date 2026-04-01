@@ -56,6 +56,7 @@ export default async function SendMoneyToCountryPageLocalized({ params }: PagePr
 
     return (
         <ContentPage
+            locale={locale}
             breadcrumbs={[
                 { name: i18n.home, href: `/${locale}` },
                 { name: countryName, href: url },

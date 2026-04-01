@@ -64,6 +64,7 @@ export default function robots(): MetadataRoute.Robots {
                     '/qr',
                     '/history',
                     '/points',
+                    '/rewards',
                     '/invite',
                     '/kyc',
                     '/maintenance',

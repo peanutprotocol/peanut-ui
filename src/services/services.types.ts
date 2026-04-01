@@ -434,6 +434,8 @@ export interface PointsInvite {
     contributedPoints: number
     hasInvitedOthers: boolean
     inviteesCount: number
+    /** usd earned from this invitee's transactions (rewards v2) */
+    lifetimeEarnedUsd?: number
 }
 
 export interface PointsInvitesResponse {
@@ -445,6 +447,10 @@ export interface PointsInvitesResponse {
         totalDirectPoints: number
         totalInvites: number
         verifiedInvites: number
+        /** total usd earned from all invitees (rewards v2) */
+        totalLifetimeEarnedUsd?: number
+        /** total pending usd across all invitees (rewards v2) */
+        totalPendingUsd?: number
     }
 }
 
@@ -478,4 +484,13 @@ export interface CreateDepositAddressResponse {
     minDepositLimitUsd: number
     maxDepositLimitUsd: number
     supportedChains: string[]
+}
+
+export interface DepositAddressStatusResponse {
+    status: string
+    amount?: number
+    txHash?: string
+    chainIn?: string
+    tokenSymbol?: string
+    tokenAmount?: string
 }

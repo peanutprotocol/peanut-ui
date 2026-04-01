@@ -24,7 +24,6 @@ import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { PostSignupActionManager } from '@/components/Global/PostSignupActionManager'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
-import { useDeviceType } from '@/hooks/useGetDeviceType'
 import { useNotifications } from '@/hooks/useNotifications'
 import useKycStatus from '@/hooks/useKycStatus'
 import { useCardPioneerInfo } from '@/hooks/useCardPioneerInfo'
@@ -33,6 +32,8 @@ import InvitesIcon from '@/components/Home/InvitesIcon'
 import NavigationArrow from '@/components/Global/NavigationArrow'
 import { updateUserById } from '@/app/actions/users'
 import { useHaptic } from 'use-haptic'
+import { useActivationStatus } from '@/hooks/useActivationStatus'
+import ActivationCTAs from '@/components/Home/ActivationCTAs'
 import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import posthog from 'posthog-js'
@@ -57,7 +58,6 @@ export default function Home() {
     const { balance, isFetchingBalance } = useWallet()
     const { resetFlow: resetClaimBankFlow } = useClaimBankFlow()
     const { resetWithdrawFlow } = useWithdrawFlow()
-    const { deviceType } = useDeviceType()
     const { user } = useUserStore()
     const [isBalanceHidden, setIsBalanceHidden] = useState(() => {
         const prefs = user ? getUserPreferences(user.user.userId) : undefined
@@ -69,6 +69,7 @@ export default function Home() {
 
     const { isFetchingUser, fetchUser } = useAuth()
     const { isUserKycApproved } = useKycStatus()
+    const { isActivated, activationStep } = useActivationStatus()
     const {
         hasPurchased: hasCardPioneerPurchased,
         isLoading: isCardInfoLoading,
@@ -87,6 +88,11 @@ export default function Home() {
         if (typeof window === 'undefined') return false
         return sessionStorage.getItem('showNoMoreJailModal') === 'true'
     })
+
+    // re-fetch user on mount to pick up activation status changes (e.g. after QR payment)
+    useEffect(() => {
+        fetchUser()
+    }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
     // sync modal state with user data when it changes
     useEffect(() => {
@@ -167,11 +173,13 @@ export default function Home() {
             <div className="h-full w-full space-y-6 p-5">
                 <div className="flex items-center justify-between gap-2">
                     <UserHeader username={username!} fullName={userFullName} isVerified={isUserKycApproved} />
-                    <Link onClick={() => triggerHaptic()} href="/points" className="flex items-center gap-0">
-                        <InvitesIcon />
-                        <span className="whitespace-nowrap pl-1 text-sm font-semibold md:text-base">Points</span>
-                        <NavigationArrow size={16} className="fill-black" />
-                    </Link>
+                    {isActivated && (
+                        <Link onClick={() => triggerHaptic()} href="/rewards" className="flex items-center gap-0">
+                            <InvitesIcon />
+                            <span className="whitespace-nowrap pl-1 text-sm font-semibold md:text-base">Rewards</span>
+                            <NavigationArrow size={16} className="fill-black" />
+                        </Link>
+                    )}
                     {/* <NotificationNavigation /> */}
                 </div>
                 <div className="space-y-4">
@@ -200,8 +208,12 @@ export default function Home() {
                 </div>
 
                 <div className="space-y-2">
-                    <HomeCarouselCTA />
-                    <HomeHistory username={username ?? undefined} hideTxnAmount={isBalanceHidden} />
+                    {isActivated ? <HomeCarouselCTA /> : <ActivationCTAs activationStep={activationStep} />}
+                    <HomeHistory
+                        username={username ?? undefined}
+                        hideTxnAmount={isBalanceHidden}
+                        hideEmptyState={!isActivated}
+                    />
                 </div>
 
                 {showPermissionModal && !showBalanceWarningModal && (

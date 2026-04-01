@@ -361,8 +361,8 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         case EHistoryEntryType.PERK_REWARD:
             direction = 'receive'
             transactionCardType = 'receive'
-            nameForDetails = 'Peanut Perk!'
-            fullName = 'Peanut Perks'
+            nameForDetails = 'Peanut Reward'
+            fullName = 'Peanut Rewards'
             isPeerActuallyUser = false
             break
         default:

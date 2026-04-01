@@ -68,6 +68,8 @@ type DirectSuccessViewProps = {
     paymentDetails?: PaymentCreationResponse | null
     parsedPaymentData?: ParsedURL | null
     usdAmount?: string
+    // optional pre-built transaction details (e.g. for deposit receipts where chargeDetails doesn't exist)
+    transactionDetails?: TransactionDetails | null
 }
 
 const PaymentSuccessView = ({
@@ -87,6 +89,7 @@ const PaymentSuccessView = ({
     paymentDetails,
     parsedPaymentData,
     usdAmount,
+    transactionDetails: transactionDetailsProp,
 }: DirectSuccessViewProps) => {
     const router = useRouter()
     const { isDrawerOpen, selectedTransaction, openTransactionDetails, closeTransactionDetails } =
@@ -201,9 +204,10 @@ const PaymentSuccessView = ({
             posthog.capture(ANALYTICS_EVENTS.POINTS_EARNED, {
                 points,
                 flow_type: isWithdrawFlow ? 'withdraw' : type?.toLowerCase(),
+                acquisition_source: authUser?.invitedBy ? 'referred' : 'organic',
             })
         }
-    }, [points, isWithdrawFlow, type])
+    }, [points, isWithdrawFlow, type, authUser?.invitedBy])
 
     useEffect(() => {
         // invalidate queries to refetch history
@@ -214,7 +218,7 @@ const PaymentSuccessView = ({
         // Navigate first, then call onComplete - otherwise onComplete may reset state
         // causing this component to unmount before router.push executes
         if (!!authUser?.user.userId) {
-            router.push('/home')
+            router.push(redirectTo)
         } else {
             router.push('/setup')
         }
@@ -237,16 +241,9 @@ const PaymentSuccessView = ({
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
             <SoundPlayer sound="success" />
-            {type === 'SEND' && (
+            {(type === 'SEND' || type === 'DEPOSIT') && (
                 <div className="md:hidden">
-                    <NavHeader
-                        icon="cancel"
-                        title={headerTitle}
-                        onPrev={() => {
-                            onComplete?.()
-                            router.push(redirectTo)
-                        }}
-                    />
+                    <NavHeader icon="cancel" title={headerTitle} onPrev={handleDone} />
                 </div>
             )}
             <div className="relative z-10 my-auto flex h-full flex-col justify-center space-y-4">
@@ -273,6 +270,7 @@ const PaymentSuccessView = ({
                             {getTitle()}
                             {!isExternalWalletFlow &&
                                 !isWithdrawFlow &&
+                                type !== 'DEPOSIT' &&
                                 (recipientType !== 'USERNAME' ? (
                                     <AddressLink
                                         className="text-sm font-normal text-grey-1 no-underline"
@@ -301,16 +299,16 @@ const PaymentSuccessView = ({
                     ) : (
                         <CreateAccountButton onClick={() => router.push('/setup')} />
                     )}
-                    {type === 'SEND' && !isExternalWalletFlow && !isWithdrawFlow && (
+                    {!isExternalWalletFlow && (transactionDetailsProp || transactionForDrawer) && (
                         <Button
                             variant="primary-soft"
                             shadowSize="4"
                             onClick={() => {
-                                if (transactionForDrawer) {
-                                    openTransactionDetails(transactionForDrawer)
+                                const txDetails = transactionDetailsProp ?? transactionForDrawer
+                                if (txDetails) {
+                                    openTransactionDetails(txDetails)
                                 }
                             }}
-                            disabled={!transactionForDrawer}
                         >
                             See receipt
                         </Button>
@@ -320,7 +318,7 @@ const PaymentSuccessView = ({
 
             {/* Transaction Details Drawer */}
             <TransactionDetailsDrawer
-                isOpen={isDrawerOpen && selectedTransaction?.id === transactionForDrawer?.id}
+                isOpen={isDrawerOpen}
                 onClose={closeTransactionDetails}
                 transaction={selectedTransaction}
             />

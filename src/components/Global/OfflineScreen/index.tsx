@@ -1,6 +1,8 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
+import { verifyConnectivity } from '@/hooks/useNetworkStatus'
+import { useState } from 'react'
 
 // inline peanut icon svg to ensure it works offline without needing to fetch external assets
 const PeanutIcon = ({ className }: { className?: string }) => (
@@ -125,14 +127,16 @@ const PeanutIcon = ({ className }: { className?: string }) => (
  * when connection is restored, page automatically reloads
  */
 export default function OfflineScreen() {
-    // check if connection is restored before reloading
-    const handleRetryConnection = () => {
-        if (navigator.onLine) {
-            // connection restored, reload the page
+    const [isChecking, setIsChecking] = useState(false)
+
+    // verify with a real fetch instead of trusting navigator.onLine
+    const handleRetryConnection = async () => {
+        setIsChecking(true)
+        const online = await verifyConnectivity()
+        if (online) {
             window.location.reload()
         } else {
-            // still offline, automatic polling will detect when back online
-            console.log('Still offline, waiting for connection...')
+            setIsChecking(false)
         }
     }
 
@@ -153,8 +157,9 @@ export default function OfflineScreen() {
                 size="medium"
                 className="w-fit rounded-full"
                 onClick={handleRetryConnection}
+                disabled={isChecking}
             >
-                Check Connection
+                {isChecking ? 'Checking...' : 'Check Connection'}
             </Button>
         </div>
     )

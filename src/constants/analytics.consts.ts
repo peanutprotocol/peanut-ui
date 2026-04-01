@@ -71,9 +71,24 @@ export const ANALYTICS_EVENTS = {
     INVITE_ACCEPTED: 'invite_accepted',
     INVITE_ACCEPT_FAILED: 'invite_accept_failed',
 
-    // ── Points / Cashback ──
+    // ── Points / Rewards ──
     POINTS_PAGE_VIEWED: 'points_page_viewed',
     POINTS_EARNED: 'points_earned',
+
+    // ── Activation Funnel ──
+    ACTIVATION_STEP_VIEWED: 'activation_step_viewed',
+
+    // ── Surprise Moment (funnel handoff) ──
+    SURPRISE_MOMENT_SHOWN: 'surprise_moment_shown',
+
+    // ── Reward Claim Lifecycle ──
+    REWARD_CLAIM_SHOWN: 'reward_claim_shown',
+    REWARD_CLAIMED: 'reward_claimed',
+    REWARD_CLAIM_DISMISSED: 'reward_claim_dismissed',
+
+    // ── Referral Funnel ──
+    REFERRAL_CTA_SHOWN: 'referral_cta_shown',
+    REFERRAL_CTA_CLICKED: 'referral_cta_clicked',
 
     // ── Notifications ──
     NOTIFICATION_PERMISSION_REQUESTED: 'notification_permission_requested',
@@ -109,6 +124,16 @@ export const MODAL_TYPES = {
     CARD_PIONEER: 'card_pioneer',
     KYC_COMPLETED: 'kyc_completed',
     INVITE: 'invite',
+} as const
+
+/**
+ * Valid source values for REFERRAL_CTA_SHOWN / REFERRAL_CTA_CLICKED events.
+ */
+export const REFERRAL_SOURCES = {
+    FLOATING_BUTTON: 'floating_button',
+    CAMPAIGN_MODAL: 'campaign_modal',
+    INVITE_MODAL: 'invite_modal',
+    SURPRISE_MOMENT: 'surprise_moment',
 } as const
 
 export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[keyof typeof ANALYTICS_EVENTS]

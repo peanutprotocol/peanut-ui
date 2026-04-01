@@ -28,6 +28,8 @@ import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
 import { getLimitsWarningCardProps } from '@/features/limits/utils'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
+import { useBridgeTosGuard } from '@/hooks/useBridgeTosGuard'
+import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import posthog from 'posthog-js'
@@ -92,6 +94,7 @@ export default function OnrampBankPage() {
     const isUK = isUKCountry(selectedCountryPath)
 
     const { isUserKycApproved } = useKycStatus()
+    const { guardWithTos, showBridgeTos, hideTos } = useBridgeTosGuard()
 
     useEffect(() => {
         fetchUser()
@@ -212,6 +215,12 @@ export default function OnrampBankPage() {
             })
             return
         }
+
+        if (guardWithTos()) {
+            setShowWarningModal(false)
+            return
+        }
+
         setShowWarningModal(false)
         setIsRiskAccepted(false)
         try {
@@ -393,6 +402,15 @@ export default function OnrampBankPage() {
                 />
 
                 <SumsubKycModals flow={sumsubFlow} autoStartSdk />
+
+                <BridgeTosStep
+                    visible={showBridgeTos}
+                    onComplete={() => {
+                        hideTos()
+                        handleWarningConfirm()
+                    }}
+                    onSkip={hideTos}
+                />
             </div>
         )
     }

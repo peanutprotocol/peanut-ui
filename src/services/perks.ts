@@ -9,6 +9,8 @@ export type PendingPerk = {
     reason?: string
     amountUsd: number
     createdAt: string
+    /** Extracted invitee name from BE (avoids FE regex parsing of reason) */
+    inviteeName?: string
 }
 
 export type PendingPerksResponse = {

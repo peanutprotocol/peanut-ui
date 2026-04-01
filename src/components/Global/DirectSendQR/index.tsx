@@ -468,7 +468,7 @@ export default function DirectSendQr({
                 shadowSize="4"
                 shadowType="primary"
                 className={twMerge(
-                    'mx-auto h-20 w-20 cursor-pointer justify-center rounded-full p-4.5 hover:bg-primary-1/100',
+                    'mx-auto h-20 w-20 cursor-pointer justify-center rounded-full p-4.5 hover:bg-primary-1/100 active:translate-x-0 active:translate-y-0 active:scale-95',
                     className
                 )}
                 disabled={disabled}

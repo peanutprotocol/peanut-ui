@@ -38,9 +38,12 @@ export const rpcUrls: Record<number, string[]> = {
         'https://sepolia-rollup.arbitrum.io/rpc', // Official Arbitrum Sepolia
     ].filter(Boolean) as string[],
     [polygon.id]: [
+        'https://polygon-mainnet.core.chainstack.com/e8d733c7341e28d98e4cf66c61c42aa6', // Chainstack (primary)
         infuraUrl('polygon-mainnet'),
         alchemyUrl('polygon-mainnet'),
         'https://polygon-rpc.com', // Official public RPC
+        'https://polygon-bor-rpc.publicnode.com', // Public fallback
+        'https://rpc.ankr.com/polygon', // Public fallback
     ].filter(Boolean) as string[],
     [optimism.id]: [
         infuraUrl('optimism-mainnet'),
@@ -48,11 +51,13 @@ export const rpcUrls: Record<number, string[]> = {
         'https://mainnet.optimism.io', // Official Optimism RPC
     ].filter(Boolean) as string[],
     [base.id]: [
+        'https://base-mainnet.core.chainstack.com/01f0761d79d1b6e9d234d7ab69a90b19', // Chainstack (primary)
         infuraUrl('base-mainnet'),
         alchemyUrl('base-mainnet'),
         'https://mainnet.base.org', // Official Base RPC
     ].filter(Boolean) as string[],
     [bsc.id]: [
+        'https://bsc-mainnet.core.chainstack.com/2d9b1537fa4555562f8e15fd08bf8ed5', // Chainstack (primary)
         'https://bsc-dataseed.bnbchain.org', // Official BSC RPC
         infuraUrl('bsc-mainnet'),
         alchemyUrl('bsc-mainnet'),
