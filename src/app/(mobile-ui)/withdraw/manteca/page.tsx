@@ -50,6 +50,8 @@ import {
     MantecaAccountType,
     type MantecaBankCode,
 } from '@/constants/manteca.consts'
+import { getCountryFromPath } from '@/utils/bridge.utils'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
@@ -90,6 +92,7 @@ export default function MantecaWithdrawFlow() {
     const queryClient = useQueryClient()
     const { isUserMantecaKycApproved } = useKycStatus()
     const { hasPendingTransactions } = usePendingTransactions()
+    const { isBridgeSupportedCountry } = useIdentityVerification()
 
     // inline sumsub kyc flow for manteca users who need LATAM verification
     // regionIntent is NOT passed here to avoid creating a backend record on mount.
@@ -461,12 +464,20 @@ export default function MantecaWithdrawFlow() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [canonicalCountryPath])
 
-    // redirect to withdraw page if country is not supported by manteca
+    // Redirect if country is not supported by Manteca.
+    // If the country is a bridge-supported country (e.g. Mexico), forward to the
+    // bridge withdraw flow preserving the query string, instead of dropping context.
     useEffect(() => {
         if (!selectedCountry || !MANTECA_COUNTRIES_CONFIG[selectedCountry.id]) {
-            router.replace('/withdraw')
+            const bridgeCountry = selectedCountry ?? getCountryFromPath(canonicalCountryPath)
+            if (bridgeCountry && isBridgeSupportedCountry(bridgeCountry.id)) {
+                const qs = searchParams.toString()
+                router.replace(`/withdraw/${bridgeCountry.path}/bank${qs ? `?${qs}` : ''}`)
+            } else {
+                router.replace('/withdraw')
+            }
         }
-    }, [selectedCountry, router])
+    }, [selectedCountry, router, canonicalCountryPath, isBridgeSupportedCountry, searchParams])
 
     if (isCurrencyLoading || !currencyPrice || !selectedCountry || !countryConfig) {
         return <PeanutLoading />
