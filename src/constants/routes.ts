@@ -18,6 +18,7 @@ export const DEDICATED_ROUTES = [
     'history',
     'settings',
     'points',
+    'rewards',
     'claim',
     'pay',
     'request',
