@@ -442,6 +442,25 @@ export default function MantecaWithdrawFlow() {
         }
     }, [step, queryClient])
 
+    // Reset flow state when the country query-param changes so navigating between
+    // /withdraw/manteca?country=argentina and ?country=brazil in the same client
+    // session doesn't inherit stale bank/account/step/priceLock from the previous country.
+    useEffect(() => {
+        setDestinationAddress(paramAddress ?? '')
+        setSelectedBank(null)
+        setAccountType(null)
+        setStep('amountInput')
+        setPriceLock(null)
+        setErrorMessage(null)
+        setIsDestinationAddressValid(false)
+        setIsDestinationAddressChanging(false)
+        setCurrencyAmount(undefined)
+        setUsdAmount(undefined)
+        setOriginalCurrencyAmount(undefined)
+        setBalanceErrorMessage(null)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [canonicalCountryPath])
+
     // redirect to withdraw page if country is not supported by manteca
     useEffect(() => {
         if (!selectedCountry || !MANTECA_COUNTRIES_CONFIG[selectedCountry.id]) {
