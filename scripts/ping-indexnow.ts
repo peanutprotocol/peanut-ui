@@ -22,9 +22,8 @@ const cliPaths = process.argv.slice(2)
 
 async function getAllPaths(): Promise<string[]> {
     // Dynamic import to reuse the same data sources as sitemap.ts
-    const { COUNTRIES_SEO, CORRIDORS, COMPETITORS, EXCHANGES, PAYMENT_METHOD_SLUGS } = await import(
-        '../src/data/seo/index'
-    )
+    const { COUNTRIES_SEO, CORRIDORS, COMPETITORS, EXCHANGES, PAYMENT_METHOD_SLUGS } =
+        await import('../src/data/seo/index')
     const { SUPPORTED_LOCALES } = await import('../src/i18n/types')
     const { listContentSlugs } = await import('../src/lib/content')
 
