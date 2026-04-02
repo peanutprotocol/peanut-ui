@@ -47,7 +47,8 @@ function getInstructionKey(device: DeviceType, browser: BrowserType | null): str
     if (device === DeviceType.ANDROID) return 'android_chrome'
     if (device === DeviceType.IOS) {
         if (browser === BrowserType.SAFARI) return 'ios_safari'
-        return 'ios_chrome'
+        if (browser === BrowserType.CHROME) return 'ios_chrome'
+        return null
     }
     return null
 }

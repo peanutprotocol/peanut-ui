@@ -257,6 +257,7 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                 retryCountRef.current = 0
             } catch (err: any) {
                 clearTimeout(startTimeoutId)
+                cleanup()
                 console.error('Error accessing camera:', err)
 
                 const shouldRetry =
@@ -264,7 +265,12 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
 
                 // treat any non-retryable, non-hardware error as permission denied.
                 // the qr-scanner library may wrap or rename the browser's NotAllowedError.
-                if (!shouldRetry && err.name !== CAMERA_ERRORS.NOT_FOUND) {
+                // exclude NOT_READABLE (camera busy) — it has its own "remains busy" error path.
+                if (
+                    !shouldRetry &&
+                    err.name !== CAMERA_ERRORS.NOT_FOUND &&
+                    err.name !== CAMERA_ERRORS.NOT_READABLE
+                ) {
                     setIsPermissionDenied(true)
                 }
 
