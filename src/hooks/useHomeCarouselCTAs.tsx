@@ -68,9 +68,7 @@ export const useHomeCarouselCTAs = () => {
             dismissedRef.current.add(ctaId)
             if (!TRANSIENT_CTA_IDS.has(ctaId)) {
                 updateUserPreferences(user?.user?.userId, {
-                    dismissedCarouselCTAs: Array.from(dismissedRef.current).filter(
-                        (id) => !TRANSIENT_CTA_IDS.has(id)
-                    ),
+                    dismissedCarouselCTAs: Array.from(dismissedRef.current).filter((id) => !TRANSIENT_CTA_IDS.has(id)),
                 })
             }
             setCarouselCTAs((prev) => prev.filter((c) => c.id !== ctaId))
