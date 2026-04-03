@@ -495,6 +495,7 @@ export type UserPreferences = {
     hasSeenBalanceWarning?: { value: boolean; expiry: number }
     /** tracks surprise moment claim count for referral CTA copy (rewards v2). 0=first, 1=second, 2+=normal */
     rewards_surprise_claim_count?: number
+    dismissedCarouselCTAs?: string[]
 }
 
 export const updateUserPreferences = (

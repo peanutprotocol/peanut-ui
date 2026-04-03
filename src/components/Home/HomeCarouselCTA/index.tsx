@@ -13,7 +13,7 @@ import { extractInviteeName } from '@/utils/general.utils'
 import PerkClaimModal from '../PerkClaimModal'
 
 const HomeCarouselCTA = () => {
-    const { carouselCTAs, setCarouselCTAs } = useHomeCarouselCTAs()
+    const { carouselCTAs, dismissCTA } = useHomeCarouselCTAs()
     const { user } = useAuth()
     const queryClient = useQueryClient()
 
@@ -103,12 +103,8 @@ const HomeCarouselCTA = () => {
                         description={cta.description}
                         icon={cta.icon as IconName}
                         onClose={() => {
-                            // Use cta.onClose if provided (for notification prompt), otherwise filter from list
-                            if (cta.onClose) {
-                                cta.onClose()
-                            } else {
-                                setCarouselCTAs((prev) => prev.filter((c) => c.id !== cta.id))
-                            }
+                            cta.onClose?.()
+                            dismissCTA(cta.id)
                         }}
                         onClick={cta.onClick}
                         logo={cta.logo}
