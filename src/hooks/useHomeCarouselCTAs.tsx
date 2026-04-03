@@ -141,7 +141,7 @@ export const useHomeCarouselCTAs = () => {
                 ),
                 description: (
                     <span>
-                        Get the best exchange rate, pay like a <b>local</b> and earn <b>points</b>.
+                        Get the best exchange rate, pay like a <b>local</b> and earn <b>rewards</b>.
                     </span>
                 ),
                 iconContainerClassName: 'bg-secondary-1',
