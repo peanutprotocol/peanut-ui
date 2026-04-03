@@ -15,6 +15,8 @@ import { captureException } from '@sentry/nextjs'
 import { invitesApi } from '@/services/invites'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { isCapacitor, isAndroidNative } from '@/utils/capacitor'
+import { createNativeSignMessageCallback } from '@/utils/native-webauthn'
 
 // types
 type UserOpEncodedParams = {
@@ -72,13 +74,23 @@ export const useZeroDev = () => {
 
         dispatch(zerodevActions.setIsRegistering(true))
         try {
+            // in capacitor, rpId must be the production domain (peanut.me) to match
+            // assetlinks.json (android) and AASA (ios) for passkey portability
+            const rpId = isCapacitor() ? 'peanut.me' : window.location.hostname.replace(/^www\./, '')
+
             const webAuthnKey = await toWebAuthnKey({
                 passkeyName: _getPasskeyName(username),
                 passkeyServerUrl: consts.PASSKEY_SERVER_URL as string,
                 mode: WebAuthnMode.Register,
                 passkeyServerHeaders: {},
-                rpID: window.location.hostname.replace(/^www\./, ''),
+                rpID: rpId,
             })
+
+            // on android native, attach the native signing callback so zerodev
+            // uses the capacitor-webauthn plugin instead of browser WebAuthn api
+            if (isAndroidNative()) {
+                webAuthnKey.signMessageCallback = createNativeSignMessageCallback(rpId)
+            }
 
             const inviteCodeFromCookie = getFromCookie('inviteCode')
 
@@ -139,13 +151,20 @@ export const useZeroDev = () => {
                 passkeyServerHeaders['x-username'] = user.user.username
             }
 
+            const rpId = isCapacitor() ? 'peanut.me' : window.location.hostname.replace(/^www\./, '')
+
             const webAuthnKey = await toWebAuthnKey({
                 passkeyName: '[]',
                 passkeyServerUrl: consts.PASSKEY_SERVER_URL as string,
                 mode: WebAuthnMode.Login,
                 passkeyServerHeaders,
-                rpID: window.location.hostname.replace(/^www\./, ''),
+                rpID: rpId,
             })
+
+            // on android native, attach the native signing callback
+            if (isAndroidNative()) {
+                webAuthnKey.signMessageCallback = createNativeSignMessageCallback(rpId)
+            }
 
             setWebAuthnKey(webAuthnKey)
             saveToCookie(WEB_AUTHN_COOKIE_KEY, webAuthnKey, 90)
