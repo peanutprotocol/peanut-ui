@@ -60,12 +60,17 @@ export const useHomeCarouselCTAs = () => {
     } = useCardPioneerInfo()
     const { isActivated } = useActivationStatus()
 
+    // ctas gated by conditions that can change (e.g. permission state) should not be permanently dismissed
+    const TRANSIENT_CTA_IDS = new Set(['notification-prompt'])
+
     const dismissCTA = useCallback(
         (ctaId: string) => {
             dismissedRef.current.add(ctaId)
-            updateUserPreferences(user?.user?.userId, {
-                dismissedCarouselCTAs: Array.from(dismissedRef.current),
-            })
+            if (!TRANSIENT_CTA_IDS.has(ctaId)) {
+                updateUserPreferences(user?.user?.userId, {
+                    dismissedCarouselCTAs: Array.from(dismissedRef.current),
+                })
+            }
             setCarouselCTAs((prev) => prev.filter((c) => c.id !== ctaId))
         },
         [user?.user?.userId]
