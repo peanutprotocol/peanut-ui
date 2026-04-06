@@ -119,7 +119,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     }, [isVerificationProgressModalOpen])
 
     const handleInitiateKyc = useCallback(
-        async (overrideIntent?: KYCRegionIntent, levelName?: string) => {
+        async (overrideIntent?: KYCRegionIntent, levelName?: string, crossRegion?: boolean) => {
             userInitiatedRef.current = true
             setIsLoading(true)
             setError(null)
@@ -128,6 +128,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 const response = await initiateSumsubKyc({
                     regionIntent: overrideIntent ?? regionIntent,
                     levelName,
+                    crossRegion,
                 })
 
                 if (response.error) {
