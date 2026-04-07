@@ -144,8 +144,10 @@ export function createNativeSignMessageCallback(rpId: string) {
         chainId: number,
         allowCredentials?: AllowCredentialDescriptor[]
     ): Promise<Hex> => {
-        // @ts-ignore -- capacitor-webauthn is only available in native builds
-        const { Webauthn } = await import('capacitor-webauthn')
+        // dynamic import that webpack can't statically analyze — capacitor-webauthn
+        // is only available in native builds, not in the web bundle
+        const pluginName = 'capacitor-webauthn'
+        const { Webauthn } = await import(/* webpackIgnore: true */ pluginName)
 
         // convert message to hex string
         let messageContent: string

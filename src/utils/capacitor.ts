@@ -22,8 +22,7 @@ export function getPlatform(): 'web' | 'ios-native' | 'android-native' | 'ios-pw
 
     const ua = navigator.userAgent.toLowerCase()
     const isStandalone =
-        (window.matchMedia?.('(display-mode: standalone)')?.matches) ||
-        (window.navigator as any).standalone === true
+        window.matchMedia?.('(display-mode: standalone)')?.matches || (window.navigator as any).standalone === true
 
     if (isStandalone) {
         if (/iphone|ipad|ipod/.test(ua)) return 'ios-pwa'
