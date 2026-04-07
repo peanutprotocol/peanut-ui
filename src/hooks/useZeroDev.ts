@@ -74,9 +74,11 @@ export const useZeroDev = () => {
 
         dispatch(zerodevActions.setIsRegistering(true))
         try {
-            // in capacitor, rpId must be the production domain (peanut.me) to match
-            // assetlinks.json (android) and AASA (ios) for passkey portability
-            const rpId = isCapacitor() ? 'peanut.me' : window.location.hostname.replace(/^www\./, '')
+            // in capacitor, rpId must match the domain serving assetlinks.json / AASA
+            // TODO: change to 'peanut.me' before production release
+            const rpId = isCapacitor()
+                ? 'peanut-wallet-git-feat-native-app-squirrellabs.vercel.app'
+                : window.location.hostname.replace(/^www\./, '')
 
             const webAuthnKey = await toWebAuthnKey({
                 passkeyName: _getPasskeyName(username),

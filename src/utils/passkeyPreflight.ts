@@ -39,7 +39,8 @@ export async function checkPasskeySupport(): Promise<PasskeyPreflightResult> {
                 hasPublicKeyCredential: true,
                 isHttps: true,
                 isAndroid: /android/i.test(navigator.userAgent),
-                rpId: 'peanut.me',
+                // TODO: change to 'peanut.me' before production release
+                rpId: 'peanut-wallet-git-feat-native-app-squirrellabs.vercel.app',
             },
         }
     }
