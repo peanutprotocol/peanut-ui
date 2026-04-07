@@ -176,7 +176,7 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
 
     // wrap handleInitiateKyc to reset state for new attempts
     const handleInitiateKyc = useCallback(
-        async (overrideIntent?: KYCRegionIntent, levelName?: string) => {
+        async (overrideIntent?: KYCRegionIntent, levelName?: string, crossRegion?: boolean) => {
             const intent = overrideIntent ?? regionIntent
             posthog.capture(
                 intent === 'LATAM' ? ANALYTICS_EVENTS.MANTECA_KYC_INITIATED : ANALYTICS_EVENTS.KYC_INITIATED,
@@ -192,7 +192,7 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
             isRealtimeFlowRef.current = false
             clearPreparingTimer()
 
-            await originalHandleInitiateKyc(overrideIntent, levelName)
+            await originalHandleInitiateKyc(overrideIntent, levelName, crossRegion)
         },
         [originalHandleInitiateKyc, clearPreparingTimer, regionIntent, acquisitionSource]
     )
