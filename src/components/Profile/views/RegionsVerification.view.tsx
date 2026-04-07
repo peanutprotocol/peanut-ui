@@ -100,10 +100,11 @@ const RegionsVerification = () => {
     const handleStartKyc = useCallback(async () => {
         const intent = selectedRegion ? getRegionIntent(selectedRegion.path) : undefined
         if (intent) setActiveRegionIntent(intent)
-        // detect cross-region: user is approved for a different region and wants to unlock a new one
-        const isCrossRegion = !!sumsubVerificationRegionIntent && !!intent && intent !== sumsubVerificationRegionIntent
+        // only signal cross-region when user is switching to a different region
+        const crossRegion =
+            sumsubVerificationRegionIntent && intent && intent !== sumsubVerificationRegionIntent ? true : undefined
         setSelectedRegion(null)
-        await flow.handleInitiateKyc(intent, undefined, isCrossRegion)
+        await flow.handleInitiateKyc(intent, undefined, crossRegion)
     }, [flow.handleInitiateKyc, selectedRegion, sumsubVerificationRegionIntent])
 
     // re-submission: skip StartVerificationView since user already consented
