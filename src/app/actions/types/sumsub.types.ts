@@ -4,6 +4,13 @@ export interface InitiateSumsubKycResponse {
     status: SumsubKycStatus
 }
 
-export type SumsubKycStatus = 'NOT_STARTED' | 'PENDING' | 'IN_REVIEW' | 'APPROVED' | 'REJECTED' | 'ACTION_REQUIRED'
+export type SumsubKycStatus =
+    | 'NOT_STARTED'
+    | 'PENDING'
+    | 'IN_REVIEW'
+    | 'APPROVED'
+    | 'REJECTED'
+    | 'ACTION_REQUIRED'
+    | 'REVERIFYING'
 
 export type KYCRegionIntent = 'STANDARD' | 'LATAM'
