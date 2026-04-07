@@ -67,7 +67,8 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             liveKycStatus &&
             liveKycStatus !== prevStatus &&
             liveKycStatus !== 'APPROVED' &&
-            liveKycStatus !== 'PENDING'
+            liveKycStatus !== 'PENDING' &&
+            liveKycStatus !== 'REVERIFYING'
         ) {
             // close modal for any non-success terminal state (REJECTED, ACTION_REQUIRED, FAILED, etc.)
             setIsVerificationProgressModalOpen(false)
@@ -149,11 +150,12 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 if (effectiveIntent) regionIntentRef.current = effectiveIntent
                 levelNameRef.current = levelName
 
-                // if already approved and no token returned, kyc is done.
+                // if already approved (or reverifying) and no token returned, kyc is done.
                 // set prevStatusRef so the transition effect doesn't fire onKycSuccess a second time.
-                // when a token IS returned (e.g. additional-docs flow), we still need to show the SDK.
-                if (response.data?.status === 'APPROVED' && !response.data?.token) {
-                    prevStatusRef.current = 'APPROVED'
+                // when a token IS returned (e.g. cross-region or additional-docs flow), we still need to show the SDK.
+                const status = response.data?.status
+                if ((status === 'APPROVED' || status === 'REVERIFYING') && !response.data?.token) {
+                    prevStatusRef.current = status
                     onKycSuccess?.()
                     return
                 }
