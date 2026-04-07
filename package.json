@@ -29,6 +29,9 @@
         "verify-content": "tsx scripts/verify-content.ts"
     },
     "dependencies": {
+        "@capacitor/android": "8.2.0",
+        "@capacitor/cli": "8.2.0",
+        "@capacitor/core": "8.2.0",
         "@dicebear/collection": "^9.2.2",
         "@dicebear/core": "^9.2.2",
         "@emotion/react": "^11.14.0",
@@ -39,6 +42,7 @@
         "@justaname.id/sdk": "0.2.177",
         "@mui/icons-material": "^7.3.6",
         "@mui/material": "^7.3.6",
+        "@noble/curves": "1.9.7",
         "@radix-ui/react-accordion": "^1.2.12",
         "@radix-ui/react-select": "^2.2.6",
         "@radix-ui/react-slider": "^1.3.5",
@@ -59,6 +63,7 @@
         "@zerodev/sdk": "5.5.7",
         "autoprefixer": "^10.4.20",
         "canvas-confetti": "^1.9.3",
+        "capacitor-webauthn": "0.0.12",
         "classnames": "^2.5.1",
         "d3-force": "^3.0.0",
         "embla-carousel-react": "^8.6.0",
