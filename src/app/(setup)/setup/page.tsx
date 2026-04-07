@@ -10,6 +10,7 @@ import { Suspense, useEffect, useState } from 'react'
 import { setupSteps as masterSetupSteps } from '../../../components/Setup/Setup.consts'
 import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal'
 import { isLikelyWebview, isDeviceOsSupported } from '@/components/Setup/Setup.utils'
+import { isCapacitor } from '@/utils/capacitor'
 import { getFromCookie } from '@/utils/general.utils'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useAuth } from '@/context/authContext'
@@ -41,6 +42,16 @@ function SetupPageContent() {
             setIsLoading(true)
             await new Promise((resolve) => setTimeout(resolve, 100)) // ensure other initializations can complete
 
+            const localDeviceType = detectedDeviceType
+
+            // in capacitor, passkeys are handled natively — skip all browser/webview/os checks
+            // and go straight to setup flow
+            if (isCapacitor()) {
+                setDeviceType(localDeviceType)
+                setIsLoading(false)
+                return
+            }
+
             // check for native passkey support
             let passkeySupport = true
             try {
@@ -51,7 +62,6 @@ function SetupPageContent() {
             }
 
             const ua = typeof navigator !== 'undefined' ? navigator.userAgent : ''
-            const localDeviceType = detectedDeviceType
             const osSupportedByVersion = isDeviceOsSupported(ua)
             const webviewByUASignature = isLikelyWebview() // initial webview check based on ua signatures
 
