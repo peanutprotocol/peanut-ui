@@ -1,0 +1,14 @@
+{
+	"appId": "com.peanut.app",
+	"appName": "Peanut",
+	"webDir": "out",
+	"server": {
+		"url": "https://peanut-wallet-git-feat-native-app-squirrellabs.vercel.app",
+		"cleartext": false
+	},
+	"android": {
+		"allowMixedContent": true,
+		"webContentsDebuggingEnabled": true
+	},
+	"plugins": {}
+}

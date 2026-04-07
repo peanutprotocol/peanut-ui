@@ -1,0 +1,6 @@
+[
+	{
+		"pkg": "capacitor-webauthn",
+		"classpath": "com.headcount.plugins.webauthn.WebauthnPlugin"
+	}
+]
