@@ -107,10 +107,13 @@ let nextConfig = {
                     source: '/.well-known/apple-app-site-association',
                     destination: '/api/apple-app-site-association',
                 },
-                {
-                    source: '/.well-known/assetLinks.json',
-                    destination: '/api/assetLinks',
-                },
+                // disabled for native dev testing — serve local public/.well-known/assetlinks.json
+                // which has the debug signing key fingerprint
+                // TODO: re-enable for production (backend should have the release key)
+                // {
+                //     source: '/.well-known/assetLinks.json',
+                //     destination: '/api/assetLinks',
+                // },
             ],
             afterFiles: [
                 // PostHog reverse proxy — bypasses ad blockers

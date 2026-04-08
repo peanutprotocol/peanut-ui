@@ -5,6 +5,11 @@ import { keccak256, type Hex, type SignableMessage, encodeAbiParameters } from '
 import { bytesToBigInt, hexToBytes } from 'viem'
 // @ts-ignore -- @noble/curves/p256 requires pinning to v1.9.7 (v2 removed this export)
 import { p256 } from '@noble/curves/p256'
+import { registerPlugin } from '@capacitor/core'
+
+// register the webauthn plugin bridge — the native code is loaded by capacitor runtime,
+// this just creates the js-to-native communication channel
+const Webauthn: any = registerPlugin('Webauthn')
 
 // credential request options shape used by the signing callback
 interface AllowCredentialDescriptor {
@@ -126,7 +131,11 @@ export async function parsePublicKeyToWebAuthnKey(
 
 // --- native registration and login ---
 // these replace @simplewebauthn/browser with the capacitor-webauthn native plugin
-// while still communicating with zerodev's passkey server for credential storage
+// while still communicating with the passkey server for credential storage.
+//
+// note: for dev, these calls go through next.js proxy (/api/proxy/passkeys/...)
+// which forwards to the local backend. for production static export, these
+// will need to call the backend directly via getApiBaseUrl().
 
 /**
  * registers a new passkey via the native capacitor-webauthn plugin and stores
@@ -143,10 +152,9 @@ export async function nativeRegister(params: {
     passkeyServerHeaders?: Record<string, string>
 }): Promise<WebAuthnKey> {
     const { passkeyName, passkeyServerUrl, rpId, passkeyServerHeaders = {} } = params
-    const pluginName = 'capacitor-webauthn'
-    const { Webauthn } = await import(/* webpackIgnore: true */ pluginName)
+    // Webauthn plugin is registered at module level via @capacitor/core
 
-    // 1. get registration options from zerodev passkey server
+    // 1. get registration options from passkey server
     const optionsRes = await fetch(`${passkeyServerUrl}/register/options`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...passkeyServerHeaders },
@@ -164,20 +172,29 @@ export async function nativeRegister(params: {
     const credential: any = await Webauthn.startRegistration(options)
 
     // 3. verify registration with zerodev passkey server
+    // TODO: remove debug logs after testing
+    console.log('[nativeRegister] credential from plugin:', JSON.stringify(credential))
+    console.log('[nativeRegister] registerOptions.userId:', registerOptions.userId)
+
+    const verifyPayload = {
+        userId: registerOptions.userId,
+        username: passkeyName,
+        cred: credential,
+        rpID: rpId,
+    }
+    console.log('[nativeRegister] verify payload:', JSON.stringify(verifyPayload))
+
     const verifyRes = await fetch(`${passkeyServerUrl}/register/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...passkeyServerHeaders },
-        body: JSON.stringify({
-            userId: registerOptions.userId,
-            username: passkeyName,
-            cred: credential,
-            rpID: rpId,
-        }),
+        body: JSON.stringify(verifyPayload),
         credentials: 'include',
     })
     const verifyResult = await verifyRes.json()
+    console.log('[nativeRegister] verify result:', JSON.stringify(verifyResult))
+
     if (!verifyResult.verified) {
-        throw new Error('native passkey registration not verified by server')
+        throw new Error(`native passkey registration not verified by server: ${JSON.stringify(verifyResult)}`)
     }
 
     // 4. parse public key and build WebAuthnKey
@@ -205,10 +222,9 @@ export async function nativeLogin(params: {
     passkeyServerHeaders?: Record<string, string>
 }): Promise<WebAuthnKey> {
     const { passkeyServerUrl, rpId, passkeyServerHeaders = {} } = params
-    const pluginName = 'capacitor-webauthn'
-    const { Webauthn } = await import(/* webpackIgnore: true */ pluginName)
+    // Webauthn plugin is registered at module level via @capacitor/core
 
-    // 1. get login options from zerodev passkey server
+    // 1. get login options from passkey server
     const optionsRes = await fetch(`${passkeyServerUrl}/login/options`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...passkeyServerHeaders },
@@ -223,7 +239,7 @@ export async function nativeLogin(params: {
     }
     const assertion: any = await Webauthn.startAuthentication(loginOptions)
 
-    // 3. verify with zerodev passkey server to get the public key
+    // 3. verify with passkey server to get the public key
     const verifyRes = await fetch(`${passkeyServerUrl}/login/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...passkeyServerHeaders },
@@ -285,8 +301,7 @@ export function createNativeSignMessageCallback(rpId: string) {
     ): Promise<Hex> => {
         // dynamic import that webpack can't statically analyze — capacitor-webauthn
         // is only available in native builds, not in the web bundle
-        const pluginName = 'capacitor-webauthn'
-        const { Webauthn } = await import(/* webpackIgnore: true */ pluginName)
+        // Webauthn plugin is registered at module level via @capacitor/core
 
         // convert message to hex string
         let messageContent: string

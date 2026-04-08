@@ -30,6 +30,8 @@ const SetupPasskey = () => {
             if (!result.isSupported && result.warning) {
                 setPreflightWarning(result.warning)
             }
+            // TODO: remove debug log after native testing
+            console.log('[SetupPasskey] preflight result:', JSON.stringify(result))
         }
 
         runPreflightCheck()
@@ -43,11 +45,15 @@ const SetupPasskey = () => {
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_PASSKEY_STARTED, { device_type: deviceType })
 
         try {
+            // TODO: remove debug log after native testing
+            console.log('[SetupPasskey] starting registration, username:', username)
             await withWebAuthnRetry(() => handleRegister(username), 'passkey-registration')
             // success - useEffect below will handle navigation
         } catch (error) {
             const err = error as Error
-            console.error('Passkey registration failed:', err)
+            // TODO: remove debug log after native testing
+            console.error('[SetupPasskey] registration failed:', err.name, err.message, err)
+            setInlineError(`DEBUG: ${err.name}: ${err.message}`)
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_PASSKEY_FAILED, {
                 device_type: deviceType,
                 error_name: err.name,

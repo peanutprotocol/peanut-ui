@@ -3,7 +3,7 @@
 	"appName": "Peanut",
 	"webDir": "out",
 	"server": {
-		"url": "https://peanut-wallet-git-feat-native-app-squirrellabs.vercel.app",
+		"url": "https://peanutdev.site",
 		"cleartext": false
 	},
 	"android": {

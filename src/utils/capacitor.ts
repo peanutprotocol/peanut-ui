@@ -83,14 +83,8 @@ export function getApiBaseUrl(): string {
  */
 export async function openExternalUrl(url: string): Promise<void> {
     if (isCapacitor()) {
-        try {
-            // @ts-ignore -- @capacitor/browser may not be installed yet
-            const mod = await import('@capacitor/browser')
-            await mod.Browser.open({ url })
-        } catch {
-            // fallback if plugin not installed
-            window.location.href = url
-        }
+        // TODO: use @capacitor/browser plugin when installed
+        window.location.href = url
     } else {
         window.open(url, '_blank')
     }
