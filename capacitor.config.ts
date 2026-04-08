@@ -5,10 +5,10 @@ const config: CapacitorConfig = {
     appName: 'Peanut',
     webDir: 'out',
 
-    // vercel preview for passkey testing (rpId must match this domain)
+    // cloudflare tunnel for dev testing (passkeys need HTTPS + stable domain)
     // TODO: remove server.url for production (static export loads from local out/ directory)
     server: {
-        url: 'https://peanut-wallet-git-feat-native-app-squirrellabs.vercel.app',
+        url: 'https://peanutdev.site',
         cleartext: false,
     },
 

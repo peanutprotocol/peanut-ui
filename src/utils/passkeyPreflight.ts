@@ -40,7 +40,7 @@ export async function checkPasskeySupport(): Promise<PasskeyPreflightResult> {
                 isHttps: true,
                 isAndroid: /android/i.test(navigator.userAgent),
                 // TODO: change to 'peanut.me' before production release
-                rpId: 'peanut-wallet-git-feat-native-app-squirrellabs.vercel.app',
+                rpId: 'peanutdev.site',
             },
         }
     }

@@ -76,9 +76,7 @@ export const useZeroDev = () => {
         try {
             // in capacitor, rpId must match the domain serving assetlinks.json / AASA
             // TODO: change to 'peanut.me' before production release
-            const rpId = isCapacitor()
-                ? 'peanut-wallet-git-feat-native-app-squirrellabs.vercel.app'
-                : window.location.hostname.replace(/^www\./, '')
+            const rpId = isCapacitor() ? 'peanutdev.site' : window.location.hostname.replace(/^www\./, '')
 
             // on android native, use the capacitor-webauthn plugin instead of browser WebAuthn api
             // (browser WebAuthn doesn't work inside android webview)
@@ -159,9 +157,7 @@ export const useZeroDev = () => {
             }
 
             // TODO: change to 'peanut.me' before production release
-            const rpId = isCapacitor()
-                ? 'peanut-wallet-git-feat-native-app-squirrellabs.vercel.app'
-                : window.location.hostname.replace(/^www\./, '')
+            const rpId = isCapacitor() ? 'peanutdev.site' : window.location.hostname.replace(/^www\./, '')
 
             // on android native, use the capacitor-webauthn plugin for login
             let webAuthnKey
