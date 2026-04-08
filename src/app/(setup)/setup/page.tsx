@@ -52,10 +52,16 @@ function SetupPageContent() {
                 return
             }
 
-            // check for native passkey support
+            // check if device has a platform authenticator (biometric/pin)
+            // using UVPA instead of isConditionalMediationAvailable because:
+            // - conditional mediation is about autofill ui, not actual passkey support
+            // - isConditionalMediationAvailable returns false in android webviews even when passkeys work
+            // - UVPA correctly detects whether the device can do passkeys
             let passkeySupport = true
             try {
-                passkeySupport = await PublicKeyCredential.isConditionalMediationAvailable()
+                if (PublicKeyCredential?.isUserVerifyingPlatformAuthenticatorAvailable) {
+                    passkeySupport = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+                }
             } catch (e) {
                 passkeySupport = false
                 console.error('Error checking passkey support:', e)
