@@ -155,7 +155,7 @@ export const CountryList = ({
                             if (viewMode === 'add-withdraw') {
                                 // for send->bank flow, enforce only bridge or manteca supported countries
                                 if (enforceSupportedCountries) {
-                                    isSupported = isBridgeSupportedCountry
+                                    isSupported = isBridgeSupportedCountry || isMantecaSupportedCountry
                                 } else {
                                     // otherwise allow all countries
                                     isSupported = true

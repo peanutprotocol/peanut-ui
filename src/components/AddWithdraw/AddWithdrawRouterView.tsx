@@ -19,10 +19,13 @@ import Card from '@/components/Global/Card'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { CountryList } from '../Common/CountryList'
 import PeanutLoading from '../Global/PeanutLoading'
-import SavedAccountsView from '../Common/SavedAccountsView'
+import SavedAccountsView, { SavedAccountsMapping } from '../Common/SavedAccountsView'
 import TokenAndNetworkConfirmationModal from '../Global/TokenAndNetworkConfirmationModal'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { getSavedAddresses, type SavedWithdrawAddress } from '@/utils/savedAddresses'
+import { SavedCryptoAddressesList } from '@/components/Withdraw/SavedCryptoAddressCard'
+import Divider from '@/components/0_Bruddle/Divider'
 
 interface AddWithdrawRouterViewProps {
     flow: 'add' | 'withdraw'
@@ -68,6 +71,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
     const { setFromBankSelected } = onrampFlowContext
     const [recentMethodsState, setRecentMethodsState] = useState<RecentMethod[]>([])
     const [savedAccounts, setSavedAccounts] = useState<Account[]>([])
+    const [savedCryptoAddresses, setSavedCryptoAddresses] = useState<SavedWithdrawAddress[]>([])
     // local flag only for add flow; for withdraw we derive from context
     const [localShowAllMethods, setLocalShowAllMethods] = useState<boolean>(false)
     const [isSupportedTokensModalOpen, setIsSupportedTokensModalOpen] = useState(false)
@@ -109,6 +113,15 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                 setShouldShowAllMethods(false)
             } else {
                 setSavedAccounts([])
+            }
+
+            // load saved crypto addresses from localStorage
+            const cryptoAddresses = getSavedAddresses()
+            setSavedCryptoAddresses(cryptoAddresses)
+
+            // if either bank accounts or crypto addresses exist, default to showing saved methods
+            if (bankAccounts.length > 0 || cryptoAddresses.length > 0) {
+                setShouldShowAllMethods(false)
             }
         } else {
             // 'add' flow logic
@@ -186,7 +199,12 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
         )
     }
 
-    if (flow === 'withdraw' && savedAccounts.length === 0 && !shouldShowAllMethods) {
+    if (
+        flow === 'withdraw' &&
+        savedAccounts.length === 0 &&
+        savedCryptoAddresses.length === 0 &&
+        !shouldShowAllMethods
+    ) {
         return (
             <div className="flex min-h-[inherit] flex-col justify-start gap-8">
                 <NavHeader title={pageTitle} onPrev={onBackClick || defaultBackNavigation} />
@@ -210,30 +228,74 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
         )
     }
 
-    // Render saved accounts for withdraw flow if they exist and we're not in 'showAll' mode
-    if (flow === 'withdraw' && !shouldShowAllMethods && savedAccounts.length > 0) {
+    // Render saved accounts/addresses for withdraw flow if they exist and we're not in 'showAll' mode
+    if (flow === 'withdraw' && !shouldShowAllMethods && (savedAccounts.length > 0 || savedCryptoAddresses.length > 0)) {
+        const handleCryptoAddressClick = (savedAddr: SavedWithdrawAddress) => {
+            posthog.capture(ANALYTICS_EVENTS.WITHDRAW_METHOD_SELECTED, {
+                method_type: 'crypto_saved',
+            })
+            setSelectedMethod({
+                type: 'crypto',
+                countryPath: 'crypto',
+                title: 'Crypto',
+                savedCryptoAddress: savedAddr,
+            })
+        }
+
+        const handleBankAccountClick = (account: Account, _path: string) => {
+            setSelectedBankAccount(account)
+            setSelectedMethod({
+                type: account.type === AccountType.MANTECA ? 'manteca' : 'bridge',
+                countryPath: account.details.countryName,
+                title: 'To Bank',
+            })
+            if (account.type === AccountType.MANTECA) {
+                const additionalParams = isBankFromSend ? `&method=${methodParam}` : ''
+                router.push(
+                    `/withdraw/manteca?country=${account.details.countryName}&destination=${account.identifier}&isSavedAccount=true${additionalParams}`
+                )
+            }
+        }
+
         return (
-            <SavedAccountsView
-                pageTitle={pageTitle}
-                onPrev={onBackClick || defaultBackNavigation}
-                savedAccounts={savedAccounts}
-                onAccountClick={(account, _path) => {
-                    setSelectedBankAccount(account)
-                    setSelectedMethod({
-                        type: account.type === AccountType.MANTECA ? 'manteca' : 'bridge',
-                        countryPath: account.details.countryName,
-                        title: 'To Bank',
-                    })
-                    if (account.type === AccountType.MANTECA) {
-                        // preserve method param if coming from send flow
-                        const additionalParams = isBankFromSend ? `&method=${methodParam}` : ''
-                        router.push(
-                            `/withdraw/manteca?country=${account.details.countryName}&destination=${account.identifier}&isSavedAccount=true${additionalParams}`
-                        )
-                    }
-                }}
-                onSelectNewMethodClick={() => setShouldShowAllMethods(true)}
-            />
+            <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
+                <NavHeader title={pageTitle} onPrev={onBackClick || defaultBackNavigation} />
+                <div className="space-y-4">
+                    {/* Saved bank accounts */}
+                    {savedAccounts.length > 0 && (
+                        <div className="space-y-2">
+                            <h2 className="text-base font-bold">Saved accounts</h2>
+                            <SavedAccountsMapping accounts={savedAccounts} onItemClick={handleBankAccountClick} />
+                        </div>
+                    )}
+
+                    {/* Saved crypto addresses */}
+                    {savedCryptoAddresses.length > 0 && (
+                        <div className="space-y-2">
+                            {savedAccounts.length > 0 && (
+                                <Divider
+                                    textClassname="font-bold text-grey-1"
+                                    dividerClassname="bg-grey-1"
+                                    text="crypto"
+                                />
+                            )}
+                            {savedAccounts.length === 0 && (
+                                <h2 className="text-base font-bold">Saved crypto addresses</h2>
+                            )}
+                            <SavedCryptoAddressesList
+                                addresses={savedCryptoAddresses}
+                                onAddressClick={handleCryptoAddressClick}
+                                onRemove={(id) => setSavedCryptoAddresses((prev) => prev.filter((a) => a.id !== id))}
+                            />
+                        </div>
+                    )}
+
+                    <Divider textClassname="font-bold text-grey-1" dividerClassname="bg-grey-1" text="or" />
+                    <Button icon="plus" onClick={() => setShouldShowAllMethods(true)} shadowSize="4">
+                        Select new method
+                    </Button>
+                </div>
+            </div>
         )
     }
 
@@ -296,7 +358,10 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                     }
 
                     // otherwise, use toggle logic for better ux when user manually navigated to "select new method"
-                    if (shouldShowAllMethods && (recentMethodsState.length > 0 || savedAccounts.length > 0)) {
+                    if (
+                        shouldShowAllMethods &&
+                        (recentMethodsState.length > 0 || savedAccounts.length > 0 || savedCryptoAddresses.length > 0)
+                    ) {
                         setShouldShowAllMethods(false)
                     } else if (onBackClick) {
                         onBackClick()

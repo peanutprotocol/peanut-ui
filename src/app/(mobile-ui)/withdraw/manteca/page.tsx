@@ -48,6 +48,8 @@ import {
     MantecaAccountType,
     type MantecaBankCode,
 } from '@/constants/manteca.consts'
+import { getCountryFromPath } from '@/utils/bridge.utils'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
@@ -88,6 +90,7 @@ export default function MantecaWithdrawFlow() {
     const queryClient = useQueryClient()
     const { isUserMantecaKycApproved } = useKycStatus()
     const { hasPendingTransactions } = usePendingTransactions()
+    const { isBridgeSupportedCountry } = useIdentityVerification()
 
     // inline sumsub kyc flow for manteca users who need LATAM verification
     // regionIntent is NOT passed here to avoid creating a backend record on mount.
@@ -104,8 +107,20 @@ export default function MantecaWithdrawFlow() {
 
     // Map country path to CountryData for KYC
     const selectedCountry = useMemo(() => {
-        return countryData.find((country) => country.type === 'country' && country.path === countryPath)
+        const normalizedPath = countryPath.toLowerCase()
+        return countryData.find(
+            (country) =>
+                country.type === 'country' &&
+                (country.path === normalizedPath ||
+                    country.title.toLowerCase() === normalizedPath ||
+                    country.id.toLowerCase() === normalizedPath)
+        )
     }, [countryPath])
+
+    // Canonical country key derived from selectedCountry — use this instead of raw
+    // countryPath for validation, analytics, and branching to avoid mismatches when
+    // the URL param is a title ("Argentina") or id ("AR") instead of slug ("argentina").
+    const canonicalCountryPath = selectedCountry?.path ?? countryPath.toLowerCase()
 
     const countryConfig = useMemo(() => {
         if (!selectedCountry) return undefined
@@ -151,7 +166,7 @@ export default function MantecaWithdrawFlow() {
         }
 
         let isValid = false
-        switch (countryPath) {
+        switch (canonicalCountryPath) {
             case 'argentina':
                 const argResult = validateCbuCvuAlias(value)
                 isValid = argResult.valid
@@ -276,7 +291,7 @@ export default function MantecaWithdrawFlow() {
         posthog.capture(ANALYTICS_EVENTS.WITHDRAW_CONFIRMED, {
             amount_usd: usdAmount,
             method_type: 'manteca',
-            country: countryPath,
+            country: canonicalCountryPath,
         })
 
         try {
@@ -357,7 +372,7 @@ export default function MantecaWithdrawFlow() {
             posthog.capture(ANALYTICS_EVENTS.WITHDRAW_COMPLETED, {
                 amount_usd: usdAmount,
                 method_type: 'manteca',
-                country: countryPath,
+                country: canonicalCountryPath,
             })
         } catch (error) {
             console.error('Manteca withdraw error:', error)
@@ -428,12 +443,39 @@ export default function MantecaWithdrawFlow() {
         }
     }, [step, queryClient])
 
-    // redirect to withdraw page if country is not supported by manteca
+    // Reset flow state when the country query-param changes so navigating between
+    // /withdraw/manteca?country=argentina and ?country=brazil in the same client
+    // session doesn't inherit stale bank/account/step/priceLock from the previous country.
+    useEffect(() => {
+        setDestinationAddress(paramAddress ?? '')
+        setSelectedBank(null)
+        setAccountType(null)
+        setStep('amountInput')
+        setPriceLock(null)
+        setErrorMessage(null)
+        setIsDestinationAddressValid(false)
+        setIsDestinationAddressChanging(false)
+        setCurrencyAmount(undefined)
+        setUsdAmount(undefined)
+        setOriginalCurrencyAmount(undefined)
+        setBalanceErrorMessage(null)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [canonicalCountryPath])
+
+    // Redirect if country is not supported by Manteca.
+    // If the country is a bridge-supported country (e.g. Mexico), forward to the
+    // bridge withdraw flow preserving the query string, instead of dropping context.
     useEffect(() => {
         if (!selectedCountry || !MANTECA_COUNTRIES_CONFIG[selectedCountry.id]) {
-            router.replace('/withdraw')
+            const bridgeCountry = selectedCountry ?? getCountryFromPath(canonicalCountryPath)
+            if (bridgeCountry && isBridgeSupportedCountry(bridgeCountry.id)) {
+                const qs = searchParams.toString()
+                router.replace(`/withdraw/${bridgeCountry.path}/bank${qs ? `?${qs}` : ''}`)
+            } else {
+                router.replace('/withdraw')
+            }
         }
-    }, [selectedCountry, router])
+    }, [selectedCountry, router, canonicalCountryPath, isBridgeSupportedCountry, searchParams])
 
     if (isCurrencyLoading || !currencyPrice || !selectedCountry || !countryConfig) {
         return <PeanutLoading />
@@ -643,7 +685,7 @@ export default function MantecaWithdrawFlow() {
                                 onUpdate={(update) => {
                                     // Auto-normalize PIX keys for Brazil: strip whitespace and normalize phone numbers
                                     let normalizedValue = update.value
-                                    if (countryPath === 'brazil') {
+                                    if (canonicalCountryPath === 'brazil') {
                                         normalizedValue = isPixEmvcoQr(normalizedValue.trim())
                                             ? normalizedValue.trim()
                                             : normalizedValue.replace(/\s/g, '')
