@@ -44,10 +44,14 @@ function SetupPageContent() {
 
             const localDeviceType = detectedDeviceType
 
-            // in capacitor, passkeys are handled natively — skip all browser/webview/os checks
-            // and go straight to setup flow
-            if (isCapacitor()) {
+            // in capacitor, passkeys are handled natively — skip all browser/webview/os/pwa checks
+            // and go straight to the landing (signup) flow
+            if (isCapacitor() || process.env.NEXT_PUBLIC_CAPACITOR_BUILD === 'true') {
                 setDeviceType(localDeviceType)
+                const landingStepIndex = steps.findIndex((s: ISetupStep) => s.screenId === 'landing')
+                if (landingStepIndex !== -1) {
+                    dispatch(setupActions.setStep(landingStepIndex + 1))
+                }
                 setIsLoading(false)
                 return
             }
