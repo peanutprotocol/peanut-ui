@@ -124,6 +124,145 @@ export async function parsePublicKeyToWebAuthnKey(
     }
 }
 
+// --- native registration and login ---
+// these replace @simplewebauthn/browser with the capacitor-webauthn native plugin
+// while still communicating with zerodev's passkey server for credential storage
+
+/**
+ * registers a new passkey via the native capacitor-webauthn plugin and stores
+ * the credential on zerodev's passkey server. returns a WebAuthnKey with
+ * signMessageCallback attached.
+ *
+ * this replaces toWebAuthnKey({ mode: Register }) which uses browser WebAuthn API
+ * (doesn't work in android webview).
+ */
+export async function nativeRegister(params: {
+    passkeyName: string
+    passkeyServerUrl: string
+    rpId: string
+    passkeyServerHeaders?: Record<string, string>
+}): Promise<WebAuthnKey> {
+    const { passkeyName, passkeyServerUrl, rpId, passkeyServerHeaders = {} } = params
+    const pluginName = 'capacitor-webauthn'
+    const { Webauthn } = await import(/* webpackIgnore: true */ pluginName)
+
+    // 1. get registration options from zerodev passkey server
+    const optionsRes = await fetch(`${passkeyServerUrl}/register/options`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...passkeyServerHeaders },
+        body: JSON.stringify({ username: passkeyName, rpID: rpId }),
+        credentials: 'include',
+    })
+    const registerOptions = await optionsRes.json()
+
+    // 2. create passkey via native plugin (instead of @simplewebauthn/browser)
+    const options = registerOptions.options || registerOptions
+    // ensure rpId is set correctly
+    if (options.rp) {
+        options.rp.id = rpId
+    }
+    const credential: any = await Webauthn.startRegistration(options)
+
+    // 3. verify registration with zerodev passkey server
+    const verifyRes = await fetch(`${passkeyServerUrl}/register/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...passkeyServerHeaders },
+        body: JSON.stringify({
+            userId: registerOptions.userId,
+            username: passkeyName,
+            cred: credential,
+            rpID: rpId,
+        }),
+        credentials: 'include',
+    })
+    const verifyResult = await verifyRes.json()
+    if (!verifyResult.verified) {
+        throw new Error('native passkey registration not verified by server')
+    }
+
+    // 4. parse public key and build WebAuthnKey
+    const publicKey = credential.response?.publicKey
+    if (!publicKey) {
+        throw new Error('no public key in native registration response')
+    }
+
+    const webAuthnKey = await parsePublicKeyToWebAuthnKey(publicKey, credential.id, rpId)
+    webAuthnKey.signMessageCallback = createNativeSignMessageCallback(rpId)
+
+    return webAuthnKey
+}
+
+/**
+ * logs in with an existing passkey via the native capacitor-webauthn plugin,
+ * verified against zerodev's passkey server. returns a WebAuthnKey with
+ * signMessageCallback attached.
+ *
+ * this replaces toWebAuthnKey({ mode: Login }) which uses browser WebAuthn API.
+ */
+export async function nativeLogin(params: {
+    passkeyServerUrl: string
+    rpId: string
+    passkeyServerHeaders?: Record<string, string>
+}): Promise<WebAuthnKey> {
+    const { passkeyServerUrl, rpId, passkeyServerHeaders = {} } = params
+    const pluginName = 'capacitor-webauthn'
+    const { Webauthn } = await import(/* webpackIgnore: true */ pluginName)
+
+    // 1. get login options from zerodev passkey server
+    const optionsRes = await fetch(`${passkeyServerUrl}/login/options`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...passkeyServerHeaders },
+        body: JSON.stringify({ rpID: rpId }),
+        credentials: 'include',
+    })
+    const loginOptions = await optionsRes.json()
+
+    // 2. authenticate via native plugin (instead of @simplewebauthn/browser)
+    if (!loginOptions.rpId) {
+        loginOptions.rpId = rpId
+    }
+    const assertion: any = await Webauthn.startAuthentication(loginOptions)
+
+    // 3. verify with zerodev passkey server to get the public key
+    const verifyRes = await fetch(`${passkeyServerUrl}/login/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...passkeyServerHeaders },
+        body: JSON.stringify({ cred: assertion, rpID: rpId }),
+        credentials: 'include',
+    })
+    const verifyResult = await verifyRes.json()
+    if (!verifyResult.verification?.verified) {
+        throw new Error('native passkey login not verified by server')
+    }
+
+    // 4. parse public key from server response
+    const pubKey = verifyResult.pubkey
+    if (!pubKey) {
+        throw new Error('no public key returned from login verification')
+    }
+
+    // server returns base64-encoded SPKI public key
+    const spkiDer = Uint8Array.from(atob(pubKey), (c) => c.charCodeAt(0))
+    const key = await crypto.subtle.importKey('spki', spkiDer, { name: 'ECDSA', namedCurve: 'P-256' }, true, ['verify'])
+    const rawKey = new Uint8Array(await crypto.subtle.exportKey('raw', key))
+    const pubKeyX = rawKey.slice(1, 33)
+    const pubKeyY = rawKey.slice(33, 65)
+
+    const authenticatorIdBytes = base64URLToBytes(assertion.id)
+    const authenticatorIdHash = keccak256(uint8ArrayToHexString(authenticatorIdBytes))
+
+    const webAuthnKey: WebAuthnKey = {
+        pubX: BigInt(uint8ArrayToHexString(pubKeyX)),
+        pubY: BigInt(uint8ArrayToHexString(pubKeyY)),
+        authenticatorId: assertion.id,
+        authenticatorIdHash,
+        rpID: rpId,
+        signMessageCallback: createNativeSignMessageCallback(rpId),
+    }
+
+    return webAuthnKey
+}
+
 // --- signing callback ---
 
 // chains that support the RIP-7212 precompile for on-chain p256 verification

@@ -16,7 +16,7 @@ import { invitesApi } from '@/services/invites'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { isCapacitor, isAndroidNative } from '@/utils/capacitor'
-import { createNativeSignMessageCallback } from '@/utils/native-webauthn'
+import { nativeRegister, nativeLogin } from '@/utils/native-webauthn'
 
 // types
 type UserOpEncodedParams = {
@@ -80,18 +80,23 @@ export const useZeroDev = () => {
                 ? 'peanut-wallet-git-feat-native-app-squirrellabs.vercel.app'
                 : window.location.hostname.replace(/^www\./, '')
 
-            const webAuthnKey = await toWebAuthnKey({
-                passkeyName: _getPasskeyName(username),
-                passkeyServerUrl: consts.PASSKEY_SERVER_URL as string,
-                mode: WebAuthnMode.Register,
-                passkeyServerHeaders: {},
-                rpID: rpId,
-            })
-
-            // on android native, attach the native signing callback so zerodev
-            // uses the capacitor-webauthn plugin instead of browser WebAuthn api
+            // on android native, use the capacitor-webauthn plugin instead of browser WebAuthn api
+            // (browser WebAuthn doesn't work inside android webview)
+            let webAuthnKey
             if (isAndroidNative()) {
-                webAuthnKey.signMessageCallback = createNativeSignMessageCallback(rpId)
+                webAuthnKey = await nativeRegister({
+                    passkeyName: _getPasskeyName(username),
+                    passkeyServerUrl: consts.PASSKEY_SERVER_URL as string,
+                    rpId,
+                })
+            } else {
+                webAuthnKey = await toWebAuthnKey({
+                    passkeyName: _getPasskeyName(username),
+                    passkeyServerUrl: consts.PASSKEY_SERVER_URL as string,
+                    mode: WebAuthnMode.Register,
+                    passkeyServerHeaders: {},
+                    rpID: rpId,
+                })
             }
 
             const inviteCodeFromCookie = getFromCookie('inviteCode')
@@ -153,19 +158,27 @@ export const useZeroDev = () => {
                 passkeyServerHeaders['x-username'] = user.user.username
             }
 
-            const rpId = isCapacitor() ? 'peanut.me' : window.location.hostname.replace(/^www\./, '')
+            // TODO: change to 'peanut.me' before production release
+            const rpId = isCapacitor()
+                ? 'peanut-wallet-git-feat-native-app-squirrellabs.vercel.app'
+                : window.location.hostname.replace(/^www\./, '')
 
-            const webAuthnKey = await toWebAuthnKey({
-                passkeyName: '[]',
-                passkeyServerUrl: consts.PASSKEY_SERVER_URL as string,
-                mode: WebAuthnMode.Login,
-                passkeyServerHeaders,
-                rpID: rpId,
-            })
-
-            // on android native, attach the native signing callback
+            // on android native, use the capacitor-webauthn plugin for login
+            let webAuthnKey
             if (isAndroidNative()) {
-                webAuthnKey.signMessageCallback = createNativeSignMessageCallback(rpId)
+                webAuthnKey = await nativeLogin({
+                    passkeyServerUrl: consts.PASSKEY_SERVER_URL as string,
+                    rpId,
+                    passkeyServerHeaders,
+                })
+            } else {
+                webAuthnKey = await toWebAuthnKey({
+                    passkeyName: '[]',
+                    passkeyServerUrl: consts.PASSKEY_SERVER_URL as string,
+                    mode: WebAuthnMode.Login,
+                    passkeyServerHeaders,
+                    rpID: rpId,
+                })
             }
 
             setWebAuthnKey(webAuthnKey)
