@@ -1,18 +1,19 @@
 // platform detection and api routing for capacitor native app
 
+// env var baked in at build time — set in vercel preview for this branch
+const IS_CAPACITOR_BUILD = process.env.NEXT_PUBLIC_CAPACITOR_BUILD === 'true'
+
 /**
  * returns true when running inside a capacitor webview (ios or android native app)
  *
- * checks window.Capacitor (set by capacitor bridge) and falls back to
- * NEXT_PUBLIC_CAPACITOR_BUILD env var for remote url testing where the
- * bridge may not be injected
+ * detection order:
+ * 1. window.Capacitor (set by capacitor bridge — works for local/static builds)
+ * 2. NEXT_PUBLIC_CAPACITOR_BUILD env var (baked at build time — works for remote server.url)
  */
 export function isCapacitor(): boolean {
     if (typeof window === 'undefined') return false
-    // primary check: capacitor bridge injects this global
     if ((window as any).Capacitor) return true
-    // fallback for remote server.url testing: env var set in vercel preview
-    if (process.env.NEXT_PUBLIC_CAPACITOR_BUILD === 'true') return true
+    if (IS_CAPACITOR_BUILD) return true
     return false
 }
 
@@ -27,6 +28,14 @@ export function getPlatform(): 'web' | 'ios-native' | 'android-native' | 'ios-pw
         const platform = capacitor.getPlatform?.()
         if (platform === 'ios') return 'ios-native'
         if (platform === 'android') return 'android-native'
+    }
+
+    // when loading from remote server.url, window.Capacitor may not exist
+    // fall back to env var + user agent to determine platform
+    if (IS_CAPACITOR_BUILD) {
+        const ua = navigator.userAgent
+        if (/Android/i.test(ua)) return 'android-native'
+        if (/iPhone|iPad|iPod/i.test(ua)) return 'ios-native'
     }
 
     const ua = navigator.userAgent.toLowerCase()
