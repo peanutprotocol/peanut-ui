@@ -2,9 +2,20 @@
 
 /**
  * returns true when running inside a capacitor webview (ios or android native app)
+ *
+ * checks window.Capacitor first (set by capacitor bridge), then falls back to
+ * user agent detection for cases where the bridge isn't injected yet
+ * (e.g. when loading from a remote server.url instead of local files)
  */
 export function isCapacitor(): boolean {
-    return typeof window !== 'undefined' && !!(window as any).Capacitor
+    if (typeof window === 'undefined') return false
+    // primary check: capacitor bridge injects this global
+    if ((window as any).Capacitor) return true
+    // fallback: detect capacitor's android webview by user agent
+    // capacitor android uses the system webview which includes "wv" in the UA
+    const ua = navigator.userAgent
+    if (/; wv\)/.test(ua) && /Android/.test(ua)) return true
+    return false
 }
 
 /**
