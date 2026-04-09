@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useDebounce } from './useDebounce'
 import { useQuery } from '@tanstack/react-query'
+import { apiFetch } from '@/utils/api-fetch'
 
 type InputValue = number | ''
 
@@ -84,7 +85,10 @@ export function useExchangeRate({
     } = useQuery<{ rate: number }>({
         queryKey: ['exchangeRate', sourceCurrency, destinationCurrency],
         queryFn: async () => {
-            const res = await fetch(`/api/exchange-rate?from=${sourceCurrency}&to=${destinationCurrency}`)
+            const res = await apiFetch(
+                `/exchange-rate?from=${sourceCurrency}&to=${destinationCurrency}`,
+                `/api/exchange-rate?from=${sourceCurrency}&to=${destinationCurrency}`
+            )
             if (!res.ok) throw new Error('Failed to fetch exchange rate')
             return res.json()
         },

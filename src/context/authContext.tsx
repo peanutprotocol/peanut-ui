@@ -13,6 +13,7 @@ import {
     updateUserPreferences,
 } from '@/utils/general.utils'
 import { fetchWithSentry } from '@/utils/sentry.utils'
+import { apiFetch } from '@/utils/api-fetch'
 import { resetCrispProxySessions } from '@/utils/crisp'
 import posthog from 'posthog-js'
 import { useQueryClient } from '@tanstack/react-query'
@@ -111,11 +112,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }) => {
         console.log('[addAccount] Starting account addition', { userId, accountType })
 
-        const response = await fetchWithSentry('/api/peanut/user/add-account', {
+        const response = await apiFetch('/add-account', '/api/peanut/user/add-account', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
             body: JSON.stringify({
                 userId,
                 accountIdentifier,
@@ -227,11 +225,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             try {
                 // Call backend logout unless skipped (e.g., when backend is down)
                 if (!options?.skipBackendCall) {
-                    const response = await fetchWithSentry('/api/peanut/user/logout-user', {
+                    const response = await apiFetch('/logout-user', '/api/peanut/user/logout-user', {
                         method: 'GET',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
                     })
 
                     if (!response.ok) {

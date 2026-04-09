@@ -1,6 +1,5 @@
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { jsonParse } from '@/utils/general.utils'
-import Cookies from 'js-cookie'
 import {
     type TRequestChargeResponse,
     type PaymentCreationResponse,
@@ -8,6 +7,9 @@ import {
     type CreateChargeRequest,
 } from './services.types'
 import { PEANUT_API_URL } from '@/constants/general.consts'
+import { isCapacitor } from '@/utils/capacitor'
+import { getAuthHeaders, getAuthToken } from '@/utils/auth-token'
+import { apiFetch } from '@/utils/api-fetch'
 
 export const chargesApi = {
     create: async (data: CreateChargeRequest): Promise<TCharge> => {
@@ -24,8 +26,13 @@ export const chargesApi = {
             }
         })
 
-        const response = await fetchWithSentry(`/api/proxy/withFormData/charges`, {
+        const chargeUrl = isCapacitor() ? `${PEANUT_API_URL}/charges` : '/api/proxy/withFormData/charges'
+        const headers: Record<string, string> = {}
+        const token = getAuthToken()
+        if (token) headers['Authorization'] = `Bearer ${token}`
+        const response = await fetchWithSentry(chargeUrl, {
             method: 'POST',
+            headers,
             body: formData,
         })
 
@@ -54,10 +61,7 @@ export const chargesApi = {
     cancel: async (id: string): Promise<void> => {
         const response = await fetchWithSentry(`${PEANUT_API_URL}/charges/${id}`, {
             method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${Cookies.get('jwt-token')}`,
-            },
+            headers: getAuthHeaders(),
         })
 
         if (!response.ok) {
@@ -86,11 +90,8 @@ export const chargesApi = {
         sourceTokenSymbol?: string
         squidQuoteId?: string
     }): Promise<PaymentCreationResponse> => {
-        const response = await fetchWithSentry(`/api/proxy/charges/${chargeId}/payments`, {
+        const response = await apiFetch(`/charges/${chargeId}/payments`, `/api/proxy/charges/${chargeId}/payments`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
             body: JSON.stringify({
                 chainId,
                 hash,

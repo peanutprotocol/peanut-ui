@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query'
 import { usePWAStatus } from '../usePWAStatus'
 import { useDeviceType } from '../useGetDeviceType'
 import { USER } from '@/constants/query.consts'
+import { apiFetch } from '@/utils/api-fetch'
 
 // custom error class for backend errors (5xx) that should trigger retry
 export class BackendError extends Error {
@@ -25,7 +26,7 @@ export const useUserQuery = (dependsOn: boolean = true) => {
     const { user: authUser } = useUserStore()
 
     const fetchUser = async (): Promise<IUserProfile | null> => {
-        const userResponse = await fetchWithSentry('/api/peanut/user/get-user-from-cookie')
+        const userResponse = await apiFetch('/get-user', '/api/peanut/user/get-user-from-cookie')
         if (userResponse.ok) {
             const userData: IUserProfile | null = await userResponse.json()
             if (userData) {
