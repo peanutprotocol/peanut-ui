@@ -34,6 +34,8 @@ import { loadingStateContext } from '@/context'
 import { getCurrencyPrice } from '@/app/actions/currency'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { captureException } from '@sentry/nextjs'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import {
     isPaymentProcessorQR,
     parseSimpleFiQr,
@@ -174,6 +176,35 @@ export default function QRPayPage() {
             if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
             if (payingStateTimerRef.current) clearTimeout(payingStateTimerRef.current)
             holdStartTimeRef.current = null
+        }
+    }, [])
+
+    // Track reward claim shown + surprise moment when perk UI appears after payment
+    const hasTrackedPerkShown = useRef(false)
+    const perkClaimedRef = useRef(false)
+    useEffect(() => {
+        perkClaimedRef.current = perkClaimed
+    }, [perkClaimed])
+
+    useEffect(() => {
+        if (isSuccess && qrPayment?.perk?.eligible && !perkClaimed && !hasTrackedPerkShown.current) {
+            hasTrackedPerkShown.current = true
+            const eventProps = {
+                amount_usd: qrPayment.perk.amountSponsored,
+                discount_pct: qrPayment.perk.discountPercentage,
+                merchant: qrPayment.details?.merchant?.name,
+            }
+            posthog.capture(ANALYTICS_EVENTS.REWARD_CLAIM_SHOWN, eventProps)
+            posthog.capture(ANALYTICS_EVENTS.SURPRISE_MOMENT_SHOWN, eventProps)
+        }
+    }, [isSuccess, qrPayment?.perk?.eligible, perkClaimed, qrPayment])
+
+    // Track dismiss: user navigated away after seeing perk but without claiming
+    useEffect(() => {
+        return () => {
+            if (hasTrackedPerkShown.current && !perkClaimedRef.current) {
+                posthog.capture(ANALYTICS_EVENTS.REWARD_CLAIM_DISMISSED)
+            }
         }
     }, [])
 
@@ -784,6 +815,10 @@ export default function QRPayPage() {
         try {
             const result = await mantecaApi.claimPerk(qrPayment.externalId)
             if (result.success) {
+                posthog.capture(ANALYTICS_EVENTS.REWARD_CLAIMED, {
+                    amount_usd: result.perk.amountSponsored,
+                    discount_pct: result.perk.discountPercentage,
+                })
                 // Update qrPayment with actual claimed perk info from backend
                 setQrPayment({
                     ...qrPayment,
