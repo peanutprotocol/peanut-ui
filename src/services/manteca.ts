@@ -1,4 +1,5 @@
-import { PEANUT_API_URL, PEANUT_API_KEY } from '@/constants/general.consts'
+import { PEANUT_API_URL } from '@/constants/general.consts'
+import { getAuthHeaders } from '@/utils/auth-token'
 import {
     type MantecaDepositResponseData,
     type MantecaWithdrawData,
@@ -222,10 +223,7 @@ export const mantecaApi = {
     },
     getPrices: async ({ asset, against }: { asset: string; against: string }): Promise<MantecaPrice> => {
         const response = await fetchWithSentry(`${PEANUT_API_URL}/manteca/prices?asset=${asset}&against=${against}`, {
-            headers: {
-                'Content-Type': 'application/json',
-                'api-key': PEANUT_API_KEY,
-            },
+            headers: getAuthHeaders(),
         })
 
         if (!response.ok) {
