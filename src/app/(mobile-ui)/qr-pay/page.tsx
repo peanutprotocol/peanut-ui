@@ -136,6 +136,10 @@ export default function QRPayPage() {
     const [waitingForMerchantAmount, setWaitingForMerchantAmount] = useState(false)
     const retryCount = useRef(0)
 
+    // Analytics tracking refs (declared before resetState so it can clear them)
+    const hasTrackedPerkShown = useRef(false)
+    const perkClaimedRef = useRef(false)
+
     const resetState = () => {
         setIsSuccess(false)
         setErrorMessage(null)
@@ -167,6 +171,9 @@ export default function QRPayPage() {
         // reset perk states
         setIsClaimingPerk(false)
         setPerkClaimed(false)
+        // reset analytics tracking refs so a new QR flow gets fresh tracking
+        hasTrackedPerkShown.current = false
+        perkClaimedRef.current = false
     }
 
     // Cleanup timers on unmount
@@ -180,8 +187,6 @@ export default function QRPayPage() {
     }, [])
 
     // Track reward claim shown + surprise moment when perk UI appears after payment
-    const hasTrackedPerkShown = useRef(false)
-    const perkClaimedRef = useRef(false)
     useEffect(() => {
         perkClaimedRef.current = perkClaimed
     }, [perkClaimed])
