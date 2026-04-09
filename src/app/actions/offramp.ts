@@ -1,10 +1,8 @@
-'use server'
 
 import { type TCreateOfframpRequest } from '../../services/services.types'
 import { fetchWithSentry } from '@/utils/sentry.utils'
-import { getJWTCookie } from '@/utils/cookie-migration.utils'
-
-const API_KEY = process.env.PEANUT_API_KEY!
+import { PEANUT_API_URL } from '@/constants/general.consts'
+import { getAuthHeaders } from '@/utils/auth-token'
 
 export type CreateOfframpSuccessResponse = {
     transferId: string
@@ -15,7 +13,7 @@ export type CreateOfframpSuccessResponse = {
 }
 
 /**
- * server Action to initiate an off-ramp transfer.
+ * Initiate an off-ramp transfer.
  *
  * calls the `/bridge/offramp/create` API endpoint to create the transfer
  * and returns the provider's instructions for the user to deposit funds
@@ -26,27 +24,10 @@ export type CreateOfframpSuccessResponse = {
 export async function createOfframp(
     params: TCreateOfframpRequest
 ): Promise<{ data?: CreateOfframpSuccessResponse; error?: string }> {
-    const apiUrl = process.env.PEANUT_API_URL
-
-    if (!apiUrl || !API_KEY) {
-        console.error('API URL or API Key is not configured.')
-        return { error: 'Server configuration error.' }
-    }
-
     try {
-        const jwtToken = (await getJWTCookie())?.value
-
-        if (!jwtToken) {
-            return { error: 'Authentication token not found.' }
-        }
-
-        const response = await fetchWithSentry(`${apiUrl}/bridge/offramp/create`, {
+        const response = await fetchWithSentry(`${PEANUT_API_URL}/bridge/offramp/create`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${jwtToken}`,
-                'api-key': API_KEY,
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify({
                 ...params,
                 provider: 'bridge', // note: bridge is currently the only provider
@@ -72,20 +53,10 @@ export async function createOfframp(
 export async function createOfframpForGuest(
     params: TCreateOfframpRequest
 ): Promise<{ data?: CreateOfframpSuccessResponse; error?: string }> {
-    const apiUrl = process.env.PEANUT_API_URL
-
-    if (!apiUrl || !API_KEY) {
-        console.error('API URL or API Key is not configured.')
-        return { error: 'Server configuration error.' }
-    }
-
     try {
-        const response = await fetchWithSentry(`${apiUrl}/bridge/offramp/create-for-guest`, {
+        const response = await fetchWithSentry(`${PEANUT_API_URL}/bridge/offramp/create-for-guest`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'api-key': API_KEY,
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify({
                 ...params,
                 provider: 'bridge',
@@ -109,7 +80,7 @@ export async function createOfframpForGuest(
 }
 
 /**
- * Server Action to confirm an off-ramp transfer after the user has sent funds.
+ * Confirm an off-ramp transfer after the user has sent funds.
  *
  * this calls the `/bridge/transfers/:transferId/confirm` API endpoint, providing
  * the on-chain transaction hash. This makes the transfer visible in the user's history.
@@ -122,27 +93,10 @@ export async function confirmOfframp(
     transferId: string,
     txHash: string
 ): Promise<{ data?: { success: boolean }; error?: string }> {
-    const apiUrl = process.env.PEANUT_API_URL
-
-    if (!apiUrl || !API_KEY) {
-        console.error('API URL or API Key is not configured.')
-        return { error: 'Server configuration error.' }
-    }
-
     try {
-        const jwtToken = (await getJWTCookie())?.value
-
-        if (!jwtToken) {
-            return { error: 'Authentication token not found.' }
-        }
-
-        const response = await fetchWithSentry(`${apiUrl}/bridge/transfers/${transferId}/confirm`, {
+        const response = await fetchWithSentry(`${PEANUT_API_URL}/bridge/transfers/${transferId}/confirm`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${jwtToken}`,
-                'api-key': API_KEY,
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify({ txHash }),
         })
 

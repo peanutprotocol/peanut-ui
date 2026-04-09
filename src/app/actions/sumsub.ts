@@ -1,23 +1,14 @@
-'use server'
 
 import { type InitiateSumsubKycResponse, type KYCRegionIntent } from './types/sumsub.types'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { PEANUT_API_URL } from '@/constants/general.consts'
-import { getJWTCookie } from '@/utils/cookie-migration.utils'
-
-const API_KEY = process.env.PEANUT_API_KEY!
+import { getAuthHeaders } from '@/utils/auth-token'
 
 // initiate kyc flow (using sumsub) and get websdk access token
 export const initiateSumsubKyc = async (params?: {
     regionIntent?: KYCRegionIntent
     levelName?: string
 }): Promise<{ data?: InitiateSumsubKycResponse; error?: string }> => {
-    const jwtToken = (await getJWTCookie())?.value
-
-    if (!jwtToken) {
-        return { error: 'Authentication required' }
-    }
-
     const body: Record<string, string | undefined> = {
         regionIntent: params?.regionIntent,
         levelName: params?.levelName,
@@ -26,11 +17,7 @@ export const initiateSumsubKyc = async (params?: {
     try {
         const response = await fetchWithSentry(`${PEANUT_API_URL}/users/identity`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${jwtToken}`,
-                'api-key': API_KEY,
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify(body),
         })
 

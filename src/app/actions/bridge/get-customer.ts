@@ -1,8 +1,8 @@
-'use server'
 
-import { unstable_cache } from 'next/cache'
+import { unstable_cache } from '@/utils/no-cache'
 import { countryData } from '@/components/AddMoney/consts'
-import { PEANUT_API_KEY, PEANUT_API_URL } from '@/constants/general.consts'
+import { PEANUT_API_URL } from '@/constants/general.consts'
+import { getAuthHeaders } from '@/utils/auth-token'
 
 type BridgeCustomer = {
     id: string
@@ -41,10 +41,7 @@ export const getBridgeCustomerCountry = async (
     const runner = unstable_cache(
         async () => {
             const response = await fetch(`${PEANUT_API_URL}/bridge/customers/${bridgeCustomerId}` as string, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'api-key': PEANUT_API_KEY,
-                },
+                headers: getAuthHeaders(),
                 cache: 'no-store',
             })
 

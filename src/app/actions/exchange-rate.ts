@@ -1,9 +1,8 @@
-'use server'
 
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { AccountType } from '@/interfaces'
-
-const API_KEY = process.env.PEANUT_API_KEY!
+import { PEANUT_API_URL } from '@/constants/general.consts'
+import { getAuthHeaders } from '@/utils/auth-token'
 
 export interface ExchangeRateResponse {
     from: string
@@ -15,7 +14,7 @@ export interface ExchangeRateResponse {
 }
 
 /**
- * Server Action to fetch the current exchange rate for a given bank account type.
+ * Fetch the current exchange rate for a given bank account type.
  *
  * This calls the `/bridge/exchange-rate` API endpoint.
  *
@@ -25,23 +24,13 @@ export interface ExchangeRateResponse {
 export async function getExchangeRate(
     accountType: AccountType
 ): Promise<{ data?: ExchangeRateResponse; error?: string }> {
-    const apiUrl = process.env.PEANUT_API_URL
-
-    if (!apiUrl || !API_KEY) {
-        console.error('API URL or API Key is not configured.')
-        return { error: 'Server configuration error.' }
-    }
-
     try {
-        const url = new URL(`${apiUrl}/bridge/exchange-rate`)
+        const url = new URL(`${PEANUT_API_URL}/bridge/exchange-rate`)
         url.searchParams.append('accountType', accountType)
 
         const response = await fetchWithSentry(url.toString(), {
             method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'api-key': API_KEY,
-            },
+            headers: getAuthHeaders(),
         })
 
         const data = await response.json()

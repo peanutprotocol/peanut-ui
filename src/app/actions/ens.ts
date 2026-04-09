@@ -1,16 +1,13 @@
-'use server'
-import { unstable_cache } from 'next/cache'
+
+import { unstable_cache } from '@/utils/no-cache'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { PEANUT_API_URL } from '@/constants/general.consts'
-
-const API_KEY = process.env.PEANUT_API_KEY!
+import { getAuthHeaders } from '@/utils/auth-token'
 
 export const resolveEns = unstable_cache(
     async (ensName: string): Promise<string | undefined> => {
         const response = await fetchWithSentry(`${PEANUT_API_URL}/ens/${ensName}`, {
-            headers: {
-                'api-key': API_KEY,
-            },
+            headers: getAuthHeaders(),
         })
         if (response.status === 404) return undefined
 

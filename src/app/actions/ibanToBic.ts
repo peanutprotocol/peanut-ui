@@ -1,4 +1,3 @@
-'use server'
 
 // @ts-ignore: CommonJS module without types
 import { ibanToBic } from 'iban-to-bic'

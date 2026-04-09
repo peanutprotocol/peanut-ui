@@ -1,27 +1,15 @@
-'use server'
 
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { PEANUT_API_URL } from '@/constants/general.consts'
-
-const API_KEY = process.env.PEANUT_API_KEY!
+import { getAuthHeaders } from '@/utils/auth-token'
 
 export async function validateInviteCode(
     inviteCode: string
 ): Promise<{ data?: { success: boolean; username: string }; error?: string }> {
-    const apiUrl = PEANUT_API_URL
-
-    if (!apiUrl || !API_KEY) {
-        console.error('API URL or API Key is not configured.')
-        return { error: 'Server configuration error.' }
-    }
-
     try {
-        const response = await fetchWithSentry(`${apiUrl}/invites/validate`, {
+        const response = await fetchWithSentry(`${PEANUT_API_URL}/invites/validate`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'api-key': API_KEY,
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify({ inviteCode }),
         })
 
