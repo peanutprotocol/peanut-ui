@@ -508,16 +508,19 @@ export const TransactionDetailsReceipt = ({
                             )}
                         </div>
                     </div>
-                    <p className="mt-3 text-sm text-gray-600">
-                        You&apos;ve claimed your reward. You earn these when friends pay with Peanut.
-                    </p>
+                    <p className="mt-3 text-sm text-gray-600">You&apos;ve claimed your reward.</p>
                 </Card>
 
-                {/* Perk Details - Middle section with date */}
+                {/* Perk Details - Middle section with date and reason */}
                 <Card position="single" className="px-4 py-0">
                     <PaymentInfoRow
                         label="Received"
                         value={formatDate(new Date(transaction.date))}
+                        hideBottomBorder={false}
+                    />
+                    <PaymentInfoRow
+                        label="Reason"
+                        value="You earn these when friends pay with Peanut"
                         hideBottomBorder={true}
                     />
                     {/* 

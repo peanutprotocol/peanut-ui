@@ -188,7 +188,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                     {isTestTransaction
                                         ? 'Setup'
                                         : isPerkReward
-                                          ? 'Reward earned'
+                                          ? 'Reward'
                                           : getActionText(type, status)}
                                 </span>
                                 {status && <StatusPill status={status} />}
