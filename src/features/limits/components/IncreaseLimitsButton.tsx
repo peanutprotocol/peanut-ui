@@ -19,7 +19,7 @@ const INCREASE_LIMITS_MESSAGE = 'Hi, I would like to increase my payment limits.
  */
 export default function IncreaseLimitsButton() {
     const { openSupportWithMessage } = useModalsContext()
-    const { mantecaLimits, refetch } = useLimits()
+    const { mantecaLimits, isLoading: isLimitsLoading, refetch } = useLimits()
 
     const isEligibleForSelfService = isBrUserEligibleForLimitIncrease(mantecaLimits)
 
@@ -51,8 +51,8 @@ export default function IncreaseLimitsButton() {
                 className="w-full"
                 shadowSize="4"
                 onClick={handleClick}
-                loading={actionFlow.isLoading}
-                disabled={actionFlow.isLoading}
+                loading={actionFlow.isLoading || isLimitsLoading}
+                disabled={actionFlow.isLoading || isLimitsLoading}
             >
                 Increase my limits
             </Button>
