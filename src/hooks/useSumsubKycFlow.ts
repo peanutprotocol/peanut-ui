@@ -193,12 +193,14 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const handleSdkComplete = useCallback(() => {
         userInitiatedRef.current = true
         setShowWrapper(false)
+        setIsActionFlow(false)
         setIsVerificationProgressModalOpen(true)
     }, [])
 
     // called when user manually closes the sdk modal
     const handleClose = useCallback(() => {
         setShowWrapper(false)
+        setIsActionFlow(false)
         onManualClose?.()
     }, [onManualClose])
 
