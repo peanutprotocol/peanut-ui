@@ -1,4 +1,3 @@
-
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { type AddBankAccountPayload } from './types/users.types'
 import { type IBridgeAccount } from '@/interfaces'

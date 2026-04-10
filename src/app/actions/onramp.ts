@@ -1,4 +1,3 @@
-
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { type CountryData } from '@/components/AddMoney/consts'
 import { getCurrencyConfig } from '@/utils/bridge.utils'

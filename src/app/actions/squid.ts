@@ -1,4 +1,3 @@
-
 import { getSquidChains, getSquidTokens } from '@squirrel-labs/peanut-sdk'
 import { unstable_cache } from '@/utils/no-cache'
 import { interfaces } from '@squirrel-labs/peanut-sdk'

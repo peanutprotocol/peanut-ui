@@ -1,4 +1,3 @@
-
 import { type ApiUser } from '@/services/users'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { type AddBankAccountPayload, BridgeEndorsementType, type InitiateKycResponse } from './types/users.types'
