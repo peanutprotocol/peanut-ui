@@ -25,13 +25,9 @@ export default function IncreaseLimitsButton() {
 
     const actionFlow = useSumsubActionFlow({
         fetchToken: initiateIncreaseLimits,
-        onSuccess: refetchLimits,
+        onSuccess: refetch,
         onNeedsSupport: () => openSupportWithMessage(INCREASE_LIMITS_MESSAGE),
     })
-
-    function refetchLimits() {
-        refetch()
-    }
 
     const handleClick = useCallback(() => {
         if (isEligibleForSelfService) {

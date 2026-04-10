@@ -46,6 +46,7 @@ export function useSumsubActionFlow({ fetchToken, onSuccess, onNeedsSupport }: U
     const handleInitiate = useCallback(async () => {
         setIsLoading(true)
         setError(null)
+        setIsComplete(false)
 
         try {
             const response = await fetchTokenRef.current()
@@ -55,7 +56,12 @@ export function useSumsubActionFlow({ fetchToken, onSuccess, onNeedsSupport }: U
                 return
             }
 
-            const { status, token, message } = response.data ?? {}
+            if (!response.data) {
+                setError('No response from server. Please try again.')
+                return
+            }
+
+            const { status, token, message } = response.data
 
             if (status === 'completed') {
                 // backend found documents and uploaded them — no SDK needed
@@ -65,9 +71,8 @@ export function useSumsubActionFlow({ fetchToken, onSuccess, onNeedsSupport }: U
             }
 
             if (status === 'needs_support') {
-                // edge case: user needs to contact support
+                // edge case: user needs to contact support — open support modal only
                 onNeedsSupportRef.current?.()
-                setError(message || 'Please contact support to increase your limits.')
                 return
             }
 
@@ -75,7 +80,7 @@ export function useSumsubActionFlow({ fetchToken, onSuccess, onNeedsSupport }: U
                 setAccessToken(token)
                 setShowWrapper(true)
             } else {
-                setError('Could not start document verification. Please try again.')
+                setError(message || 'Could not start document verification. Please try again.')
             }
         } catch (e: unknown) {
             const message = e instanceof Error ? e.message : 'An unexpected error occurred'
@@ -92,8 +97,13 @@ export function useSumsubActionFlow({ fetchToken, onSuccess, onNeedsSupport }: U
         onSuccessRef.current?.()
     }, [])
 
+    // called when user manually closes the SDK — reset state and refetch
+    // in case they completed a multi-level flow before closing
     const handleClose = useCallback(() => {
         setShowWrapper(false)
+        setAccessToken(null)
+        setError(null)
+        onSuccessRef.current?.()
     }, [])
 
     // token refresh for the SDK
@@ -108,10 +118,6 @@ export function useSumsubActionFlow({ fetchToken, onSuccess, onNeedsSupport }: U
         return response.data.token
     }, [])
 
-    const resetError = useCallback(() => {
-        setError(null)
-    }, [])
-
     return {
         isLoading,
         error,
@@ -122,6 +128,5 @@ export function useSumsubActionFlow({ fetchToken, onSuccess, onNeedsSupport }: U
         handleSdkComplete,
         handleClose,
         refreshToken,
-        resetError,
     }
 }

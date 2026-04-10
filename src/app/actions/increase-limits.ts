@@ -8,7 +8,7 @@ const API_KEY = process.env.PEANUT_API_KEY!
 
 export interface IncreaseLimitsResponse {
     token: string | null
-    actionId: string | null
+    applicantId?: string | null
     status: string
     message?: string
 }
