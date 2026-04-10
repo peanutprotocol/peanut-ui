@@ -47,6 +47,7 @@ export const initiateSumsubKyc = async (params?: {
                 token: responseJson.token,
                 applicantId: responseJson.applicantId,
                 status: responseJson.status,
+                actionType: responseJson.actionType,
             },
         }
     } catch (e: unknown) {

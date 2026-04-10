@@ -22,6 +22,8 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const [isVerificationProgressModalOpen, setIsVerificationProgressModalOpen] = useState(false)
     const [liveKycStatus, setLiveKycStatus] = useState<SumsubKycStatus | undefined>(undefined)
     const [rejectLabels, setRejectLabels] = useState<string[] | undefined>(undefined)
+    // true when the SDK is showing an applicant action (not a standard level)
+    const [isActionFlow, setIsActionFlow] = useState(false)
     const prevStatusRef = useRef(liveKycStatus)
     const showWrapperRef = useRef(showWrapper)
     showWrapperRef.current = showWrapper
@@ -150,9 +152,19 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 if (effectiveIntent) regionIntentRef.current = effectiveIntent
                 levelNameRef.current = levelName
 
+                // cross-region: bridge-direct means no SDK needed — backend is handling
+                // rail enrollment + submission. go straight to the post-approval flow.
+                if (response.data?.actionType === 'bridge-direct') {
+                    prevStatusRef.current = 'APPROVED'
+                    userInitiatedRef.current = true
+                    setIsVerificationProgressModalOpen(true)
+                    onKycSuccess?.()
+                    return
+                }
+
                 // if already approved (or reverifying) and no token returned, kyc is done.
                 // set prevStatusRef so the transition effect doesn't fire onKycSuccess a second time.
-                // when a token IS returned (e.g. cross-region or additional-docs flow), we still need to show the SDK.
+                // when a token IS returned (e.g. cross-region action or additional-docs), we still need to show the SDK.
                 const status = response.data?.status
                 if ((status === 'APPROVED' || status === 'REVERIFYING') && !response.data?.token) {
                     prevStatusRef.current = status
@@ -162,6 +174,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
 
                 if (response.data?.token) {
                     setAccessToken(response.data.token)
+                    setIsActionFlow(!!response.data.actionType)
                     setShowWrapper(true)
                 } else {
                     setError('Could not initiate verification. Please try again.')
@@ -233,5 +246,6 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         closeVerificationProgressModal,
         closeVerificationModalAndGoHome,
         resetError,
+        isActionFlow,
     }
 }
