@@ -1,5 +1,4 @@
 // unified api fetch that handles capacitor vs web branching in one place.
-// replaces the isCapacitor() ? directUrl : proxyUrl pattern that was repeated 8+ times.
 
 import { isCapacitor } from './capacitor'
 import { getAuthHeaders } from './auth-token'
@@ -8,21 +7,23 @@ import { PEANUT_API_URL } from '@/constants/general.consts'
 
 /**
  * makes an api call that works in both web (via next.js proxy) and capacitor (direct backend).
- *
- * @param backendPath - the backend endpoint path (e.g. '/get-user', '/bridge/onramp/create')
- * @param proxyPath - the next.js proxy path (e.g. '/api/peanut/user/get-user-from-cookie')
- * @param options - fetch options (method, body, extra headers)
  */
 export function apiFetch(backendPath: string, proxyPath: string, options?: RequestInit): Promise<Response> {
     const url = isCapacitor() ? `${PEANUT_API_URL}${backendPath}` : proxyPath
-    const extraHeaders = options?.headers as Record<string, string> | undefined
+    const extraHeaders = (options?.headers as Record<string, string>) ?? {}
 
-    // only set content-type when there's a body — empty body + application/json
-    // causes fastify to fail parsing empty string as json
-    const contentType = options?.body ? { 'Content-Type': 'application/json' } : {}
-    const headers = isCapacitor()
-        ? getAuthHeaders({ ...contentType, ...extraHeaders })
-        : { ...contentType, ...extraHeaders }
+    const headers: Record<string, string> = {}
+
+    // only set content-type when there's a body
+    if (options?.body) {
+        headers['Content-Type'] = 'application/json'
+    }
+
+    if (isCapacitor()) {
+        Object.assign(headers, getAuthHeaders(extraHeaders))
+    } else {
+        Object.assign(headers, extraHeaders)
+    }
 
     return fetchWithSentry(url, { ...options, headers })
 }

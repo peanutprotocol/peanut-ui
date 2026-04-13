@@ -6,7 +6,7 @@ import { bytesToBigInt, hexToBytes } from 'viem'
 // @ts-ignore -- @noble/curves/p256 requires pinning to v1.9.7 (v2 removed this export)
 import { p256 } from '@noble/curves/p256'
 import { registerPlugin } from '@capacitor/core'
-import Cookies from 'js-cookie'
+import { setAuthToken } from './auth-token'
 
 // register the webauthn plugin bridge — the native code is loaded by capacitor runtime,
 // this just creates the js-to-native communication channel
@@ -200,7 +200,7 @@ export async function nativeRegister(params: {
 
     // save jwt token from response body (Set-Cookie doesn't work cross-origin in static export)
     if (verifyResult.token) {
-        Cookies.set('jwt-token', verifyResult.token, { expires: 30, path: '/' })
+        setAuthToken(verifyResult.token)
     }
 
     // 4. parse public key and build WebAuthnKey
@@ -259,7 +259,7 @@ export async function nativeLogin(params: {
 
     // save jwt token from response body (Set-Cookie doesn't work cross-origin in static export)
     if (verifyResult.token) {
-        Cookies.set('jwt-token', verifyResult.token, { expires: 30, path: '/' })
+        setAuthToken(verifyResult.token)
     }
 
     // 4. parse public key from server response

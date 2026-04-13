@@ -15,8 +15,7 @@ import {
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { apiFetch } from '@/utils/api-fetch'
 import { isCapacitor } from '@/utils/capacitor'
-import Cookies from 'js-cookie'
-import { CapacitorCookies } from '@capacitor/core'
+import { clearAuthToken } from '@/utils/auth-token'
 import { resetCrispProxySessions } from '@/utils/crisp'
 import posthog from 'posthog-js'
 import { useQueryClient } from '@tanstack/react-query'
@@ -165,20 +164,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // clear user preferences (webauthn key in localStorage)
         updateUserPreferences(user?.user.userId, { webAuthnKey: undefined })
 
-        // clear cookies — js-level clear for web, native clear for capacitor
+        // clear auth tokens (localStorage in capacitor, cookie on web)
         removeFromCookie(WEB_AUTHN_COOKIE_KEY)
-        Cookies.remove('jwt-token', { path: '/' })
-        document.cookie = 'jwt-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
-
-        // in capacitor, the android CookieManager persists cookies to disk natively.
-        // document.cookie clearing doesn't clear the native store which survives app restarts.
-        if (isCapacitor()) {
-            try {
-                await CapacitorCookies.clearAllCookies()
-            } catch (e) {
-                console.warn('failed to clear native cookies:', e)
-            }
-        }
+        clearAuthToken()
 
         // clear redirect url
         clearRedirectUrl()
@@ -211,11 +199,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
 
         // clear session flags
-        try { sessionStorage.removeItem('hasSeenIOSPWAPromptThisSession') } catch {}
+        try {
+            sessionStorage.removeItem('hasSeenIOSPWAPromptThisSession')
+        } catch {}
 
         // reset third-party sessions (non-fatal)
-        try { resetCrispProxySessions() } catch (e) { console.warn('crisp reset failed:', e) }
-        try { posthog.reset() } catch (e) { console.warn('posthog reset failed:', e) }
+        try {
+            resetCrispProxySessions()
+        } catch (e) {
+            console.warn('crisp reset failed:', e)
+        }
+        try {
+            posthog.reset()
+        } catch (e) {
+            console.warn('posthog reset failed:', e)
+        }
     }, [dispatch, queryClient, user?.user.userId])
 
     /**
