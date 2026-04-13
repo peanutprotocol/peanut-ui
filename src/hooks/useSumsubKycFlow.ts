@@ -31,6 +31,8 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const regionIntentRef = useRef<KYCRegionIntent | undefined>(regionIntent)
     // tracks the level name across initiate + refresh (e.g. 'peanut-additional-docs')
     const levelNameRef = useRef<string | undefined>(undefined)
+    // guards fetchCurrentStatus from running while handleInitiateKyc is in progress
+    const initiatingRef = useRef(false)
     // guard: only fire onKycSuccess when the user initiated a kyc flow in this session.
     // prevents stale websocket events or mount-time fetches from auto-closing the drawer.
     const userInitiatedRef = useRef(false)
@@ -82,11 +84,13 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // (e.g. RegionsVerification mounts with no region selected yet).
     useEffect(() => {
         if (!regionIntent) return
+        // skip if handleInitiateKyc is already in progress — it handles status sync itself
+        if (initiatingRef.current) return
 
         const fetchCurrentStatus = async () => {
             try {
                 const response = await initiateSumsubKyc({ regionIntent })
-                if (response.data?.status) {
+                if (response.data?.status && !initiatingRef.current) {
                     setLiveKycStatus(response.data.status)
                 }
             } catch {
@@ -124,6 +128,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const handleInitiateKyc = useCallback(
         async (overrideIntent?: KYCRegionIntent, levelName?: string, crossRegion?: boolean) => {
             userInitiatedRef.current = true
+            initiatingRef.current = true
             setIsLoading(true)
             setError(null)
 
@@ -192,6 +197,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 setError(message)
             } finally {
                 setIsLoading(false)
+                initiatingRef.current = false
             }
         },
         [regionIntent, onKycSuccess]
