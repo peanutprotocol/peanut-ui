@@ -169,8 +169,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // clear redirect url
         clearRedirectUrl()
 
-        // invalidate all queries
-        queryClient.invalidateQueries()
+        // cancel + remove all queries to prevent refetches with cleared jwt
+        queryClient.cancelQueries()
+        queryClient.clear()
 
         // reset redux state (user, setup, zerodev)
         dispatch(userActions.setUser(null))
