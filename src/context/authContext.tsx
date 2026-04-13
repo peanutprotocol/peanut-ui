@@ -239,13 +239,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 // Clear all client-side auth state
                 await clearLocalAuthState()
 
-                // fetch user (should return null after logout) - skip if backend call was skipped
-                if (!options?.skipBackendCall) {
+                // fetch user (should return null after logout) - skip for capacitor
+                // (jwt is already cleared, fetching would just 401)
+                if (!options?.skipBackendCall && !isCapacitor()) {
                     await fetchUser()
                 }
 
                 // force full page refresh to /setup to clear all state
-                // this ensures no stale redux/react state persists after logout
                 window.location.href = '/setup'
             } catch (error) {
                 captureException(error)
