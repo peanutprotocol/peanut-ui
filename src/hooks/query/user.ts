@@ -26,7 +26,10 @@ export const useUserQuery = (dependsOn: boolean = true) => {
     const { user: authUser } = useUserStore()
 
     const fetchUser = async (): Promise<IUserProfile | null> => {
-        const userResponse = await apiFetch('/get-user', '/api/peanut/user/get-user-from-cookie', { method: 'POST' })
+        const userResponse = await apiFetch('/get-user', '/api/peanut/user/get-user-from-cookie', {
+            method: 'POST',
+            body: JSON.stringify({}),
+        })
         if (userResponse.ok) {
             const userData: IUserProfile | null = await userResponse.json()
             if (userData) {
