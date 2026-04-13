@@ -24,8 +24,10 @@ import { IS_DEV } from '@/constants/general.consts'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 import { useAccountSetupRedirect } from '@/hooks/useAccountSetupRedirect'
+import { useNativePlugins } from '@/hooks/useNativePlugins'
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
+    useNativePlugins()
     const pathName = usePathname()
 
     // Allow access to public paths without authentication
