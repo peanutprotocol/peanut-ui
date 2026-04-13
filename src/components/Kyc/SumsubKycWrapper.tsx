@@ -135,10 +135,16 @@ export const SumsubKycWrapper = ({
                 }
             }
 
-            // for applicant actions, the SDK may fire action-specific events
-            const handleActionCompleted = (payload: unknown) => {
+            // for applicant actions, the SDK fires action-specific events.
+            // only close on terminal status to avoid premature SDK closure.
+            const handleActionCompleted = (payload: {
+                reviewStatus?: string
+                reviewResult?: { reviewAnswer?: string }
+            }) => {
                 console.log('[sumsub] onApplicantActionStatusChanged fired', payload)
-                stableOnComplete()
+                if (payload?.reviewStatus === 'completed') {
+                    stableOnComplete()
+                }
             }
 
             const sdk = window.snsWebSdk
