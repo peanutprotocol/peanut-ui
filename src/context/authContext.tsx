@@ -224,8 +224,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setIsLoggingOut(true)
             try {
                 // Call backend logout unless skipped (e.g., when backend is down)
-                if (!options?.skipBackendCall) {
-                    const response = await apiFetch('/logout-user', '/api/peanut/user/logout-user', {
+                // in capacitor, there's no backend logout route — just clear client-side state.
+                // on web, the /api/ route clears the server-side cookie.
+                if (!options?.skipBackendCall && !isCapacitor()) {
+                    const response = await fetchWithSentry('/api/peanut/user/logout-user', {
                         method: 'GET',
                     })
 
