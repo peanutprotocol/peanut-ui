@@ -15,9 +15,14 @@ import { PEANUT_API_URL } from '@/constants/general.consts'
  */
 export function apiFetch(backendPath: string, proxyPath: string, options?: RequestInit): Promise<Response> {
     const url = isCapacitor() ? `${PEANUT_API_URL}${backendPath}` : proxyPath
-    const defaultHeaders = isCapacitor()
-        ? getAuthHeaders(options?.headers as Record<string, string>)
-        : { 'Content-Type': 'application/json', ...(options?.headers as Record<string, string>) }
+    const extraHeaders = options?.headers as Record<string, string> | undefined
 
-    return fetchWithSentry(url, { ...options, headers: defaultHeaders })
+    // only set content-type when there's a body — empty body + application/json
+    // causes fastify to fail parsing empty string as json
+    const contentType = options?.body ? { 'Content-Type': 'application/json' } : {}
+    const headers = isCapacitor()
+        ? getAuthHeaders({ ...contentType, ...extraHeaders })
+        : { ...contentType, ...extraHeaders }
+
+    return fetchWithSentry(url, { ...options, headers })
 }
