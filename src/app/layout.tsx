@@ -161,7 +161,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 {process.env.NODE_ENV !== 'development' && (
                     <Script id="sw-registration" strategy="beforeInteractive">
                         {`
-                            if ('serviceWorker' in navigator) {
+                            if ('serviceWorker' in navigator && !window.Capacitor) {
                                 window.addEventListener('load', async () => {
                                     try {
                                         const registration = await navigator.serviceWorker.register('/sw.js', {
