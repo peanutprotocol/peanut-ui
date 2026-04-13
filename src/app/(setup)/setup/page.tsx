@@ -48,9 +48,13 @@ function SetupPageContent() {
             // and go straight to the landing (signup) flow
             if (isCapacitor() || process.env.NEXT_PUBLIC_CAPACITOR_BUILD === 'true') {
                 setDeviceType(localDeviceType)
-                const landingStepIndex = steps.findIndex((s: ISetupStep) => s.screenId === 'landing')
-                if (landingStepIndex !== -1) {
-                    dispatch(setupActions.setStep(landingStepIndex + 1))
+                // check for invite code — if present, go to signup instead of landing
+                const inviteCodeFromCookie = getFromCookie('inviteCode')
+                const userInviteCode = inviteCode || inviteCodeFromCookie
+                const targetStep = userInviteCode ? 'signup' : 'landing'
+                const stepIndex = steps.findIndex((s: ISetupStep) => s.screenId === targetStep)
+                if (stepIndex !== -1) {
+                    dispatch(setupActions.setStep(stepIndex + 1))
                 }
                 setIsLoading(false)
                 return

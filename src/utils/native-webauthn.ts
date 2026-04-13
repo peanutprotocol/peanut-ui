@@ -348,7 +348,7 @@ export function createNativeSignMessageCallback(rpId: string) {
         const authenticatorData = base64URLToBytes(cred.response.authenticatorData)
         const authenticatorDataHex = uint8ArrayToHexString(authenticatorData)
 
-        const clientDataJSON = atob(cred.response.clientDataJSON.replace(/-/g, '+').replace(/_/g, '/'))
+        const clientDataJSON = new TextDecoder().decode(base64URLToBytes(cred.response.clientDataJSON))
 
         // zerodev looks for '"type":"webauthn.get"' in clientDataJSON
         const beforeType = BigInt(clientDataJSON.lastIndexOf('"type":"webauthn.get"'))
