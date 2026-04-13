@@ -10,12 +10,21 @@ const JWT_STORAGE_KEY = 'jwt-token'
 
 /**
  * reads the jwt token.
- * capacitor: from localStorage (reliable, no native CookieManager issues)
+ * capacitor: from localStorage, with cookie fallback for migration
  * web: from cookie via js-cookie (existing 40+ call sites use this)
  */
 export function getAuthToken(): string | null {
     if (isCapacitor()) {
-        return localStorage.getItem(JWT_STORAGE_KEY)
+        const stored = localStorage.getItem(JWT_STORAGE_KEY)
+        if (stored) return stored
+
+        // migration: token may be in cookie from previous code version
+        const fromCookie = Cookies.get(JWT_COOKIE_KEY)
+        if (fromCookie) {
+            localStorage.setItem(JWT_STORAGE_KEY, fromCookie)
+            return fromCookie
+        }
+        return null
     }
     return Cookies.get(JWT_COOKIE_KEY) ?? null
 }
