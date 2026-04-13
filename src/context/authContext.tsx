@@ -14,6 +14,7 @@ import {
 } from '@/utils/general.utils'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { apiFetch } from '@/utils/api-fetch'
+import { isCapacitor } from '@/utils/capacitor'
 import { resetCrispProxySessions } from '@/utils/crisp'
 import posthog from 'posthog-js'
 import { useQueryClient } from '@tanstack/react-query'
