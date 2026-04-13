@@ -1,6 +1,6 @@
+import { getAuthToken } from '@/utils/auth-token'
 import type { CreateDepositAddressResponse, DepositAddressStatusResponse, RhinoChainType } from './services.types'
 import { PEANUT_API_URL } from '@/constants/general.consts'
-import Cookies from 'js-cookie'
 
 export const rhinoApi = {
     createDepositAddress: async (
@@ -8,7 +8,7 @@ export const rhinoApi = {
         chainType: RhinoChainType,
         identifier: string
     ): Promise<CreateDepositAddressResponse> => {
-        const token = Cookies.get('jwt-token')
+        const token = getAuthToken()
         if (!token) {
             throw new Error('Authentication required')
         }
@@ -45,7 +45,7 @@ export const rhinoApi = {
     },
 
     resetDepositAddressStatus: async (depositAddress: string): Promise<boolean> => {
-        const token = Cookies.get('jwt-token')
+        const token = getAuthToken()
         if (!token) {
             throw new Error('Authentication required')
         }

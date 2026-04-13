@@ -1,5 +1,6 @@
 'use client'
 
+import { getAuthToken } from '@/utils/auth-token'
 import { Button } from '@/components/0_Bruddle/Button'
 import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
@@ -12,7 +13,6 @@ import ErrorAlert from '@/components/Global/ErrorAlert'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { saveRedirectUrl, generateInviteCodeLink, sanitizeRedirectURL } from '@/utils/general.utils'
 import { getShakeClass } from '@/utils/perk.utils'
-import Cookies from 'js-cookie'
 import { useRedirectQrStatus } from '@/hooks/useRedirectQrStatus'
 import { useHoldToClaim } from '@/hooks/useHoldToClaim'
 
@@ -91,7 +91,7 @@ export default function RedirectQrClaimPage() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+                    Authorization: `Bearer ${getAuthToken()}`,
                 },
                 body: JSON.stringify({
                     targetUrl: inviteLink, // Pass the correctly formatted invite link

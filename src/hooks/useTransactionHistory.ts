@@ -1,8 +1,8 @@
+import { getAuthToken } from '@/utils/auth-token'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import type { InfiniteData, InfiniteQueryObserverResult, QueryObserverResult } from '@tanstack/react-query'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import Cookies from 'js-cookie'
 import { completeHistoryEntry } from '@/utils/history.utils'
 import type { HistoryEntry } from '@/utils/history.utils'
 import { PEANUT_API_URL } from '@/constants/general.consts'
@@ -67,7 +67,7 @@ export function useTransactionHistory({
         const headers: Record<string, string> = {
             'Content-Type': 'application/json',
         }
-        headers['Authorization'] = `Bearer ${Cookies.get('jwt-token')}`
+        headers['Authorization'] = `Bearer ${getAuthToken()}`
         const response = await fetchWithSentry(url, { method: 'GET', headers })
 
         if (!response.ok) {
