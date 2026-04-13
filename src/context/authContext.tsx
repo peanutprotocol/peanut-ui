@@ -16,6 +16,7 @@ import { fetchWithSentry } from '@/utils/sentry.utils'
 import { apiFetch } from '@/utils/api-fetch'
 import { isCapacitor } from '@/utils/capacitor'
 import Cookies from 'js-cookie'
+import { CapacitorCookies } from '@capacitor/core'
 import { resetCrispProxySessions } from '@/utils/crisp'
 import posthog from 'posthog-js'
 import { useQueryClient } from '@tanstack/react-query'
@@ -164,13 +165,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // clear user preferences (webauthn key in localStorage)
         updateUserPreferences(user?.user.userId, { webAuthnKey: undefined })
 
-        // clear cookies — remove from all possible domain/path combos
+        // clear cookies — js-level clear for web, native clear for capacitor
         removeFromCookie(WEB_AUTHN_COOKIE_KEY)
         Cookies.remove('jwt-token', { path: '/' })
-        Cookies.remove('jwt-token', { path: '/', domain: window.location.hostname })
-        Cookies.remove('jwt-token', { path: '/', domain: `.${window.location.hostname}` })
         document.cookie = 'jwt-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
-        document.cookie = `jwt-token=; path=/; domain=${window.location.hostname}; expires=Thu, 01 Jan 1970 00:00:01 GMT;`
+
+        // in capacitor, the android CookieManager persists cookies to disk natively.
+        // document.cookie clearing doesn't clear the native store which survives app restarts.
+        if (isCapacitor()) {
+            try {
+                await CapacitorCookies.clearAllCookies()
+            } catch (e) {
+                console.warn('failed to clear native cookies:', e)
+            }
+        }
 
         // clear redirect url
         clearRedirectUrl()
