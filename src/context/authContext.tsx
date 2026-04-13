@@ -170,48 +170,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         clearRedirectUrl()
 
         // cancel + remove all queries to prevent refetches with cleared jwt
-        queryClient.cancelQueries()
-        queryClient.clear()
+        try {
+            queryClient.cancelQueries()
+            queryClient.clear()
+        } catch (e) {
+            console.warn('failed to clear queries on logout:', e)
+        }
 
         // reset redux state (user, setup, zerodev)
         dispatch(userActions.setUser(null))
         dispatch(setupActions.resetSetup())
         dispatch(zerodevActions.resetZeroDevState())
 
-        // Clear service worker caches to prevent user data leakage
-        // When User A logs out and User B logs in on the same device, cached API responses
-        // could expose User A's data (profile, transactions, KYC) to User B
-        // Only clears user-specific caches; preserves prices and external resources
+        // clear service worker caches (non-fatal if it fails)
         if ('caches' in window) {
             try {
                 const cacheNames = await caches.keys()
                 await Promise.all(
                     cacheNames
                         .filter((name) => USER_DATA_CACHE_PATTERNS.some((pattern) => name.includes(pattern)))
-                        .map((name) => {
-                            console.log('Logout: Clearing cache:', name)
-                            return caches.delete(name)
-                        })
+                        .map((name) => caches.delete(name))
                 )
-            } catch (error) {
-                console.error('Failed to clear caches on logout:', error)
-                // Non-fatal: logout continues even if cache clearing fails
+            } catch (e) {
+                console.warn('failed to clear caches on logout:', e)
             }
         }
 
-        // clear the iOS PWA prompt session flag
-        if (typeof window !== 'undefined') {
-            sessionStorage.removeItem('hasSeenIOSPWAPromptThisSession')
-        }
+        // clear session flags
+        try { sessionStorage.removeItem('hasSeenIOSPWAPromptThisSession') } catch {}
 
-        // Reset Crisp session to prevent session merging with next user
-        // This resets both main window Crisp instance and any proxy page instances
-        if (typeof window !== 'undefined') {
-            resetCrispProxySessions()
-        }
-
-        // Reset PostHog identity so next user doesn't inherit previous user's session
-        posthog.reset()
+        // reset third-party sessions (non-fatal)
+        try { resetCrispProxySessions() } catch (e) { console.warn('crisp reset failed:', e) }
+        try { posthog.reset() } catch (e) { console.warn('posthog reset failed:', e) }
     }, [dispatch, queryClient, user?.user.userId])
 
     /**
@@ -251,7 +241,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             } catch (error) {
                 captureException(error)
                 console.error('Error logging out user', error)
-                toast.error('Error logging out')
+                // TODO: remove debug info after native testing
+                toast.error(`Error logging out: ${(error as Error).message}`)
             } finally {
                 setIsLoggingOut(false)
             }
