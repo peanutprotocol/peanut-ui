@@ -127,6 +127,13 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             setIsLoading(true)
             setError(null)
 
+            // for cross-region: pre-set prevStatusRef to APPROVED so the fetchCurrentStatus
+            // effect (which also fires when regionIntent changes) doesn't trigger onKycSuccess
+            // when it sees the existing APPROVED status.
+            if (crossRegion) {
+                prevStatusRef.current = 'APPROVED'
+            }
+
             try {
                 const response = await initiateSumsubKyc({
                     regionIntent: overrideIntent ?? regionIntent,
