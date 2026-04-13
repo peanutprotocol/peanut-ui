@@ -254,7 +254,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 captureException(error)
                 console.error('Error logging out user', error)
                 // TODO: remove debug info after native testing
-                toast.error(`Error logging out: ${(error as Error).message}`)
+                toast.error('Error logging out')
             } finally {
                 setIsLoggingOut(false)
             }

@@ -46,7 +46,7 @@ function SetupPageContent() {
 
             // in capacitor, passkeys are handled natively — skip all browser/webview/os/pwa checks
             // and go straight to the landing (signup) flow
-            if (isCapacitor() || process.env.NEXT_PUBLIC_CAPACITOR_BUILD === 'true') {
+            if (isCapacitor()) {
                 setDeviceType(localDeviceType)
                 // check for invite code — if present, go to signup instead of landing
                 const inviteCodeFromCookie = getFromCookie('inviteCode')

@@ -178,7 +178,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             // cookie/localStorage, so it's lost on restore. without it, zerodev falls
             // back to browser WebAuthn which doesn't work in android webview.
             if (isAndroidNative() && !storedWebAuthnKey.signMessageCallback) {
-                const rpId = storedWebAuthnKey.rpID || 'peanutdev.site'
+                const rpId = storedWebAuthnKey.rpID || process.env.NEXT_PUBLIC_NATIVE_RP_ID || 'peanut.me'
                 storedWebAuthnKey.signMessageCallback = createNativeSignMessageCallback(rpId)
             }
             // Only update if the key actually changed to avoid re-triggering kernel client init

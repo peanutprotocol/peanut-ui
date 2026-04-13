@@ -173,9 +173,6 @@ export async function nativeRegister(params: {
     const credential: any = await Webauthn.startRegistration(options)
 
     // 3. verify registration with zerodev passkey server
-    // TODO: remove debug logs after testing
-    console.log('[nativeRegister] credential from plugin:', JSON.stringify(credential))
-    console.log('[nativeRegister] registerOptions.userId:', registerOptions.userId)
 
     const verifyPayload = {
         userId: registerOptions.userId,
@@ -183,7 +180,6 @@ export async function nativeRegister(params: {
         cred: credential,
         rpID: rpId,
     }
-    console.log('[nativeRegister] verify payload:', JSON.stringify(verifyPayload))
 
     const verifyRes = await fetch(`${passkeyServerUrl}/register/verify`, {
         method: 'POST',
@@ -192,7 +188,6 @@ export async function nativeRegister(params: {
         credentials: 'include',
     })
     const verifyResult = await verifyRes.json()
-    console.log('[nativeRegister] verify result:', JSON.stringify(verifyResult))
 
     if (!verifyResult.verified) {
         throw new Error(`native passkey registration not verified by server: ${JSON.stringify(verifyResult)}`)
