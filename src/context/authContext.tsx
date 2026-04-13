@@ -15,6 +15,7 @@ import {
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { apiFetch } from '@/utils/api-fetch'
 import { isCapacitor } from '@/utils/capacitor'
+import Cookies from 'js-cookie'
 import { resetCrispProxySessions } from '@/utils/crisp'
 import posthog from 'posthog-js'
 import { useQueryClient } from '@tanstack/react-query'
@@ -163,9 +164,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // clear user preferences (webauthn key in localStorage)
         updateUserPreferences(user?.user.userId, { webAuthnKey: undefined })
 
-        // clear cookies
+        // clear cookies — remove from all possible domain/path combos
         removeFromCookie(WEB_AUTHN_COOKIE_KEY)
+        Cookies.remove('jwt-token', { path: '/' })
+        Cookies.remove('jwt-token', { path: '/', domain: window.location.hostname })
+        Cookies.remove('jwt-token', { path: '/', domain: `.${window.location.hostname}` })
         document.cookie = 'jwt-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
+        document.cookie = `jwt-token=; path=/; domain=${window.location.hostname}; expires=Thu, 01 Jan 1970 00:00:01 GMT;`
 
         // clear redirect url
         clearRedirectUrl()
