@@ -1,4 +1,6 @@
 import { getEntryPoint, KERNEL_V3_1 } from '@zerodev/sdk/constants'
+import { extractChain } from 'viem'
+import * as chains from 'viem/chains'
 import { arbitrum } from 'viem/chains'
 
 // consts needed to define low level SDK kernel
@@ -11,12 +13,16 @@ export const PASSKEY_SERVER_URL = process.env.NEXT_PUBLIC_ZERO_DEV_PASSKEY_SERVE
 // as per: https://docs.zerodev.app/smart-wallet/quickstart-react
 export const ZERO_DEV_PROJECT_ID = process.env.NEXT_PUBLIC_ZERO_DEV_PASSKEY_PROJECT_ID
 
-// TODO: this should be taken from a global token dict, not hardcoded here
-export const PEANUT_WALLET_CHAIN = arbitrum
-export const PEANUT_WALLET_TOKEN_DECIMALS = 6 // USDC decimals
-export const PEANUT_WALLET_TOKEN = '0xaf88d065e77c8cc2239327c5edb3a432268e5831' // USDC Arbitrum address
-export const PEANUT_WALLET_TOKEN_SYMBOL = 'USDC'
-export const PEANUT_WALLET_TOKEN_NAME = 'USD Coin'
+// Wallet chain & token — configurable via env for sandbox/testnet testing.
+// Defaults: Arbitrum mainnet + USDC.
+const walletChainId = Number(process.env.NEXT_PUBLIC_PEANUT_WALLET_CHAIN_ID || arbitrum.id)
+export const PEANUT_WALLET_CHAIN =
+    walletChainId === arbitrum.id ? arbitrum : extractChain({ chains: Object.values(chains), id: walletChainId as any })
+export const PEANUT_WALLET_TOKEN =
+    process.env.NEXT_PUBLIC_PEANUT_WALLET_TOKEN || '0xaf88d065e77c8cc2239327c5edb3a432268e5831' // USDC Arbitrum
+export const PEANUT_WALLET_TOKEN_DECIMALS = Number(process.env.NEXT_PUBLIC_PEANUT_WALLET_TOKEN_DECIMALS || 6)
+export const PEANUT_WALLET_TOKEN_SYMBOL = process.env.NEXT_PUBLIC_PEANUT_WALLET_TOKEN_SYMBOL || 'USDC'
+export const PEANUT_WALLET_TOKEN_NAME = process.env.NEXT_PUBLIC_PEANUT_WALLET_TOKEN_NAME || 'USD Coin'
 export const PEANUT_WALLET_TOKEN_IMG_URL =
     'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/logo.png'
 

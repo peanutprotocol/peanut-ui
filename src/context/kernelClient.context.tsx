@@ -13,6 +13,7 @@ import {
     type KernelAccountClient,
 } from '@zerodev/sdk'
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useState, useMemo } from 'react'
+import { arbitrum } from 'viem/chains'
 import { type Chain, http, type PublicClient, type Transport } from 'viem'
 import type { Address } from 'viem'
 import { captureException } from '@sentry/nextjs'
@@ -102,16 +103,11 @@ export const createKernelClientForChain = async <C extends Chain>(
         bundlerTransport: http(bundlerUrl),
         pollingInterval: 500,
         userOperation:
-            // for arbitrum (peanut_wallet_chain):
-            // use zerodev's ultra relay (docs.zerodev.app/sdk/core-api/sponsor-gas#ultrarelay).
-            // this requires gas fees set to 0 for optimal performance/sponsorship.
-            //
-            // for polygon (pimlico provider) & other chains:
-            // do not hardcode gas. allows standard gas estimation, preventing underpriced tx failures.
-            // note using pimlico provider, for polygon, cuz it doesnt support ultra relay yet and alchemy (default provider) fails to estimate gas.
-            chain.id.toString() === PEANUT_WALLET_CHAIN.id.toString()
+            // For Arbitrum mainnet: use ZeroDev's Ultra Relay which requires gas fees set to 0.
+            // https://docs.zerodev.app/sdk/core-api/sponsor-gas#ultrarelay
+            // Other chains (including testnets) use standard gas estimation.
+            chain.id === arbitrum.id
                 ? {
-                      // better performance: https://docs.zerodev.app/sdk/core-api/sponsor-gas#ultrarelay
                       estimateFeesPerGas: async ({ bundlerClient: _ }) => {
                           return {
                               maxFeePerGas: BigInt(0),

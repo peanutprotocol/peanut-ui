@@ -47,11 +47,11 @@ export const PUBLIC_CLIENTS_BY_CHAIN: Record<
         paymasterUrl: string
     }
 > = {
-    // Arbitrum (primary wallet chain - always included)
-    [arbitrum.id]: {
+    // Primary wallet chain - always included (configurable via NEXT_PUBLIC_PEANUT_WALLET_CHAIN_ID)
+    [PEANUT_WALLET_CHAIN.id]: {
         client: createPublicClient({
-            transport: getTransportWithFallback(arbitrum.id),
-            chain: arbitrum,
+            transport: getTransportWithFallback(PEANUT_WALLET_CHAIN.id as ChainId),
+            chain: PEANUT_WALLET_CHAIN,
             pollingInterval: 500,
         }),
         chain: PEANUT_WALLET_CHAIN,
