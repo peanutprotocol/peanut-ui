@@ -7,6 +7,8 @@ import { isCapacitor } from '@/utils/capacitor'
 /**
  * initializes capacitor native plugins (back button, status bar, splash screen).
  * call once in the root layout or a top-level provider.
+ * plugins are loaded via dynamic import with webpackIgnore since they only
+ * exist in native builds (not on vercel/web ci).
  */
 export function useNativePlugins() {
     const router = useRouter()
@@ -17,10 +19,10 @@ export function useNativePlugins() {
         let cleanup: (() => void) | undefined
 
         const init = async () => {
-            // android back button — navigate back or minimize app
             try {
-                const { App } = await import('@capacitor/app')
-                const listener = await App.addListener('backButton', ({ canGoBack }) => {
+                // @ts-ignore — module only exists in native builds
+                const { App } = await import(/* webpackIgnore: true */ '@capacitor/app')
+                const listener = await App.addListener('backButton', ({ canGoBack }: { canGoBack: boolean }) => {
                     if (canGoBack) {
                         router.back()
                     } else {
@@ -32,18 +34,18 @@ export function useNativePlugins() {
                 console.warn('failed to init back button handler:', e)
             }
 
-            // status bar — light content on dark background
             try {
-                const { StatusBar, Style } = await import('@capacitor/status-bar')
+                // @ts-ignore — module only exists in native builds
+                const { StatusBar, Style } = await import(/* webpackIgnore: true */ '@capacitor/status-bar')
                 await StatusBar.setStyle({ style: Style.Light })
                 await StatusBar.setBackgroundColor({ color: '#ffffff' })
             } catch (e) {
                 console.warn('failed to init status bar:', e)
             }
 
-            // splash screen — hide after app is ready
             try {
-                const { SplashScreen } = await import('@capacitor/splash-screen')
+                // @ts-ignore — module only exists in native builds
+                const { SplashScreen } = await import(/* webpackIgnore: true */ '@capacitor/splash-screen')
                 await SplashScreen.hide()
             } catch (e) {
                 console.warn('failed to hide splash screen:', e)
