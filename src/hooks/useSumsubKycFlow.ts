@@ -157,6 +157,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 if (response.data?.actionType === 'bridge-direct') {
                     prevStatusRef.current = 'APPROVED'
                     userInitiatedRef.current = true
+                    setIsActionFlow(false)
                     setIsVerificationProgressModalOpen(true)
                     onKycSuccess?.()
                     return
