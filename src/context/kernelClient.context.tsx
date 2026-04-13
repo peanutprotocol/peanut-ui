@@ -5,6 +5,8 @@ import { createKernelMigrationAccount } from '@zerodev/sdk/accounts'
 import { useAppDispatch } from '@/redux/hooks'
 import { zerodevActions } from '@/redux/slices/zerodev-slice'
 import { getFromCookie, updateUserPreferences, getUserPreferences } from '@/utils/general.utils'
+import { isAndroidNative } from '@/utils/capacitor'
+import { createNativeSignMessageCallback } from '@/utils/native-webauthn'
 import { PasskeyValidatorContractVersion, toPasskeyValidator, toWebAuthnKey } from '@zerodev/passkey-validator'
 import {
     createKernelAccount,
@@ -172,6 +174,13 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
         const userPreferences = getUserPreferences(user.user.userId)
         const storedWebAuthnKey = userPreferences?.webAuthnKey ?? getFromCookie(WEB_AUTHN_COOKIE_KEY)
         if (storedWebAuthnKey) {
+            // re-attach the native signing callback — functions can't be serialized to
+            // cookie/localStorage, so it's lost on restore. without it, zerodev falls
+            // back to browser WebAuthn which doesn't work in android webview.
+            if (isAndroidNative() && !storedWebAuthnKey.signMessageCallback) {
+                const rpId = storedWebAuthnKey.rpID || 'peanutdev.site'
+                storedWebAuthnKey.signMessageCallback = createNativeSignMessageCallback(rpId)
+            }
             // Only update if the key actually changed to avoid re-triggering kernel client init
             // Note: WebAuthnKey contains BigInt fields (pubX, pubY) which JSON.stringify cannot handle,
             // so we use a custom replacer that converts BigInts to strings for comparison purposes.
