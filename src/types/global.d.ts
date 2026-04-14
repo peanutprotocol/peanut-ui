@@ -4,3 +4,9 @@ interface Window {
     CRISP_TOKEN_ID?: string | null
     CRISP_WEBSITE_ID?: string
 }
+
+interface Navigator {
+    brave?: {
+        isBrave: () => Promise<boolean>
+    }
+}

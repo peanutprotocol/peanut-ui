@@ -11,6 +11,7 @@ const API_KEY = process.env.PEANUT_API_KEY!
 export const initiateSumsubKyc = async (params?: {
     regionIntent?: KYCRegionIntent
     levelName?: string
+    crossRegion?: boolean
 }): Promise<{ data?: InitiateSumsubKycResponse; error?: string }> => {
     const jwtToken = (await getJWTCookie())?.value
 
@@ -18,9 +19,10 @@ export const initiateSumsubKyc = async (params?: {
         return { error: 'Authentication required' }
     }
 
-    const body: Record<string, string | undefined> = {
+    const body: Record<string, string | boolean | undefined> = {
         regionIntent: params?.regionIntent,
         levelName: params?.levelName,
+        crossRegion: params?.crossRegion,
     }
 
     try {
@@ -45,6 +47,7 @@ export const initiateSumsubKyc = async (params?: {
                 token: responseJson.token,
                 applicantId: responseJson.applicantId,
                 status: responseJson.status,
+                actionType: responseJson.actionType,
             },
         }
     } catch (e: unknown) {
