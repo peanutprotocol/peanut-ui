@@ -7,6 +7,7 @@ import Image from 'next/image'
 import { Icon } from '../Icons/Icon'
 import { useQRScanner, type QRScanHandler } from './useQRScanner'
 import { useToast } from '@/components/0_Bruddle/Toast'
+import CameraPermissionModal from './CameraPermissionModal'
 
 // ============================================================================
 // Configuration
@@ -133,7 +134,11 @@ function ErrorView({ message, onClose }: { message: string; onClose: () => void 
 // ============================================================================
 
 export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerProps) {
-    const { error, isScanning, videoRef, close, toggleCamera } = useQRScanner(onScan, onClose, isOpen)
+    const { error, isPermissionDenied, isScanning, videoRef, close, toggleCamera, retryCamera } = useQRScanner(
+        onScan,
+        onClose,
+        isOpen
+    )
     const toast = useToast()
 
     const handlePaste = async () => {
@@ -154,7 +159,10 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
 
     return createPortal(
         <div className="qr-scanner-container fixed left-0 top-0 z-50 flex h-full w-full flex-col bg-black">
-            {error ? (
+            {/* modal uses !z-[60] to appear above this z-50 scanner portal (Dialog portals to body) */}
+            {isPermissionDenied ? (
+                <CameraPermissionModal visible onRetry={retryCamera} onClose={close} />
+            ) : error ? (
                 <ErrorView message={error} onClose={close} />
             ) : (
                 <>

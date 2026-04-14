@@ -63,8 +63,12 @@ import PointsCard from '@/components/Common/PointsCard'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
-import { getLimitsWarningCardProps } from '@/features/limits/utils'
+import { getLimitsWarningCardProps, isBrUserEligibleForLimitIncrease } from '@/features/limits/utils'
 import useKycStatus from '@/hooks/useKycStatus'
+import { useSumsubActionFlow } from '@/hooks/useSumsubActionFlow'
+import { initiateIncreaseLimits } from '@/app/actions/increase-limits'
+import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
+import { useLimits } from '@/hooks/useLimits'
 
 const MAX_QR_PAYMENT_AMOUNT = '2000'
 const MIN_QR_PAYMENT_AMOUNT = '0.1'
@@ -132,7 +136,7 @@ export default function QRPayPage() {
     const [pendingSimpleFiPaymentId, setPendingSimpleFiPaymentId] = useState<string | null>(null)
     const [isWaitingForWebSocket, setIsWaitingForWebSocket] = useState(false)
     const [shouldRetry, setShouldRetry] = useState(true)
-    const { setIsSupportModalOpen } = useModalsContext()
+    const { setIsSupportModalOpen, openSupportWithMessage: openSupportForLimits } = useModalsContext()
     const [waitingForMerchantAmount, setWaitingForMerchantAmount] = useState(false)
     const retryCount = useRef(0)
 
@@ -423,6 +427,15 @@ export default function QRPayPage() {
         flowType: 'qr-payment',
         amount: usdAmount,
         currency: currency?.code,
+    })
+
+    // BR self-service limit increase flow
+    const { mantecaLimits: qrMantecaLimits, refetch: refetchQrLimits } = useLimits()
+    const isBrQrEligible = isBrUserEligibleForLimitIncrease(qrMantecaLimits)
+    const qrLimitIncreaseFlow = useSumsubActionFlow({
+        fetchToken: initiateIncreaseLimits,
+        onSuccess: refetchQrLimits,
+        onNeedsSupport: () => openSupportForLimits('Hi, I would like to increase my payment limits.'),
     })
 
     // Fetch points early to avoid latency penalty - fetch as soon as we have usdAmount
@@ -1543,6 +1556,15 @@ export default function QRPayPage() {
 
     return (
         <>
+            <SumsubKycWrapper
+                visible={qrLimitIncreaseFlow.showWrapper}
+                accessToken={qrLimitIncreaseFlow.accessToken}
+                onClose={qrLimitIncreaseFlow.handleClose}
+                onComplete={qrLimitIncreaseFlow.handleSdkComplete}
+                onRefreshToken={qrLimitIncreaseFlow.refreshToken}
+                autoStart
+                isMultiLevel
+            />
             <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(isShaking, shakeIntensity)}`}>
                 <NavHeader title="Pay" />
 
@@ -1609,7 +1631,18 @@ export default function QRPayPage() {
                             flowType: 'qr-payment',
                             currency: limitsValidation.currency,
                         })
-                        return limitsCardProps ? <LimitsWarningCard {...limitsCardProps} /> : null
+                        if (!limitsCardProps) return null
+                        return (
+                            <LimitsWarningCard
+                                {...limitsCardProps}
+                                onIncreaseLimits={
+                                    isBrQrEligible && limitsValidation.isBlocking
+                                        ? qrLimitIncreaseFlow.handleInitiate
+                                        : undefined
+                                }
+                                isIncreaseLimitsLoading={qrLimitIncreaseFlow.isLoading}
+                            />
+                        )
                     })()}
 
                     {/* Information Card */}
