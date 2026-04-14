@@ -14,6 +14,10 @@ export interface LimitsWarningCardProps {
     title: string
     items: LimitsWarningItem[]
     showSupportLink?: boolean
+    /** when set, shows an "Increase my limits" button instead of the support link */
+    onIncreaseLimits?: () => void
+    /** loading state for the increase limits action */
+    isIncreaseLimitsLoading?: boolean
     className?: string
 }
 
@@ -26,6 +30,8 @@ export default function LimitsWarningCard({
     title,
     items,
     showSupportLink = true,
+    onIncreaseLimits,
+    isIncreaseLimitsLoading,
     className,
 }: LimitsWarningCardProps) {
     const { openSupportWithMessage } = useModalsContext()
@@ -56,7 +62,21 @@ export default function LimitsWarningCard({
                             </li>
                         ))}
                     </ul>
-                    {showSupportLink && (
+                    {onIncreaseLimits ? (
+                        <>
+                            <div className="my-1 border-t border-yellow-9" />
+                            <button
+                                onClick={onIncreaseLimits}
+                                disabled={isIncreaseLimitsLoading}
+                                className="flex items-center gap-1 text-xs md:text-sm"
+                            >
+                                <Icon name="plus-circle" className="text-yellow-11" size={12} />
+                                <span className="font-semibold text-yellow-11 underline">
+                                    {isIncreaseLimitsLoading ? 'Loading...' : 'Increase my limits'}
+                                </span>
+                            </button>
+                        </>
+                    ) : showSupportLink ? (
                         <>
                             <div className="my-1 border-t border-yellow-9" />
                             <button
@@ -69,7 +89,7 @@ export default function LimitsWarningCard({
                                 </span>
                             </button>
                         </>
-                    )}
+                    ) : null}
                 </div>
             }
         />

@@ -140,7 +140,7 @@ export interface LimitsWarningItem {
     icon?: IconName
 }
 
-interface LimitsWarningCardPropsResult {
+export interface LimitsWarningCardPropsResult {
     type: 'warning' | 'error'
     title: string
     items: LimitsWarningItem[]
@@ -206,4 +206,24 @@ export function getLimitsWarningCardProps({
         items,
         showSupportLink: validation.isMantecaUser ?? false,
     }
+}
+
+// ─── BR Limit Increase Eligibility ─────────────────────────────────────────
+
+/** monthly limit threshold — Manteca returns BR limits denominated in USDT */
+const BR_SELF_INCREASE_MONTHLY_LIMIT_USDT = 1000
+
+/**
+ * determines if the user is a Brazilian Manteca user eligible for
+ * self-service limit increase (legacy users without document photos).
+ * eligible = has BRL limits with monthly limit ≤ 1000 USDT.
+ */
+export function isBrUserEligibleForLimitIncrease(mantecaLimits: MantecaLimit[] | null): boolean {
+    if (!mantecaLimits || mantecaLimits.length === 0) return false
+
+    const brlLimit = mantecaLimits.find((l) => l.asset === 'BRL' && l.exchangeCountry === 'BRA')
+    if (!brlLimit) return false
+
+    const monthlyLimit = parseFloat(brlLimit.monthlyLimit)
+    return monthlyLimit > 0 && monthlyLimit <= BR_SELF_INCREASE_MONTHLY_LIMIT_USDT
 }

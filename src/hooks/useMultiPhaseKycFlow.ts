@@ -148,6 +148,7 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
         refreshToken,
         isVerificationProgressModalOpen,
         closeVerificationProgressModal,
+        isActionFlow,
     } = useSumsubKycFlow({ onKycSuccess: handleSumsubApproved, onManualClose, regionIntent })
 
     // keep ref in sync
@@ -176,7 +177,7 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
 
     // wrap handleInitiateKyc to reset state for new attempts
     const handleInitiateKyc = useCallback(
-        async (overrideIntent?: KYCRegionIntent, levelName?: string) => {
+        async (overrideIntent?: KYCRegionIntent, levelName?: string, crossRegion?: boolean) => {
             const intent = overrideIntent ?? regionIntent
             posthog.capture(
                 intent === 'LATAM' ? ANALYTICS_EVENTS.MANTECA_KYC_INITIATED : ANALYTICS_EVENTS.KYC_INITIATED,
@@ -192,7 +193,7 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
             isRealtimeFlowRef.current = false
             clearPreparingTimer()
 
-            await originalHandleInitiateKyc(overrideIntent, levelName)
+            await originalHandleInitiateKyc(overrideIntent, levelName, crossRegion)
         },
         [originalHandleInitiateKyc, clearPreparingTimer, regionIntent, acquisitionSource]
     )
@@ -306,7 +307,9 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
 
     const isModalOpen = isVerificationProgressModalOpen || forceShowModal
 
-    const isMultiLevel = regionIntent === 'LATAM'
+    // multi-level only for first-time LATAM (workflow with conditional questionnaire).
+    // cross-region LATAM uses an applicant action (single level, not multi-level).
+    const isMultiLevel = regionIntent === 'LATAM' && !isActionFlow
 
     // Derive preparing stage from elapsed time for progressive copy
     const preparingStage = useMemo<'initial' | 'configuring' | 'slow'>(() => {
