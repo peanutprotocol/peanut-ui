@@ -22,6 +22,8 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const [isVerificationProgressModalOpen, setIsVerificationProgressModalOpen] = useState(false)
     const [liveKycStatus, setLiveKycStatus] = useState<SumsubKycStatus | undefined>(undefined)
     const [rejectLabels, setRejectLabels] = useState<string[] | undefined>(undefined)
+    // true when the SDK is showing an applicant action (not a standard level)
+    const [isActionFlow, setIsActionFlow] = useState(false)
     const prevStatusRef = useRef(liveKycStatus)
     const showWrapperRef = useRef(showWrapper)
     showWrapperRef.current = showWrapper
@@ -29,6 +31,8 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const regionIntentRef = useRef<KYCRegionIntent | undefined>(regionIntent)
     // tracks the level name across initiate + refresh (e.g. 'peanut-additional-docs')
     const levelNameRef = useRef<string | undefined>(undefined)
+    // guards fetchCurrentStatus from running while handleInitiateKyc is in progress
+    const initiatingRef = useRef(false)
     // guard: only fire onKycSuccess when the user initiated a kyc flow in this session.
     // prevents stale websocket events or mount-time fetches from auto-closing the drawer.
     const userInitiatedRef = useRef(false)
@@ -80,11 +84,13 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // (e.g. RegionsVerification mounts with no region selected yet).
     useEffect(() => {
         if (!regionIntent) return
+        // skip if handleInitiateKyc is already in progress — it handles status sync itself
+        if (initiatingRef.current) return
 
         const fetchCurrentStatus = async () => {
             try {
                 const response = await initiateSumsubKyc({ regionIntent })
-                if (response.data?.status) {
+                if (response.data?.status && !initiatingRef.current) {
                     setLiveKycStatus(response.data.status)
                 }
             } catch {
@@ -122,8 +128,16 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const handleInitiateKyc = useCallback(
         async (overrideIntent?: KYCRegionIntent, levelName?: string, crossRegion?: boolean) => {
             userInitiatedRef.current = true
+            initiatingRef.current = true
             setIsLoading(true)
             setError(null)
+
+            // for cross-region: pre-set prevStatusRef to APPROVED so the fetchCurrentStatus
+            // effect (which also fires when regionIntent changes) doesn't trigger onKycSuccess
+            // when it sees the existing APPROVED status.
+            if (crossRegion) {
+                prevStatusRef.current = 'APPROVED'
+            }
 
             try {
                 const response = await initiateSumsubKyc({
@@ -150,9 +164,20 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 if (effectiveIntent) regionIntentRef.current = effectiveIntent
                 levelNameRef.current = levelName
 
+                // cross-region: bridge-direct means no SDK needed — backend is handling
+                // rail enrollment + submission. go straight to the post-approval flow.
+                if (response.data?.actionType === 'bridge-direct') {
+                    prevStatusRef.current = 'APPROVED'
+                    userInitiatedRef.current = true
+                    setIsActionFlow(false)
+                    setIsVerificationProgressModalOpen(true)
+                    onKycSuccess?.()
+                    return
+                }
+
                 // if already approved (or reverifying) and no token returned, kyc is done.
                 // set prevStatusRef so the transition effect doesn't fire onKycSuccess a second time.
-                // when a token IS returned (e.g. cross-region or additional-docs flow), we still need to show the SDK.
+                // when a token IS returned (e.g. cross-region action or additional-docs), we still need to show the SDK.
                 const status = response.data?.status
                 if ((status === 'APPROVED' || status === 'REVERIFYING') && !response.data?.token) {
                     prevStatusRef.current = status
@@ -162,6 +187,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
 
                 if (response.data?.token) {
                     setAccessToken(response.data.token)
+                    setIsActionFlow(!!response.data.actionType)
                     setShowWrapper(true)
                 } else {
                     setError('Could not initiate verification. Please try again.')
@@ -171,6 +197,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 setError(message)
             } finally {
                 setIsLoading(false)
+                initiatingRef.current = false
             }
         },
         [regionIntent, onKycSuccess]
@@ -180,12 +207,14 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const handleSdkComplete = useCallback(() => {
         userInitiatedRef.current = true
         setShowWrapper(false)
+        setIsActionFlow(false)
         setIsVerificationProgressModalOpen(true)
     }, [])
 
     // called when user manually closes the sdk modal
     const handleClose = useCallback(() => {
         setShowWrapper(false)
+        setIsActionFlow(false)
         onManualClose?.()
     }, [onManualClose])
 
@@ -233,5 +262,6 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         closeVerificationProgressModal,
         closeVerificationModalAndGoHome,
         resetError,
+        isActionFlow,
     }
 }
