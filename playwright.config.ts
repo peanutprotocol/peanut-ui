@@ -1,53 +1,82 @@
 import { defineConfig, devices } from '@playwright/test'
 
 /**
- * Playwright E2E Test Configuration
+ * De-Complexify UI Verification Harness.
  *
- * Testing philosophy:
- * - Test navigation flows and UI logic without external dependencies
- * - Do NOT test payment/KYC/bank flows (manual QA required)
- * - Fast, reliable tests for core user journeys
+ * Captures screenshots + a11y tree + network HAR + console logs for core flows.
+ * Used to verify M2 refactors (Redux kill, MUI kill, flow context consolidation)
+ * don't break observable UI behavior.
  *
- * See docs/TESTING.md for full testing philosophy
+ * Usage:
+ *   # Start API + UI dev servers first, then:
+ *   npx playwright test                        # all flows, all viewports
+ *   npx playwright test e2e/flows/home.spec.ts  # single flow
+ *   npx playwright test --project=mobile        # mobile only
+ *
+ * Auth: global-setup.ts hits /dev/test-session on the API to get a JWT,
+ * saved as storageState so all tests are pre-authenticated (skips passkey).
  */
+
+const API_BASE = process.env.API_BASE_URL || 'http://localhost:5001'
+const UI_BASE = process.env.UI_BASE_URL || 'http://localhost:3000'
+
 export default defineConfig({
-    // test directory lives with code (per .cursorrules)
-    testDir: './src',
-    testMatch: '**/*.e2e.test.ts',
+	testDir: './e2e/flows',
+	outputDir: './e2e/__results__',
 
-    // reasonable timeout for UI tests
-    timeout: 30 * 1000,
+	snapshotDir: './e2e/__snapshots__',
+	snapshotPathTemplate: '{snapshotDir}/{testFilePath}/{arg}-{projectName}{ext}',
 
-    // fail fast in CI
-    fullyParallel: true,
-    forbidOnly: !!process.env.CI,
-    retries: process.env.CI ? 2 : 0,
-    workers: process.env.CI ? 1 : undefined,
+	/* Serial — flows depend on seeded state */
+	fullyParallel: false,
+	workers: 1,
 
-    // clear, concise reporting
-    reporter: 'html',
+	retries: 1,
 
-    use: {
-        // base url for tests
-        baseURL: 'http://localhost:3000',
-        trace: 'on-first-retry',
-        screenshot: 'only-on-failure',
-    },
+	/* Generous timeout for dev server + slow pages */
+	timeout: 60_000,
+	expect: {
+		timeout: 15_000,
+		toHaveScreenshot: {
+			maxDiffPixelRatio: 0.01,
+		},
+	},
 
-    // test against chromium only (simplest, fastest)
-    // can expand to firefox/webkit if cross-browser bugs emerge
-    projects: [
-        {
-            name: 'chromium',
-            use: { ...devices['Desktop Chrome'] },
-        },
-    ],
+	globalSetup: './e2e/global-setup.ts',
 
-    // start dev server before tests
-    webServer: {
-        command: 'npm run dev',
-        url: 'http://localhost:3000',
-        reuseExistingServer: !process.env.CI,
-        timeout: 120 * 1000, // 2 minutes for dev server startup
-    },
+	reporter: [
+		['html', { open: 'never', outputFolder: './e2e/__report__' }],
+		['list'],
+	],
+
+	use: {
+		baseURL: UI_BASE,
+		storageState: './e2e/.auth/storage-state.json',
+		trace: 'retain-on-failure',
+		video: 'off',
+		screenshot: 'off', // manual screenshots at each step
+	},
+
+	projects: [
+		{
+			name: 'mobile',
+			use: {
+				...devices['iPhone 14'],
+				viewport: { width: 375, height: 667 },
+			},
+		},
+		{
+			name: 'desktop',
+			use: {
+				viewport: { width: 1440, height: 900 },
+			},
+		},
+	],
+
+	webServer: {
+		command: 'npm run dev',
+		url: UI_BASE,
+		reuseExistingServer: true,
+		timeout: 120_000,
+	},
 })
