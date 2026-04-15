@@ -3,6 +3,7 @@ import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import useGetExchangeRate, { type IExchangeRate } from '@/hooks/useGetExchangeRate'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
 import { SYMBOLS_BY_CURRENCY_CODE } from '@/hooks/useCurrency'
+import { applyBridgeCrossCurrencyFee } from '@/utils/bridge.utils'
 
 // constants for exchange rate messages, specific to ExchangeRate component
 const APPROXIMATE_VALUE_MESSAGE =
@@ -54,16 +55,21 @@ const ExchangeRate = ({
         moreInfoText = `Exchange rates apply when converting to ${toCurrency}`
     }
 
+    const currency = nonEuroCurrency || toCurrency
+
     // calculate local currency amount if provided
+    // bake in the 0.5% Bridge developer fee for cross-currency pairs so the
+    // displayed "amount you will receive" matches what Bridge actually delivers
+    // (applyBridgeCrossCurrencyFee is a no-op when either side is USD)
     let localCurrencyAmount: string | null = null
     if (amountToConvert && rate && rate > 0) {
         const amount = parseFloat(amountToConvert)
         if (!isNaN(amount) && amount > 0) {
-            localCurrencyAmount = (amount * rate).toFixed(2)
+            const gross = amount * rate
+            const net = applyBridgeCrossCurrencyFee(gross, sourceCurrency, currency)
+            localCurrencyAmount = net.toFixed(2)
         }
     }
-
-    const currency = nonEuroCurrency || toCurrency
     const currencySymbol = SYMBOLS_BY_CURRENCY_CODE[currency] || currency
 
     return (

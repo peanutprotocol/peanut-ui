@@ -1,4 +1,5 @@
 import { countryData as ALL_METHODS_DATA, type CountryData } from '@/components/AddMoney/consts'
+import { BRIDGE_DEVELOPER_FEE_RATE } from '@/constants/payment.consts'
 import { type Account, AccountType } from '@/interfaces'
 
 export interface CurrencyConfig {
@@ -60,6 +61,27 @@ export const getCurrencySymbol = (currency: string): string => {
         gbp: '£',
     }
     return symbols[currency.toLowerCase()] || currency.toUpperCase()
+}
+
+/**
+ * Apply the Bridge developer fee to a cross-currency quote.
+ *
+ * Bridge charges a 0.5% developer fee on any transfer that crosses a
+ * currency boundary (i.e. neither side is USD). USD↔USDC is fee-free.
+ * Mirrors backend `getBridgeDeveloperFeeParams` in peanut-api-ts.
+ *
+ * @param amount - Gross amount computed from the raw exchange rate
+ * @param srcCurrency - Source currency code (case-insensitive)
+ * @param dstCurrency - Destination currency code (case-insensitive)
+ * @returns Net amount after fee deduction, or unchanged amount if either side is USD
+ */
+export const applyBridgeCrossCurrencyFee = (amount: number, srcCurrency: string, dstCurrency: string): number => {
+    const src = (srcCurrency ?? '').toLowerCase()
+    const dst = (dstCurrency ?? '').toLowerCase()
+    if (src === 'usd' || dst === 'usd') {
+        return amount
+    }
+    return amount * (1 - BRIDGE_DEVELOPER_FEE_RATE)
 }
 
 /**
