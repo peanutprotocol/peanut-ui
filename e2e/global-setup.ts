@@ -14,7 +14,7 @@
 
 import { chromium, FullConfig } from '@playwright/test'
 
-const API_BASE = process.env.API_BASE_URL || 'http://localhost:5001'
+const API_BASE = process.env.API_BASE_URL || 'http://localhost:5000'
 const UI_BASE = process.env.UI_BASE_URL || 'http://localhost:3000'
 const HARNESS_SECRET = process.env.TEST_HARNESS_SECRET || 'local-harness-secret-must-be-at-least-32-characters-long'
 const TEST_EMAIL = process.env.TEST_USER_EMAIL || `harness-e2e-${Date.now()}@test.local`
@@ -54,10 +54,11 @@ export default async function globalSetup(config: FullConfig) {
 	const browser = await chromium.launch()
 	const context = await browser.newContext()
 
-	// Set the JWT cookie for the UI domain
+	// Set the JWT cookie for the UI domain.
+	// The app reads it as 'jwt-token' via js-cookie (see src/services/users.ts:54)
 	await context.addCookies([
 		{
-			name: 'token',
+			name: 'jwt-token',
 			value: token,
 			domain: new URL(UI_BASE).hostname,
 			path: '/',
@@ -67,15 +68,55 @@ export default async function globalSetup(config: FullConfig) {
 		},
 	])
 
-	// Navigate to the app once to let it hydrate and store any additional session data
+	// Navigate to the app, dismiss all onboarding modals, save clean auth state
 	const page = await context.newPage()
 	try {
-		await page.goto(UI_BASE, { waitUntil: 'domcontentloaded', timeout: 30_000 })
-		// Give the app a moment to set up localStorage/context from the cookie
-		await page.waitForTimeout(2000)
+		await page.goto(`${UI_BASE}/home`, { waitUntil: 'domcontentloaded', timeout: 30_000 })
+		await page.waitForTimeout(3000)
+
+		// Dismiss modals in order — there can be 2-3 stacked
+		for (let attempt = 0; attempt < 5; attempt++) {
+			// 1. "Peanut is mobile first!" dialog
+			const gotIt = page.locator('button:has-text("Got it!")')
+			if (await gotIt.isVisible({ timeout: 2_000 }).catch(() => false)) {
+				await gotIt.click()
+				console.log(`[global-setup] Dismissed "Got it!" modal (attempt ${attempt})`)
+				await page.waitForTimeout(1000)
+				continue
+			}
+
+			// 2. "Install Peanut on your phone" / PWA install screen — click Skip
+			const skip = page.locator('button:has-text("Skip"), text=Skip')
+			if (await skip.first().isVisible({ timeout: 2_000 }).catch(() => false)) {
+				await skip.first().click()
+				console.log(`[global-setup] Dismissed PWA install screen (attempt ${attempt})`)
+				await page.waitForTimeout(1000)
+				continue
+			}
+
+			// 3. Any X/close buttons on remaining modals
+			const closeBtn = page.locator('button[aria-label="Close"], button:has-text("×"), dialog button:has-text("Close")')
+			if (await closeBtn.first().isVisible({ timeout: 1_000 }).catch(() => false)) {
+				await closeBtn.first().click()
+				console.log(`[global-setup] Dismissed modal via close button (attempt ${attempt})`)
+				await page.waitForTimeout(1000)
+				continue
+			}
+
+			// No more modals found
+			break
+		}
+
+		// If still on /setup, navigate to /home
+		if (page.url().includes('/setup')) {
+			console.log('[global-setup] Still on setup — navigating to /home')
+			await page.goto(`${UI_BASE}/home`, { waitUntil: 'domcontentloaded', timeout: 15_000 })
+			await page.waitForTimeout(3000)
+		}
+
+		console.log(`[global-setup] Final URL: ${page.url()}`)
 	} catch (e) {
-		console.warn(`[global-setup] Warning: could not navigate to ${UI_BASE} — ${(e as Error).message}`)
-		console.warn('[global-setup] Tests may fail if the UI dev server is not running.')
+		console.warn(`[global-setup] Warning: ${(e as Error).message}`)
 	}
 
 	// 3. Save storage state (cookies + localStorage) for all tests

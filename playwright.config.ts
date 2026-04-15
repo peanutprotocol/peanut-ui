@@ -17,7 +17,7 @@ import { defineConfig, devices } from '@playwright/test'
  * saved as storageState so all tests are pre-authenticated (skips passkey).
  */
 
-const API_BASE = process.env.API_BASE_URL || 'http://localhost:5001'
+const API_BASE = process.env.API_BASE_URL || 'http://localhost:5000'
 const UI_BASE = process.env.UI_BASE_URL || 'http://localhost:3000'
 
 export default defineConfig({
@@ -33,8 +33,8 @@ export default defineConfig({
 
 	retries: 1,
 
-	/* Generous timeout for dev server + slow pages */
-	timeout: 60_000,
+	/* Generous timeout — dev server + mobile compilation can be slow */
+	timeout: 120_000,
 	expect: {
 		timeout: 15_000,
 		toHaveScreenshot: {
@@ -58,11 +58,16 @@ export default defineConfig({
 	},
 
 	projects: [
+		// Mobile first — Peanut is a mobile-first PWA.
+		// Uses Chromium with mobile viewport + mobile user agent so we get
+		// mobile rendering without needing WebKit system deps.
 		{
 			name: 'mobile',
 			use: {
-				...devices['iPhone 14'],
-				viewport: { width: 375, height: 667 },
+				...devices['Pixel 7'],
+				viewport: { width: 390, height: 844 },
+				isMobile: true,
+				hasTouch: true,
 			},
 		},
 		{

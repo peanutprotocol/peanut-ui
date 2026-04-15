@@ -12,12 +12,14 @@
 
 import { test, expect } from '@playwright/test'
 import { captureStep, collectConsoleLogs } from '../utils/capture'
+import { dismissModals } from '../utils/dismiss-modals'
 
 test.describe('QR Pay flow', () => {
 	test('qr-pay without QR code — shows error or redirect', async ({ page }, testInfo) => {
 		const console = collectConsoleLogs(page)
 
 		await page.goto('/qr-pay')
+		await dismissModals(page)
 		await captureStep(page, testInfo, { name: '01-qr-pay-no-code' })
 
 		// Should either show an error or redirect to home
@@ -39,6 +41,7 @@ test.describe('QR Pay flow', () => {
 		const mockQr = encodeURIComponent('https://mercadopago.com.ar/mock-qr-test')
 		await page.goto(`/qr-pay?qrCode=${mockQr}&type=MERCADO_PAGO&t=${Date.now()}`)
 
+		await dismissModals(page)
 		await captureStep(page, testInfo, { name: '01-qr-pay-mercadopago-initial' })
 
 		// The page should show some payment UI (amount input, merchant info, or loading)
@@ -55,6 +58,7 @@ test.describe('QR Pay flow', () => {
 		const mockQr = encodeURIComponent('00020126580014br.gov.bcb.pix0136mock-pix-key-for-harness-test5204000053039865802BR')
 		await page.goto(`/qr-pay?qrCode=${mockQr}&type=PIX&t=${Date.now()}`)
 
+		await dismissModals(page)
 		await captureStep(page, testInfo, { name: '01-qr-pay-pix-initial' })
 		await page.waitForTimeout(3000)
 		await captureStep(page, testInfo, { name: '02-qr-pay-pix-settled' })
