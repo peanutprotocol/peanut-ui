@@ -1,0 +1,179 @@
+'use client'
+
+import { useCallback, useState } from 'react'
+import type { Address, Hex, LocalAccount } from 'viem'
+import { pad, parseAbi, toFunctionSelector } from 'viem'
+import { useKernelClient } from '@/context/kernelClient.context'
+import { useRainCardOverview, RAIN_CARD_OVERVIEW_QUERY_KEY } from '@/hooks/useRainCardOverview'
+import { useQueryClient } from '@tanstack/react-query'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
+import { rainCoordinatorAbi } from '@/constants/rain.consts'
+import { toPermissionValidator } from '@zerodev/permissions'
+import { toCallPolicy, CallPolicyVersion, ParamCondition } from '@zerodev/permissions/policies'
+import { toECDSASigner } from '@zerodev/permissions/signers'
+import { createKernelAccount } from '@zerodev/sdk'
+import { getEntryPoint, KERNEL_V3_1 } from '@zerodev/sdk/constants'
+import { serializePermissionAccount } from '@zerodev/permissions'
+import { peanutPublicClient } from '@/app/actions/clients'
+import { getRainSessionKeyAddress, submitRainWithdrawSessionApproval } from '@/app/actions/rain'
+
+/**
+ * One-time session-key grant for Rain card operations.
+ *
+ * Installs two `CallPolicy` entries on the user's kernel in a single
+ * passkey tap:
+ *   - `USDC.transfer(collateralProxy, *)` — auto-balancer deposits
+ *   - `coordinator.withdrawAsset(coordinator, *)` — user-initiated withdrawals
+ *
+ * After the grant, the backend can submit UserOps for either operation
+ * using the shared session key without another passkey tap — per-spend
+ * authorization still comes from the user via the admin EIP-712 signature
+ * (which the coordinator verifies against the kernel via ERC-1271).
+ *
+ * Consumers: dev grant page, production activation UI, and `useSpendBundle`
+ * for the lazy "first collateral spend prompts for grant" flow.
+ */
+
+/**
+ * Frontend doesn't hold the session-key private key (backend does).
+ * `toECDSASigner` only reads `.address` off the signer for permission
+ * install, so a minimal LocalAccount that throws on any sign attempt
+ * is sufficient and protects against misuse.
+ */
+function remoteSignerByAddress(address: Address): LocalAccount {
+    const throwSign = () => {
+        throw new Error('Session-key remote signer cannot sign on the frontend — backend owns the private key')
+    }
+    return {
+        address,
+        type: 'local',
+        source: 'remote-session-key',
+        publicKey: '0x' as Hex,
+        signMessage: throwSign as any,
+        signTransaction: throwSign as any,
+        signTypedData: throwSign as any,
+    } as unknown as LocalAccount
+}
+
+export type GrantSessionKeyError =
+    | { kind: 'no-card' }
+    | { kind: 'no-contracts' }
+    | { kind: 'session-key-unavailable'; message: string }
+    | { kind: 'user-cancelled' }
+    | { kind: 'unexpected'; message: string }
+
+export interface GrantSessionKeyResult {
+    grant: () => Promise<{ ok: true } | { ok: false; error: GrantSessionKeyError }>
+    isGranting: boolean
+    lastError: GrantSessionKeyError | null
+}
+
+export const useGrantSessionKey = (): GrantSessionKeyResult => {
+    const { overview, refetch } = useRainCardOverview()
+    const { getClientForChain } = useKernelClient()
+    const queryClient = useQueryClient()
+    const [isGranting, setIsGranting] = useState(false)
+    const [lastError, setLastError] = useState<GrantSessionKeyError | null>(null)
+
+    const grant = useCallback<GrantSessionKeyResult['grant']>(async () => {
+        setIsGranting(true)
+        setLastError(null)
+
+        const fail = (error: GrantSessionKeyError) => {
+            setLastError(error)
+            setIsGranting(false)
+            return { ok: false as const, error }
+        }
+
+        try {
+            const card = overview?.cards?.[0]
+            const collateralProxy = overview?.status?.contractAddress as Address | undefined
+            const coordinatorAddress = overview?.status?.coordinatorAddress as Address | undefined
+            if (!card) return fail({ kind: 'no-card' })
+            if (!collateralProxy || !coordinatorAddress) return fail({ kind: 'no-contracts' })
+
+            const sigKeyRes = await getRainSessionKeyAddress()
+            if (sigKeyRes.error || !sigKeyRes.data) {
+                return fail({ kind: 'session-key-unavailable', message: sigKeyRes.error ?? 'unknown' })
+            }
+            const sessionKeyAddress = sigKeyRes.data.address as Address
+
+            // Single CallPolicy with BOTH allowed calls. Multiple policies in
+            // `toPermissionValidator` are AND'd (a UserOp must satisfy every
+            // policy) — putting both permissions inside ONE call policy OR's
+            // them, so either transfer OR withdrawAsset is allowed.
+            //
+            // - USDC.transfer(collateralProxy, *) — auto-balancer deposits.
+            //   `params` is bytes32[] even for a single EQUAL rule; pad address to 32 bytes.
+            // - coordinator.withdrawAsset(*) — user-initiated withdrawals.
+            //   No param rules: the per-spend admin EIP-712 signature the user
+            //   produces via passkey gates recipient/amount on every call.
+            const rainCallPolicy = await toCallPolicy({
+                policyVersion: CallPolicyVersion.V0_0_4,
+                permissions: [
+                    {
+                        target: PEANUT_WALLET_TOKEN as Address,
+                        selector: toFunctionSelector(
+                            parseAbi(['function transfer(address,uint256) returns (bool)'])[0]
+                        ),
+                        rules: [
+                            {
+                                condition: ParamCondition.EQUAL,
+                                offset: 0,
+                                params: [pad(collateralProxy, { size: 32 })],
+                            },
+                        ],
+                    },
+                    {
+                        target: coordinatorAddress,
+                        selector: toFunctionSelector(rainCoordinatorAbi[0] as any),
+                    },
+                ],
+            })
+
+            const sessionKeySigner = await toECDSASigner({
+                signer: remoteSignerByAddress(sessionKeyAddress),
+            })
+            const permissionPlugin = await toPermissionValidator(peanutPublicClient, {
+                entryPoint: getEntryPoint('0.7'),
+                kernelVersion: KERNEL_V3_1,
+                signer: sessionKeySigner,
+                policies: [rainCallPolicy],
+            })
+
+            const chainId = PEANUT_WALLET_CHAIN.id.toString()
+            const kernelClient = getClientForChain(chainId)
+            // Triggers the passkey prompt — this is the one-time install.
+            const sessionKernelAccount = await createKernelAccount(peanutPublicClient, {
+                entryPoint: getEntryPoint('0.7'),
+                kernelVersion: KERNEL_V3_1,
+                plugins: {
+                    sudo: (kernelClient.account as any).kernelPluginManager.sudoValidator,
+                    regular: permissionPlugin,
+                },
+            })
+
+            const serialized = await serializePermissionAccount(sessionKernelAccount)
+            const submitRes = await submitRainWithdrawSessionApproval({ serializedApproval: serialized })
+            if (submitRes.error) {
+                return fail({ kind: 'unexpected', message: submitRes.error })
+            }
+
+            // Flip the `hasWithdrawApproval` flag in UI by refetching overview.
+            await refetch()
+            queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] })
+
+            setIsGranting(false)
+            return { ok: true as const }
+        } catch (err) {
+            const message = (err as Error).message ?? String(err)
+            const kind: GrantSessionKeyError['kind'] =
+                message.toLowerCase().includes('user rejected') || message.toLowerCase().includes('cancelled')
+                    ? 'user-cancelled'
+                    : 'unexpected'
+            return fail(kind === 'user-cancelled' ? { kind: 'user-cancelled' } : { kind: 'unexpected', message })
+        }
+    }, [overview, getClientForChain, refetch, queryClient])
+
+    return { grant, isGranting, lastError }
+}

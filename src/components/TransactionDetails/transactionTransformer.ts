@@ -365,6 +365,60 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             fullName = 'Peanut Rewards'
             isPeerActuallyUser = false
             break
+        case EHistoryEntryType.TRANSACTION_INTENT: {
+            // Intent-sourced entries carry a user-semantic `kind` that drives
+            // the card label. Direction + recipient come from the intent, not
+            // from account lookups (intents store the raw recipient address).
+            const kind = (entry.extraData?.kind as string | undefined) ?? 'OTHER'
+            switch (kind) {
+                case 'P2P_SEND':
+                case 'REQUEST_PAY':
+                    direction = 'send'
+                    transactionCardType = 'send'
+                    nameForDetails =
+                        entry.recipientAccount?.username || entry.recipientAccount?.identifier || 'Recipient'
+                    isPeerActuallyUser = !!entry.recipientAccount?.isUser
+                    break
+                case 'QR_PAY':
+                    direction = 'qr_payment'
+                    transactionCardType = 'pay'
+                    nameForDetails = entry.recipientAccount?.identifier || 'Merchant'
+                    isPeerActuallyUser = false
+                    break
+                case 'LINK_CREATE':
+                    direction = 'send'
+                    transactionCardType = 'send'
+                    nameForDetails = 'Sent via link'
+                    isLinkTx = true
+                    isPeerActuallyUser = false
+                    break
+                case 'CRYPTO_WITHDRAW':
+                    direction = 'withdraw'
+                    transactionCardType = 'withdraw'
+                    nameForDetails = entry.recipientAccount?.identifier || 'External Account'
+                    isPeerActuallyUser = false
+                    break
+                case 'FIAT_OFFRAMP':
+                    direction = 'bank_withdraw'
+                    transactionCardType = 'bank_withdraw'
+                    nameForDetails = 'Bank Account'
+                    isPeerActuallyUser = false
+                    break
+                case 'CARD_SPEND':
+                    direction = 'qr_payment'
+                    transactionCardType = 'pay'
+                    nameForDetails = 'Card Payment'
+                    isPeerActuallyUser = false
+                    break
+                default:
+                    direction = 'send'
+                    transactionCardType = 'send'
+                    nameForDetails = entry.recipientAccount?.identifier || 'Transaction'
+                    isPeerActuallyUser = false
+                    break
+            }
+            break
+        }
         default:
             direction = 'send'
             transactionCardType = 'send'

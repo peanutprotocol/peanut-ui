@@ -55,7 +55,7 @@ const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_
 
 export default function Home() {
     const { showPermissionModal } = useNotifications()
-    const { balance, isFetchingBalance } = useWallet()
+    const { balance, isFetchingBalance, spendableBalance, isFetchingSpendableBalance } = useWallet()
     const { resetFlow: resetClaimBankFlow } = useClaimBankFlow()
     const { resetWithdrawFlow } = useWithdrawFlow()
     const { user } = useUserStore()
@@ -189,10 +189,10 @@ export default function Home() {
                     </ActionButtonGroup>
 
                     <WalletBalance
-                        balance={balance}
+                        balance={spendableBalance}
                         isBalanceHidden={isBalanceHidden}
                         onToggleBalanceVisibility={handleToggleBalanceVisibility}
-                        isFetchingBalance={isFetchingBalance}
+                        isFetchingBalance={isFetchingSpendableBalance}
                     />
 
                     <ActionButtonGroup>

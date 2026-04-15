@@ -26,6 +26,12 @@ export enum EHistoryEntryType {
     BRIDGE_GUEST_OFFRAMP = 'BRIDGE_GUEST_OFFRAMP',
     SIMPLEFI_QR_PAYMENT = 'SIMPLEFI_QR_PAYMENT',
     PERK_REWARD = 'PERK_REWARD',
+    RAIN_CARD_TRANSACTION = 'RAIN_CARD_TRANSACTION',
+    /** User-initiated money movement; receipts for collateral/mixed-strategy
+     *  Rain spends, same-chain withdraws, and (future) all other flows live
+     *  here instead of behind an orphan Charge. Frontend branches on
+     *  extraData.kind to style the card. */
+    TRANSACTION_INTENT = 'TRANSACTION_INTENT',
 }
 export function historyTypeToNumber(type: EHistoryEntryType): number {
     return Object.values(EHistoryEntryType).indexOf(type)

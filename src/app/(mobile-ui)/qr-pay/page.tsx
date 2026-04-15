@@ -75,7 +75,7 @@ export default function QRPayPage() {
     const qrCode = decodeURIComponent(searchParams.get('qrCode') || '')
     const timestamp = searchParams.get('t')
     const qrType = searchParams.get('type')
-    const { balance, sendMoney } = useWallet()
+    const { spendableBalance: balance, sendMoney } = useWallet()
     const { signTransferUserOp } = useSignUserOp()
     const [isSuccess, setIsSuccess] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -595,11 +595,13 @@ export default function QRPayPage() {
         }
 
         setLoadingState('Preparing transaction')
-        let userOpHash: Hash
+        let userOpHash: Hash | undefined
         let receipt: TransactionReceipt | null
         try {
-            const result = await sendMoney(finalPayment.address, finalPayment.usdAmount)
-            userOpHash = result.userOpHash
+            const result = await sendMoney(finalPayment.address, finalPayment.usdAmount, { kind: 'QR_PAY' })
+            // sendMoney may return txHash (collateral-only) instead of userOpHash
+            // in that case — either is a fine identifier for downstream confirmation.
+            userOpHash = (result.userOpHash ?? (result.txHash as Hash | undefined)) as Hash | undefined
             receipt = result.receipt
         } catch (error) {
             if ((error as Error).toString().includes('not allowed')) {

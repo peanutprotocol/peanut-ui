@@ -83,7 +83,7 @@ export function useSemanticRequestFlow() {
         sendMoney,
         sendTransactions,
         formattedBalance,
-        hasSufficientBalance,
+        hasSufficientSpendableBalance: hasSufficientBalance,
         isFetchingBalance,
     } = useWallet()
 
@@ -291,7 +291,7 @@ export function useSemanticRequestFlow() {
                 // if cross-chain or different token → go to confirm view
                 if (isSameChainSameToken) {
                     // direct payment - same as old flow when isPeanutWallet && same token/chain
-                    const txResult = await sendMoney(recipient.resolvedAddress, amount)
+                    const txResult = await sendMoney(recipient.resolvedAddress, amount, { kind: 'REQUEST_PAY' })
                     const hash = (txResult.receipt?.transactionHash ?? txResult.userOpHash) as Hash
                     setTxHash(hash)
 
@@ -491,7 +491,9 @@ export function useSemanticRequestFlow() {
 
             if (isChargeSameChainToken) {
                 // direct payment for same-chain same-token (e.g. direct requests)
-                const txResult = await sendMoney(charge.requestLink.recipientAddress as Address, charge.tokenAmount)
+                const txResult = await sendMoney(charge.requestLink.recipientAddress as Address, charge.tokenAmount, {
+                    kind: 'REQUEST_PAY',
+                })
                 hash = (txResult.receipt?.transactionHash ?? txResult.userOpHash) as Hash
             } else if (needsRoute && routeTransactions && routeTransactions.length > 0) {
                 // cross-chain or token swap payment via squid route
