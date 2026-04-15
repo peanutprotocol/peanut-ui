@@ -85,6 +85,32 @@ export const applyBridgeCrossCurrencyFee = (amount: number, srcCurrency: string,
 }
 
 /**
+ * Inverse of {@link applyBridgeCrossCurrencyFee}.
+ *
+ * Given a net (post-fee) destination amount, return the gross amount that
+ * would produce it. Used when the user types a "Recipient Gets" value and
+ * we need the pre-fee gross to feed back into rate math. USD pairs pass
+ * through unchanged (no fee, so gross === net).
+ *
+ * Math note: since `apply(gross) = gross * (1 - rate)`, the reverse is
+ * `gross = net / (1 - rate)` — NOT `net * (1 + rate)`, which would
+ * under-shoot by `rate²` (e.g. reversing 99.5 must yield exactly 100).
+ *
+ * @param netAmount - Net amount after Bridge dev fee
+ * @param srcCurrency - Source currency code (case-insensitive)
+ * @param dstCurrency - Destination currency code (case-insensitive)
+ * @returns Gross amount before fee, or unchanged amount if either side is USD
+ */
+export const reverseBridgeCrossCurrencyFee = (netAmount: number, srcCurrency: string, dstCurrency: string): number => {
+    const src = (srcCurrency ?? '').toLowerCase()
+    const dst = (dstCurrency ?? '').toLowerCase()
+    if (src === 'usd' || dst === 'usd') {
+        return netAmount
+    }
+    return netAmount / (1 - BRIDGE_DEVELOPER_FEE_RATE)
+}
+
+/**
  * Get minimum amount for onramp operations by country
  */
 export const getMinimumAmount = (countryId: string): number => {

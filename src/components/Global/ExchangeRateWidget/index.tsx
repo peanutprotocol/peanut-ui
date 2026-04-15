@@ -1,29 +1,13 @@
 import CurrencySelect from '@/components/LandingPage/CurrencySelect'
 import countryCurrencyMappings from '@/constants/countryCurrencyMapping'
-import { BRIDGE_DEVELOPER_FEE_RATE } from '@/constants/payment.consts'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
-import { applyBridgeCrossCurrencyFee } from '@/utils/bridge.utils'
+import { applyBridgeCrossCurrencyFee, reverseBridgeCrossCurrencyFee } from '@/utils/bridge.utils'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { type FC, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Icon, type IconName } from '../Icons/Icon'
 import { Button } from '@/components/0_Bruddle/Button'
-
-/**
- * Gross up a net destination amount by the Bridge cross-currency fee.
- * Inverse of applyBridgeCrossCurrencyFee — used when the user types a
- * "Recipient Gets" (net) value and we need the gross equivalent to
- * feed back into rate math. USD pairs pass through unchanged.
- */
-const reverseBridgeCrossCurrencyFee = (netAmount: number, srcCurrency: string, dstCurrency: string): number => {
-    const src = (srcCurrency ?? '').toLowerCase()
-    const dst = (dstCurrency ?? '').toLowerCase()
-    if (src === 'usd' || dst === 'usd') {
-        return netAmount
-    }
-    return netAmount / (1 - BRIDGE_DEVELOPER_FEE_RATE)
-}
 
 interface IExchangeRateWidgetProps {
     ctaLabel: string
