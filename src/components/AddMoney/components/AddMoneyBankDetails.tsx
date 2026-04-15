@@ -135,7 +135,11 @@ export default function AddMoneyBankDetails({ flow = 'add-money' }: IAddMoneyBan
                 // bake in the 0.5% Bridge developer fee so displayed amount matches
                 // what Bridge actually delivers (applyBridgeCrossCurrencyFee is a no-op for USD)
                 const grossUsd = baseAmount * exchangeRate
-                const netUsd = applyBridgeCrossCurrencyFee(grossUsd, onrampCurrency, 'USD')
+                // NOTE: pass 'USDC' (the real Bridge destination) not 'USD' — the helper
+                // mirrors backend `getBridgeDeveloperFeeParams` which treats 'usd' as the
+                // fiat rail (fee-free USD↔USDC) and 'usdc' as the stablecoin. The "$" shown
+                // to the user is just display; the on-chain transfer is EUR/GBP/MXN → USDC.
+                const netUsd = applyBridgeCrossCurrencyFee(grossUsd, onrampCurrency, 'USDC')
                 return '≈ ' + usdCurrencySymbol + ' ' + formatAmount(netUsd)
             }
             return '≈ ' + currencySymbolBasedOnCountry + ' ' + formatAmount(baseAmount * exchangeRate)

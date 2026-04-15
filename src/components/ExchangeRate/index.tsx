@@ -59,14 +59,19 @@ const ExchangeRate = ({
 
     // calculate local currency amount if provided
     // bake in the 0.5% Bridge developer fee for cross-currency pairs so the
-    // displayed "amount you will receive" matches what Bridge actually delivers
-    // (applyBridgeCrossCurrencyFee is a no-op when either side is USD)
+    // displayed "amount you will receive" matches what Bridge actually delivers.
+    // NOTE: this component is used for Bridge offramp / bank-claim flows where the
+    // on-chain source is always USDC (even though the UI sourceCurrency prop defaults
+    // to 'USD' for display/rate-fetch purposes). Pass 'USDC' explicitly to the fee
+    // helper — it mirrors backend `getBridgeDeveloperFeeParams` where 'usd' is the
+    // fee-free fiat rail and 'usdc' is the stablecoin that incurs the 0.5% fee when
+    // crossing currencies.
     let localCurrencyAmount: string | null = null
     if (amountToConvert && rate && rate > 0) {
         const amount = parseFloat(amountToConvert)
         if (!isNaN(amount) && amount > 0) {
             const gross = amount * rate
-            const net = applyBridgeCrossCurrencyFee(gross, sourceCurrency, currency)
+            const net = applyBridgeCrossCurrencyFee(gross, 'USDC', currency)
             localCurrencyAmount = net.toFixed(2)
         }
     }

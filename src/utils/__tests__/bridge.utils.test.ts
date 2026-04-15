@@ -1,4 +1,5 @@
 import {
+    applyBridgeCrossCurrencyFee,
     getCurrencyConfig,
     getOfframpCurrencyConfig,
     getPaymentRailDisplayName,
@@ -198,6 +199,62 @@ describe('bridge.utils', () => {
 
         it('should handle empty strings', () => {
             expect(getPaymentRailDisplayName('')).toBe('')
+        })
+    })
+
+    describe('applyBridgeCrossCurrencyFee', () => {
+        // These tests mirror REAL caller usage: the Bridge side of the transfer
+        // is the USDC stablecoin (not the 'USD' fiat display code). Callers must
+        // pass 'USDC' so the fee helper matches backend `getBridgeDeveloperFeeParams`.
+
+        it('applies 0.5% fee for EUR → USDC (onramp EUR deposit)', () => {
+            expect(applyBridgeCrossCurrencyFee(100, 'EUR', 'USDC')).toBeCloseTo(99.5, 10)
+        })
+
+        it('applies 0.5% fee for USDC → EUR (offramp to EUR bank)', () => {
+            expect(applyBridgeCrossCurrencyFee(100, 'USDC', 'EUR')).toBeCloseTo(99.5, 10)
+        })
+
+        it('applies 0.5% fee for GBP → USDC', () => {
+            expect(applyBridgeCrossCurrencyFee(100, 'GBP', 'USDC')).toBeCloseTo(99.5, 10)
+        })
+
+        it('applies 0.5% fee for MXN → USDC', () => {
+            expect(applyBridgeCrossCurrencyFee(100, 'MXN', 'USDC')).toBeCloseTo(99.5, 10)
+        })
+
+        it('applies 0.5% fee for USDC → MXN (offramp to Mexican bank)', () => {
+            expect(applyBridgeCrossCurrencyFee(100, 'USDC', 'MXN')).toBeCloseTo(99.5, 10)
+        })
+
+        it('does not apply fee for USD → USDC (fiat rail ↔ stablecoin is fee-free)', () => {
+            expect(applyBridgeCrossCurrencyFee(100, 'USD', 'USDC')).toBe(100)
+        })
+
+        it('does not apply fee for USDC → USD', () => {
+            expect(applyBridgeCrossCurrencyFee(100, 'USDC', 'USD')).toBe(100)
+        })
+
+        it('does not apply fee when either side is USD (EUR → USD)', () => {
+            expect(applyBridgeCrossCurrencyFee(100, 'EUR', 'USD')).toBe(100)
+        })
+
+        it('is case-insensitive', () => {
+            expect(applyBridgeCrossCurrencyFee(100, 'eur', 'usdc')).toBeCloseTo(99.5, 10)
+            expect(applyBridgeCrossCurrencyFee(100, 'Usd', 'Usdc')).toBe(100)
+        })
+
+        it('matches the real onramp display-quote math (EUR 500 @ 1.167)', () => {
+            // 500 EUR × 1.167 rate = 583.50 gross USDC
+            // after 0.5% Bridge fee = 580.5825 USDC delivered
+            const gross = 500 * 1.167
+            const net = applyBridgeCrossCurrencyFee(gross, 'EUR', 'USDC')
+            expect(net).toBeCloseTo(580.5825, 4)
+        })
+
+        it('handles zero and negative amounts without surprises', () => {
+            expect(applyBridgeCrossCurrencyFee(0, 'EUR', 'USDC')).toBe(0)
+            expect(applyBridgeCrossCurrencyFee(-100, 'EUR', 'USDC')).toBeCloseTo(-99.5, 10)
         })
     })
 
