@@ -64,11 +64,10 @@ export function useTransactionHistory({
 
         const url = `${PEANUT_API_URL}/users/history?${queryParams.toString()}`
 
-        const headers: Record<string, string> = {
-            'Content-Type': 'application/json',
-        }
-        headers['Authorization'] = `Bearer ${getAuthToken()}`
-        const response = await fetchWithSentry(url, { method: 'GET', headers })
+        const response = await fetchWithSentry(url, {
+            method: 'GET',
+            headers: { Authorization: `Bearer ${getAuthToken()}` },
+        })
 
         if (!response.ok) {
             throw new Error(`Failed to fetch history: ${response.statusText}`)

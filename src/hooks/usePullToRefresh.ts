@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import PullToRefresh from 'pulltorefreshjs'
+import { isCapacitor } from '@/utils/capacitor'
 
 // pull-to-refresh configuration constants
 const DIST_THRESHOLD = 70 // minimum pull distance to trigger refresh
@@ -21,9 +23,11 @@ interface UsePullToRefreshOptions {
  */
 export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
     const { shouldPullToRefresh, enabled = true } = options
+    const queryClient = useQueryClient()
 
     // store callback in ref to avoid re-initialization when function reference changes
     const shouldPullToRefreshRef = useRef(shouldPullToRefresh)
+    const queryClientRef = useRef(queryClient)
 
     // update ref when callback changes
     useEffect(() => {
@@ -39,12 +43,18 @@ export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
         PullToRefresh.init({
             mainElement: 'body',
             onRefresh: () => {
-                window.location.reload()
-                // Don't return a resolved promise — it resets the library's internal
-                // state to 'pending' before the reload completes, which on Android
-                // allows a new pull gesture to trigger immediately (infinite loop).
-                // Returning nothing lets the library's refreshTimeout handle cleanup,
-                // but the page will be gone by then anyway.
+                if (isCapacitor()) {
+                    // in native app, invalidate all queries to refetch data without page reload.
+                    // window.location.reload() causes SPA fallback issues in static export.
+                    queryClientRef.current.invalidateQueries()
+                } else {
+                    window.location.reload()
+                    // Don't return a resolved promise — it resets the library's internal
+                    // state to 'pending' before the reload completes, which on Android
+                    // allows a new pull gesture to trigger immediately (infinite loop).
+                    // Returning nothing lets the library's refreshTimeout handle cleanup,
+                    // but the page will be gone by then anyway.
+                }
             },
             instructionsPullToRefresh: 'Pull down to refresh',
             instructionsReleaseToRefresh: 'Release to refresh',

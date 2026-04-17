@@ -25,6 +25,7 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 import { useAccountSetupRedirect } from '@/hooks/useAccountSetupRedirect'
 import { useNativePlugins } from '@/hooks/useNativePlugins'
+import { isCapacitor } from '@/utils/capacitor'
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     useNativePlugins()
@@ -37,7 +38,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const { isFetchingUser, user, userFetchError } = useAuth()
     const [isReady, setIsReady] = useState(false)
     const isUserLoggedIn = !!user?.user.userId || false
-    const isHome = pathName === '/home'
+    const isHome = pathName === '/home' || pathName === '/home/'
     const isHistory = pathName === '/history'
     const isSupport = pathName === '/support'
     const isDev = pathName?.startsWith('/dev') ?? false
@@ -144,7 +145,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     }
 
     return (
-        <div className="flex min-h-[100dvh] w-full bg-background">
+        <div className="flex min-h-[100dvh] w-full bg-background" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
             {/* Wrapper div for desktop layout */}
             <div className="flex w-full">
                 {/* Sidebar - Fixed on desktop */}
@@ -179,7 +180,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                                 !!isSupport && 'p-0 pb-20 md:p-6',
                                 !!isHome && 'p-0 md:p-6 md:pr-0',
                                 isUserLoggedIn ? 'pb-24' : 'pb-4',
-                                isDev && 'p-0 pb-0'
+                                isDev && 'p-0 pb-0',
+                                isHome && isCapacitor() && 'px-0 pt-0'
                             )
                         )}
                     >
