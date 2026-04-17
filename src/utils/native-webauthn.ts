@@ -160,7 +160,7 @@ export async function nativeRegister(params: {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...passkeyServerHeaders },
         body: JSON.stringify({ username: passkeyName, rpID: rpId }),
-        credentials: 'include',
+        credentials: 'omit',
     })
     const registerOptions = await optionsRes.json()
 
@@ -185,7 +185,7 @@ export async function nativeRegister(params: {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...passkeyServerHeaders },
         body: JSON.stringify(verifyPayload),
-        credentials: 'include',
+        credentials: 'omit',
     })
     const verifyResult = await verifyRes.json()
 
@@ -230,7 +230,7 @@ export async function nativeLogin(params: {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...passkeyServerHeaders },
         body: JSON.stringify({ rpID: rpId }),
-        credentials: 'include',
+        credentials: 'omit',
     })
     const loginOptions = await optionsRes.json()
 
@@ -245,7 +245,7 @@ export async function nativeLogin(params: {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...passkeyServerHeaders },
         body: JSON.stringify({ cred: assertion, rpID: rpId }),
-        credentials: 'include',
+        credentials: 'omit',
     })
     const verifyResult = await verifyRes.json()
     if (!verifyResult.verification?.verified) {

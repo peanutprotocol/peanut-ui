@@ -15,8 +15,7 @@ import { captureException } from '@sentry/nextjs'
 import { invitesApi } from '@/services/invites'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { isCapacitor, isAndroidNative } from '@/utils/capacitor'
-import { nativeRegister, nativeLogin } from '@/utils/native-webauthn'
+import { isCapacitor } from '@/utils/capacitor'
 
 // types
 type UserOpEncodedParams = {
@@ -80,24 +79,15 @@ export const useZeroDev = () => {
                 ? process.env.NEXT_PUBLIC_NATIVE_RP_ID || 'peanut.me'
                 : window.location.hostname.replace(/^www\./, '')
 
-            // on android native, use the capacitor-webauthn plugin instead of browser WebAuthn api
-            // (browser WebAuthn doesn't work inside android webview)
-            let webAuthnKey
-            if (isAndroidNative()) {
-                webAuthnKey = await nativeRegister({
-                    passkeyName: _getPasskeyName(username),
-                    passkeyServerUrl: consts.PASSKEY_SERVER_URL as string,
-                    rpId,
-                })
-            } else {
-                webAuthnKey = await toWebAuthnKey({
-                    passkeyName: _getPasskeyName(username),
-                    passkeyServerUrl: consts.PASSKEY_SERVER_URL as string,
-                    mode: WebAuthnMode.Register,
-                    passkeyServerHeaders: {},
-                    rpID: rpId,
-                })
-            }
+            // @capgo/capacitor-passkey shim patches navigator.credentials on native,
+            // so toWebAuthnKey works on all platforms (web, android, ios).
+            const webAuthnKey = await toWebAuthnKey({
+                passkeyName: _getPasskeyName(username),
+                passkeyServerUrl: consts.PASSKEY_SERVER_URL as string,
+                mode: WebAuthnMode.Register,
+                passkeyServerHeaders: {},
+                rpID: rpId,
+            })
 
             const inviteCodeFromCookie = getFromCookie('inviteCode')
 
@@ -163,23 +153,13 @@ export const useZeroDev = () => {
                 ? process.env.NEXT_PUBLIC_NATIVE_RP_ID || 'peanut.me'
                 : window.location.hostname.replace(/^www\./, '')
 
-            // on android native, use the capacitor-webauthn plugin for login
-            let webAuthnKey
-            if (isAndroidNative()) {
-                webAuthnKey = await nativeLogin({
-                    passkeyServerUrl: consts.PASSKEY_SERVER_URL as string,
-                    rpId,
-                    passkeyServerHeaders,
-                })
-            } else {
-                webAuthnKey = await toWebAuthnKey({
-                    passkeyName: '[]',
-                    passkeyServerUrl: consts.PASSKEY_SERVER_URL as string,
-                    mode: WebAuthnMode.Login,
-                    passkeyServerHeaders,
-                    rpID: rpId,
-                })
-            }
+            const webAuthnKey = await toWebAuthnKey({
+                passkeyName: '[]',
+                passkeyServerUrl: consts.PASSKEY_SERVER_URL as string,
+                mode: WebAuthnMode.Login,
+                passkeyServerHeaders,
+                rpID: rpId,
+            })
 
             setWebAuthnKey(webAuthnKey)
             saveToCookie(WEB_AUTHN_COOKIE_KEY, webAuthnKey, 90)

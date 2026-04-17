@@ -5,8 +5,6 @@ import { createKernelMigrationAccount } from '@zerodev/sdk/accounts'
 import { useAppDispatch } from '@/redux/hooks'
 import { zerodevActions } from '@/redux/slices/zerodev-slice'
 import { getFromCookie, updateUserPreferences, getUserPreferences } from '@/utils/general.utils'
-import { isAndroidNative } from '@/utils/capacitor'
-import { createNativeSignMessageCallback } from '@/utils/native-webauthn'
 import { PasskeyValidatorContractVersion, toPasskeyValidator, toWebAuthnKey } from '@zerodev/passkey-validator'
 import {
     createKernelAccount,
@@ -19,6 +17,8 @@ import { type Chain, http, type PublicClient, type Transport } from 'viem'
 import type { Address } from 'viem'
 import { captureException } from '@sentry/nextjs'
 import { retryAsync } from '@/utils/retry.utils'
+import { isAndroidNative } from '@/utils/capacitor'
+import { createNativeSignMessageCallback } from '@/utils/native-webauthn'
 import { PUBLIC_CLIENTS_BY_CHAIN } from '@/app/actions/clients'
 
 interface KernelClientContextType {
@@ -174,9 +174,10 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
         const userPreferences = getUserPreferences(user.user.userId)
         const storedWebAuthnKey = userPreferences?.webAuthnKey ?? getFromCookie(WEB_AUTHN_COOKIE_KEY)
         if (storedWebAuthnKey) {
-            // re-attach the native signing callback — functions can't be serialized to
-            // cookie/localStorage, so it's lost on restore. without it, zerodev falls
-            // back to browser WebAuthn which doesn't work in android webview.
+            // signMessageCallback can't be serialized to cookie/localStorage — it's a function.
+            // on web, zerodev recreates it using browser WebAuthn API.
+            // on android native, browser WebAuthn doesn't work in the webview — re-attach
+            // the native capacitor plugin callback so signing works after restore.
             if (isAndroidNative() && !storedWebAuthnKey.signMessageCallback) {
                 const rpId = storedWebAuthnKey.rpID || process.env.NEXT_PUBLIC_NATIVE_RP_ID || 'peanut.me'
                 storedWebAuthnKey.signMessageCallback = createNativeSignMessageCallback(rpId)
