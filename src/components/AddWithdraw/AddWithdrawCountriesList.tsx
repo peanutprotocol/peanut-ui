@@ -8,6 +8,7 @@ import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { getColorForUsername } from '@/utils/color.utils'
 import Image, { type StaticImageData } from 'next/image'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import { withdrawBankUrl, rewriteMethodPath } from '@/utils/native-routes'
 import EmptyState from '../Global/EmptyStates/EmptyState'
 import { useAuth } from '@/context/authContext'
 import { useMemo, useRef, useState } from 'react'
@@ -67,9 +68,14 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const { isUserKycApproved, isUserBridgeKycUnderReview } = useKycStatus()
     const [showKycStatusModal, setShowKycStatusModal] = useState(false)
 
-    const countryPathParts = Array.isArray(params.country) ? params.country : [params.country]
-    const isBankPage = countryPathParts[countryPathParts.length - 1] === 'bank'
-    const countrySlugFromUrl = isBankPage ? countryPathParts.slice(0, -1).join('-') : countryPathParts.join('-')
+    // read country from path params (web: /add-money/india) or query params (native: /add-money?country=india)
+    const countryFromQuery = searchParams.get('country')
+    const viewFromQuery = searchParams.get('view')
+    const rawCountry = countryFromQuery || params.country
+    const countryPathParts = Array.isArray(rawCountry) ? rawCountry : [rawCountry].filter(Boolean)
+    const isBankPage = viewFromQuery === 'bank' || countryPathParts[countryPathParts.length - 1] === 'bank'
+    const countrySlugFromUrl =
+        isBankPage && !viewFromQuery ? countryPathParts.slice(0, -1).join('-') : countryPathParts.join('-')
 
     const currentCountry = countryData.find(
         (country) => country.type === 'country' && country.path === countrySlugFromUrl
@@ -121,7 +127,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
             if (currentCountry) {
                 const queryParams = isBankFromSend ? `?method=${methodParam}` : ''
-                router.push(`/withdraw/${currentCountry.path}/bank${queryParams}`)
+                router.push(withdrawBankUrl(currentCountry.path, queryParams))
             }
             return {}
         }
@@ -141,9 +147,8 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
         if (method.path && method.path.includes('/manteca')) {
             // Manteca methods route directly (has own amount input)
-            const separator = method.path.includes('?') ? '&' : '?'
-            const additionalParams = isBankFromSend ? `${separator}method=${methodParam}` : ''
-            router.push(`${method.path}${additionalParams}`)
+            const extraParams = isBankFromSend ? `method=${methodParam}` : undefined
+            router.push(rewriteMethodPath(method.path, extraParams))
         } else if (method.id.includes('default-bank-withdraw') || method.id.includes('sepa-instant-withdraw')) {
             if (isUserBridgeKycUnderReview) {
                 setShowKycStatusModal(true)
@@ -167,10 +172,9 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             })
             router.push(`/withdraw${methodQueryParam}`)
         } else if (method.path) {
-            // Other methods with paths
-            const separator = method.path.includes('?') ? '&' : '?'
-            const additionalParams = isBankFromSend ? `${separator}method=${methodParam}` : ''
-            router.push(`${method.path}${additionalParams}`)
+            // Other methods with paths — rewrite dynamic routes for native
+            const extraParams = isBankFromSend ? `method=${methodParam}` : undefined
+            router.push(rewriteMethodPath(method.path, extraParams))
         }
     }
 
@@ -186,7 +190,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 return
             }
 
-            router.push(method.path)
+            router.push(rewriteMethodPath(method.path))
         }
     }
 

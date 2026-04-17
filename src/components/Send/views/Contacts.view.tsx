@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter, useSearchParams } from 'next/navigation'
+import { sendUrl } from '@/utils/native-routes'
 import NavHeader from '@/components/Global/NavHeader'
 import { ActionListCard } from '@/components/ActionListCard'
 import { useContacts } from '@/hooks/useContacts'
@@ -76,7 +77,7 @@ export default function ContactsView() {
 
     // handle user selection from contacts
     const handleUserSelect = (username: string) => {
-        router.push(`/send/${username}`)
+        router.push(sendUrl(username))
     }
 
     // only show full loading on initial load (before any data has been fetched)

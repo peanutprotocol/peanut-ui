@@ -18,7 +18,7 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 import { AccountType, type Account } from '@/interfaces'
 import { formatIban, shortenStringLong, isTxReverted } from '@/utils/general.utils'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
 import { ErrorHandler } from '@/utils/sdkErrorHandler.utils'
@@ -33,10 +33,10 @@ import countryCurrencyMappings, { isNonEuroSepaCountry } from '@/constants/count
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { PointsAction } from '@/services/services.types'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
-import { useSearchParams } from 'next/navigation'
 import { parseUnits } from 'viem'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { withdrawCountryUrl } from '@/utils/native-routes'
 
 type View = 'INITIAL' | 'SUCCESS'
 
@@ -57,7 +57,8 @@ export default function WithdrawBankPage() {
     const [isLoading, setIsLoading] = useState(false)
     const [view, setView] = useState<View>('INITIAL')
     const params = useParams()
-    const country = params.country as string
+    // read country from path params (web) or query params (native/capacitor)
+    const country = (params.country as string) || searchParams.get('country') || ''
     const [balanceErrorMessage, setBalanceErrorMessage] = useState<string | null>(null)
     const { hasPendingTransactions } = usePendingTransactions()
     const { isBridgeSupportedCountry } = useIdentityVerification()
@@ -102,7 +103,7 @@ export default function WithdrawBankPage() {
             router.replace('/withdraw')
         } else if (!bankAccount && amountToWithdraw) {
             // If amount is set but no bank account, go to country method selection
-            router.replace(`/withdraw/${country}`)
+            router.replace(withdrawCountryUrl(country))
         }
     }, [bankAccount, router, amountToWithdraw, country, view])
 

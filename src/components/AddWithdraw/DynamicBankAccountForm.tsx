@@ -26,6 +26,7 @@ import { bankFormActions } from '@/redux/slices/bank-form-slice'
 import { useDebounce } from '@/hooks/useDebounce'
 import { twMerge } from 'tailwind-merge'
 import { MX_STATES, US_STATES } from '@/constants/stateCodes.consts'
+import { withdrawBankUrl } from '@/utils/native-routes'
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
 
 const isIBANCountry = (country: string) => {
@@ -165,7 +166,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 // Skip adding account if the account already exists for the logged in user
                 if (existingAccount) {
                     setSelectedBankAccount(existingAccount)
-                    router.push(`/withdraw/${country}/bank`)
+                    router.push(withdrawBankUrl(country))
                     return
                 }
 
