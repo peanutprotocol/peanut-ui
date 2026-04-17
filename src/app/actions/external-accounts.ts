@@ -11,7 +11,7 @@ export async function createBridgeExternalAccountForGuest(
     try {
         const response = await fetchWithSentry(`${PEANUT_API_URL}/bridge/customers/${customerId}/external-accounts`, {
             method: 'POST',
-            headers: getAuthHeaders(),
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify({ ...accountDetails, reuseOnError: true }), // note: reuseOnError is used to avoid showing errors for duplicate accounts on guest flow
         })
 

@@ -53,7 +53,7 @@ export async function createOnrampForGuest(
 
         const response = await fetchWithSentry(`${PEANUT_API_URL}/bridge/onramp/create-for-guest`, {
             method: 'POST',
-            headers: getAuthHeaders(),
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify({
                 amount,
                 userId: params.userId,

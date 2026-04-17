@@ -64,7 +64,7 @@ export const purchaseCard = async (): Promise<{ data?: CardPurchaseResponse; err
     try {
         const response = await fetchWithSentry(`${PEANUT_API_URL}/card/purchase`, {
             method: 'POST',
-            headers: getAuthHeaders(),
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify({}),
         })
 

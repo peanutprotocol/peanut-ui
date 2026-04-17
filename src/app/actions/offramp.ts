@@ -26,7 +26,7 @@ export async function createOfframp(
     try {
         const response = await fetchWithSentry(`${PEANUT_API_URL}/bridge/offramp/create`, {
             method: 'POST',
-            headers: getAuthHeaders(),
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify({
                 ...params,
                 provider: 'bridge', // note: bridge is currently the only provider
@@ -55,7 +55,7 @@ export async function createOfframpForGuest(
     try {
         const response = await fetchWithSentry(`${PEANUT_API_URL}/bridge/offramp/create-for-guest`, {
             method: 'POST',
-            headers: getAuthHeaders(),
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify({
                 ...params,
                 provider: 'bridge',
@@ -95,7 +95,7 @@ export async function confirmOfframp(
     try {
         const response = await fetchWithSentry(`${PEANUT_API_URL}/bridge/transfers/${transferId}/confirm`, {
             method: 'POST',
-            headers: getAuthHeaders(),
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify({ txHash }),
         })
 

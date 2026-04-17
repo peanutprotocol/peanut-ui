@@ -16,7 +16,7 @@ export const initiateSumsubKyc = async (params?: {
     try {
         const response = await fetchWithSentry(`${PEANUT_API_URL}/users/identity`, {
             method: 'POST',
-            headers: getAuthHeaders(),
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify(body),
         })
 

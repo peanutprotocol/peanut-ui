@@ -10,7 +10,7 @@ export const updateUserById = async (payload: Record<string, any>): Promise<{ da
     try {
         const response = await fetchWithSentry(`${PEANUT_API_URL}/update-user`, {
             method: 'POST',
-            headers: getAuthHeaders(),
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify(payload),
         })
 
@@ -31,7 +31,7 @@ export const getKycDetails = async (params?: {
     try {
         const response = await fetchWithSentry(`${PEANUT_API_URL}/users/initiate-kyc`, {
             method: 'POST',
-            headers: getAuthHeaders(),
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify(params || {}),
         })
 
@@ -54,7 +54,7 @@ export const addBankAccount = async (payload: AddBankAccountPayload): Promise<{ 
     try {
         const response = await fetchWithSentry(`${PEANUT_API_URL}/users/accounts`, {
             method: 'POST',
-            headers: getAuthHeaders(),
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify(payload),
         })
 
@@ -149,7 +149,7 @@ export const confirmBridgeTos = async (): Promise<{ data?: { accepted: boolean }
     try {
         const response = await fetchWithSentry(`${PEANUT_API_URL}/users/bridge-tos-confirm`, {
             method: 'POST',
-            headers: getAuthHeaders(),
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify({}),
         })
         const responseJson = await response.json()

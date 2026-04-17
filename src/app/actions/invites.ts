@@ -8,7 +8,10 @@ export async function validateInviteCode(
     try {
         const response = await fetchWithSentry(`${PEANUT_API_URL}/invites/validate`, {
             method: 'POST',
-            headers: getAuthHeaders(),
+            headers: {
+                'Content-Type': 'application/json',
+                ...getAuthHeaders(),
+            },
             body: JSON.stringify({ inviteCode }),
         })
 
