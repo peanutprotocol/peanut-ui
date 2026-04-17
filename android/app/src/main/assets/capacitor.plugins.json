@@ -1,6 +1,18 @@
 [
 	{
-		"pkg": "capacitor-webauthn",
-		"classpath": "com.headcount.plugins.webauthn.WebauthnPlugin"
+		"pkg": "@capacitor/app",
+		"classpath": "com.capacitorjs.plugins.app.AppPlugin"
+	},
+	{
+		"pkg": "@capacitor/splash-screen",
+		"classpath": "com.capacitorjs.plugins.splashscreen.SplashScreenPlugin"
+	},
+	{
+		"pkg": "@capacitor/status-bar",
+		"classpath": "com.capacitorjs.plugins.statusbar.StatusBarPlugin"
+	},
+	{
+		"pkg": "@capgo/capacitor-passkey",
+		"classpath": "app.capgo.passkey.CapacitorPasskeyPlugin"
 	}
 ]

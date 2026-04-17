@@ -1,14 +1,21 @@
 {
-	"appId": "com.peanut.app",
+	"appId": "com.peanut_dev.app",
 	"appName": "Peanut",
 	"webDir": "out",
-	"server": {
-		"url": "https://peanutdev.site",
-		"cleartext": false
-	},
 	"android": {
-		"allowMixedContent": true,
+		"allowMixedContent": false,
 		"webContentsDebuggingEnabled": true
 	},
-	"plugins": {}
+	"plugins": {
+		"CapacitorHttp": {
+			"enabled": true
+		},
+		"CapacitorPasskey": {
+			"autoShim": true,
+			"origin": "https://peanut.me",
+			"domains": [
+				"peanut.me"
+			]
+		}
+	}
 }

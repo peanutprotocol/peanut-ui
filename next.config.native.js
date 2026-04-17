@@ -32,6 +32,8 @@ let nextConfig = {
         NEXT_PUBLIC_GIT_COMMIT_HASH: gitCommitHash,
         // Flag to detect native context in code
         NEXT_PUBLIC_IS_NATIVE_BUILD: 'true',
+        // required for isCapacitor() detection — ensures all API calls use direct backend URLs
+        NEXT_PUBLIC_CAPACITOR_BUILD: 'true',
     },
 
     // Transpile packages for better compatibility

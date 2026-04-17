@@ -80,3 +80,8 @@ android/
 
 # AI tool worktrees
 .claude/worktrees/
+
+# native app signing
+*.keystore
+keystore.properties
+.env.production.local
