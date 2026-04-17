@@ -11,7 +11,7 @@ import { fetchWithSentry } from '@/utils/sentry.utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { chargesApi } from './charges'
 import { type TCharge } from './services.types'
-import { PEANUT_API_URL } from '@/constants/general.consts'
+import { PEANUT_API_URL, BASE_URL } from '@/constants/general.consts'
 
 type ApiAccount = {
     identifier: string
@@ -84,7 +84,7 @@ export const usersApi = {
         return chargesApi.create({
             pricing_type: 'fixed_price',
             local_price: { amount, currency: 'USD' },
-            baseUrl: window.location.origin,
+            baseUrl: BASE_URL,
             requestId: undefined,
             requestProps: {
                 chainId: PEANUT_WALLET_CHAIN.id.toString(),
