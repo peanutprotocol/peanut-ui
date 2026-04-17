@@ -1,6 +1,9 @@
-import { redirect } from 'next/navigation'
+'use client'
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 
-/** Backward compatibility redirect: /points → /rewards */
 export default function PointsRedirect() {
-    redirect('/rewards')
+    const router = useRouter()
+    useEffect(() => { router.replace('/rewards') }, [router])
+    return null
 }
