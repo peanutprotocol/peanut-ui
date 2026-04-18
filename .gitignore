@@ -83,6 +83,7 @@ android/
 
 # Playwright e2e harness
 e2e/__results__/
+e2e/__baseline__/
 e2e/__report__/
 e2e/__snapshots__/
 e2e/.auth/

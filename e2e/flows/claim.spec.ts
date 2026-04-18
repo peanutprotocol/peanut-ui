@@ -17,7 +17,7 @@ import { captureStep, collectConsoleLogs } from '../utils/capture'
 
 test.describe('Claim flow', () => {
 	test('claim page without pubKey — error state', async ({ page }, testInfo) => {
-		const console = collectConsoleLogs(page)
+		const consoleLogs = collectConsoleLogs(page)
 
 		await page.goto('/claim')
 		await captureStep(page, testInfo, { name: '01-claim-no-pubkey' })
@@ -25,11 +25,11 @@ test.describe('Claim flow', () => {
 		await page.waitForTimeout(2000)
 		await captureStep(page, testInfo, { name: '02-claim-no-pubkey-settled' })
 
-		console.flush(testInfo, 'claim-no-pubkey')
+		consoleLogs.flush(testInfo, 'claim-no-pubkey')
 	})
 
 	test('claim page with invalid pubKey', async ({ page }, testInfo) => {
-		const console = collectConsoleLogs(page)
+		const consoleLogs = collectConsoleLogs(page)
 
 		await page.goto('/claim?pubKey=0xinvalid')
 		await captureStep(page, testInfo, { name: '01-claim-invalid-pubkey' })
@@ -37,6 +37,6 @@ test.describe('Claim flow', () => {
 		await page.waitForTimeout(3000)
 		await captureStep(page, testInfo, { name: '02-claim-invalid-pubkey-settled' })
 
-		console.flush(testInfo, 'claim-invalid')
+		consoleLogs.flush(testInfo, 'claim-invalid')
 	})
 })

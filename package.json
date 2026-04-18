@@ -166,7 +166,8 @@
         ],
         "testPathIgnorePatterns": [
             "/node_modules/",
-            "\\.e2e\\.test\\.(ts|tsx)$"
+            "\\.e2e\\.test\\.(ts|tsx)$",
+            "<rootDir>/e2e/"
         ],
         "extensionsToTreatAsEsm": [
             ".ts",

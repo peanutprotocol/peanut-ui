@@ -180,6 +180,12 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             setWebAuthnKey((prev) =>
                 prev && bigIntSafeStringify(prev) === bigIntSafeStringify(storedWebAuthnKey) ? prev : storedWebAuthnKey
             )
+        } else if (typeof window !== 'undefined' && window.localStorage?.getItem('__harness_skip_passkey') === 'true') {
+            // Harness-only: skip the auto-logout so playwright can screenshot the
+            // authenticated UI with a seeded user that has no real passkey. Kernel
+            // client stays uninitialized; any code path that requires userops will
+            // still fail, which is fine — harness tests only assert page-level render.
+            // Uses localStorage so it works regardless of env injection semantics.
         } else {
             // avoid mixed state
             logoutUser()

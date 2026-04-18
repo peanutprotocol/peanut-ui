@@ -1,28 +1,92 @@
 /**
- * Playwright global setup: authenticate via /dev/test-session.
+ * Playwright global setup: load bootstrap account or fall back to test-session.
  *
- * Hits the API's test-session endpoint to get a JWT, then creates a
- * browser context with that token set as a cookie/localStorage entry
- * (matching how the real auth flow stores it), and saves the storage
- * state for all tests to reuse.
+ * Priority:
+ *   1. If bootstrap-storage.json exists (from bootstrap-auth.ts), use it.
+ *      This has a real ZeroDev kernel + passkey, so authenticated flows work.
+ *   2. Otherwise, fall back to /dev/test-session (synthetic JWT, no kernel).
+ *      Good enough for public routes and basic UI snapshots.
  *
- * Requirements:
- *   - API running at API_BASE_URL (default http://localhost:5001)
- *   - ENABLE_TEST_ROUTES=true on the API
- *   - TEST_HARNESS_SECRET set on the API
+ * Run bootstrap first:
+ *   npx tsx e2e/scripts/bootstrap-auth.ts
  */
 
 import { chromium, FullConfig } from '@playwright/test'
+import * as fs from 'fs'
+import * as path from 'path'
+import { createAllPersonas } from './utils/personas'
 
 const API_BASE = process.env.API_BASE_URL || 'http://localhost:5000'
 const UI_BASE = process.env.UI_BASE_URL || 'http://localhost:3000'
-const HARNESS_SECRET = process.env.TEST_HARNESS_SECRET || 'local-harness-secret-must-be-at-least-32-characters-long'
-const TEST_EMAIL = process.env.TEST_USER_EMAIL || `harness-e2e-${Date.now()}@test.local`
+const HARNESS_SECRET = process.env.TEST_HARNESS_SECRET || 'local-harness-secret-long-enough-32ch'
+
+const BOOTSTRAP_STATE = path.resolve(__dirname, '.auth/bootstrap-storage.json')
+const BOOTSTRAP_META = path.resolve(__dirname, '.auth/bootstrap-meta.json')
+const STORAGE_STATE = path.resolve(__dirname, '.auth/storage-state.json')
 
 export default async function globalSetup(config: FullConfig) {
-	console.log('[global-setup] Authenticating via /dev/test-session...')
+	// Strategy 1: Bootstrap account (real ZeroDev kernel)
+	if (fs.existsSync(BOOTSTRAP_STATE) && fs.existsSync(BOOTSTRAP_META)) {
+		const meta = JSON.parse(fs.readFileSync(BOOTSTRAP_META, 'utf-8'))
+		console.log(`[global-setup] Using bootstrap account: ${meta.username} (${meta.userId})`)
 
-	// 1. Get a JWT from the API
+		// Validate the JWT hasn't expired
+		const state = JSON.parse(fs.readFileSync(BOOTSTRAP_STATE, 'utf-8'))
+		const jwtCookie = state.cookies?.find((c: any) => c.name === 'jwt-token')
+		if (jwtCookie) {
+			try {
+				const payload = JSON.parse(Buffer.from(jwtCookie.value.split('.')[1], 'base64url').toString())
+				const expiresAt = payload.exp * 1000
+				if (expiresAt < Date.now()) {
+					console.warn('[global-setup] Bootstrap JWT expired — falling back to test-session')
+				} else {
+					fs.copyFileSync(BOOTSTRAP_STATE, STORAGE_STATE)
+					process.env.TEST_USER_ID = meta.userId
+					process.env.TEST_USER_USERNAME = meta.username
+					console.log(`[global-setup] Bootstrap state copied. JWT valid until ${new Date(expiresAt).toISOString()}`)
+
+					// Ensure bootstrap user exists in DB. Integration tests truncate the DB
+					// and would otherwise orphan the bootstrap JWT.
+					try {
+						const reviveRes = await fetch(`${API_BASE}/dev/test-session`, {
+							method: 'POST',
+							headers: {
+								'Content-Type': 'application/json',
+								'x-test-harness-secret': HARNESS_SECRET,
+							},
+							body: JSON.stringify({
+								email: `bootstrap-${meta.userId}@test.local`,
+								userId: meta.userId,
+								kyc: 'verified',
+								country: 'AR',
+								harnessLabel: 'bootstrap-revive',
+							}),
+						})
+						if (reviveRes.ok) {
+							console.log(`[global-setup] Bootstrap user ensured in DB (KYC verified, AR)`)
+						}
+					} catch (e) {
+						console.warn(`[global-setup] Could not revive bootstrap user: ${(e as Error).message}`)
+					}
+
+					// Create test personas (non-fatal — tests fall back to default)
+					try {
+						await createAllPersonas(jwtCookie.value, meta.userId, meta.username)
+					} catch (e) {
+						console.warn(`[global-setup] Persona creation failed: ${(e as Error).message}`)
+					}
+					return
+				}
+			} catch {
+				console.warn('[global-setup] Could not parse bootstrap JWT — falling back')
+			}
+		}
+	}
+
+	// Strategy 2: Synthetic test-session (no ZeroDev kernel, but fast)
+	console.log('[global-setup] No bootstrap found, using /dev/test-session...')
+	const testEmail = process.env.TEST_USER_EMAIL || `harness-e2e-${Date.now()}@test.local`
+
 	const res = await fetch(`${API_BASE}/dev/test-session`, {
 		method: 'POST',
 		headers: {
@@ -30,7 +94,7 @@ export default async function globalSetup(config: FullConfig) {
 			'x-test-harness-secret': HARNESS_SECRET,
 		},
 		body: JSON.stringify({
-			email: TEST_EMAIL,
+			email: testEmail,
 			kyc: 'verified',
 			country: 'AR',
 			harnessLabel: 'playwright',
@@ -41,21 +105,16 @@ export default async function globalSetup(config: FullConfig) {
 		const body = await res.text()
 		throw new Error(
 			`[global-setup] /dev/test-session returned ${res.status}: ${body}\n` +
-			`Make sure the API is running at ${API_BASE} with ENABLE_TEST_ROUTES=true and TEST_HARNESS_SECRET set.`
+				`Make sure the API is running at ${API_BASE} with ENABLE_TEST_ROUTES=true and TEST_HARNESS_SECRET set.`
 		)
 	}
 
-	const { token, user } = await res.json() as { token: string; user: { userId: string; email: string } }
+	const { token, user } = (await res.json()) as { token: string; user: { userId: string; email: string } }
 	console.log(`[global-setup] Authenticated as ${user.email} (${user.userId})`)
 
-	// 2. Create a browser context and inject the auth state
-	// The peanut-ui app stores the JWT in a cookie named 'token' (httpOnly: false per tech debt audit)
-	// and also checks localStorage for user session data.
 	const browser = await chromium.launch()
 	const context = await browser.newContext()
 
-	// Set the JWT cookie for the UI domain.
-	// The app reads it as 'jwt-token' via js-cookie (see src/services/users.ts:54)
 	await context.addCookies([
 		{
 			name: 'jwt-token',
@@ -68,46 +127,41 @@ export default async function globalSetup(config: FullConfig) {
 		},
 	])
 
-	// Navigate to the app, dismiss all onboarding modals, save clean auth state
 	const page = await context.newPage()
 	try {
 		await page.goto(`${UI_BASE}/home`, { waitUntil: 'domcontentloaded', timeout: 30_000 })
 		await page.waitForTimeout(3000)
 
-		// Dismiss modals in order — there can be 2-3 stacked
 		for (let attempt = 0; attempt < 5; attempt++) {
-			// 1. "Peanut is mobile first!" dialog
 			const gotIt = page.locator('button:has-text("Got it!")')
 			if (await gotIt.isVisible({ timeout: 2_000 }).catch(() => false)) {
 				await gotIt.click()
-				console.log(`[global-setup] Dismissed "Got it!" modal (attempt ${attempt})`)
+				console.log(`[global-setup] Dismissed "Got it!" modal`)
 				await page.waitForTimeout(1000)
 				continue
 			}
 
-			// 2. "Install Peanut on your phone" / PWA install screen — click Skip
 			const skip = page.locator('button:has-text("Skip"), text=Skip')
 			if (await skip.first().isVisible({ timeout: 2_000 }).catch(() => false)) {
 				await skip.first().click()
-				console.log(`[global-setup] Dismissed PWA install screen (attempt ${attempt})`)
+				console.log(`[global-setup] Dismissed PWA install screen`)
 				await page.waitForTimeout(1000)
 				continue
 			}
 
-			// 3. Any X/close buttons on remaining modals
-			const closeBtn = page.locator('button[aria-label="Close"], button:has-text("×"), dialog button:has-text("Close")')
+			const closeBtn = page.locator(
+				'button[aria-label="Close"], button:has-text("×"), dialog button:has-text("Close")'
+			)
 			if (await closeBtn.first().isVisible({ timeout: 1_000 }).catch(() => false)) {
 				await closeBtn.first().click()
-				console.log(`[global-setup] Dismissed modal via close button (attempt ${attempt})`)
+				console.log(`[global-setup] Dismissed modal via close button`)
 				await page.waitForTimeout(1000)
 				continue
 			}
 
-			// No more modals found
 			break
 		}
 
-		// If still on /setup, navigate to /home
 		if (page.url().includes('/setup')) {
 			console.log('[global-setup] Still on setup — navigating to /home')
 			await page.goto(`${UI_BASE}/home`, { waitUntil: 'domcontentloaded', timeout: 15_000 })
@@ -119,13 +173,18 @@ export default async function globalSetup(config: FullConfig) {
 		console.warn(`[global-setup] Warning: ${(e as Error).message}`)
 	}
 
-	// 3. Save storage state (cookies + localStorage) for all tests
-	await context.storageState({ path: './e2e/.auth/storage-state.json' })
-	console.log('[global-setup] Storage state saved to e2e/.auth/storage-state.json')
+	await context.storageState({ path: STORAGE_STATE })
+	console.log('[global-setup] Storage state saved')
 
 	await browser.close()
 
-	// Export user info for tests to reference
 	process.env.TEST_USER_ID = user.userId
 	process.env.TEST_USER_EMAIL = user.email
+
+	// Create test personas (non-fatal — tests fall back to default)
+	try {
+		await createAllPersonas(token, user.userId, user.email)
+	} catch (e) {
+		console.warn(`[global-setup] Persona creation failed: ${(e as Error).message}`)
+	}
 }

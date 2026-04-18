@@ -16,7 +16,7 @@ import { captureStep, collectConsoleLogs } from '../utils/capture'
 
 test.describe('Send link flow', () => {
 	test('navigate to send and capture initial state', async ({ page }, testInfo) => {
-		const console = collectConsoleLogs(page)
+		const consoleLogs = collectConsoleLogs(page)
 
 		await page.goto('/send')
 		await captureStep(page, testInfo, { name: '01-send-initial' })
@@ -32,11 +32,11 @@ test.describe('Send link flow', () => {
 			await captureStep(page, testInfo, { name: '03-send-amount-entered' })
 		}
 
-		console.flush(testInfo, 'send-link')
+		consoleLogs.flush(testInfo, 'send-link')
 	})
 
 	test('send page URL state reflects step', async ({ page }, testInfo) => {
-		const console = collectConsoleLogs(page)
+		const consoleLogs = collectConsoleLogs(page)
 
 		// Navigate with step in URL (nuqs pattern)
 		await page.goto('/send?step=inputAmount')
@@ -45,6 +45,6 @@ test.describe('Send link flow', () => {
 		// Check that URL contains step parameter
 		expect(page.url()).toContain('/send')
 
-		console.flush(testInfo, 'send-url-state')
+		consoleLogs.flush(testInfo, 'send-url-state')
 	})
 })
