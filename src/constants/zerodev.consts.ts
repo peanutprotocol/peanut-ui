@@ -1,5 +1,5 @@
 import { getEntryPoint, KERNEL_V3_1 } from '@zerodev/sdk/constants'
-import { arbitrum } from 'viem/chains'
+import { arbitrum, arbitrumSepolia } from 'viem/chains'
 
 // consts needed to define low level SDK kernel
 // as per: https://docs.zerodev.app/sdk/getting-started/tutorial-passkeys
@@ -11,10 +11,20 @@ export const PASSKEY_SERVER_URL = process.env.NEXT_PUBLIC_ZERO_DEV_PASSKEY_SERVE
 // as per: https://docs.zerodev.app/smart-wallet/quickstart-react
 export const ZERO_DEV_PROJECT_ID = process.env.NEXT_PUBLIC_ZERO_DEV_PASSKEY_PROJECT_ID
 
-// TODO: this should be taken from a global token dict, not hardcoded here
-export const PEANUT_WALLET_CHAIN = arbitrum
+// Default to Arb One + Circle USDC (prod). Overridable via env so the mono
+// QA harness can point the UI at Arb Sepolia + testnet USDC without forking.
+// When NEXT_PUBLIC_PEANUT_WALLET_CHAIN_ID is '421614', we also default the
+// token address to Circle's Arb-Sepolia testnet USDC (lowercase checksum).
+const SANDBOX_CHAIN_ID = process.env.NEXT_PUBLIC_PEANUT_WALLET_CHAIN_ID
+const USE_SEPOLIA = SANDBOX_CHAIN_ID === '421614'
+
+export const PEANUT_WALLET_CHAIN = USE_SEPOLIA ? arbitrumSepolia : arbitrum
 export const PEANUT_WALLET_TOKEN_DECIMALS = 6 // USDC decimals
-export const PEANUT_WALLET_TOKEN = '0xaf88d065e77c8cc2239327c5edb3a432268e5831' // USDC Arbitrum address
+export const PEANUT_WALLET_TOKEN =
+    process.env.NEXT_PUBLIC_PEANUT_WALLET_TOKEN ??
+    (USE_SEPOLIA
+        ? '0x75faf114eafb1bdbe2f0316df893fd58ce46aa4d' // Circle USDC on Arb Sepolia
+        : '0xaf88d065e77c8cc2239327c5edb3a432268e5831') // Circle USDC on Arb One
 export const PEANUT_WALLET_TOKEN_SYMBOL = 'USDC'
 export const PEANUT_WALLET_TOKEN_NAME = 'USD Coin'
 export const PEANUT_WALLET_TOKEN_IMG_URL =

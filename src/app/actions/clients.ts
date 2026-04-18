@@ -3,7 +3,7 @@ import { BUNDLER_URL, PAYMASTER_URL, PEANUT_WALLET_CHAIN } from '@/constants/zer
 import type { PublicClient, Chain, Transport } from 'viem'
 import { createPublicClient, http, extractChain, fallback } from 'viem'
 import * as chains from 'viem/chains'
-import { arbitrum, mainnet, base, linea } from 'viem/chains'
+import { arbitrum, arbitrumSepolia, mainnet, base, linea } from 'viem/chains'
 
 const allChains = Object.values(chains)
 export type ChainId = (typeof allChains)[number]['id']
@@ -38,6 +38,8 @@ const zerodevV3Url = (chainId: number | string) => `${ZERODEV_V3_URL}/chain/${ch
  * included if NEXT_PUBLIC_ZERO_DEV_RECOVERY_BUNDLER_URL is configured.
  * Note: PUBLIC_CLIENTS_BY_CHAIN and peanutPublicClient are now exported from here to avoid circular dependencies
  */
+// Primary wallet chain is picked by PEANUT_WALLET_CHAIN (env-overridable in
+// zerodev.consts.ts). Sandbox uses arbitrumSepolia, prod uses arbitrum.
 export const PUBLIC_CLIENTS_BY_CHAIN: Record<
     string,
     {
@@ -47,11 +49,10 @@ export const PUBLIC_CLIENTS_BY_CHAIN: Record<
         paymasterUrl: string
     }
 > = {
-    // Arbitrum (primary wallet chain - always included)
-    [arbitrum.id]: {
+    [PEANUT_WALLET_CHAIN.id]: {
         client: createPublicClient({
-            transport: getTransportWithFallback(arbitrum.id),
-            chain: arbitrum,
+            transport: getTransportWithFallback(PEANUT_WALLET_CHAIN.id as ChainId),
+            chain: PEANUT_WALLET_CHAIN,
             pollingInterval: 500,
         }),
         chain: PEANUT_WALLET_CHAIN,

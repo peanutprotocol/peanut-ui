@@ -12,7 +12,9 @@ import { TranslationSafeWrapper } from '@/components/Global/TranslationSafeWrapp
 import { PeanutProvider } from '@/config'
 import { ContextProvider } from '@/context'
 import { FooterVisibilityProvider } from '@/context/footerVisibility'
+import { ReproduceBootstrap } from '@/context/ReproduceBootstrap'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
+import { Suspense } from 'react'
 
 export function ClientProviders({ children }: { children: React.ReactNode }) {
     return (
@@ -23,6 +25,10 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
                         <TranslationSafeWrapper>
                             <ConsoleGreeting />
                             <ScreenOrientationLocker />
+                            {/* useSearchParams() needs to be under Suspense in App Router. */}
+                            <Suspense fallback={null}>
+                                <ReproduceBootstrap />
+                            </Suspense>
                             {children}
                         </TranslationSafeWrapper>
                     </FooterVisibilityProvider>
