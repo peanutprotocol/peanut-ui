@@ -13,6 +13,7 @@ import { PeanutProvider } from '@/config'
 import { ContextProvider } from '@/context'
 import { FooterVisibilityProvider } from '@/context/footerVisibility'
 import { ReproduceBootstrap } from '@/context/ReproduceBootstrap'
+import { HarnessReplay } from '@/context/HarnessReplay'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import { Suspense } from 'react'
 
@@ -29,6 +30,11 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
                             <Suspense fallback={null}>
                                 <ReproduceBootstrap />
                             </Suspense>
+                            {/* HarnessReplay runs AFTER ReproduceBootstrap reloads the page,
+                                picking up stashed action descriptors from sessionStorage and
+                                driving the UI to reproduce transient state (amounts typed,
+                                buttons clicked, receipts shown). No-op outside sandbox mode. */}
+                            <HarnessReplay />
                             {children}
                         </TranslationSafeWrapper>
                     </FooterVisibilityProvider>

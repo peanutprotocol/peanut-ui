@@ -129,10 +129,21 @@ export function ReproduceBootstrap() {
                 // Step 1: wipe prior user scope (cookies + caches + localStorage).
                 await wipeUserScopedClientState()
 
-                // Step 2: seed localStorage flags from the new manifest.
+                // Step 2: seed localStorage flags from the new manifest. The
+                // manifest.localStorage map carries harness flags (ecdsa pk
+                // etc.) plus any app-prefix localStorage keys the runner
+                // captured at screenshot time (recent methods, user prefs).
                 for (const [k, v] of Object.entries(manifest.localStorage ?? {})) {
                     if (v == null) continue
                     try { localStorage.setItem(k, String(v)) } catch {}
+                }
+                // Step 2b: stash action descriptors for HarnessReplay to pick
+                // up after the reload. The replay component fires once, then
+                // clears this key. See context/HarnessReplay.tsx.
+                if (Array.isArray(manifest.stepActions) && manifest.stepActions.length > 0) {
+                    try {
+                        sessionStorage.setItem('__harness_replay_actions', JSON.stringify(manifest.stepActions))
+                    } catch {}
                 }
                 // Step 3: set the jwt-token cookie so the UI treats the user as
                 // signed in as the scenario's user.
