@@ -27,6 +27,10 @@
 import { useEffect } from 'react'
 
 export const HARNESS_REPLAY_ACTIONS_KEY = '__harness_replay_actions'
+// Cursor persists across page navigations so an action list that spans
+// multiple Next.js routes (goto /home → click → goto /withdraw → click) can
+// resume after each navigation's component re-mount. Cleared on completion.
+const HARNESS_REPLAY_INDEX_KEY = '__harness_replay_index'
 
 type Action =
     | { type: 'goto'; url: string }
@@ -51,7 +55,14 @@ async function waitFor<T>(cb: () => T | null | undefined, timeoutMs: number, lab
     throw new Error(`[harness-replay] timeout waiting for ${label} after ${timeoutMs}ms`)
 }
 
-/** Match `button` or `[role=button]` (etc.) whose accessible name matches `nameRegex`. */
+/** Match `button` or `[role=button]` (etc.) whose accessible name matches `nameRegex`.
+ *
+ * Playwright's getByRole normalizes accessible names by stripping descendant
+ * icon-only elements (aria-hidden svg, role=presentation). Our DOM walk can't
+ * trivially replicate that, so we strip Unicode symbols/pictographs before
+ * matching, and we also do a substring-ish fallback — if the caller's regex
+ * uses ^...$ anchors but the name has icon text prefix, we try without anchors.
+ */
 function findByRole(role: Action extends { type: 'click-role'; role: infer R } ? R : never, nameRegex: RegExp): HTMLElement | null {
     const selectors: Record<string, string> = {
         button: 'button, [role="button"]',
@@ -59,11 +70,15 @@ function findByRole(role: Action extends { type: 'click-role'; role: infer R } ?
         textbox: 'input, textarea, [role="textbox"]',
     }
     const sel = selectors[role] || selectors.button
+    // Drop anchors so patterns like /^\s*withdraw\s*$/ still match "↑ Withdraw".
+    const relaxed = new RegExp(nameRegex.source.replace(/^\^/, '').replace(/\$$/, ''), nameRegex.flags)
     const candidates = Array.from(document.querySelectorAll<HTMLElement>(sel))
     for (const el of candidates) {
         if (!isVisible(el)) continue
-        const name = (el.getAttribute('aria-label') || el.textContent || '').trim()
-        if (nameRegex.test(name)) return el
+        const raw = (el.getAttribute('aria-label') || el.textContent || '').trim()
+        // Strip Unicode symbols/pictographs/emoji (approx: not letter/digit/punct/whitespace)
+        const cleaned = raw.replace(/[^\p{L}\p{N}\p{P}\s]/gu, '').trim()
+        if (nameRegex.test(cleaned) || nameRegex.test(raw) || relaxed.test(cleaned)) return el
     }
     return null
 }
@@ -121,14 +136,16 @@ function setNativeInputValue(input: HTMLInputElement, value: string) {
 async function runAction(a: Action): Promise<void> {
     switch (a.type) {
         case 'goto': {
-            // Same-app SPA nav. Use Next.js router if available (faster);
-            // fallback to window.location for cross-entry navs.
-            // router isn't accessible outside a component context; use
-            // a popstate dispatch to let the app router observe the change.
-            window.history.pushState({}, '', a.url)
-            window.dispatchEvent(new PopStateEvent('popstate'))
-            // Grace period for the route component to mount + its effects to fire.
-            await sleep(400)
+            // Full navigation — `location.assign` triggers Next.js to fetch
+            // + mount the target route with effects firing naturally. The
+            // subsequent HarnessReplay re-mount picks up the action queue
+            // from sessionStorage using HARNESS_REPLAY_INDEX_KEY so replay
+            // resumes from the next action after the goto.
+            window.location.assign(a.url)
+            // Suspend the loop — this promise never resolves because the
+            // page is being torn down. The new page's HarnessReplay will
+            // continue from index+1.
+            await new Promise(() => {})
             return
         }
         case 'wait':
@@ -198,54 +215,72 @@ async function runAction(a: Action): Promise<void> {
     }
 }
 
+// Module-level guard against React strict-mode double-mount (dev) running the
+// replay loop twice in parallel. Scoped to the page lifetime; resets on
+// cross-page navigation because the module re-evaluates.
+let replayInFlight = false
+
 export function HarnessReplay() {
     useEffect(() => {
         // Only active in sandbox / harness mode — same env guard as ReproduceBootstrap.
         if (process.env.NEXT_PUBLIC_HARNESS_SKIP_PASSKEY_CHECK !== 'true') return
+        if (replayInFlight) return
+        replayInFlight = true
 
         const raw = sessionStorage.getItem(HARNESS_REPLAY_ACTIONS_KEY)
         if (!raw) return
-
         let actions: Action[]
         try {
             actions = JSON.parse(raw)
         } catch {
             sessionStorage.removeItem(HARNESS_REPLAY_ACTIONS_KEY)
+            sessionStorage.removeItem(HARNESS_REPLAY_INDEX_KEY)
             return
         }
         if (!Array.isArray(actions) || actions.length === 0) {
             sessionStorage.removeItem(HARNESS_REPLAY_ACTIONS_KEY)
+            sessionStorage.removeItem(HARNESS_REPLAY_INDEX_KEY)
             return
         }
 
-        // Clear IMMEDIATELY so re-renders / React strict-mode double-mounts
-        // don't re-fire the replay.
-        sessionStorage.removeItem(HARNESS_REPLAY_ACTIONS_KEY)
+        // Resume from the persisted cursor. Zero on first run; advances past
+        // each completed action. Survives goto→page-reload so a multi-route
+        // action sequence resumes after each Next.js navigation.
+        const startIdx = Math.max(0, parseInt(sessionStorage.getItem(HARNESS_REPLAY_INDEX_KEY) || '0', 10)) || 0
+        if (startIdx >= actions.length) {
+            sessionStorage.removeItem(HARNESS_REPLAY_ACTIONS_KEY)
+            sessionStorage.removeItem(HARNESS_REPLAY_INDEX_KEY)
+            return
+        }
 
-        // Grace period for providers to stabilize: auth, kernel client, etc.
-        // Without this, the first click can race an empty DOM.
-        const grace = 1500
+        // Grace period for providers (auth, kernel, TanStack) to stabilize
+        // on a fresh mount. Shorter on resume-after-goto because we just
+        // completed a full navigation — React/queries are already settling.
+        const grace = startIdx === 0 ? 1500 : 600
         let cancelled = false
         ;(async () => {
             await sleep(grace)
             if (cancelled) return
-            console.log(`[harness-replay] starting — ${actions.length} actions`)
-            for (let i = 0; i < actions.length; i++) {
+            console.log(`[harness-replay] ${startIdx === 0 ? 'starting' : `resuming at ${startIdx}`} — ${actions.length} actions`)
+            for (let i = startIdx; i < actions.length; i++) {
                 if (cancelled) return
                 const a = actions[i]
                 try {
                     console.log(`[harness-replay] ${i + 1}/${actions.length}: ${a.type}`, a)
+                    // Persist AFTER-this-action index before running so goto
+                    // (which tears down the page) resumes at the next action.
+                    sessionStorage.setItem(HARNESS_REPLAY_INDEX_KEY, String(i + 1))
                     await runAction(a)
                 } catch (err) {
                     console.warn(`[harness-replay] action ${i + 1} failed (continuing):`, err)
                 }
             }
             console.log(`[harness-replay] done`)
+            sessionStorage.removeItem(HARNESS_REPLAY_ACTIONS_KEY)
+            sessionStorage.removeItem(HARNESS_REPLAY_INDEX_KEY)
         })()
 
-        return () => {
-            cancelled = true
-        }
+        return () => { cancelled = true }
     }, [])
 
     return null
