@@ -22,6 +22,13 @@ allprojects {
         google()
         mavenCentral()
     }
+
+    // sumsub eid module pulls from a private maven repo requiring credentials.
+    // exclude it globally — we don't use electronic ID card verification.
+    configurations.configureEach {
+        exclude group: 'com.sumsub.sns', module: 'idensic-mobile-sdk-eid'
+        exclude group: 'de.authada.library', module: 'aal'
+    }
 }
 
 task clean(type: Delete) {

@@ -4,6 +4,7 @@ import { useWebSocket } from '@/hooks/useWebSocket'
 import { useUserStore } from '@/redux/hooks'
 import { initiateSumsubKyc } from '@/app/actions/sumsub'
 import { type KYCRegionIntent, type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
+import { isCapacitor } from '@/utils/capacitor'
 
 interface UseSumsubKycFlowOptions {
     onKycSuccess?: () => void
@@ -158,6 +159,46 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 }
 
                 if (response.data?.token) {
+                    // in capacitor, launch native sumsub sdk instead of web wrapper
+                    if (isCapacitor()) {
+                        try {
+                            const SNSMobileSDK = (window as any).SNSMobileSDK
+                            if (!SNSMobileSDK) {
+                                setError('KYC SDK not available. Please update the app.')
+                                return
+                            }
+                            const effectiveRegionIntent = overrideIntent ?? regionIntent
+                            const sdk = SNSMobileSDK.init(response.data.token, async () => {
+                                const r = await initiateSumsubKyc({
+                                    regionIntent: effectiveRegionIntent,
+                                    levelName: levelNameRef.current,
+                                })
+                                return r.data?.token || ''
+                            })
+                                .withHandlers({
+                                    onStatusChanged: (event: any) => {
+                                        console.log('[useSumsubKycFlow] native onStatusChanged:', JSON.stringify(event))
+                                        if (event?.newStatus === 'Approved') {
+                                            onKycSuccess?.()
+                                        }
+                                    },
+                                })
+                                .withLocale('en')
+                                .withDebug(process.env.NODE_ENV === 'development')
+                                .build()
+
+                            const result = await sdk.launch()
+                            console.log('[useSumsubKycFlow] native SDK result:', JSON.stringify(result))
+                            if (result?.status === 'Approved') {
+                                onKycSuccess?.()
+                            }
+                        } catch (nativeErr) {
+                            console.error('[useSumsubKycFlow] native SDK error:', nativeErr)
+                            setError('Verification failed. Please try again.')
+                        }
+                        return
+                    }
+
                     setAccessToken(response.data.token)
                     setShowWrapper(true)
                 } else {
