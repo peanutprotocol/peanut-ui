@@ -3,6 +3,7 @@ import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import useGetExchangeRate, { type IExchangeRate } from '@/hooks/useGetExchangeRate'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
 import { SYMBOLS_BY_CURRENCY_CODE } from '@/hooks/useCurrency'
+import { applyBridgeCrossCurrencyFee } from '@/utils/bridge.utils'
 
 // constants for exchange rate messages, specific to ExchangeRate component
 const APPROXIMATE_VALUE_MESSAGE =
@@ -54,16 +55,26 @@ const ExchangeRate = ({
         moreInfoText = `Exchange rates apply when converting to ${toCurrency}`
     }
 
+    const currency = nonEuroCurrency || toCurrency
+
     // calculate local currency amount if provided
+    // bake in the 0.5% Bridge developer fee for cross-currency pairs so the
+    // displayed "amount you will receive" matches what Bridge actually delivers.
+    // NOTE: this component is used for Bridge offramp / bank-claim flows where the
+    // on-chain source is always USDC (even though the UI sourceCurrency prop defaults
+    // to 'USD' for display/rate-fetch purposes). Pass 'USDC' explicitly to the fee
+    // helper — it mirrors backend `getBridgeDeveloperFeeParams` where 'usd' is the
+    // fee-free fiat rail and 'usdc' is the stablecoin that incurs the 0.5% fee when
+    // crossing currencies.
     let localCurrencyAmount: string | null = null
     if (amountToConvert && rate && rate > 0) {
         const amount = parseFloat(amountToConvert)
         if (!isNaN(amount) && amount > 0) {
-            localCurrencyAmount = (amount * rate).toFixed(2)
+            const gross = amount * rate
+            const net = applyBridgeCrossCurrencyFee(gross, 'USDC', currency)
+            localCurrencyAmount = net.toFixed(2)
         }
     }
-
-    const currency = nonEuroCurrency || toCurrency
     const currencySymbol = SYMBOLS_BY_CURRENCY_CODE[currency] || currency
 
     return (
