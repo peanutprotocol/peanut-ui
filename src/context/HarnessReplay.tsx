@@ -55,32 +55,79 @@ async function waitFor<T>(cb: () => T | null | undefined, timeoutMs: number, lab
     throw new Error(`[harness-replay] timeout waiting for ${label} after ${timeoutMs}ms`)
 }
 
-/** Match `button` or `[role=button]` (etc.) whose accessible name matches `nameRegex`.
- *
- * Playwright's getByRole normalizes accessible names by stripping descendant
- * icon-only elements (aria-hidden svg, role=presentation). Our DOM walk can't
- * trivially replicate that, so we strip Unicode symbols/pictographs before
- * matching, and we also do a substring-ish fallback — if the caller's regex
- * uses ^...$ anchors but the name has icon text prefix, we try without anchors.
+/**
+ * Compute an accessible-name-ish string for an element. Approximates the
+ * `@testing-library/dom` computation: aria-label wins, then descendant text
+ * excluding aria-hidden subtrees, then fallback to textContent.
  */
+function accessibleName(el: HTMLElement): string {
+    const aria = el.getAttribute('aria-label')
+    if (aria) return aria.trim()
+    // Walk descendants and concatenate their text, skipping aria-hidden or
+    // role=presentation subtrees, and skipping SVG content (always decorative
+    // unless it has role=img with a title — rare in this app).
+    const parts: string[] = []
+    const walk = (node: Node) => {
+        if (node.nodeType === Node.TEXT_NODE) {
+            const t = (node.textContent || '').trim()
+            if (t) parts.push(t)
+            return
+        }
+        if (node.nodeType !== Node.ELEMENT_NODE) return
+        const e = node as HTMLElement
+        if (e.getAttribute('aria-hidden') === 'true') return
+        if (e.getAttribute('role') === 'presentation') return
+        if (e.tagName === 'SVG' || e.tagName === 'svg') return
+        for (const child of Array.from(e.childNodes)) walk(child)
+    }
+    walk(el)
+    return parts.join(' ').trim()
+}
+
+/** Match `button` / `link` / `textbox` whose accessible name matches. */
 function findByRole(role: Action extends { type: 'click-role'; role: infer R } ? R : never, nameRegex: RegExp): HTMLElement | null {
     const selectors: Record<string, string> = {
-        button: 'button, [role="button"]',
+        button: 'button, [role="button"], input[type="button"], input[type="submit"]',
         link: 'a, [role="link"]',
-        textbox: 'input, textarea, [role="textbox"]',
+        textbox: 'input:not([type="button"]):not([type="submit"]), textarea, [role="textbox"]',
     }
     const sel = selectors[role] || selectors.button
-    // Drop anchors so patterns like /^\s*withdraw\s*$/ still match "↑ Withdraw".
+    // Drop anchors so /^\s*withdraw\s*$/ also matches "↑ Withdraw" (symbol prefix).
     const relaxed = new RegExp(nameRegex.source.replace(/^\^/, '').replace(/\$$/, ''), nameRegex.flags)
     const candidates = Array.from(document.querySelectorAll<HTMLElement>(sel))
     for (const el of candidates) {
         if (!isVisible(el)) continue
-        const raw = (el.getAttribute('aria-label') || el.textContent || '').trim()
-        // Strip Unicode symbols/pictographs/emoji (approx: not letter/digit/punct/whitespace)
-        const cleaned = raw.replace(/[^\p{L}\p{N}\p{P}\s]/gu, '').trim()
-        if (nameRegex.test(cleaned) || nameRegex.test(raw) || relaxed.test(cleaned)) return el
+        if (el.hasAttribute('disabled') || el.getAttribute('aria-disabled') === 'true') continue
+        const name = accessibleName(el)
+        if (!name) continue
+        const cleaned = name.replace(/[^\p{L}\p{N}\p{P}\s]/gu, '').trim()
+        if (nameRegex.test(name) || nameRegex.test(cleaned) || relaxed.test(cleaned)) return el
     }
     return null
+}
+
+/** Log visible candidate elements for a role when a match fails. Helps
+ * diagnose selector flakes without cracking open devtools. */
+function logCandidates(role: string) {
+    const selectors: Record<string, string> = {
+        button: 'button, [role="button"], input[type="button"], input[type="submit"]',
+        link: 'a, [role="link"]',
+        textbox: 'input, textarea, [role="textbox"]',
+    }
+    const sel = selectors[role] || selectors.button
+    const allButtons = Array.from(document.querySelectorAll<HTMLElement>(sel))
+    const visible = allButtons.filter(isVisible)
+    console.warn(
+        `[harness-replay] ${role}s — total in DOM: ${allButtons.length}, visible: ${visible.length}` +
+        `, url=${location.pathname}${location.search}` +
+        `, bodyText.length=${(document.body.innerText || '').length}`
+    )
+    console.warn(`[harness-replay] visible ${role}s:`, visible.map((el) => ({
+        tag: el.tagName.toLowerCase(),
+        name: accessibleName(el).slice(0, 60),
+        disabled: el.hasAttribute('disabled') || el.getAttribute('aria-disabled') === 'true',
+    })))
+    console.warn(`[harness-replay] body tail: ${(document.body.innerText || '').slice(-200).replace(/\s+/g, ' ')}`)
 }
 
 /** Match first VISIBLE element whose textContent matches `textRegex`. */
@@ -136,6 +183,13 @@ function setNativeInputValue(input: HTMLInputElement, value: string) {
 async function runAction(a: Action): Promise<void> {
     switch (a.type) {
         case 'goto': {
+            // Skip when we're already on the target path — the gallery
+            // aligns ReproduceBootstrap's entry with the first goto URL, so
+            // this first action is a no-op. Re-navigating would tear down +
+            // re-mount for no reason and churn an extra grace period.
+            if (location.pathname === a.url || location.pathname + location.search === a.url) {
+                return
+            }
             // Full navigation — `location.assign` triggers Next.js to fetch
             // + mount the target route with effects firing naturally. The
             // subsequent HarnessReplay re-mount picks up the action queue
@@ -153,37 +207,60 @@ async function runAction(a: Action): Promise<void> {
             return
         case 'click-role': {
             const re = new RegExp(a.name, 'i')
-            const el = await waitFor(() => findByRole(a.role, re), a.timeoutMs ?? 10000, `role=${a.role} name=${a.name}`)
+            const timeout = a.timeoutMs ?? 20000
+            let el: HTMLElement | null = null
+            try {
+                el = await waitFor(() => findByRole(a.role, re), timeout, `role=${a.role} name=${a.name}`)
+            } catch (err) {
+                logCandidates(a.role)
+                throw err
+            }
+            // Dispatch a real mouse click via mousedown/mouseup/click sequence so
+            // any synthetic-event-filtering React handlers actually fire.
+            el.scrollIntoView({ block: 'center', inline: 'center' })
+            await sleep(100)
             el.click()
             return
         }
         case 'click-text': {
             const re = new RegExp(a.text, 'i')
-            const el = await waitFor(() => findByText(re), a.timeoutMs ?? 10000, `text ${a.text}`)
+            const timeout = a.timeoutMs ?? 15000
+            const el = await waitFor(() => findByText(re), timeout, `text ${a.text}`)
             // Click the nearest interactive ancestor if the element itself
             // isn't a button — text often lives inside a wrapper div that
             // has the click handler.
             const target = (el.closest('button, a, [role="button"], [role="link"]') || el) as HTMLElement
+            target.scrollIntoView({ block: 'center', inline: 'center' })
+            await sleep(100)
             target.click()
             return
         }
         case 'fill-amount': {
-            const input = await waitFor<HTMLInputElement>(
-                () => document.querySelector<HTMLInputElement>('input[inputmode="decimal"]'),
-                10000,
-                'AmountInput (input[inputmode="decimal"])'
-            )
+            // The AmountInput mounts + unmounts a few times during the
+            // WithdrawFlowContext step-transition. Re-query inside the typing
+            // loop so we don't hold a stale node reference.
+            const timeout = 20000
+            const getInput = () => {
+                const nodes = Array.from(document.querySelectorAll<HTMLInputElement>('input[inputmode="decimal"]'))
+                // Pick the visible one; there may be multiple during transitions.
+                return nodes.find((n) => isVisible(n)) || null
+            }
+            let input = await waitFor<HTMLInputElement>(getInput, timeout, 'AmountInput (input[inputmode="decimal"])')
             input.focus()
-            // Clear then type char-by-char so per-keystroke validation runs.
             setNativeInputValue(input, '')
-            await sleep(50)
+            await sleep(100)
             const delay = a.perKeyDelayMs ?? 50
             let accum = ''
             for (const ch of String(a.value)) {
                 accum += ch
+                input = getInput() || input // refresh in case React unmounted
+                input.focus()
                 setNativeInputValue(input, accum)
                 await sleep(delay)
             }
+            // Blur so the UI's onBlur validators commit before the next click.
+            input.blur()
+            await sleep(100)
             return
         }
         case 'fill': {
@@ -215,17 +292,23 @@ async function runAction(a: Action): Promise<void> {
     }
 }
 
-// Module-level guard against React strict-mode double-mount (dev) running the
-// replay loop twice in parallel. Scoped to the page lifetime; resets on
-// cross-page navigation because the module re-evaluates.
-let replayInFlight = false
+// Per-document guard: block React strict-mode's double useEffect from
+// starting two parallel loops WITHIN the same page. Cleared implicitly on
+// navigation because the module re-evaluates. Cross-page resumption is
+// handled separately by HARNESS_REPLAY_INDEX_KEY in sessionStorage.
+let inFlightThisDocument = false
 
 export function HarnessReplay() {
     useEffect(() => {
         // Only active in sandbox / harness mode — same env guard as ReproduceBootstrap.
         if (process.env.NEXT_PUBLIC_HARNESS_SKIP_PASSKEY_CHECK !== 'true') return
-        if (replayInFlight) return
-        replayInFlight = true
+        // Crisp chat widget mounts an embedded /crisp-proxy route that runs
+        // the full ClientProviders tree inside an iframe/tab. That second
+        // mount would otherwise fire a parallel replay loop against an empty
+        // body, racing the real page's loop. Bail on non-user-visible routes.
+        if (typeof location !== 'undefined' && location.pathname.startsWith('/crisp-proxy')) return
+        if (inFlightThisDocument) return
+        inFlightThisDocument = true
 
         const raw = sessionStorage.getItem(HARNESS_REPLAY_ACTIONS_KEY)
         if (!raw) return
@@ -253,10 +336,11 @@ export function HarnessReplay() {
             return
         }
 
-        // Grace period for providers (auth, kernel, TanStack) to stabilize
-        // on a fresh mount. Shorter on resume-after-goto because we just
-        // completed a full navigation — React/queries are already settling.
-        const grace = startIdx === 0 ? 1500 : 600
+        // Grace period for providers (auth, kernel, TanStack) to stabilize.
+        // Initial mount is shorter (ReproduceBootstrap already reloaded for us);
+        // resume-after-goto is longer because Next.js dev may be compiling the
+        // freshly-visited route on first hit.
+        const grace = startIdx === 0 ? 1500 : 2500
         let cancelled = false
         ;(async () => {
             await sleep(grace)
