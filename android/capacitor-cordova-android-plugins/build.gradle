@@ -52,6 +52,7 @@ dependencies {
 
 // PLUGIN GRADLE EXTENSIONS START
 apply from: "cordova.variables.gradle"
+apply from: "../../node_modules/.pnpm/@sumsub+cordova-idensic-mobile-sdk-plugin@1.42.0/node_modules/@sumsub/cordova-idensic-mobile-sdk-plugin/src/android/build-extras.gradle"
 // PLUGIN GRADLE EXTENSIONS END
 
 for (def func : cdvPluginPostBuildExtras) {

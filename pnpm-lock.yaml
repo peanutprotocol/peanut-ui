@@ -31,6 +31,9 @@ importers:
       '@capacitor/status-bar':
         specifier: ^8.0.2
         version: 8.0.2(@capacitor/core@8.2.0)
+      '@capgo/capacitor-crisp':
+        specifier: ^8.0.27
+        version: 8.0.27(@capacitor/core@8.2.0)
       '@capgo/capacitor-passkey':
         specifier: ^8.2.2
         version: 8.2.2(@capacitor/core@8.2.0)
@@ -103,6 +106,9 @@ importers:
       '@squirrel-labs/peanut-sdk':
         specifier: ^0.6.2
         version: 0.6.2(bufferutil@4.1.0)(utf-8-validate@5.0.10)
+      '@sumsub/cordova-idensic-mobile-sdk-plugin':
+        specifier: ^1.42.0
+        version: 1.42.0
       '@tanstack/react-query':
         specifier: 5.8.4
         version: 5.8.4(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -539,6 +545,11 @@ packages:
 
   '@capacitor/status-bar@8.0.2':
     resolution: {integrity: sha512-WXs8YB8B9eEaPZz+bcdY6t2nForF1FLoj/JU0Dl9RRgQnddnS98FEEyDooQhaY7wivr000j4+SC1FyeJkrFO7A==}
+    peerDependencies:
+      '@capacitor/core': '>=8.0.0'
+
+  '@capgo/capacitor-crisp@8.0.27':
+    resolution: {integrity: sha512-Qq5gQIHuXfW7UD7uKYQuccTpMYwnsvvryiFWv5bvEYsEvtp77oRDr2o+TBh8/sdJcaOrHNUKNaOhF1c9HO/iEA==}
     peerDependencies:
       '@capacitor/core': '>=8.0.0'
 
@@ -2938,6 +2949,9 @@ packages:
 
   '@standard-schema/utils@0.3.0':
     resolution: {integrity: sha512-e7Mew686owMaPJVNNLs55PUvgz371nKgwsc4vxE49zsODpJEnxgxRo2y/OKrqueavXgZNMDVj3DdHFlaSAeU8g==}
+
+  '@sumsub/cordova-idensic-mobile-sdk-plugin@1.42.0':
+    resolution: {integrity: sha512-I3CfGwpCAGg4gBceNzCidNKktg7arD3xybOAdKLmZx3A+6BDW85kWg+jW10NEXqeYEyMhBT7MAoNbEV4pdhAoQ==}
 
   '@swc/helpers@0.5.15':
     resolution: {integrity: sha512-JQ5TuMi45Owi4/BIMAJBoSQoOJu12oOk/gADqlcUL9JEdHB8vyjUSsxqeNXnmXHjYKMi2WcYtezGEEhqUI/E2g==}
@@ -7813,6 +7827,10 @@ snapshots:
     dependencies:
       '@capacitor/core': 8.2.0
 
+  '@capgo/capacitor-crisp@8.0.27(@capacitor/core@8.2.0)':
+    dependencies:
+      '@capacitor/core': 8.2.0
+
   '@capgo/capacitor-passkey@8.2.2(@capacitor/core@8.2.0)':
     dependencies:
       '@capacitor/core': 8.2.0
@@ -11193,6 +11211,8 @@ snapshots:
   '@standard-schema/spec@1.1.0': {}
 
   '@standard-schema/utils@0.3.0': {}
+
+  '@sumsub/cordova-idensic-mobile-sdk-plugin@1.42.0': {}
 
   '@swc/helpers@0.5.15':
     dependencies:

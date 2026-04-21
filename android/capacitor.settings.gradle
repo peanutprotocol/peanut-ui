@@ -11,5 +11,8 @@ project(':capacitor-splash-screen').projectDir = new File('../node_modules/.pnpm
 include ':capacitor-status-bar'
 project(':capacitor-status-bar').projectDir = new File('../node_modules/.pnpm/@capacitor+status-bar@8.0.2_@capacitor+core@8.2.0/node_modules/@capacitor/status-bar/android')
 
+include ':capgo-capacitor-crisp'
+project(':capgo-capacitor-crisp').projectDir = new File('../node_modules/.pnpm/@capgo+capacitor-crisp@8.0.27_@capacitor+core@8.2.0/node_modules/@capgo/capacitor-crisp/android')
+
 include ':capgo-capacitor-passkey'
 project(':capgo-capacitor-passkey').projectDir = new File('../node_modules/@capgo/capacitor-passkey/android')

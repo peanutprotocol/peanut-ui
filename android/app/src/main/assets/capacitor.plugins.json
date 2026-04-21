@@ -12,6 +12,10 @@
 		"classpath": "com.capacitorjs.plugins.statusbar.StatusBarPlugin"
 	},
 	{
+		"pkg": "@capgo/capacitor-crisp",
+		"classpath": "ee.forgr.plugin.crisp.CapacitorCrispPlugin"
+	},
+	{
 		"pkg": "@capgo/capacitor-passkey",
 		"classpath": "app.capgo.passkey.CapacitorPasskeyPlugin"
 	}
