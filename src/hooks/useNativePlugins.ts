@@ -37,6 +37,7 @@ export function useNativePlugins() {
             try {
                 // @ts-ignore — module only exists in native builds
                 const { StatusBar, Style } = await import(/* webpackIgnore: true */ '@capacitor/status-bar')
+                await StatusBar.setOverlaysWebView({ overlay: false })
                 await StatusBar.setStyle({ style: Style.Light })
                 await StatusBar.setBackgroundColor({ color: '#ffffff' })
             } catch (e) {
