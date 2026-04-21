@@ -7,10 +7,12 @@ import { getAuthHeaders } from '@/utils/auth-token'
 export const initiateSumsubKyc = async (params?: {
     regionIntent?: KYCRegionIntent
     levelName?: string
+    crossRegion?: boolean
 }): Promise<{ data?: InitiateSumsubKycResponse; error?: string }> => {
-    const body: Record<string, string | undefined> = {
+    const body: Record<string, string | boolean | undefined> = {
         regionIntent: params?.regionIntent,
         levelName: params?.levelName,
+        crossRegion: params?.crossRegion,
     }
 
     try {
@@ -31,6 +33,7 @@ export const initiateSumsubKyc = async (params?: {
                 token: responseJson.token,
                 applicantId: responseJson.applicantId,
                 status: responseJson.status,
+                actionType: responseJson.actionType,
             },
         }
     } catch (e: unknown) {

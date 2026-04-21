@@ -55,8 +55,12 @@ import { MIN_MANTECA_WITHDRAW_AMOUNT } from '@/constants/payment.consts'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
-import { getLimitsWarningCardProps } from '@/features/limits/utils'
+import { getLimitsWarningCardProps, isBrUserEligibleForLimitIncrease } from '@/features/limits/utils'
 import { withdrawCountryUrl } from '@/utils/native-routes'
+import { useSumsubActionFlow } from '@/hooks/useSumsubActionFlow'
+import { initiateIncreaseLimits } from '@/app/actions/increase-limits'
+import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
+import { useLimits } from '@/hooks/useLimits'
 
 type MantecaWithdrawStep = 'amountInput' | 'bankDetails' | 'review' | 'success' | 'failure'
 
@@ -85,7 +89,7 @@ export default function MantecaWithdrawFlow() {
     const { signTransferUserOp } = useSignUserOp()
     const { isLoading, loadingState, setLoadingState } = useContext(loadingStateContext)
     const { user } = useAuth()
-    const { setIsSupportModalOpen } = useModalsContext()
+    const { setIsSupportModalOpen, openSupportWithMessage } = useModalsContext()
     const queryClient = useQueryClient()
     const { isUserMantecaKycApproved } = useKycStatus()
     const { hasPendingTransactions } = usePendingTransactions()
@@ -125,6 +129,15 @@ export default function MantecaWithdrawFlow() {
         flowType: 'offramp',
         amount: usdAmount,
         currency: selectedCountry?.currency,
+    })
+
+    // BR self-service limit increase flow
+    const { mantecaLimits, refetch: refetchLimits } = useLimits()
+    const isBrEligible = isBrUserEligibleForLimitIncrease(mantecaLimits)
+    const limitIncreaseFlow = useSumsubActionFlow({
+        fetchToken: initiateIncreaseLimits,
+        onSuccess: refetchLimits,
+        onNeedsSupport: () => openSupportWithMessage('Hi, I would like to increase my payment limits.'),
     })
 
     // Get country flag code
@@ -524,6 +537,15 @@ export default function MantecaWithdrawFlow() {
                 isLoading={sumsubFlow.isLoading}
             />
             <SumsubKycModals flow={sumsubFlow} />
+            <SumsubKycWrapper
+                visible={limitIncreaseFlow.showWrapper}
+                accessToken={limitIncreaseFlow.accessToken}
+                onClose={limitIncreaseFlow.handleClose}
+                onComplete={limitIncreaseFlow.handleSdkComplete}
+                onRefreshToken={limitIncreaseFlow.refreshToken}
+                autoStart
+                isMultiLevel
+            />
             <NavHeader
                 title="Withdraw"
                 onPrev={() => {
@@ -575,7 +597,18 @@ export default function MantecaWithdrawFlow() {
                             flowType: 'offramp',
                             currency: limitsValidation.currency,
                         })
-                        return limitsCardProps ? <LimitsWarningCard {...limitsCardProps} /> : null
+                        if (!limitsCardProps) return null
+                        return (
+                            <LimitsWarningCard
+                                {...limitsCardProps}
+                                onIncreaseLimits={
+                                    isBrEligible && limitsValidation.isBlocking
+                                        ? limitIncreaseFlow.handleInitiate
+                                        : undefined
+                                }
+                                isIncreaseLimitsLoading={limitIncreaseFlow.isLoading}
+                            />
+                        )
                     })()}
 
                     <Button
