@@ -132,7 +132,9 @@ export const useZeroDev = () => {
             if ((e as Error).message.includes('pending')) {
                 return
             }
-            console.error('Error registering passkey', e)
+            const err = e as Error
+            console.error('[useZeroDev] registration failed:', err.name, err.message, err)
+            console.error('[useZeroDev] shim installed:', (globalThis as any).__capgoPasskeyShimInstalled)
             dispatch(zerodevActions.setIsRegistering(false))
             throw e
         }
