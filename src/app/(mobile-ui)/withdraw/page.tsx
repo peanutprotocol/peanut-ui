@@ -316,7 +316,7 @@ export default function WithdrawPage() {
     const viewFromQuery = searchParams.get('view')
     if (countryFromQuery) {
         // native app: render country-specific views.
-        // components are lazy-imported — the _withdraw-bank.tsx copy is created by the build script.
+        // stub exists for web build; real component is injected by native build script.
         if (viewFromQuery === 'bank') {
             const WithdrawBankPage = React.lazy(() => import('./_withdraw-bank'))
             return (

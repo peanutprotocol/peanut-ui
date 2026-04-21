@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 
-// copies created by native build script from [code]/ pages
+// stubs exist for web build; real components are injected by native build script.
 const QrClaimPage = dynamic(() => import('./_claim-page'), { ssr: false })
 const QrSuccessPage = dynamic(() => import('./_success-page'), { ssr: false })
 

@@ -4,8 +4,7 @@ import AddMoneyMethodSelection from '@/components/AddMoney/views/AddMoneyMethodS
 import AddWithdrawCountriesList from '@/components/AddWithdraw/AddWithdrawCountriesList'
 import dynamic from 'next/dynamic'
 
-// in native build, [country] dir is disabled — component is copied to _onramp-bank.tsx by build script.
-// lazy loaded so web build doesn't fail when the file doesn't exist.
+// stub exists for web build; real component is injected by native build script.
 const OnrampBankPage = dynamic(() => import('./_onramp-bank'), { ssr: false })
 import { CountryList } from '@/components/Common/CountryList'
 import type { CountryData } from '@/components/AddMoney/consts'

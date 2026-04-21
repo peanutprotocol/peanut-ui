@@ -209,8 +209,13 @@ function copyComponentsBeforeDisable() {
         const src = path.join(APP_DIR, copy.src)
         const dest = path.join(APP_DIR, copy.dest)
         if (fs.existsSync(src)) {
+            // if a stub file exists, save its content so cleanup restores it (not deletes)
+            if (fs.existsSync(dest)) {
+                MODIFIED_FILES.push({ type: 'content', path: dest, original: fs.readFileSync(dest, 'utf-8') })
+            } else {
+                WRAPPER_FILES.push(dest) // no stub existed, delete on cleanup
+            }
             fs.copyFileSync(src, dest)
-            WRAPPER_FILES.push(dest) // track for cleanup
             console.log(`  ↳ Copied: ${copy.src} → ${copy.dest}`)
         }
     }
