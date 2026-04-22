@@ -3,7 +3,7 @@
         "relation": ["delegate_permission/common.handle_all_urls", "delegate_permission/common.get_login_creds"],
         "target": {
             "namespace": "android_app",
-            "package_name": "com.peanut_dev.app",
+            "package_name": "me.peanut.app",
             "sha256_cert_fingerprints": [
                 "42:E1:F7:7F:2B:2F:C7:26:26:19:4A:15:D3:07:BC:41:62:26:12:6F:7F:C9:0A:54:C3:7A:F5:E2:2D:42:6A:D0",
                 "93:5F:2F:BD:0B:5F:F0:6A:D3:4D:FD:03:5E:8C:B9:E7:AE:11:E0:20:8A:6C:DB:70:B3:B1:39:4F:9C:79:29:78",

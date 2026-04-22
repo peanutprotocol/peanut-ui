@@ -1,5 +1,5 @@
 {
-	"appId": "com.peanut_dev.app",
+	"appId": "me.peanut.app",
 	"appName": "Peanut",
 	"webDir": "out",
 	"android": {

@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli'
 
 const config: CapacitorConfig = {
-    appId: 'com.peanut_dev.app',
+    appId: 'me.peanut.app',
     appName: 'Peanut',
     webDir: 'out',
     // no server.url — static export loads from local out/ directory
