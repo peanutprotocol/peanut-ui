@@ -9,6 +9,7 @@ import { getColorForUsername } from '@/utils/color.utils'
 import Image, { type StaticImageData } from 'next/image'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { withdrawBankUrl, rewriteMethodPath } from '@/utils/native-routes'
+import { isCapacitor } from '@/utils/capacitor'
 import EmptyState from '../Global/EmptyStates/EmptyState'
 import { useAuth } from '@/context/authContext'
 import { useMemo, useRef, useState } from 'react'
@@ -190,7 +191,14 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 return
             }
 
-            router.push(rewriteMethodPath(method.path))
+            const target = rewriteMethodPath(method.path)
+            // force full navigation in capacitor — router.push to same page with
+            // different query params doesn't trigger useSearchParams re-render in static export
+            if (isCapacitor() && target.startsWith(window.location.pathname)) {
+                window.location.href = target
+            } else {
+                router.push(target)
+            }
         }
     }
 

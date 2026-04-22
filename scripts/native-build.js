@@ -190,6 +190,10 @@ const COMPONENT_COPIES = [
         dest: '(mobile-ui)/add-money/_onramp-bank.tsx',
     },
     {
+        src: '(mobile-ui)/add-money/[country]/[regional-method]/page.tsx',
+        dest: '(mobile-ui)/add-money/_onramp-manteca.tsx',
+    },
+    {
         src: '(mobile-ui)/withdraw/[country]/bank/page.tsx',
         dest: '(mobile-ui)/withdraw/_withdraw-bank.tsx',
     },

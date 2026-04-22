@@ -4,8 +4,9 @@ import AddMoneyMethodSelection from '@/components/AddMoney/views/AddMoneyMethodS
 import AddWithdrawCountriesList from '@/components/AddWithdraw/AddWithdrawCountriesList'
 import dynamic from 'next/dynamic'
 
-// stub exists for web build; real component is injected by native build script.
+// stubs exist for web build; real components are injected by native build script.
 const OnrampBankPage = dynamic(() => import('./_onramp-bank'), { ssr: false })
+const OnrampMantecaPage = dynamic(() => import('./_onramp-manteca'), { ssr: false })
 import { CountryList } from '@/components/Common/CountryList'
 import type { CountryData } from '@/components/AddMoney/consts'
 import NavHeader from '@/components/Global/NavHeader'
@@ -73,8 +74,10 @@ export default function AddMoneyPage() {
     // native app: render sub-views based on query params
     const viewFromQuery = searchParams.get('view')
     if (countryFromQuery && viewFromQuery === 'bank') {
-        // bank form: /add-money?country=austria&view=bank
         return <OnrampBankPage />
+    }
+    if (countryFromQuery && viewFromQuery === 'manteca') {
+        return <OnrampMantecaPage />
     }
     if (countryFromQuery) {
         // country method selection: /add-money?country=austria
