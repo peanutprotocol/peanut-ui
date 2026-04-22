@@ -1,46 +1,119 @@
 /**
  * Rain Card API Service
  *
- * Client-side service for Rain card management endpoints. Uses the browser's
- * JWT cookie directly (via `js-cookie`) rather than a Next.js server action —
- * matches the pattern in `services/manteca.ts` / `services/simplefi.ts`.
- *
- * The composite overview + withdrawal-prep / submit / stamp calls still go
- * through server actions in `app/actions/rain.ts` (pre-existing). New Rain
- * endpoints are added here.
+ * Client-side service for every Rain card endpoint (overview, apply,
+ * activate/lock/cancel, reveal, PIN, limits, physical waitlist,
+ * withdrawals, session-key grant). Uses the browser's JWT cookie directly
+ * (via `js-cookie`) — matches the pattern in `services/manteca.ts` /
+ * `services/simplefi.ts`.
  */
 
 import Cookies from 'js-cookie'
-import {
-    getRainCardOverview,
-    prepareRainWithdrawal,
-    stampRainWithdrawal,
-    submitRainWithdrawal,
-} from '@/app/actions/rain'
-import type {
-    PrepareRainWithdrawalInput,
-    PrepareRainWithdrawalResponse,
-    RainCardApplicationStatus,
-    RainCardBalance,
-    RainCardOverview,
-    RainCardSummary,
-    SubmitRainWithdrawalInput,
-    SubmitRainWithdrawalResponse,
-    TransactionIntentKind,
-} from '@/app/actions/rain'
 import { PEANUT_API_KEY, PEANUT_API_URL } from '@/constants/general.consts'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 
-export type {
-    PrepareRainWithdrawalInput,
-    PrepareRainWithdrawalResponse,
-    RainCardApplicationStatus,
-    RainCardBalance,
-    RainCardOverview,
-    RainCardSummary,
-    SubmitRainWithdrawalInput,
-    SubmitRainWithdrawalResponse,
-    TransactionIntentKind,
+// ─── Types ──────────────────────────────────────────────────────────────────
+
+export interface RainCardApplicationStatus {
+    hasApplication: boolean
+    railStatus?: string
+    applicationStatus?: string
+    rainUserId?: string
+    /** Collateral proxy address. */
+    contractAddress?: string
+    /** Rain Coordinator contract — target of `withdrawAsset`. */
+    coordinatorAddress?: string
+}
+
+export interface RainCardBalance {
+    creditLimit: number
+    spendingPower: number
+    pendingCharges: number
+    postedCharges: number
+    balanceDue: number
+}
+
+export interface RainCardSummary {
+    id: string
+    rainCardId: string
+    last4: string
+    expiryMonth: number
+    expiryYear: number
+    status: string
+    network: string
+    issuedAt: string
+    /** Whether the user has granted the one-time session-key permission
+     *  used to submit collateral withdrawals with a single passkey tap. */
+    hasWithdrawApproval: boolean
+}
+
+export interface RainCardOverview {
+    status: RainCardApplicationStatus
+    balance: RainCardBalance | null
+    cards: RainCardSummary[]
+}
+
+/**
+ * Mirrors the backend `TransactionIntentKind` (legacy wire vocabulary).
+ * Drives history categorization for collateral webhooks.
+ */
+export type TransactionIntentKind =
+    | 'P2P_SEND'
+    | 'QR_PAY'
+    | 'LINK_CREATE'
+    | 'CRYPTO_WITHDRAW'
+    | 'FIAT_OFFRAMP'
+    | 'FIAT_ONRAMP'
+    | 'REQUEST_PAY'
+    | 'AUTO_REBALANCE'
+    | 'CARD_SPEND'
+    | 'DEPOSIT_EXTERNAL'
+    | 'OTHER'
+
+export interface PrepareRainWithdrawalInput {
+    amount: string // native units as decimal string (USDC cents: e.g. "500000" for $5.00 at 6dp)
+    recipientAddress: string
+    directTransfer: boolean
+    /** User-semantic kind — drives history categorization for the collateral webhook. */
+    kind: TransactionIntentKind
+    /** Total user-initiated spend in cents. For mixed strategy this differs from
+     *  `amount` (which is only the collateral shortfall). History shows this. */
+    totalAmountCents?: string
+}
+
+export interface PrepareRainWithdrawalResponse {
+    /** Short-lived intent id. Must be echoed back to `/submit`. */
+    preparationId: string
+    coordinatorAddress: string
+    collateralProxy: string
+    adminAddress: string
+    chainId: string
+    tokenAddress: string
+    amount: string
+    recipientAddress: string
+    directTransfer: boolean
+    adminSalt: string
+    adminNonce: string
+    executorSignature: string
+    executorSalt: string
+    expiresAt: number
+}
+
+export interface SubmitRainWithdrawalInput {
+    preparationId: string
+    amount: string
+    recipientAddress: string
+    directTransfer: boolean
+    adminSalt: string
+    adminNonce: string
+    adminSignature: string
+    executorSignature: string
+    executorSalt: string
+    expiresAt: number
+}
+
+export interface SubmitRainWithdrawalResponse {
+    txHash: string
 }
 
 // ─── Types for card management endpoints ────────────────────────────────────
@@ -151,38 +224,72 @@ async function rainRequest<T>(opts: RequestOpts): Promise<T> {
 export const rainApi = {
     /** Authoritative card-section state: status + balance + cards. */
     getOverview: async (): Promise<RainCardOverview> => {
-        const result = await getRainCardOverview()
-        if (result.error || !result.data) {
-            throw new Error(result.error || 'Failed to load card overview')
-        }
-        return result.data
+        return rainRequest<RainCardOverview>({ method: 'GET', path: '/rain/cards' })
     },
 
-    /** Stage a Rain withdrawal so the user can sign the admin EIP-712 payload. */
+    /**
+     * Shared session-key address the frontend needs to scope the permission
+     * grant to. Backend holds the private key; frontend only needs the
+     * address.
+     */
+    getSessionKeyAddress: async (): Promise<{ address: string }> => {
+        return rainRequest<{ address: string }>({ method: 'GET', path: '/rain/cards/session-key-address' })
+    },
+
+    /**
+     * Persist the serialized ZeroDev permission on the user's card so the
+     * backend can submit session-key UserOps for collateral withdrawals.
+     */
+    submitWithdrawSessionApproval: async (input: { serializedApproval: string }): Promise<void> => {
+        await rainRequest<{ ok: boolean }>({
+            method: 'POST',
+            path: '/rain/cards/withdraw/session-approve',
+            body: input,
+        })
+    },
+
+    /**
+     * Stage a Rain V2 withdrawal: backend fetches Rain's executor signature,
+     * reads the current adminNonce from the collateral proxy, and persists a
+     * short-lived prep record. Caller then signs the admin EIP-712 payload.
+     */
     prepareWithdrawal: async (input: PrepareRainWithdrawalInput): Promise<PrepareRainWithdrawalResponse> => {
-        const result = await prepareRainWithdrawal(input)
-        if (result.error || !result.data) {
-            throw new Error(result.error || 'Failed to prepare withdrawal')
-        }
-        return result.data
+        return rainRequest<PrepareRainWithdrawalResponse>({
+            method: 'POST',
+            path: '/rain/cards/withdraw/prepare',
+            body: input,
+        })
     },
 
-    /** Submit a prepared withdrawal with the user's admin signature. */
+    /**
+     * Submit a prepared withdrawal with the user's admin signature. Backend
+     * verifies via ERC-1271 against the user's kernel and broadcasts the
+     * coordinator call through the shared admin relayer.
+     */
     submitWithdrawal: async (input: SubmitRainWithdrawalInput): Promise<SubmitRainWithdrawalResponse> => {
-        const result = await submitRainWithdrawal(input)
-        if (result.error || !result.data) {
-            throw new Error(result.error || 'Failed to submit withdrawal')
-        }
-        return result.data
+        return rainRequest<SubmitRainWithdrawalResponse>({
+            method: 'POST',
+            path: '/rain/cards/withdraw/submit',
+            body: input,
+        })
     },
 
-    /** Stamp a client-submitted mixed-strategy UserOp with its on-chain tx hash. */
+    /**
+     * Stamp a client-submitted mixed-strategy UserOp with its on-chain tx
+     * hash so the Rain collateral webhook can reconcile against the right
+     * intent. Non-fatal on failure.
+     */
     stampWithdrawal: async (input: { preparationId: string; txHash: string }): Promise<void> => {
-        const result = await stampRainWithdrawal(input)
-        if (result.error) {
-            // Non-fatal: intent stays PENDING until expiry, no history categorization
-            // until then. Log loudly but don't block the user.
-            console.warn('[rainApi.stampWithdrawal] failed:', result.error)
+        try {
+            await rainRequest<{ ok: boolean }>({
+                method: 'POST',
+                path: '/rain/cards/withdraw/stamp',
+                body: input,
+            })
+        } catch (e) {
+            // Non-fatal: intent stays PENDING until expiry, no history
+            // categorization until then. Log loudly but don't block the user.
+            console.warn('[rainApi.stampWithdrawal] failed:', (e as Error).message)
         }
     },
 

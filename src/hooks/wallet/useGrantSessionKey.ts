@@ -15,7 +15,7 @@ import { createKernelAccount } from '@zerodev/sdk'
 import { getEntryPoint, KERNEL_V3_1 } from '@zerodev/sdk/constants'
 import { serializePermissionAccount } from '@zerodev/permissions'
 import { peanutPublicClient } from '@/app/actions/clients'
-import { getRainSessionKeyAddress, submitRainWithdrawSessionApproval } from '@/app/actions/rain'
+import { rainApi } from '@/services/rain'
 
 /**
  * One-time session-key grant for Rain card operations.
@@ -92,11 +92,13 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
             if (!card) return fail({ kind: 'no-card' })
             if (!collateralProxy || !coordinatorAddress) return fail({ kind: 'no-contracts' })
 
-            const sigKeyRes = await getRainSessionKeyAddress()
-            if (sigKeyRes.error || !sigKeyRes.data) {
-                return fail({ kind: 'session-key-unavailable', message: sigKeyRes.error ?? 'unknown' })
+            let sessionKeyAddress: Address
+            try {
+                const { address } = await rainApi.getSessionKeyAddress()
+                sessionKeyAddress = address as Address
+            } catch (e) {
+                return fail({ kind: 'session-key-unavailable', message: (e as Error).message })
             }
-            const sessionKeyAddress = sigKeyRes.data.address as Address
 
             // Single CallPolicy with BOTH allowed calls. Multiple policies in
             // `toPermissionValidator` are AND'd (a UserOp must satisfy every
@@ -154,9 +156,10 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
             })
 
             const serialized = await serializePermissionAccount(sessionKernelAccount)
-            const submitRes = await submitRainWithdrawSessionApproval({ serializedApproval: serialized })
-            if (submitRes.error) {
-                return fail({ kind: 'unexpected', message: submitRes.error })
+            try {
+                await rainApi.submitWithdrawSessionApproval({ serializedApproval: serialized })
+            } catch (e) {
+                return fail({ kind: 'unexpected', message: (e as Error).message })
             }
 
             // Flip the `hasWithdrawApproval` flag in UI by refetching overview.
