@@ -9,6 +9,7 @@ import CancelCardModal from '@/components/Card/CancelCardModal'
 import LockCardModal from '@/components/Card/LockCardModal'
 import { shouldShowAutoRenewBanner, daysUntilExpiry } from '@/components/Card/cardExpiry.utils'
 import { useCardReveal } from '@/hooks/useCardReveal'
+import { useWalletPlatform } from '@/hooks/useWalletPlatform'
 import { copyTextToClipboardWithFallback } from '@/utils/general.utils'
 import type { RainCardOverview, RainCardSummary } from '@/services/rain'
 
@@ -24,6 +25,9 @@ const YourCardScreen: FC<Props> = ({ card, onPrev }) => {
     const [autoRenewDismissed, setAutoRenewDismissed] = useState(false)
     const [action, setAction] = useQueryState('action', parseAsStringEnum<CardAction>(['lock', 'unlock', 'cancel']))
     const { revealed, isLoading: isRevealing, error: revealError, toggle } = useCardReveal({ cardId: card.id })
+    const walletPlatform = useWalletPlatform()
+    const walletLabel =
+        walletPlatform === 'android' ? 'Add to Google Wallet' : walletPlatform === 'ios' ? 'Add to Apple Wallet' : null
 
     const isLocked = card.status === 'LOCKED'
     const closeAction = () => void setAction(null)
@@ -79,7 +83,15 @@ const YourCardScreen: FC<Props> = ({ card, onPrev }) => {
                 <div>
                     <ProfileMenuItem icon="more-horizontal" label="Pin" href="/card/pin" position="first" />
                     <ProfileMenuItem icon="meter" label="Spending limit" href="/card/limit" position="middle" />
-                    <ProfileMenuItem icon="credit-card" label="Physical card" href="/card/physical" position="last" />
+                    <ProfileMenuItem
+                        icon="credit-card"
+                        label="Physical card"
+                        href="/card/physical"
+                        position={walletLabel ? 'middle' : 'last'}
+                    />
+                    {walletLabel && (
+                        <ProfileMenuItem icon="wallet" label={walletLabel} href="/card/add-to-wallet" position="last" />
+                    )}
                 </div>
             </div>
 
