@@ -4,7 +4,7 @@
  * At each step: screenshot + page metadata + console logs.
  */
 
-import { Page, TestInfo } from '@playwright/test'
+import type { Page, TestInfo } from '@playwright/test'
 import { writeFileSync } from 'fs'
 
 export interface CaptureOptions {

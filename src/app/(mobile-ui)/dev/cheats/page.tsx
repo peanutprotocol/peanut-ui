@@ -43,7 +43,7 @@ export default function DevCheatsPage() {
                 method,
                 headers: {
                     'content-type': 'application/json',
-                    'x-test-harness-secret': harnessSecret,
+                    'x-test-harness-secret': harnessSecret || '',
                 },
                 body: method === 'POST' && body ? JSON.stringify(body) : undefined,
             })

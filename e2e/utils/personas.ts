@@ -11,7 +11,7 @@
  * the right persona instead of faking it.
  */
 
-import { BrowserContext } from '@playwright/test'
+import type { BrowserContext } from '@playwright/test'
 import * as fs from 'fs'
 import * as path from 'path'
 

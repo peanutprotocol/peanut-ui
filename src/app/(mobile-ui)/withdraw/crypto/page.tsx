@@ -131,7 +131,7 @@ export default function WithdrawCryptoPage() {
             calculateRoute({
                 source: {
                     address: address as Address,
-                    tokenAddress: PEANUT_WALLET_TOKEN,
+                    tokenAddress: PEANUT_WALLET_TOKEN as Address,
                     chainId: PEANUT_WALLET_CHAIN.id.toString(),
                 },
                 destination: {
@@ -279,7 +279,7 @@ export default function WithdrawCryptoPage() {
                 chargeId: chargeDetails.uuid,
                 chainId: PEANUT_WALLET_CHAIN.id.toString(),
                 txHash: finalTxHash,
-                tokenAddress: PEANUT_WALLET_TOKEN,
+                tokenAddress: PEANUT_WALLET_TOKEN as Address,
                 payerAddress: address as Address,
                 squidQuoteId: xChainRoute?.rawResponse?.route?.quoteId,
             })
@@ -325,7 +325,7 @@ export default function WithdrawCryptoPage() {
         await calculateRoute({
             source: {
                 address: address as Address,
-                tokenAddress: PEANUT_WALLET_TOKEN,
+                tokenAddress: PEANUT_WALLET_TOKEN as Address,
                 chainId: PEANUT_WALLET_CHAIN.id.toString(),
             },
             destination: {

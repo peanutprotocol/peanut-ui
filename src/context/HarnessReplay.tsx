@@ -85,7 +85,7 @@ function accessibleName(el: HTMLElement): string {
 }
 
 /** Match `button` / `link` / `textbox` whose accessible name matches. */
-function findByRole(role: Action extends { type: 'click-role'; role: infer R } ? R : never, nameRegex: RegExp): HTMLElement | null {
+function findByRole(role: 'button' | 'link' | 'textbox', nameRegex: RegExp): HTMLElement | null {
     const selectors: Record<string, string> = {
         button: 'button, [role="button"], input[type="button"], input[type="submit"]',
         link: 'a, [role="link"]',

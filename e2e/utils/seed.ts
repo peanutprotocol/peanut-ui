@@ -5,7 +5,7 @@
  * and provides helpers for authenticating as seeded users.
  */
 
-import { BrowserContext } from '@playwright/test'
+import type { BrowserContext } from '@playwright/test'
 
 const API_BASE = process.env.API_BASE_URL || 'http://localhost:5000'
 const HARNESS_SECRET = process.env.TEST_HARNESS_SECRET || 'local-harness-secret-long-enough-32ch'

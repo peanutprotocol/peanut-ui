@@ -887,6 +887,7 @@ describe('GROUP 3: Crypto Deposit', () => {
                     depositAddress: '0x1234567890abcdef1234567890abcdef12345678',
                     minDepositLimitUsd: 5,
                     maxDepositLimitUsd: 10000,
+                    supportedChains: [],
                 }}
                 isLoading={false}
                 onSuccess={jest.fn()}
@@ -915,6 +916,7 @@ describe('GROUP 3: Crypto Deposit', () => {
                     depositAddress: '0x1234567890abcdef',
                     minDepositLimitUsd: 5,
                     maxDepositLimitUsd: 10000,
+                    supportedChains: [],
                 }}
                 isLoading={false}
                 onSuccess={jest.fn()}
@@ -941,6 +943,7 @@ describe('GROUP 3: Crypto Deposit', () => {
                     depositAddress: '0x1234567890abcdef',
                     minDepositLimitUsd: 5,
                     maxDepositLimitUsd: 10000,
+                    supportedChains: [],
                 }}
                 isLoading={false}
                 onSuccess={jest.fn()}
@@ -969,6 +972,7 @@ describe('GROUP 3: Crypto Deposit', () => {
                     depositAddress: '0x1234567890abcdef',
                     minDepositLimitUsd: 5,
                     maxDepositLimitUsd: 10000,
+                    supportedChains: [],
                 }}
                 isLoading={false}
                 onSuccess={jest.fn()}
@@ -994,6 +998,7 @@ describe('GROUP 3: Crypto Deposit', () => {
                     depositAddress: '0x1234567890abcdef',
                     minDepositLimitUsd: 5,
                     maxDepositLimitUsd: 10000,
+                    supportedChains: [],
                 }}
                 isLoading={false}
                 onSuccess={jest.fn()}

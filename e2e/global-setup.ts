@@ -11,7 +11,8 @@
  *   npx tsx e2e/scripts/bootstrap-auth.ts
  */
 
-import { chromium, FullConfig } from '@playwright/test'
+import { chromium } from '@playwright/test'
+import type { FullConfig } from '@playwright/test'
 import * as fs from 'fs'
 import * as path from 'path'
 import { createAllPersonas } from './utils/personas'

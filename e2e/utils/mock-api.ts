@@ -8,7 +8,7 @@
  * Mock shapes validated against production (peanut.me) on 2026-04-16.
  */
 
-import { Page, Route } from '@playwright/test'
+import type { Page, Route } from '@playwright/test'
 
 // ---------------------------------------------------------------------------
 // Mock data
