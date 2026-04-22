@@ -2,7 +2,7 @@
 import { type FC, useEffect, useMemo, useState, useCallback } from 'react'
 import MantecaDepositShareDetails from '@/components/AddMoney/components/MantecaDepositShareDetails'
 import InputAmountStep from '@/components/AddMoney/components/InputAmountStep'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import { type CountryData, countryData } from '@/components/AddMoney/consts'
 import { type MantecaDepositResponseData } from '@/types/manteca.types'
 import { useCurrency } from '@/hooks/useCurrency'
@@ -30,6 +30,7 @@ type CurrencyDenomination = 'USD' | 'ARS' | 'BRL' | 'MXN' | 'EUR'
 
 const MantecaAddMoney: FC = () => {
     const params = useParams()
+    const searchParams = useSearchParams()
     const queryClient = useQueryClient()
 
     // URL state - persisted in query params
@@ -59,7 +60,8 @@ const MantecaAddMoney: FC = () => {
     const [error, setError] = useState<string | null>(null)
     const [depositDetails, setDepositDetails] = useState<MantecaDepositResponseData>()
 
-    const selectedCountryPath = params.country as string
+    // path params (web) or query params (native static export)
+    const selectedCountryPath = (params.country as string) || searchParams.get('country') || ''
     const selectedCountry = useMemo(() => {
         return countryData.find((country) => country.type === 'country' && country.path === selectedCountryPath)
     }, [selectedCountryPath])
