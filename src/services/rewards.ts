@@ -1,6 +1,6 @@
+import { getAuthToken } from '@/utils/auth-token'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { type RewardLink } from './services.types'
-import Cookies from 'js-cookie'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 
 export const rewardsApi = {
@@ -9,7 +9,7 @@ export const rewardsApi = {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+                Authorization: `Bearer ${getAuthToken()}`,
             },
         })
         if (!response.ok) {

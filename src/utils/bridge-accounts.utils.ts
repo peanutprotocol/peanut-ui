@@ -2,6 +2,7 @@ import { supportedBridgeTokensDictionary, supportedBridgeChainsDictionary } from
 import { areEvmAddressesEqual } from '@/utils/general.utils'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { isIBAN } from 'validator'
+import { apiFetch } from '@/utils/api-fetch'
 
 const ALLOWED_PARENT_DOMAINS = ['intersend.io', 'app.intersend.io']
 
@@ -55,14 +56,9 @@ export function getBridgeChainName(chainId: string): string | undefined {
 
 export async function validateBankAccount(bankAccount: string): Promise<boolean> {
     const bankAccountNumber = bankAccount.replace(/\s/g, '')
-    const response = await fetchWithSentry(`/api/peanut/iban/validate-bank-account-number`, {
+    const response = await apiFetch('/validate-bank-account-number', '/api/peanut/iban/validate-bank-account-number', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            bankAccountNumber,
-        }),
+        body: JSON.stringify({ bankAccountNumber }),
     })
 
     if (response.status !== 200) {
@@ -73,14 +69,9 @@ export async function validateBankAccount(bankAccount: string): Promise<boolean>
 }
 
 export async function validateBic(bic: string): Promise<boolean> {
-    const response = await fetchWithSentry(`/api/peanut/iban/validate-bic`, {
+    const response = await apiFetch('/is-valid-bic', '/api/peanut/iban/validate-bic', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            bic,
-        }),
+        body: JSON.stringify({ bic }),
     })
 
     if (response.status !== 200) {

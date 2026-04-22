@@ -2,6 +2,7 @@ import { Button, type ButtonProps } from '@/components/0_Bruddle/Button'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
+import { isCapacitor } from '@/utils/capacitor'
 
 interface SumsubKycFlowProps extends ButtonProps {
     onKycSuccess?: () => void
@@ -9,12 +10,8 @@ interface SumsubKycFlowProps extends ButtonProps {
     regionIntent?: KYCRegionIntent
 }
 
-/**
- * entry point for the kyc flow.
- * renders a button that initiates kyc, the sumsub sdk wrapper modal,
- * and a multi-phase verification modal that handles:
- *   verifying → preparing → bridge_tos (if applicable) → complete
- */
+// entry point for kyc. delegates to useMultiPhaseKycFlow which handles
+// both web (sumsub web sdk) and native (sumsub cordova plugin) paths.
 export const SumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent, ...buttonProps }: SumsubKycFlowProps) => {
     const flow = useMultiPhaseKycFlow({ onKycSuccess, onManualClose, regionIntent })
 
@@ -26,7 +23,7 @@ export const SumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent, ...bu
 
             {flow.error && <p className="text-red-500 mt-2 text-sm">{flow.error}</p>}
 
-            <SumsubKycModals flow={flow} />
+            {!isCapacitor() && <SumsubKycModals flow={flow} />}
         </>
     )
 }

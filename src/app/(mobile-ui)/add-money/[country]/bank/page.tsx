@@ -12,7 +12,7 @@ import { countryData } from '@/components/AddMoney/consts'
 import { useAuth } from '@/context/authContext'
 import useKycStatus from '@/hooks/useKycStatus'
 import { useCreateOnramp } from '@/hooks/useCreateOnramp'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import countryCurrencyMappings, { isNonEuroSepaCountry, isUKCountry } from '@/constants/countryCurrencyMapping'
 import { formatUnits } from 'viem'
@@ -34,6 +34,7 @@ import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { addMoneyCountryUrl } from '@/utils/native-routes'
 
 // Step type for URL state
 type BridgeBankStep = 'inputAmount' | 'showDetails'
@@ -41,6 +42,7 @@ type BridgeBankStep = 'inputAmount' | 'showDetails'
 export default function OnrampBankPage() {
     const router = useRouter()
     const params = useParams()
+    const _searchParams = useSearchParams()
 
     // URL state - persisted in query params
     // Example: /add-money/mexico/bank?step=inputAmount&amount=500
@@ -74,7 +76,8 @@ export default function OnrampBankPage() {
         },
     })
 
-    const selectedCountryPath = params.country as string
+    // read country from path params (web) or query params (native/capacitor)
+    const selectedCountryPath = (params.country as string) || _searchParams.get('country') || ''
 
     const selectedCountry = useMemo(() => {
         if (!selectedCountryPath) return null
@@ -266,7 +269,7 @@ export default function OnrampBankPage() {
 
     const handleBack = () => {
         if (selectedCountry) {
-            router.push(`/add-money/${selectedCountry.path}`)
+            router.push(addMoneyCountryUrl(selectedCountry.path))
         } else {
             router.push('/add-money')
         }

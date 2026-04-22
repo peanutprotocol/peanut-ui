@@ -1,6 +1,7 @@
 node_modules/
 .next/
 .out/
+android/
 pnpm-lock.yaml
 **.md
 src/assets/

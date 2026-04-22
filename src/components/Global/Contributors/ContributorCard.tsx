@@ -9,6 +9,7 @@ import { formatTokenAmount } from '@/utils/general.utils'
 import { isAddress } from 'viem'
 import { useRouter } from 'next/navigation'
 import { twMerge } from 'tailwind-merge'
+import { profileUrl } from '@/utils/native-routes'
 
 export type Contributor = {
     uuid: string
@@ -32,7 +33,7 @@ const ContributorCard = ({ contributor, position }: { contributor: Contributor; 
                 <div
                     onClick={() => {
                         if (contributor.isPeanutUser) {
-                            router.push(`/${contributor.username}`)
+                            router.push(profileUrl(contributor.username!))
                         }
                     }}
                     className={twMerge('flex items-center gap-2', contributor.isPeanutUser && 'cursor-pointer')}

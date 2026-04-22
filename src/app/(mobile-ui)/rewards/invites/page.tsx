@@ -21,6 +21,7 @@ import { useCountUp } from '@/hooks/useCountUp'
 import { useInView } from 'framer-motion'
 import { useRef } from 'react'
 import InviteePointsBadge from '@/components/Points/InviteePointsBadge'
+import { profileUrl } from '@/utils/native-routes'
 
 const InvitesPage = () => {
     const router = useRouter()
@@ -109,7 +110,7 @@ const InvitesPage = () => {
                             <Card
                                 key={invite.inviteeId}
                                 position={getCardPosition(i, invites.invitees.length)}
-                                onClick={() => router.push(`/${username}`)}
+                                onClick={() => router.push(profileUrl(username))}
                                 className="cursor-pointer"
                             >
                                 <div className="flex items-center justify-between gap-4">

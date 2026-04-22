@@ -1,3 +1,4 @@
+import { getAuthToken } from '@/utils/auth-token'
 import {
     PEANUT_WALLET_CHAIN,
     PEANUT_WALLET_TOKEN,
@@ -10,8 +11,7 @@ import { fetchWithSentry } from '@/utils/sentry.utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { chargesApi } from './charges'
 import { type TCharge } from './services.types'
-import Cookies from 'js-cookie'
-import { PEANUT_API_URL } from '@/constants/general.consts'
+import { PEANUT_API_URL, BASE_URL } from '@/constants/general.consts'
 
 type ApiAccount = {
     identifier: string
@@ -51,7 +51,7 @@ export const usersApi = {
         const response = await fetchWithSentry(`${PEANUT_API_URL}/users/username/${username}`, {
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+                Authorization: `Bearer ${getAuthToken()}`,
             },
         })
         return await response.json()
@@ -63,7 +63,7 @@ export const usersApi = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+                Authorization: `Bearer ${getAuthToken()}`,
             },
             body: JSON.stringify({ userIds }),
         })
@@ -84,7 +84,7 @@ export const usersApi = {
         return chargesApi.create({
             pricing_type: 'fixed_price',
             local_price: { amount, currency: 'USD' },
-            baseUrl: window.location.origin,
+            baseUrl: BASE_URL,
             requestId: undefined,
             requestProps: {
                 chainId: PEANUT_WALLET_CHAIN.id.toString(),

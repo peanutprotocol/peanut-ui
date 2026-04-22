@@ -36,5 +36,5 @@
         "src/app/api/appleAppSiteAssociation.js",
         ".next/dev/types/**/*.ts"
     ],
-    "exclude": ["node_modules", "src/app/sw.ts", ".next"]
+    "exclude": ["node_modules", "src/app/sw.ts", ".next", "capacitor.config.ts"]
 }

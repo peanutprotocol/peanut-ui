@@ -1,26 +1,16 @@
-'use server'
-
 import { type ApiUser } from '@/services/users'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { type AddBankAccountPayload, BridgeEndorsementType, type InitiateKycResponse } from './types/users.types'
 import { type User } from '@/interfaces'
 import { type ContactsResponse } from '@/interfaces'
 import { PEANUT_API_URL } from '@/constants/general.consts'
-import { getJWTCookie } from '@/utils/cookie-migration.utils'
-
-const API_KEY = process.env.PEANUT_API_KEY!
+import { getAuthHeaders } from '@/utils/auth-token'
 
 export const updateUserById = async (payload: Record<string, any>): Promise<{ data?: ApiUser; error?: string }> => {
-    const jwtToken = (await getJWTCookie())?.value
-
     try {
         const response = await fetchWithSentry(`${PEANUT_API_URL}/update-user`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${jwtToken}`,
-                'api-key': API_KEY,
-            },
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify(payload),
         })
 
@@ -38,15 +28,10 @@ export const updateUserById = async (payload: Record<string, any>): Promise<{ da
 export const getKycDetails = async (params?: {
     endorsements: BridgeEndorsementType[]
 }): Promise<{ data?: InitiateKycResponse; error?: string }> => {
-    const jwtToken = (await getJWTCookie())?.value
     try {
         const response = await fetchWithSentry(`${PEANUT_API_URL}/users/initiate-kyc`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${jwtToken}`,
-                'api-key': API_KEY,
-            },
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify(params || {}),
         })
 
@@ -66,16 +51,10 @@ export const getKycDetails = async (params?: {
 }
 
 export const addBankAccount = async (payload: AddBankAccountPayload): Promise<{ data?: any; error?: string }> => {
-    const jwtToken = (await getJWTCookie())?.value
-
     try {
         const response = await fetchWithSentry(`${PEANUT_API_URL}/users/accounts`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${jwtToken}`,
-                'api-key': API_KEY,
-            },
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify(payload),
         })
 
@@ -98,10 +77,7 @@ export async function getUserById(userId: string): Promise<User | null> {
     try {
         const response = await fetchWithSentry(`${PEANUT_API_URL}/users/${userId}`, {
             method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'api-key': API_KEY,
-            },
+            headers: getAuthHeaders(),
         })
 
         if (!response.ok) {
@@ -123,12 +99,6 @@ export async function getContacts(params: {
     offset: number
     search?: string
 }): Promise<{ data?: ContactsResponse; error?: string }> {
-    const jwtToken = (await getJWTCookie())?.value
-
-    if (!jwtToken) {
-        throw new Error('Not authenticated')
-    }
-
     try {
         const queryParams = new URLSearchParams({
             limit: params.limit.toString(),
@@ -142,11 +112,7 @@ export async function getContacts(params: {
 
         const response = await fetchWithSentry(`${PEANUT_API_URL}/users/contacts?${queryParams}`, {
             method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'api-key': API_KEY,
-                Authorization: `Bearer ${jwtToken}`,
-            },
+            headers: getAuthHeaders(),
         })
 
         if (!response.ok) {
@@ -163,15 +129,10 @@ export async function getContacts(params: {
 
 // fetch bridge ToS acceptance link for users with pending ToS
 export const getBridgeTosLink = async (): Promise<{ data?: { tosLink: string }; error?: string }> => {
-    const jwtToken = (await getJWTCookie())?.value
     try {
         const response = await fetchWithSentry(`${PEANUT_API_URL}/users/bridge-tos-link`, {
             method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${jwtToken}`,
-                'api-key': API_KEY,
-            },
+            headers: getAuthHeaders(),
         })
         const responseJson = await response.json()
         if (!response.ok) {
@@ -185,15 +146,10 @@ export const getBridgeTosLink = async (): Promise<{ data?: { tosLink: string }; 
 
 // confirm bridge ToS acceptance after user closes the ToS iframe
 export const confirmBridgeTos = async (): Promise<{ data?: { accepted: boolean }; error?: string }> => {
-    const jwtToken = (await getJWTCookie())?.value
     try {
         const response = await fetchWithSentry(`${PEANUT_API_URL}/users/bridge-tos-confirm`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${jwtToken}`,
-                'api-key': API_KEY,
-            },
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify({}),
         })
         const responseJson = await response.json()

@@ -6,6 +6,8 @@ import { useSearchParams } from 'next/navigation'
 import { getRequestLink } from '@/utils/general.utils'
 import { useRouter } from 'next/navigation'
 import { chargesApi } from '@/services/charges'
+import { isCapacitor } from '@/utils/capacitor'
+import { requestPotUrl } from '@/utils/native-routes'
 
 export const PayRequestLink = () => {
     const searchParams = useSearchParams()
@@ -14,13 +16,17 @@ export const PayRequestLink = () => {
     const checkRequestLink = async (uuid: string) => {
         try {
             const charge = await chargesApi.get(uuid)
-            const link = getRequestLink({
-                ...charge.requestLink,
-                chainId: charge.chainId,
-                tokenAmount: charge.tokenAmount,
-                tokenSymbol: charge.tokenSymbol,
-            })
-            router.push(link)
+            if (isCapacitor()) {
+                router.push(requestPotUrl(uuid))
+            } else {
+                const link = getRequestLink({
+                    ...charge.requestLink,
+                    chainId: charge.chainId,
+                    tokenAmount: charge.tokenAmount,
+                    tokenSymbol: charge.tokenSymbol,
+                })
+                router.push(link)
+            }
             return
         } catch (e) {
             router.push('/404')

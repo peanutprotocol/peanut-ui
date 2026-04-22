@@ -21,6 +21,7 @@ import { EQrType, NAME_BY_QR_TYPE, parseEip681, recognizeQr } from './utils'
 import { pixKeyToBRCode } from '@/utils/pix.utils'
 import { useHaptic } from 'use-haptic'
 import { useModalsContext } from '@/context/ModalsContext'
+import { openExternalUrl } from '@/utils/capacitor'
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL!
 
@@ -132,7 +133,7 @@ function ExternalUrlContent({ redirectTo, setIsModalOpen }: ModalContentProps) {
             <div className="flex items-center justify-center gap-2">
                 <Button
                     onClick={() => {
-                        window.open(redirectTo, '_system')
+                        if (redirectTo) openExternalUrl(redirectTo)
                         setTimeout(() => {
                             setIsModalOpen(false)
                         }, 750)

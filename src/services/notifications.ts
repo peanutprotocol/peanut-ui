@@ -1,4 +1,4 @@
-import Cookies from 'js-cookie'
+import { getAuthToken } from '@/utils/auth-token'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 
 export type InAppItem = {
@@ -26,7 +26,7 @@ export const notificationsApi = {
         if (cursor) search.set('cursor', cursor)
         if (category) search.set('category', category)
 
-        const token = Cookies.get('jwt-token')
+        const token = getAuthToken()
         const url = `${PEANUT_API_URL}/notifications?${search.toString()}`
 
         try {
@@ -47,7 +47,7 @@ export const notificationsApi = {
         const response = await fetch(`${PEANUT_API_URL}/notifications/unread-count`, {
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+                Authorization: `Bearer ${getAuthToken()}`,
             },
         })
         if (!response.ok) throw new Error('failed to fetch unread count')
@@ -59,7 +59,7 @@ export const notificationsApi = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+                Authorization: `Bearer ${getAuthToken()}`,
             },
             body: JSON.stringify({ ids }),
         })

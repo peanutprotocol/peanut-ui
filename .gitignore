@@ -74,9 +74,17 @@ public/swe-worker*
 
 .idea
 
-# mobile POC
-android/
+# mobile — android/ is tracked (native app source code)
+# build artifacts are handled by android/.gitignore
 .claude/
 
 # AI tool worktrees
 .claude/worktrees/
+
+# native app signing
+*.keystore
+keystore.properties
+.env.production.local
+
+# capgo ota signing key
+.capgo_key_v2

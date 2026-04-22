@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Peanut</string>
+    <string name="title_activity_main">Peanut</string>
+    <string name="package_name">me.peanut.app</string>
+    <string name="custom_url_scheme">me.peanut.app</string>
+</resources>

@@ -9,9 +9,9 @@ import { useSearchParams } from 'next/navigation'
 import { usePasskeySupportContext } from '@/context/passkeySupportContext'
 
 export const inAppSignatures = [
-    'WebView',
-    '(iPhone|iPod|iPad)(?!.*Safari\\/)', // iOS WebView
-    'Android.*wv', // Android WebView
+    // removed 'WebView' and 'Android.*wv' — too broad, matches capacitor's webview
+    // specific app signatures below catch the actual problem apps
+    '(iPhone|iPod|iPad)(?!.*Safari\\/)', // iOS WebView (non-safari)
     'FBAN', // Facebook App
     'FBAV', // Facebook App
     'Instagram', // Instagram App

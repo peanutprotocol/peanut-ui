@@ -1,12 +1,9 @@
-'use server'
-
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { type CountryData } from '@/components/AddMoney/consts'
 import { getCurrencyConfig } from '@/utils/bridge.utils'
 import { getCurrencyPrice } from '@/app/actions/currency'
-import { getJWTCookie } from '@/utils/cookie-migration.utils'
-
-const API_KEY = process.env.PEANUT_API_KEY!
+import { PEANUT_API_URL } from '@/constants/general.consts'
+import { getAuthHeaders } from '@/utils/auth-token'
 
 export interface CreateOnrampGuestParams {
     amount: string
@@ -16,7 +13,7 @@ export interface CreateOnrampGuestParams {
 }
 
 /**
- * Server Action to cancel an on-ramp transfer.
+ * Cancel an on-ramp transfer.
  *
  * calls the `/bridge/onramp/:transferId/cancel` API endpoint to cancel the transfer
  * and returns the success status or error message.
@@ -25,27 +22,10 @@ export interface CreateOnrampGuestParams {
  * @returns An object containing either the successful response data or an error.
  */
 export async function cancelOnramp(transferId: string): Promise<{ data?: { success: boolean }; error?: string }> {
-    const apiUrl = process.env.PEANUT_API_URL
-
-    if (!apiUrl || !API_KEY) {
-        console.error('API URL or API Key is not configured.')
-        return { error: 'Server configuration error.' }
-    }
-
     try {
-        const jwtToken = (await getJWTCookie())?.value
-
-        if (!jwtToken) {
-            return { error: 'Authentication token not found.' }
-        }
-
-        const response = await fetchWithSentry(`${apiUrl}/bridge/onramp/${transferId}/cancel`, {
+        const response = await fetchWithSentry(`${PEANUT_API_URL}/bridge/onramp/${transferId}/cancel`, {
             method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${jwtToken}`,
-                'api-key': API_KEY,
-            },
+            headers: getAuthHeaders(),
         })
 
         if (!response.ok) {
@@ -66,24 +46,14 @@ export async function cancelOnramp(transferId: string): Promise<{ data?: { succe
 export async function createOnrampForGuest(
     params: CreateOnrampGuestParams
 ): Promise<{ data?: { success: boolean }; error?: string }> {
-    const apiUrl = process.env.PEANUT_API_URL
-
-    if (!apiUrl || !API_KEY) {
-        console.error('API URL or API Key is not configured.')
-        return { error: 'Server configuration error.' }
-    }
-
     try {
         const { currency, paymentRail } = getCurrencyConfig(params.country.id, 'onramp')
         const price = await getCurrencyPrice(currency)
         const amount = (Number(params.amount) * price.buy).toFixed(2)
 
-        const response = await fetchWithSentry(`${apiUrl}/bridge/onramp/create-for-guest`, {
+        const response = await fetchWithSentry(`${PEANUT_API_URL}/bridge/onramp/create-for-guest`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'api-key': API_KEY,
-            },
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify({
                 amount,
                 userId: params.userId,

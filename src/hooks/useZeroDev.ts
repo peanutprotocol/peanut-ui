@@ -15,6 +15,7 @@ import { captureException } from '@sentry/nextjs'
 import { invitesApi } from '@/services/invites'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { isCapacitor, getNativeRpId } from '@/utils/capacitor'
 
 // types
 type UserOpEncodedParams = {
@@ -72,12 +73,24 @@ export const useZeroDev = () => {
 
         dispatch(zerodevActions.setIsRegistering(true))
         try {
+            const rpId = isCapacitor() ? getNativeRpId() : window.location.hostname.replace(/^www\./, '')
+            console.log(
+                '[useZeroDev] register rpId:',
+                rpId,
+                'isCapacitor:',
+                isCapacitor(),
+                'serverUrl:',
+                consts.PASSKEY_SERVER_URL
+            )
+
+            // @capgo/capacitor-passkey shim patches navigator.credentials on native,
+            // so toWebAuthnKey works on all platforms (web, android, ios).
             const webAuthnKey = await toWebAuthnKey({
                 passkeyName: _getPasskeyName(username),
                 passkeyServerUrl: consts.PASSKEY_SERVER_URL as string,
                 mode: WebAuthnMode.Register,
                 passkeyServerHeaders: {},
-                rpID: window.location.hostname.replace(/^www\./, ''),
+                rpID: rpId,
             })
 
             const inviteCodeFromCookie = getFromCookie('inviteCode')
@@ -123,7 +136,9 @@ export const useZeroDev = () => {
             if ((e as Error).message.includes('pending')) {
                 return
             }
-            console.error('Error registering passkey', e)
+            const err = e as Error
+            console.error('[useZeroDev] registration failed:', err.name, err.message, err)
+            console.error('[useZeroDev] shim installed:', (globalThis as any).__capgoPasskeyShimInstalled)
             dispatch(zerodevActions.setIsRegistering(false))
             throw e
         }
@@ -139,12 +154,14 @@ export const useZeroDev = () => {
                 passkeyServerHeaders['x-username'] = user.user.username
             }
 
+            const rpId = isCapacitor() ? getNativeRpId() : window.location.hostname.replace(/^www\./, '')
+
             const webAuthnKey = await toWebAuthnKey({
                 passkeyName: '[]',
                 passkeyServerUrl: consts.PASSKEY_SERVER_URL as string,
                 mode: WebAuthnMode.Login,
                 passkeyServerHeaders,
-                rpID: window.location.hostname.replace(/^www\./, ''),
+                rpID: rpId,
             })
 
             setWebAuthnKey(webAuthnKey)

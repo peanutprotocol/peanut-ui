@@ -168,7 +168,7 @@ export const useCreateLink = () => {
                 payload: payload,
                 signature: signature,
                 baseUrl: `${next_proxy_url}/deposit-3009`,
-                APIKey: 'doesnt-matter',
+                APIKey: '',
             })
             return response.txHash
         } catch (error) {

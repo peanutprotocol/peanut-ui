@@ -1,8 +1,11 @@
 import { inAppSignatures } from '../Global/UnsupportedBrowserModal'
+import { isCapacitor } from '@/utils/capacitor'
 
 // checks user agent against a list of known in-app browser signatures
 export const isLikelyWebview = () => {
     if (typeof navigator === 'undefined') return false
+    // capacitor webview is intentional — not an in-app browser
+    if (isCapacitor()) return false
     const uaString = navigator.userAgent || navigator.vendor || (window as any).opera
     // pwps running in standalone mode are not considered webviews
     if (typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches) {

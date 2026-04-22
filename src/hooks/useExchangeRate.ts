@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useDebounce } from './useDebounce'
 import { useQuery } from '@tanstack/react-query'
+import { isCapacitor } from '@/utils/capacitor'
+import { getCurrencyPrice } from '@/app/actions/currency'
 
 type InputValue = number | ''
 
@@ -84,6 +86,25 @@ export function useExchangeRate({
     } = useQuery<{ rate: number }>({
         queryKey: ['exchangeRate', sourceCurrency, destinationCurrency],
         queryFn: async () => {
+            if (isCapacitor()) {
+                // in capacitor, no /api/ route exists. use getCurrencyPrice (client-side)
+                // and frankfurter as fallback — same logic as the next.js api route
+                const from = sourceCurrency.toUpperCase()
+                const to = destinationCurrency.toUpperCase()
+                if (from === to) return { rate: 1 }
+                try {
+                    const price = await getCurrencyPrice(from === 'USD' ? to : from)
+                    const rate = from === 'USD' ? price.sell : 1 / price.buy
+                    if (isFinite(rate) && rate > 0) return { rate }
+                } catch {}
+                // fallback to frankfurter (public api)
+                const res = await fetch(`https://api.frankfurter.app/latest?from=${from}&to=${to}`)
+                if (res.ok) {
+                    const data = await res.json()
+                    return { rate: data.rates[to] * 0.995 }
+                }
+                throw new Error('Failed to fetch exchange rate')
+            }
             const res = await fetch(`/api/exchange-rate?from=${sourceCurrency}&to=${destinationCurrency}`)
             if (!res.ok) throw new Error('Failed to fetch exchange rate')
             return res.json()

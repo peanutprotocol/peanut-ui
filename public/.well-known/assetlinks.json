@@ -1,19 +1,5 @@
 [
     {
-        "relation": ["delegate_permission/common.query_webapk"],
-        "target": {
-            "namespace": "web",
-            "site": "https://peanut.me/manifest.webmanifest"
-        }
-    },
-    {
-        "relation": ["delegate_permission/common.handle_all_urls"],
-        "target": {
-            "namespace": "web",
-            "site": "https://peanut.me"
-        }
-    },
-    {
         "relation": ["delegate_permission/common.handle_all_urls", "delegate_permission/common.get_login_creds"],
         "target": {
             "namespace": "android_app",

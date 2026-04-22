@@ -1,5 +1,5 @@
+import { getAuthToken } from '@/utils/auth-token'
 import { fetchWithSentry } from '@/utils/sentry.utils'
-import Cookies from 'js-cookie'
 import type { Address } from 'viem'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 
@@ -56,7 +56,7 @@ export const simplefiApi = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+                Authorization: `Bearer ${getAuthToken()}`,
             },
             body: JSON.stringify(data),
         })

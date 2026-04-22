@@ -11,6 +11,7 @@ import ShareButton from '@/components/Global/ShareButton'
 import AmountInput from '@/components/Global/AmountInput'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
+import { BASE_URL } from '@/constants/general.consts'
 import * as context from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -99,9 +100,7 @@ export const CreateRequestLinkView = () => {
     const qrCodeLink = useMemo(() => {
         if (generatedLink) return generatedLink
 
-        return `${window.location.origin}${
-            tokenValue ? `/${user?.user.username}/${tokenValue}USDC` : `/send/${user?.user.username}`
-        }`
+        return `${BASE_URL}${tokenValue ? `/${user?.user.username}/${tokenValue}USDC` : `/send/${user?.user.username}`}`
     }, [user?.user.username, tokenValue, generatedLink])
 
     const createRequestLink = useCallback(

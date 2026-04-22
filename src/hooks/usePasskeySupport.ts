@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { browserSupportsWebAuthn } from '@simplewebauthn/browser'
+import { isCapacitor } from '@/utils/capacitor'
 
 export interface PasskeySupportResult {
     isSupported: boolean
@@ -30,6 +31,15 @@ export function usePasskeySupport(): PasskeySupportResult {
         setError(null)
 
         try {
+            // in capacitor, passkeys are handled natively (android via plugin, ios via WKWebView)
+            // skip browser-level checks since they may report false negatives in a webview
+            if (isCapacitor()) {
+                setBrowserSupported(true)
+                setConditionalMediationSupported(true)
+                setIsSupported(true)
+                return
+            }
+
             // Check basic WebAuthn support first
             const basicWebAuthnSupport = browserSupportsWebAuthn()
             setBrowserSupported(basicWebAuthnSupport)
