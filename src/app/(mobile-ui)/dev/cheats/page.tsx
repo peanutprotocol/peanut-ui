@@ -15,7 +15,7 @@
 
 import { useState } from 'react'
 import NavHeader from '@/components/Global/NavHeader'
-import { Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle/Button'
 import { useAuth } from '@/context/authContext'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 
