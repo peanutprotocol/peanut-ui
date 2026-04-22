@@ -2,7 +2,8 @@
 
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { useAuth } from '@/context/authContext'
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
+import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { useNotifications } from './useNotifications'
 import { useRouter } from 'next/navigation'
 import useKycStatus from './useKycStatus'
@@ -34,9 +35,15 @@ export type CarouselCTA = {
     isPerkClaim?: boolean
 }
 
+const getDismissedCTAs = (userId: string | undefined): Set<string> => {
+    const dismissed = getUserPreferences(userId)?.dismissedCarouselCTAs
+    return new Set(dismissed ?? [])
+}
+
 export const useHomeCarouselCTAs = () => {
     const [carouselCTAs, setCarouselCTAs] = useState<CarouselCTA[]>([])
     const { user } = useAuth()
+    const dismissedRef = useRef<Set<string>>(new Set())
     const { requestPermission, afterPermissionAttempt, isPermissionDenied, isPermissionGranted } = useNotifications()
     const router = useRouter()
     const { isUserKycApproved, isUserBridgeKycUnderReview, isUserMantecaKycApproved } = useKycStatus()
@@ -52,6 +59,22 @@ export const useHomeCarouselCTAs = () => {
         isLoading: isCardPioneerLoading,
     } = useCardPioneerInfo()
     const { isActivated } = useActivationStatus()
+
+    // ctas gated by conditions that can change (e.g. permission state) should not be permanently dismissed
+    const TRANSIENT_CTA_IDS = new Set(['notification-prompt'])
+
+    const dismissCTA = useCallback(
+        (ctaId: string) => {
+            dismissedRef.current.add(ctaId)
+            if (!TRANSIENT_CTA_IDS.has(ctaId)) {
+                updateUserPreferences(user?.user?.userId, {
+                    dismissedCarouselCTAs: Array.from(dismissedRef.current).filter((id) => !TRANSIENT_CTA_IDS.has(id)),
+                })
+            }
+            setCarouselCTAs((prev) => prev.filter((c) => c.id !== ctaId))
+        },
+        [user?.user?.userId]
+    )
 
     const generateCarouselCTAs = useCallback(() => {
         const _carouselCTAs: CarouselCTA[] = []
@@ -141,7 +164,7 @@ export const useHomeCarouselCTAs = () => {
                 ),
                 description: (
                     <span>
-                        Get the best exchange rate, pay like a <b>local</b> and earn <b>points</b>.
+                        Get the best exchange rate, pay like a <b>local</b> and earn <b>rewards</b>.
                     </span>
                 ),
                 iconContainerClassName: 'bg-secondary-1',
@@ -199,7 +222,7 @@ export const useHomeCarouselCTAs = () => {
             })
         }
 
-        setCarouselCTAs(_carouselCTAs)
+        setCarouselCTAs(_carouselCTAs.filter((cta) => !dismissedRef.current.has(cta.id)))
     }, [
         user?.user?.userId,
         isPermissionGranted,
@@ -223,11 +246,13 @@ export const useHomeCarouselCTAs = () => {
     useEffect(() => {
         if (!user) {
             setCarouselCTAs([])
+            dismissedRef.current = new Set()
             return
         }
 
+        dismissedRef.current = getDismissedCTAs(user.user.userId)
         generateCarouselCTAs()
     }, [user, generateCarouselCTAs, isPermissionGranted])
 
-    return { carouselCTAs, setCarouselCTAs }
+    return { carouselCTAs, dismissCTA }
 }

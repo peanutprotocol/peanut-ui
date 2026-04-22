@@ -11,6 +11,9 @@ const CONFIG = {
     CAMERA_RETRY_DELAY_MS: 1000,
     MAX_CAMERA_RETRIES: 3,
     IOS_CAMERA_DELAY_MS: 200,
+    // in iOS PWA (WKWebView), getUserMedia can hang forever after denial
+    // instead of rejecting. timeout ensures the permission modal still shows.
+    CAMERA_START_TIMEOUT_MS: 5000,
     SCANNER_MAX_SCANS_PER_SECOND: 8,
     SCANNER_CLOSE_DELAY_MS: 1500,
     VIDEO_ELEMENT_RETRY_DELAY_MS: 100,
@@ -68,6 +71,7 @@ type FacingMode = 'user' | 'environment'
 
 export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | undefined, isOpen: boolean) {
     const [error, setError] = useState<string | null>(null)
+    const [isPermissionDenied, setIsPermissionDenied] = useState(false)
     const [facingMode, setFacingMode] = useState<FacingMode>('environment')
     const [isScanning, setIsScanning] = useState(isOpen)
 
@@ -185,6 +189,7 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
     const startCamera = useCallback(
         async (preferredCamera: FacingMode = facingMode) => {
             setError(null)
+            setIsPermissionDenied(false)
 
             if (!videoRef.current) {
                 // retry if video element not ready (react mounting race condition)
@@ -203,6 +208,7 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
             // reset retry counter on success
             videoElementRetryCountRef.current = 0
 
+            let startTimeoutId: ReturnType<typeof setTimeout> | undefined
             try {
                 cleanup()
 
@@ -219,7 +225,19 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                 scanner.setInversionMode('original')
 
                 scannerRef.current = scanner
-                await scanner.start()
+
+                // race against a timeout — iOS PWA's getUserMedia can hang forever
+                // after the user denies camera permission instead of rejecting
+                await Promise.race([
+                    scanner.start(),
+                    new Promise<never>((_, reject) => {
+                        startTimeoutId = setTimeout(
+                            () => reject(new DOMException('Camera start timed out', 'NotAllowedError')),
+                            CONFIG.CAMERA_START_TIMEOUT_MS
+                        )
+                    }),
+                ])
+                clearTimeout(startTimeoutId)
 
                 // Request continuous autofocus — some devices default to single-shot
                 // focus on start, leaving the image blurry when the user moves the phone.
@@ -238,10 +256,19 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                 console.log('[QR Scanner] Camera started, ready to scan')
                 retryCountRef.current = 0
             } catch (err: any) {
+                clearTimeout(startTimeoutId)
+                cleanup()
                 console.error('Error accessing camera:', err)
 
                 const shouldRetry =
                     err.name === CAMERA_ERRORS.NOT_READABLE && retryCountRef.current < CONFIG.MAX_CAMERA_RETRIES
+
+                // treat any non-retryable, non-hardware error as permission denied.
+                // the qr-scanner library may wrap or rename the browser's NotAllowedError.
+                // exclude NOT_READABLE (camera busy) — it has its own "remains busy" error path.
+                if (!shouldRetry && err.name !== CAMERA_ERRORS.NOT_FOUND && err.name !== CAMERA_ERRORS.NOT_READABLE) {
+                    setIsPermissionDenied(true)
+                }
 
                 setError(getErrorMessage(err.name, retryCountRef.current))
 
@@ -255,7 +282,7 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                 }
             }
         },
-        [facingMode, deviceType, cleanup, handleQRScan, getErrorMessage, isScanning]
+        [facingMode, deviceType, cleanup, handleQRScan, getErrorMessage]
     )
 
     const toggleCamera = useCallback(async () => {
@@ -321,9 +348,11 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
 
     return {
         error,
+        isPermissionDenied,
         isScanning,
         videoRef,
         close,
         toggleCamera,
+        retryCamera: startCamera,
     }
 }

@@ -176,20 +176,21 @@ export const useIdentityVerification = () => {
 
         // helper to check if a region should be unlocked
         const isRegionUnlocked = (regionName: string) => {
-            // sumsub approval scoped by the regionIntent used during verification.
-            // 'LATAM' intent → unlocks LATAM. 'STANDARD' intent → unlocks Bridge regions.
-            // rest of world is always unlocked with any sumsub approval (crypto features).
-            // provider-specific regions require the provider rails to be functional
-            // (not still PENDING from submission or FAILED).
             if (isSumsubApproved) {
                 if (regionName === 'Rest of the world') return true
-                if (sumsubVerificationRegionIntent === 'LATAM') {
-                    // LATAM is always unlocked for LATAM-intent sumsub users
-                    // (QR payments work without manteca rails via superuser fallback)
-                    if (MANTECA_SUPPORTED_REGIONS.includes(regionName)) return true
-                    return false
+
+                // bridge regions: check provider rails regardless of sumsub regionIntent
+                if (BRIDGE_SUPPORTED_REGIONS.includes(regionName)) {
+                    return hasProviderAccess('BRIDGE')
                 }
-                return hasProviderAccess('BRIDGE') && BRIDGE_SUPPORTED_REGIONS.includes(regionName)
+
+                // latam: unlocked when sumsub intent is LATAM (manteca submission
+                // happens after sumsub approval, rails may still be pending)
+                if (MANTECA_SUPPORTED_REGIONS.includes(regionName)) {
+                    return sumsubVerificationRegionIntent === 'LATAM' || isMantecaApproved
+                }
+
+                return false
             }
             return (
                 (isBridgeApproved && BRIDGE_SUPPORTED_REGIONS.includes(regionName)) ||
