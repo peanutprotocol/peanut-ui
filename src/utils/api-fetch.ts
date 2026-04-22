@@ -14,8 +14,8 @@ export function apiFetch(backendPath: string, proxyPath: string, options?: Reque
 
     const headers: Record<string, string> = {}
 
-    // only set content-type when there's a body
-    if (options?.body) {
+    // default to json content-type when there's a body, but respect caller-provided type
+    if (options?.body && !extraHeaders['Content-Type']) {
         headers['Content-Type'] = 'application/json'
     }
 

@@ -5,43 +5,44 @@
 import { isCapacitor } from './capacitor'
 
 export function profileUrl(username: string): string {
-    return isCapacitor() ? `/send?recipient=${username}` : `/${username}`
+    return isCapacitor() ? `/send?recipient=${encodeURIComponent(username)}` : `/${username}`
 }
 
 export function sendUrl(username: string): string {
-    return isCapacitor() ? `/send?recipient=${username}` : `/send/${username}`
+    return isCapacitor() ? `/send?recipient=${encodeURIComponent(username)}` : `/send/${username}`
 }
 
 export function requestUrl(username: string): string {
-    return isCapacitor() ? `/request?recipient=${username}` : `/request/${username}`
+    return isCapacitor() ? `/request?recipient=${encodeURIComponent(username)}` : `/request/${username}`
 }
 
 export function qrClaimUrl(code: string): string {
-    return isCapacitor() ? `/qr?code=${code}` : `/qr/${code}`
+    return isCapacitor() ? `/qr?code=${encodeURIComponent(code)}` : `/qr/${code}`
 }
 
 export function qrSuccessUrl(code: string): string {
-    return isCapacitor() ? `/qr?code=${code}&view=success` : `/qr/${code}/success`
+    return isCapacitor() ? `/qr?code=${encodeURIComponent(code)}&view=success` : `/qr/${code}/success`
 }
 
-// native-only: routes to /pay-request page (no web equivalent — callers build semantic URLs on web)
+// these always use query params — they route to /pay-request which is a static page
+// on both web and native. no dynamic path equivalent exists.
 export function chargePayUrl(chargeId: string, context?: string): string {
-    const qs = context ? `&context=${context}` : ''
-    return `/pay-request?chargeId=${chargeId}${qs}`
+    const qs = context ? `&context=${encodeURIComponent(context)}` : ''
+    return `/pay-request?chargeId=${encodeURIComponent(chargeId)}${qs}`
 }
 
 export function requestPotUrl(id: string): string {
-    return `/pay-request?id=${id}`
+    return `/pay-request?id=${encodeURIComponent(id)}`
 }
 
 export function addMoneyCountryUrl(countryPath: string): string {
-    return isCapacitor() ? `/add-money?country=${countryPath}` : `/add-money/${countryPath}`
+    return isCapacitor() ? `/add-money?country=${encodeURIComponent(countryPath)}` : `/add-money/${countryPath}`
 }
 
 export function withdrawCountryUrl(countryPath: string, queryParams?: string): string {
     if (isCapacitor()) {
         const qs = queryParams ? `&${queryParams.replace('?', '')}` : ''
-        return `/withdraw?country=${countryPath}${qs}`
+        return `/withdraw?country=${encodeURIComponent(countryPath)}${qs}`
     }
     return `/withdraw/${countryPath}${queryParams || ''}`
 }
@@ -49,7 +50,7 @@ export function withdrawCountryUrl(countryPath: string, queryParams?: string): s
 export function withdrawBankUrl(countryPath: string, queryParams?: string): string {
     if (isCapacitor()) {
         const qs = queryParams ? `&${queryParams.replace('?', '')}` : ''
-        return `/withdraw?country=${countryPath}&view=bank${qs}`
+        return `/withdraw?country=${encodeURIComponent(countryPath)}&view=bank${qs}`
     }
     return `/withdraw/${countryPath}/bank${queryParams || ''}`
 }

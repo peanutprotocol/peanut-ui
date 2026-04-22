@@ -386,7 +386,35 @@ async function main() {
             fs.rmSync(path.join(__dirname, '..', '.next'), { recursive: true })
         }
 
+        // validate required env vars for native build
+        const envFile = path.join(__dirname, '..', '.env.production.local')
+        if (fs.existsSync(envFile)) {
+            const envContent = fs.readFileSync(envFile, 'utf-8')
+            const rpIdMatch = envContent.match(/NEXT_PUBLIC_NATIVE_RP_ID=(.+)/)
+            if (!rpIdMatch || !rpIdMatch[1].trim()) {
+                throw new Error('NEXT_PUBLIC_NATIVE_RP_ID is not set in .env.production.local — passkeys will fail')
+            }
+            console.log(`✅ NEXT_PUBLIC_NATIVE_RP_ID=${rpIdMatch[1].trim()}`)
+        } else {
+            console.warn('⚠️  .env.production.local not found — using default rpId (peanut.me)')
+        }
+
         copyComponentsBeforeDisable()
+
+        // verify component copies succeeded — blank stubs would show empty screens
+        for (const copy of COMPONENT_COPIES) {
+            const dest = path.join(APP_DIR, copy.dest)
+            if (!fs.existsSync(dest)) {
+                throw new Error(`component copy failed: ${copy.dest} does not exist`)
+            }
+            const content = fs.readFileSync(dest, 'utf-8')
+            if (content.length < 50 || !content.includes('export')) {
+                throw new Error(
+                    `component copy failed: ${copy.dest} looks like a stub (${content.length} bytes) — source may be missing`
+                )
+            }
+        }
+
         disableItems()
         transformP0Files()
         wrapDynamicRoutes()
