@@ -74,14 +74,6 @@ export const useZeroDev = () => {
         dispatch(zerodevActions.setIsRegistering(true))
         try {
             const rpId = isCapacitor() ? getNativeRpId() : window.location.hostname.replace(/^www\./, '')
-            console.log(
-                '[useZeroDev] register rpId:',
-                rpId,
-                'isCapacitor:',
-                isCapacitor(),
-                'serverUrl:',
-                consts.PASSKEY_SERVER_URL
-            )
 
             // @capgo/capacitor-passkey shim patches navigator.credentials on native,
             // so toWebAuthnKey works on all platforms (web, android, ios).
