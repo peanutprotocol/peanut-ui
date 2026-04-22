@@ -32,6 +32,13 @@ export default function DevToolsPage() {
             path: '/dev/ds',
             icon: 'docs',
         },
+        {
+            name: 'Cheats',
+            description:
+                'Sandbox-only: fund yourself USDC, fast-forward KYC, simulate deposits. Wraps Nutcracker harness helpers.',
+            path: '/dev/cheats',
+            icon: 'dollar',
+        },
     ]
 
     return (
