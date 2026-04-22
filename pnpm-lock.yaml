@@ -40,6 +40,9 @@ importers:
       '@capgo/capacitor-passkey':
         specifier: ^8.2.2
         version: 8.2.2(@capacitor/core@8.2.0)
+      '@capgo/capacitor-updater':
+        specifier: ^8.45.9
+        version: 8.45.9(@capacitor/core@8.2.0)
       '@dicebear/collection':
         specifier: ^9.2.2
         version: 9.3.1(@dicebear/core@9.3.1)
@@ -565,6 +568,11 @@ packages:
     resolution: {integrity: sha512-jptE6epPEKkXQMt5N1TKghZpA9hvMkCaRpng2EfTXfkWS9HnxAB4Hw5nTULtne2hxvBcTq5XtWzJ/2rhtbC5pA==}
     peerDependencies:
       '@capacitor/core': '>=8.0.0'
+
+  '@capgo/capacitor-updater@8.45.9':
+    resolution: {integrity: sha512-lAth8jMHXr8tsbq6//XEcKmaybiSqtM4tNny/Tw3AUobKhlScLNYx30/2RSiLAuCWKSOffu8eO8YmkLz8nFmKw==}
+    peerDependencies:
+      '@capacitor/core': ^8.0.0
 
   '@coinbase/wallet-sdk@3.9.3':
     resolution: {integrity: sha512-N/A2DRIf0Y3PHc1XAMvbBUu4zisna6qAdqABMZwBMNEfWrXpAwx16pZGkYCLGE+Rvv1edbcB2LYDRnACNcmCiw==}
@@ -7844,6 +7852,10 @@ snapshots:
       '@capacitor/core': 8.2.0
 
   '@capgo/capacitor-passkey@8.2.2(@capacitor/core@8.2.0)':
+    dependencies:
+      '@capacitor/core': 8.2.0
+
+  '@capgo/capacitor-updater@8.45.9(@capacitor/core@8.2.0)':
     dependencies:
       '@capacitor/core': 8.2.0
 

@@ -5,6 +5,9 @@ project(':capacitor-android').projectDir = new File('../node_modules/.pnpm/@capa
 include ':capacitor-app'
 project(':capacitor-app').projectDir = new File('../node_modules/.pnpm/@capacitor+app@8.1.0_@capacitor+core@8.2.0/node_modules/@capacitor/app/android')
 
+include ':capacitor-browser'
+project(':capacitor-browser').projectDir = new File('../node_modules/.pnpm/@capacitor+browser@8.0.3_@capacitor+core@8.2.0/node_modules/@capacitor/browser/android')
+
 include ':capacitor-splash-screen'
 project(':capacitor-splash-screen').projectDir = new File('../node_modules/.pnpm/@capacitor+splash-screen@8.0.1_@capacitor+core@8.2.0/node_modules/@capacitor/splash-screen/android')
 
@@ -16,3 +19,6 @@ project(':capgo-capacitor-crisp').projectDir = new File('../node_modules/.pnpm/@
 
 include ':capgo-capacitor-passkey'
 project(':capgo-capacitor-passkey').projectDir = new File('../node_modules/@capgo/capacitor-passkey/android')
+
+include ':capgo-capacitor-updater'
+project(':capgo-capacitor-updater').projectDir = new File('../node_modules/.pnpm/@capgo+capacitor-updater@8.45.9_@capacitor+core@8.2.0/node_modules/@capgo/capacitor-updater/android')

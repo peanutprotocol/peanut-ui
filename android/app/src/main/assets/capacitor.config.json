@@ -4,17 +4,24 @@
 	"webDir": "out",
 	"android": {
 		"allowMixedContent": false,
-		"webContentsDebuggingEnabled": false
+		"webContentsDebuggingEnabled": true
 	},
 	"plugins": {
+		"CapacitorUpdater": {
+			"autoUpdate": true,
+			"appReadyTimeout": 15000,
+			"responseTimeout": 30,
+			"autoDeleteFailed": true,
+			"autoDeletePrevious": true
+		},
 		"CapacitorHttp": {
 			"enabled": true
 		},
 		"CapacitorPasskey": {
 			"autoShim": true,
-			"origin": "https://peanut.me",
+			"origin": "https://staging.peanut.me",
 			"domains": [
-				"peanut.me"
+				"staging.peanut.me"
 			]
 		}
 	}

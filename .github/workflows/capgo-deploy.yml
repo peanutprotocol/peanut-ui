@@ -1,0 +1,76 @@
+name: Deploy OTA Update (Capgo)
+
+on:
+    push:
+        branches: [main, dev]
+    workflow_dispatch:
+        inputs:
+            channel:
+                description: 'Capgo channel to deploy to'
+                required: true
+                default: 'staging'
+                type: choice
+                options:
+                    - development
+                    - staging
+                    - production
+
+concurrency:
+    group: capgo-deploy-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  submodules: true
+                  token: ${{ secrets.SUBMODULE_TOKEN }}
+
+            - uses: pnpm/action-setup@v4
+              with:
+                  version: 10
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '21.1.0'
+                  cache: 'pnpm'
+
+            - name: Install dependencies
+              run: pnpm install
+
+            - name: Build native static export
+              run: node scripts/native-build.js
+
+            - name: Verify build output
+              run: |
+                  test -d out && test -f out/index.html || (echo "ERROR: out/ directory missing or incomplete" && exit 1)
+                  echo "Bundle ready. File count: $(find out -type f | wc -l)"
+
+            - name: Determine channel
+              id: channel
+              run: |
+                  if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+                    echo "name=${{ github.event.inputs.channel }}" >> $GITHUB_OUTPUT
+                  elif [ "${{ github.ref }}" = "refs/heads/main" ]; then
+                    echo "name=production" >> $GITHUB_OUTPUT
+                  else
+                    echo "name=staging" >> $GITHUB_OUTPUT
+                  fi
+
+            - name: Upload bundle to Capgo
+              run: |
+                  npx @capgo/cli@latest bundle upload \
+                    --channel ${{ steps.channel.outputs.name }} \
+                    --apikey ${{ secrets.CAPGO_API_KEY }} \
+                    --path ./out \
+                    --auto-min-update-version \
+                    --comment "${{ github.event.head_commit.message || 'Manual deploy' }}"
+
+            - name: Deployment summary
+              run: |
+                  echo "## OTA Deployment" >> $GITHUB_STEP_SUMMARY
+                  echo "- **Channel:** ${{ steps.channel.outputs.name }}" >> $GITHUB_STEP_SUMMARY
+                  echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+                  echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY

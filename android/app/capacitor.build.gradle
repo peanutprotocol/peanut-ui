@@ -10,10 +10,12 @@ android {
 apply from: "../capacitor-cordova-android-plugins/cordova.variables.gradle"
 dependencies {
     implementation project(':capacitor-app')
+    implementation project(':capacitor-browser')
     implementation project(':capacitor-splash-screen')
     implementation project(':capacitor-status-bar')
     implementation project(':capgo-capacitor-crisp')
     implementation project(':capgo-capacitor-passkey')
+    implementation project(':capgo-capacitor-updater')
 
 }
 apply from: "../../node_modules/.pnpm/@sumsub+cordova-idensic-mobile-sdk-plugin@1.42.0/node_modules/@sumsub/cordova-idensic-mobile-sdk-plugin/src/android/build-extras.gradle"

@@ -12,9 +12,13 @@ import { TranslationSafeWrapper } from '@/components/Global/TranslationSafeWrapp
 import { PeanutProvider } from '@/config'
 import { ContextProvider } from '@/context'
 import { FooterVisibilityProvider } from '@/context/footerVisibility'
+import { useOtaUpdates } from '@/hooks/useOtaUpdates'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
 
 export function ClientProviders({ children }: { children: React.ReactNode }) {
+    // initialize capgo ota updates (calls notifyAppReady on mount, no-op on web)
+    useOtaUpdates()
+
     return (
         <NuqsAdapter>
             <PeanutProvider>

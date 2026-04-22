@@ -85,3 +85,6 @@ android/
 *.keystore
 keystore.properties
 .env.production.local
+
+# capgo ota signing key
+.capgo_key_v2
