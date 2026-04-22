@@ -16,11 +16,7 @@ import { chromium } from '@playwright/test'
 import * as fs from 'fs'
 import * as path from 'path'
 import * as crypto from 'crypto'
-
-const API_BASE = process.env.API_BASE_URL || 'http://localhost:5000'
-const UI_BASE = process.env.UI_BASE_URL || 'http://localhost:3000'
-const HARNESS_SECRET =
-	process.env.TEST_HARNESS_SECRET || 'local-harness-secret-long-enough-32ch'
+import { API_BASE_URL, UI_BASE_URL, getHarnessSecret } from '../utils/env'
 
 const BOOTSTRAP_STATE_PATH = path.resolve(__dirname, '../.auth/bootstrap-storage.json')
 const BOOTSTRAP_META_PATH = path.resolve(__dirname, '../.auth/bootstrap-meta.json')
@@ -36,11 +32,11 @@ async function ensureInviteHost(): Promise<string> {
 	const hostUsername = 'e2ehost'
 	console.log(`[bootstrap] Ensuring invite host user "${hostUsername}" exists...`)
 
-	const res = await fetch(`${API_BASE}/dev/test-session`, {
+	const res = await fetch(`${API_BASE_URL}/dev/test-session`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json',
-			'x-test-harness-secret': HARNESS_SECRET,
+			'x-test-harness-secret': getHarnessSecret(),
 		},
 		body: JSON.stringify({
 			email: 'e2e-invite-host@test.local',
@@ -55,7 +51,7 @@ async function ensureInviteHost(): Promise<string> {
 		const body = await res.text()
 		throw new Error(
 			`[bootstrap] Failed to create invite host: ${res.status} ${body}\n` +
-				`Make sure API is running at ${API_BASE} with ENABLE_TEST_ROUTES=true`
+				`Make sure API is running at ${API_BASE_URL} with ENABLE_TEST_ROUTES=true`
 		)
 	}
 
@@ -102,7 +98,7 @@ async function bootstrap() {
 		{
 			name: 'inviteCode',
 			value: encodedInviteCode,
-			domain: new URL(UI_BASE).hostname,
+			domain: new URL(UI_BASE_URL).hostname,
 			path: '/',
 			httpOnly: false,
 			secure: false,
@@ -192,7 +188,7 @@ async function bootstrap() {
 	try {
 		// Step 1: Navigate to /setup — invite cookie makes it skip to signup
 		console.log('[bootstrap] Navigating to /setup (invite cookie set, should skip to signup)...')
-		await page.goto(`${UI_BASE}/setup`, { waitUntil: 'domcontentloaded', timeout: TIMEOUT.step })
+		await page.goto(`${UI_BASE_URL}/setup`, { waitUntil: 'domcontentloaded', timeout: TIMEOUT.step })
 		await page.waitForTimeout(4000)
 
 		// Take a screenshot to see where we landed
@@ -311,11 +307,11 @@ async function bootstrap() {
 		// fails with CORS in dev (localhost:3000 → 127.0.0.1:5000), leaving
 		// has_app_access=false. Call test-session with the userId so it finds the
 		// existing user (even without email match) and sets is_active + has_app_access.
-		const fixRes = await fetch(`${API_BASE}/dev/test-session`, {
+		const fixRes = await fetch(`${API_BASE_URL}/dev/test-session`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
-				'x-test-harness-secret': HARNESS_SECRET,
+				'x-test-harness-secret': getHarnessSecret(),
 			},
 			body: JSON.stringify({
 				email: `${username}@e2e-bootstrap.local`,
@@ -332,7 +328,7 @@ async function bootstrap() {
 		}
 
 		// Re-navigate to /home to verify the user has app access
-		await page.goto(`${UI_BASE}/home`, { waitUntil: 'domcontentloaded', timeout: 15_000 })
+		await page.goto(`${UI_BASE_URL}/home`, { waitUntil: 'domcontentloaded', timeout: 15_000 })
 		await page.waitForTimeout(3000)
 
 		const onWaitlist = await page.locator('text=/stay in the loop/i, text=/waitlist/i').first()

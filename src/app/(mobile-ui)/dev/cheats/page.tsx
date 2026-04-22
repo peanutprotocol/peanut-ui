@@ -29,9 +29,11 @@ export default function DevCheatsPage() {
     const userId = user?.user?.userId ?? null
     const username = user?.user?.username ?? null
 
-    const harnessSecret =
-        (typeof window !== 'undefined' && (process.env.NEXT_PUBLIC_TEST_HARNESS_SECRET as string | undefined)) ??
-        'local-harness-secret-must-be-at-least-32-characters-long'
+    // NEXT_PUBLIC_* is inlined at build time — empty means the harness secret
+    // wasn't configured for this build. Page is gated by dev/layout.tsx to
+    // sandbox/dev domains, so missing env disables the panel rather than
+    // leaking a dev literal into shipped JS.
+    const harnessSecret = process.env.NEXT_PUBLIC_TEST_HARNESS_SECRET ?? ''
 
     const call = async (key: string, path: string, body?: object, method: 'GET' | 'POST' = 'POST') => {
         setBusy(key)

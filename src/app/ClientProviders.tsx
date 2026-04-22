@@ -12,10 +12,19 @@ import { TranslationSafeWrapper } from '@/components/Global/TranslationSafeWrapp
 import { PeanutProvider } from '@/config'
 import { ContextProvider } from '@/context'
 import { FooterVisibilityProvider } from '@/context/footerVisibility'
-import { ReproduceBootstrap } from '@/context/ReproduceBootstrap'
-import { HarnessReplay } from '@/context/HarnessReplay'
+import { HARNESS_ENABLED } from '@/constants/harness.consts'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
+import dynamic from 'next/dynamic'
 import { Suspense } from 'react'
+import { PeanutDebug } from '@/context/PeanutDebug'
+
+// Harness bootstrap ships only in harness builds. In prod bundles the dynamic
+// import is in dead code behind `if (false)` and webpack drops the chunk.
+const HarnessBootstrap = HARNESS_ENABLED
+    ? dynamic(() => import('@/context/HarnessBootstrap').then((m) => m.HarnessBootstrap), {
+          ssr: false,
+      })
+    : null
 
 export function ClientProviders({ children }: { children: React.ReactNode }) {
     return (
@@ -26,15 +35,12 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
                         <TranslationSafeWrapper>
                             <ConsoleGreeting />
                             <ScreenOrientationLocker />
-                            {/* useSearchParams() needs to be under Suspense in App Router. */}
-                            <Suspense fallback={null}>
-                                <ReproduceBootstrap />
-                            </Suspense>
-                            {/* HarnessReplay runs AFTER ReproduceBootstrap reloads the page,
-                                picking up stashed action descriptors from sessionStorage and
-                                driving the UI to reproduce transient state (amounts typed,
-                                buttons clicked, receipts shown). No-op outside sandbox mode. */}
-                            <HarnessReplay />
+                            <PeanutDebug />
+                            {HarnessBootstrap && (
+                                <Suspense fallback={null}>
+                                    <HarnessBootstrap />
+                                </Suspense>
+                            )}
                             {children}
                         </TranslationSafeWrapper>
                     </FooterVisibilityProvider>

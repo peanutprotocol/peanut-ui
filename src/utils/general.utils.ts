@@ -918,11 +918,11 @@ export const generateInvitesShareText = (inviteLink: string) => {
 }
 
 /**
- * Generate a deterministic 3-digit suffix from username
- * This is purely cosmetic and derived from a hash of the username
+ * Generate a deterministic 3-digit suffix from username — pure hash.
  *
- * ⚠️ IMPORTANT: This logic is duplicated in the backend (peanut-api-ts/src/utils.ts)
- * If you change this, you MUST update the backend version to match!
+ * Duplicated on the backend (peanut-api-ts/src/utils/invite.ts). Parity is
+ * enforced by shared test vectors in __tests__/invite-suffix.test.ts and
+ * peanut-api-ts/src/utils/invite.test.ts. Don't edit one without the other.
  */
 export const generateInviteCodeSuffix = (username: string): string => {
     const lowerUsername = username.toLowerCase()

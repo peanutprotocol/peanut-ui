@@ -6,9 +6,7 @@
  */
 
 import type { BrowserContext } from '@playwright/test'
-
-const API_BASE = process.env.API_BASE_URL || 'http://localhost:5000'
-const HARNESS_SECRET = process.env.TEST_HARNESS_SECRET || 'local-harness-secret-long-enough-32ch'
+import { API_BASE_URL, getHarnessSecret } from './env'
 
 /**
  * Seed a test scenario via the API harness.
@@ -17,11 +15,11 @@ const HARNESS_SECRET = process.env.TEST_HARNESS_SECRET || 'local-harness-secret-
  * Throws on non-2xx response.
  */
 export async function seedScenario(scenario: string, label?: string): Promise<any> {
-	const res = await fetch(`${API_BASE}/dev/seed-scenario`, {
+	const res = await fetch(`${API_BASE_URL}/dev/seed-scenario`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json',
-			'x-test-harness-secret': HARNESS_SECRET,
+			'x-test-harness-secret': getHarnessSecret(),
 		},
 		body: JSON.stringify({ scenario, harnessLabel: label || 'playwright' }),
 	})
@@ -30,7 +28,7 @@ export async function seedScenario(scenario: string, label?: string): Promise<an
 		const body = await res.text().catch(() => '<unreadable>')
 		throw new Error(
 			`seed-scenario "${scenario}" failed: ${res.status} — ${body}\n` +
-				`Ensure API is running at ${API_BASE} with ENABLE_TEST_ROUTES=true`
+				`Ensure API is running at ${API_BASE_URL} with ENABLE_TEST_ROUTES=true`
 		)
 	}
 

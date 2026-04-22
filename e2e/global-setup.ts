@@ -16,10 +16,7 @@ import type { FullConfig } from '@playwright/test'
 import * as fs from 'fs'
 import * as path from 'path'
 import { createAllPersonas } from './utils/personas'
-
-const API_BASE = process.env.API_BASE_URL || 'http://localhost:5000'
-const UI_BASE = process.env.UI_BASE_URL || 'http://localhost:3000'
-const HARNESS_SECRET = process.env.TEST_HARNESS_SECRET || 'local-harness-secret-long-enough-32ch'
+import { API_BASE_URL, UI_BASE_URL, getHarnessSecret } from './utils/env'
 
 const BOOTSTRAP_STATE = path.resolve(__dirname, '.auth/bootstrap-storage.json')
 const BOOTSTRAP_META = path.resolve(__dirname, '.auth/bootstrap-meta.json')
@@ -49,11 +46,11 @@ export default async function globalSetup(config: FullConfig) {
 					// Ensure bootstrap user exists in DB. Integration tests truncate the DB
 					// and would otherwise orphan the bootstrap JWT.
 					try {
-						const reviveRes = await fetch(`${API_BASE}/dev/test-session`, {
+						const reviveRes = await fetch(`${API_BASE_URL}/dev/test-session`, {
 							method: 'POST',
 							headers: {
 								'Content-Type': 'application/json',
-								'x-test-harness-secret': HARNESS_SECRET,
+								'x-test-harness-secret': getHarnessSecret(),
 							},
 							body: JSON.stringify({
 								email: `bootstrap-${meta.userId}@test.local`,
@@ -88,11 +85,11 @@ export default async function globalSetup(config: FullConfig) {
 	console.log('[global-setup] No bootstrap found, using /dev/test-session...')
 	const testEmail = process.env.TEST_USER_EMAIL || `harness-e2e-${Date.now()}@test.local`
 
-	const res = await fetch(`${API_BASE}/dev/test-session`, {
+	const res = await fetch(`${API_BASE_URL}/dev/test-session`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json',
-			'x-test-harness-secret': HARNESS_SECRET,
+			'x-test-harness-secret': getHarnessSecret(),
 		},
 		body: JSON.stringify({
 			email: testEmail,
@@ -106,7 +103,7 @@ export default async function globalSetup(config: FullConfig) {
 		const body = await res.text()
 		throw new Error(
 			`[global-setup] /dev/test-session returned ${res.status}: ${body}\n` +
-				`Make sure the API is running at ${API_BASE} with ENABLE_TEST_ROUTES=true and TEST_HARNESS_SECRET set.`
+				`Make sure the API is running at ${API_BASE_URL} with ENABLE_TEST_ROUTES=true and TEST_getHarnessSecret() set.`
 		)
 	}
 
@@ -120,7 +117,7 @@ export default async function globalSetup(config: FullConfig) {
 		{
 			name: 'jwt-token',
 			value: token,
-			domain: new URL(UI_BASE).hostname,
+			domain: new URL(UI_BASE_URL).hostname,
 			path: '/',
 			httpOnly: false,
 			secure: false,
@@ -130,7 +127,7 @@ export default async function globalSetup(config: FullConfig) {
 
 	const page = await context.newPage()
 	try {
-		await page.goto(`${UI_BASE}/home`, { waitUntil: 'domcontentloaded', timeout: 30_000 })
+		await page.goto(`${UI_BASE_URL}/home`, { waitUntil: 'domcontentloaded', timeout: 30_000 })
 		await page.waitForTimeout(3000)
 
 		for (let attempt = 0; attempt < 5; attempt++) {
@@ -165,7 +162,7 @@ export default async function globalSetup(config: FullConfig) {
 
 		if (page.url().includes('/setup')) {
 			console.log('[global-setup] Still on setup — navigating to /home')
-			await page.goto(`${UI_BASE}/home`, { waitUntil: 'domcontentloaded', timeout: 15_000 })
+			await page.goto(`${UI_BASE_URL}/home`, { waitUntil: 'domcontentloaded', timeout: 15_000 })
 			await page.waitForTimeout(3000)
 		}
 

@@ -9,6 +9,7 @@ import PeanutActionCard from '@/components/Global/PeanutActionCard'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import ShareButton from '@/components/Global/ShareButton'
 import AmountInput from '@/components/Global/AmountInput'
+import { HARNESS_ENABLED } from '@/constants/harness.consts'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import * as context from '@/context'
@@ -83,10 +84,12 @@ export const CreateRequestLinkView = () => {
         return (parseFloat(tokenValue) * selectedTokenData.price).toString()
     }, [tokenValue, selectedTokenData?.price])
 
-    // Harness-only: when the playwright session has the passkey-bypass flag,
-    // fall back to the user's peanut-wallet account identifier (seeded by the
-    // harness) so the Create button doesn't block on wagmi connection state.
+    // Harness-only: when the playwright session sets the passkey-bypass flag,
+    // fall back to the user's peanut-wallet identifier (seeded by the harness)
+    // so Create doesn't block on wagmi connection state. HARNESS_ENABLED is
+    // inlined at build time — prod bundles tree-shake this entire branch.
     const harnessFallbackAddress = useMemo(() => {
+        if (!HARNESS_ENABLED) return ''
         if (typeof window === 'undefined') return ''
         if (window.localStorage?.getItem('__harness_skip_passkey') !== 'true') return ''
         const peanutAccount = user?.accounts?.find((a) => a.type === 'peanut-wallet')

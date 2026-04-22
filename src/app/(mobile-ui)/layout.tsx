@@ -21,6 +21,7 @@ import { useSetupStore } from '@/redux/hooks'
 import ForceIOSPWAInstall from '@/components/ForceIOSPWAInstall'
 import { isPublicRoute } from '@/constants/routes'
 import { IS_DEV } from '@/constants/general.consts'
+import { HARNESS_ENABLED } from '@/constants/harness.consts'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 import { useAccountSetupRedirect } from '@/hooks/useAccountSetupRedirect'
@@ -82,12 +83,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const isRedirecting = useRef(false)
 
     useEffect(() => {
-        // Harness-only: if a reproduce session is in progress (URL param set),
-        // ReproduceBootstrap will set cookies + reload imminently. Don't
-        // racing-redirect to /setup in the meantime — it would bounce the
-        // user before the bootstrap completes. Gated behind the public
-        // harness flag so prod behavior is unchanged.
-        if (process.env.NEXT_PUBLIC_HARNESS_SKIP_PASSKEY_CHECK === 'true' && typeof window !== 'undefined') {
+        // Harness-only: if a reproduce session is in progress, ReproduceBootstrap
+        // will set cookies + reload imminently — don't racing-redirect to /setup
+        // before it completes.
+        if (HARNESS_ENABLED && typeof window !== 'undefined') {
             const url = new URL(window.location.href)
             if (url.searchParams.get('__reproduce')) return
         }

@@ -14,9 +14,8 @@
 import type { BrowserContext } from '@playwright/test'
 import * as fs from 'fs'
 import * as path from 'path'
+import { API_BASE_URL, getHarnessSecret } from './env'
 
-const API_BASE = process.env.API_BASE_URL || 'http://localhost:5000'
-const HARNESS_SECRET = process.env.TEST_HARNESS_SECRET || 'local-harness-secret-long-enough-32ch'
 const PERSONAS_PATH = path.resolve(__dirname, '../.auth/personas.json')
 
 // ---------------------------------------------------------------------------
@@ -82,11 +81,11 @@ async function createSessionPersona(spec: PersonaSpec): Promise<Persona> {
 		throw new Error(`Persona ${spec.id} has no session config`)
 	}
 
-	const res = await fetch(`${API_BASE}/dev/test-session`, {
+	const res = await fetch(`${API_BASE_URL}/dev/test-session`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json',
-			'x-test-harness-secret': HARNESS_SECRET,
+			'x-test-harness-secret': getHarnessSecret(),
 		},
 		body: JSON.stringify({
 			...spec.session,
@@ -117,11 +116,11 @@ async function createSeededPersona(spec: PersonaSpec): Promise<Persona> {
 		throw new Error(`Persona ${spec.id} has no seedScenario config`)
 	}
 
-	const res = await fetch(`${API_BASE}/dev/seed-scenario`, {
+	const res = await fetch(`${API_BASE_URL}/dev/seed-scenario`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json',
-			'x-test-harness-secret': HARNESS_SECRET,
+			'x-test-harness-secret': getHarnessSecret(),
 		},
 		body: JSON.stringify({
 			scenario: spec.seedScenario,

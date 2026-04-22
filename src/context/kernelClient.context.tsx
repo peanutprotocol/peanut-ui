@@ -1,4 +1,5 @@
 'use client'
+import { HARNESS_ENABLED } from '@/constants/harness.consts'
 import { PEANUT_WALLET_CHAIN, USER_OP_ENTRY_POINT, ZERODEV_KERNEL_VERSION } from '@/constants/zerodev.consts'
 import { useAuth } from '@/context/authContext'
 import { createKernelMigrationAccount } from '@zerodev/sdk/accounts'
@@ -262,12 +263,13 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             setWebAuthnKey((prev) =>
                 prev && bigIntSafeStringify(prev) === bigIntSafeStringify(storedWebAuthnKey) ? prev : storedWebAuthnKey
             )
-        } else if (typeof window !== 'undefined' && window.localStorage?.getItem('__harness_skip_passkey') === 'true') {
-            // Harness-only: skip the auto-logout so playwright can screenshot the
-            // authenticated UI with a seeded user that has no real passkey. Kernel
-            // client stays uninitialized; any code path that requires userops will
-            // still fail, which is fine — harness tests only assert page-level render.
-            // Uses localStorage so it works regardless of env injection semantics.
+        } else if (
+            HARNESS_ENABLED &&
+            typeof window !== 'undefined' &&
+            window.localStorage?.getItem('__harness_skip_passkey') === 'true'
+        ) {
+            // Harness-only: skip auto-logout so playwright can screenshot the
+            // authenticated UI with a seeded user that has no real passkey.
         } else {
             // avoid mixed state
             logoutUser()
@@ -281,10 +283,11 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
     }, [user?.user.userId, webAuthnKey])
 
     // Harness-only: when __harness_ecdsa_pk is set in localStorage, bypass the
-    // passkey-webAuthnKey path entirely and initialize kernel clients with an
-    // ECDSA validator. Same kernel factory, same bundler, same paymaster — just
-    // a different signer. This is how Playwright drives real userops.
+    // passkey-webAuthnKey path and use an ECDSA validator instead. This is how
+    // Playwright drives real userops. Gated on HARNESS_ENABLED (build-time)
+    // AND the localStorage flag (runtime) — prod tree-shakes the whole block.
     useEffect(() => {
+        if (!HARNESS_ENABLED) return
         if (typeof window === 'undefined') return
         if (window.localStorage?.getItem('__harness_skip_passkey') !== 'true') return
         const pk = window.localStorage.getItem('__harness_ecdsa_pk')
