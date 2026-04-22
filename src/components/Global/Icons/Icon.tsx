@@ -67,6 +67,8 @@ import {
     SpeedRounded,
     InfoRounded,
     UndoRounded,
+    MoreHorizRounded,
+    DeleteOutlineRounded,
 } from '@mui/icons-material'
 import { DocsIcon } from './docs'
 import { PeanutSupportIcon } from './peanut-support'
@@ -154,6 +156,8 @@ export type IconName =
     | 'alert-filled'
     | 'paste'
     | 'credit-card'
+    | 'more-horizontal'
+    | 'trash'
 export interface IconProps extends SVGProps<SVGSVGElement> {
     name: IconName
     size?: number | string
@@ -296,6 +300,8 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     'alert-filled': (props) => <MaterialIconWrapper Icon={WarningRounded} {...props} />,
     paste: (props) => <MaterialIconWrapper Icon={ContentPasteRounded} {...props} />,
     'credit-card': (props) => <MaterialIconWrapper Icon={CreditCardRounded} {...props} />,
+    'more-horizontal': (props) => <MaterialIconWrapper Icon={MoreHorizRounded} {...props} />,
+    trash: (props) => <MaterialIconWrapper Icon={DeleteOutlineRounded} {...props} />,
 }
 
 export const Icon: FC<IconProps> = ({ name, size = 24, width, height, ...props }) => {

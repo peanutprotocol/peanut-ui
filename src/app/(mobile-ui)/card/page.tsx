@@ -1,214 +1,218 @@
 'use client'
-import { type FC, useEffect, useState } from 'react'
+import { type FC, useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useQueryStates, parseAsStringEnum } from 'nuqs'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { cardApi, type CardInfoResponse } from '@/services/card'
 import { useAuth } from '@/context/authContext'
+import { RAIN_CARD_OVERVIEW_QUERY_KEY, useRainCardOverview } from '@/hooks/useRainCardOverview'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
-
-// Screen components
-import CardInfoScreen from '@/components/Card/CardInfoScreen'
-import CardGeoScreen from '@/components/Card/CardGeoScreen'
-import CardDetailsScreen from '@/components/Card/CardDetailsScreen'
-import CardSuccessScreen from '@/components/Card/CardSuccessScreen'
+import { computeCardState, findActiveCard } from '@/components/Card/cardState.utils'
+import CardPioneerFlow from '@/components/Card/CardPioneerFlow'
+import AddCardEntryScreen from '@/components/Card/AddCardEntryScreen'
+import ApplicationStatusScreen from '@/components/Card/ApplicationStatusScreen'
+import CardTermsScreen from '@/components/Card/CardTermsScreen'
+import YourCardScreen from '@/components/Card/YourCardScreen'
 import Loading from '@/components/Global/Loading'
 import { Button } from '@/components/0_Bruddle/Button'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
+import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
+import { rainApi } from '@/services/rain'
 
-// Step types for the card pioneer flow
-// Flow: info -> details -> geo -> (payment page) -> success
-// Geo screen handles KYC verification prompt or eligibility blocking
-type CardStep = 'info' | 'details' | 'geo' | 'success'
-
-const STEP_ORDER: CardStep[] = ['info', 'details', 'geo', 'success']
-
-const CardPioneerPage: FC = () => {
+const CardPage: FC = () => {
     const router = useRouter()
-    const { user, fetchUser } = useAuth()
+    const queryClient = useQueryClient()
+    const { user } = useAuth()
+    const userId = user?.user?.userId
 
-    // URL state for step navigation
-    // Example: /card?step=info or /card?step=success
-    const [urlState, setUrlState] = useQueryStates(
-        {
-            step: parseAsStringEnum<CardStep>(['info', 'details', 'geo', 'success']),
-            // Debug params for testing
-            debugStep: parseAsStringEnum<CardStep>(['info', 'details', 'geo', 'success']),
-        },
-        { history: 'replace' } // Use replace so back button exits flow instead of cycling steps
-    )
-
-    // Derive current step from URL (debug takes priority)
-    const currentStep: CardStep = urlState.debugStep ?? urlState.step ?? 'info'
-
-    // Purchase error state
-    const [purchaseError, setPurchaseError] = useState<string | null>(null)
-
-    // Fetch card info
     const {
         data: cardInfo,
-        isLoading,
-        error: fetchError,
+        isLoading: pioneerLoading,
+        error: pioneerError,
         refetch: refetchCardInfo,
     } = useQuery<CardInfoResponse>({
-        queryKey: ['card-info', user?.user?.userId],
+        queryKey: ['card-info', userId],
         queryFn: () => cardApi.getInfo(),
-        enabled: !!user?.user?.userId,
-        staleTime: 30_000, // 30 seconds
+        enabled: !!userId,
+        staleTime: 30_000,
     })
 
-    // Step navigation helpers
-    const goToStep = (step: CardStep) => {
-        setUrlState({ step })
-    }
+    const { overview, isLoading: overviewLoading, error: overviewError } = useRainCardOverview()
 
-    // Redirect to success if already purchased
+    // Sumsub card-application token — populated when POST /rain/cards reports
+    // the user still needs to complete the rain-card-application level.
+    const [sumsubToken, setSumsubToken] = useState<string | null>(null)
+    const [applyError, setApplyError] = useState<string | null>(null)
+    // When backend returns status:'terms-required', we capture it here so
+    // the dispatcher can render the terms screen between Sumsub and submit.
+    const [pendingTerms, setPendingTerms] = useState<{ isUsResident: boolean } | null>(null)
+    // Covers the moment between "terms accepted" and "overview refetched with
+    // the new card row". Without it the screen would briefly flip back to Add
+    // Card mid-apply before the state machine sees the new state.
+    const [isIssuing, setIsIssuing] = useState(false)
+
     useEffect(() => {
-        if (cardInfo?.hasPurchased && currentStep !== 'success') {
-            setUrlState({ step: 'success' })
-        }
-    }, [cardInfo?.hasPurchased, currentStep, setUrlState])
-
-    // Note: Auto-skip removed - user must explicitly click "Reserve my card" button
-    // This prevents automatic redirects and gives user control over the purchase flow
-
-    // Refetch user data when arriving at success screen
-    // This ensures badge and other user data is up-to-date after payment
-    useEffect(() => {
-        if (currentStep === 'success') {
-            fetchUser()
-            refetchCardInfo()
-        }
-    }, [currentStep, fetchUser, refetchCardInfo])
-
-    // feature flag: redirect to home if card pioneers is disabled
-    useEffect(() => {
-        if (underMaintenanceConfig.disableCardPioneers) {
-            router.replace('/home')
-        }
+        if (underMaintenanceConfig.disableCardPioneers) router.replace('/home')
     }, [router])
 
-    if (underMaintenanceConfig.disableCardPioneers) {
-        return null
-    }
+    const invalidateOverview = useCallback(() => {
+        void queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] })
+    }, [queryClient])
 
-    const goToNextStep = () => {
-        const currentIndex = STEP_ORDER.indexOf(currentStep)
-        if (currentIndex < STEP_ORDER.length - 1) {
-            goToStep(STEP_ORDER[currentIndex + 1])
-        }
-    }
-
-    const goToPreviousStep = () => {
-        const currentIndex = STEP_ORDER.indexOf(currentStep)
-        if (currentIndex > 0) {
-            goToStep(STEP_ORDER[currentIndex - 1])
-        } else {
-            router.back()
-        }
-    }
-
-    // Initiate purchase and navigate to payment page
-    const handleInitiatePurchase = async () => {
-        setPurchaseError(null)
-        try {
-            const response = await cardApi.purchase()
-            // Build semantic URL directly from response (avoids extra API call + loading state)
-            // Format: /recipient@chainId/amountTOKEN?chargeId=uuid&context=card-pioneer
-            const { recipientAddress, chainId, tokenAmount, tokenSymbol, chargeUuid } = response
-            const semanticUrl = `/${recipientAddress}@${chainId}/${tokenAmount}${tokenSymbol}?chargeId=${chargeUuid}&context=card-pioneer`
-            router.push(semanticUrl)
-        } catch (err) {
-            const error = err as { code?: string; message?: string }
-            if (error.code === 'ALREADY_PURCHASED') {
-                // User already purchased, redirect to success
-                handlePurchaseComplete()
-                return
+    const handleApply = useCallback(
+        async (termsAccepted = false) => {
+            setApplyError(null)
+            try {
+                const res = await rainApi.applyForCard({ termsAccepted })
+                if (res.status === 'incomplete' && 'sumsubAccessToken' in res) {
+                    setSumsubToken(res.sumsubAccessToken)
+                    return
+                }
+                if (res.status === 'terms-required' && 'isUsResident' in res) {
+                    setPendingTerms({ isUsResident: res.isUsResident })
+                    return
+                }
+                // pending / already-applied → state machine routes based on overview.
+                setPendingTerms(null)
+                invalidateOverview()
+            } catch (e) {
+                const message = e instanceof Error ? e.message : 'Failed to apply for card'
+                console.error('[card apply] error:', e)
+                setApplyError(message)
             }
-            // Show error to user
-            console.error('Purchase initiation failed:', err)
-            setPurchaseError(error.message || 'Failed to initiate purchase. Please try again.')
+        },
+        [invalidateOverview]
+    )
+
+    const handleAcceptTerms = useCallback(async () => {
+        setIsIssuing(true)
+        setPendingTerms(null)
+        try {
+            await handleApply(true)
+        } finally {
+            setIsIssuing(false)
         }
-    }
+    }, [handleApply])
 
-    // Handle purchase completion (called when user already purchased)
-    const handlePurchaseComplete = () => {
-        refetchCardInfo()
-        fetchUser()
-        goToStep('success')
-    }
+    const handleSumsubComplete = useCallback(async () => {
+        setSumsubToken(null)
+        // Re-submit now that the user finished the applicant action. Backend
+        // will return terms-required next (since termsAccepted is still false).
+        await handleApply(false)
+    }, [handleApply])
 
-    // Loading state - also show loading if we haven't determined purchase status yet
-    // This prevents flashing the info screen for users who have already purchased
-    if ((isLoading && !cardInfo) || (cardInfo?.hasPurchased && currentStep !== 'success')) {
+    const handleSumsubRefreshToken = useCallback(async () => {
+        const res = await rainApi.applyForCard({ termsAccepted: false })
+        if (res.status === 'incomplete' && 'sumsubAccessToken' in res) {
+            return res.sumsubAccessToken
+        }
+        // Edge case: the user became "ready" between initial apply and the
+        // refresh attempt. Close the modal and continue the non-Sumsub path.
+        setSumsubToken(null)
+        if (res.status === 'terms-required' && 'isUsResident' in res) {
+            setPendingTerms({ isUsResident: res.isUsResident })
+        } else {
+            invalidateOverview()
+        }
+        return ''
+    }, [invalidateOverview])
+
+    if (underMaintenanceConfig.disableCardPioneers) return null
+
+    const state = computeCardState({
+        overview,
+        pioneerInfo: cardInfo,
+        overviewLoading,
+        pioneerLoading,
+    })
+
+    if (state === 'loading') {
         return (
-            <div className="flex min-h-[inherit] w-full items-center justify-center">
-                <Loading />
-            </div>
+            <PageContainer>
+                <div className="flex min-h-[inherit] w-full items-center justify-center">
+                    <Loading />
+                </div>
+            </PageContainer>
         )
     }
 
-    // Error state
-    if (fetchError) {
+    if (pioneerError || overviewError) {
         return (
-            <div className="flex min-h-[inherit] w-full flex-col items-center justify-center gap-4 p-4">
-                <p className="text-center text-n-1">Failed to load card info. Please try again.</p>
-                <Button onClick={() => refetchCardInfo()} variant="purple" shadowSize="4">
-                    Retry
-                </Button>
-            </div>
+            <PageContainer>
+                <div className="flex min-h-[inherit] w-full flex-col items-center justify-center gap-4 p-4">
+                    <p className="text-center text-n-1">Failed to load card info. Please try again.</p>
+                    <Button onClick={() => refetchCardInfo()} variant="purple" shadowSize="4">
+                        Retry
+                    </Button>
+                </div>
+            </PageContainer>
         )
     }
 
-    // Render the appropriate screen based on current step
-    // Flow: info -> details -> (payment page) -> success
-    // Note: geo step only shown if user is ineligible
-    const renderScreen = () => {
-        switch (currentStep) {
-            case 'info':
+    const renderState = () => {
+        // Highest priority: show the issuance spinner between "terms accepted"
+        // and the overview refetch landing. Keeps the UX from flipping back
+        // to Add Card for a split second while the API call is in flight.
+        if (isIssuing) {
+            return <ApplicationStatusScreen variant="pending" />
+        }
+        // Terms screen takes precedence over the state-machine target — the
+        // user already clicked "Get your card" or completed Sumsub; we need
+        // to collect consent before letting them back out to Add Card.
+        if (pendingTerms) {
+            return (
+                <CardTermsScreen
+                    isUsResident={pendingTerms.isUsResident}
+                    onAccept={handleAcceptTerms}
+                    onPrev={() => setPendingTerms(null)}
+                    submitError={applyError}
+                />
+            )
+        }
+        switch (state) {
+            case 'pioneer':
+                return <CardPioneerFlow cardInfo={cardInfo!} refetchCardInfo={refetchCardInfo} />
+            case 'add-card':
                 return (
-                    <CardInfoScreen
-                        onContinue={() => goToNextStep()}
-                        hasPurchased={cardInfo?.hasPurchased ?? false}
-                        slotsRemaining={cardInfo?.slotsRemaining}
-                        recentPurchases={cardInfo?.recentPurchases}
+                    <AddCardEntryScreen
+                        onApply={() => handleApply(false)}
+                        onPrev={() => router.back()}
+                        applyError={applyError}
                     />
                 )
-            case 'details':
+            case 'pending':
+                return <ApplicationStatusScreen variant="pending" onPrev={() => router.back()} />
+            case 'manual-review':
+                return <ApplicationStatusScreen variant="manual-review" onPrev={() => router.back()} />
+            case 'rejected':
                 return (
-                    <CardDetailsScreen
-                        price={cardInfo?.price ?? 10}
-                        currentTier={cardInfo?.currentTier ?? 0}
-                        onContinue={() => goToNextStep()}
-                        onBack={() => goToPreviousStep()}
+                    <ApplicationStatusScreen
+                        variant="rejected"
+                        onRetry={() => handleApply(false)}
+                        onContactSupport={() => router.push('/support')}
+                        onPrev={() => router.back()}
                     />
                 )
-            case 'geo':
-                return (
-                    <CardGeoScreen
-                        isEligible={cardInfo?.isEligible ?? false}
-                        eligibilityReason={cardInfo?.eligibilityReason}
-                        onContinue={() => goToNextStep()}
-                        onInitiatePurchase={handleInitiatePurchase}
-                        onBack={() => goToPreviousStep()}
-                        purchaseError={purchaseError}
-                    />
-                )
-            case 'success':
-                return <CardSuccessScreen onViewBadges={() => router.push('/badges')} />
+            case 'active': {
+                const card = findActiveCard(overview)!
+                return <YourCardScreen overview={overview!} card={card} onPrev={() => router.back()} />
+            }
             default:
-                return (
-                    <CardInfoScreen
-                        onContinue={() => goToNextStep()}
-                        hasPurchased={cardInfo?.hasPurchased ?? false}
-                        slotsRemaining={cardInfo?.slotsRemaining}
-                        recentPurchases={cardInfo?.recentPurchases}
-                    />
-                )
+                return null
         }
     }
 
-    return <PageContainer>{renderScreen()}</PageContainer>
+    return (
+        <PageContainer>
+            {renderState()}
+            <SumsubKycWrapper
+                visible={sumsubToken !== null}
+                accessToken={sumsubToken}
+                onClose={() => setSumsubToken(null)}
+                onComplete={handleSumsubComplete}
+                onRefreshToken={handleSumsubRefreshToken}
+            />
+        </PageContainer>
+    )
 }
 
-export default CardPioneerPage
+export default CardPage

@@ -69,7 +69,7 @@ export default function Home() {
 
     const { isFetchingUser, fetchUser } = useAuth()
     const { isUserKycApproved } = useKycStatus()
-    const { isActivated, activationStep } = useActivationStatus()
+    const { isActivated, activationStep, dismissCardStep } = useActivationStatus()
     const {
         hasPurchased: hasCardPioneerPurchased,
         isLoading: isCardInfoLoading,
@@ -208,7 +208,11 @@ export default function Home() {
                 </div>
 
                 <div className="space-y-2">
-                    {isActivated ? <HomeCarouselCTA /> : <ActivationCTAs activationStep={activationStep} />}
+                    {isActivated ? (
+                        <HomeCarouselCTA />
+                    ) : (
+                        <ActivationCTAs activationStep={activationStep} onDismissCard={dismissCardStep} />
+                    )}
                     <HomeHistory
                         username={username ?? undefined}
                         hideTxnAmount={isBalanceHidden}
