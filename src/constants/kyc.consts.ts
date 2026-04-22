@@ -10,7 +10,9 @@ export type KycVerificationStatus = MantecaKycStatus | SumsubKycStatus | string
 export type KycStatusCategory = 'completed' | 'processing' | 'failed' | 'action_required'
 
 // sets of status values by category — single source of truth
-const APPROVED_STATUSES: ReadonlySet<string> = new Set(['approved', 'ACTIVE', 'APPROVED'])
+// REVERIFYING = user is approved but re-verifying for a new region (cross-region KYC).
+// treated as approved for access checks — user retains existing provider access.
+const APPROVED_STATUSES: ReadonlySet<string> = new Set(['approved', 'ACTIVE', 'APPROVED', 'REVERIFYING'])
 const FAILED_STATUSES: ReadonlySet<string> = new Set(['rejected', 'INACTIVE', 'REJECTED'])
 const PENDING_STATUSES: ReadonlySet<string> = new Set([
     'under_review',

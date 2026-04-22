@@ -10,7 +10,7 @@ import { useCallback, useEffect, useMemo } from 'react'
 import { countryData } from '@/components/AddMoney/consts'
 import { formatCurrencyAmount } from '@/utils/currency'
 import { formatBankAccountDisplay } from '@/utils/format.utils'
-import { getCurrencyConfig, getCurrencySymbol } from '@/utils/bridge.utils'
+import { applyBridgeCrossCurrencyFee, getCurrencyConfig, getCurrencySymbol } from '@/utils/bridge.utils'
 import { RequestFulfillmentBankFlowStep, useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import { formatAmount } from '@/utils/general.utils'
 import InfoCard from '@/components/Global/InfoCard'
@@ -19,6 +19,25 @@ import { BRIDGE_DEFAULT_ACCOUNT_HOLDER_NAME } from '@/constants/payment.consts'
 import { Button } from '@/components/0_Bruddle/Button'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
 import { useQueryState, parseAsString } from 'nuqs'
+
+/**
+ * TODO(architecture): Quote math is computed client-side instead of trusting backend.
+ *
+ * This file (and ExchangeRate component, MantecaDepositShareDetails, etc.) each
+ * re-derive "amount user will receive" by multiplying raw exchange rate by amount.
+ * This caused a production bug where UI promised more than Bridge actually delivered
+ * because the 0.5% developer fee was not baked into the displayed rate.
+ *
+ * PROPER FIX: Add backend /bridge/onramp/quote and /bridge/offramp/quote endpoints
+ * that return { gross, fee, net, exchangeRate }. UI displays `net`. This makes fee
+ * changes propagate automatically and eliminates this whole class of bugs.
+ *
+ * Related: backend BRIDGE_DEVELOPER_FEE_PERCENT constant in peanut-api-ts must be
+ * kept in sync manually with BRIDGE_DEVELOPER_FEE_RATE in payment.consts.ts.
+ * A shared types package / OpenAPI spec would enforce this at compile time.
+ *
+ * See PR description of fix/bridge-fee-display-quote for full writeup.
+ */
 
 interface IAddMoneyBankDetails {
     flow?: 'add-money' | 'request-fulfillment'
@@ -113,11 +132,26 @@ export default function AddMoneyBankDetails({ flow = 'add-money' }: IAddMoneyBan
             if (baseAmount === null) return amount
             if (isNonUsdCurrency) {
                 // for non-usd deposits, show the approximate amount in usd
-                return '≈ ' + usdCurrencySymbol + ' ' + formatAmount(baseAmount * exchangeRate)
+                // bake in the 0.5% Bridge developer fee so displayed amount matches
+                // what Bridge actually delivers (applyBridgeCrossCurrencyFee is a no-op for USD)
+                const grossUsd = baseAmount * exchangeRate
+                // NOTE: pass 'USDC' (the real Bridge destination) not 'USD' — the helper
+                // mirrors backend `getBridgeDeveloperFeeParams` which treats 'usd' as the
+                // fiat rail (fee-free USD↔USDC) and 'usdc' as the stablecoin. The "$" shown
+                // to the user is just display; the on-chain transfer is EUR/GBP/MXN → USDC.
+                const netUsd = applyBridgeCrossCurrencyFee(grossUsd, onrampCurrency, 'USDC')
+                return '≈ ' + usdCurrencySymbol + ' ' + formatAmount(netUsd)
             }
             return '≈ ' + currencySymbolBasedOnCountry + ' ' + formatAmount(baseAmount * exchangeRate)
         },
-        [exchangeRate, isNonUsdCurrency, usdCurrencySymbol, currencySymbolBasedOnCountry, parseAmountToNumber]
+        [
+            exchangeRate,
+            isNonUsdCurrency,
+            usdCurrencySymbol,
+            currencySymbolBasedOnCountry,
+            parseAmountToNumber,
+            onrampCurrency,
+        ]
     )
 
     useEffect(() => {

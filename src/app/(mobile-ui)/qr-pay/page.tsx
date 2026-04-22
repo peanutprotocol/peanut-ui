@@ -34,6 +34,8 @@ import { loadingStateContext } from '@/context'
 import { getCurrencyPrice } from '@/app/actions/currency'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { captureException } from '@sentry/nextjs'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import {
     isPaymentProcessorQR,
     parseSimpleFiQr,
@@ -61,8 +63,12 @@ import PointsCard from '@/components/Common/PointsCard'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
-import { getLimitsWarningCardProps } from '@/features/limits/utils'
+import { getLimitsWarningCardProps, isBrUserEligibleForLimitIncrease } from '@/features/limits/utils'
 import useKycStatus from '@/hooks/useKycStatus'
+import { useSumsubActionFlow } from '@/hooks/useSumsubActionFlow'
+import { initiateIncreaseLimits } from '@/app/actions/increase-limits'
+import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
+import { useLimits } from '@/hooks/useLimits'
 
 const MAX_QR_PAYMENT_AMOUNT = '2000'
 const MIN_QR_PAYMENT_AMOUNT = '0.1'
@@ -130,9 +136,13 @@ export default function QRPayPage() {
     const [pendingSimpleFiPaymentId, setPendingSimpleFiPaymentId] = useState<string | null>(null)
     const [isWaitingForWebSocket, setIsWaitingForWebSocket] = useState(false)
     const [shouldRetry, setShouldRetry] = useState(true)
-    const { setIsSupportModalOpen } = useModalsContext()
+    const { setIsSupportModalOpen, openSupportWithMessage: openSupportForLimits } = useModalsContext()
     const [waitingForMerchantAmount, setWaitingForMerchantAmount] = useState(false)
     const retryCount = useRef(0)
+
+    // Analytics tracking refs (declared before resetState so it can clear them)
+    const hasTrackedPerkShown = useRef(false)
+    const perkClaimedRef = useRef(false)
 
     const resetState = () => {
         setIsSuccess(false)
@@ -165,6 +175,9 @@ export default function QRPayPage() {
         // reset perk states
         setIsClaimingPerk(false)
         setPerkClaimed(false)
+        // reset analytics tracking refs so a new QR flow gets fresh tracking
+        hasTrackedPerkShown.current = false
+        perkClaimedRef.current = false
     }
 
     // Cleanup timers on unmount
@@ -174,6 +187,33 @@ export default function QRPayPage() {
             if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
             if (payingStateTimerRef.current) clearTimeout(payingStateTimerRef.current)
             holdStartTimeRef.current = null
+        }
+    }, [])
+
+    // Track reward claim shown + surprise moment when perk UI appears after payment
+    useEffect(() => {
+        perkClaimedRef.current = perkClaimed
+    }, [perkClaimed])
+
+    useEffect(() => {
+        if (isSuccess && qrPayment?.perk?.eligible && !perkClaimed && !hasTrackedPerkShown.current) {
+            hasTrackedPerkShown.current = true
+            const eventProps = {
+                amount_usd: qrPayment.perk.amountSponsored,
+                discount_pct: qrPayment.perk.discountPercentage,
+                merchant: qrPayment.details?.merchant?.name,
+            }
+            posthog.capture(ANALYTICS_EVENTS.REWARD_CLAIM_SHOWN, eventProps)
+            posthog.capture(ANALYTICS_EVENTS.SURPRISE_MOMENT_SHOWN, eventProps)
+        }
+    }, [isSuccess, qrPayment?.perk?.eligible, perkClaimed, qrPayment])
+
+    // Track dismiss: user navigated away after seeing perk but without claiming
+    useEffect(() => {
+        return () => {
+            if (hasTrackedPerkShown.current && !perkClaimedRef.current) {
+                posthog.capture(ANALYTICS_EVENTS.REWARD_CLAIM_DISMISSED)
+            }
         }
     }, [])
 
@@ -387,6 +427,15 @@ export default function QRPayPage() {
         flowType: 'qr-payment',
         amount: usdAmount,
         currency: currency?.code,
+    })
+
+    // BR self-service limit increase flow
+    const { mantecaLimits: qrMantecaLimits, refetch: refetchQrLimits } = useLimits()
+    const isBrQrEligible = isBrUserEligibleForLimitIncrease(qrMantecaLimits)
+    const qrLimitIncreaseFlow = useSumsubActionFlow({
+        fetchToken: initiateIncreaseLimits,
+        onSuccess: refetchQrLimits,
+        onNeedsSupport: () => openSupportForLimits('Hi, I would like to increase my payment limits.'),
     })
 
     // Fetch points early to avoid latency penalty - fetch as soon as we have usdAmount
@@ -786,6 +835,10 @@ export default function QRPayPage() {
         try {
             const result = await mantecaApi.claimPerk(qrPayment.externalId)
             if (result.success) {
+                posthog.capture(ANALYTICS_EVENTS.REWARD_CLAIMED, {
+                    amount_usd: result.perk.amountSponsored,
+                    discount_pct: result.perk.discountPercentage,
+                })
                 // Update qrPayment with actual claimed perk info from backend
                 setQrPayment({
                     ...qrPayment,
@@ -1505,6 +1558,15 @@ export default function QRPayPage() {
 
     return (
         <>
+            <SumsubKycWrapper
+                visible={qrLimitIncreaseFlow.showWrapper}
+                accessToken={qrLimitIncreaseFlow.accessToken}
+                onClose={qrLimitIncreaseFlow.handleClose}
+                onComplete={qrLimitIncreaseFlow.handleSdkComplete}
+                onRefreshToken={qrLimitIncreaseFlow.refreshToken}
+                autoStart
+                isMultiLevel
+            />
             <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(isShaking, shakeIntensity)}`}>
                 <NavHeader title="Pay" />
 
@@ -1571,7 +1633,18 @@ export default function QRPayPage() {
                             flowType: 'qr-payment',
                             currency: limitsValidation.currency,
                         })
-                        return limitsCardProps ? <LimitsWarningCard {...limitsCardProps} /> : null
+                        if (!limitsCardProps) return null
+                        return (
+                            <LimitsWarningCard
+                                {...limitsCardProps}
+                                onIncreaseLimits={
+                                    isBrQrEligible && limitsValidation.isBlocking
+                                        ? qrLimitIncreaseFlow.handleInitiate
+                                        : undefined
+                                }
+                                isIncreaseLimitsLoading={qrLimitIncreaseFlow.isLoading}
+                            />
+                        )
                     })()}
 
                     {/* Information Card */}

@@ -204,7 +204,10 @@ async function fetchDirectFromFrankfurter(from: string, to: string): Promise<num
         }
 
         const data = await response.json()
-        return data.rates[to] * 0.995 // Subtract 50bps
+        // Simulate Bridge's ~50bps FX spread when falling back to Frankfurter mid-market rates.
+        // This represents Bridge's own take, NOT Peanut's developer fee — that's applied
+        // separately by callers via applyBridgeCrossCurrencyFee. The two fees stack.
+        return data.rates[to] * 0.995
     } catch (error) {
         console.error(`Frankfurter direct API exception for ${from}-${to}:`, error)
         return null

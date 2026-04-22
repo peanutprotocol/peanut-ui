@@ -2,6 +2,7 @@ import CurrencySelect from '@/components/LandingPage/CurrencySelect'
 import countryCurrencyMappings from '@/constants/countryCurrencyMapping'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
+import { applyBridgeCrossCurrencyFee, reverseBridgeCrossCurrencyFee } from '@/utils/bridge.utils'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { type FC, useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -42,6 +43,24 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
     })
 
     const debouncedSourceAmount = useDebounce(sourceAmount, 500)
+
+    // Bridge charges a 0.5% developer fee on cross-currency transfers (non-USD ↔ non-USD).
+    // The hook returns gross `source × rate`; we display net so "Recipient Gets" matches
+    // what Bridge actually delivers. USD pairs pass through unchanged.
+    const netDestinationAmount = useMemo<number | ''>(() => {
+        if (typeof destinationAmount !== 'number') return destinationAmount
+        return applyBridgeCrossCurrencyFee(destinationAmount, sourceCurrency, destinationCurrency)
+    }, [destinationAmount, sourceCurrency, destinationCurrency])
+
+    // Track whether the user is actively typing in the destination field so we can
+    // echo their input verbatim instead of formatting a net value over it.
+    const [isEditingDestination, setIsEditingDestination] = useState(false)
+
+    const netDestinationDisplayValue = useMemo<string>(() => {
+        if (isEditingDestination) return getDestinationDisplayValue()
+        if (netDestinationAmount === '' || typeof netDestinationAmount !== 'number') return ''
+        return netDestinationAmount.toFixed(2)
+    }, [isEditingDestination, getDestinationDisplayValue, netDestinationAmount])
 
     // Function to update URL parameters
     const updateUrlParams = useCallback(
@@ -95,13 +114,16 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
 
     const swapCurrencies = useCallback(() => {
         setIsSwapping(true)
+        setIsEditingDestination(false)
         skipNextDebounceSyncRef.current = true
+        // Use the displayed net amount as the new source so post-swap values match
+        // what the user saw in "Recipient Gets" before swapping.
         const newAmount =
-            typeof destinationAmount === 'number' && destinationAmount > 0
-                ? Math.round(destinationAmount * 100) / 100
+            typeof netDestinationAmount === 'number' && netDestinationAmount > 0
+                ? Math.round(netDestinationAmount * 100) / 100
                 : undefined
         updateUrlParams({ from: destinationCurrency, to: sourceCurrency, amount: newAmount })
-    }, [sourceCurrency, destinationCurrency, destinationAmount, updateUrlParams])
+    }, [sourceCurrency, destinationCurrency, netDestinationAmount, updateUrlParams])
 
     // clear swapping state once exchange rate hook finishes recalculating
     useEffect(() => {
@@ -162,6 +184,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
                             value={sourceAmount === '' ? '' : sourceAmount}
                             onChange={(e) => {
                                 const inputValue = e.target.value
+                                setIsEditingDestination(false)
                                 if (inputValue === '') {
                                     handleSourceAmountChange('')
                                 } else {
@@ -212,14 +235,21 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
                         <input
                             min={0}
                             placeholder="0"
-                            value={getDestinationDisplayValue()}
+                            value={netDestinationDisplayValue}
                             onChange={(e) => {
                                 const inputValue = e.target.value
+                                setIsEditingDestination(true)
                                 if (inputValue === '') {
                                     handleDestinationAmountChange('', '')
                                 } else {
                                     const value = parseFloat(inputValue)
-                                    handleDestinationAmountChange(inputValue, isNaN(value) ? '' : value)
+                                    // User typed a net "Recipient Gets" value — gross it up
+                                    // before handing to the hook so the source amount is
+                                    // computed from the gross equivalent (net / (1 - fee) / rate).
+                                    const grossValue = isNaN(value)
+                                        ? ''
+                                        : reverseBridgeCrossCurrencyFee(value, sourceCurrency, destinationCurrency)
+                                    handleDestinationAmountChange(inputValue, grossValue)
                                 }
                             }}
                             type="number"

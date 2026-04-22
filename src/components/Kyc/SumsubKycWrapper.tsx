@@ -152,6 +152,18 @@ export const SumsubKycWrapper = ({
                 }
             }
 
+            // for applicant actions, the SDK fires action-specific events.
+            // only close on terminal status to avoid premature SDK closure.
+            const handleActionCompleted = (payload: {
+                reviewStatus?: string
+                reviewResult?: { reviewAnswer?: string }
+            }) => {
+                console.log('[sumsub] onApplicantActionStatusChanged fired', payload)
+                if (payload?.reviewStatus === 'completed') {
+                    stableOnComplete()
+                }
+            }
+
             const sdk = window.snsWebSdk
                 .init(accessToken, stableOnRefreshToken)
                 .withConf({ lang: 'en', theme: 'light' })
@@ -162,12 +174,14 @@ export const SumsubKycWrapper = ({
                 // Applicant Action events (card-application, additional-docs, etc.)
                 .on('onActionSubmitted', handleActionSubmitted)
                 .on('onApplicantActionSubmitted', handleActionSubmitted)
+                .on('onApplicantActionStatusChanged', handleActionCompleted)
                 // also listen for idCheck-prefixed events (some sdk versions use these)
                 .on('idCheck.onApplicantSubmitted', handleSubmitted)
                 .on('idCheck.onApplicantResubmitted', handleResubmitted)
                 .on('idCheck.onApplicantStatusChanged', handleStatusChanged)
                 .on('idCheck.onActionSubmitted', handleActionSubmitted)
                 .on('idCheck.onApplicantActionSubmitted', handleActionSubmitted)
+                .on('idCheck.onApplicantActionStatusChanged', handleActionCompleted)
                 .on('onError', (error: unknown) => {
                     console.error('[sumsub] sdk error', error)
                     stableOnError(error)
