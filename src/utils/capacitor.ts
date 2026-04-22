@@ -77,14 +77,22 @@ export function getApiBaseUrl(): string {
 }
 
 /**
+ * returns the rpId for native passkey operations.
+ * configurable via NEXT_PUBLIC_NATIVE_RP_ID env var, defaults to production domain.
+ */
+export function getNativeRpId(): string {
+    return process.env.NEXT_PUBLIC_NATIVE_RP_ID || 'peanut.me'
+}
+
+/**
  * opens a url in the appropriate way for the current platform
  * - on web: window.open with _blank
  * - in capacitor: uses @capacitor/browser plugin
  */
 export async function openExternalUrl(url: string): Promise<void> {
     if (isCapacitor()) {
-        // TODO: use @capacitor/browser plugin when installed
-        window.location.href = url
+        const { Browser } = await import(/* webpackIgnore: true */ '@capacitor/browser')
+        await Browser.open({ url })
     } else {
         window.open(url, '_blank')
     }

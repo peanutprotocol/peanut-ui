@@ -5,7 +5,7 @@
  * provides early feedback to users about potential issues
  */
 
-import { isCapacitor } from '@/utils/capacitor'
+import { isCapacitor, getNativeRpId } from '@/utils/capacitor'
 
 export interface PasskeyPreflightResult {
     isSupported: boolean
@@ -39,8 +39,7 @@ export async function checkPasskeySupport(): Promise<PasskeyPreflightResult> {
                 hasPublicKeyCredential: true,
                 isHttps: true,
                 isAndroid: /android/i.test(navigator.userAgent),
-                // TODO: change to 'peanut.me' before production release
-                rpId: process.env.NEXT_PUBLIC_NATIVE_RP_ID || 'peanut.me',
+                rpId: getNativeRpId(),
             },
         }
     }

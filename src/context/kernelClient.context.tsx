@@ -17,7 +17,7 @@ import { type Chain, http, type PublicClient, type Transport } from 'viem'
 import type { Address } from 'viem'
 import { captureException } from '@sentry/nextjs'
 import { retryAsync } from '@/utils/retry.utils'
-import { isAndroidNative } from '@/utils/capacitor'
+import { isAndroidNative, getNativeRpId } from '@/utils/capacitor'
 import { createNativeSignMessageCallback } from '@/utils/native-webauthn'
 import { PUBLIC_CLIENTS_BY_CHAIN } from '@/app/actions/clients'
 
@@ -179,7 +179,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             // on android native, browser WebAuthn doesn't work in the webview — re-attach
             // the native capacitor plugin callback so signing works after restore.
             if (isAndroidNative() && !storedWebAuthnKey.signMessageCallback) {
-                const rpId = storedWebAuthnKey.rpID || process.env.NEXT_PUBLIC_NATIVE_RP_ID || 'peanut.me'
+                const rpId = storedWebAuthnKey.rpID || getNativeRpId()
                 storedWebAuthnKey.signMessageCallback = createNativeSignMessageCallback(rpId)
             }
             // Only update if the key actually changed to avoid re-triggering kernel client init

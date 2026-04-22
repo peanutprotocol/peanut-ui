@@ -7,7 +7,7 @@ const config: CapacitorConfig = {
     // no server.url — static export loads from local out/ directory
     android: {
         allowMixedContent: false,
-        webContentsDebuggingEnabled: true,
+        webContentsDebuggingEnabled: process.env.NODE_ENV !== 'production',
     },
     plugins: {
         CapacitorHttp: {

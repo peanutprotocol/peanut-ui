@@ -9,7 +9,7 @@ import { Provider as ReduxProvider } from 'react-redux'
 
 import store from '@/redux/store'
 import 'react-tooltip/dist/react-tooltip.css'
-import { isCapacitor } from '@/utils/capacitor'
+import { isCapacitor, getNativeRpId } from '@/utils/capacitor'
 import { CRISP_WEBSITE_ID } from '@/constants/crisp'
 // Note: Sentry configs are auto-loaded by @sentry/nextjs via next.config.js
 // DO NOT import them here - it bundles server/edge configs into client code
@@ -26,7 +26,7 @@ export function PeanutProvider({ children }: { children: React.ReactNode }) {
         // routes through native APIs instead of the browser (which doesn't work in webview).
         if (isCapacitor()) {
             import('@capgo/capacitor-passkey').then(({ CapacitorPasskey }) => {
-                const nativeRpId = process.env.NEXT_PUBLIC_NATIVE_RP_ID || 'peanut.me'
+                const nativeRpId = getNativeRpId()
 
                 // check native passkey support first
                 CapacitorPasskey.isSupported()
