@@ -20,8 +20,7 @@ export function useNativePlugins() {
 
         const init = async () => {
             try {
-                // @ts-ignore — module only exists in native builds
-                const { App } = await import(/* webpackIgnore: true */ '@capacitor/app')
+                const { App } = await import('@capacitor/app')
                 const listener = await App.addListener('backButton', ({ canGoBack }: { canGoBack: boolean }) => {
                     if (canGoBack) {
                         router.back()
@@ -35,8 +34,7 @@ export function useNativePlugins() {
             }
 
             try {
-                // @ts-ignore — module only exists in native builds
-                const { StatusBar, Style } = await import(/* webpackIgnore: true */ '@capacitor/status-bar')
+                const { StatusBar, Style } = await import('@capacitor/status-bar')
                 await StatusBar.setOverlaysWebView({ overlay: false })
                 await StatusBar.setStyle({ style: Style.Light })
                 await StatusBar.setBackgroundColor({ color: '#ffffff' })
@@ -45,8 +43,7 @@ export function useNativePlugins() {
             }
 
             try {
-                // @ts-ignore — module only exists in native builds
-                const { SplashScreen } = await import(/* webpackIgnore: true */ '@capacitor/splash-screen')
+                const { SplashScreen } = await import('@capacitor/splash-screen')
                 await SplashScreen.hide()
             } catch (e) {
                 console.warn('failed to hide splash screen:', e)

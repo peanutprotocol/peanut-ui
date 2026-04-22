@@ -17,8 +17,7 @@ export async function initCapgoUpdater(
     onDownloadProgress?: (percent: number) => void,
     onUpdateFailed?: (error: string) => void
 ): Promise<() => void> {
-    // @ts-ignore — module only exists in native builds
-    const { CapacitorUpdater } = await import(/* webpackIgnore: true */ '@capgo/capacitor-updater')
+    const { CapacitorUpdater } = await import('@capgo/capacitor-updater')
 
     // critical: must be called every app launch within appReadyTimeout (15s).
     // if not called, capgo auto-rolls back to previous bundle.

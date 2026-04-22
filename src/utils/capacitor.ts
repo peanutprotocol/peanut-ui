@@ -91,7 +91,7 @@ export function getNativeRpId(): string {
  */
 export async function openExternalUrl(url: string): Promise<void> {
     if (isCapacitor()) {
-        const { Browser } = await import(/* webpackIgnore: true */ '@capacitor/browser')
+        const { Browser } = await import('@capacitor/browser')
         await Browser.open({ url })
     } else {
         window.open(url, '_blank')
