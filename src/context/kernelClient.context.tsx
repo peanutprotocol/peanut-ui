@@ -119,10 +119,10 @@ export const createHarnessEcdsaKernelClient = async <C extends Chain>(
                 maxPriorityFeePerGas: 1_000_000n,
             } as never)
         }) as typeof kernelClient.sendUserOperation
-        return kernelClient
+        return kernelClient as unknown as GenericSmartAccountClient<C>
     }
 
-    return createKernelAccountClient(clientConfig)
+    return createKernelAccountClient(clientConfig) as unknown as GenericSmartAccountClient<C>
 }
 
 export interface KernelClientOptions {
@@ -176,30 +176,32 @@ export const createKernelClientForChain = async <C extends Chain>(
         })
     }
 
+    // Testnet chains don't have ZeroDev UltraRelay — their bundler rejects
+    // userops with maxFeePerGas=0 ("must be at least N — use
+    // pimlico_getUserOperationGasPrice"). Only use the zero-fee UltraRelay
+    // shortcut on mainnet Arb One (42161). On Arb Sepolia (421614) or any
+    // other testnet, fall through to standard gas estimation.
+    const TESTNET_CHAIN_IDS = new Set([421614, 11155111, 84532])
+    const isMainnetPeanutChain =
+        chain.id.toString() === PEANUT_WALLET_CHAIN.id.toString() && !TESTNET_CHAIN_IDS.has(chain.id)
+
     const kernelClient = createKernelAccountClient({
         account: kernelAccount,
         chain: chain,
         bundlerTransport: http(bundlerUrl),
         pollingInterval: 500,
-        userOperation:
-            // for arbitrum (peanut_wallet_chain):
-            // use zerodev's ultra relay (docs.zerodev.app/sdk/core-api/sponsor-gas#ultrarelay).
-            // this requires gas fees set to 0 for optimal performance/sponsorship.
-            //
-            // for polygon (pimlico provider) & other chains:
-            // do not hardcode gas. allows standard gas estimation, preventing underpriced tx failures.
-            // note using pimlico provider, for polygon, cuz it doesnt support ultra relay yet and alchemy (default provider) fails to estimate gas.
-            chain.id.toString() === PEANUT_WALLET_CHAIN.id.toString()
-                ? {
-                      // better performance: https://docs.zerodev.app/sdk/core-api/sponsor-gas#ultrarelay
-                      estimateFeesPerGas: async ({ bundlerClient: _ }) => {
-                          return {
-                              maxFeePerGas: BigInt(0),
-                              maxPriorityFeePerGas: BigInt(0),
-                          }
-                      },
-                  }
-                : undefined,
+        userOperation: isMainnetPeanutChain
+            ? {
+                  // UltraRelay shortcut — Arbitrum One prod only.
+                  // https://docs.zerodev.app/sdk/core-api/sponsor-gas#ultrarelay
+                  estimateFeesPerGas: async ({ bundlerClient: _ }) => {
+                      return {
+                          maxFeePerGas: BigInt(0),
+                          maxPriorityFeePerGas: BigInt(0),
+                      }
+                  },
+              }
+            : undefined,
         paymaster: {
             getPaymasterData: async (userOperation) => {
                 const zerodevPaymaster = createZeroDevPaymasterClient({
