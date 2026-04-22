@@ -25,8 +25,8 @@ export function useOtaUpdates() {
                 initCapgoUpdater(
                     (bundle) => setState((prev) => ({ ...prev, updateAvailable: true, bundleInfo: bundle })),
                     (percent) => setState((prev) => ({ ...prev, downloadProgress: percent })),
-                    (error) => setState((prev) => ({ ...prev, error })),
-                ),
+                    (error) => setState((prev) => ({ ...prev, error }))
+                )
             )
             .then((fn) => {
                 cleanup = fn

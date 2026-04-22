@@ -15,7 +15,7 @@ export interface OtaUpdateState {
 export async function initCapgoUpdater(
     onUpdateAvailable?: (bundle: BundleInfo) => void,
     onDownloadProgress?: (percent: number) => void,
-    onUpdateFailed?: (error: string) => void,
+    onUpdateFailed?: (error: string) => void
 ): Promise<() => void> {
     // @ts-ignore — module only exists in native builds
     const { CapacitorUpdater } = await import(/* webpackIgnore: true */ '@capgo/capacitor-updater')
@@ -30,32 +30,32 @@ export async function initCapgoUpdater(
         await CapacitorUpdater.addListener('updateAvailable', (res: { bundle: BundleInfo }) => {
             console.log('[capgo] update available:', res.bundle.version)
             onUpdateAvailable?.(res.bundle)
-        }),
+        })
     )
 
     listeners.push(
         await CapacitorUpdater.addListener('download', (res: { percent: number }) => {
             onDownloadProgress?.(res.percent)
-        }),
+        })
     )
 
     listeners.push(
         await CapacitorUpdater.addListener('updateFailed', (res: { bundle: BundleInfo }) => {
             console.error('[capgo] update failed:', res.bundle.version)
             onUpdateFailed?.(`update to ${res.bundle.version} failed`)
-        }),
+        })
     )
 
     listeners.push(
         await CapacitorUpdater.addListener('downloadComplete', (res: { bundle: BundleInfo }) => {
             console.log('[capgo] download complete:', res.bundle.version)
-        }),
+        })
     )
 
     listeners.push(
         await CapacitorUpdater.addListener('appReloaded', () => {
             console.log('[capgo] app reloaded with new bundle')
-        }),
+        })
     )
 
     return () => listeners.forEach((l) => l.remove())
