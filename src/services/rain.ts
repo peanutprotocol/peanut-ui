@@ -303,11 +303,19 @@ export const rainApi = {
      *    in-flight. Frontend should refetch overview and let the state
      *    machine route.
      */
-    applyForCard: async (opts: { termsAccepted?: boolean } = {}): Promise<ApplyForCardResponse> => {
+    applyForCard: async (
+        opts: { termsAccepted?: boolean; serializedApproval?: string } = {}
+    ): Promise<ApplyForCardResponse> => {
+        // `serializedApproval` is consumed only by the re-issue branch on the
+        // backend (where a RainCard row is created synchronously). First-time
+        // applicants don't have a collateral proxy yet, so the frontend omits
+        // the field entirely in that case.
+        const body: Record<string, unknown> = { termsAccepted: opts.termsAccepted === true }
+        if (opts.serializedApproval) body.serializedApproval = opts.serializedApproval
         return rainRequest<ApplyForCardResponse>({
             method: 'POST',
             path: '/rain/cards',
-            body: { termsAccepted: opts.termsAccepted === true },
+            body,
         })
     },
 

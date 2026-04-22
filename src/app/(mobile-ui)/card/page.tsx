@@ -17,6 +17,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { rainApi } from '@/services/rain'
+import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
 
 const CardPage: FC = () => {
     const router = useRouter()
@@ -37,6 +38,7 @@ const CardPage: FC = () => {
     })
 
     const { overview, isLoading: overviewLoading, error: overviewError } = useRainCardOverview()
+    const { serializeGrant } = useGrantSessionKey()
 
     // Sumsub card-application token — populated when POST /rain/cards reports
     // the user still needs to complete the rain-card-application level.
@@ -59,10 +61,10 @@ const CardPage: FC = () => {
     }, [queryClient])
 
     const handleApply = useCallback(
-        async (termsAccepted = false) => {
+        async (termsAccepted = false, serializedApproval?: string) => {
             setApplyError(null)
             try {
-                const res = await rainApi.applyForCard({ termsAccepted })
+                const res = await rainApi.applyForCard({ termsAccepted, serializedApproval })
                 if (res.status === 'incomplete' && 'sumsubAccessToken' in res) {
                     setSumsubToken(res.sumsubAccessToken)
                     return
@@ -84,14 +86,46 @@ const CardPage: FC = () => {
     )
 
     const handleAcceptTerms = useCallback(async () => {
+        // If we already have the collateral contract (rail is ENABLED, re-issue
+        // path), collect the session-key permission in the same passkey tap
+        // before the backend creates the card. Fail closed: a cancelled /
+        // failed tap means no card gets issued.
+        const canGrant = !!overview?.status?.contractAddress && !!overview?.status?.coordinatorAddress
+
+        if (!canGrant) {
+            // First-time apply — no collateral proxy yet. Session-key grant
+            // happens the next time the user lands here (re-issue path).
+            setIsIssuing(true)
+            try {
+                await handleApply(true)
+            } finally {
+                setIsIssuing(false)
+            }
+            return
+        }
+
+        const isUsResidentSnapshot = pendingTerms?.isUsResident ?? false
         setIsIssuing(true)
-        setPendingTerms(null)
+        setApplyError(null)
         try {
-            await handleApply(true)
+            const tap = await serializeGrant()
+            if (!tap.ok) {
+                // Back to the terms screen with a friendly error. Don't hit
+                // the backend — no card should be created without consent.
+                setIsIssuing(false)
+                setPendingTerms({ isUsResident: isUsResidentSnapshot })
+                setApplyError(
+                    tap.error.kind === 'user-cancelled'
+                        ? 'Setup cancelled — please try again.'
+                        : 'Could not complete setup — please try again.'
+                )
+                return
+            }
+            await handleApply(true, tap.serialized)
         } finally {
             setIsIssuing(false)
         }
-    }, [handleApply])
+    }, [handleApply, overview, pendingTerms, serializeGrant])
 
     const handleSumsubComplete = useCallback(async () => {
         setSumsubToken(null)
