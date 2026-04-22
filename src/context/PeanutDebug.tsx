@@ -126,11 +126,40 @@ export function PeanutDebug() {
                 return call('/dev/ledger/history', { userId: uid }, 'GET')
             },
 
+            faucetHelp() {
+                // Harness EOA address. Stays in sync with HARNESS_WALLET_PRIVATE_KEY
+                // derivation (engineering/qa/setup/test-wallet.mjs).
+                const addr = '0x441D796c62548F74505DE578c458908d936A3B53'
+                const msg = [
+                    '',
+                    '🪙 Harness EOA is the USDC source for peanutDebug.fund().',
+                    '',
+                    `   Address:  ${addr}`,
+                    '   Chain:    Arbitrum Sepolia (421614)',
+                    '',
+                    '   Refill:',
+                    '     1. Open https://faucet.circle.com/',
+                    '     2. Select "Arb Sepolia"',
+                    `     3. Paste ${addr}`,
+                    '     4. Click "Send me USDC" — 10 USDC per click, ~60s cooldown.',
+                    '',
+                    "   Circle's canonical USDC has no public mint(). Mock would break",
+                    '   Bridge + Manteca sandboxes which hardcode the real contract.',
+                    '',
+                ].join('\n')
+                console.log(msg)
+                if (typeof window !== 'undefined') {
+                    window.open('https://faucet.circle.com/', '_blank', 'noopener,noreferrer')
+                }
+                return addr
+            },
+
             help() {
                 const lines = [
                     'peanutDebug.signOut()                     clear cookies + storage + reload',
                     'peanutDebug.whoami()                      KYC / wallet / provider ids',
                     'peanutDebug.fund(usdc="10")               harness EOA → your SA (default $10)',
+                    'peanutDebug.faucetHelp()                  print harness EOA + open Circle faucet',
                     'peanutDebug.approveKyc(provider, country) "bridge" (US/EU), "manteca" (AR), "sumsub"',
                     'peanutDebug.simulateBridgeDeposit("25")   fires sandbox simulate_deposit',
                     'peanutDebug.resetMe()                     wipes your bridge/manteca/ledger rows',
