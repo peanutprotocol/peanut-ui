@@ -31,9 +31,15 @@ export async function checkPasskeySupport(): Promise<PasskeyPreflightResult> {
     // capture rpId for debugging - this is what will be used for passkey registration
     const rpId = window.location.hostname.replace(/^www\./, '')
 
+    // WebAuthn treats localhost, 127.0.0.1, and [::1] as secure contexts
+    // even over plain http. Trust window.isSecureContext first (the
+    // browser's own determination) and fall back to the hostname check.
+    const hostname = window.location.hostname
+    const isLoopback = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]' || hostname === '::1'
+
     const diagnostics: PasskeyPreflightResult['diagnostics'] = {
         hasPublicKeyCredential: 'PublicKeyCredential' in window,
-        isHttps: window.location.protocol === 'https:' || window.location.hostname === 'localhost',
+        isHttps: window.isSecureContext || window.location.protocol === 'https:' || isLoopback,
         isAndroid: /android/i.test(navigator.userAgent),
         rpId,
     }
