@@ -25,8 +25,3 @@ export const checkTokenSupportsXChain = (
 export const SQUID_ETH_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
 
 export const NATIVE_TOKEN_ADDRESS = '0x0000000000000000000000000000000000000000'
-
-// Helper to get the correct token address for Squid
-export const getSquidTokenAddress = (tokenAddress: string): string => {
-    return tokenAddress === NATIVE_TOKEN_ADDRESS ? SQUID_ETH_ADDRESS : tokenAddress.toLowerCase()
-}

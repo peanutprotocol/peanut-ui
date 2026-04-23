@@ -113,11 +113,6 @@ export interface IToken {
     symbol: string
 }
 
-export type ChainValue = {
-    chainId: string
-    valuePerChain: number
-}
-
 export interface IBridgeAccount {
     id: string
     customer_id: string
