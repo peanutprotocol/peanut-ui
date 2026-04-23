@@ -31,8 +31,6 @@
         "verify-content": "tsx scripts/verify-content.ts"
     },
     "dependencies": {
-        "@dicebear/collection": "^9.2.2",
-        "@dicebear/core": "^9.2.2",
         "@emotion/react": "^11.14.0",
         "@emotion/styled": "^11.14.1",
         "@headlessui/react": "^2.2.9",
@@ -48,7 +46,6 @@
         "@reduxjs/toolkit": "^2.5.0",
         "@reown/appkit": "1.6.9",
         "@reown/appkit-adapter-wagmi": "1.6.9",
-        "@safe-global/safe-apps-sdk": "^9.1.0",
         "@sentry/nextjs": "^8.39.0",
         "@serwist/next": "^9.0.10",
         "@simplewebauthn/browser": "^8.3.7",
