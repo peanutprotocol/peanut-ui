@@ -6,7 +6,6 @@ import TopNavbar from '@/components/Global/TopNavbar'
 import WalletNavigation from '@/components/Global/WalletNavigation'
 import OfflineScreen from '@/components/Global/OfflineScreen'
 import BackendErrorScreen from '@/components/Global/BackendErrorScreen'
-import { ThemeProvider } from '@/config'
 import { useAuth } from '@/context/authContext'
 import classNames from 'classnames'
 import { usePathname } from 'next/navigation'
@@ -190,19 +189,17 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                             )
                         )}
                     >
-                        <ThemeProvider>
-                            <div
-                                className={twMerge(
-                                    'flex w-full items-center justify-center md:ml-auto md:w-[calc(100%-160px)]',
-                                    alignStart && 'items-start',
-                                    isSupport && 'h-full',
-                                    isUserLoggedIn ? 'min-h-[calc(100dvh-160px)]' : 'min-h-[calc(100dvh-64px)]',
-                                    isDev && 'min-h-[100dvh] items-start justify-start md:ml-0 md:w-full'
-                                )}
-                            >
-                                {children}
-                            </div>
-                        </ThemeProvider>
+                        <div
+                            className={twMerge(
+                                'flex w-full items-center justify-center md:ml-auto md:w-[calc(100%-160px)]',
+                                alignStart && 'items-start',
+                                isSupport && 'h-full',
+                                isUserLoggedIn ? 'min-h-[calc(100dvh-160px)]' : 'min-h-[calc(100dvh-64px)]',
+                                isDev && 'min-h-[100dvh] items-start justify-start md:ml-0 md:w-full'
+                            )}
+                        >
+                            {children}
+                        </div>
                     </div>
 
                     {/* Mobile navigation */}

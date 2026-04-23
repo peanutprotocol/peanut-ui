@@ -1,4 +1,6 @@
 import { type ComponentType, type FC, type SVGProps } from 'react'
+import { twMerge } from 'tailwind-merge'
+import type { LucideIcon } from 'lucide-react'
 import {
     AlertCircle,
     AlertTriangle,
@@ -155,36 +157,24 @@ export interface IconProps extends SVGProps<SVGSVGElement> {
     size?: number | string
 }
 
-// Wrapper: map our Icon API (size + fill + Tailwind text-* className) onto Lucide's
-// native props. Stays on Lucide's defaults (strokeWidth=2, stroke=currentColor) so
-// rendering matches lucide.dev exactly; the consumer controls colour via CSS.
-//
-// Fill handling uses an inline `style` instead of the svg `fill=` attribute or a
-// Tailwind `fill-none` class. tailwind.config.js:387 has `.btn svg { @apply
-// fill-inherit }` (specificity 0,1,1) which beats both the attribute AND a plain
-// `.fill-none` utility class (specificity 0,1,0), forcing black fill on every
-// icon inside a button and collapsing open-curve Lucide paths (refresh, logout,
-// chevron) into blobs. Inline styles beat class-level CSS regardless of
-// specificity, so this always wins.
+// Inline style beats tailwind.config.js `.btn svg { fill: inherit }` which otherwise
+// forces black fill on icons inside buttons and collapses open-curve Lucide paths
+// (refresh, logout, chevron) into blobs. Class-level CSS can't win on specificity.
+const FILL_NONE = { fill: 'none' } as const
+const FILL_CURRENT = { fill: 'currentColor' } as const
+
 const LucideWrapper: FC<
     {
-        Icon: ComponentType<any>
+        Icon: LucideIcon
         transformClassName?: string
         filled?: boolean
     } & SVGProps<SVGSVGElement>
-> = ({ Icon, transformClassName = '', filled, fill, className, width, height, style, ...rest }) => {
-    const mergedClassName = [transformClassName, className].filter(Boolean).join(' ') || undefined
-
-    // Lucide's `size` controls width + height proportionally. Our callers pass width
-    // and height separately (always equal in practice), so collapse back to `size`.
+> = ({ Icon, transformClassName, filled, fill, className, width, height, style, ...rest }) => {
+    const mergedClassName = twMerge(transformClassName, className) || undefined
     const size = width ?? height
-
-    // Stroke colour: only override if the caller passed an explicit `fill`. Otherwise
-    // leave Lucide's default (`stroke="currentColor"`) so Tailwind text-* classes and
-    // inherited CSS colour just work.
     const color = fill ? (fill as string) : undefined
-
-    const mergedStyle = { fill: filled ? 'currentColor' : 'none', ...style }
+    const baseStyle = filled ? FILL_CURRENT : FILL_NONE
+    const mergedStyle = style ? { ...baseStyle, ...style } : baseStyle
 
     return <Icon {...rest} size={size} color={color} className={mergedClassName} style={mergedStyle} />
 }

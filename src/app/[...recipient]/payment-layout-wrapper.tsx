@@ -4,7 +4,6 @@ import GuestLoginModal from '@/components/Global/GuestLoginModal'
 import SupportDrawer from '@/components/Global/SupportDrawer'
 import TopNavbar from '@/components/Global/TopNavbar'
 import WalletNavigation from '@/components/Global/WalletNavigation'
-import { ThemeProvider } from '@/config'
 import { useUserStore } from '@/redux/hooks'
 import { Banner } from '@/components/Global/Banner'
 
@@ -45,16 +44,14 @@ export default function PaymentLayoutWrapper({ children }: { children: React.Rea
                             )
                         )}
                     >
-                        <ThemeProvider>
-                            <div
-                                className={twMerge(
-                                    'flex w-full items-center justify-center md:ml-auto md:min-h-full md:w-[calc(100%-160px)]',
-                                    isUserLoggedIn ? 'min-h-[calc(100dvh-160px)]' : 'min-h-[calc(100dvh-64px)]'
-                                )}
-                            >
-                                {children}
-                            </div>
-                        </ThemeProvider>
+                        <div
+                            className={twMerge(
+                                'flex w-full items-center justify-center md:ml-auto md:min-h-full md:w-[calc(100%-160px)]',
+                                isUserLoggedIn ? 'min-h-[calc(100dvh-160px)]' : 'min-h-[calc(100dvh-64px)]'
+                            )}
+                        >
+                            {children}
+                        </div>
                     </div>
 
                     {/* Mobile navigation */}

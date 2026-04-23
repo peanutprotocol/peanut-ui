@@ -1,8 +1,6 @@
 import { type FC, type SVGProps } from 'react'
 
-// Path data lifted from MUI's DoneAllRounded — we deliberately kept this one
-// over Lucide's CheckCheck because the fused overlapping double-tick is a
-// tighter, more decisive shape.
+// Tighter fused double-tick than Lucide's CheckCheck (which draws them disjoint).
 export const DoubleCheckIcon: FC<SVGProps<SVGSVGElement>> = ({ fill, ...props }) => (
     <svg
         xmlns="http://www.w3.org/2000/svg"
