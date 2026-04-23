@@ -19,19 +19,6 @@ export interface ProviderStatus {
 // Moved here from bridge-accounts.utils.ts to avoid circular dependency
 export type BridgeKycStatus = 'not_started' | 'under_review' | 'approved' | 'rejected' | 'incomplete'
 
-export interface IResponse {
-    success: boolean
-    data?: any
-    message?: string
-    details?: {
-        code?: string
-        message?: string
-        requirements?: {
-            [key: string]: string
-        }
-    }
-}
-
 export interface IUserBalance {
     chainId: string
     address: string
@@ -98,13 +85,6 @@ export type ITokenPriceData = {
     price: number
 } & IToken
 
-export interface ILocalStorageItem {
-    address: string
-    hash: string
-    idx?: string
-    link: string
-}
-
 export interface ILinkDetails {
     link: string
     chainId: string
@@ -133,46 +113,9 @@ export interface IToken {
     symbol: string
 }
 
-export interface IExtendedPeanutLinkDetails extends peanutInterfaces.IPeanutLinkDetails {
-    link: string
-    depositDate: string
-    USDTokenPrice: number
-    points: number
-    txHash: string
-    message: string | undefined
-    attachmentUrl: string | undefined
-}
-
-export interface IExtendedLinkDetails extends ILinkDetails {
-    USDTokenPrice: number
-    points: number
-    txHash: string
-    message: string | undefined
-    attachmentUrl: string | undefined
-}
-
-export interface IExtendedLinkDetailsOfframp extends IExtendedLinkDetails {
-    liquidationAddress: string
-    recipientType: string
-    accountNumber: string
-    bridgeCustomerId: string
-    bridgeExternalAccountId: string
-    peanutCustomerId: string
-    peanutExternalAccountId: string
-}
-
 export type ChainValue = {
     chainId: string
     valuePerChain: number
-}
-
-export interface IDirectSendDetails {
-    chainId: string
-    tokenAmount: string
-    tokenAddress: string
-    date: string
-    points: number
-    txHash: string
 }
 
 export interface IBridgeAccount {
