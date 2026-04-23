@@ -155,30 +155,36 @@ export interface IconProps extends SVGProps<SVGSVGElement> {
     size?: number | string
 }
 
-// Wrapper to apply black stroke by default, honour fill/text-* className overrides,
-// and support transform classes for the handful of icons that need rotation/mirroring.
+// Wrapper: map our Icon API (size + fill + Tailwind text-* className) onto Lucide's
+// native props. Stays on Lucide's defaults (strokeWidth=2, stroke=currentColor) so
+// rendering matches lucide.dev exactly; the consumer controls colour via CSS.
 const LucideWrapper: FC<
     {
         Icon: ComponentType<any>
         transformClassName?: string
         filled?: boolean
     } & SVGProps<SVGSVGElement>
-> = ({ Icon, transformClassName = '', filled, fill, className, width, height, ...props }) => {
+> = ({ Icon, transformClassName = '', filled, fill, className, width, height, ...rest }) => {
     const mergedClassName = [transformClassName, className].filter(Boolean).join(' ') || undefined
-    const hasTextColorClass = className && /text-/.test(className)
 
-    const colorProps: { color?: string; fill?: string } = {}
-    if (fill) {
-        colorProps.color = fill as string
-    } else if (!hasTextColorClass) {
-        colorProps.color = 'black'
-    }
-    if (filled) {
-        // "info-filled" etc — fill with currentColor so the Lucide stroke blocks in as a solid icon.
-        colorProps.fill = 'currentColor'
-    }
+    // Lucide's `size` controls width + height proportionally. Our callers pass width
+    // and height separately (always equal in practice), so collapse back to `size`.
+    const size = width ?? height
 
-    return <Icon width={width} height={height} className={mergedClassName} {...colorProps} {...props} />
+    // Stroke colour: only override if the caller passed an explicit `fill`. Otherwise
+    // leave Lucide's default (`stroke="currentColor"`) so Tailwind text-* classes and
+    // inherited CSS colour just work.
+    const color = fill ? (fill as string) : undefined
+
+    return (
+        <Icon
+            {...rest}
+            size={size}
+            color={color}
+            className={mergedClassName}
+            {...(filled ? { fill: 'currentColor' } : {})}
+        />
+    )
 }
 
 const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> = {
