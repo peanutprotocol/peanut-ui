@@ -35,6 +35,11 @@
         "permanent": false
     },
     {
+        "source": "/help/:slug*",
+        "destination": "/en/help/:slug*",
+        "permanent": false
+    },
+    {
         "source": "/docs",
         "destination": "/en/help",
         "permanent": true
