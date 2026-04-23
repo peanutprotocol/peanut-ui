@@ -182,7 +182,11 @@ const LucideWrapper: FC<
             size={size}
             color={color}
             className={mergedClassName}
-            {...(filled ? { fill: 'currentColor' } : {})}
+            // Defensive fill override: some Lucide icons have open-curve paths (e.g.
+            // refresh-cw's two arcs). If anything upstream sets `fill="black"` or any
+            // non-"none" value, those open curves get visually closed and the icon
+            // renders as a filled blob. Force `fill: none` unless explicitly filled.
+            fill={filled ? 'currentColor' : 'none'}
         />
     )
 }
