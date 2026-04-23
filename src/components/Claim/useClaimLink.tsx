@@ -1,6 +1,5 @@
 'use client'
 
-import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
 import {
     generateKeysFromString,
     getParamsFromLink,
@@ -9,7 +8,6 @@ import {
     createClaimXChainPayload,
 } from '@squirrel-labs/peanut-sdk'
 import { useContext, useMemo } from 'react'
-import { useSwitchChain, useAccount } from 'wagmi'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { captureException } from '@sentry/nextjs'
@@ -183,8 +181,6 @@ async function executeClaimXChain({
 }
 
 const useClaimLink = () => {
-    const { chain: currentChain } = useAccount()
-    const { switchChainAsync } = useSwitchChain()
     const pathname = usePathname()
     const searchParams = useSearchParams()
     const queryClient = useQueryClient()
@@ -405,23 +401,6 @@ const useClaimLink = () => {
         })
     }
 
-    const switchNetwork = async (chainId: string) => {
-        try {
-            await switchNetworkUtil({
-                chainId,
-                currentChainId: String(currentChain?.id),
-                setLoadingState,
-                switchChainAsync: async ({ chainId }) => {
-                    await switchChainAsync({ chainId: chainId as number })
-                },
-            })
-            console.log(`Switched to chain ${chainId}`)
-        } catch (error) {
-            console.error('Failed to switch network:', error)
-            captureException(error)
-        }
-    }
-
     const addParamStep = (step: 'bank' | 'claim' | 'regional-claim' | 'regional-req-fulfill') => {
         const params = new URLSearchParams(searchParams)
         params.set('step', step)
@@ -532,7 +511,6 @@ const useClaimLink = () => {
         claimLinkXchain,
 
         // Utility functions
-        switchNetwork,
         addParamStep,
         removeParamStep,
         cancelLinkAndClaim,

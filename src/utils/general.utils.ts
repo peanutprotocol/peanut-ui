@@ -573,32 +573,6 @@ export const formatIban = (iban: string) => {
         .trim()
 }
 
-export const switchNetwork = async ({
-    chainId,
-    currentChainId,
-    setLoadingState,
-    switchChainAsync,
-}: {
-    chainId: string
-    currentChainId: string | undefined
-    setLoadingState: (state: LoadingStates) => void
-    switchChainAsync: ({ chainId }: { chainId: number }) => Promise<void>
-}) => {
-    if (currentChainId !== chainId) {
-        setLoadingState('Allow network switch')
-        try {
-            await switchChainAsync({ chainId: Number(chainId) })
-            setLoadingState('Switching network')
-            await new Promise((resolve) => setTimeout(resolve, 2000))
-            setLoadingState('Loading')
-        } catch (error) {
-            console.error('Error switching network:', error)
-            Sentry.captureException(error)
-            throw new Error('Error switching network.')
-        }
-    }
-}
-
 /** Gets the token decimals for a given token address and chain ID. */
 export function getTokenDecimals(tokenAddress: string, chainId: string): number | undefined {
     return peanutTokenDetails
