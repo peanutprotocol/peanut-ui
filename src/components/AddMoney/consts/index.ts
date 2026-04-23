@@ -2678,33 +2678,9 @@ export const BRIDGE_ALPHA3_TO_ALPHA2: { [key: string]: string } = {
     USA: 'US',
 }
 
-export const MEXICO_ALPHA3_TO_ALPHA2: { [key: string]: string } = {
-    MEX: 'MX',
-}
-
 export const MANTECA_ALPHA3_TO_ALPHA2: { [key: string]: string } = {
     ARG: 'AR',
     BRA: 'BR',
-}
-
-export const UNSUPPORTED_ALPHA3_TO_ALPHA2: { [key: string]: string } = {
-    AFG: 'AF',
-    BLR: 'BY',
-    COD: 'CD',
-    CUB: 'CU',
-    PSE: 'PS',
-    IRN: 'IR',
-    IRQ: 'IQ',
-    LBN: 'LB',
-    LBY: 'LY',
-    MMR: 'MM',
-    PRK: 'KP',
-    RUS: 'RU',
-    SOM: 'SO',
-    SSD: 'SS',
-    SDN: 'SD',
-    SYR: 'SY',
-    YEM: 'YE',
 }
 
 export const ALL_COUNTRIES_ALPHA3_TO_ALPHA2: { [key: string]: string } = {

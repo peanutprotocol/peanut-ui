@@ -2,10 +2,8 @@ import * as interfaces from '@/interfaces'
 import { CHAIN_DETAILS, TOKEN_DETAILS } from '@squirrel-labs/peanut-sdk'
 import { mainnet, arbitrum, arbitrumSepolia, polygon, optimism, base, bsc, scroll } from 'viem/chains'
 
-export const peanutWalletIsInPreview = true
-
-export const INFURA_API_KEY = process.env.NEXT_PUBLIC_INFURA_API_KEY
-export const ALCHEMY_API_KEY = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY
+const INFURA_API_KEY = process.env.NEXT_PUBLIC_INFURA_API_KEY
+const ALCHEMY_API_KEY = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY
 
 export const SQUID_INTEGRATOR_ID = process.env.SQUID_INTEGRATOR_ID!
 export const SQUID_INTEGRATOR_ID_WITHOUT_CORAL = process.env.DEFAULT_SQUID_INTEGRATOR_ID!
@@ -68,18 +66,6 @@ export const rpcUrls: Record<number, string[]> = {
         'https://rpc.scroll.io', // Official Scroll RPC
     ].filter(Boolean) as string[],
 }
-
-export const ipfsProviderArray = [
-    'https://ipfs.io/ipfs/',
-    'https://cloudflare-ipfs.com/ipfs/',
-    'https://dweb.link/ipfs/',
-    'https://cf-ipfs.com/ipfs/',
-    'https://storry.tv/ipfs/',
-    'https://hardbin.com/ipfs/',
-    'https://w3s.link/ipfs/',
-    'https://nftstorage.link/ipfs/',
-    'https://gw3.io/ipfs/',
-]
 
 export const PEANUT_API_URL = (
     process.env.PEANUT_API_URL ||

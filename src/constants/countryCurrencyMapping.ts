@@ -78,13 +78,6 @@ export function getCurrencyFlagUrl(currencyCode: string, size: 160 | 320 = 160):
 }
 
 /**
- * gets country info from currency code
- */
-export function getCountryByCurrency(currencyCode: string): CountryCurrencyMapping | null {
-    return countryCurrencyMappings.find((m) => m.currencyCode.toUpperCase() === currencyCode.toUpperCase()) ?? null
-}
-
-/**
  * checks if currency is from a non-EUR SEPA country
  * these countries are in SEPA zone but use their own currency, not EUR
  * returns true for GBP, PLN, SEK, etc. but false for EUR, USD, MXN, BRL, ARS
@@ -110,7 +103,3 @@ export function isUKCountry(countryIdentifier: string | undefined): boolean {
     return lower === 'united-kingdom' || lower === 'gb' || lower === 'gbr'
 }
 
-/** Find a currency mapping by country slug (e.g. 'argentina', 'united-kingdom'). */
-export function findMappingBySlug(slug: string): CountryCurrencyMapping | undefined {
-    return countryCurrencyMappings.find((m) => m.path === slug || m.country.toLowerCase().replace(/ /g, '-') === slug)
-}
