@@ -136,12 +136,6 @@ importers:
       js-cookie:
         specifier: ^3.0.5
         version: 3.0.5
-      jsqr:
-        specifier: ^1.4.0
-        version: 1.4.0
-      marked:
-        specifier: ^17.0.2
-        version: 17.0.2
       next:
         specifier: 16.0.10
         version: 16.0.10(@babel/core@7.28.6)(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(babel-plugin-macros@3.1.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -230,9 +224,6 @@ importers:
       '@playwright/test':
         specifier: ^1.58.0
         version: 1.58.2
-      '@serwist/build':
-        specifier: ^9.0.10
-        version: 9.5.0(typescript@5.9.3)
       '@size-limit/preset-app':
         specifier: ^11.2.0
         version: 11.2.0(bufferutil@4.1.0)(size-limit@11.2.0)(utf-8-validate@5.0.10)
@@ -5088,9 +5079,6 @@ packages:
     engines: {node: '>=6'}
     hasBin: true
 
-  jsqr@1.4.0:
-    resolution: {integrity: sha512-dxLob7q65Xg2DvstYkRpkYtmKm2sPJ9oFhrhmudT1dZvNFFTlroai3AWSpLey/w5vMcLBXRgOJsbXpdN9HzU/A==}
-
   kapsule@1.16.3:
     resolution: {integrity: sha512-4+5mNNf4vZDSwPhKprKwz3330iisPrb08JyMgbsdFrimBCKNHecua/WBwvVg3n7vwx0C1ARjfhwIpbrbd9n5wg==}
     engines: {node: '>=12'}
@@ -5226,11 +5214,6 @@ packages:
 
   markdown-table@3.0.4:
     resolution: {integrity: sha512-wiYz4+JrLyb/DqW2hkFJxP7Vd7JuTDm77fvbM8VfEQdmSMqcImWeeRbHwZjBjIFki/VaMK2BhFi7oUUZeM5bqw==}
-
-  marked@17.0.2:
-    resolution: {integrity: sha512-s5HZGFQea7Huv5zZcAGhJLT3qLpAfnY7v7GWkICUr0+Wd5TFEtdlRR2XUL5Gg+RH7u2Df595ifrxR03mBaw7gA==}
-    engines: {node: '>= 20'}
-    hasBin: true
 
   math-intrinsics@1.1.0:
     resolution: {integrity: sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g==}
@@ -14052,8 +14035,6 @@ snapshots:
 
   json5@2.2.3: {}
 
-  jsqr@1.4.0: {}
-
   kapsule@1.16.3:
     dependencies:
       lodash-es: 4.17.23
@@ -14180,8 +14161,6 @@ snapshots:
   markdown-extensions@2.0.0: {}
 
   markdown-table@3.0.4: {}
-
-  marked@17.0.2: {}
 
   math-intrinsics@1.1.0: {}
 

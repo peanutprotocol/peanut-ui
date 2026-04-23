@@ -47,7 +47,7 @@ interface PerkClaimModalProps {
  * Contains the shake/hold interaction, confetti, and success state.
  * Uses ActionModal for consistent styling with other modals.
  */
-export function PerkClaimModal({ perk, visible, onClose, onClaimed }: PerkClaimModalProps) {
+function PerkClaimModal({ perk, visible, onClose, onClaimed }: PerkClaimModalProps) {
     const queryClient = useQueryClient()
     const { user } = useAuth()
     const [claimPhase, setClaimPhase] = useState<ClaimPhase>('idle')
