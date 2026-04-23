@@ -1,7 +1,7 @@
 'use client'
 
-import * as consts from '@/constants/zerodev.consts'
-import { loadingStateContext } from '@/context'
+import { PASSKEY_SERVER_URL } from '@/constants/zerodev.consts'
+import { loadingStateContext } from '@/context/loadingStates.context'
 import { useAuth } from '@/context/authContext'
 import { useKernelClient } from '@/context/kernelClient.context'
 import { useAppDispatch, useSetupStore, useZerodevStore } from '@/redux/hooks'
@@ -74,7 +74,7 @@ export const useZeroDev = () => {
         try {
             const webAuthnKey = await toWebAuthnKey({
                 passkeyName: _getPasskeyName(username),
-                passkeyServerUrl: consts.PASSKEY_SERVER_URL as string,
+                passkeyServerUrl: PASSKEY_SERVER_URL as string,
                 mode: WebAuthnMode.Register,
                 passkeyServerHeaders: {},
                 rpID: window.location.hostname.replace(/^www\./, ''),
@@ -141,7 +141,7 @@ export const useZeroDev = () => {
 
             const webAuthnKey = await toWebAuthnKey({
                 passkeyName: '[]',
-                passkeyServerUrl: consts.PASSKEY_SERVER_URL as string,
+                passkeyServerUrl: PASSKEY_SERVER_URL as string,
                 mode: WebAuthnMode.Login,
                 passkeyServerHeaders,
                 rpID: window.location.hostname.replace(/^www\./, ''),

@@ -4,11 +4,24 @@ import type { MantecaLimit } from '@/interfaces'
 import { SYMBOLS_BY_CURRENCY_CODE } from '@/hooks/useCurrency'
 import { getCurrencyFlagUrl } from '@/constants/countryCurrencyMapping'
 import { formatExtendedNumber } from '@/utils/general.utils'
-import type { LimitValidationResult, LimitFlowType } from './hooks/useLimitsValidation'
 import type { IconName } from '@/components/Global/Icons/Icon'
 
 // limits period type, used in tabs for limits page
 export type LimitsPeriod = 'monthly' | 'yearly'
+
+export type LimitFlowType = 'onramp' | 'offramp' | 'qr-payment'
+
+export type LimitValidationResult = {
+    isBlocking: boolean
+    isWarning: boolean
+    remainingLimit: number | null
+    totalLimit: number | null
+    message: string | null
+    daysUntilReset: number | null
+    // currency the limit is denominated in (may differ from transaction currency)
+    // e.g. foreign qr users have USD limits even when paying in ARS
+    limitCurrency: LimitCurrency | null
+}
 
 // region routing configuration
 // maps region paths to their respective limits page routes

@@ -12,7 +12,7 @@ import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer
 import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import * as interfaces from '@/interfaces'
+import type { RecipientType } from '@/interfaces/interfaces'
 import { ESendLinkStatus, getParamsFromLink, sendLinksApi, type ClaimLinkData } from '@/services/sendLinks'
 import {
     getInitialsFromName,
@@ -59,7 +59,7 @@ export const Claim = ({}) => {
     const [transactionHash, setTransactionHash] = useState<string>()
     const [hasFetchedRoute, setHasFetchedRoute] = useState<boolean>(false)
 
-    const [recipientType, setRecipientType] = useState<interfaces.RecipientType>('address')
+    const [recipientType, setRecipientType] = useState<RecipientType>('address')
     const [offrampForm, setOfframpForm] = useState<IOfframpForm>({
         name: '',
         email: '',

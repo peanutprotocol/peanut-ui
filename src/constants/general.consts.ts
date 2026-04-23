@@ -1,4 +1,4 @@
-import * as interfaces from '@/interfaces'
+import type { IPeanutChainDetails, IPeanutTokenDetail } from '@/interfaces/interfaces'
 import { CHAIN_DETAILS, TOKEN_DETAILS } from '@squirrel-labs/peanut-sdk'
 import { mainnet, arbitrum, arbitrumSepolia, polygon, optimism, base, bsc, scroll } from 'viem/chains'
 
@@ -213,11 +213,11 @@ export const supportedMobulaChains = <{ name: string; chainId: string }[]>[
     },
 ]
 
-export const supportedPeanutChains: interfaces.IPeanutChainDetails[] = Object.keys(CHAIN_DETAILS).map(
+export const supportedPeanutChains: IPeanutChainDetails[] = Object.keys(CHAIN_DETAILS).map(
     (key) => CHAIN_DETAILS[key as keyof typeof CHAIN_DETAILS]
 )
 
-export const peanutTokenDetails: interfaces.IPeanutTokenDetail[] = TOKEN_DETAILS
+export const peanutTokenDetails: IPeanutTokenDetail[] = TOKEN_DETAILS
 
 export const nativeCurrencyAddresses: string[] = [
     '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',

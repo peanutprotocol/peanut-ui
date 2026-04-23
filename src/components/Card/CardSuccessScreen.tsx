@@ -58,6 +58,7 @@ const CardSuccessScreen = ({ onViewBadges }: CardSuccessScreenProps) => {
                 cancelled = true
             }
         }
+        return undefined
     }, [showConfetti])
 
     return (

@@ -9,25 +9,17 @@ import {
     MAX_MANTECA_WITHDRAW_AMOUNT,
 } from '@/constants/payment.consts'
 import { formatExtendedNumber } from '@/utils/general.utils'
-import { mapToLimitCurrency, type LimitCurrency } from '../utils'
+import {
+    mapToLimitCurrency,
+    type LimitCurrency,
+    type LimitFlowType,
+    type LimitValidationResult,
+} from '../utils'
 
 // threshold for showing warning (percentage of limit remaining after transaction)
 const WARNING_THRESHOLD_PERCENT = 30
 
-export type LimitValidationResult = {
-    isBlocking: boolean
-    isWarning: boolean
-    remainingLimit: number | null
-    totalLimit: number | null
-    message: string | null
-    daysUntilReset: number | null
-    // currency the limit is denominated in (may differ from transaction currency)
-    // e.g. foreign qr users have USD limits even when paying in ARS
-    limitCurrency: LimitCurrency | null
-}
-
-export type LimitFlowType = 'onramp' | 'offramp' | 'qr-payment'
-export { type LimitCurrency } from '../utils'
+export type { LimitCurrency, LimitFlowType, LimitValidationResult }
 
 interface UseLimitsValidationOptions {
     flowType: LimitFlowType

@@ -99,6 +99,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             }, 3000)
             return () => clearTimeout(fallback)
         }
+        return undefined
     }, [user, isFetchingUser, isReady, isPublicPath, router])
 
     // redirect logged-in users without peanut wallet account to complete setup

@@ -163,6 +163,7 @@ export function getReceiptUrl(transaction: TransactionDetails): string | undefin
     if (transaction.extraDataForDrawer?.link) {
         return transaction.extraDataForDrawer.link
     }
+    return undefined
 }
 
 export function getAvatarUrl(transaction: TransactionDetails): string | undefined {
@@ -182,6 +183,7 @@ export function getAvatarUrl(transaction: TransactionDetails): string | undefine
     if (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.SIMPLEFI_QR_PAYMENT) {
         return SIMPLEFI
     }
+    return undefined
 }
 
 /** Returns the sign of the transaction, based on the direction and status of the transaction. */

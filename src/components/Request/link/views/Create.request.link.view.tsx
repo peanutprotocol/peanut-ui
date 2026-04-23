@@ -12,7 +12,8 @@ import AmountInput from '@/components/Global/AmountInput'
 import { HARNESS_ENABLED } from '@/constants/harness.consts'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
-import * as context from '@/context'
+import { tokenSelectorContext } from '@/context/tokenSelector.context'
+import { loadingStateContext } from '@/context/loadingStates.context'
 import { useAuth } from '@/context/authContext'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -34,8 +35,8 @@ export const CreateRequestLinkView = () => {
     const { address, isConnected, balance } = useWallet()
     const { user } = useAuth()
     const { selectedChainID, setSelectedChainID, selectedTokenAddress, setSelectedTokenAddress, selectedTokenData } =
-        useContext(context.tokenSelectorContext)
-    const { setLoadingState } = useContext(context.loadingStateContext)
+        useContext(tokenSelectorContext)
+    const { setLoadingState } = useContext(loadingStateContext)
     const queryClient = useQueryClient()
     const searchParams = useSearchParams()
     const paramsAmount = searchParams.get('amount')

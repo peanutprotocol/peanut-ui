@@ -235,6 +235,7 @@ const HomeHistory = ({
                 cancelled = true
             }
         }
+        return undefined
     }, [historyData, wsHistoryEntries, user, isLoading, isViewingOwnHistory])
 
     const pendingRequests = useMemo(() => {

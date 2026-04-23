@@ -276,6 +276,16 @@ jest.mock('@/context', () => {
     }
 })
 
+jest.mock('@/context/tokenSelector.context', () => {
+    const { tokenSelectorContext } = jest.requireMock('@/context')
+    return { tokenSelectorContext }
+})
+
+jest.mock('@/context/loadingStates.context', () => {
+    const { loadingStateContext } = jest.requireMock('@/context')
+    return { loadingStateContext }
+})
+
 // ---------- import components under test AFTER all mocks ----------
 import { CreateRequestLinkView } from '../link/views/Create.request.link.view'
 import { PayRequestLink } from '../Pay/Pay'

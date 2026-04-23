@@ -91,6 +91,7 @@ export default function PeanutActionDetailsCard({
             transactionType === 'REGIONAL_METHOD_CLAIM'
         )
             return 'arrow-up'
+        return undefined
     }
 
     const getTitle = () => {

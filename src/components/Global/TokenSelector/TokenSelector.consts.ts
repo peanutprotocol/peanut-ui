@@ -1,10 +1,10 @@
 import { SOLANA_ICON, TRON_ICON } from '@/assets'
 import { networks } from '@/config'
-import * as interfaces from '@/interfaces'
+import type { IPeanutChainDetails, IToken } from '@/interfaces/interfaces'
 import { celo, linea, worldchain } from 'viem/chains'
 
-interface CombinedType extends interfaces.IPeanutChainDetails {
-    tokens: interfaces.IToken[]
+interface CombinedType extends IPeanutChainDetails {
+    tokens: IToken[]
 }
 
 export interface TokenSelectorProps {

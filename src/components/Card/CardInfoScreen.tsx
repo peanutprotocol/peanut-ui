@@ -34,6 +34,7 @@ const RollingDigit = ({ digit, duration = 400 }: { digit: string; duration?: num
 
             return () => clearTimeout(timer)
         }
+        return undefined
     }, [digit, duration])
 
     const animationStyle = `

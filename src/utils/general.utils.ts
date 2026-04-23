@@ -14,8 +14,12 @@ import type { Address, TransactionReceipt } from 'viem'
 import { getAddress, isAddress, erc20Abi } from 'viem'
 import * as wagmiChains from 'wagmi/chains'
 import { getPublicClient, type ChainId } from '@/app/actions/clients'
-import { NATIVE_TOKEN_ADDRESS, SQUID_ETH_ADDRESS } from './token.utils'
 import { type ChargeEntry } from '@/services/services.types'
+
+// Inlined to avoid circular dep with ./token.utils (which imports areEvmAddressesEqual from here).
+// token.utils re-exports these as its public API — grep-verified they match.
+const NATIVE_TOKEN_ADDRESS = '0x0000000000000000000000000000000000000000'
+const SQUID_ETH_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
 import { toWebAuthnKey } from '@zerodev/passkey-validator'
 import { USER_OPERATION_REVERT_REASON_TOPIC } from '@/constants/zerodev.consts'
 import { CHAIN_LOGOS, type ChainName } from '@/constants/rhino.consts'
@@ -482,9 +486,9 @@ export const updateUserPreferences = (
     userId: string | undefined,
     partialPrefs: Partial<UserPreferences>
 ): UserPreferences | undefined => {
-    if (!userId) return
+    if (!userId) return undefined
     try {
-        if (typeof localStorage === 'undefined') return
+        if (typeof localStorage === 'undefined') return undefined
 
         const currentPrefs = getUserPreferences(userId) ?? {}
         const newPrefs: UserPreferences = {
@@ -496,11 +500,12 @@ export const updateUserPreferences = (
     } catch (error) {
         Sentry.captureException(error)
         console.error('Error updating user preferences:', error)
+        return undefined
     }
 }
 
 export const getUserPreferences = (userId: string | undefined): UserPreferences | undefined => {
-    if (!userId) return
+    if (!userId) return undefined
     try {
         const storedData = getFromLocalStorage(`${userId}:user-preferences`)
         if (!storedData) return undefined
@@ -508,6 +513,7 @@ export const getUserPreferences = (userId: string | undefined): UserPreferences 
     } catch (error) {
         Sentry.captureException(error)
         console.error('Error getting user preferences:', error)
+        return undefined
     }
 }
 

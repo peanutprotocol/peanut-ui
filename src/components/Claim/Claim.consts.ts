@@ -1,4 +1,4 @@
-import * as interfaces from '@/interfaces'
+import type { RecipientType } from '@/interfaces/interfaces'
 import { type IOfframpSuccessScreenProps, type IOfframpConfirmScreenProps } from '../Offramp/Offramp.consts'
 import { type ClaimLinkData } from '@/services/sendLinks'
 import { type PeanutCrossChainRoute } from '@/services/swap'
@@ -46,8 +46,8 @@ export interface IClaimScreenProps {
     setSelectedRoute: (route: PeanutCrossChainRoute | undefined) => void
     hasFetchedRoute: boolean
     setHasFetchedRoute: (fetched: boolean) => void
-    recipientType: interfaces.RecipientType
-    setRecipientType: (type: interfaces.RecipientType) => void
+    recipientType: RecipientType
+    setRecipientType: (type: RecipientType) => void
     offrampForm: IOfframpForm
     setOfframpForm: (form: IOfframpForm) => void
     isOfframpPossible: boolean

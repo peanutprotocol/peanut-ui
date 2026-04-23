@@ -247,6 +247,7 @@ export default function WithdrawPage() {
                 return () => clearTimeout(timeoutId)
             }
         }
+        return undefined
     }, [rawTokenAmount, validateAmount, setError, step])
 
     const handleAmountContinue = () => {

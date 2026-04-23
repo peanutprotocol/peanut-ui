@@ -231,6 +231,7 @@ const PaymentSuccessView = ({
         if (type === 'SEND') return 'You sent '
         if (type === 'REQUEST') return 'You requested '
         if (type === 'DEPOSIT') return 'You added '
+        return undefined
     }
 
     useEffect(() => {
