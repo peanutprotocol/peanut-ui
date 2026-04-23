@@ -7,10 +7,6 @@ export const BUNDLER_URL = process.env.NEXT_PUBLIC_ZERO_DEV_BUNDLER_URL!
 export const PAYMASTER_URL = process.env.NEXT_PUBLIC_ZERO_DEV_PAYMASTER_URL!
 export const PASSKEY_SERVER_URL = process.env.NEXT_PUBLIC_ZERO_DEV_PASSKEY_SERVER_URL
 
-// consts needs to define @zerodev/waas
-// as per: https://docs.zerodev.app/smart-wallet/quickstart-react
-export const ZERO_DEV_PROJECT_ID = process.env.NEXT_PUBLIC_ZERO_DEV_PASSKEY_PROJECT_ID
-
 // Default to Arb One + Circle USDC (prod). Overridable via env so the mono
 // QA harness can point the UI at Arb Sepolia + testnet USDC without forking.
 // When NEXT_PUBLIC_PEANUT_WALLET_CHAIN_ID is '421614', we also default the
@@ -31,10 +27,6 @@ export const PEANUT_WALLET_TOKEN_IMG_URL =
     'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/logo.png'
 
 export const USDT_IN_MAINNET = '0xdac17f958d2ee523a2206206994597c13d831ec7'
-
-export const PEANUT_WALLET_SUPPORTED_TOKENS: Record<string, string[]> = {
-    [PEANUT_WALLET_CHAIN.id.toString()]: [PEANUT_WALLET_TOKEN],
-}
 
 /**
  * Zerodev needs these to be passed explicitly to avoid breaking changes

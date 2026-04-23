@@ -114,7 +114,6 @@ jest.mock('@/constants/zerodev.consts', () => ({
     PEANUT_WALLET_TOKEN_SYMBOL: 'USDC',
     PEANUT_WALLET_TOKEN_NAME: 'USD Coin',
     PEANUT_WALLET_TOKEN_IMG_URL: '/usdc.png',
-    PEANUT_WALLET_SUPPORTED_TOKENS: { '42161': ['0xaf88d065e77c8cc2239327c5edb3a432268e5831'] },
 }))
 
 jest.mock('@/constants/query.consts', () => ({
