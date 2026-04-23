@@ -31,14 +31,10 @@
         "verify-content": "tsx scripts/verify-content.ts"
     },
     "dependencies": {
-        "@emotion/react": "^11.14.0",
-        "@emotion/styled": "^11.14.1",
         "@headlessui/react": "^2.2.9",
         "@headlessui/tailwindcss": "^0.2.1",
         "@justaname.id/react": "0.3.180",
         "@justaname.id/sdk": "0.2.177",
-        "@mui/icons-material": "^7.3.6",
-        "@mui/material": "^7.3.6",
         "@radix-ui/react-accordion": "^1.2.12",
         "@radix-ui/react-select": "^2.2.6",
         "@radix-ui/react-slider": "^1.3.5",
@@ -67,6 +63,7 @@
         "i18n-iso-countries": "^7.13.0",
         "iban-to-bic": "^1.4.0",
         "js-cookie": "^3.0.5",
+        "lucide-react": "^1.9.0",
         "next": "16.0.10",
         "next-mdx-remote": "^6.0.0",
         "nuqs": "^2.8.6",
