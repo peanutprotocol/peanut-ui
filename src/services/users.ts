@@ -40,12 +40,6 @@ export type ApiUser = {
     }>
 }
 
-export type RecentUser = Pick<ApiUser, 'userId' | 'username' | 'fullName' | 'bridgeKycStatus'>
-
-export interface UserSearchResponse {
-    users: Array<ApiUser>
-}
-
 export const usersApi = {
     getByUsername: async (username: string): Promise<ApiUser> => {
         const response = await fetchWithSentry(`${PEANUT_API_URL}/users/username/${username}`, {
