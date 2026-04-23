@@ -243,7 +243,6 @@ export enum AccountType {
     GB = 'gb', // uk bank accounts (sort code + account number)
     EVM_ADDRESS = 'evm-address',
     PEANUT_WALLET = 'peanut-wallet',
-    BRIDGE = 'bridgeBankAccount',
     MANTECA = 'manteca',
 }
 

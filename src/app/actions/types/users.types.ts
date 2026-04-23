@@ -1,26 +1,3 @@
-// this enum should match the one on the backend
-export enum BridgeEndorsementType {
-    BASE = 'base',
-    SEPA = 'sepa',
-    SPEI = 'spei',
-    PIX = 'pix',
-    FASTER_PAYMENTS = 'faster_payments',
-}
-
-// this type represents the detailed response from our initiate-kyc endpoint
-export interface InitiateKycResponse {
-    kycLink: string
-    tosLink?: string
-    bridgeKycStatus: string
-    tosStatus?: string
-    error?: string // will be present on rejections
-    reasons?: Array<{
-        developer_reason: string
-        reason: string // this one is safe to show to the user
-        created_at: string
-    }>
-}
-
 // matches the BridgeAccountType enum on the backend
 export enum BridgeAccountType {
     IBAN = 'iban',
@@ -32,7 +9,6 @@ export enum BridgeAccountType {
 // matches the BridgeAccountOwnerType enum on the backend
 export enum BridgeAccountOwnerType {
     INDIVIDUAL = 'individual',
-    BUSINESS = 'business',
 }
 
 // defines the payload for the new add-bank-account endpoint

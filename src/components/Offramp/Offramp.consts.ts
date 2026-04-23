@@ -2,25 +2,7 @@ import * as interfaces from '@/interfaces'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import type { IOfframpForm } from '@/constants/cashout.consts'
 
-export interface CrossChainDetails {
-    chainId: string
-    // ... ?
-}
-
-export interface LiquidationAddress {
-    id: string
-    address: string
-    chain: string
-    currency: string
-    external_account_id: string
-}
-
-export interface PeanutAccount {
-    account_id: string
-}
-
 export enum OfframpType {
-    CASHOUT = 'CASHOUT',
     CLAIM = 'CLAIM',
 }
 
