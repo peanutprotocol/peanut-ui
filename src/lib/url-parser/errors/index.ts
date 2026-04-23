@@ -12,13 +12,6 @@ export class RecipientValidationError extends ValidationError {
     }
 }
 
-export class TokenValidationError extends ValidationError {
-    constructor(message: string) {
-        super(message)
-        this.name = 'TokenValidationError'
-    }
-}
-
 export class ChainValidationError extends ValidationError {
     constructor(message: string) {
         super(message)

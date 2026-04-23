@@ -21,26 +21,6 @@ import { USER_OPERATION_REVERT_REASON_TOPIC } from '@/constants/zerodev.consts'
 import { CHAIN_LOGOS, type ChainName } from '@/constants/rhino.consts'
 import { isUserKycVerified } from '@/constants/kyc.consts'
 
-export function urlBase64ToUint8Array(base64String: string) {
-    const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
-    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
-
-    const rawData = window.atob(base64)
-    const outputArray = new Uint8Array(rawData.length)
-
-    for (let i = 0; i < rawData.length; ++i) {
-        outputArray[i] = rawData.charCodeAt(i)
-    }
-    return outputArray
-}
-
-export const colorMap = {
-    lavender: '#90A8ED',
-    pink: '#FF90E7',
-    green: '#98E9AB',
-    yellow: '#FFC900',
-}
-
 export const shortenAddress = (address?: string, chars?: number) => {
     if (!address) return ''
     if (!chars) chars = 6
