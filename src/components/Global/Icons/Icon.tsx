@@ -13,7 +13,6 @@ import {
     Bell,
     Camera,
     Check,
-    CheckCheck,
     CircleCheck,
     CircleHelp,
     CircleMinus,
@@ -71,6 +70,7 @@ import { TxnOffIcon } from './txn-off'
 import { WalletCancelIcon } from './wallet-cancel'
 import { InviteHeartIcon } from './invite-heart'
 import { BulbIcon } from './bulb'
+import { DoubleCheckIcon } from './double-check'
 
 export type IconName =
     | 'alert'
@@ -206,7 +206,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     'chevron-up': (props) => <LucideWrapper Icon={ChevronUp} {...props} />,
     download: (props) => <LucideWrapper Icon={Download} {...props} />,
     dollar: (props) => <LucideWrapper Icon={DollarSign} {...props} />,
-    'double-check': (props) => <LucideWrapper Icon={CheckCheck} {...props} />,
+    'double-check': DoubleCheckIcon,
     eye: (props) => <LucideWrapper Icon={Eye} {...props} />,
     'eye-slash': (props) => <LucideWrapper Icon={EyeOff} {...props} />,
     exchange: (props) => <LucideWrapper Icon={ArrowLeftRight} {...props} />,

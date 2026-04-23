@@ -100,7 +100,7 @@ export const PUBLIC_ROUTES_REGEX = /^\/(request\/pay|claim|pay\/.+|support|invit
  * Regex for dev-only public routes (dev index, gift-test, shake-test)
  * Only matched when IS_DEV is true
  */
-export const DEV_ONLY_PUBLIC_ROUTES_REGEX = /^\/(dev$|dev\/gift-test|dev\/shake-test)/
+export const DEV_ONLY_PUBLIC_ROUTES_REGEX = /^\/(dev$|dev\/gift-test|dev\/shake-test|dev\/ds|dev\/components)/
 
 /**
  * Matches locale tags with a required subtag to avoid false-positives on short
