@@ -100,32 +100,6 @@ jest.mock('@/lib/url-parser/parser.consts', () => ({
     },
 }))
 
-jest.mock('@/lib/validation/resolvers/chain-resolver', () => ({
-    resolveChainId: (chainIdentifier: string | number): string => {
-        const chainMap: { [key: string]: string } = {
-            eth: '1',
-            ethereum: '1',
-            arbitrum: '42161',
-            base: '8453',
-            '1': '1',
-            '42161': '42161',
-            '8453': '8453',
-        }
-        if (!chainMap[chainIdentifier.toString()]) {
-            throw new Error(`Chain ${chainIdentifier} is either not supported or invalid`)
-        }
-        return chainMap[chainIdentifier.toString()]
-    },
-    getReadableChainName: (chainId: string | number) => {
-        const nameMap: { [key: string]: string } = {
-            '1': 'Ethereum',
-            '42161': 'Arbitrum',
-            '8453': 'Base',
-        }
-        return nameMap[chainId.toString()] || 'Unknown Chain'
-    },
-}))
-
 describe('URL Parser Tests', () => {
     describe('Recipient Format Tests', () => {
         it('should parse Ethereum address', async () => {
