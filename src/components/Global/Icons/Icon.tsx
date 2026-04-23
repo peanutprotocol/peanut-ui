@@ -158,6 +158,12 @@ export interface IconProps extends SVGProps<SVGSVGElement> {
 // Wrapper: map our Icon API (size + fill + Tailwind text-* className) onto Lucide's
 // native props. Stays on Lucide's defaults (strokeWidth=2, stroke=currentColor) so
 // rendering matches lucide.dev exactly; the consumer controls colour via CSS.
+//
+// Fill handling is Tailwind-class-based (not the svg `fill=` attribute) because
+// tailwind.config.js `.btn svg { @apply fill-inherit }` beats the attribute with
+// CSS specificity — inside a .btn the attribute loses, open-curve Lucide paths
+// close up, and the icon renders as a filled blob. Using `fill-none` / `fill-current`
+// utility classes puts us on the same specificity footing and order-of-rules wins.
 const LucideWrapper: FC<
     {
         Icon: ComponentType<any>
@@ -165,7 +171,8 @@ const LucideWrapper: FC<
         filled?: boolean
     } & SVGProps<SVGSVGElement>
 > = ({ Icon, transformClassName = '', filled, fill, className, width, height, ...rest }) => {
-    const mergedClassName = [transformClassName, className].filter(Boolean).join(' ') || undefined
+    const fillClass = filled ? 'fill-current' : 'fill-none'
+    const mergedClassName = [fillClass, transformClassName, className].filter(Boolean).join(' ')
 
     // Lucide's `size` controls width + height proportionally. Our callers pass width
     // and height separately (always equal in practice), so collapse back to `size`.
@@ -176,19 +183,7 @@ const LucideWrapper: FC<
     // inherited CSS colour just work.
     const color = fill ? (fill as string) : undefined
 
-    return (
-        <Icon
-            {...rest}
-            size={size}
-            color={color}
-            className={mergedClassName}
-            // Defensive fill override: some Lucide icons have open-curve paths (e.g.
-            // refresh-cw's two arcs). If anything upstream sets `fill="black"` or any
-            // non-"none" value, those open curves get visually closed and the icon
-            // renders as a filled blob. Force `fill: none` unless explicitly filled.
-            fill={filled ? 'currentColor' : 'none'}
-        />
-    )
+    return <Icon {...rest} size={size} color={color} className={mergedClassName} />
 }
 
 const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> = {
