@@ -8,7 +8,7 @@
 import { getCardInfo, purchaseCard } from '@/app/actions/card'
 import type { CardInfoResponse, CardPurchaseResponse } from '@/app/actions/card'
 
-export type { CardInfoResponse, CardPurchaseResponse }
+export type { CardInfoResponse }
 
 /**
  * Custom error class for card purchase failures
