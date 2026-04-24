@@ -89,6 +89,20 @@ export function getNativeRpId(): string {
 }
 
 /**
+ * returns the rpId for web passkey operations.
+ * on *.peanut.me subdomains (staging, dev), uses 'peanut.me' so production
+ * passkeys work across all environments. on other domains (localhost, vercel
+ * previews), uses the hostname directly.
+ */
+export function getWebRpId(): string {
+    const hostname = window.location.hostname.replace(/^www\./, '')
+    if (hostname === 'peanut.me' || hostname.endsWith('.peanut.me')) {
+        return 'peanut.me'
+    }
+    return hostname
+}
+
+/**
  * opens a url in the appropriate way for the current platform
  * - on web: window.open with _blank
  * - in capacitor: uses @capacitor/browser plugin
