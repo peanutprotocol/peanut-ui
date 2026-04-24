@@ -1,21 +1,11 @@
-import { getAuthToken } from '@/utils/auth-token'
 import { type CreateRequestRequest, type TRequestResponse } from './services.types'
-import { fetchWithSentry } from '@/utils/sentry.utils'
+import { serverFetch } from '@/utils/api-fetch'
 import { jsonStringify } from '@/utils/general.utils'
-import { PEANUT_API_URL } from '@/constants/general.consts'
 
 export const requestsApi = {
     create: async (data: CreateRequestRequest): Promise<TRequestResponse> => {
-        const token = getAuthToken()
-        if (!token) {
-            throw new Error('Authentication token not found. Please log in again.')
-        }
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/requests`, {
+        const response = await serverFetch('/requests', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
             body: jsonStringify(data),
         })
 
@@ -39,16 +29,8 @@ export const requestsApi = {
     },
 
     update: async (id: string, data: Partial<CreateRequestRequest>): Promise<TRequestResponse> => {
-        const token = getAuthToken()
-        if (!token) {
-            throw new Error('Authentication token not found. Please log in again.')
-        }
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/requests/${id}`, {
+        const response = await serverFetch(`/requests/${id}`, {
             method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
             body: jsonStringify(data),
         })
 
@@ -60,7 +42,9 @@ export const requestsApi = {
     },
 
     get: async (uuid: string): Promise<TRequestResponse> => {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/requests/${uuid}`)
+        const response = await serverFetch(`/requests/${uuid}`, {
+            method: 'GET',
+        })
         if (!response.ok) {
             throw new Error(`Failed to fetch request: ${response.statusText}`)
         }
@@ -78,7 +62,9 @@ export const requestsApi = {
             if (value) queryParams.append(key, value)
         })
 
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/requests?${queryParams.toString()}`)
+        const response = await serverFetch(`/requests?${queryParams.toString()}`, {
+            method: 'GET',
+        })
         if (!response.ok) {
             if (response.status === 404) {
                 return null
@@ -89,15 +75,8 @@ export const requestsApi = {
     },
 
     close: async (uuid: string): Promise<TRequestResponse> => {
-        const token = getAuthToken()
-        if (!token) {
-            throw new Error('Authentication token not found. Please log in again.')
-        }
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/requests/${uuid}`, {
+        const response = await serverFetch(`/requests/${uuid}`, {
             method: 'DELETE',
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
         })
         if (!response.ok) {
             throw new Error(`Failed to close request: ${response.statusText}`)

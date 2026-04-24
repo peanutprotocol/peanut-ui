@@ -1,12 +1,10 @@
-import { PEANUT_API_URL } from '@/constants/general.consts'
-import { getAuthHeaders, getAuthToken } from '@/utils/auth-token'
 import {
     type MantecaDepositResponseData,
     type MantecaWithdrawData,
     type MantecaWithdrawResponse,
     type CreateMantecaOnrampParams,
 } from '@/types/manteca.types'
-import { fetchWithSentry } from '@/utils/sentry.utils'
+import { serverFetch } from '@/utils/api-fetch'
 import { jsonStringify } from '@/utils/general.utils'
 import type { Address } from 'viem'
 import type { SignUserOperationReturnType } from '@zerodev/sdk/actions'
@@ -114,12 +112,8 @@ export type WithdrawPriceLock = {
 
 export const mantecaApi = {
     initiateQrPayment: async (data: QrPaymentRequest): Promise<QrPaymentLock> => {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/manteca/qr-payment/init`, {
+        const response = await serverFetch('/manteca/qr-payment/init', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${getAuthToken()}`,
-            },
             body: jsonStringify(data),
         })
 
@@ -172,24 +166,23 @@ export const mantecaApi = {
         chainId: string
         entryPointAddress: Address
     }): Promise<QrPayment> => {
-        const response = await fetchWithSentry(
-            `${PEANUT_API_URL}/manteca/qr-payment/complete-with-signed-tx`,
-            {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${getAuthToken()}`,
-                },
-                body: jsonStringify({
-                    paymentLockCode,
-                    signedUserOp,
-                    chainId,
-                    entryPointAddress,
-                    qrType,
-                }),
-            },
-            120000
-        )
+        // 120s timeout for this long-running operation
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 120000)
+
+        const response = await serverFetch('/manteca/qr-payment/complete-with-signed-tx', {
+            method: 'POST',
+            body: jsonStringify({
+                paymentLockCode,
+                signedUserOp,
+                chainId,
+                entryPointAddress,
+                qrType,
+            }),
+            signal: controller.signal,
+        })
+
+        clearTimeout(timeoutId)
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}))
@@ -204,12 +197,8 @@ export const mantecaApi = {
         success: boolean
         perk: { sponsored: boolean; amountSponsored: number; discountPercentage: number; txHash?: string }
     }> => {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/perks/claim`, {
+        const response = await serverFetch('/perks/claim', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${getAuthToken()}`,
-            },
             body: jsonStringify({ mantecaTransferId }),
         })
 
@@ -221,8 +210,8 @@ export const mantecaApi = {
         return response.json()
     },
     getPrices: async ({ asset, against }: { asset: string; against: string }): Promise<MantecaPrice> => {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/manteca/prices?asset=${asset}&against=${against}`, {
-            headers: getAuthHeaders(),
+        const response = await serverFetch(`/manteca/prices?asset=${asset}&against=${against}`, {
+            method: 'GET',
         })
 
         if (!response.ok) {
@@ -237,12 +226,8 @@ export const mantecaApi = {
         failureUrl?: string
         exchange?: string
     }): Promise<{ url: string }> => {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/manteca/initiate-onboarding`, {
+        const response = await serverFetch('/manteca/initiate-onboarding', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${getAuthToken()}`,
-            },
             body: jsonStringify(params),
         })
 
@@ -258,12 +243,8 @@ export const mantecaApi = {
         params: CreateMantecaOnrampParams
     ): Promise<{ data?: MantecaDepositResponseData; error?: string }> => {
         try {
-            const response = await fetchWithSentry(`${PEANUT_API_URL}/manteca/deposit`, {
+            const response = await serverFetch('/manteca/deposit', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${getAuthToken()}`,
-                },
                 body: jsonStringify({
                     amount: params.amount,
                     isUsdDenominated: params.isUsdDenominated,
@@ -292,11 +273,8 @@ export const mantecaApi = {
 
     cancelDeposit: async (depositId: string): Promise<{ data?: MantecaDepositResponseData; error?: string }> => {
         try {
-            const response = await fetchWithSentry(`${PEANUT_API_URL}/manteca/deposit/${depositId}/cancel`, {
+            const response = await serverFetch(`/manteca/deposit/${depositId}/cancel`, {
                 method: 'PATCH',
-                headers: {
-                    Authorization: `Bearer ${getAuthToken()}`,
-                },
             })
 
             const data = await response.json()
@@ -319,12 +297,8 @@ export const mantecaApi = {
 
     withdraw: async (data: MantecaWithdrawData): Promise<MantecaWithdrawResponse> => {
         try {
-            const response = await fetchWithSentry(`${PEANUT_API_URL}/manteca/withdraw`, {
+            const response = await serverFetch('/manteca/withdraw', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${getAuthToken()}`,
-                },
                 body: jsonStringify(data),
             })
 
@@ -357,12 +331,8 @@ export const mantecaApi = {
         currency: string
     }): Promise<{ data?: WithdrawPriceLock; error?: string }> => {
         try {
-            const response = await fetchWithSentry(`${PEANUT_API_URL}/manteca/withdraw/init`, {
+            const response = await serverFetch('/manteca/withdraw/init', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${getAuthToken()}`,
-                },
                 body: jsonStringify(params),
             })
 
@@ -415,12 +385,8 @@ export const mantecaApi = {
         entryPointAddress: string
     }): Promise<MantecaWithdrawResponse> => {
         try {
-            const response = await fetchWithSentry(`${PEANUT_API_URL}/manteca/withdraw/complete-with-signed-tx`, {
+            const response = await serverFetch('/manteca/withdraw/complete-with-signed-tx', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${getAuthToken()}`,
-                },
                 body: jsonStringify(params),
             })
 

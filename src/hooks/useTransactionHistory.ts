@@ -1,11 +1,9 @@
-import { getAuthToken } from '@/utils/auth-token'
 import { TRANSACTIONS } from '@/constants/query.consts'
-import { fetchWithSentry } from '@/utils/sentry.utils'
+import { serverFetch } from '@/utils/api-fetch'
 import type { InfiniteData, InfiniteQueryObserverResult, QueryObserverResult } from '@tanstack/react-query'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { completeHistoryEntry } from '@/utils/history.utils'
 import type { HistoryEntry } from '@/utils/history.utils'
-import { PEANUT_API_URL } from '@/constants/general.consts'
 
 //TODO: remove and import all from utils everywhere
 export { EHistoryEntryType, EHistoryUserRole } from '@/utils/history.utils'
@@ -62,11 +60,8 @@ export function useTransactionHistory({
         // append targetUsername to the query params if filterMutualTxs is true and username is provided
         if (filterMutualTxs && username) queryParams.append('targetUsername', username)
 
-        const url = `${PEANUT_API_URL}/users/history?${queryParams.toString()}`
-
-        const response = await fetchWithSentry(url, {
+        const response = await serverFetch(`/users/history?${queryParams.toString()}`, {
             method: 'GET',
-            headers: { Authorization: `Bearer ${getAuthToken()}` },
         })
 
         if (!response.ok) {

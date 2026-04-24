@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { PEANUT_API_URL } from '@/constants/general.consts'
+import { serverFetch } from '@/utils/api-fetch'
 
 interface RedirectQrStatusData {
     claimed: boolean
@@ -9,7 +9,9 @@ interface RedirectQrStatusData {
 }
 
 async function fetchRedirectQrStatus(code: string): Promise<RedirectQrStatusData> {
-    const response = await fetch(`${PEANUT_API_URL}/qr/${code}`)
+    const response = await serverFetch(`/qr/${code}`, {
+        method: 'GET',
+    })
     const result = await response.json()
 
     if (!response.ok) {

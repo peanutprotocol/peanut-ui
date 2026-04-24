@@ -1,7 +1,5 @@
 import { type InitiateSumsubKycResponse, type KYCRegionIntent } from './types/sumsub.types'
-import { fetchWithSentry } from '@/utils/sentry.utils'
-import { PEANUT_API_URL } from '@/constants/general.consts'
-import { getAuthHeaders } from '@/utils/auth-token'
+import { serverFetch } from '@/utils/api-fetch'
 
 // initiate kyc flow (using sumsub) and get websdk access token
 export const initiateSumsubKyc = async (params?: {
@@ -16,9 +14,8 @@ export const initiateSumsubKyc = async (params?: {
     }
 
     try {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/users/identity`, {
+        const response = await serverFetch('/users/identity', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify(body),
         })
 

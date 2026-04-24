@@ -1,7 +1,5 @@
-import { getAuthToken } from '@/utils/auth-token'
-import { fetchWithSentry } from '@/utils/sentry.utils'
+import { serverFetch } from '@/utils/api-fetch'
 import type { Address } from 'viem'
-import { PEANUT_API_URL } from '@/constants/general.consts'
 
 export type QrPaymentType = 'STATIC' | 'DYNAMIC' | 'USER_SPECIFIED'
 
@@ -52,12 +50,8 @@ const ERROR_MESSAGES: Record<SimpleFiErrorCode, string> = {
 
 export const simplefiApi = {
     initiateQrPayment: async (data: SimpleFiQrPaymentRequest): Promise<SimpleFiQrPaymentResponse> => {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/simplefi/qr-pay`, {
+        const response = await serverFetch('/simplefi/qr-pay', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${getAuthToken()}`,
-            },
             body: JSON.stringify(data),
         })
 

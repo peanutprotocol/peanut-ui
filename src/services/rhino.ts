@@ -1,6 +1,5 @@
-import { getAuthToken } from '@/utils/auth-token'
+import { serverFetch } from '@/utils/api-fetch'
 import type { CreateDepositAddressResponse, DepositAddressStatusResponse, RhinoChainType } from './services.types'
-import { PEANUT_API_URL } from '@/constants/general.consts'
 
 export const rhinoApi = {
     createDepositAddress: async (
@@ -8,17 +7,8 @@ export const rhinoApi = {
         chainType: RhinoChainType,
         identifier: string
     ): Promise<CreateDepositAddressResponse> => {
-        const token = getAuthToken()
-        if (!token) {
-            throw new Error('Authentication required')
-        }
-
-        const response = await fetch(`${PEANUT_API_URL}/rhino/deposit`, {
+        const response = await serverFetch('/rhino/deposit', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
             body: JSON.stringify({ destinationAddress, type: chainType, addressNote: identifier }),
         })
         if (!response.ok) {
@@ -29,11 +19,8 @@ export const rhinoApi = {
     },
 
     getDepositAddressStatus: async (depositAddress: string): Promise<DepositAddressStatusResponse> => {
-        const response = await fetch(`${PEANUT_API_URL}/rhino/status/${depositAddress}`, {
+        const response = await serverFetch(`/rhino/status/${depositAddress}`, {
             method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            },
         })
 
         if (!response.ok) {
@@ -45,16 +32,8 @@ export const rhinoApi = {
     },
 
     resetDepositAddressStatus: async (depositAddress: string): Promise<boolean> => {
-        const token = getAuthToken()
-        if (!token) {
-            throw new Error('Authentication required')
-        }
-        const response = await fetch(`${PEANUT_API_URL}/rhino/reset-status/${depositAddress}`, {
+        const response = await serverFetch(`/rhino/reset-status/${depositAddress}`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
         })
 
         if (!response.ok) {
@@ -69,11 +48,8 @@ export const rhinoApi = {
         chargeId: string,
         peanutWalletAddress?: string
     ): Promise<CreateDepositAddressResponse> => {
-        const response = await fetch(`${PEANUT_API_URL}/rhino/request-fulfilment`, {
+        const response = await serverFetch('/rhino/request-fulfilment', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
             body: JSON.stringify({
                 type: chainType,
                 chargeId,
