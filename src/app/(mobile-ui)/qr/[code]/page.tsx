@@ -1,10 +1,9 @@
 'use client'
 
-import { getAuthToken } from '@/utils/auth-token'
 import { Button } from '@/components/0_Bruddle/Button'
 import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
-import { PEANUT_API_URL } from '@/constants/general.consts'
+import { serverFetch } from '@/utils/api-fetch'
 import { useAuth } from '@/context/authContext'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
@@ -89,12 +88,8 @@ export default function RedirectQrClaimPage() {
 
             const { inviteLink } = generateInviteCodeLink(username)
 
-            const response = await fetch(`${PEANUT_API_URL}/qr/${code}/claim`, {
+            const response = await serverFetch(`/qr/${code}/claim`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${getAuthToken()}`,
-                },
                 body: JSON.stringify({
                     targetUrl: inviteLink, // Pass the correctly formatted invite link
                 }),
