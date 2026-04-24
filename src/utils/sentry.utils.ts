@@ -89,7 +89,7 @@ export const fetchWithSentry = async (
         clearTimeout(timeoutId)
 
         if (!response.ok) {
-            console.warn(`Request to ${url} failed with status ${response.status}`)
+            console.warn(`Request to ${String(url).replace(/[\r\n]/g, '')} failed with status ${response.status}`)
 
             // Skip Sentry reporting for expected error responses
             if (!shouldSkipReporting(url, response.status)) {

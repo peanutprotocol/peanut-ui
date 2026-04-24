@@ -74,6 +74,9 @@ export const addBankAccount = async (payload: AddBankAccountPayload): Promise<{ 
 }
 
 export async function getUserById(userId: string): Promise<User | null> {
+    // Strip CRLF before logging so a hostile userId can't forge new log entries
+    // (CodeQL js/log-injection + js/tainted-format-string).
+    const safeUserId = String(userId).replace(/[\r\n]/g, '')
     try {
         const response = await fetchWithSentry(`${PEANUT_API_URL}/users/${userId}`, {
             method: 'GET',
@@ -82,14 +85,14 @@ export async function getUserById(userId: string): Promise<User | null> {
 
         if (!response.ok) {
             const errorData = await response.json()
-            console.error(`Failed to fetch user ${userId}:`, errorData)
+            console.error(`Failed to fetch user ${safeUserId}:`, errorData)
             return null
         }
         const responseJson = await response.json()
 
         return responseJson
     } catch (error) {
-        console.error(`Error fetching user ${userId}:`, error)
+        console.error(`Error fetching user ${safeUserId}:`, error)
         return null
     }
 }
