@@ -15,7 +15,7 @@ import { captureException } from '@sentry/nextjs'
 import { invitesApi } from '@/services/invites'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { isCapacitor, getNativeRpId, getWebRpId } from '@/utils/capacitor'
+import { isCapacitor, getNativeRpId } from '@/utils/capacitor'
 
 // types
 type UserOpEncodedParams = {
@@ -73,7 +73,7 @@ export const useZeroDev = () => {
 
         dispatch(zerodevActions.setIsRegistering(true))
         try {
-            const rpId = isCapacitor() ? getNativeRpId() : getWebRpId()
+            const rpId = isCapacitor() ? getNativeRpId() : window.location.hostname.replace(/^www\./, '')
 
             // @capgo/capacitor-passkey shim patches navigator.credentials on native,
             // so toWebAuthnKey works on all platforms (web, android, ios).
@@ -146,7 +146,7 @@ export const useZeroDev = () => {
                 passkeyServerHeaders['x-username'] = user.user.username
             }
 
-            const rpId = isCapacitor() ? getNativeRpId() : getWebRpId()
+            const rpId = isCapacitor() ? getNativeRpId() : window.location.hostname.replace(/^www\./, '')
 
             const webAuthnKey = await toWebAuthnKey({
                 passkeyName: '[]',

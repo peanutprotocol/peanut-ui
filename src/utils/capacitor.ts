@@ -88,19 +88,6 @@ export function getNativeRpId(): string {
     return process.env.NEXT_PUBLIC_NATIVE_RP_ID || 'peanut.me'
 }
 
-/**
- * returns the rpId for web passkey operations.
- * on *.peanut.me subdomains (staging, dev), uses 'peanut.me' so production
- * passkeys work across all environments. on other domains (localhost, vercel
- * previews), uses the hostname directly.
- */
-export function getWebRpId(): string {
-    const hostname = window.location.hostname.replace(/^www\./, '')
-    if (hostname === 'peanut.me' || hostname.endsWith('.peanut.me')) {
-        return 'peanut.me'
-    }
-    return hostname
-}
 
 /**
  * opens a url in the appropriate way for the current platform
