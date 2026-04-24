@@ -1,8 +1,8 @@
 import { type IUserProfile } from '@/interfaces'
 import { useAppDispatch, useUserStore } from '@/redux/hooks'
 import { userActions } from '@/redux/slices/user-slice'
-import { fetchWithSentry } from '@/utils/sentry.utils'
-import { hitUserMetric } from '@/utils/metrics.utils'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useQuery } from '@tanstack/react-query'
 import { usePWAStatus } from '../usePWAStatus'
 import { useDeviceType } from '../useGetDeviceType'
@@ -33,10 +33,9 @@ export const useUserQuery = (dependsOn: boolean = true) => {
         if (userResponse.ok) {
             const userData: IUserProfile | null = await userResponse.json()
             if (userData) {
-                hitUserMetric(userData.user.userId, 'login', {
-                    isPwa: isPwa,
-                    deviceType: deviceType,
-                })
+                // Was: hitUserMetric(userData.user.userId, 'login', ...) → POST /users/:id/metrics/login.
+                // DB `user_metrics` table deprecated 2026-04-24; analytics is PostHog's job.
+                posthog.capture(ANALYTICS_EVENTS.LOGIN, { isPwa, deviceType })
                 dispatch(userActions.setUser(userData))
             }
             return userData

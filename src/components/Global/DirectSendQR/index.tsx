@@ -9,7 +9,6 @@ import QRBottomDrawer from '@/components/Global/QRBottomDrawer'
 // 50KB bundle cost is worth it for better UX on primary flow
 import QRScanner from '@/components/Global/QRScanner'
 import { useAuth } from '@/context/authContext'
-import { hitUserMetric } from '@/utils/metrics.utils'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import * as Sentry from '@sentry/nextjs'
@@ -61,9 +60,7 @@ function NotSupportedContent({ setModalContent, qrType }: ModalContentProps) {
             <Button
                 onClick={() => {
                     setModalContent(EModalType.WILL_BE_NOTIFIED)
-                    if (user?.user.userId) {
-                        hitUserMetric(user.user.userId, 'qr-notify-me', { qrType })
-                    }
+                    posthog.capture(ANALYTICS_EVENTS.QR_NOTIFY_ME_CLICKED, { qr_type: qrType })
                 }}
                 className="mt-4 w-full"
                 shadowType="primary"
@@ -227,8 +224,7 @@ export default function DirectSendQr({
             }
             return originalData
         }
-        hitUserMetric(user!.user.userId, 'scan-qr', { qrType, data: getLogData() })
-        posthog.capture(ANALYTICS_EVENTS.QR_SCANNED, { qr_type: qrType })
+        posthog.capture(ANALYTICS_EVENTS.QR_SCANNED, { qr_type: qrType, data: getLogData() })
         setQrType(qrType as EQrType)
         switch (qrType) {
             case EQrType.PEANUT_URL:

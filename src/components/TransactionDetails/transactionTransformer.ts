@@ -535,6 +535,12 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         isVerified: entry.isVerified && isPeerActuallyUser,
         // only show verification badge if the other person is a peanut user
         date: new Date(entry.timestamp),
+        // Peanut product convention: fees are baked into the displayed exchange
+        // rate, never surfaced as a separate line item. Keep the backend field
+        // populated for ops/debug, but never thread it to the UI. `fee` stays
+        // `undefined` so `rowVisibilityConfig.fee` is always false and the
+        // drawer's fee row never renders. If this rule changes, update
+        // docs/product-conventions.md first.
         fee: undefined,
         memo: isTestDeposit ? 'Your peanut wallet is ready to use!' : entry.memo?.trim(),
         attachmentUrl: entry.attachmentUrl,

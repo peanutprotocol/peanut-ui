@@ -33,7 +33,7 @@ export const tokenSelectorContext = createContext({
     resetTokenContextProvider: () => {},
     isXChain: false as boolean,
     setIsXChain: (value: boolean) => {},
-    selectedTokenData: undefined as ITokenPriceData | undefined,
+    selectedTokenData: undefined as ITokenPriceData | null | undefined,
     isFetchingTokenData: false as boolean,
     supportedSquidChainsAndTokens: {} as Record<
         string,

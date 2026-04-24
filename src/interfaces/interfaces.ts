@@ -307,7 +307,6 @@ export interface IUserProfile {
     accounts: Account[]
     contacts: Contact[]
     totalPoints: number // Kept for backward compatibility - same as pointsV2.totalPoints
-    hasPwaInstalled: boolean
     user: User
     rails: IUserRail[]
     invitesSent: userInvites[]

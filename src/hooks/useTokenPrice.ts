@@ -45,9 +45,14 @@ export const useTokenPrice = ({
     supportedSquidChainsAndTokens,
     isPeanutWallet,
 }: UseTokenPriceParams) => {
+    // React Query v5 rejects `undefined` returns from queryFn with
+    //   "Query data cannot be undefined. Please make sure to return a value
+    //   other than undefined from your query function."
+    // We use `null` as the "no price available" sentinel — consumers treat
+    // both null and undefined identically (via `??` / optional chaining).
     return useQuery({
         queryKey: ['tokenPrice', tokenAddress, chainId, isPeanutWallet],
-        queryFn: async (): Promise<ITokenPriceData | undefined> => {
+        queryFn: async (): Promise<ITokenPriceData | null> => {
             try {
                 // Case 1: Peanut Wallet USDC (always $1)
                 if (isPeanutWallet && tokenAddress === PEANUT_WALLET_TOKEN) {
@@ -81,7 +86,7 @@ export const useTokenPrice = ({
 
                 // Case 3: Check if chain is supported by Mobula
                 if (!supportedMobulaChains.some((chain) => chain.chainId == chainId)) {
-                    return undefined
+                    return null
                 }
 
                 // Case 4: Fetch actual price from API
@@ -91,12 +96,12 @@ export const useTokenPrice = ({
                     return tokenPriceResponse
                 }
 
-                return undefined
+                return null
             } catch (error) {
                 // Preserve Sentry error reporting from original implementation
                 Sentry.captureException(error)
                 console.error('error fetching tokenPrice, falling back to tokenDenomination')
-                return undefined
+                return null
             }
         },
         enabled: !!tokenAddress && !!chainId, // Only run when both are defined
@@ -107,17 +112,17 @@ export const useTokenPrice = ({
         retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000), // Exponential backoff, max 5s
         // Centralized validation: reject invalid prices at the hook level
         // This protects all consumers from division by zero / NaN errors
-        select: (data) => {
-            if (!data) return undefined
+        select: (data): ITokenPriceData | null => {
+            if (!data) return null
 
             // Validate price is a valid positive number
             if (typeof data.price !== 'number' || isNaN(data.price) || data.price <= 0) {
-                console.warn('[useTokenPrice] Invalid price detected, returning undefined:', {
+                console.warn('[useTokenPrice] Invalid price detected, returning null:', {
                     tokenAddress,
                     chainId,
                     price: data.price,
                 })
-                return undefined
+                return null
             }
 
             return data

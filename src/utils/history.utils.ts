@@ -136,6 +136,8 @@ export type HistoryEntry = {
     completedAt?: string | Date
     isVerified?: boolean
     points?: number
+    /** Provider fee in USD (human units, e.g. 0.01). Populated by bridge offramp/onramp. */
+    fee?: number
     isRequestLink?: boolean // true if the transaction is a request pot link
     charges?: ChargeEntry[]
     totalAmountCollected?: number

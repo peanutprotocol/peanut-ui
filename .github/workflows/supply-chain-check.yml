@@ -1,0 +1,42 @@
+name: Supply-chain freshness
+
+# Blocks PRs that add or upgrade a dependency to a version published less than
+# 14 days ago. Defense against compromised npm packages that get yanked within
+# hours of publish. Policy doc: AGENTS.md → "Supply chain".
+
+on:
+    pull_request:
+        branches: ['**']
+        paths:
+            - 'package.json'
+            - 'pnpm-lock.yaml'
+            - '.npmrc'
+            - 'scripts/check-min-release-age.mjs'
+            - '.github/workflows/supply-chain-check.yml'
+
+jobs:
+    check-min-release-age:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '21.1.0'
+
+            - uses: pnpm/action-setup@v4
+              with:
+                  version: 10
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Resolve base package.json
+              run: |
+                  git fetch origin "${{ github.base_ref }}"
+                  git show "origin/${{ github.base_ref }}:package.json" > /tmp/base-package.json
+
+            - name: Check min release age
+              run: node scripts/check-min-release-age.mjs --base /tmp/base-package.json

@@ -3,6 +3,9 @@
  * Provides autocomplete, compile-time safety, and a single place to audit the full taxonomy.
  */
 export const ANALYTICS_EVENTS = {
+    // ── Session ──
+    LOGIN: 'login',
+
     // ── Signup funnel ──
     SIGNUP_CLICKED: 'signup_signup_clicked',
     SIGNUP_LOGIN_ERROR: 'signup_login_error',
@@ -103,6 +106,7 @@ export const ANALYTICS_EVENTS = {
 
     // ── QR ──
     QR_SCANNED: 'qr_scanned',
+    QR_NOTIFY_ME_CLICKED: 'qr_notify_me_clicked',
 
     // ── Home ──
     BALANCE_VISIBILITY_TOGGLED: 'balance_visibility_toggled',

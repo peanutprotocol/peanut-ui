@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { getJWTCookie } from '@/utils/cookie-migration.utils'
 
-export async function GET(_request: NextRequest) {
+export async function POST(_request: NextRequest) {
     const token = await getJWTCookie()
     const apiKey = process.env.PEANUT_API_KEY
 

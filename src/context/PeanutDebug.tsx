@@ -50,7 +50,7 @@ export function PeanutDebug() {
             if (userId) return userId
             const cached = currentUserId()
             if (cached) return cached
-            const res = await fetch('/api/peanut/user/get-user-from-cookie', { credentials: 'include' })
+            const res = await fetch('/api/peanut/user/get-user-from-cookie', { method: 'POST', credentials: 'include' })
                 .then((r) => r.ok ? r.json() : null)
                 .catch(() => null)
             const uid = res?.user?.userId
@@ -110,6 +110,147 @@ export function PeanutDebug() {
                 return call('/dev/cheats/simulate-bridge-deposit', { userId: uid, amountUsd })
             },
 
+            /**
+             * Advance a pending Bridge ONRAMP intent to PAYMENT_PROCESSED — the
+             * state Peanut treats as "complete." Bridge sandbox fires no
+             * payments webhooks, so this cheat synthesizes the webhook payload
+             * server-side and feeds it into the real handler.
+             *
+             * `intentOrTransferId` accepts either the TransactionIntent.id or
+             * the Bridge transfer id (both work).
+             * See peanut-api-ts/src/routes/dev/impersonators/README.md.
+             */
+            async completeBridgeOnramp(
+                intentOrTransferId: string,
+                opts?: { exchangeRate?: number; developerFee?: string }
+            ) {
+                return call('/dev/cheats/complete-bridge-onramp', {
+                    intentOrTransferId,
+                    ...(opts ?? {}),
+                })
+            },
+
+            /** Same contract as completeBridgeOnramp, for offramps. */
+            async completeBridgeOfframp(
+                intentOrTransferId: string,
+                opts?: { exchangeRate?: number; developerFee?: string }
+            ) {
+                return call('/dev/cheats/complete-bridge-offramp', {
+                    intentOrTransferId,
+                    ...(opts ?? {}),
+                })
+            },
+
+            /**
+             * Drive a Bridge transfer to a terminal failure state.
+             * `terminalState` defaults to 'error'; use 'returned' / 'undeliverable'
+             * / 'refunded' for rail-specific failures.
+             */
+            async failBridgeTransfer(
+                intentOrTransferId: string,
+                reason: string,
+                terminalState?: 'error' | 'returned' | 'undeliverable' | 'refunded'
+            ) {
+                return call('/dev/cheats/fail-bridge-transfer', {
+                    intentOrTransferId,
+                    reason,
+                    ...(terminalState ? { terminalState } : {}),
+                })
+            },
+
+            /**
+             * Advance a pending Rhino SDA deposit through
+             * DEPOSIT_ADDRESS_CREATED → BRIDGE_PENDING → BRIDGE_ACCEPTED →
+             * BRIDGE_EXECUTED. Rhino has no sandbox so this cheat synthesizes
+             * the webhook payloads server-side and feeds them through the real
+             * `processRhinoWebhookEvent` handler.
+             *
+             * Prerequisite: you must have already called `POST /rhino/deposit`
+             * (UI does this when the user opens the deposit screen) so the SDA
+             * is registered in the in-memory status store. Pass that SDA back
+             * here as `depositAddress`.
+             *
+             * See peanut-api-ts/src/routes/dev/impersonators/README.md.
+             */
+            async completeRhinoDeposit(args: {
+                depositAddress: string
+                chainIn?: string
+                token?: 'USDC' | 'USDT'
+                depositor?: string
+                recipient: string
+                amountIn?: string
+                amountOut?: string
+                amountOutUsd?: number
+            }) {
+                return call('/dev/cheats/complete-rhino-deposit', {
+                    depositAddress: args.depositAddress,
+                    chainIn: args.chainIn ?? 'BASE',
+                    token: args.token ?? 'USDC',
+                    depositor: args.depositor ?? '0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef',
+                    recipient: args.recipient,
+                    amountIn: args.amountIn ?? '1.00',
+                    amountOut: args.amountOut ?? '0.99',
+                    amountOutUsd: args.amountOutUsd ?? 0.99,
+                })
+            },
+
+            /**
+             * Same contract as completeRhinoDeposit but for request-fulfilment
+             * SDAs (registered via POST /rhino/request-fulfilment). Downstream
+             * effect: chargeService.createPayment runs on the associated
+             * charge, moving it to PAID.
+             */
+            async completeRhinoReqFulfilment(args: {
+                depositAddress: string
+                chainIn?: string
+                token?: 'USDC' | 'USDT'
+                depositor?: string
+                recipient: string
+                amountIn?: string
+                amountOut?: string
+                amountOutUsd?: number
+            }) {
+                return call('/dev/cheats/complete-rhino-req-fulfilment', {
+                    depositAddress: args.depositAddress,
+                    chainIn: args.chainIn ?? 'BASE',
+                    token: args.token ?? 'USDC',
+                    depositor: args.depositor ?? '0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef',
+                    recipient: args.recipient,
+                    amountIn: args.amountIn ?? '1.00',
+                    amountOut: args.amountOut ?? '0.99',
+                    amountOutUsd: args.amountOutUsd ?? 0.99,
+                })
+            },
+
+            /**
+             * Drive a Rhino SDA (deposit or req-fulfilment) to BRIDGE_REFUNDED.
+             * Shared helper — the store entry's paymentType determines downstream
+             * effects via the real handler.
+             */
+            async failRhinoTransfer(args: {
+                depositAddress: string
+                chainIn?: string
+                token?: 'USDC' | 'USDT'
+                depositor?: string
+                recipient: string
+                amountIn?: string
+                amountOut?: string
+                amountOutUsd?: number
+                reason?: string
+            }) {
+                return call('/dev/cheats/fail-rhino-transfer', {
+                    depositAddress: args.depositAddress,
+                    chainIn: args.chainIn ?? 'BASE',
+                    token: args.token ?? 'USDC',
+                    depositor: args.depositor ?? '0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef',
+                    recipient: args.recipient,
+                    amountIn: args.amountIn ?? '1.00',
+                    amountOut: args.amountOut ?? '0.99',
+                    amountOutUsd: args.amountOutUsd ?? 0.99,
+                    ...(args.reason ? { reason: args.reason } : {}),
+                })
+            },
+
             async resetMe(userId?: string) {
                 const uid = await resolveUserId(userId)
                 if (!uid) return { error: 'not signed in' }
@@ -161,7 +302,13 @@ export function PeanutDebug() {
                     'peanutDebug.fund(usdc="10")               harness EOA → your SA (default $10)',
                     'peanutDebug.faucetHelp()                  print harness EOA + open Circle faucet',
                     'peanutDebug.approveKyc(provider, country) "bridge" (US/EU), "manteca" (AR), "sumsub"',
-                    'peanutDebug.simulateBridgeDeposit("25")   fires sandbox simulate_deposit',
+                    'peanutDebug.simulateBridgeDeposit("25")   fires sandbox VA simulate_deposit (does NOT advance transfers — see completeBridgeOnramp)',
+                    'peanutDebug.completeBridgeOnramp(id, opts)  advance pending onramp → PAYMENT_PROCESSED (impersonator)',
+                    'peanutDebug.completeBridgeOfframp(id, opts) advance pending offramp → PAYMENT_PROCESSED (impersonator)',
+                    'peanutDebug.failBridgeTransfer(id, reason)  drive transfer to terminal failure (impersonator)',
+                    'peanutDebug.completeRhinoDeposit({ depositAddress, recipient, ... })   advance Rhino SDA deposit → BRIDGE_EXECUTED (impersonator)',
+                    'peanutDebug.completeRhinoReqFulfilment({ depositAddress, recipient, ... })  advance Rhino req-fulfilment SDA → BRIDGE_EXECUTED',
+                    'peanutDebug.failRhinoTransfer({ depositAddress, recipient, ... })      drive Rhino SDA to BRIDGE_REFUNDED (impersonator)',
                     'peanutDebug.resetMe()                     wipes your bridge/manteca/ledger rows',
                     'peanutDebug.ledgerHealth()                ledger row counts + dual-write stats',
                     'peanutDebug.ledgerHistory()               ledger intents for this user (raw)',
