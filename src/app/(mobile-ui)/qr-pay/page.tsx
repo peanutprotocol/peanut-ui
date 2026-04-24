@@ -24,7 +24,7 @@ import ErrorAlert from '@/components/Global/ErrorAlert'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { PERK_HOLD_DURATION_MS } from '@/constants/general.consts'
 import { MANTECA_DEPOSIT_ADDRESS } from '@/constants/manteca.consts'
-import { MIN_MANTECA_QR_PAYMENT_AMOUNT } from '@/constants/payment.consts'
+import { MIN_MANTECA_QR_PAYMENT_AMOUNT, MIN_PIX_AMOUNT_BRL } from '@/constants/payment.consts'
 import { formatUnits, parseUnits } from 'viem'
 import type { TransactionReceipt, Hash } from 'viem'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
@@ -982,6 +982,11 @@ export default function QRPayPage() {
                 setBalanceErrorMessage(`Payment amount must be at least $${MIN_MANTECA_QR_PAYMENT_AMOUNT}`)
                 return
             }
+            // PIX rail enforces a 1 BRL minimum, stricter than the USD floor above
+            if (currency?.code === 'BRL' && currencyAmount && parseFloat(currencyAmount) < MIN_PIX_AMOUNT_BRL) {
+                setBalanceErrorMessage(`Minimum PIX amount is ${MIN_PIX_AMOUNT_BRL} BRL`)
+                return
+            }
         }
 
         // Common validations for all payment processors
@@ -994,7 +999,7 @@ export default function QRPayPage() {
         } else {
             setBalanceErrorMessage(null)
         }
-    }, [usdAmount, balance, paymentProcessor])
+    }, [usdAmount, balance, paymentProcessor, currency?.code, currencyAmount])
 
     // Use points confetti hook for animation - must be called unconditionally
     usePointsConfetti(isSuccess && pointsData?.estimatedPoints ? pointsData.estimatedPoints : undefined, pointsDivRef)
