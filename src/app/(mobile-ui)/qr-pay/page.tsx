@@ -190,6 +190,28 @@ export default function QRPayPage() {
         }
     }, [])
 
+    // Reopening the app onto a past QR URL (last merchant, expired lock) is stale —
+    // after a real absence, drop the user on home so they can start fresh.
+    useEffect(() => {
+        const STALE_THRESHOLD_MS = 30_000
+        let hiddenAt: number | null = null
+
+        const onVisibility = () => {
+            if (document.hidden) {
+                hiddenAt = Date.now()
+                return
+            }
+            if (hiddenAt === null) return
+            const elapsed = Date.now() - hiddenAt
+            hiddenAt = null
+            if (elapsed > STALE_THRESHOLD_MS) {
+                router.push('/home')
+            }
+        }
+        document.addEventListener('visibilitychange', onVisibility)
+        return () => document.removeEventListener('visibilitychange', onVisibility)
+    }, [router])
+
     // Track reward claim shown + surprise moment when perk UI appears after payment
     useEffect(() => {
         perkClaimedRef.current = perkClaimed
