@@ -24,6 +24,7 @@
         "test:e2e:headed": "playwright test --headed --project=mobile",
         "test:e2e:desktop": "playwright test --project=desktop",
         "test:e2e:all": "playwright test",
+        "test:e2e:regression": "UI_BASE_URL=${UI_BASE_URL:-http://localhost:3050} playwright test --config=playwright.regression.config.ts",
         "ping-indexnow": "tsx scripts/ping-indexnow.ts",
         "script": "NODE_OPTIONS=\"--experimental-json-modules\" tsx",
         "validate-content": "tsx scripts/validate-content.ts",
