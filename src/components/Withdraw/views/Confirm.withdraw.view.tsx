@@ -12,9 +12,7 @@ import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { type ITokenPriceData } from '@/interfaces'
 import { formatAmount, isStableCoin } from '@/utils/general.utils'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
-import { type PeanutCrossChainRoute } from '@/services/swap'
-import { useMemo, useState } from 'react'
-import { formatUnits } from 'viem'
+import { useMemo } from 'react'
 import { ROUTE_NOT_FOUND_ERROR } from '@/constants/general.consts'
 
 interface WithdrawConfirmViewProps {
@@ -28,12 +26,16 @@ interface WithdrawConfirmViewProps {
     onBack: () => void
     isProcessing?: boolean
     error?: string | null
-    // Timer props for cross-chain withdrawals
     isCrossChain?: boolean
-    routeExpiry?: string
-    isRouteLoading?: boolean
-    onRouteRefresh?: () => void
-    xChainRoute?: PeanutCrossChainRoute
+    /** True while the shared `useCrossChainTransfer` hook is provisioning the SDA / previewing fees. */
+    isCalculating?: boolean
+    /**
+     * Decimal receive amount from Rhino's public quote — e.g. "99.95". Nullable
+     * for same-chain (no bridge) or while the preview call is in flight. Under
+     * SDA there's no slippage on same-stablecoin bridges; this is the deterministic
+     * "they'll receive X" number.
+     */
+    receiveAmount?: string | null
 }
 
 export default function ConfirmWithdrawView({
@@ -48,23 +50,19 @@ export default function ConfirmWithdrawView({
     isProcessing,
     error,
     isCrossChain = false,
-    routeExpiry,
-    isRouteLoading = false,
-    onRouteRefresh,
-    xChainRoute,
+    isCalculating = false,
+    receiveAmount,
 }: WithdrawConfirmViewProps) {
-    const [isRouteExpired, setIsRouteExpired] = useState(false)
     const { tokenIconUrl, chainIconUrl, resolvedChainName, resolvedTokenSymbol } = useTokenChainIcons({
         chainId: chain.chainId,
         tokenAddress: token.address,
         tokenSymbol: token.symbol,
     })
 
-    const minReceived = useMemo<string | null>(() => {
-        if (!xChainRoute || !resolvedTokenSymbol) return null
-        const amount = formatUnits(BigInt(xChainRoute.rawResponse.route.estimate.toAmountMin), token.decimals)
-        return isStableCoin(resolvedTokenSymbol) ? `$ ${amount}` : `${amount} ${resolvedTokenSymbol}`
-    }, [xChainRoute, resolvedTokenSymbol])
+    const displayReceived = useMemo<string | null>(() => {
+        if (!isCrossChain || !receiveAmount || !resolvedTokenSymbol) return null
+        return isStableCoin(resolvedTokenSymbol) ? `$ ${receiveAmount}` : `${receiveAmount} ${resolvedTokenSymbol}`
+    }, [isCrossChain, receiveAmount, resolvedTokenSymbol])
 
     const networkFeeDisplay = useMemo<string | React.ReactNode>(() => {
         if (networkFee < 0.01) return 'Sponsored by Peanut!'
@@ -89,26 +87,14 @@ export default function ConfirmWithdrawView({
                     recipientName={''}
                     amount={formatAmount(amount)}
                     tokenSymbol="USDC"
-                    showTimer={isCrossChain}
-                    timerExpiry={routeExpiry}
-                    isTimerLoading={isRouteLoading}
-                    onTimerNearExpiry={() => {
-                        setIsRouteExpired(false)
-                        onRouteRefresh?.()
-                    }}
-                    onTimerExpired={() => {
-                        setIsRouteExpired(true)
-                    }}
-                    disableTimerRefetch={isProcessing}
-                    timerError={error == ROUTE_NOT_FOUND_ERROR ? error : null}
                 />
 
                 <Card className="rounded-sm">
-                    {minReceived && (
+                    {displayReceived && (
                         <PaymentInfoRow
-                            label="Min Received"
-                            value={minReceived}
-                            moreInfoText="This transaction may face slippage due to token conversion or cross-chain bridging."
+                            label="Recipient receives"
+                            value={displayReceived}
+                            moreInfoText="Cross-chain bridging fee is deducted from the sent amount by Rhino."
                         />
                     )}
                     <PaymentInfoRow
@@ -158,8 +144,6 @@ export default function ConfirmWithdrawView({
                         onClick={() => {
                             if (error === ROUTE_NOT_FOUND_ERROR) {
                                 onBack()
-                            } else if (isRouteExpired) {
-                                onRouteRefresh?.()
                             } else {
                                 onConfirm()
                             }
@@ -176,7 +160,7 @@ export default function ConfirmWithdrawView({
                         variant="purple"
                         shadowSize="4"
                         onClick={onConfirm}
-                        disabled={isProcessing || isRouteLoading}
+                        disabled={isProcessing || isCalculating}
                         loading={isProcessing}
                         className="w-full"
                     >
@@ -184,13 +168,7 @@ export default function ConfirmWithdrawView({
                     </Button>
                 )}
 
-                {error && (
-                    <ErrorAlert
-                        description={
-                            isRouteExpired ? 'This quote has expired. Please retry to fetch latest quote.' : error
-                        }
-                    />
-                )}
+                {error && <ErrorAlert description={error} />}
             </div>
         </div>
     )

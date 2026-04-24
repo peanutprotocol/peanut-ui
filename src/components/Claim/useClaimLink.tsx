@@ -5,8 +5,9 @@ import {
     getParamsFromLink,
     getContractAddress,
     signWithdrawalMessage,
-    createClaimXChainPayload,
 } from '@squirrel-labs/peanut-sdk'
+import { evmChainIdToRhinoName } from '@/constants/rhino.consts'
+import { provisionSdaTransfer } from '@/services/rhino-sda'
 import { useContext, useMemo } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { usePathname, useSearchParams } from 'next/navigation'
@@ -133,48 +134,81 @@ async function executeClaim({
 }
 
 /**
- * Claims a link x-chain through the Peanut API
+ * Claims a link cross-chain via Rhino SDA composition.
+ *
+ * Flow (one relayer tx, no Squid, no contract changes):
+ *   1. Backend provisions an SDA on the origin chain:
+ *        depositChain=link's chain, destinationChain=claimer's target,
+ *        destinationAddress=claimer, tokenOut=USDC
+ *   2. Frontend signs the withdrawal message with `recipientAddress = sdaAddress`
+ *      (the SDA, not the claimer's wallet, is the on-chain recipient).
+ *   3. Backend's /claim-v3 route sponsors the claim contract call — funds land
+ *      in the SDA on the origin chain.
+ *   4. Rhino's SDA auto-bridges to the claimer's destination. BRIDGE_EXECUTED
+ *      webhook → processRhinoWebhookEvent routes the CLAIM_XCHAIN payment type
+ *      for observational logging.
+ *
+ * Fixes the chain-reset bug by design: claim contract is never asked to call
+ * Squid inline; it performs a plain same-chain transfer to the SDA.
  */
 async function executeClaimXChain({
     link,
     recipientAddress,
     destinationChainId,
-    destinationToken,
-    baseUrl = `${next_proxy_url}/claim-x-chain`,
-    isMainnet = true,
-    slippage = 1,
 }: {
     link: string
     recipientAddress: string
     destinationChainId: string
-    destinationToken: string | null
+    destinationToken?: string | null
     baseUrl?: string
     isMainnet?: boolean
     slippage?: number
 }): Promise<string> {
-    const payload = await createClaimXChainPayload({
-        isMainnet,
-        destinationChainId,
-        ...(destinationToken !== null && { destinationToken }),
-        link: link,
-        recipient: recipientAddress,
-        squidRouterUrl: `${next_proxy_url}/get-squid-route`,
-        slippage,
+    const params = getParamsFromLink(link)
+
+    const sourceRhinoChain = evmChainIdToRhinoName(params.chainId)
+    const destRhinoChain = evmChainIdToRhinoName(destinationChainId)
+    if (!sourceRhinoChain || !destRhinoChain) {
+        throw new Error(
+            `Unsupported chain for Rhino SDA bridge (source=${params.chainId} dest=${destinationChainId})`
+        )
+    }
+
+    // Provision (or reuse) the claim's SDA. contextId is the deterministic
+    // (chain, depositIdx) pair — idempotent re-claims resolve to the same
+    // SDA so Rhino's rate limit is not hit on retries.
+    const sda = await provisionSdaTransfer({
+        context: 'claim-xchain',
+        contextId: `${params.chainId}:${params.depositIdx}`,
+        depositChain: sourceRhinoChain,
+        destinationChain: destRhinoChain,
+        destinationAddress: recipientAddress as `0x${string}`,
+        tokenOut: 'USDC',
     })
 
-    const data = await postJson<{ txHash: string }>(baseUrl, {
-        chainId: payload.chainId,
-        contractVersion: payload.contractVersion,
-        peanutAddress: payload.peanutAddress,
-        depositIndex: payload.depositIndex,
-        withdrawalSignature: payload.withdrawalSignature,
-        squidFee: payload.squidFee.toString(),
-        peanutFee: payload.peanutFee.toString(),
-        squidData: payload.squidData,
-        routingSignature: payload.routingSignature,
-        recipientAddress: recipientAddress,
+    // Sign the withdrawal message targeting the SDA as the on-chain recipient.
+    // Whoever knows the password (= anyone with the link) authorizes the claim;
+    // we re-direct the destination from user-wallet to sda-address, which Rhino
+    // then forwards to the user-wallet on the target chain.
+    const keys = generateKeysFromString(params.password)
+    const claimParams = await signWithdrawalMessage(
+        params.contractVersion,
+        params.chainId,
+        getContractAddress(params.chainId, params.contractVersion),
+        params.depositIdx,
+        sda.sdaAddress,
+        keys.privateKey
+    )
+
+    const data = await postJson<{ txHash?: string }>(`${next_proxy_url}/claim-v3`, {
+        claimParams,
+        chainId: params.chainId,
+        version: params.contractVersion,
     })
 
+    if (!data.txHash) {
+        throw new Error('Claim-v3 returned no txHash')
+    }
     return data.txHash
 }
 

@@ -20,14 +20,12 @@ import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useRouter } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { captureMessage } from '@sentry/nextjs'
 import type { Address } from 'viem'
 import { Slider } from '@/components/Slider'
 import { tokenSelectorContext } from '@/context'
 import { useHaptic } from 'use-haptic'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
-import { ROUTE_NOT_FOUND_ERROR } from '@/constants/general.consts'
-import { useRouteCalculation } from '@/features/payments/shared/hooks/useRouteCalculation'
+import { useCrossChainTransfer } from '@/features/payments/shared/hooks/useCrossChainTransfer'
 import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentRecorder'
 import { isTxReverted } from '@/utils/general.utils'
 import { ErrorHandler } from '@/utils/sdkErrorHandler.utils'
@@ -63,13 +61,14 @@ export default function WithdrawCryptoPage() {
 
     // hooks for route calculation and payment recording
     const {
-        route: xChainRoute,
         transactions,
+        receiveAmount,
+        feeUsd,
         isCalculating,
         error: routeError,
-        calculateRoute,
+        calculate: calculateRoute,
         reset: resetRouteCalculation,
-    } = useRouteCalculation()
+    } = useCrossChainTransfer()
 
     const { isRecording, error: recordError, recordPayment, reset: resetPaymentRecorder } = usePaymentRecorder()
 
@@ -126,8 +125,6 @@ export default function WithdrawCryptoPage() {
     // prepare transaction when entering confirm view
     useEffect(() => {
         if (currentView === 'CONFIRM' && chargeDetails && withdrawData && address) {
-            console.log('Preparing withdraw transaction details...')
-            console.dir(chargeDetails)
             calculateRoute({
                 source: {
                     address: address as Address,
@@ -142,11 +139,13 @@ export default function WithdrawCryptoPage() {
                     tokenType: Number(chargeDetails.tokenType),
                     chainId: chargeDetails.chainId,
                 },
-                usdAmount: usdAmount,
+                context: 'withdraw',
+                contextId: chargeDetails.uuid,
+                senderPeanutWalletAddress: address as Address,
                 skipGasEstimate: true, // peanut wallet handles gas
             })
         }
-    }, [currentView, chargeDetails, withdrawData, calculateRoute, usdAmount, address])
+    }, [currentView, chargeDetails, withdrawData, calculateRoute, address])
 
     const handleSetupReview = useCallback(
         async (data: Omit<WithdrawData, 'amount'>) => {
@@ -274,14 +273,16 @@ export default function WithdrawCryptoPage() {
 
             const finalTxHash = receipt?.transactionHash ?? userOpHash
 
-            // record payment to backend
+            // record payment to backend. Under the Rhino SDA flow, the webhook
+            // (BRIDGE_EXECUTED) is authoritative for cross-chain completion —
+            // this call just writes the optimistic payment row so history shows
+            // the withdraw immediately. No squidQuoteId to plumb.
             const payment = await recordPayment({
                 chargeId: chargeDetails.uuid,
                 chainId: PEANUT_WALLET_CHAIN.id.toString(),
                 txHash: finalTxHash,
                 tokenAddress: PEANUT_WALLET_TOKEN as Address,
                 payerAddress: address as Address,
-                squidQuoteId: xChainRoute?.rawResponse?.route?.quoteId,
             })
 
             setTransactionHash(finalTxHash)
@@ -319,28 +320,6 @@ export default function WithdrawCryptoPage() {
         triggerHaptic,
     ])
 
-    const handleRouteRefresh = useCallback(async () => {
-        if (!chargeDetails || !address) return
-        console.log('Refreshing withdraw route due to expiry...')
-        await calculateRoute({
-            source: {
-                address: address as Address,
-                tokenAddress: PEANUT_WALLET_TOKEN as Address,
-                chainId: PEANUT_WALLET_CHAIN.id.toString(),
-            },
-            destination: {
-                recipientAddress: chargeDetails.requestLink.recipientAddress as Address,
-                tokenAddress: chargeDetails.tokenAddress as Address,
-                tokenAmount: chargeDetails.tokenAmount,
-                tokenDecimals: chargeDetails.tokenDecimals,
-                tokenType: Number(chargeDetails.tokenType),
-                chainId: chargeDetails.chainId,
-            },
-            usdAmount: usdAmount,
-            skipGasEstimate: true,
-        })
-    }, [chargeDetails, calculateRoute, usdAmount, address])
-
     const handleBackFromConfirm = useCallback(() => {
         setCurrentView('INITIAL')
         clearErrors()
@@ -367,35 +346,12 @@ export default function WithdrawCryptoPage() {
         }
     }, [resetRouteCalculation, resetPaymentRecorder, resetTokenContextProvider])
 
-    // Check for route type errors (similar to payment flow)
-    const routeTypeError = useMemo<string | null>(() => {
-        if (!isCrossChainWithdrawal || !xChainRoute || !isPeanutWallet) return null
-
-        // For peanut wallet flows, only RFQ routes are allowed
-        if (xChainRoute.type === 'swap') {
-            captureMessage('No RFQ route found for this token pair', {
-                level: 'warning',
-                extra: {
-                    flow: 'withdraw',
-                    routeObject: xChainRoute,
-                },
-            })
-            return ROUTE_NOT_FOUND_ERROR
-        }
-
-        return null
-    }, [isCrossChainWithdrawal, xChainRoute, isPeanutWallet])
-
     // Display payment errors first (user actions), then route errors (system limitations)
-    const displayError = paymentError ?? routeTypeError
+    const displayError = paymentError
 
-    // Get network fee from route or fallback
-    const networkFee = useMemo<number>(() => {
-        if (xChainRoute?.feeCostsUsd) {
-            return xChainRoute.feeCostsUsd
-        }
-        return 0
-    }, [xChainRoute])
+    // Get network fee from Rhino preview. Under SDA the fee is a transparent
+    // bridge-fee in USD — no slippage distinction.
+    const networkFee = useMemo<number>(() => feeUsd ?? 0, [feeUsd])
 
     if (!amountToWithdraw && currentView !== 'STATUS') {
         // Redirect to main withdraw page for amount input
@@ -427,12 +383,9 @@ export default function WithdrawCryptoPage() {
                     isProcessing={isProcessing}
                     error={displayError}
                     networkFee={networkFee}
-                    // timer props for cross-chain withdrawals
                     isCrossChain={isCrossChainWithdrawal}
-                    routeExpiry={xChainRoute?.expiry}
-                    isRouteLoading={isCalculating}
-                    onRouteRefresh={handleRouteRefresh}
-                    xChainRoute={xChainRoute ?? undefined}
+                    isCalculating={isCalculating}
+                    receiveAmount={receiveAmount}
                 />
             )}
 
