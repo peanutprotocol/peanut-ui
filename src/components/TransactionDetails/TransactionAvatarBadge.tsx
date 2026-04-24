@@ -8,6 +8,7 @@ import {
     AVATAR_WALLET_BG,
     getColorForUsername,
 } from '@/utils/color.utils'
+import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import React from 'react'
 import { isAddress } from 'viem'
 import { type StatusPillType } from '../Global/StatusPill'
@@ -19,6 +20,11 @@ interface TransactionAvatarBadgeProps {
     isLinkTransaction?: boolean
     transactionType: TransactionType
     context: 'card' | 'header' | 'drawer'
+    /**
+     * ISO-2 country code. When set + transactionType is a bank/cashout variant,
+     * the badge renders the country flag instead of the generic bank icon.
+     */
+    countryCode?: string | null
 }
 
 /**
@@ -32,9 +38,11 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
     size = 'medium',
     transactionType,
     context,
+    countryCode,
 }) => {
     let displayIconName: IconName | undefined = undefined
     let displayInitials: string | undefined = initials
+    let displayLogoUrl: string | undefined = undefined
     let calculatedBgColor = AVATAR_WALLET_BG
     let iconFillColor = AVATAR_TEXT_DARK
     let textColor = AVATAR_TEXT_DARK
@@ -52,18 +60,29 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
         case 'bank_deposit':
         case 'bank_request_fulfillment':
         case 'bank_claim':
-            displayIconName = 'bank'
             displayInitials = undefined
-            calculatedBgColor = AVATAR_TEXT_DARK
-            textColor = AVATAR_TEXT_LIGHT
-            iconFillColor = AVATAR_TEXT_LIGHT
+            // Render country flag when we know the country; fall back to bank icon otherwise.
+            if (countryCode) {
+                displayLogoUrl = getFlagUrl(countryCode)
+                calculatedBgColor = AVATAR_WALLET_BG
+            } else {
+                displayIconName = 'bank'
+                calculatedBgColor = AVATAR_TEXT_DARK
+                textColor = AVATAR_TEXT_LIGHT
+                iconFillColor = AVATAR_TEXT_LIGHT
+            }
             break
         case 'cashout':
-            displayIconName = 'bank'
             displayInitials = undefined
-            calculatedBgColor = context === 'card' ? AVATAR_TEXT_DARK : AVATAR_WALLET_BG
-            textColor = context === 'card' ? AVATAR_TEXT_LIGHT : AVATAR_TEXT_DARK
-            iconFillColor = context === 'card' ? AVATAR_TEXT_LIGHT : AVATAR_TEXT_DARK
+            if (countryCode) {
+                displayLogoUrl = getFlagUrl(countryCode)
+                calculatedBgColor = AVATAR_WALLET_BG
+            } else {
+                displayIconName = 'bank'
+                calculatedBgColor = context === 'card' ? AVATAR_TEXT_DARK : AVATAR_WALLET_BG
+                textColor = context === 'card' ? AVATAR_TEXT_LIGHT : AVATAR_TEXT_DARK
+                iconFillColor = context === 'card' ? AVATAR_TEXT_LIGHT : AVATAR_TEXT_DARK
+            }
             break
         case 'add':
             displayIconName = 'wallet-outline'
@@ -109,6 +128,7 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
         <AvatarWithBadge
             name={userName}
             icon={displayIconName}
+            logo={displayLogoUrl}
             size={size}
             inlineStyle={{ backgroundColor: calculatedBgColor }}
             textColor={textColor}

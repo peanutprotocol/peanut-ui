@@ -50,6 +50,7 @@ interface TransactionDetailsHeaderCardProps {
     convertedAmount?: string
     showFullName?: boolean
     fullName?: string
+    countryCode?: string | null
 }
 
 const getTitle = (
@@ -202,6 +203,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     convertedAmount,
     showFullName,
     fullName,
+    countryCode,
 }) => {
     const router = useRouter()
     const typeForAvatar =
@@ -254,6 +256,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                                 transactionType={typeForAvatar}
                                 context="header"
                                 size="small"
+                                countryCode={countryCode}
                             />
                         )}
                     </div>

@@ -2,6 +2,7 @@
 import { motion } from 'framer-motion'
 import Image from 'next/image'
 import { Button } from '@/components/0_Bruddle/Button'
+import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { FAQsPanel } from '@/components/Global/FAQs'
 import PioneerCard3D from '@/components/LandingPage/PioneerCard3D'
 import { Marquee } from '@/components/LandingPage'
@@ -665,7 +666,7 @@ const CardLandingPage = () => {
                                 transition={{ delay: 0.1 * i }}
                             >
                                 <Image
-                                    src={`https://flagcdn.com/w160/${country.code}.png`}
+                                    src={getFlagUrl(country.code)}
                                     alt={`${country.name} flag`}
                                     width={24}
                                     height={24}

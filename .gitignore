@@ -72,6 +72,9 @@ certificates
 public/sw*
 public/swe-worker*
 
+# circle-flags SVGs copied from node_modules via scripts/copy-flags.mjs
+public/flags/
+
 .idea
 
 # mobile — android/ is tracked (native app source code)

@@ -12,6 +12,7 @@ import { simplefiApi } from '@/services/simplefi'
 import type { SimpleFiQrPaymentResponse } from '@/services/simplefi'
 import NavHeader from '@/components/Global/NavHeader'
 import { MERCADO_PAGO, PIX, SIMPLEFI } from '@/assets/payment-apps'
+import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import Image from 'next/image'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import AmountInput from '@/components/Global/AmountInput'
@@ -454,7 +455,7 @@ export default function QRPayPage() {
             case EQrType.MERCADO_PAGO:
                 return MERCADO_PAGO
             case EQrType.ARGENTINA_QR3:
-                return 'https://flagcdn.com/w160/ar.png'
+                return getFlagUrl('ar')
             case EQrType.PIX:
                 return PIX
             case EQrType.SIMPLEFI_STATIC:

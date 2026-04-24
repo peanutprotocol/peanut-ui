@@ -56,6 +56,7 @@ import {
 import { useModalsContext } from '@/context/ModalsContext'
 import { useRouter } from 'next/navigation'
 import { countryData } from '@/components/AddMoney/consts'
+import { getBankAccountCountryCode } from '@/constants/countryCurrencyMapping'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import {
     MANTECA_COUNTRIES_CONFIG,
@@ -155,8 +156,17 @@ export const TransactionDetailsReceipt = ({
         }
 
         // if transaction exists, calculate visibility for each row
+        // Hide the "Created" row when the "Sent"/"Completed" row is about to
+        // render (both point at the same lifecycle event for off-ramps /
+        // bank claims; two rows side-by-side is noise). Keep "Created" as
+        // the fallback for pending states where no completion timestamp exists.
+        const willShowCompleted = !!(
+            transaction.status === 'completed' &&
+            transaction.completedAt &&
+            transaction.extraDataForDrawer?.originalType !== EHistoryEntryType.DIRECT_SEND
+        )
         return {
-            createdAt: !!transaction.createdAt,
+            createdAt: !!transaction.createdAt && !willShowCompleted,
             to: transaction.direction === 'claim_external',
             tokenAndNetwork: !!(
                 transaction.tokenDisplayDetails &&
@@ -388,10 +398,18 @@ export const TransactionDetailsReceipt = ({
 
     const convertedAmount = useMemo(() => {
         if (!transaction) return null
-        if (!transaction?.extraDataForDrawer?.receipt?.exchange_rate) {
-            return null
-        }
-        return `${transaction.currency!.code} ${formatCurrency(transaction.currency!.amount)}`
+        const code = transaction.currency?.code
+        const amount = transaction.currency?.amount
+        // Show the converted amount below the primary for any non-USD fiat
+        // leg — on/offramps, bank claims. The amount carries the effective
+        // conversion (fees baked in per Peanut product convention), so there's
+        // no need to render the rate separately. Previously this was gated on
+        // `receipt.exchange_rate` which Bridge sandbox populates only on true
+        // settlement, leaving the row hidden through PAYMENT_PROCESSED; the
+        // currency + amount alone are sufficient to render it.
+        if (!code || !amount) return null
+        if (code.toUpperCase() === 'USD') return null
+        return `${code.toUpperCase()} ${formatCurrency(amount)}`
     }, [transaction])
 
     if (!transaction) return null
@@ -429,13 +447,23 @@ export const TransactionDetailsReceipt = ({
                 transaction.extraDataForDrawer.originalUserRole === EHistoryUserRole.RECIPIENT))
 
     const getLabelText = (transaction: TransactionDetails) => {
-        if (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.WITHDRAW) {
+        const originalType = transaction.extraDataForDrawer?.originalType
+        // Bank off-ramps / on-ramps / bank claims → "Completed" (the user isn't
+        // sending to another person; it's a lifecycle milestone of a bank transfer).
+        const completionTypes: EHistoryEntryType[] = [
+            EHistoryEntryType.WITHDRAW,
+            EHistoryEntryType.DEPOSIT,
+            EHistoryEntryType.BRIDGE_OFFRAMP,
+            EHistoryEntryType.BRIDGE_ONRAMP,
+            EHistoryEntryType.BRIDGE_GUEST_OFFRAMP,
+            EHistoryEntryType.BANK_SEND_LINK_CLAIM,
+            EHistoryEntryType.MANTECA_OFFRAMP,
+            EHistoryEntryType.MANTECA_ONRAMP,
+        ]
+        if (originalType && completionTypes.includes(originalType)) {
             return 'Completed'
-        } else if (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.DEPOSIT) {
-            return 'Completed'
-        } else {
-            return transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER ? 'Sent' : 'Received'
         }
+        return transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER ? 'Sent' : 'Received'
     }
 
     if (transaction.isRequestPotLink && Number(transaction.amount) > 0) {
@@ -603,6 +631,7 @@ export const TransactionDetailsReceipt = ({
                 convertedAmount={convertedAmount ?? undefined}
                 showFullName={transaction.showFullName}
                 fullName={transaction.fullName}
+                countryCode={getBankAccountCountryCode(transaction.bankAccountDetails, transaction.currency?.code)}
             />
 
             {/* Perk eligibility banner */}

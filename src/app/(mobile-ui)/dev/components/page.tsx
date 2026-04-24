@@ -1311,7 +1311,8 @@ export default function ComponentsPage() {
 
                     <Section title="Country Representation">
                         <p className="text-xs text-grey-1">
-                            countries are represented using flagcdn.com images + country data from AddMoney/consts.
+                            countries are represented using circle-flags SVGs (copied to public/flags/ via
+                            scripts/copy-flags.mjs) + country data from AddMoney/consts.
                         </p>
                         <div className="space-y-2 rounded-sm border border-n-1 p-3 text-xs">
                             <p>
@@ -1327,10 +1328,10 @@ export default function ComponentsPage() {
                                 code={`import { CountryFlagAndName } from '@/components/Kyc/CountryFlagAndName'`}
                             />
                             <p className="mt-2">
-                                <span className="font-bold">flag images pattern</span>
+                                <span className="font-bold">flag url pattern</span>
                             </p>
                             <CopySnippet
-                                code={`<img src={\`https://flagcdn.com/w160/\${countryCode}.png\`} alt="flag" className="h-6 w-6 rounded-full object-cover" />`}
+                                code={`import { getFlagUrl } from '@/constants/countryCurrencyMapping'\n<img src={getFlagUrl(countryCode)} alt="flag" className="h-6 w-6 rounded-full object-cover" />`}
                             />
                         </div>
                     </Section>

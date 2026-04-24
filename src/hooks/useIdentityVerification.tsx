@@ -6,6 +6,7 @@ import { useMemo, useCallback } from 'react'
 import { useAuth } from '@/context/authContext'
 import { MantecaKycStatus } from '@/interfaces'
 import { BRIDGE_ALPHA3_TO_ALPHA2, MantecaSupportedExchanges, countryData } from '@/components/AddMoney/consts'
+import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import React from 'react'
 
@@ -58,13 +59,13 @@ const MANTECA_QR_ONLY_REGIONS: Region[] = [
     {
         path: 'argentina',
         name: 'Argentina',
-        icon: 'https://flagcdn.com/w160/ar.png',
+        icon: getFlagUrl('ar'),
         description: 'Only Mercado Pago QR payments',
     },
     {
         path: 'brazil',
         name: 'Brazil',
-        icon: 'https://flagcdn.com/w160/br.png',
+        icon: getFlagUrl('br'),
         description: 'Only PIX QR payments',
     },
 ]
@@ -73,7 +74,7 @@ const BRIDGE_SUPPORTED_LATAM_COUNTRIES: Region[] = [
     {
         path: 'mexico',
         name: 'Mexico',
-        icon: 'https://flagcdn.com/w160/mx.png',
+        icon: getFlagUrl('mx'),
     },
 ]
 

@@ -14,6 +14,7 @@ import { mantecaApi, type WithdrawPriceLock } from '@/services/manteca'
 import { useCurrency } from '@/hooks/useCurrency'
 import { loadingStateContext } from '@/context'
 import { countryData } from '@/components/AddMoney/consts'
+import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import Image from 'next/image'
 import { formatAmount, formatNumberForDisplay } from '@/utils/general.utils'
 import {
@@ -643,7 +644,7 @@ export default function MantecaWithdrawFlow() {
                         <div className="flex items-center space-x-3">
                             <div className="relative h-12 w-12">
                                 <Image
-                                    src={`https://flagcdn.com/w160/${countryFlagCode}.png`}
+                                    src={getFlagUrl(countryFlagCode)}
                                     alt={`flag`}
                                     width={48}
                                     height={48}
@@ -757,7 +758,7 @@ export default function MantecaWithdrawFlow() {
                         <div className="flex items-center space-x-3">
                             <div className="relative h-12 w-12">
                                 <Image
-                                    src={`https://flagcdn.com/w160/${countryFlagCode}.png`}
+                                    src={getFlagUrl(countryFlagCode)}
                                     alt={`flag`}
                                     width={48}
                                     height={48}

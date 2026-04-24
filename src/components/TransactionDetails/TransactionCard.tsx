@@ -2,6 +2,7 @@ import Card from '@/components/Global/Card'
 import { type CardPosition } from '@/components/Global/Card/card.utils'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
+import { getBankAccountCountryCode } from '@/constants/countryCurrencyMapping'
 import { type TransactionDirection } from '@/components/TransactionDetails/TransactionDetailsHeaderCard'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
@@ -166,6 +167,10 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                 transactionType={type}
                                 context="card"
                                 size="extra-small"
+                                countryCode={getBankAccountCountryCode(
+                                    transaction.bankAccountDetails,
+                                    transaction.currency?.code
+                                )}
                             />
                         )}
                         <div className="flex flex-col">

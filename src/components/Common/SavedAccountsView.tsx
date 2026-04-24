@@ -9,6 +9,7 @@ import NavHeader from '../Global/NavHeader'
 import Divider from '../0_Bruddle/Divider'
 import { Button } from '@/components/0_Bruddle/Button'
 import { ActionListCard } from '../ActionListCard'
+import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 
 interface SavedAccountListProps {
     pageTitle: string
@@ -111,7 +112,7 @@ export function SavedAccountsMapping({
                             <div className="relative h-8 w-8">
                                 {countryCodeForFlag && (
                                     <Image
-                                        src={`https://flagcdn.com/w160/${account.type === AccountType.US ? 'us' : countryCodeForFlag}.png`}
+                                        src={getFlagUrl(account.type === AccountType.US ? 'us' : countryCodeForFlag)}
                                         alt={`${details.countryName ?? 'country'} flag`}
                                         width={80}
                                         height={80}
