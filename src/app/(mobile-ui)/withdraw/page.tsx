@@ -14,13 +14,14 @@ import { getCountryFromAccount, getCountryFromPath, getMinimumAmount } from '@/u
 import useGetExchangeRate from '@/hooks/useGetExchangeRate'
 import { AccountType } from '@/interfaces'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useState, useRef, useContext } from 'react'
+import React, { useCallback, useEffect, useMemo, useState, useRef, useContext } from 'react'
 import { formatUnits } from 'viem'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
 import { getLimitsWarningCardProps } from '@/features/limits/utils'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { withdrawBankUrl, withdrawCountryUrl } from '@/utils/native-routes'
 
 type WithdrawStep = 'inputAmount' | 'selectMethod'
 
@@ -34,6 +35,9 @@ export default function WithdrawPage() {
     const isFromSendFlow = !!(methodParam && ['bank', 'crypto'].includes(methodParam))
     const isCryptoFromSend = methodParam === 'crypto' && isFromSendFlow
     const isBankFromSend = methodParam === 'bank' && isFromSendFlow
+
+    // native app passes country as query param instead of path segment
+    const countryFromQuery = searchParams.get('country')
 
     const {
         amountToWithdraw: amountFromContext,
@@ -273,7 +277,7 @@ export default function WithdrawPage() {
                 const country = getCountryFromAccount(selectedBankAccount)
                 if (country) {
                     const queryParams = isFromSendFlow ? `?${methodQueryParam}` : ''
-                    router.push(`/withdraw/${country.path}/bank${queryParams}`)
+                    router.push(withdrawBankUrl(country.path, queryParams))
                 } else {
                     throw new Error('Failed to get country from bank account')
                 }
@@ -287,11 +291,11 @@ export default function WithdrawPage() {
             } else if (selectedMethod.type === 'bridge' && selectedMethod.countryPath) {
                 // Bridge countries go to country page for bank account form
                 const queryParams = isFromSendFlow ? `?${methodQueryParam}` : ''
-                router.push(`/withdraw/${selectedMethod.countryPath}${queryParams}`)
+                router.push(withdrawCountryUrl(selectedMethod.countryPath, queryParams))
             } else if (selectedMethod.countryPath) {
                 // Other countries go to their country pages
                 const queryParams = isFromSendFlow ? `?${methodQueryParam}` : ''
-                router.push(`/withdraw/${selectedMethod.countryPath}${queryParams}`)
+                router.push(withdrawCountryUrl(selectedMethod.countryPath, queryParams))
             }
         }
     }
@@ -308,6 +312,27 @@ export default function WithdrawPage() {
 
         return numericAmount > maxDecimalAmount || error.showError
     }, [rawTokenAmount, maxDecimalAmount, error.showError, selectedTokenData?.price, minUsdAmount])
+
+    // native app: render country-specific views when ?country= is present
+    const viewFromQuery = searchParams.get('view')
+    if (countryFromQuery) {
+        // native app: render country-specific views.
+        // stub exists for web build; real component is injected by native build script.
+        if (viewFromQuery === 'bank') {
+            const WithdrawBankPage = React.lazy(() => import('./_withdraw-bank'))
+            return (
+                <React.Suspense fallback={null}>
+                    <WithdrawBankPage />
+                </React.Suspense>
+            )
+        }
+        const AddWithdrawCountriesList = React.lazy(() => import('@/components/AddWithdraw/AddWithdrawCountriesList'))
+        return (
+            <React.Suspense fallback={null}>
+                <AddWithdrawCountriesList flow="withdraw" />
+            </React.Suspense>
+        )
+    }
 
     if (step === 'inputAmount') {
         // only show limits card for bank/manteca withdrawals, not crypto

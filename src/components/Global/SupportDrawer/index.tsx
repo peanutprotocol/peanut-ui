@@ -6,6 +6,7 @@ import { useCrispUserData } from '@/hooks/useCrispUserData'
 import { useCrispTokenId } from '@/hooks/useCrispTokenId'
 import { useCrispProxyUrl } from '@/hooks/useCrispProxyUrl'
 import PeanutLoading from '../PeanutLoading'
+import { isCapacitor } from '@/utils/capacitor'
 
 const DISMISS_THRESHOLD = 100
 
@@ -16,6 +17,39 @@ const SupportDrawer = () => {
     const [isCrispReady, setIsCrispReady] = useState(false)
 
     const crispProxyUrl = useCrispProxyUrl(userData, prefilledMessage, crispTokenId)
+
+    // in capacitor, open native crisp messenger instead of iframe
+    useEffect(() => {
+        if (!isSupportModalOpen || !isCapacitor()) return
+
+        import('@capgo/capacitor-crisp').then(({ CapacitorCrisp }) => {
+            // set user data before opening
+            if (userData.email || userData.fullName) {
+                CapacitorCrisp.setUser({
+                    email: userData.email || undefined,
+                    nickname: userData.fullName || userData.username || undefined,
+                    avatar: userData.avatar || undefined,
+                })
+            }
+            if (crispTokenId) {
+                CapacitorCrisp.setTokenID({ tokenID: crispTokenId })
+            }
+            // set custom data for support agents
+            if (userData.walletAddress) {
+                CapacitorCrisp.setString({ key: 'wallet_address', value: userData.walletAddress })
+            }
+            if (userData.userId) {
+                CapacitorCrisp.setString({ key: 'user_id', value: userData.userId })
+            }
+            if (prefilledMessage) {
+                CapacitorCrisp.sendMessage({ value: prefilledMessage })
+            }
+
+            CapacitorCrisp.openMessenger()
+            // close our drawer since native UI takes over
+            setIsSupportModalOpen(false)
+        })
+    }, [isSupportModalOpen, userData, crispTokenId, prefilledMessage, setIsSupportModalOpen])
 
     // drag-to-dismiss state
     const panelRef = useRef<HTMLDivElement>(null)

@@ -457,3 +457,12 @@ export interface DepositAddressStatusResponse {
     tokenSymbol?: string
     tokenAmount?: string
 }
+
+export type RewardLink = {
+    link: string
+    assetCode: string
+    campaign: {
+        id: string
+        name: string
+    }
+}

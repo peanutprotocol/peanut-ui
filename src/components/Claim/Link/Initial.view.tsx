@@ -18,6 +18,7 @@ import { sendLinksApi } from '@/services/sendLinks'
 import { areEvmAddressesEqual, formatTokenAmount, printableAddress } from '@/utils/general.utils'
 import { ErrorHandler } from '@/utils/sdkErrorHandler.utils'
 import { fetchWithSentry } from '@/utils/sentry.utils'
+import { apiFetch } from '@/utils/api-fetch'
 import { getBridgeChainName, getBridgeTokenName } from '@/utils/bridge-accounts.utils'
 import { NATIVE_TOKEN_ADDRESS, SQUID_ETH_ADDRESS, checkTokenSupportsXChain } from '@/utils/token.utils'
 import * as Sentry from '@sentry/nextjs'
@@ -483,11 +484,8 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
 
             if (!user) {
                 console.log(`user not logged in, getting account status for ${recipient.address}`)
-                const userIdResponse = await fetchWithSentry('/api/peanut/user/get-user-id', {
+                const userIdResponse = await apiFetch('/get-user-id', '/api/peanut/user/get-user-id', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
                     body: JSON.stringify({
                         accountIdentifier: recipient.address,
                     }),

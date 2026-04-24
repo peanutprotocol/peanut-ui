@@ -115,7 +115,6 @@ async function executeClaim({
         claimParams: payload.claimParams,
         chainId: payload.chainId,
         version: payload.contractVersion,
-        apiKey: 'doesnt-matter',
         // Performance optimization: Pass deposit details to skip RPC call
         ...(depositDetails && { depositDetails }),
         // UX optimization: Return immediately without waiting for blockchain confirmation
@@ -164,7 +163,6 @@ async function executeClaimXChain({
     })
 
     const data = await postJson<{ txHash: string }>(baseUrl, {
-        apiKey: 'doesnt-matter',
         chainId: payload.chainId,
         contractVersion: payload.contractVersion,
         peanutAddress: payload.peanutAddress,

@@ -1,4 +1,4 @@
-import Cookies from 'js-cookie'
+import { getAuthToken } from '@/utils/auth-token'
 import { type CalculatePointsRequest, PointsAction, type TierInfo } from './services.types'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { PEANUT_API_URL } from '@/constants/general.consts'
@@ -123,7 +123,7 @@ async function fetchInvitesGraph(
 ): Promise<InvitesGraphResponse> {
     try {
         // Get JWT token for user authentication (optional in payment mode)
-        const jwtToken = Cookies.get('jwt-token')
+        const jwtToken = getAuthToken()
         if (requiresAuth && !jwtToken) {
             console.error('getInvitesGraph: No JWT token found')
             return { success: false, data: null, error: 'Not authenticated. Please log in.' }
@@ -178,7 +178,7 @@ async function fetchInvitesGraph(
 export const pointsApi = {
     getTierInfo: async (): Promise<{ success: boolean; data: TierInfo | null }> => {
         try {
-            const jwtToken = Cookies.get('jwt-token')
+            const jwtToken = getAuthToken()
             if (!jwtToken) {
                 console.error('getTierInfo: No JWT token found')
                 return { success: false, data: null }
@@ -210,7 +210,7 @@ export const pointsApi = {
         otherUserId,
     }: CalculatePointsRequest): Promise<{ estimatedPoints: number }> => {
         try {
-            const jwtToken = Cookies.get('jwt-token')
+            const jwtToken = getAuthToken()
 
             if (!jwtToken) {
                 const error = new Error('No JWT token found')
@@ -361,7 +361,7 @@ export const pointsApi = {
         } | null
     }> => {
         try {
-            const jwtToken = Cookies.get('jwt-token')
+            const jwtToken = getAuthToken()
             if (!jwtToken) {
                 console.error('getCashStatus: No JWT token found')
                 return { success: false, data: null }
@@ -399,7 +399,7 @@ export const pointsApi = {
         }
     ): Promise<ExternalNodesResponse> => {
         try {
-            const jwtToken = Cookies.get('jwt-token')
+            const jwtToken = getAuthToken()
             // Payment mode uses password auth, full mode requires JWT
             const isPaymentMode = options?.mode === 'payment'
             if (!isPaymentMode && !jwtToken) {

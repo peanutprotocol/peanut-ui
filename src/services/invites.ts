@@ -1,6 +1,6 @@
+import { getAuthToken } from '@/utils/auth-token'
 import { validateInviteCode } from '@/app/actions/invites'
 import { fetchWithSentry } from '@/utils/sentry.utils'
-import Cookies from 'js-cookie'
 import { EInviteType, type PointsInvitesResponse } from './services.types'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 
@@ -11,7 +11,7 @@ export const invitesApi = {
         campaignTag?: string
     ): Promise<{ success: boolean }> => {
         try {
-            const jwtToken = Cookies.get('jwt-token')
+            const jwtToken = getAuthToken()
             const response = await fetchWithSentry(`${PEANUT_API_URL}/invites/accept`, {
                 method: 'POST',
                 headers: {
@@ -31,7 +31,7 @@ export const invitesApi = {
 
     getInvites: async (): Promise<PointsInvitesResponse> => {
         try {
-            const jwtToken = Cookies.get('jwt-token')
+            const jwtToken = getAuthToken()
             if (!jwtToken) {
                 throw new Error('No JWT token found')
             }
@@ -69,7 +69,7 @@ export const invitesApi = {
 
     getWaitlistQueuePosition: async (): Promise<{ success: boolean; position: number }> => {
         try {
-            const token = Cookies.get('jwt-token')
+            const token = getAuthToken()
             if (!token) return { success: false, position: 0 }
 
             const response = await fetchWithSentry(`${PEANUT_API_URL}/invites/waitlist-position`, {
@@ -96,7 +96,7 @@ export const invitesApi = {
             const response = await fetchWithSentry(`${PEANUT_API_URL}/badge/award`, {
                 method: 'POST',
                 headers: {
-                    Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+                    Authorization: `Bearer ${getAuthToken()}`,
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ campaignTag }),

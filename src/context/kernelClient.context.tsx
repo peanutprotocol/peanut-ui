@@ -20,6 +20,8 @@ import type { Address } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { captureException } from '@sentry/nextjs'
 import { retryAsync } from '@/utils/retry.utils'
+import { isAndroidNative, getNativeRpId } from '@/utils/capacitor'
+import { createNativeSignMessageCallback } from '@/utils/native-webauthn'
 import { PUBLIC_CLIENTS_BY_CHAIN } from '@/app/actions/clients'
 
 interface KernelClientContextType {
@@ -255,6 +257,14 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
         const userPreferences = getUserPreferences(user.user.userId)
         const storedWebAuthnKey = userPreferences?.webAuthnKey ?? getFromCookie(WEB_AUTHN_COOKIE_KEY)
         if (storedWebAuthnKey) {
+            // signMessageCallback can't be serialized to cookie/localStorage — it's a function.
+            // on web, zerodev recreates it using browser WebAuthn API.
+            // on android native, browser WebAuthn doesn't work in the webview — re-attach
+            // the native capacitor plugin callback so signing works after restore.
+            if (isAndroidNative() && !storedWebAuthnKey.signMessageCallback) {
+                const rpId = storedWebAuthnKey.rpID || getNativeRpId()
+                storedWebAuthnKey.signMessageCallback = createNativeSignMessageCallback(rpId)
+            }
             // Only update if the key actually changed to avoid re-triggering kernel client init
             // Note: WebAuthnKey contains BigInt fields (pubX, pubY) which JSON.stringify cannot handle,
             // so we use a custom replacer that converts BigInts to strings for comparison purposes.

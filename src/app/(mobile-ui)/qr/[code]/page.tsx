@@ -1,25 +1,27 @@
 'use client'
 
+import { getAuthToken } from '@/utils/auth-token'
 import { Button } from '@/components/0_Bruddle/Button'
 import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import { useAuth } from '@/context/authContext'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { saveRedirectUrl, generateInviteCodeLink, sanitizeRedirectURL } from '@/utils/general.utils'
 import { getShakeClass } from '@/utils/perk.utils'
-import Cookies from 'js-cookie'
 import { useRedirectQrStatus } from '@/hooks/useRedirectQrStatus'
 import { useHoldToClaim } from '@/hooks/useHoldToClaim'
+import { qrSuccessUrl } from '@/utils/native-routes'
 
 export default function RedirectQrClaimPage() {
     const router = useRouter()
     const params = useParams()
-    const code = params?.code as string
+    const searchParams = useSearchParams()
+    const code = (params?.code as string) || searchParams.get('code') || ''
     const { user } = useAuth()
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -91,7 +93,7 @@ export default function RedirectQrClaimPage() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+                    Authorization: `Bearer ${getAuthToken()}`,
                 },
                 body: JSON.stringify({
                     targetUrl: inviteLink, // Pass the correctly formatted invite link
@@ -107,7 +109,7 @@ export default function RedirectQrClaimPage() {
             }
 
             // Success! Show success page, then redirect to invite (which goes to profile for logged-in users)
-            router.push(`/qr/${code}/success`)
+            router.push(qrSuccessUrl(code))
         } catch (err: any) {
             console.error('Error claiming QR:', err)
             // Always show generic error message (don't expose backend details)

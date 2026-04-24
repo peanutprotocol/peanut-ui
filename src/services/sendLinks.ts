@@ -1,7 +1,7 @@
+import { getAuthToken } from '@/utils/auth-token'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { jsonParse, jsonStringify } from '@/utils/general.utils'
 import { generateKeysFromString, getParamsFromLink } from '@squirrel-labs/peanut-sdk'
-import Cookies from 'js-cookie'
 import type { SendLink } from '@/services/services.types'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 
@@ -39,7 +39,7 @@ export const sendLinksApi = {
     create: async (sendLink: CreateLinkBody): Promise<SendLink> => {
         let requestBody: FormData | string
         const headers: HeadersInit = {
-            Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+            Authorization: `Bearer ${getAuthToken()}`,
         }
 
         // check if attachment is a File or Blob object
@@ -105,7 +105,7 @@ export const sendLinksApi = {
             method: 'PATCH',
             body: jsonStringify(sendLink),
             headers: {
-                Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+                Authorization: `Bearer ${getAuthToken()}`,
                 'Content-Type': 'application/json',
             },
         })
@@ -181,7 +181,7 @@ export const sendLinksApi = {
         const response = await fetchWithSentry(`${PEANUT_API_URL}/send-links/claim/${txHash}/associate-user`, {
             method: 'PATCH',
             headers: {
-                Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+                Authorization: `Bearer ${getAuthToken()}`,
             },
         })
 

@@ -47,7 +47,7 @@ const SetupPasskey = () => {
             // success - useEffect below will handle navigation
         } catch (error) {
             const err = error as Error
-            console.error('Passkey registration failed:', err)
+            console.error('[SetupPasskey] registration failed:', err.name, err.message)
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_PASSKEY_FAILED, {
                 device_type: deviceType,
                 error_name: err.name,

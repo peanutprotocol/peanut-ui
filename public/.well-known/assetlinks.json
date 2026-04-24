@@ -1,28 +1,13 @@
 [
     {
-        "relation": ["delegate_permission/common.query_webapk"],
-        "target": {
-            "namespace": "web",
-            "site": "https://peanut.me/manifest.webmanifest"
-        }
-    },
-    {
-        "relation": ["delegate_permission/common.handle_all_urls"],
-        "target": {
-            "namespace": "web",
-            "site": "https://peanut.me"
-        }
-    },
-    {
         "relation": ["delegate_permission/common.handle_all_urls", "delegate_permission/common.get_login_creds"],
         "target": {
             "namespace": "android_app",
-            "package_name": "com.peanut_dev.app",
+            "package_name": "me.peanut.app",
             "sha256_cert_fingerprints": [
-                "42:E1:F7:7F:2B:2F:C7:26:26:19:4A:15:D3:07:BC:41:62:26:12:6F:7F:C9:0A:54:C3:7A:F5:E2:2D:42:6A:D0",
+                "0F:A7:14:0D:F6:12:5C:36:F8:EB:F1:90:87:FC:99:D8:5E:7D:18:D2:89:A4:62:C1:9E:04:54:61:9A:8C:66:26",
                 "93:5F:2F:BD:0B:5F:F0:6A:D3:4D:FD:03:5E:8C:B9:E7:AE:11:E0:20:8A:6C:DB:70:B3:B1:39:4F:9C:79:29:78",
-                "11:94:75:B7:2F:74:28:DC:D8:B2:FF:FF:A9:A0:6B:2D:78:13:17:F1:15:F6:24:BD:BE:F3:C8:16:38:92:0E:98",
-                "29:10:BA:ED:60:53:6D:60:A9:B2:D5:DB:7D:AD:9B:04:A5:49:FE:17:6E:89:CF:A4:85:17:19:D1:14:99:F1:EB"
+                "42:E1:F7:7F:2B:2F:C7:26:26:19:4A:15:D3:07:BC:41:62:26:12:6F:7F:C9:0A:54:C3:7A:F5:E2:2D:42:6A:D0"
             ]
         }
     }

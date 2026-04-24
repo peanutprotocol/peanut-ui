@@ -10,11 +10,24 @@ import PeanutLoading from '@/components/Global/PeanutLoading'
 import { Banner } from '@/components/Global/Banner'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
+import { isCapacitor } from '@/utils/capacitor'
 
 function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
     const dispatch = useAppDispatch()
     const isPWA = usePWAStatus()
     const { deviceType } = useDeviceType()
+
+    // configure status bar for native — matches mobile-ui layout behavior
+    useEffect(() => {
+        if (!isCapacitor()) return
+        import('@capacitor/status-bar')
+            .then(({ StatusBar, Style }) => {
+                StatusBar.setOverlaysWebView({ overlay: false })
+                StatusBar.setStyle({ style: Style.Light })
+                StatusBar.setBackgroundColor({ color: '#ffffff' })
+            })
+            .catch(() => {})
+    }, [])
 
     useEffect(() => {
         // filter steps and set them in redux state

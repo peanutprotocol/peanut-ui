@@ -1,4 +1,5 @@
 import { countryData as ALL_METHODS_DATA, type CountryData } from '@/components/AddMoney/consts'
+import { BRIDGE_DEVELOPER_FEE_RATE } from '@/constants/payment.consts'
 import { type Account, AccountType } from '@/interfaces'
 
 export interface CurrencyConfig {
@@ -72,6 +73,53 @@ export const getCurrencySymbol = (currency: string): string => {
         gbp: '£',
     }
     return symbols[currency.toLowerCase()] || currency.toUpperCase()
+}
+
+/**
+ * Apply the Bridge developer fee to a cross-currency quote.
+ *
+ * Bridge charges a 0.5% developer fee on any transfer that crosses a
+ * currency boundary (i.e. neither side is USD). USD↔USDC is fee-free.
+ * Mirrors backend `getBridgeDeveloperFeeParams` in peanut-api-ts.
+ *
+ * @param amount - Gross amount computed from the raw exchange rate
+ * @param srcCurrency - Source currency code (case-insensitive)
+ * @param dstCurrency - Destination currency code (case-insensitive)
+ * @returns Net amount after fee deduction, or unchanged amount if either side is USD
+ */
+export const applyBridgeCrossCurrencyFee = (amount: number, srcCurrency: string, dstCurrency: string): number => {
+    const src = (srcCurrency ?? '').toLowerCase()
+    const dst = (dstCurrency ?? '').toLowerCase()
+    if (src === 'usd' || dst === 'usd') {
+        return amount
+    }
+    return amount * (1 - BRIDGE_DEVELOPER_FEE_RATE)
+}
+
+/**
+ * Inverse of {@link applyBridgeCrossCurrencyFee}.
+ *
+ * Given a net (post-fee) destination amount, return the gross amount that
+ * would produce it. Used when the user types a "Recipient Gets" value and
+ * we need the pre-fee gross to feed back into rate math. USD pairs pass
+ * through unchanged (no fee, so gross === net).
+ *
+ * Math note: since `apply(gross) = gross * (1 - rate)`, the reverse is
+ * `gross = net / (1 - rate)` — NOT `net * (1 + rate)`, which would
+ * under-shoot by `rate²` (e.g. reversing 99.5 must yield exactly 100).
+ *
+ * @param netAmount - Net amount after Bridge dev fee
+ * @param srcCurrency - Source currency code (case-insensitive)
+ * @param dstCurrency - Destination currency code (case-insensitive)
+ * @returns Gross amount before fee, or unchanged amount if either side is USD
+ */
+export const reverseBridgeCrossCurrencyFee = (netAmount: number, srcCurrency: string, dstCurrency: string): number => {
+    const src = (srcCurrency ?? '').toLowerCase()
+    const dst = (dstCurrency ?? '').toLowerCase()
+    if (src === 'usd' || dst === 'usd') {
+        return netAmount
+    }
+    return netAmount / (1 - BRIDGE_DEVELOPER_FEE_RATE)
 }
 
 /**

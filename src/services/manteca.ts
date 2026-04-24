@@ -1,4 +1,5 @@
-import { PEANUT_API_URL, PEANUT_API_KEY } from '@/constants/general.consts'
+import { PEANUT_API_URL } from '@/constants/general.consts'
+import { getAuthHeaders, getAuthToken } from '@/utils/auth-token'
 import {
     type MantecaDepositResponseData,
     type MantecaWithdrawData,
@@ -7,7 +8,6 @@ import {
 } from '@/types/manteca.types'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { jsonStringify } from '@/utils/general.utils'
-import Cookies from 'js-cookie'
 import type { Address } from 'viem'
 import type { SignUserOperationReturnType } from '@zerodev/sdk/actions'
 
@@ -118,7 +118,7 @@ export const mantecaApi = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+                Authorization: `Bearer ${getAuthToken()}`,
             },
             body: jsonStringify(data),
         })
@@ -178,7 +178,7 @@ export const mantecaApi = {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+                    Authorization: `Bearer ${getAuthToken()}`,
                 },
                 body: jsonStringify({
                     paymentLockCode,
@@ -208,7 +208,7 @@ export const mantecaApi = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+                Authorization: `Bearer ${getAuthToken()}`,
             },
             body: jsonStringify({ mantecaTransferId }),
         })
@@ -222,10 +222,7 @@ export const mantecaApi = {
     },
     getPrices: async ({ asset, against }: { asset: string; against: string }): Promise<MantecaPrice> => {
         const response = await fetchWithSentry(`${PEANUT_API_URL}/manteca/prices?asset=${asset}&against=${against}`, {
-            headers: {
-                'Content-Type': 'application/json',
-                'api-key': PEANUT_API_KEY,
-            },
+            headers: getAuthHeaders(),
         })
 
         if (!response.ok) {
@@ -244,7 +241,7 @@ export const mantecaApi = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+                Authorization: `Bearer ${getAuthToken()}`,
             },
             body: jsonStringify(params),
         })
@@ -265,7 +262,7 @@ export const mantecaApi = {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+                    Authorization: `Bearer ${getAuthToken()}`,
                 },
                 body: jsonStringify({
                     amount: params.amount,
@@ -298,7 +295,7 @@ export const mantecaApi = {
             const response = await fetchWithSentry(`${PEANUT_API_URL}/manteca/deposit/${depositId}/cancel`, {
                 method: 'PATCH',
                 headers: {
-                    Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+                    Authorization: `Bearer ${getAuthToken()}`,
                 },
             })
 
@@ -326,7 +323,7 @@ export const mantecaApi = {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+                    Authorization: `Bearer ${getAuthToken()}`,
                 },
                 body: jsonStringify(data),
             })
@@ -364,7 +361,7 @@ export const mantecaApi = {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+                    Authorization: `Bearer ${getAuthToken()}`,
                 },
                 body: jsonStringify(params),
             })
@@ -422,7 +419,7 @@ export const mantecaApi = {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+                    Authorization: `Bearer ${getAuthToken()}`,
                 },
                 body: jsonStringify(params),
             })

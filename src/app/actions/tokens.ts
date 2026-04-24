@@ -1,5 +1,4 @@
-'use server'
-import { unstable_cache } from 'next/cache'
+import { unstable_cache } from '@/utils/no-cache'
 import {
     isAddressZero,
     estimateIfIsStableCoinFromPrice,

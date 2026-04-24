@@ -1,13 +1,9 @@
-'use server'
+// card api calls — works in both web (server action) and native (client-side)
+// migrated from 'use server' to support capacitor static export
 
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import { fetchWithSentry } from '@/utils/sentry.utils'
-import { getJWTCookie } from '@/utils/cookie-migration.utils'
-
-const API_KEY = process.env.PEANUT_API_KEY
-if (!API_KEY) {
-    throw new Error('PEANUT_API_KEY environment variable is not set')
-}
+import { getAuthHeaders } from '@/utils/auth-token'
 
 export interface CardInfoResponse {
     hasPurchased: boolean
@@ -43,18 +39,10 @@ export interface CardErrorResponse {
  * Get card pioneer info for the authenticated user
  */
 export const getCardInfo = async (): Promise<{ data?: CardInfoResponse; error?: string }> => {
-    const jwtToken = (await getJWTCookie())?.value
-    if (!jwtToken) {
-        return { error: 'Authentication required' }
-    }
-
     try {
         const response = await fetchWithSentry(`${PEANUT_API_URL}/card`, {
             method: 'GET',
-            headers: {
-                Authorization: `Bearer ${jwtToken}`,
-                'api-key': API_KEY,
-            },
+            headers: getAuthHeaders(),
         })
 
         if (!response.ok) {
@@ -73,19 +61,10 @@ export const getCardInfo = async (): Promise<{ data?: CardInfoResponse; error?: 
  * Initiate card pioneer purchase
  */
 export const purchaseCard = async (): Promise<{ data?: CardPurchaseResponse; error?: string; errorCode?: string }> => {
-    const jwtToken = (await getJWTCookie())?.value
-    if (!jwtToken) {
-        return { error: 'Authentication required', errorCode: 'NOT_AUTHENTICATED' }
-    }
-
     try {
         const response = await fetchWithSentry(`${PEANUT_API_URL}/card/purchase`, {
             method: 'POST',
-            headers: {
-                Authorization: `Bearer ${jwtToken}`,
-                'api-key': API_KEY,
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify({}),
         })
 
