@@ -116,6 +116,114 @@ Button, Card (named export), BaseInput, BaseSelect, Checkbox, Divider, Title, To
 - **Run**: `npm test` (fast, ~5s) — all suites must pass.
 - **Test new code** where tests make sense, especially with fast unit tests.
 
+## 📱 Native App (Android)
+
+### Architecture
+
+- same next.js codebase builds for both web (SSR on vercel) and native (static export via capacitor)
+- `scripts/native-build.js` handles the static export — disables server features, wraps dynamic routes, swaps configs
+- `android/` is source code (not generated) — tracked in git. generated files are in `android/.gitignore`
+- `.env.production.local` controls which backend the native app points to (currently staging, gitignored)
+- `capacitor.config.ts` loads `.env.production.local` manually since capacitor CLI doesn't read next.js env files
+
+### Building
+
+```bash
+# 1. static export
+node scripts/native-build.js
+
+# 2. sync with android project
+npx cap sync android
+
+# 3. run on device (debug build — passkeys won't work)
+npx cap run android
+
+# 4. release AAB for play console
+cd android && ./gradlew bundleRelease
+# output: android/app/build/outputs/bundle/release/app-release.aab
+```
+
+- passkeys only work on play store builds (signed with play app signing key). local debug builds show the credential manager but biometric step fails. always test passkeys via play store internal testing.
+
+### Version Management
+
+- `versionCode` in `android/app/build.gradle` — must increment for every play console upload. play console rejects duplicates.
+- `versionName` — human-readable version (e.g. "1.0.9"). shown to users.
+- always bump both before building a new AAB.
+
+### OTA Updates (Capgo)
+
+- **JS/CSS/HTML changes** — push via capgo, no store review needed
+- **native changes** (android/, AndroidManifest.xml, new plugins, capacitor.config.ts) — require new AAB upload to play console
+
+```bash
+# manual OTA push
+node scripts/native-build.js
+npx @capgo/cli bundle upload --channel staging --bundle <version>
+# bundle version must be higher than native versionName or capgo rejects it
+```
+
+- **auto-deploy** via `.github/workflows/capgo-deploy.yml`:
+  - push to `dev` → `staging` channel (internal testers)
+  - push to `main` → `production` channel (all users)
+  - requires `CAPGO_API_KEY` secret in github repo settings
+- capgo calls `notifyAppReady()` on every launch — if not called within 15s, auto-rolls back to previous bundle
+
+### Writing Native-Compatible Code
+
+**dynamic routes:**
+- static export doesn't support `[country]` style routes
+- `native-build.js` disables dynamic dirs and copies pages to stub files (e.g. `_onramp-bank.tsx`)
+- parent pages handle query params: `/add-money?country=argentina&view=bank` instead of `/add-money/argentina/bank`
+- use route helpers from `src/utils/native-routes.ts` for navigation
+- components must read from both `useParams()` AND `useSearchParams()` to work on web and native:
+  ```ts
+  const country = (params.country as string) || searchParams.get('country') || ''
+  ```
+
+**capacitor plugin imports:**
+- do NOT use `/* webpackIgnore: true */` — breaks OTA updates (browser can't resolve bare module specifiers)
+- use regular dynamic imports: `const { Browser } = await import('@capacitor/browser')`
+- guard with `isCapacitor()` — safe to bundle for web (never executed)
+
+**platform detection** (`src/utils/capacitor.ts`):
+- `isCapacitor()` — true when running in capacitor webview
+- `isAndroidNative()` / `isIOSNative()` — platform-specific
+- `getNativeRpId()` — passkey rpId for native (from `NEXT_PUBLIC_NATIVE_RP_ID`)
+
+**no server features in native:**
+- no `'use server'` directives — use `getAuthHeaders()` from `src/utils/auth-token.ts`
+- no `cookies()` from next/headers — use `getAuthToken()` which reads from localStorage on native
+- no relative `/api/` calls — use `apiFetch()` or direct backend URLs with `PEANUT_API_URL`
+
+### Passkeys
+
+- `@capgo/capacitor-passkey` with `autoShim: true` patches `navigator.credentials` so zerodev's `toWebAuthnKey()` works on all platforms
+- backend `ANDROID_ORIGINS` must include `android:apk-key-hash:<hash>` for each signing key
+- `assetlinks.json` at the rpId domain must include the app's signing key SHA-256 fingerprints
+- to generate apk-key-hash from a fingerprint: `echo "FINGERPRINT" | tr -d ':' | xxd -r -p | base64 | tr '+/' '-_' | tr -d '='`
+
+### Key Files
+
+| file | purpose |
+|------|---------|
+| `capacitor.config.ts` | app ID, plugins, loads `.env.production.local` |
+| `scripts/native-build.js` | static export pipeline — disables server features, wraps dynamic routes |
+| `next.config.native.js` | next.js config for `output: 'export'` |
+| `.env.production.local` | backend URLs for native build (gitignored) |
+| `android/app/build.gradle` | version codes, signing config, dependencies |
+| `android/app/src/main/AndroidManifest.xml` | permissions |
+| `android/app/src/main/java/me/peanut/app/MainActivity.java` | SPA fallback routing in webview |
+| `src/utils/capacitor.ts` | platform detection, `isCapacitor()`, `getNativeRpId()` |
+| `src/utils/native-routes.ts` | URL helpers for dynamic route → query param conversion |
+| `src/utils/native-webauthn.ts` | passkey signing callback for native |
+
+### What NOT to Commit
+
+- stub files with real page content (overwritten during native build, restored automatically after)
+- `next.config.js` swapped with native version (restored automatically after native build)
+- `android/` generated files: `build/`, `.gradle/`, `local.properties`, `capacitor.config.json`, `capacitor.plugins.json`, `capacitor-cordova-android-plugins/`, `app/src/main/assets/public/`
+
 ## 📁 Documentation
 
 - **All docs go in `docs/`** (except root `README.md` and `CONTRIBUTING.md`).
