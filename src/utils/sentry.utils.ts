@@ -12,7 +12,24 @@ const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[] }> = 
     { pattern: /users/, statuses: [400, 401, 403, 404] },
     { pattern: /perks/, statuses: [400, 401, 403, 404] },
     { pattern: /qr-payment\/init/, statuses: [400] },
+    // Rain card secrets endpoints are intentionally rate-limited (5/min) — a
+    // 429 here is an expected outcome surfaced to the user, not a server bug.
+    { pattern: /\/rain\/cards\/[^/]+\/details/, statuses: [429] },
+    { pattern: /\/rain\/cards\/[^/]+\/pin/, statuses: [429] },
 ]
+
+/**
+ * Map URL → feature tag so Sentry issues can be filtered by product surface
+ * without wrapping every call site. Add new entries here as features grow.
+ */
+const FEATURE_TAGS: Array<{ pattern: RegExp; tag: string }> = [{ pattern: /\/rain\//, tag: 'card' }]
+
+function getFeatureTag(url: string): string | null {
+    for (const rule of FEATURE_TAGS) {
+        if (rule.pattern.test(url)) return rule.tag
+    }
+    return null
+}
 
 /**
  * Check if this endpoint + status combo should skip Sentry reporting
@@ -100,9 +117,11 @@ export const fetchWithSentry = async (
                     errorContent = await response.clone().text()
                 }
                 const method = options.method || 'GET'
+                const featureTag = getFeatureTag(url)
                 Sentry.withScope((scope) => {
                     // Set fingerprint to group similar errors
                     scope.setFingerprint([method, sanitizeUrl(url), String(response.status)])
+                    if (featureTag) scope.setTag('feature', featureTag)
 
                     Sentry.captureMessage(`${method} to ${url} failed with status ${response.status}`, {
                         level: getErrorLevelFromStatus(response.status),
@@ -127,8 +146,10 @@ export const fetchWithSentry = async (
         if (error instanceof Error && error.name === 'AbortError') {
             const timeoutError = new Error(`Request to ${url} timed out after ${timeoutMs}ms`)
 
+            const timeoutFeatureTag = getFeatureTag(url)
             Sentry.withScope((scope) => {
                 scope.setFingerprint(['timeout', sanitizeUrl(url), options.method || 'GET'])
+                if (timeoutFeatureTag) scope.setTag('feature', timeoutFeatureTag)
 
                 Sentry.captureException(timeoutError, {
                     level: 'error',
@@ -161,9 +182,11 @@ export const fetchWithSentry = async (
             errorName = 'Unknown Error'
         }
 
+        const networkFeatureTag = getFeatureTag(url)
         Sentry.withScope((scope) => {
             // Set fingerprint for network errors
             scope.setFingerprint(['network-error', sanitizeUrl(url), options.method || 'GET'])
+            if (networkFeatureTag) scope.setTag('feature', networkFeatureTag)
 
             Sentry.captureException(error, {
                 extra: {

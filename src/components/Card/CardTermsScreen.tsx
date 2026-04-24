@@ -1,5 +1,7 @@
 'use client'
-import { type FC, type ReactNode, useMemo, useState } from 'react'
+import { type FC, type ReactNode, useEffect, useMemo, useState } from 'react'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Checkbox } from '@/components/0_Bruddle/Checkbox'
@@ -83,6 +85,13 @@ const CardTermsScreen: FC<Props> = ({ isUsResident, onAccept, onPrev, submitErro
     const terms = isUsResident ? US_TERMS : INT_TERMS
     const [checked, setChecked] = useState<Record<string, boolean>>({})
     const [submitting, setSubmitting] = useState(false)
+
+    useEffect(() => {
+        posthog.capture(ANALYTICS_EVENTS.CARD_TERMS_VIEWED, {
+            is_us_resident: isUsResident,
+            terms_count: terms.length,
+        })
+    }, [isUsResident, terms.length])
 
     const allAccepted = useMemo(() => terms.every((t) => checked[t.id]), [terms, checked])
 

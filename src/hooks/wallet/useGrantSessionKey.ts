@@ -3,6 +3,8 @@
 import { useCallback, useState } from 'react'
 import type { Address, Hex, LocalAccount } from 'viem'
 import { pad, parseAbi, toFunctionSelector } from 'viem'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useKernelClient } from '@/context/kernelClient.context'
 import { useRainCardOverview, RAIN_CARD_OVERVIEW_QUERY_KEY } from '@/hooks/useRainCardOverview'
 import { useQueryClient } from '@tanstack/react-query'
@@ -146,6 +148,10 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
 
         const chainId = PEANUT_WALLET_CHAIN.id.toString()
         const kernelClient = getClientForChain(chainId)
+        // Fired here (not at wrap-entry) so the denominator excludes the
+        // 'no-contracts' / 'session-key-unavailable' early returns that never
+        // produce a passkey prompt.
+        posthog.capture(ANALYTICS_EVENTS.CARD_SESSION_KEY_PROMPTED)
         // Triggers the passkey prompt — this is the one-time install.
         const sessionKernelAccount = await createKernelAccount(peanutPublicClient, {
             entryPoint: getEntryPoint('0.7'),
@@ -168,7 +174,12 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
             setLastError(null)
             try {
                 const result = await run()
-                if (!result.ok) setLastError(result.error)
+                if (result.ok) {
+                    posthog.capture(ANALYTICS_EVENTS.CARD_SESSION_KEY_GRANTED)
+                } else {
+                    setLastError(result.error)
+                    posthog.capture(ANALYTICS_EVENTS.CARD_SESSION_KEY_FAILED, { kind: result.error.kind })
+                }
                 return result
             } catch (err) {
                 const message = (err as Error).message ?? String(err)
@@ -179,6 +190,7 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
                 const error: GrantSessionKeyError =
                     kind === 'user-cancelled' ? { kind: 'user-cancelled' } : { kind: 'unexpected', message }
                 setLastError(error)
+                posthog.capture(ANALYTICS_EVENTS.CARD_SESSION_KEY_FAILED, { kind })
                 return { ok: false, error }
             } finally {
                 setIsGranting(false)

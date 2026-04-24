@@ -1,9 +1,11 @@
 'use client'
 import { type FC, useState } from 'react'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { Button } from '@/components/0_Bruddle/Button'
 import PinInput from '@/components/Card/PinInput'
 import { validatePin } from '@/components/Card/pin.utils'
-import { rainApi } from '@/services/rain'
+import { rainApi, RainCardRateLimitError } from '@/services/rain'
 
 type Step = 'choose' | 'confirm' | 'saving' | 'success'
 
@@ -22,6 +24,10 @@ const CardPinSetupFlow: FC<Props> = ({ cardId, onDone }) => {
         const v = validatePin(first)
         if (!v.valid) {
             setError(v.reason ?? 'Invalid PIN')
+            posthog.capture(ANALYTICS_EVENTS.CARD_PIN_SET_REJECTED, {
+                reason: v.reason ?? 'invalid',
+                stage: 'choose',
+            })
             return
         }
         setError(null)
@@ -31,15 +37,24 @@ const CardPinSetupFlow: FC<Props> = ({ cardId, onDone }) => {
     const onConfirm = async () => {
         if (second !== first) {
             setError('PINs do not match')
+            posthog.capture(ANALYTICS_EVENTS.CARD_PIN_SET_REJECTED, { reason: 'mismatch', stage: 'confirm' })
             return
         }
         setError(null)
         setStep('saving')
+        posthog.capture(ANALYTICS_EVENTS.CARD_PIN_SET_ATTEMPTED)
         try {
             await rainApi.setCardPin(cardId, first)
+            posthog.capture(ANALYTICS_EVENTS.CARD_PIN_SET_SUCCEEDED)
             setStep('success')
         } catch (e) {
-            setError(e instanceof Error ? e.message : 'Failed to save PIN')
+            const message = e instanceof Error ? e.message : 'Failed to save PIN'
+            setError(message)
+            if (e instanceof RainCardRateLimitError) {
+                posthog.capture(ANALYTICS_EVENTS.CARD_PIN_RATE_LIMITED, { action: 'set' })
+            } else {
+                posthog.capture(ANALYTICS_EVENTS.CARD_PIN_SET_REJECTED, { reason: 'server', stage: 'submit' })
+            }
             setStep('confirm')
         }
     }

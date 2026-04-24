@@ -3,6 +3,8 @@
 import { useCallback } from 'react'
 import type { Address, Hash, Hex, TransactionReceipt } from 'viem'
 import { encodeFunctionData, erc20Abi } from 'viem'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useKernelClient } from '@/context/kernelClient.context'
 import { useAuth } from '@/context/authContext'
 import { AccountType } from '@/interfaces'
@@ -157,35 +159,127 @@ export const useSpendBundle = () => {
                 amount: requiredUsdcAmount,
                 collateralOnlyAllowed,
             })
-            if (strategy === 'insufficient') throw new InsufficientSpendableError()
-
-            onStrategyDecided?.(strategy)
-
-            const chainIdNum = PEANUT_WALLET_CHAIN.id
-            const chainIdStr = chainIdNum.toString()
-
-            // Pre-flight: any strategy that touches Rain collateral requires
-            // the one-time session-key grant. If missing, run the inline grant
-            // flow now (one extra passkey tap the FIRST time, zero after).
-            const touchesCollateral = strategy === 'collateral-only' || strategy === 'mixed'
-            const card = overview?.cards?.[0]
-            if (touchesCollateral && card && !card.hasWithdrawApproval) {
-                onGrantRequired?.()
-                const grantResult = await grant()
-                if (!grantResult.ok) {
-                    throw new SessionKeyGrantRequiredError(grantResult.error)
-                }
-                // `grant()` refetches the overview; by the time we continue the
-                // flag is flipped and the backend will accept the submit call.
+            if (strategy === 'insufficient') {
+                posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_FAILED, {
+                    strategy: 'insufficient',
+                    error_kind: 'insufficient',
+                })
+                throw new InsufficientSpendableError()
             }
 
-            // ─── collateral-only ──────────────────────────────────────────────
-            if (strategy === 'collateral-only') {
+            onStrategyDecided?.(strategy)
+            posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_ATTEMPTED, { strategy, kind })
+
+            try {
+                const chainIdNum = PEANUT_WALLET_CHAIN.id
+                const chainIdStr = chainIdNum.toString()
+
+                // Pre-flight: any strategy that touches Rain collateral requires
+                // the one-time session-key grant. If missing, run the inline grant
+                // flow now (one extra passkey tap the FIRST time, zero after).
+                const touchesCollateral = strategy === 'collateral-only' || strategy === 'mixed'
+                const card = overview?.cards?.[0]
+                if (touchesCollateral && card && !card.hasWithdrawApproval) {
+                    onGrantRequired?.()
+                    const grantResult = await grant()
+                    if (!grantResult.ok) {
+                        throw new SessionKeyGrantRequiredError(grantResult.error)
+                    }
+                    // `grant()` refetches the overview; by the time we continue the
+                    // flag is flipped and the backend will accept the submit call.
+                }
+
+                // ─── collateral-only ──────────────────────────────────────────────
+                if (strategy === 'collateral-only') {
+                    const prep = await rainApi.prepareWithdrawal({
+                        amount: usdcWeiToRainCents(requiredUsdcAmount).toString(),
+                        recipientAddress: recipient!,
+                        directTransfer: true,
+                        kind,
+                    })
+
+                    const kernelClient = getClientForChain(chainIdStr)
+                    const adminSignature = (await kernelClient.account!.signTypedData({
+                        domain: {
+                            name: RAIN_WITHDRAW_EIP712_DOMAIN_NAME,
+                            version: RAIN_WITHDRAW_EIP712_DOMAIN_VERSION,
+                            chainId: chainIdNum,
+                            verifyingContract: prep.collateralProxy as Address,
+                            salt: prep.adminSalt as Hex,
+                        },
+                        types: rainWithdrawEip712Types,
+                        primaryType: 'Withdraw',
+                        message: {
+                            user: prep.adminAddress as Address,
+                            asset: prep.tokenAddress as Address,
+                            amount: BigInt(prep.amount),
+                            recipient: prep.recipientAddress as Address,
+                            nonce: BigInt(prep.adminNonce),
+                        },
+                    })) as Hex
+
+                    const { txHash } = await rainApi.submitWithdrawal({
+                        preparationId: prep.preparationId,
+                        amount: prep.amount,
+                        recipientAddress: prep.recipientAddress,
+                        directTransfer: prep.directTransfer,
+                        adminSalt: prep.adminSalt,
+                        adminNonce: prep.adminNonce,
+                        adminSignature,
+                        executorSignature: prep.executorSignature,
+                        executorSalt: prep.executorSalt,
+                        expiresAt: prep.expiresAt,
+                    })
+                    posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_SUCCEEDED, { strategy, kind })
+                    return { strategy, txHash: txHash as Hex, intentId: prep.preparationId }
+                }
+
+                // ─── smart-only ──────────────────────────────────────────────────
+                if (strategy === 'smart-only') {
+                    const calls: UserOpEncodedParams[] = []
+                    if (recipient) {
+                        calls.push({
+                            to: PEANUT_WALLET_TOKEN as Hex,
+                            value: 0n,
+                            data: encodeFunctionData({
+                                abi: erc20Abi,
+                                functionName: 'transfer',
+                                args: [recipient, requiredUsdcAmount],
+                            }),
+                        })
+                    }
+                    calls.push(...subsequentCalls)
+                    if (calls.length === 0) {
+                        throw new Error('useSpendBundle: smart-only path needs either recipient or subsequentCalls')
+                    }
+                    const { userOpHash, receipt } = await handleSendUserOpEncoded(calls, chainIdStr)
+                    posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_SUCCEEDED, { strategy, kind })
+                    return { strategy, userOpHash, receipt }
+                }
+
+                // ─── mixed ───────────────────────────────────────────────────────
+                // Pull the shortfall from collateral into the smart account, then
+                // the kernel fires the USDC transfer + any subsequent calls — all in
+                // one atomic UserOp. Two passkey taps total (admin sig, UserOp).
+
+                // Admin address = user's peanut-wallet address (kernel smart account).
+                const adminAddress = user?.accounts.find((a) => a.type === AccountType.PEANUT_WALLET)?.identifier as
+                    | Address
+                    | undefined
+                if (!adminAddress) throw new Error('useSpendBundle: missing peanut-wallet address for mixed spend')
+
+                const shortfall = requiredUsdcAmount - smartBalance
                 const prep = await rainApi.prepareWithdrawal({
-                    amount: usdcWeiToRainCents(requiredUsdcAmount).toString(),
-                    recipientAddress: recipient!,
-                    directTransfer: true,
+                    amount: usdcWeiToRainCents(shortfall).toString(),
+                    // directTransfer=false sends tokens to the admin (kernel). We still pass
+                    // the admin address here; the backend + coordinator treat it as the
+                    // withdraw beneficiary, which equals msg.sender-to-be in the follow-up UserOp.
+                    recipientAddress: adminAddress,
+                    directTransfer: false,
                     kind,
+                    // History shows the full user-initiated spend, not just the
+                    // shortfall Rain signed over.
+                    totalAmountCents: usdcWeiToRainCents(requiredUsdcAmount).toString(),
                 })
 
                 const kernelClient = getClientForChain(chainIdStr)
@@ -208,140 +302,72 @@ export const useSpendBundle = () => {
                     },
                 })) as Hex
 
-                const { txHash } = await rainApi.submitWithdrawal({
-                    preparationId: prep.preparationId,
-                    amount: prep.amount,
-                    recipientAddress: prep.recipientAddress,
-                    directTransfer: prep.directTransfer,
-                    adminSalt: prep.adminSalt,
-                    adminNonce: prep.adminNonce,
-                    adminSignature,
-                    executorSignature: prep.executorSignature,
-                    executorSalt: prep.executorSalt,
-                    expiresAt: prep.expiresAt,
-                })
-                return { strategy, txHash: txHash as Hex, intentId: prep.preparationId }
-            }
+                // Backend `/prepare` normalizes the executor salt (bytes32) and signature
+                // to 0x-hex regardless of what Rain returned — trust the wire shape here.
+                const withdrawCall: UserOpEncodedParams = {
+                    to: prep.coordinatorAddress as Hex,
+                    value: 0n,
+                    data: encodeFunctionData({
+                        abi: rainCoordinatorAbi,
+                        functionName: 'withdrawAsset',
+                        args: [
+                            prep.collateralProxy as Address,
+                            prep.tokenAddress as Address,
+                            BigInt(prep.amount),
+                            prep.recipientAddress as Address,
+                            BigInt(prep.expiresAt),
+                            prep.executorSalt as Hex,
+                            prep.executorSignature as Hex,
+                            [prep.adminSalt as Hex],
+                            [adminSignature],
+                            prep.directTransfer,
+                        ],
+                    }),
+                }
 
-            // ─── smart-only ──────────────────────────────────────────────────
-            if (strategy === 'smart-only') {
-                const calls: UserOpEncodedParams[] = []
-                if (recipient) {
-                    calls.push({
-                        to: PEANUT_WALLET_TOKEN as Hex,
-                        value: 0n,
-                        data: encodeFunctionData({
-                            abi: erc20Abi,
-                            functionName: 'transfer',
-                            args: [recipient, requiredUsdcAmount],
-                        }),
-                    })
-                }
-                calls.push(...subsequentCalls)
-                if (calls.length === 0) {
-                    throw new Error('useSpendBundle: smart-only path needs either recipient or subsequentCalls')
-                }
+                const transferCall: UserOpEncodedParams | null = recipient
+                    ? {
+                          to: PEANUT_WALLET_TOKEN as Hex,
+                          value: 0n,
+                          data: encodeFunctionData({
+                              abi: erc20Abi,
+                              functionName: 'transfer',
+                              args: [recipient, requiredUsdcAmount],
+                          }),
+                      }
+                    : null
+
+                const calls: UserOpEncodedParams[] = [
+                    withdrawCall,
+                    ...(transferCall ? [transferCall] : []),
+                    ...subsequentCalls,
+                ]
                 const { userOpHash, receipt } = await handleSendUserOpEncoded(calls, chainIdStr)
-                return { strategy, userOpHash, receipt }
+
+                // Stamp the intent so the Rain collateral webhook reconciles to the
+                // right category (P2P_SEND, CRYPTO_WITHDRAW, etc). Non-blocking —
+                // a stamp failure leaves the intent PENDING, which only affects
+                // history labeling, not the spend itself.
+                const mixedTxHash = (receipt?.transactionHash as Hex | undefined) ?? (userOpHash as Hex | undefined)
+                if (mixedTxHash) {
+                    rainApi.stampWithdrawal({ preparationId: prep.preparationId, txHash: mixedTxHash }).catch(() => {})
+                }
+
+                posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_SUCCEEDED, { strategy, kind })
+                return { strategy, userOpHash, receipt, intentId: prep.preparationId }
+            } catch (e) {
+                const errorKind =
+                    e instanceof SessionKeyGrantRequiredError
+                        ? `session-key:${e.cause.kind}`
+                        : ((e as Error)?.name ?? 'unknown')
+                posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_FAILED, {
+                    strategy,
+                    kind,
+                    error_kind: errorKind,
+                    error_message: (e as Error)?.message,
+                })
+                throw e
             }
-
-            // ─── mixed ───────────────────────────────────────────────────────
-            // Pull the shortfall from collateral into the smart account, then
-            // the kernel fires the USDC transfer + any subsequent calls — all in
-            // one atomic UserOp. Two passkey taps total (admin sig, UserOp).
-
-            // Admin address = user's peanut-wallet address (kernel smart account).
-            const adminAddress = user?.accounts.find((a) => a.type === AccountType.PEANUT_WALLET)?.identifier as
-                | Address
-                | undefined
-            if (!adminAddress) throw new Error('useSpendBundle: missing peanut-wallet address for mixed spend')
-
-            const shortfall = requiredUsdcAmount - smartBalance
-            const prep = await rainApi.prepareWithdrawal({
-                amount: usdcWeiToRainCents(shortfall).toString(),
-                // directTransfer=false sends tokens to the admin (kernel). We still pass
-                // the admin address here; the backend + coordinator treat it as the
-                // withdraw beneficiary, which equals msg.sender-to-be in the follow-up UserOp.
-                recipientAddress: adminAddress,
-                directTransfer: false,
-                kind,
-                // History shows the full user-initiated spend, not just the
-                // shortfall Rain signed over.
-                totalAmountCents: usdcWeiToRainCents(requiredUsdcAmount).toString(),
-            })
-
-            const kernelClient = getClientForChain(chainIdStr)
-            const adminSignature = (await kernelClient.account!.signTypedData({
-                domain: {
-                    name: RAIN_WITHDRAW_EIP712_DOMAIN_NAME,
-                    version: RAIN_WITHDRAW_EIP712_DOMAIN_VERSION,
-                    chainId: chainIdNum,
-                    verifyingContract: prep.collateralProxy as Address,
-                    salt: prep.adminSalt as Hex,
-                },
-                types: rainWithdrawEip712Types,
-                primaryType: 'Withdraw',
-                message: {
-                    user: prep.adminAddress as Address,
-                    asset: prep.tokenAddress as Address,
-                    amount: BigInt(prep.amount),
-                    recipient: prep.recipientAddress as Address,
-                    nonce: BigInt(prep.adminNonce),
-                },
-            })) as Hex
-
-            // Backend `/prepare` normalizes the executor salt (bytes32) and signature
-            // to 0x-hex regardless of what Rain returned — trust the wire shape here.
-            const withdrawCall: UserOpEncodedParams = {
-                to: prep.coordinatorAddress as Hex,
-                value: 0n,
-                data: encodeFunctionData({
-                    abi: rainCoordinatorAbi,
-                    functionName: 'withdrawAsset',
-                    args: [
-                        prep.collateralProxy as Address,
-                        prep.tokenAddress as Address,
-                        BigInt(prep.amount),
-                        prep.recipientAddress as Address,
-                        BigInt(prep.expiresAt),
-                        prep.executorSalt as Hex,
-                        prep.executorSignature as Hex,
-                        [prep.adminSalt as Hex],
-                        [adminSignature],
-                        prep.directTransfer,
-                    ],
-                }),
-            }
-
-            const transferCall: UserOpEncodedParams | null = recipient
-                ? {
-                      to: PEANUT_WALLET_TOKEN as Hex,
-                      value: 0n,
-                      data: encodeFunctionData({
-                          abi: erc20Abi,
-                          functionName: 'transfer',
-                          args: [recipient, requiredUsdcAmount],
-                      }),
-                  }
-                : null
-
-            const calls: UserOpEncodedParams[] = [
-                withdrawCall,
-                ...(transferCall ? [transferCall] : []),
-                ...subsequentCalls,
-            ]
-            const { userOpHash, receipt } = await handleSendUserOpEncoded(calls, chainIdStr)
-
-            // Stamp the intent so the Rain collateral webhook reconciles to the
-            // right category (P2P_SEND, CRYPTO_WITHDRAW, etc). Non-blocking —
-            // a stamp failure leaves the intent PENDING, which only affects
-            // history labeling, not the spend itself.
-            const mixedTxHash = (receipt?.transactionHash as Hex | undefined) ?? (userOpHash as Hex | undefined)
-            if (mixedTxHash) {
-                rainApi.stampWithdrawal({ preparationId: prep.preparationId, txHash: mixedTxHash }).catch(() => {})
-            }
-
-            return { strategy, userOpHash, receipt, intentId: prep.preparationId }
         },
         [getClientForChain, handleSendUserOpEncoded, user, overview, grant]
     )

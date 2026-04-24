@@ -1,12 +1,14 @@
 'use client'
-import { type FC, useCallback, useEffect, useState } from 'react'
+import { type FC, useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { cardApi, type CardInfoResponse } from '@/services/card'
 import { useAuth } from '@/context/authContext'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY, useRainCardOverview } from '@/hooks/useRainCardOverview'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
-import { computeCardState, findActiveCard } from '@/components/Card/cardState.utils'
+import { computeCardState, findActiveCard, type CardTopLevelState } from '@/components/Card/cardState.utils'
 import CardPioneerFlow from '@/components/Card/CardPioneerFlow'
 import AddCardEntryScreen from '@/components/Card/AddCardEntryScreen'
 import ApplicationStatusScreen from '@/components/Card/ApplicationStatusScreen'
@@ -56,6 +58,26 @@ const CardPage: FC = () => {
         if (underMaintenanceConfig.disableCardPioneers) router.replace('/home')
     }, [router])
 
+    const state = computeCardState({
+        overview,
+        pioneerInfo: cardInfo,
+        overviewLoading,
+        pioneerLoading,
+    })
+
+    // Fire CARD_STATE_VIEWED on each distinct top-level state entry. Skip the
+    // initial 'loading' state — it would inflate the funnel without signal.
+    const lastReportedStateRef = useRef<CardTopLevelState | null>(null)
+    useEffect(() => {
+        if (state === 'loading') return
+        if (lastReportedStateRef.current === state) return
+        posthog.capture(ANALYTICS_EVENTS.CARD_STATE_VIEWED, {
+            state,
+            previous_state: lastReportedStateRef.current,
+        })
+        lastReportedStateRef.current = state
+    }, [state])
+
     const invalidateOverview = useCallback(() => {
         void queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] })
     }, [queryClient])
@@ -63,10 +85,16 @@ const CardPage: FC = () => {
     const handleApply = useCallback(
         async (termsAccepted = false, serializedApproval?: string) => {
             setApplyError(null)
+            posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_ATTEMPTED, {
+                terms_accepted: termsAccepted,
+                with_session_key: !!serializedApproval,
+            })
             try {
                 const res = await rainApi.applyForCard({ termsAccepted, serializedApproval })
+                posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_SUCCEEDED, { outcome: res.status })
                 if (res.status === 'incomplete' && 'sumsubAccessToken' in res) {
                     setSumsubToken(res.sumsubAccessToken)
+                    posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
                     return
                 }
                 if (res.status === 'terms-required' && 'isUsResident' in res) {
@@ -80,6 +108,7 @@ const CardPage: FC = () => {
                 const message = e instanceof Error ? e.message : 'Failed to apply for card'
                 console.error('[card apply] error:', e)
                 setApplyError(message)
+                posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_FAILED, { error_message: message })
             }
         },
         [invalidateOverview]
@@ -91,6 +120,10 @@ const CardPage: FC = () => {
         // before the backend creates the card. Fail closed: a cancelled /
         // failed tap means no card gets issued.
         const canGrant = !!overview?.status?.contractAddress && !!overview?.status?.coordinatorAddress
+        posthog.capture(ANALYTICS_EVENTS.CARD_TERMS_ACCEPTED, {
+            is_reissue: canGrant,
+            is_us_resident: pendingTerms?.isUsResident ?? false,
+        })
 
         if (!canGrant) {
             // First-time apply — no collateral proxy yet. Session-key grant
@@ -127,12 +160,27 @@ const CardPage: FC = () => {
         }
     }, [handleApply, overview, pendingTerms, serializeGrant])
 
+    // Distinguishes "user finished the applicant action" from "user closed the
+    // modal without finishing" — without this both paths would fire
+    // CARD_SUMSUB_CLOSED and inflate the abandonment number.
+    const sumsubCompletedRef = useRef(false)
+
     const handleSumsubComplete = useCallback(async () => {
+        sumsubCompletedRef.current = true
+        posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_COMPLETED)
         setSumsubToken(null)
         // Re-submit now that the user finished the applicant action. Backend
         // will return terms-required next (since termsAccepted is still false).
         await handleApply(false)
     }, [handleApply])
+
+    const handleSumsubClose = useCallback(() => {
+        if (!sumsubCompletedRef.current) {
+            posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_CLOSED)
+        }
+        sumsubCompletedRef.current = false
+        setSumsubToken(null)
+    }, [])
 
     const handleSumsubRefreshToken = useCallback(async () => {
         const res = await rainApi.applyForCard({ termsAccepted: false })
@@ -151,13 +199,6 @@ const CardPage: FC = () => {
     }, [invalidateOverview])
 
     if (underMaintenanceConfig.disableCardPioneers) return null
-
-    const state = computeCardState({
-        overview,
-        pioneerInfo: cardInfo,
-        overviewLoading,
-        pioneerLoading,
-    })
 
     if (state === 'loading') {
         return (
@@ -241,7 +282,7 @@ const CardPage: FC = () => {
             <SumsubKycWrapper
                 visible={sumsubToken !== null}
                 accessToken={sumsubToken}
-                onClose={() => setSumsubToken(null)}
+                onClose={handleSumsubClose}
                 onComplete={handleSumsubComplete}
                 onRefreshToken={handleSumsubRefreshToken}
             />

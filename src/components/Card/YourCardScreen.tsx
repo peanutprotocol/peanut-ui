@@ -1,6 +1,8 @@
 'use client'
 import { type FC, useState } from 'react'
 import { parseAsStringEnum, useQueryState } from 'nuqs'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import NavHeader from '@/components/Global/NavHeader'
 import ProfileMenuItem from '@/components/Profile/components/ProfileMenuItem'
 import { Icon } from '@/components/Global/Icons/Icon'
@@ -101,14 +103,22 @@ const YourCardScreen: FC<Props> = ({ card, onPrev }) => {
                     <ProfileMenuItem
                         icon="lock"
                         label={isLocked ? 'Unlock card' : 'Lock card'}
-                        onClick={() => void setAction(isLocked ? 'unlock' : 'lock')}
+                        onClick={() => {
+                            posthog.capture(ANALYTICS_EVENTS.CARD_LOCK_OPENED, {
+                                mode: isLocked ? 'unlock' : 'lock',
+                            })
+                            void setAction(isLocked ? 'unlock' : 'lock')
+                        }}
                         href="/dummy"
                         position="first"
                     />
                     <ProfileMenuItem
                         icon="trash"
                         label="Cancel card"
-                        onClick={() => void setAction('cancel')}
+                        onClick={() => {
+                            posthog.capture(ANALYTICS_EVENTS.CARD_CANCEL_OPENED)
+                            void setAction('cancel')
+                        }}
                         href="/dummy"
                         position="last"
                     />

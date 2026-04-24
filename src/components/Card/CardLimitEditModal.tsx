@@ -1,6 +1,8 @@
 'use client'
 import { type FC, useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import Modal from '@/components/Global/Modal'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
@@ -28,8 +30,12 @@ const CardLimitEditModal: FC<Props> = ({ cardId, frequency, label, initialAmount
         if (isOpen) {
             setValue(initialAmountCents != null ? (initialAmountCents / 100).toFixed(2) : '')
             setError(null)
+            posthog.capture(ANALYTICS_EVENTS.CARD_LIMIT_CHANGE_OPENED, {
+                frequency,
+                initial_cents: initialAmountCents ?? null,
+            })
         }
-    }, [isOpen, initialAmountCents])
+    }, [isOpen, initialAmountCents, frequency])
 
     const save = async () => {
         const dollars = Number(value)
@@ -47,9 +53,16 @@ const CardLimitEditModal: FC<Props> = ({ cardId, frequency, label, initialAmount
                 queryClient.invalidateQueries({ queryKey: [CARD_LIMITS_QUERY_KEY, cardId] }),
                 queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] }),
             ])
+            posthog.capture(ANALYTICS_EVENTS.CARD_LIMIT_CHANGED, {
+                frequency,
+                old_cents: initialAmountCents ?? null,
+                new_cents: amountCents,
+            })
             onClose()
         } catch (e) {
-            setError(e instanceof Error ? e.message : 'Failed to save limit')
+            const message = e instanceof Error ? e.message : 'Failed to save limit'
+            setError(message)
+            posthog.capture(ANALYTICS_EVENTS.CARD_LIMIT_CHANGE_FAILED, { frequency, error_message: message })
         } finally {
             setSaving(false)
         }

@@ -1,6 +1,8 @@
 'use client'
-import { type FC, useState } from 'react'
+import { type FC, useEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
 import Loading from '@/components/Global/Loading'
@@ -28,12 +30,25 @@ const PhysicalCardScreen: FC<Props> = ({ cardId, last4, onPrev }) => {
         staleTime: 30_000,
     })
 
+    // Fire once we know whether the user is already on the list — without that
+    // signal the event is half-useful.
+    const viewLoggedRef = useRef(false)
+    useEffect(() => {
+        if (isLoading || viewLoggedRef.current) return
+        viewLoggedRef.current = true
+        posthog.capture(ANALYTICS_EVENTS.CARD_PHYSICAL_WAITLIST_VIEWED, {
+            already_joined: !!data?.joinedAt,
+            position: data?.position ?? null,
+        })
+    }, [isLoading, data])
+
     const onJoin = async () => {
         setJoining(true)
         setError(null)
         try {
-            await rainApi.joinPhysicalWaitlist(cardId)
+            const result = await rainApi.joinPhysicalWaitlist(cardId)
             await queryClient.invalidateQueries({ queryKey: [PHYSICAL_WAITLIST_QUERY_KEY, cardId] })
+            posthog.capture(ANALYTICS_EVENTS.CARD_PHYSICAL_WAITLIST_JOINED, { position: result.position })
             setShowJoinedModal(true)
         } catch (e) {
             setError(e instanceof Error ? e.message : 'Failed to join waitlist')

@@ -1,6 +1,8 @@
 'use client'
 import { type FC, useCallback, useEffect, useRef, useState } from 'react'
 import { parseAsStringEnum, useQueryState } from 'nuqs'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
@@ -36,6 +38,7 @@ const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
     const reveal = async () => {
         setLoading(true)
         setError(null)
+        posthog.capture(ANALYTICS_EVENTS.CARD_PIN_VIEW_ATTEMPTED)
         try {
             const value = await rainApi.getCardPin(cardId)
             if (value === null) {
@@ -52,6 +55,7 @@ const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
         } catch (e) {
             if (e instanceof RainCardRateLimitError) {
                 setError(e.message)
+                posthog.capture(ANALYTICS_EVENTS.CARD_PIN_RATE_LIMITED, { action: 'view' })
             } else {
                 setError(e instanceof Error ? e.message : 'Failed to load PIN')
             }

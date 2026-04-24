@@ -1,6 +1,8 @@
 'use client'
 import { type FC, useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import Modal from '@/components/Global/Modal'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
@@ -56,9 +58,12 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
             if (mode === 'lock') await rainApi.lockCard(cardId)
             else await rainApi.activateCard(cardId)
             await queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] })
+            posthog.capture(mode === 'lock' ? ANALYTICS_EVENTS.CARD_LOCKED : ANALYTICS_EVENTS.CARD_UNLOCKED)
             setPhase('success')
         } catch (e) {
-            setError(e instanceof Error ? e.message : `Failed to ${mode} card`)
+            const message = e instanceof Error ? e.message : `Failed to ${mode} card`
+            setError(message)
+            posthog.capture(ANALYTICS_EVENTS.CARD_LOCK_FAILED, { mode, error_message: message })
             setPhase('error')
         }
     }

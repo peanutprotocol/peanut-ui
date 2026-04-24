@@ -1,6 +1,8 @@
 'use client'
 import { type FC, useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import Modal from '@/components/Global/Modal'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
@@ -49,27 +51,44 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
         setError(null)
         try {
             await rainApi.cancelCard(cardId)
+            posthog.capture(ANALYTICS_EVENTS.CARD_CANCEL_CONFIRMED)
             setCanceled(true)
             setPhase('feedback')
         } catch (e) {
-            setError(e instanceof Error ? e.message : 'Failed to cancel card')
+            const message = e instanceof Error ? e.message : 'Failed to cancel card'
+            setError(message)
+            posthog.capture(ANALYTICS_EVENTS.CARD_CANCEL_FAILED, { error_message: message })
             setPhase('confirm')
         }
     }
 
     const submitFeedback = async () => {
-        if (!feedback.trim()) {
+        const trimmed = feedback.trim()
+        if (!trimmed) {
+            posthog.capture(ANALYTICS_EVENTS.CARD_CANCEL_FEEDBACK_SUBMITTED, {
+                gave_feedback: false,
+                feedback_length: 0,
+            })
             setPhase('thanks')
             return
         }
         setPhase('submitting-feedback')
         setError(null)
         try {
-            await rainApi.submitCancellationFeedback(cardId, feedback.trim())
+            await rainApi.submitCancellationFeedback(cardId, trimmed)
+            posthog.capture(ANALYTICS_EVENTS.CARD_CANCEL_FEEDBACK_SUBMITTED, {
+                gave_feedback: true,
+                feedback_length: trimmed.length,
+            })
             setPhase('thanks')
         } catch (e) {
             // Non-fatal: cancel already succeeded, so show thanks and log the feedback failure.
             console.warn('[CancelCardModal] feedback submit failed:', e)
+            posthog.capture(ANALYTICS_EVENTS.CARD_CANCEL_FEEDBACK_SUBMITTED, {
+                gave_feedback: true,
+                feedback_length: trimmed.length,
+                feedback_submit_failed: true,
+            })
             setPhase('thanks')
         }
     }
