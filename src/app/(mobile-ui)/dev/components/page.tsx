@@ -221,10 +221,7 @@ export default function ComponentsPage() {
                         <div>
                             <p className="font-bold">loading</p>
                             <ul className="mt-1 space-y-0.5 text-grey-1">
-                                <li>
-                                    inline spinner: Loading | page-level branded: PeanutLoading | with entertainment:
-                                    PeanutFactsLoading
-                                </li>
+                                <li>inline spinner: Loading | page-level branded: PeanutLoading</li>
                             </ul>
                         </div>
                         <div>

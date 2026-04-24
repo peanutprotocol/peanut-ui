@@ -5,7 +5,6 @@ import {
     pathTitles,
     BASE_URL,
 } from '@/constants/general.consts'
-import { type LoadingStates } from '@/constants/loadingStates.consts'
 import { STABLE_COINS, ENS_NAME_REGEX } from '@/constants/general.consts'
 import { AccountType } from '@/interfaces/interfaces'
 import * as Sentry from '@sentry/nextjs'
@@ -15,11 +14,7 @@ import { getAddress, isAddress, erc20Abi } from 'viem'
 import * as wagmiChains from 'wagmi/chains'
 import { getPublicClient, type ChainId } from '@/app/actions/clients'
 import { type ChargeEntry } from '@/services/services.types'
-
-// Inlined to avoid circular dep with ./token.utils (which imports areEvmAddressesEqual from here).
-// token.utils re-exports these as its public API — grep-verified they match.
-const NATIVE_TOKEN_ADDRESS = '0x0000000000000000000000000000000000000000'
-const SQUID_ETH_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
+import { NATIVE_TOKEN_ADDRESS, SQUID_ETH_ADDRESS } from '@/constants/tokens.consts'
 import { toWebAuthnKey } from '@zerodev/passkey-validator'
 import { USER_OPERATION_REVERT_REASON_TOPIC } from '@/constants/zerodev.consts'
 import { CHAIN_LOGOS, type ChainName } from '@/constants/rhino.consts'

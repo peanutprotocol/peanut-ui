@@ -1,4 +1,3 @@
-// Removed claimSendLink import - no longer used (was insecure)
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { jsonParse, jsonStringify } from '@/utils/general.utils'
 import { generateKeysFromString, getParamsFromLink } from '@squirrel-labs/peanut-sdk'

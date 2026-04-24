@@ -1,11 +1,15 @@
 import { areEvmAddressesEqual } from './general.utils'
+import { NATIVE_TOKEN_ADDRESS, SQUID_ETH_ADDRESS } from '@/constants/tokens.consts'
+
+// Re-export so existing call sites that import these from '@/utils/token.utils'
+// keep working. New code should import from '@/constants/tokens.consts' directly.
+export { NATIVE_TOKEN_ADDRESS, SQUID_ETH_ADDRESS }
 
 export const checkTokenSupportsXChain = (
     tokenAddress: string,
     chainId: string,
     supportedSquidChainsAndTokens: Record<string, any>
 ): boolean => {
-    // For native tokens, check if the chain supports SQUID_ETH_ADDRESS
     if (tokenAddress === NATIVE_TOKEN_ADDRESS) {
         return (
             supportedSquidChainsAndTokens[chainId]?.tokens.some((token: any) =>
@@ -20,8 +24,3 @@ export const checkTokenSupportsXChain = (
         ) ?? false
     )
 }
-
-// Constants used across the app
-export const SQUID_ETH_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
-
-export const NATIVE_TOKEN_ADDRESS = '0x0000000000000000000000000000000000000000'

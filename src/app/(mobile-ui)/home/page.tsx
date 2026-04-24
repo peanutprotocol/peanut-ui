@@ -17,8 +17,6 @@ import Link from 'next/link'
 import { useEffect, useMemo, useState, useCallback, lazy, Suspense } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { useAccount } from 'wagmi'
-// import ReferralCampaignModal from '@/components/Home/ReferralCampaignModal'
-// import FloatingReferralButton from '@/components/Home/FloatingReferralButton'
 import { formatUnits } from 'viem'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { PostSignupActionManager } from '@/components/Global/PostSignupActionManager'
@@ -78,7 +76,6 @@ export default function Home() {
     const username = user?.user.username
 
     const [showBalanceWarningModal, setShowBalanceWarningModal] = useState(false)
-    // const [showReferralCampaignModal, setShowReferralCampaignModal] = useState(false)
     const [isPostSignupActionModalVisible, setIsPostSignupActionModalVisible] = useState(false)
     const [showKycModal, setShowKycModal] = useState(user?.user.showKycCompletedModal ?? false)
 
@@ -309,16 +306,6 @@ export default function Home() {
                     </LazyLoadErrorBoundary>
                 )}
 
-            {/* Referral Campaign Modal - DISABLED FOR NOW */}
-            {/* <ReferralCampaignModal
-                visible={showReferralCampaignModal}
-                onClose={() => setShowReferralCampaignModal(false)}
-            /> */}
-
-            {/* Floating Referral Button - DISABLED FOR NOW */}
-            {/* <FloatingReferralButton onClick={() => setShowReferralCampaignModal(true)} /> */}
-
-            {/* Post Signup Action Modal */}
             <PostSignupActionManager onActionModalVisibilityChange={setIsPostSignupActionModalVisible} />
         </PageContainer>
     )
