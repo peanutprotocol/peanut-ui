@@ -1330,8 +1330,9 @@ export default function ComponentsPage() {
                             <p className="mt-2">
                                 <span className="font-bold">flag url pattern</span>
                             </p>
+                            <CopySnippet code={`import { getFlagUrl } from '@/constants/countryCurrencyMapping'`} />
                             <CopySnippet
-                                code={`import { getFlagUrl } from '@/constants/countryCurrencyMapping'\n<img src={getFlagUrl(countryCode)} alt="flag" className="h-6 w-6 rounded-full object-cover" />`}
+                                code={`<img src={getFlagUrl(countryCode)} alt="flag" className="h-6 w-6 rounded-full object-cover" />`}
                             />
                         </div>
                     </Section>

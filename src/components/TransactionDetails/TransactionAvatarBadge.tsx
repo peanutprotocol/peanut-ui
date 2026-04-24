@@ -60,30 +60,23 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
         case 'bank_deposit':
         case 'bank_request_fulfillment':
         case 'bank_claim':
-            displayInitials = undefined
-            // Render country flag when we know the country; fall back to bank icon otherwise.
-            if (countryCode) {
-                displayLogoUrl = getFlagUrl(countryCode)
-                calculatedBgColor = AVATAR_WALLET_BG
-            } else {
-                displayIconName = 'bank'
-                calculatedBgColor = AVATAR_TEXT_DARK
-                textColor = AVATAR_TEXT_LIGHT
-                iconFillColor = AVATAR_TEXT_LIGHT
-            }
-            break
-        case 'cashout':
+        case 'cashout': {
             displayInitials = undefined
             if (countryCode) {
                 displayLogoUrl = getFlagUrl(countryCode)
                 calculatedBgColor = AVATAR_WALLET_BG
-            } else {
-                displayIconName = 'bank'
-                calculatedBgColor = context === 'card' ? AVATAR_TEXT_DARK : AVATAR_WALLET_BG
-                textColor = context === 'card' ? AVATAR_TEXT_LIGHT : AVATAR_TEXT_DARK
-                iconFillColor = context === 'card' ? AVATAR_TEXT_LIGHT : AVATAR_TEXT_DARK
+                break
             }
+            // No country signal — fall back to the generic bank icon. The dark
+            // badge bg is only used for list-item context on cashout; everywhere
+            // else we render a dark circle regardless.
+            const useDarkBg = transactionType !== 'cashout' || context === 'card'
+            displayIconName = 'bank'
+            calculatedBgColor = useDarkBg ? AVATAR_TEXT_DARK : AVATAR_WALLET_BG
+            textColor = useDarkBg ? AVATAR_TEXT_LIGHT : AVATAR_TEXT_DARK
+            iconFillColor = useDarkBg ? AVATAR_TEXT_LIGHT : AVATAR_TEXT_DARK
             break
+        }
         case 'add':
             displayIconName = 'wallet-outline'
             displayInitials = undefined

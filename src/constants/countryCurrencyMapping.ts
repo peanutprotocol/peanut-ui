@@ -1,3 +1,5 @@
+import { AccountType } from '@/interfaces/interfaces'
+
 export interface CountryCurrencyMapping {
     currencyCode: string
     currencyName: string
@@ -80,22 +82,22 @@ export function getCurrencyFlagCode(currencyCode: string): string | null {
  * Returns null when nothing matches — caller should show the bank fallback icon.
  */
 export function getBankAccountCountryCode(
-    bankAccountDetails?: { identifier?: string; type?: string } | null,
+    bankAccountDetails?: { identifier?: string; type?: string | AccountType } | null,
     currencyCode?: string | null
 ): string | null {
-    const type = bankAccountDetails?.type?.toLowerCase()
+    const type = bankAccountDetails?.type?.toLowerCase() as AccountType | undefined
     const identifier = bankAccountDetails?.identifier
 
-    if (type === 'iban' && identifier) {
+    if (type === AccountType.IBAN && identifier) {
         const prefix = identifier.replace(/\s+/g, '').slice(0, 2).toLowerCase()
         if (/^[a-z]{2}$/.test(prefix)) return prefix
     }
-    if (type === 'us') return 'us'
-    if (type === 'clabe') return 'mx'
-    if (type === 'gb') return 'gb'
+    if (type === AccountType.US) return 'us'
+    if (type === AccountType.CLABE) return 'mx'
+    if (type === AccountType.GB) return 'gb'
     // `manteca` is a LATAM passthrough — Argentina (ARS/CBU) or Brazil (BRL/PIX).
     // The account type itself doesn't carry country, but currency does.
-    if (type === 'manteca') {
+    if (type === AccountType.MANTECA) {
         const c = currencyCode?.toUpperCase()
         if (c === 'ARS') return 'ar'
         if (c === 'BRL') return 'br'
