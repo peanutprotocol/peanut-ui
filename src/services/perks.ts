@@ -1,6 +1,4 @@
-import { getAuthToken } from '@/utils/auth-token'
-import { fetchWithSentry } from '@/utils/sentry.utils'
-import { PEANUT_API_URL } from '@/constants/general.consts'
+import { serverFetch } from '@/utils/api-fetch'
 
 export type PendingPerk = {
     id: string
@@ -37,18 +35,8 @@ export const perksApi = {
      */
     getPendingPerks: async (): Promise<PendingPerksResponse> => {
         try {
-            const jwtToken = getAuthToken()
-            if (!jwtToken) {
-                console.error('getPendingPerks: No JWT token found')
-                return { success: false, perks: [], error: 'Not authenticated' }
-            }
-
-            const response = await fetchWithSentry(`${PEANUT_API_URL}/perks/pending`, {
+            const response = await serverFetch('/perks/pending', {
                 method: 'GET',
-                headers: {
-                    Authorization: `Bearer ${jwtToken}`,
-                    'Content-Type': 'application/json',
-                },
             })
 
             if (!response.ok) {
@@ -69,18 +57,8 @@ export const perksApi = {
      */
     claimPerk: async (usageId: string): Promise<ClaimPerkResponse> => {
         try {
-            const jwtToken = getAuthToken()
-            if (!jwtToken) {
-                console.error('claimPerk: No JWT token found')
-                return { success: false, error: 'NOT_AUTHENTICATED', message: 'Not authenticated' }
-            }
-
-            const response = await fetchWithSentry(`${PEANUT_API_URL}/perks/claim`, {
+            const response = await serverFetch('/perks/claim', {
                 method: 'POST',
-                headers: {
-                    Authorization: `Bearer ${jwtToken}`,
-                    'Content-Type': 'application/json',
-                },
                 body: JSON.stringify({ usageId }),
             })
 

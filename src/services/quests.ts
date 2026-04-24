@@ -3,10 +3,8 @@
  * Handles all quest-related API calls
  */
 
-import { getAuthToken } from '@/utils/auth-token'
-import { fetchWithSentry } from '@/utils/sentry.utils'
 import type { QuestLeaderboardData, AllQuestsLeaderboardData } from '@/app/quests/types'
-import { PEANUT_API_URL } from '@/constants/general.consts'
+import { serverFetch } from '@/utils/api-fetch'
 
 export const questsApi = {
     /**
@@ -19,23 +17,15 @@ export const questsApi = {
         error?: string
     }> {
         try {
-            const jwtToken = getAuthToken()
             const limit = params?.limit || 3
             const useTestTimePeriod = params?.useTestTimePeriod ? 'true' : 'false'
-            const url = `${PEANUT_API_URL}/quests/leaderboards?limit=${limit}&useTestTimePeriod=${useTestTimePeriod}`
 
-            const headers: HeadersInit = {
-                'Content-Type': 'application/json',
-            }
-
-            if (jwtToken) {
-                headers['Authorization'] = `Bearer ${jwtToken}`
-            }
-
-            const response = await fetchWithSentry(url, {
-                method: 'GET',
-                headers,
-            })
+            const response = await serverFetch(
+                `/quests/leaderboards?limit=${limit}&useTestTimePeriod=${useTestTimePeriod}`,
+                {
+                    method: 'GET',
+                }
+            )
 
             if (!response.ok) {
                 throw new Error(`Failed to fetch leaderboards: ${response.statusText}`)
@@ -65,23 +55,15 @@ export const questsApi = {
         error?: string
     }> {
         try {
-            const jwtToken = getAuthToken()
             const limit = params?.limit || 10
             const useTestTimePeriod = params?.useTestTimePeriod ? 'true' : 'false'
-            const url = `${PEANUT_API_URL}/quests/${questId}/leaderboard?limit=${limit}&useTestTimePeriod=${useTestTimePeriod}`
 
-            const headers: HeadersInit = {
-                'Content-Type': 'application/json',
-            }
-
-            if (jwtToken) {
-                headers['Authorization'] = `Bearer ${jwtToken}`
-            }
-
-            const response = await fetchWithSentry(url, {
-                method: 'GET',
-                headers,
-            })
+            const response = await serverFetch(
+                `/quests/${questId}/leaderboard?limit=${limit}&useTestTimePeriod=${useTestTimePeriod}`,
+                {
+                    method: 'GET',
+                }
+            )
 
             if (!response.ok) {
                 throw new Error(`Failed to fetch ${questId} leaderboard: ${response.statusText}`)

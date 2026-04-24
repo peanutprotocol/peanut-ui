@@ -1,8 +1,6 @@
-import { getAuthToken } from '@/utils/auth-token'
 import { validateInviteCode } from '@/app/actions/invites'
-import { fetchWithSentry } from '@/utils/sentry.utils'
+import { serverFetch } from '@/utils/api-fetch'
 import { EInviteType, type PointsInvitesResponse } from './services.types'
-import { PEANUT_API_URL } from '@/constants/general.consts'
 
 export const invitesApi = {
     acceptInvite: async (
@@ -11,13 +9,8 @@ export const invitesApi = {
         campaignTag?: string
     ): Promise<{ success: boolean }> => {
         try {
-            const jwtToken = getAuthToken()
-            const response = await fetchWithSentry(`${PEANUT_API_URL}/invites/accept`, {
+            const response = await serverFetch('/invites/accept', {
                 method: 'POST',
-                headers: {
-                    Authorization: `Bearer ${jwtToken}`,
-                    'Content-Type': 'application/json',
-                },
                 body: JSON.stringify({ inviteCode, type, campaignTag }),
             })
             if (!response.ok) {
@@ -31,17 +24,8 @@ export const invitesApi = {
 
     getInvites: async (): Promise<PointsInvitesResponse> => {
         try {
-            const jwtToken = getAuthToken()
-            if (!jwtToken) {
-                throw new Error('No JWT token found')
-            }
-
-            const response = await fetchWithSentry(`${PEANUT_API_URL}/points/invites`, {
+            const response = await serverFetch('/points/invites', {
                 method: 'GET',
-                headers: {
-                    Authorization: `Bearer ${jwtToken}`,
-                    'Content-Type': 'application/json',
-                },
             })
             if (!response.ok) {
                 throw new Error('Failed to fetch invites')
@@ -69,14 +53,8 @@ export const invitesApi = {
 
     getWaitlistQueuePosition: async (): Promise<{ success: boolean; position: number }> => {
         try {
-            const token = getAuthToken()
-            if (!token) return { success: false, position: 0 }
-
-            const response = await fetchWithSentry(`${PEANUT_API_URL}/invites/waitlist-position`, {
+            const response = await serverFetch('/invites/waitlist-position', {
                 method: 'GET',
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
             })
 
             if (!response.ok) {
@@ -93,12 +71,8 @@ export const invitesApi = {
 
     awardBadge: async (campaignTag: string): Promise<{ success: boolean }> => {
         try {
-            const response = await fetchWithSentry(`${PEANUT_API_URL}/badge/award`, {
+            const response = await serverFetch('/badge/award', {
                 method: 'POST',
-                headers: {
-                    Authorization: `Bearer ${getAuthToken()}`,
-                    'Content-Type': 'application/json',
-                },
                 body: JSON.stringify({ campaignTag }),
             })
             if (!response.ok) {

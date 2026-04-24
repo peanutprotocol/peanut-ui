@@ -1,9 +1,6 @@
-// card api calls — works in both web (server action) and native (client-side)
-// migrated from 'use server' to support capacitor static export
+// card api calls — works in both web (via proxy) and native (direct backend)
 
-import { PEANUT_API_URL } from '@/constants/general.consts'
-import { fetchWithSentry } from '@/utils/sentry.utils'
-import { getAuthHeaders } from '@/utils/auth-token'
+import { serverFetch } from '@/utils/api-fetch'
 
 export interface CardInfoResponse {
     hasPurchased: boolean
@@ -40,9 +37,8 @@ export interface CardErrorResponse {
  */
 export const getCardInfo = async (): Promise<{ data?: CardInfoResponse; error?: string }> => {
     try {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/card`, {
+        const response = await serverFetch('/card', {
             method: 'GET',
-            headers: getAuthHeaders(),
         })
 
         if (!response.ok) {
@@ -62,9 +58,8 @@ export const getCardInfo = async (): Promise<{ data?: CardInfoResponse; error?: 
  */
 export const purchaseCard = async (): Promise<{ data?: CardPurchaseResponse; error?: string; errorCode?: string }> => {
     try {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/card/purchase`, {
+        const response = await serverFetch('/card/purchase', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify({}),
         })
 

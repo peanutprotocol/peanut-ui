@@ -1,7 +1,5 @@
 import { type TCreateOfframpRequest } from '../../services/services.types'
-import { fetchWithSentry } from '@/utils/sentry.utils'
-import { PEANUT_API_URL } from '@/constants/general.consts'
-import { getAuthHeaders } from '@/utils/auth-token'
+import { serverFetch } from '@/utils/api-fetch'
 
 export type CreateOfframpSuccessResponse = {
     transferId: string
@@ -24,9 +22,8 @@ export async function createOfframp(
     params: TCreateOfframpRequest
 ): Promise<{ data?: CreateOfframpSuccessResponse; error?: string }> {
     try {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/bridge/offramp/create`, {
+        const response = await serverFetch('/bridge/offramp/create', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify({
                 ...params,
                 provider: 'bridge', // note: bridge is currently the only provider
@@ -53,9 +50,8 @@ export async function createOfframpForGuest(
     params: TCreateOfframpRequest
 ): Promise<{ data?: CreateOfframpSuccessResponse; error?: string }> {
     try {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/bridge/offramp/create-for-guest`, {
+        const response = await serverFetch('/bridge/offramp/create-for-guest', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify({
                 ...params,
                 provider: 'bridge',
@@ -93,9 +89,8 @@ export async function confirmOfframp(
     txHash: string
 ): Promise<{ data?: { success: boolean }; error?: string }> {
     try {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/bridge/transfers/${transferId}/confirm`, {
+        const response = await serverFetch(`/bridge/transfers/${transferId}/confirm`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify({ txHash }),
         })
 

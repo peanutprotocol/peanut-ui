@@ -1,17 +1,11 @@
-import { fetchWithSentry } from '@/utils/sentry.utils'
-import { PEANUT_API_URL } from '@/constants/general.consts'
-import { getAuthHeaders } from '@/utils/auth-token'
+import { serverFetch } from '@/utils/api-fetch'
 
 export async function validateInviteCode(
     inviteCode: string
 ): Promise<{ data?: { success: boolean; username: string }; error?: string }> {
     try {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/invites/validate`, {
+        const response = await serverFetch('/invites/validate', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                ...getAuthHeaders(),
-            },
             body: JSON.stringify({ inviteCode }),
         })
 

@@ -1,4 +1,3 @@
-import { getAuthToken } from '@/utils/auth-token'
 import {
     PEANUT_WALLET_CHAIN,
     PEANUT_WALLET_TOKEN,
@@ -7,11 +6,11 @@ import {
 } from '@/constants/zerodev.consts'
 import { AccountType, type IUserKycVerification } from '@/interfaces'
 import { type IAttachmentOptions } from '@/interfaces/attachment'
-import { fetchWithSentry } from '@/utils/sentry.utils'
+import { serverFetch } from '@/utils/api-fetch'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { chargesApi } from './charges'
 import { type TCharge } from './services.types'
-import { PEANUT_API_URL, BASE_URL } from '@/constants/general.consts'
+import { BASE_URL } from '@/constants/general.consts'
 
 type ApiAccount = {
     identifier: string
@@ -48,23 +47,16 @@ export interface UserSearchResponse {
 
 export const usersApi = {
     getByUsername: async (username: string): Promise<ApiUser> => {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/users/username/${username}`, {
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${getAuthToken()}`,
-            },
+        const response = await serverFetch(`/users/username/${username}`, {
+            method: 'GET',
         })
         return await response.json()
     },
 
     getInteractionStatus: async (userIds: string[]): Promise<Record<string, boolean>> => {
         // returns a map of userIds to booleans indicating if the current user has sent money to them
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/users/interaction-status`, {
+        const response = await serverFetch('/users/interaction-status', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${getAuthToken()}`,
-            },
             body: JSON.stringify({ userIds }),
         })
         return await response.json()

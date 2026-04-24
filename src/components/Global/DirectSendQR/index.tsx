@@ -248,9 +248,10 @@ export default function DirectSendQr({
 
                         // Check redirect QR status (single endpoint for speed)
                         try {
-                            const response = await fetch(
-                                `${process.env.NEXT_PUBLIC_PEANUT_API_URL}/qr/${redirectQrCode}`
-                            )
+                            const { serverFetch } = await import('@/utils/api-fetch')
+                            const response = await serverFetch(`/qr/${redirectQrCode}`, {
+                                method: 'GET',
+                            })
                             const data = await response.json()
 
                             if (data.claimed && data.redirectUrl) {

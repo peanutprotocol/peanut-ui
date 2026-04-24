@@ -1,7 +1,6 @@
 import { unstable_cache } from '@/utils/no-cache'
 import { countryData } from '@/components/AddMoney/consts'
-import { PEANUT_API_URL } from '@/constants/general.consts'
-import { getAuthHeaders } from '@/utils/auth-token'
+import { serverFetch } from '@/utils/api-fetch'
 
 type BridgeCustomer = {
     id: string
@@ -39,9 +38,8 @@ export const getBridgeCustomerCountry = async (
 ): Promise<{ countryCode: string | null; rawCountry: string | null }> => {
     const runner = unstable_cache(
         async () => {
-            const response = await fetch(`${PEANUT_API_URL}/bridge/customers/${bridgeCustomerId}` as string, {
-                headers: getAuthHeaders(),
-                cache: 'no-store',
+            const response = await serverFetch(`/bridge/customers/${bridgeCustomerId}`, {
+                method: 'GET',
             })
 
             if (!response.ok) {
