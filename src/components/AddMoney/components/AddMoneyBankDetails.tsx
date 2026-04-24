@@ -17,7 +17,8 @@ import InfoCard from '@/components/Global/InfoCard'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import { BRIDGE_DEFAULT_ACCOUNT_HOLDER_NAME } from '@/constants/payment.consts'
 import { Button } from '@/components/0_Bruddle/Button'
-import { useExchangeRate } from '@/hooks/useExchangeRate'
+import { useOnrampQuote } from '@/hooks/useOnrampQuote'
+import { currencyToAccountType } from '@/utils/bridge.utils'
 import { useQueryState, parseAsString } from 'nuqs'
 
 interface IAddMoneyBankDetails {
@@ -67,13 +68,12 @@ export default function AddMoneyBankDetails({ flow = 'add-money' }: IAddMoneyBan
     // derive onramp currency once and reuse consistently
     const onrampCurrency = getCurrencyConfig(currentCountryDetails?.id || 'US', 'onramp').currency
 
-    // hooks
-    const { exchangeRate, isLoading: isLoadingExchangeRate } = useExchangeRate({
-        // always use the detected onramp currency as source
-        sourceCurrency: onrampCurrency,
-        // always convert to usd so that we can show an approximate usd amount for non-usd deposits
-        destinationCurrency: 'USD',
-        initialSourceAmount: 1,
+    // Onramp quote returns the net rate (after Peanut's 50bps developer
+    // fee), so `sourceAmount * exchangeRate` projects the real USDC the
+    // user will receive — matching the "Recipient Gets" figure on bridge
+    // offramp + ExchangeRateWidget.
+    const { netRate: exchangeRate, isLoading: isLoadingExchangeRate } = useOnrampQuote({
+        accountType: currencyToAccountType(onrampCurrency),
         enabled: true,
     })
 
