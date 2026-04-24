@@ -56,12 +56,14 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
             displayInitials = undefined
             calculatedBgColor = AVATAR_TEXT_DARK
             textColor = AVATAR_TEXT_LIGHT
+            iconFillColor = AVATAR_TEXT_LIGHT
             break
         case 'cashout':
             displayIconName = 'bank'
             displayInitials = undefined
             calculatedBgColor = context === 'card' ? AVATAR_TEXT_DARK : AVATAR_WALLET_BG
             textColor = context === 'card' ? AVATAR_TEXT_LIGHT : AVATAR_TEXT_DARK
+            iconFillColor = context === 'card' ? AVATAR_TEXT_LIGHT : AVATAR_TEXT_DARK
             break
         case 'add':
             displayIconName = 'wallet-outline'
