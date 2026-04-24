@@ -5,6 +5,9 @@ on:
             - main
             - dev
 
+permissions:
+    contents: read
+
 jobs:
     Deploy-Preview:
         runs-on: ubuntu-latest
