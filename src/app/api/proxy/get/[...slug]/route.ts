@@ -16,6 +16,11 @@ export async function GET(request: NextRequest) {
         'Api-Key': process.env.PEANUT_API_KEY!,
     } as any
 
+    const authHeader = request.headers.get('authorization')
+    if (authHeader) {
+        headersToPass['authorization'] = authHeader
+    }
+
     const apiResponse = await fetchWithSentry(fullAPIUrl, {
         method: 'GET',
         headers: headersToPass,
@@ -41,6 +46,11 @@ export async function HEAD(request: NextRequest) {
         'x-forwarded-for': userIp,
         'Api-Key': process.env.PEANUT_API_KEY!,
     } as any
+
+    const authHeader = request.headers.get('authorization')
+    if (authHeader) {
+        headersToPass['authorization'] = authHeader
+    }
 
     const apiResponse = await fetchWithSentry(fullAPIUrl, {
         method: 'HEAD',

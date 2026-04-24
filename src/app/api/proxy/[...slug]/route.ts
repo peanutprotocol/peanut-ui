@@ -16,14 +16,11 @@ export async function POST(request: NextRequest) {
     const endpointToCall = request.url.substring(indexOfSeparator + separator.length)
     const fullAPIUrl = `${PEANUT_API_URL}/${endpointToCall}`
 
-    let jsonToPass
+    let jsonToPass = {}
     try {
         jsonToPass = await request.json()
-    } catch (error: any) {
-        console.error('Error while parsing json:', error)
-        return NextResponse.json('Pass a valid json', {
-            status: 400,
-        })
+    } catch {
+        // no body or invalid json — proceed with empty object
     }
 
     const userIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip')
