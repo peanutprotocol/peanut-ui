@@ -28,8 +28,8 @@ describe('capacitor utils', () => {
             expect(isCapacitor()).toBe(false)
         })
 
-        it('should return true when window.Capacitor exists', () => {
-            ;(window as any).Capacitor = { getPlatform: () => 'ios' }
+        it('should return true when running on a native platform', () => {
+            ;(window as any).Capacitor = { getPlatform: () => 'ios', isNativePlatform: () => true }
             ;({ isCapacitor } = require('../capacitor'))
             expect(isCapacitor()).toBe(true)
         })
@@ -172,14 +172,14 @@ describe('capacitor utils', () => {
     describe('getApiBaseUrl', () => {
         it('should return NEXT_PUBLIC_BASE_URL in capacitor mode', () => {
             process.env.NEXT_PUBLIC_BASE_URL = 'https://api.staging.peanut.me'
-            ;(window as any).Capacitor = { getPlatform: () => 'ios' }
+            ;(window as any).Capacitor = { getPlatform: () => 'ios', isNativePlatform: () => true }
             ;({ getApiBaseUrl } = require('../capacitor'))
             expect(getApiBaseUrl()).toBe('https://api.staging.peanut.me')
         })
 
         it('should return fallback url when NEXT_PUBLIC_BASE_URL is not set in capacitor mode', () => {
             delete process.env.NEXT_PUBLIC_BASE_URL
-            ;(window as any).Capacitor = { getPlatform: () => 'ios' }
+            ;(window as any).Capacitor = { getPlatform: () => 'ios', isNativePlatform: () => true }
             ;({ getApiBaseUrl } = require('../capacitor'))
             expect(getApiBaseUrl()).toBe('https://peanut.me')
         })

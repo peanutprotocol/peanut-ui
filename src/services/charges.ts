@@ -8,8 +8,8 @@ import {
 } from './services.types'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import { isCapacitor } from '@/utils/capacitor'
-import { getAuthHeaders, getAuthToken } from '@/utils/auth-token'
-import { apiFetch } from '@/utils/api-fetch'
+import { getAuthToken } from '@/utils/auth-token'
+import { apiFetch, serverFetch } from '@/utils/api-fetch'
 
 export const chargesApi = {
     create: async (data: CreateChargeRequest): Promise<TCharge> => {
@@ -44,11 +44,8 @@ export const chargesApi = {
     },
 
     get: async (id: string): Promise<TRequestChargeResponse> => {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/request-charges/${id}`, {
+        const response = await serverFetch(`/request-charges/${id}`, {
             method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            },
         })
 
         if (!response.ok) {
@@ -59,9 +56,8 @@ export const chargesApi = {
     },
 
     cancel: async (id: string): Promise<void> => {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/charges/${id}`, {
+        const response = await serverFetch(`/charges/${id}`, {
             method: 'DELETE',
-            headers: getAuthHeaders(),
         })
 
         if (!response.ok) {

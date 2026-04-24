@@ -1,17 +1,14 @@
-import { fetchWithSentry } from '@/utils/sentry.utils'
 import { type AddBankAccountPayload } from './types/users.types'
 import { type IBridgeAccount } from '@/interfaces'
-import { PEANUT_API_URL } from '@/constants/general.consts'
-import { getAuthHeaders } from '@/utils/auth-token'
+import { serverFetch } from '@/utils/api-fetch'
 
 export async function createBridgeExternalAccountForGuest(
     customerId: string,
     accountDetails: AddBankAccountPayload
 ): Promise<IBridgeAccount | { error: string; source?: string }> {
     try {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/bridge/customers/${customerId}/external-accounts`, {
+        const response = await serverFetch(`/bridge/customers/${customerId}/external-accounts`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify({ ...accountDetails, reuseOnError: true }), // note: reuseOnError is used to avoid showing errors for duplicate accounts on guest flow
         })
 

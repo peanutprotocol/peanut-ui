@@ -1,7 +1,6 @@
 import { EHistoryEntryType, completeHistoryEntry } from '@/utils/history.utils'
 import type { HistoryEntry } from '@/utils/history.utils'
-import { PEANUT_API_URL } from '@/constants/general.consts'
-import { fetchWithSentry } from '@/utils/sentry.utils'
+import { serverFetch } from '@/utils/api-fetch'
 
 /**
  * Fetches a single history entry from the API. This is used for receipts
@@ -16,9 +15,9 @@ import { fetchWithSentry } from '@/utils/sentry.utils'
  * @returns The fetched history entry
  */
 export async function getHistoryEntry(entryId: string, entryType: EHistoryEntryType): Promise<HistoryEntry | null> {
-    let response: Awaited<ReturnType<typeof fetchWithSentry>>
+    let response: Response
     try {
-        response = await fetchWithSentry(`${PEANUT_API_URL}/history/${entryId}?entryType=${entryType}`)
+        response = await serverFetch(`/history/${entryId}?entryType=${entryType}`)
     } catch (error) {
         throw new Error(`Unexpected error fetching history entry: ${error}`)
     }

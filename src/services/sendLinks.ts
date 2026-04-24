@@ -1,8 +1,10 @@
-import { getAuthToken } from '@/utils/auth-token'
-import { fetchWithSentry } from '@/utils/sentry.utils'
 import { jsonParse, jsonStringify } from '@/utils/general.utils'
 import { generateKeysFromString, getParamsFromLink } from '@squirrel-labs/peanut-sdk'
 import type { SendLink } from '@/services/services.types'
+import { serverFetch } from '@/utils/api-fetch'
+import { isCapacitor } from '@/utils/capacitor'
+import { getAuthHeaders } from '@/utils/auth-token'
+import { fetchWithSentry } from '@/utils/sentry.utils'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 
 export { ESendLinkStatus } from '@/services/services.types'
@@ -38,9 +40,7 @@ type UpdateLinkBody = {
 export const sendLinksApi = {
     create: async (sendLink: CreateLinkBody): Promise<SendLink> => {
         let requestBody: FormData | string
-        const headers: HeadersInit = {
-            Authorization: `Bearer ${getAuthToken()}`,
-        }
+        const headers: Record<string, string> = {}
 
         // check if attachment is a File or Blob object
         if (sendLink.attachment && (sendLink.attachment instanceof File || sendLink.attachment instanceof Blob)) {
@@ -69,15 +69,21 @@ export const sendLinksApi = {
             }
         } else {
             // no file, or attachment is not a File/Blob, send as JSON
-            // if attachment exists but is not a file (e.g. just a reference string), it will be stringified.
             requestBody = jsonStringify(sendLink)
             headers['Content-Type'] = 'application/json'
         }
 
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/send-links`, {
+        // formdata needs the withFormData proxy on web; json goes through regular proxy
+        const url = isCapacitor()
+            ? `${PEANUT_API_URL}/send-links`
+            : requestBody instanceof FormData
+              ? '/api/proxy/withFormData/send-links'
+              : '/api/proxy/send-links'
+        Object.assign(headers, getAuthHeaders())
+        const response = await fetchWithSentry(url, {
             method: 'POST',
             body: requestBody,
-            headers: headers,
+            headers,
         })
 
         if (!response.ok) {
@@ -101,13 +107,9 @@ export const sendLinksApi = {
     },
 
     update: async (sendLink: UpdateLinkBody): Promise<SendLink> => {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/send-links/${sendLink.pubKey}`, {
+        const response = await serverFetch(`/send-links/${sendLink.pubKey}`, {
             method: 'PATCH',
             body: jsonStringify(sendLink),
-            headers: {
-                Authorization: `Bearer ${getAuthToken()}`,
-                'Content-Type': 'application/json',
-            },
         })
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`)
@@ -121,11 +123,12 @@ export const sendLinksApi = {
         const pubKey = generateKeysFromString(params.password).address
         // Add timestamp to prevent caching of 404s during DB replication lag
         const cacheBuster = Date.now()
-        const url = `${PEANUT_API_URL}/send-links/${pubKey}?c=${params.chainId}&v=${params.contractVersion}&i=${params.depositIdx}&_=${cacheBuster}`
-        const response = await fetchWithSentry(url, {
-            method: 'GET',
-            cache: 'no-store', // Prevent browser from caching responses
-        })
+        const response = await serverFetch(
+            `/send-links/${pubKey}?c=${params.chainId}&v=${params.contractVersion}&i=${params.depositIdx}&_=${cacheBuster}`,
+            {
+                method: 'GET',
+            }
+        )
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`)
         }
@@ -143,10 +146,12 @@ export const sendLinksApi = {
         depositIdx: number | string
         contractVersion: string
     }): Promise<SendLink> => {
-        const url = `${PEANUT_API_URL}/send-links?c=${params.chainId}&v=${params.contractVersion}&i=${params.depositIdx}`
-        const response = await fetchWithSentry(url, {
-            method: 'GET',
-        })
+        const response = await serverFetch(
+            `/send-links?c=${params.chainId}&v=${params.contractVersion}&i=${params.depositIdx}`,
+            {
+                method: 'GET',
+            }
+        )
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`)
         }
@@ -155,8 +160,7 @@ export const sendLinksApi = {
     },
 
     getByPubKey: async (pubKey: string): Promise<SendLink> => {
-        const url = `${PEANUT_API_URL}/send-links/${pubKey}`
-        const response = await fetchWithSentry(url, {
+        const response = await serverFetch(`/send-links/${pubKey}`, {
             method: 'GET',
         })
         if (!response.ok) {
@@ -178,11 +182,8 @@ export const sendLinksApi = {
      * @param txhash - the transaction hash of the successful claim.
      */
     associateClaim: async (txHash: string): Promise<void> => {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/send-links/claim/${txHash}/associate-user`, {
+        const response = await serverFetch(`/send-links/claim/${txHash}/associate-user`, {
             method: 'PATCH',
-            headers: {
-                Authorization: `Bearer ${getAuthToken()}`,
-            },
         })
 
         if (!response.ok) {

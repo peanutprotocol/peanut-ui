@@ -1,4 +1,5 @@
 import type { IPeanutChainDetails, IPeanutTokenDetail } from '@/interfaces/interfaces'
+import { isCapacitor } from '@/utils/capacitor'
 import { CHAIN_DETAILS, TOKEN_DETAILS } from '@squirrel-labs/peanut-sdk'
 import { mainnet, arbitrum, arbitrumSepolia, polygon, optimism, base, bsc, scroll } from 'viem/chains'
 
@@ -80,11 +81,7 @@ export const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://peanut.me'
 // URL for the frontend to call its own Next.js API routes (like /api/health/*)
 export const SELF_URL = IS_DEV ? 'http://localhost:3000' : BASE_URL
 // in capacitor (static export), /api/proxy doesn't exist — call backend directly.
-// checks both window.Capacitor and NEXT_PUBLIC_CAPACITOR_BUILD env var for consistency with isCapacitor()
-export const next_proxy_url =
-    typeof window !== 'undefined' && ((window as any).Capacitor || process.env.NEXT_PUBLIC_CAPACITOR_BUILD === 'true')
-        ? process.env.NEXT_PUBLIC_PEANUT_API_URL || 'https://api.peanut.me'
-        : '/api/proxy'
+export const next_proxy_url = isCapacitor() ? PEANUT_API_URL : '/api/proxy'
 
 // Git commit hash - injected at build time
 export const GIT_COMMIT_HASH = process.env.NEXT_PUBLIC_GIT_COMMIT_HASH || 'unknown'

@@ -1,16 +1,13 @@
 import { type ApiUser } from '@/services/users'
-import { fetchWithSentry } from '@/utils/sentry.utils'
 import { type AddBankAccountPayload, BridgeEndorsementType, type InitiateKycResponse } from './types/users.types'
 import { type User } from '@/interfaces'
 import { type ContactsResponse } from '@/interfaces'
-import { PEANUT_API_URL } from '@/constants/general.consts'
-import { getAuthHeaders } from '@/utils/auth-token'
+import { serverFetch } from '@/utils/api-fetch'
 
 export const updateUserById = async (payload: Record<string, any>): Promise<{ data?: ApiUser; error?: string }> => {
     try {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/update-user`, {
+        const response = await serverFetch('/update-user', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify(payload),
         })
 
@@ -29,9 +26,8 @@ export const getKycDetails = async (params?: {
     endorsements: BridgeEndorsementType[]
 }): Promise<{ data?: InitiateKycResponse; error?: string }> => {
     try {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/users/initiate-kyc`, {
+        const response = await serverFetch('/users/initiate-kyc', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify(params || {}),
         })
 
@@ -52,9 +48,8 @@ export const getKycDetails = async (params?: {
 
 export const addBankAccount = async (payload: AddBankAccountPayload): Promise<{ data?: any; error?: string }> => {
     try {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/users/accounts`, {
+        const response = await serverFetch('/users/accounts', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify(payload),
         })
 
@@ -78,9 +73,8 @@ export async function getUserById(userId: string): Promise<User | null> {
     // (CodeQL js/log-injection + js/tainted-format-string).
     const safeUserId = String(userId).replace(/[\r\n]/g, '')
     try {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/users/${userId}`, {
+        const response = await serverFetch(`/users/${userId}`, {
             method: 'GET',
-            headers: getAuthHeaders(),
         })
 
         if (!response.ok) {
@@ -113,9 +107,8 @@ export async function getContacts(params: {
             queryParams.append('search', params.search.trim())
         }
 
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/users/contacts?${queryParams}`, {
+        const response = await serverFetch(`/users/contacts?${queryParams}`, {
             method: 'GET',
-            headers: getAuthHeaders(),
         })
 
         if (!response.ok) {
@@ -133,9 +126,8 @@ export async function getContacts(params: {
 // fetch bridge ToS acceptance link for users with pending ToS
 export const getBridgeTosLink = async (): Promise<{ data?: { tosLink: string }; error?: string }> => {
     try {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/users/bridge-tos-link`, {
+        const response = await serverFetch('/users/bridge-tos-link', {
             method: 'GET',
-            headers: getAuthHeaders(),
         })
         const responseJson = await response.json()
         if (!response.ok) {
@@ -150,9 +142,8 @@ export const getBridgeTosLink = async (): Promise<{ data?: { tosLink: string }; 
 // confirm bridge ToS acceptance after user closes the ToS iframe
 export const confirmBridgeTos = async (): Promise<{ data?: { accepted: boolean }; error?: string }> => {
     try {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/users/bridge-tos-confirm`, {
+        const response = await serverFetch('/users/bridge-tos-confirm', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify({}),
         })
         const responseJson = await response.json()

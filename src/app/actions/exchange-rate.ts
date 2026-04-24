@@ -1,7 +1,5 @@
-import { fetchWithSentry } from '@/utils/sentry.utils'
 import { AccountType } from '@/interfaces'
-import { PEANUT_API_URL } from '@/constants/general.consts'
-import { getAuthHeaders } from '@/utils/auth-token'
+import { serverFetch } from '@/utils/api-fetch'
 
 export interface ExchangeRateResponse {
     from: string
@@ -24,12 +22,8 @@ export async function getExchangeRate(
     accountType: AccountType
 ): Promise<{ data?: ExchangeRateResponse; error?: string }> {
     try {
-        const url = new URL(`${PEANUT_API_URL}/bridge/exchange-rate`)
-        url.searchParams.append('accountType', accountType)
-
-        const response = await fetchWithSentry(url.toString(), {
+        const response = await serverFetch(`/bridge/exchange-rate?accountType=${accountType}`, {
             method: 'GET',
-            headers: getAuthHeaders(),
         })
 
         const data = await response.json()

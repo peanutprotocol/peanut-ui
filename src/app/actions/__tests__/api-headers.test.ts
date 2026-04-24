@@ -1,6 +1,7 @@
-// integration test: all action functions that make POST requests include Content-Type header
+// integration test: action functions include Content-Type headers and route correctly
 
 import { fetchWithSentry } from '@/utils/sentry.utils'
+import { isCapacitor } from '@/utils/capacitor'
 
 jest.mock('@/utils/sentry.utils', () => ({
     fetchWithSentry: jest.fn(() =>
@@ -39,12 +40,19 @@ jest.mock('@/utils/bridge.utils', () => ({
 }))
 
 const mockFetchWithSentry = fetchWithSentry as jest.MockedFunction<typeof fetchWithSentry>
+const mockIsCapacitor = isCapacitor as jest.MockedFunction<typeof isCapacitor>
 
 // helper to extract headers from the most recent fetchWithSentry call
 function getLastCallHeaders(): Record<string, string> {
     const calls = mockFetchWithSentry.mock.calls
     const lastCall = calls[calls.length - 1]
     return (lastCall[1]?.headers as Record<string, string>) ?? {}
+}
+
+// helper to extract the url from the most recent fetchWithSentry call
+function getLastCallUrl(): string {
+    const calls = mockFetchWithSentry.mock.calls
+    return calls[calls.length - 1][0] as string
 }
 
 describe('action functions Content-Type headers', () => {
@@ -172,5 +180,66 @@ describe('action functions Content-Type headers', () => {
 
         const headers = getLastCallHeaders()
         expect(headers['Content-Type']).toBe('application/json')
+    })
+})
+
+describe('action functions route through proxy on web', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockIsCapacitor.mockReturnValue(false)
+    })
+
+    it('should route POST actions through /api/proxy/', async () => {
+        const { validateInviteCode } = require('@/app/actions/invites')
+        await validateInviteCode('TEST-CODE')
+        expect(getLastCallUrl()).toBe('/api/proxy/invites/validate')
+    })
+
+    it('should route GET actions through /api/proxy/get/', async () => {
+        const { getCardInfo } = require('@/app/actions/card')
+        await getCardInfo()
+        expect(getLastCallUrl()).toBe('/api/proxy/get/card')
+    })
+
+    it('should route DELETE actions through /api/proxy/delete/', async () => {
+        const { cancelOnramp } = require('@/app/actions/onramp')
+        await cancelOnramp('transfer-123')
+        expect(getLastCallUrl()).toBe('/api/proxy/delete/bridge/onramp/transfer-123/cancel')
+    })
+})
+
+describe('action functions call backend directly on native', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockIsCapacitor.mockReturnValue(true)
+    })
+
+    afterEach(() => {
+        mockIsCapacitor.mockReturnValue(false)
+    })
+
+    it('should call PEANUT_API_URL directly for POST actions', async () => {
+        const { validateInviteCode } = require('@/app/actions/invites')
+        await validateInviteCode('TEST-CODE')
+        expect(getLastCallUrl()).toBe('https://api.test.com/invites/validate')
+    })
+
+    it('should call PEANUT_API_URL directly for GET actions', async () => {
+        const { getCardInfo } = require('@/app/actions/card')
+        await getCardInfo()
+        expect(getLastCallUrl()).toBe('https://api.test.com/card')
+    })
+
+    it('should call PEANUT_API_URL directly for DELETE actions', async () => {
+        const { cancelOnramp } = require('@/app/actions/onramp')
+        await cancelOnramp('transfer-123')
+        expect(getLastCallUrl()).toBe('https://api.test.com/bridge/onramp/transfer-123/cancel')
+    })
+
+    it('should include auth headers in native mode', async () => {
+        const { getCardInfo } = require('@/app/actions/card')
+        await getCardInfo()
+        const headers = getLastCallHeaders()
+        expect(headers['Authorization']).toBe('Bearer test-token')
     })
 })

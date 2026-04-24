@@ -7,7 +7,9 @@ import { useQuery } from '@tanstack/react-query'
 import { usePWAStatus } from '../usePWAStatus'
 import { useDeviceType } from '../useGetDeviceType'
 import { USER } from '@/constants/query.consts'
-import { apiFetch } from '@/utils/api-fetch'
+import { isCapacitor } from '@/utils/capacitor'
+import { PEANUT_API_URL } from '@/constants/general.consts'
+import { getAuthHeaders } from '@/utils/auth-token'
 
 // custom error class for backend errors (5xx) that should trigger retry
 export class BackendError extends Error {
@@ -26,10 +28,16 @@ export const useUserQuery = (dependsOn: boolean = true) => {
     const { user: authUser } = useUserStore()
 
     const fetchUser = async (): Promise<IUserProfile | null> => {
-        const userResponse = await apiFetch('/get-user', '/api/peanut/user/get-user-from-cookie', {
-            method: 'POST',
-            body: JSON.stringify({}),
-        })
+        // web and native have different flows for "get current user":
+        // web: GET to Next.js server route that reads the jwt cookie server-side
+        // native: POST to backend directly with auth token from localStorage
+        const userResponse = isCapacitor()
+            ? await fetchWithSentry(`${PEANUT_API_URL}/get-user`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                  body: JSON.stringify({}),
+              })
+            : await fetchWithSentry('/api/peanut/user/get-user-from-cookie')
         if (userResponse.ok) {
             const userData: IUserProfile | null = await userResponse.json()
             if (userData) {

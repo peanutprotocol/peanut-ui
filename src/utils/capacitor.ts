@@ -12,7 +12,11 @@ const IS_CAPACITOR_BUILD = process.env.NEXT_PUBLIC_CAPACITOR_BUILD === 'true'
  */
 export function isCapacitor(): boolean {
     if (typeof window === 'undefined') return false
-    if ((window as any).Capacitor) return true
+    // check isNativePlatform() — not just window.Capacitor existence.
+    // @capacitor/core sets window.Capacitor on ALL platforms (including web) when bundled.
+    // only return true if the native bridge is actually active.
+    const cap = (window as any).Capacitor
+    if (cap?.isNativePlatform?.()) return true
     if (IS_CAPACITOR_BUILD) return true
     return false
 }
@@ -83,6 +87,7 @@ export function getApiBaseUrl(): string {
 export function getNativeRpId(): string {
     return process.env.NEXT_PUBLIC_NATIVE_RP_ID || 'peanut.me'
 }
+
 
 /**
  * opens a url in the appropriate way for the current platform

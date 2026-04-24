@@ -25,7 +25,7 @@ import ErrorAlert from '@/components/Global/ErrorAlert'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { PERK_HOLD_DURATION_MS } from '@/constants/general.consts'
 import { MANTECA_DEPOSIT_ADDRESS } from '@/constants/manteca.consts'
-import { MIN_MANTECA_QR_PAYMENT_AMOUNT } from '@/constants/payment.consts'
+import { MIN_MANTECA_QR_PAYMENT_AMOUNT, MIN_PIX_AMOUNT_BRL } from '@/constants/payment.consts'
 import { formatUnits, parseUnits } from 'viem'
 import type { TransactionReceipt, Hash } from 'viem'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
@@ -190,6 +190,28 @@ export default function QRPayPage() {
             holdStartTimeRef.current = null
         }
     }, [])
+
+    // Reopening the app onto a past QR URL (last merchant, expired lock) is stale —
+    // after a real absence, drop the user on home so they can start fresh.
+    useEffect(() => {
+        const STALE_THRESHOLD_MS = 30_000
+        let hiddenAt: number | null = null
+
+        const onVisibility = () => {
+            if (document.hidden) {
+                hiddenAt = Date.now()
+                return
+            }
+            if (hiddenAt === null) return
+            const elapsed = Date.now() - hiddenAt
+            hiddenAt = null
+            if (elapsed > STALE_THRESHOLD_MS) {
+                router.push('/home')
+            }
+        }
+        document.addEventListener('visibilitychange', onVisibility)
+        return () => document.removeEventListener('visibilitychange', onVisibility)
+    }, [router])
 
     // Track reward claim shown + surprise moment when perk UI appears after payment
     useEffect(() => {
@@ -983,6 +1005,11 @@ export default function QRPayPage() {
                 setBalanceErrorMessage(`Payment amount must be at least $${MIN_MANTECA_QR_PAYMENT_AMOUNT}`)
                 return
             }
+            // PIX rail enforces a 1 BRL minimum, stricter than the USD floor above
+            if (currency?.code === 'BRL' && currencyAmount && parseFloat(currencyAmount) < MIN_PIX_AMOUNT_BRL) {
+                setBalanceErrorMessage(`Minimum PIX amount is ${MIN_PIX_AMOUNT_BRL} BRL`)
+                return
+            }
         }
 
         // Common validations for all payment processors
@@ -995,7 +1022,7 @@ export default function QRPayPage() {
         } else {
             setBalanceErrorMessage(null)
         }
-    }, [usdAmount, balance, paymentProcessor])
+    }, [usdAmount, balance, paymentProcessor, currency?.code, currencyAmount])
 
     // Use points confetti hook for animation - must be called unconditionally
     usePointsConfetti(isSuccess && pointsData?.estimatedPoints ? pointsData.estimatedPoints : undefined, pointsDivRef)

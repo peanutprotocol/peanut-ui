@@ -1,9 +1,7 @@
-import { fetchWithSentry } from '@/utils/sentry.utils'
 import { type CountryData } from '@/components/AddMoney/consts'
 import { getCurrencyConfig } from '@/utils/bridge.utils'
 import { getCurrencyPrice } from '@/app/actions/currency'
-import { PEANUT_API_URL } from '@/constants/general.consts'
-import { getAuthHeaders } from '@/utils/auth-token'
+import { serverFetch } from '@/utils/api-fetch'
 
 export interface CreateOnrampGuestParams {
     amount: string
@@ -23,9 +21,8 @@ export interface CreateOnrampGuestParams {
  */
 export async function cancelOnramp(transferId: string): Promise<{ data?: { success: boolean }; error?: string }> {
     try {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/bridge/onramp/${transferId}/cancel`, {
+        const response = await serverFetch(`/bridge/onramp/${transferId}/cancel`, {
             method: 'DELETE',
-            headers: getAuthHeaders(),
         })
 
         if (!response.ok) {
@@ -51,9 +48,8 @@ export async function createOnrampForGuest(
         const price = await getCurrencyPrice(currency)
         const amount = (Number(params.amount) * price.buy).toFixed(2)
 
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/bridge/onramp/create-for-guest`, {
+        const response = await serverFetch('/bridge/onramp/create-for-guest', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify({
                 amount,
                 userId: params.userId,
