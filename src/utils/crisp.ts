@@ -1,3 +1,69 @@
+import { type CrispUserData } from '@/hooks/useCrispUserData'
+import { isCapacitor } from '@/utils/capacitor'
+
+/**
+ * Sets Crisp user identification and session metadata on a $crisp instance
+ *
+ * This is used for the main window Crisp widget (not iframe).
+ * Sets user email (critical for session persistence), nickname, avatar,
+ * and session metadata visible to support agents.
+ *
+ * @param crispInstance - The $crisp object (window.$crisp)
+ * @param userData - User data to set
+ * @param prefilledMessage - Optional message to prefill in chat
+ */
+export function setCrispUserData(crispInstance: any, userData: CrispUserData, prefilledMessage?: string): void {
+    if (!crispInstance) return
+
+    const {
+        username,
+        userId,
+        email,
+        fullName,
+        avatar,
+        grafanaLink,
+        walletAddressLink,
+        bridgeCustomerLink,
+        mantecaUserId,
+        posthogPersonLink,
+    } = userData
+
+    if (email) {
+        crispInstance.push(['set', 'user:email', [email]])
+    }
+
+    const nickname = fullName || username || ''
+    if (nickname) {
+        crispInstance.push(['set', 'user:nickname', [nickname]])
+    }
+
+    if (avatar) {
+        crispInstance.push(['set', 'user:avatar', [avatar]])
+    }
+
+    // Session metadata for support agents - must be 3 levels of nested arrays
+    crispInstance.push([
+        'set',
+        'session:data',
+        [
+            [
+                ['username', username || ''],
+                ['user_id', userId || ''],
+                ['full_name', fullName || ''],
+                ['grafana_dashboard', grafanaLink || ''],
+                ['wallet_address', walletAddressLink || ''],
+                ['bridge_user_id', bridgeCustomerLink || ''],
+                ['manteca_user_id', mantecaUserId || ''],
+                ['posthog_person', posthogPersonLink || ''],
+            ],
+        ],
+    ])
+
+    if (prefilledMessage) {
+        crispInstance.push(['set', 'message:text', [prefilledMessage]])
+    }
+}
+
 /**
  * Resets Crisp session to prevent session merging between users
  *
@@ -26,6 +92,14 @@ export function resetCrispSession(crispInstance: any): void {
  */
 export function resetCrispProxySessions(): void {
     if (typeof window === 'undefined') return
+
+    // in capacitor, reset via native plugin
+    if (isCapacitor()) {
+        import('@capgo/capacitor-crisp')
+            .then(({ CapacitorCrisp }) => CapacitorCrisp.reset())
+            .catch((err) => console.debug('[Crisp] native reset failed:', err))
+        return
+    }
 
     try {
         const iframes = document.querySelectorAll('iframe[src*="crisp-proxy"]')

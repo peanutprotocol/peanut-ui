@@ -3,7 +3,7 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { useEffect } from 'react'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { Icon } from '@/components/Global/Icons/Icon'
@@ -16,7 +16,8 @@ import { BASE_URL } from '@/constants/general.consts'
 export default function RedirectQrSuccessPage() {
     const router = useRouter()
     const params = useParams()
-    const code = params?.code as string
+    const searchParams = useSearchParams()
+    const code = (params?.code as string) || searchParams.get('code') || ''
     const toast = useToast()
 
     // Fetch redirect QR details using shared hook

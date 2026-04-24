@@ -20,12 +20,23 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useCallback, useMemo } from 'react'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import ContactsView from './Contacts.view'
+import { ValidatedUsernameWrapper } from '@/components/Username/ValidatedUsernameWrapper'
+import { DirectSendPageWrapper } from '@/features/payments/flows/direct-send/DirectSendPageWrapper'
 
 export const SendRouterView = () => {
     const router = useRouter()
     const searchParams = useSearchParams()
     const isSendingByLink = searchParams.get('view') === 'link' || searchParams.get('createLink') === 'true'
     const isSendingToContacts = searchParams.get('view') === 'contacts'
+    // direct send to a specific user — supports both:
+    // - query param: /send?recipient=kushagra (preferred for native navigation)
+    // - path segment: /send/kushagra (from deep links, SPA fallback serves /send page)
+    const recipientFromQuery = searchParams.get('recipient')
+    const recipientFromPath =
+        typeof window !== 'undefined' && window.location.pathname.startsWith('/send/')
+            ? decodeURIComponent(window.location.pathname.replace('/send/', '').split('/')[0])
+            : null
+    const recipientUsername = recipientFromQuery || recipientFromPath || null
     // only fetch 3 contacts for avatar display
     const { contacts, isLoading: isFetchingContacts } = useContacts({ limit: 3 })
 
@@ -184,6 +195,15 @@ export const SendRouterView = () => {
 
         return [peanutContactsOption, ...geoFilteredMethods]
     }, [geoFilteredMethods])
+
+    // direct send to a specific recipient (native app uses /send?recipient=username)
+    if (recipientUsername) {
+        return (
+            <ValidatedUsernameWrapper username={recipientUsername}>
+                <DirectSendPageWrapper username={recipientUsername} />
+            </ValidatedUsernameWrapper>
+        )
+    }
 
     if (isSendingByLink) {
         return <LinkSendFlowManager onPrev={handlePrev} />

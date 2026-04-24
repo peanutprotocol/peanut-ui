@@ -3,7 +3,7 @@
  * Handles all quest-related API calls
  */
 
-import Cookies from 'js-cookie'
+import { getAuthToken } from '@/utils/auth-token'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import type { QuestLeaderboardData, AllQuestsLeaderboardData } from '@/app/quests/types'
 import { PEANUT_API_URL } from '@/constants/general.consts'
@@ -19,7 +19,7 @@ export const questsApi = {
         error?: string
     }> {
         try {
-            const jwtToken = Cookies.get('jwt-token')
+            const jwtToken = getAuthToken()
             const limit = params?.limit || 3
             const useTestTimePeriod = params?.useTestTimePeriod ? 'true' : 'false'
             const url = `${PEANUT_API_URL}/quests/leaderboards?limit=${limit}&useTestTimePeriod=${useTestTimePeriod}`
@@ -65,7 +65,7 @@ export const questsApi = {
         error?: string
     }> {
         try {
-            const jwtToken = Cookies.get('jwt-token')
+            const jwtToken = getAuthToken()
             const limit = params?.limit || 10
             const useTestTimePeriod = params?.useTestTimePeriod ? 'true' : 'false'
             const url = `${PEANUT_API_URL}/quests/${questId}/leaderboard?limit=${limit}&useTestTimePeriod=${useTestTimePeriod}`

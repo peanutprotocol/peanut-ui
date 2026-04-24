@@ -1,5 +1,3 @@
-'use server'
-
 import { EHistoryEntryType, completeHistoryEntry } from '@/utils/history.utils'
 import type { HistoryEntry } from '@/utils/history.utils'
 import { PEANUT_API_URL } from '@/constants/general.consts'

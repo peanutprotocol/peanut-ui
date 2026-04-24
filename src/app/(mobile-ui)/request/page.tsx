@@ -1,16 +1,21 @@
-import { generateMetadata } from '@/app/metadata'
+'use client'
+import { useSearchParams } from 'next/navigation'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { CreateRequestLinkView } from '@/components/Request/link/views/Create.request.link.view'
-
-export const metadata = generateMetadata({
-    title: 'Request Money | Peanut',
-    description:
-        'Request digital dollar payments easily with Peanut. Create and share payment requests for quick, peer-to-peer transactions.',
-    image: '/metadata-img.png',
-    keywords: 'crypto request, request money, cross-chain request, onramp, digital dollars',
-})
+import DirectRequestInitialView from '@/components/Request/direct-request/views/Initial.direct.request.view'
 
 export default function RequestPage() {
+    const searchParams = useSearchParams()
+    const recipient = searchParams.get('recipient')
+
+    if (recipient) {
+        return (
+            <PageContainer>
+                <DirectRequestInitialView username={recipient} />
+            </PageContainer>
+        )
+    }
+
     return (
         <PageContainer>
             <CreateRequestLinkView />

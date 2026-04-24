@@ -25,6 +25,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import InvitesGraph from '@/components/Global/InvitesGraph'
 import InviteFriendsModal from '@/components/Global/InviteFriendsModal'
 import { formatPoints, shortenPoints } from '@/utils/format.utils'
+import { profileUrl } from '@/utils/native-routes'
 import { Button } from '@/components/0_Bruddle/Button'
 import { useCountUp } from '@/hooks/useCountUp'
 import { useInView } from 'framer-motion'
@@ -234,7 +235,7 @@ const PointsPage = () => {
                             {user?.invitedBy && (
                                 <>
                                     <span
-                                        onClick={() => router.push(`/${user.invitedBy}`)}
+                                        onClick={() => router.push(profileUrl(user.invitedBy!))}
                                         className="inline-flex cursor-pointer items-center gap-1 font-bold"
                                     >
                                         {user.invitedBy} <Icon name="invite-heart" size={14} />
@@ -271,7 +272,7 @@ const PointsPage = () => {
                                     <Card
                                         key={invite.inviteeId}
                                         position={getCardPosition(i, Math.min(5, invites.invitees.length))}
-                                        onClick={() => router.push(`/${username}`)}
+                                        onClick={() => router.push(profileUrl(username))}
                                         className="cursor-pointer"
                                     >
                                         <div className="flex items-center justify-between gap-4">

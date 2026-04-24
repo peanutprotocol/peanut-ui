@@ -13,6 +13,9 @@ import {
     updateUserPreferences,
 } from '@/utils/general.utils'
 import { fetchWithSentry } from '@/utils/sentry.utils'
+import { apiFetch } from '@/utils/api-fetch'
+import { isCapacitor } from '@/utils/capacitor'
+import { clearAuthToken } from '@/utils/auth-token'
 import { resetCrispProxySessions } from '@/utils/crisp'
 import posthog from 'posthog-js'
 import { useQueryClient } from '@tanstack/react-query'
@@ -111,11 +114,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }) => {
         console.log('[addAccount] Starting account addition', { userId, accountType })
 
-        const response = await fetchWithSentry('/api/peanut/user/add-account', {
+        const response = await apiFetch('/add-account', '/api/peanut/user/add-account', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
             body: JSON.stringify({
                 userId,
                 accountIdentifier,
@@ -164,55 +164,56 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // clear user preferences (webauthn key in localStorage)
         updateUserPreferences(user?.user.userId, { webAuthnKey: undefined })
 
-        // clear cookies
+        // clear auth tokens (localStorage in capacitor, cookie on web)
         removeFromCookie(WEB_AUTHN_COOKIE_KEY)
-        document.cookie = 'jwt-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
+        clearAuthToken()
 
         // clear redirect url
         clearRedirectUrl()
 
-        // invalidate all queries
-        queryClient.invalidateQueries()
+        // cancel + remove all queries to prevent refetches with cleared jwt
+        try {
+            queryClient.cancelQueries()
+            queryClient.clear()
+        } catch (e) {
+            console.warn('failed to clear queries on logout:', e)
+        }
 
         // reset redux state (user, setup, zerodev)
         dispatch(userActions.setUser(null))
         dispatch(setupActions.resetSetup())
         dispatch(zerodevActions.resetZeroDevState())
 
-        // Clear service worker caches to prevent user data leakage
-        // When User A logs out and User B logs in on the same device, cached API responses
-        // could expose User A's data (profile, transactions, KYC) to User B
-        // Only clears user-specific caches; preserves prices and external resources
+        // clear service worker caches (non-fatal if it fails)
         if ('caches' in window) {
             try {
                 const cacheNames = await caches.keys()
                 await Promise.all(
                     cacheNames
                         .filter((name) => USER_DATA_CACHE_PATTERNS.some((pattern) => name.includes(pattern)))
-                        .map((name) => {
-                            console.log('Logout: Clearing cache:', name)
-                            return caches.delete(name)
-                        })
+                        .map((name) => caches.delete(name))
                 )
-            } catch (error) {
-                console.error('Failed to clear caches on logout:', error)
-                // Non-fatal: logout continues even if cache clearing fails
+            } catch (e) {
+                console.warn('failed to clear caches on logout:', e)
             }
         }
 
-        // clear the iOS PWA prompt session flag
-        if (typeof window !== 'undefined') {
+        // clear session flags
+        try {
             sessionStorage.removeItem('hasSeenIOSPWAPromptThisSession')
-        }
+        } catch {}
 
-        // Reset Crisp session to prevent session merging with next user
-        // This resets both main window Crisp instance and any proxy page instances
-        if (typeof window !== 'undefined') {
+        // reset third-party sessions (non-fatal)
+        try {
             resetCrispProxySessions()
+        } catch (e) {
+            console.warn('crisp reset failed:', e)
         }
-
-        // Reset PostHog identity so next user doesn't inherit previous user's session
-        posthog.reset()
+        try {
+            posthog.reset()
+        } catch (e) {
+            console.warn('posthog reset failed:', e)
+        }
     }, [dispatch, queryClient, user?.user.userId])
 
     /**
@@ -226,12 +227,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setIsLoggingOut(true)
             try {
                 // Call backend logout unless skipped (e.g., when backend is down)
-                if (!options?.skipBackendCall) {
+                // in capacitor, there's no backend logout route — just clear client-side state.
+                // on web, the /api/ route clears the server-side cookie.
+                if (!options?.skipBackendCall && !isCapacitor()) {
                     const response = await fetchWithSentry('/api/peanut/user/logout-user', {
                         method: 'GET',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
                     })
 
                     if (!response.ok) {
@@ -242,17 +242,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 // Clear all client-side auth state
                 await clearLocalAuthState()
 
-                // fetch user (should return null after logout) - skip if backend call was skipped
-                if (!options?.skipBackendCall) {
+                // fetch user (should return null after logout) - skip for capacitor
+                // (jwt is already cleared, fetching would just 401)
+                if (!options?.skipBackendCall && !isCapacitor()) {
                     await fetchUser()
                 }
 
                 // force full page refresh to /setup to clear all state
-                // this ensures no stale redux/react state persists after logout
                 window.location.href = '/setup'
             } catch (error) {
                 captureException(error)
                 console.error('Error logging out user', error)
+                // TODO: remove debug info after native testing
                 toast.error('Error logging out')
             } finally {
                 setIsLoggingOut(false)

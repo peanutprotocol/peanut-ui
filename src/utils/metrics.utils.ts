@@ -1,6 +1,6 @@
+import { getAuthToken } from '@/utils/auth-token'
 import { type JSONObject } from '@/interfaces'
 import { fetchWithSentry } from '@/utils/sentry.utils'
-import Cookies from 'js-cookie'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 
 export async function hitUserMetric(userId: string, name: string, value: JSONObject = {}): Promise<void> {
@@ -9,7 +9,7 @@ export async function hitUserMetric(userId: string, name: string, value: JSONObj
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+                Authorization: `Bearer ${getAuthToken()}`,
             },
             body: JSON.stringify(value),
         })

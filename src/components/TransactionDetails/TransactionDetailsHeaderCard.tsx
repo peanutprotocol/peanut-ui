@@ -14,6 +14,7 @@ import ProgressBar from '../Global/ProgressBar'
 import { useRouter } from 'next/navigation'
 import { twMerge } from 'tailwind-merge'
 import { PEANUTMAN_LOGO } from '@/assets'
+import { profileUrl } from '@/utils/native-routes'
 
 export type TransactionDirection =
     | 'send'
@@ -215,7 +216,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
 
     const handleUserPfpClick = () => {
         if (isAvatarClickable) {
-            router.push(`/${userName}`)
+            router.push(profileUrl(userName))
         }
     }
 

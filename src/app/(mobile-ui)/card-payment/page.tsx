@@ -4,6 +4,8 @@ import { useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { chargesApi } from '@/services/charges'
 import Loading from '@/components/Global/Loading'
+import { isCapacitor } from '@/utils/capacitor'
+import { chargePayUrl } from '@/utils/native-routes'
 
 /**
  * Card Payment Route (DEPRECATED)
@@ -38,9 +40,12 @@ export default function CardPaymentPage() {
                 const token = charge.tokenSymbol
                 const uuid = charge.uuid
 
-                const semanticUrl = `/${recipient}${chain}/${amount}${token}?chargeId=${uuid}&context=card-pioneer`
-
-                router.push(semanticUrl)
+                if (isCapacitor()) {
+                    router.push(chargePayUrl(uuid, 'card-pioneer'))
+                } else {
+                    const semanticUrl = `/${recipient}${chain}/${amount}${token}?chargeId=${uuid}&context=card-pioneer`
+                    router.push(semanticUrl)
+                }
             } catch (err) {
                 console.error('Failed to load charge:', err)
                 router.push('/card')

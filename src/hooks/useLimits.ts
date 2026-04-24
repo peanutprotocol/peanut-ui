@@ -1,7 +1,7 @@
 'use client'
 
+import { getAuthToken } from '@/utils/auth-token'
 import { useQuery } from '@tanstack/react-query'
-import Cookies from 'js-cookie'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import type { UserLimitsResponse } from '@/interfaces'
@@ -20,7 +20,7 @@ export function useLimits(options: UseLimitsOptions = {}) {
     const { enabled = true } = options
 
     const fetchLimits = async (): Promise<UserLimitsResponse> => {
-        const token = Cookies.get('jwt-token')
+        const token = getAuthToken()
         if (!token) {
             return { manteca: null, bridge: null }
         }

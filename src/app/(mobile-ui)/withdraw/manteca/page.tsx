@@ -56,6 +56,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
 import { getLimitsWarningCardProps, isBrUserEligibleForLimitIncrease } from '@/features/limits/utils'
+import { withdrawCountryUrl } from '@/utils/native-routes'
 import { useSumsubActionFlow } from '@/hooks/useSumsubActionFlow'
 import { initiateIncreaseLimits } from '@/app/actions/increase-limits'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
@@ -561,7 +562,7 @@ export default function MantecaWithdrawFlow() {
                     } else {
                         router.back()
                         setTimeout(() => {
-                            router.replace(`/withdraw/${selectedCountry?.path}`)
+                            router.replace(withdrawCountryUrl(selectedCountry?.path || ''))
                         }, 100)
                     }
                 }}

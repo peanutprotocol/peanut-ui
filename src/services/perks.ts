@@ -1,4 +1,4 @@
-import Cookies from 'js-cookie'
+import { getAuthToken } from '@/utils/auth-token'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 
@@ -37,7 +37,7 @@ export const perksApi = {
      */
     getPendingPerks: async (): Promise<PendingPerksResponse> => {
         try {
-            const jwtToken = Cookies.get('jwt-token')
+            const jwtToken = getAuthToken()
             if (!jwtToken) {
                 console.error('getPendingPerks: No JWT token found')
                 return { success: false, perks: [], error: 'Not authenticated' }
@@ -69,7 +69,7 @@ export const perksApi = {
      */
     claimPerk: async (usageId: string): Promise<ClaimPerkResponse> => {
         try {
-            const jwtToken = Cookies.get('jwt-token')
+            const jwtToken = getAuthToken()
             if (!jwtToken) {
                 console.error('claimPerk: No JWT token found')
                 return { success: false, error: 'NOT_AUTHENTICATED', message: 'Not authenticated' }

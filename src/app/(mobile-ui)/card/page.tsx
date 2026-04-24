@@ -1,6 +1,8 @@
 'use client'
 import { type FC, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { isCapacitor } from '@/utils/capacitor'
+import { chargePayUrl } from '@/utils/native-routes'
 import { useQueryStates, parseAsStringEnum } from 'nuqs'
 import { useQuery } from '@tanstack/react-query'
 import { cardApi, type CardInfoResponse } from '@/services/card'
@@ -116,8 +118,12 @@ const CardPioneerPage: FC = () => {
             // Build semantic URL directly from response (avoids extra API call + loading state)
             // Format: /recipient@chainId/amountTOKEN?chargeId=uuid&context=card-pioneer
             const { recipientAddress, chainId, tokenAmount, tokenSymbol, chargeUuid } = response
-            const semanticUrl = `/${recipientAddress}@${chainId}/${tokenAmount}${tokenSymbol}?chargeId=${chargeUuid}&context=card-pioneer`
-            router.push(semanticUrl)
+            if (isCapacitor()) {
+                router.push(chargePayUrl(chargeUuid, 'card-pioneer'))
+            } else {
+                const semanticUrl = `/${recipientAddress}@${chainId}/${tokenAmount}${tokenSymbol}?chargeId=${chargeUuid}&context=card-pioneer`
+                router.push(semanticUrl)
+            }
         } catch (err) {
             const error = err as { code?: string; message?: string }
             if (error.code === 'ALREADY_PURCHASED') {

@@ -1,5 +1,4 @@
-'use server'
-import { unstable_cache } from 'next/cache'
+import { unstable_cache } from '@/utils/no-cache'
 import peanut, { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import type { Address, Hash } from 'viem'
 

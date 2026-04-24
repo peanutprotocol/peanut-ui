@@ -124,6 +124,8 @@ jest.mock('@squirrel-labs/peanut-sdk', () => ({
     interfaces: {
         EPeanutLinkType: { native: 0, erc20: 1 },
     },
+    CHAIN_DETAILS: {},
+    TOKEN_DETAILS: [],
 }))
 
 // Mock Toast
