@@ -49,7 +49,26 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
     } = useWithdrawFlow()
 
     const handleReview = () => {
-        const selectedChainData = supportedSquidChainsAndTokens[selectedChainID]
+        const squidChainData = supportedSquidChainsAndTokens[selectedChainID]
+        // When the user is withdrawing on the Peanut wallet chain (same-chain,
+        // no Squid bridge needed), Squid may not list that chain — especially
+        // on testnets or env-configured chains. Synthesize a minimal chain
+        // object in that case so the flow can proceed. Downstream code only
+        // reads `chainId` and `networkName` off this object.
+        const isPeanutWalletChain = selectedChainID === PEANUT_WALLET_CHAIN.id.toString()
+        const fallbackChainData =
+            isPeanutWalletChain && !squidChainData
+                ? ({
+                      chainId: PEANUT_WALLET_CHAIN.id.toString(),
+                      networkName: PEANUT_WALLET_CHAIN.name,
+                      tokens: [],
+                  } as unknown as interfaces.ISquidChain & {
+                      networkName: string
+                      tokens: interfaces.ISquidToken[]
+                  })
+                : undefined
+        const selectedChainData = squidChainData ?? fallbackChainData
+
         if (selectedTokenData && selectedChainData && recipient.address) {
             onReview({
                 token: selectedTokenData,
@@ -61,7 +80,12 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
                 showError: true,
                 errorMessage: 'Withdrawal details are missing',
             })
-            console.error('Token, chain, or address not selected/entered')
+            console.error('Token, chain, or address not selected/entered', {
+                hasToken: !!selectedTokenData,
+                hasChain: !!selectedChainData,
+                hasAddress: !!recipient.address,
+                selectedChainID,
+            })
         }
     }
 

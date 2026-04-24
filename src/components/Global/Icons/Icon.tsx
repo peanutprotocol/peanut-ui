@@ -42,6 +42,7 @@ import {
     Link as LinkIcon,
     LogOut,
     Lock,
+    MoreHorizontal,
     Paperclip,
     Plus,
     Power,
@@ -56,6 +57,7 @@ import {
     Star,
     SwitchCamera,
     Tag,
+    Trash2,
     Trophy,
     Undo,
     Unlink,
@@ -152,6 +154,8 @@ export type IconName =
     | 'alert-filled'
     | 'paste'
     | 'credit-card'
+    | 'more-horizontal'
+    | 'trash'
 export interface IconProps extends SVGProps<SVGSVGElement> {
     name: IconName
     size?: number | string
@@ -258,6 +262,8 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     'alert-filled': (props) => <LucideWrapper Icon={AlertTriangle} {...props} filled />,
     paste: (props) => <LucideWrapper Icon={Clipboard} {...props} />,
     'credit-card': (props) => <LucideWrapper Icon={CreditCard} {...props} />,
+    'more-horizontal': (props) => <LucideWrapper Icon={MoreHorizontal} {...props} />,
+    trash: (props) => <LucideWrapper Icon={Trash2} {...props} />,
 }
 
 export const Icon: FC<IconProps> = ({ name, size = 24, width, height, ...props }) => {

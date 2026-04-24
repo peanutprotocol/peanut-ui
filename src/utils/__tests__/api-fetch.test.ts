@@ -66,14 +66,18 @@ describe('apiFetch', () => {
             expect((callArgs?.headers as Record<string, string>)['Authorization']).toBe('Bearer test-token')
         })
 
-        it('should not add auth headers in web mode', async () => {
+        it('should add auth headers in web mode too (proxy forwards them)', async () => {
+            // Updated 2026-04-24: apiFetch was changed to ALWAYS forward the
+            // Authorization header (web + capacitor). Backend's verifyAuth
+            // reads the header, not the cookie; the Next.js proxy relays
+            // whatever headers the caller sets. See JSDoc on apiFetch.
             mockIsCapacitor.mockReturnValue(false)
 
             await apiFetch('/users/me', '/api/proxy/users/me')
 
-            expect(getAuthHeaders).not.toHaveBeenCalled()
+            expect(getAuthHeaders).toHaveBeenCalled()
             const callArgs = mockFetchWithSentry.mock.calls[0][1]
-            expect((callArgs?.headers as Record<string, string>)['Authorization']).toBeUndefined()
+            expect((callArgs?.headers as Record<string, string>)['Authorization']).toBe('Bearer test-token')
         })
     })
 

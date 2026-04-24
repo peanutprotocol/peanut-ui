@@ -1,4 +1,4 @@
-import { printableUsdc } from '../balance.utils'
+import { printableUsdc, rainSpendingPowerToWei } from '../balance.utils'
 
 describe('balance utils', () => {
     describe('printableUsdc', () => {
@@ -24,6 +24,37 @@ describe('balance utils', () => {
             [303345000n, '303.34'],
         ])('should return the correct value for %i', (input, expected) => {
             expect(printableUsdc(input)).toBe(expected)
+        })
+    })
+
+    describe('rainSpendingPowerToWei', () => {
+        it.each([
+            // [cents input, expected USDC wei (6dp)]
+            [0, 0n],
+            [1, 10_000n], // $0.01 → 10_000 wei
+            [100, 1_000_000n], // $1.00 → 1_000_000 wei
+            [4950, 49_500_000n], // $49.50 → 49_500_000 wei
+            [50_000, 500_000_000n], // $500.00 → 500_000_000 wei
+        ])('widens %i cents to %s wei', (cents, expected) => {
+            expect(rainSpendingPowerToWei(cents)).toBe(expected)
+        })
+
+        it.each([[null], [undefined], [-100], [Number.NaN], [Number.POSITIVE_INFINITY], [Number.NEGATIVE_INFINITY]])(
+            'returns 0n for invalid input (%s)',
+            (input) => {
+                expect(rainSpendingPowerToWei(input)).toBe(0n)
+            }
+        )
+
+        it('sums cleanly with a smart-account balance in wei', () => {
+            const smartAccount = 150_000_000n // $150.00 USDC (6dp)
+            const rainCents = 4950 // $49.50
+            const total = smartAccount + rainSpendingPowerToWei(rainCents)
+            expect(printableUsdc(total)).toBe('199.50')
+        })
+
+        it("floors fractional cents (shouldn't happen but is defensive)", () => {
+            expect(rainSpendingPowerToWei(99.9)).toBe(990_000n) // floors to 99 cents
         })
     })
 })

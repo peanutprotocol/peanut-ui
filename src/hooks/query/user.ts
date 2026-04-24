@@ -8,8 +8,9 @@ import { usePWAStatus } from '../usePWAStatus'
 import { useDeviceType } from '../useGetDeviceType'
 import { USER } from '@/constants/query.consts'
 import { isCapacitor } from '@/utils/capacitor'
-import { PEANUT_API_URL } from '@/constants/general.consts'
+import { fetchWithSentry } from '@/utils/sentry.utils'
 import { getAuthHeaders } from '@/utils/auth-token'
+import { PEANUT_API_URL } from '@/constants/general.consts'
 
 // custom error class for backend errors (5xx) that should trigger retry
 export class BackendError extends Error {

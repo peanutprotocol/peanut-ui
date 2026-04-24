@@ -115,6 +115,56 @@ export const ANALYTICS_EVENTS = {
     BACKEND_ERROR_SHOWN: 'backend_error_shown',
     BACKEND_ERROR_RETRY: 'backend_error_retry',
     BACKEND_ERROR_LOGOUT: 'backend_error_logout',
+
+    // ── Card: acquisition funnel (Rain virtual card) ──
+    // State observed on /card mount or transition. `state` matches CardTopLevelState.
+    CARD_STATE_VIEWED: 'card_state_viewed',
+    // POST /rain/cards lifecycle. `outcome` ∈ pending|terms-required|incomplete|enabled|error|already-applied.
+    CARD_APPLY_ATTEMPTED: 'card_apply_attempted',
+    CARD_APPLY_SUCCEEDED: 'card_apply_succeeded',
+    CARD_APPLY_FAILED: 'card_apply_failed',
+    // Sumsub applicant-action modal for the rain-card-application level.
+    CARD_SUMSUB_OPENED: 'card_sumsub_opened',
+    CARD_SUMSUB_COMPLETED: 'card_sumsub_completed',
+    CARD_SUMSUB_CLOSED: 'card_sumsub_closed',
+    // Terms screen. The drop-off between VIEWED and ACCEPTED is the
+    // copy-comprehension signal; we don't track per-checkbox taps because
+    // the Continue button is HTML-disabled until all are checked.
+    CARD_TERMS_VIEWED: 'card_terms_viewed',
+    CARD_TERMS_ACCEPTED: 'card_terms_accepted',
+    // Session-key permission grant (passkey tap). `kind` mirrors GrantSessionKeyError.kind.
+    CARD_SESSION_KEY_PROMPTED: 'card_session_key_prompted',
+    CARD_SESSION_KEY_GRANTED: 'card_session_key_granted',
+    CARD_SESSION_KEY_FAILED: 'card_session_key_failed',
+
+    // ── Card: active card behavior ──
+    CARD_PAN_REVEAL_ATTEMPTED: 'card_pan_reveal_attempted',
+    CARD_PAN_REVEALED: 'card_pan_revealed',
+    CARD_PAN_RATE_LIMITED: 'card_pan_rate_limited',
+    CARD_PAN_FAILED: 'card_pan_failed',
+    CARD_PIN_VIEW_ATTEMPTED: 'card_pin_view_attempted',
+    CARD_PIN_SET_ATTEMPTED: 'card_pin_set_attempted',
+    CARD_PIN_SET_SUCCEEDED: 'card_pin_set_succeeded',
+    CARD_PIN_SET_REJECTED: 'card_pin_set_rejected',
+    CARD_PIN_RATE_LIMITED: 'card_pin_rate_limited',
+    CARD_LIMIT_CHANGE_OPENED: 'card_limit_change_opened',
+    CARD_LIMIT_CHANGED: 'card_limit_changed',
+    CARD_LIMIT_CHANGE_FAILED: 'card_limit_change_failed',
+    CARD_LOCK_OPENED: 'card_lock_opened',
+    CARD_LOCKED: 'card_locked',
+    CARD_UNLOCKED: 'card_unlocked',
+    CARD_LOCK_FAILED: 'card_lock_failed',
+    CARD_CANCEL_OPENED: 'card_cancel_opened',
+    CARD_CANCEL_CONFIRMED: 'card_cancel_confirmed',
+    CARD_CANCEL_FEEDBACK_SUBMITTED: 'card_cancel_feedback_submitted',
+    CARD_CANCEL_FAILED: 'card_cancel_failed',
+    CARD_PHYSICAL_WAITLIST_VIEWED: 'card_physical_waitlist_viewed',
+    CARD_PHYSICAL_WAITLIST_JOINED: 'card_physical_waitlist_joined',
+    CARD_ADD_TO_WALLET_VIEWED: 'card_add_to_wallet_viewed',
+    // Spend routing across collateral / smart / mixed buckets. `strategy` is SpendStrategy.
+    CARD_WITHDRAW_ATTEMPTED: 'card_withdraw_attempted',
+    CARD_WITHDRAW_SUCCEEDED: 'card_withdraw_succeeded',
+    CARD_WITHDRAW_FAILED: 'card_withdraw_failed',
 } as const
 
 /**

@@ -49,13 +49,18 @@ export const PUBLIC_CLIENTS_BY_CHAIN: Record<
         paymasterUrl: string
     }
 > = {
+    // Primary wallet chain - always included (configurable via NEXT_PUBLIC_PEANUT_WALLET_CHAIN_ID)
     [PEANUT_WALLET_CHAIN.id]: {
+        // FOLLOW-UP: PEANUT_WALLET_CHAIN is `Chain | <extractChain return>`
+        // (env-driven). The extractChain return is broader than Chain at the
+        // type level even though it's structurally identical at runtime. Cast
+        // here so the rest of the map literal infers cleanly.
         client: createPublicClient({
             transport: getTransportWithFallback(PEANUT_WALLET_CHAIN.id as ChainId),
-            chain: PEANUT_WALLET_CHAIN,
+            chain: PEANUT_WALLET_CHAIN as Chain,
             pollingInterval: 500,
         }),
-        chain: PEANUT_WALLET_CHAIN,
+        chain: PEANUT_WALLET_CHAIN as Chain,
         bundlerUrl: BUNDLER_URL,
         paymasterUrl: PAYMASTER_URL,
     },

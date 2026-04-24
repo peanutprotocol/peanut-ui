@@ -4,6 +4,9 @@ import { serverFetch } from '@/utils/api-fetch'
 
 export interface CardInfoResponse {
     hasPurchased: boolean
+    /** True if the user can enter the Rain card flow — either via Pioneer
+     *  purchase or a manual admin grant. Gate downstream states on this. */
+    hasCardAccess: boolean
     chargeStatus?: string
     chargeUuid?: string
     paymentUrl?: string

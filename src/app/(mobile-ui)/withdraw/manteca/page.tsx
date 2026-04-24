@@ -86,7 +86,7 @@ export default function MantecaWithdrawFlow() {
     const [priceLock, setPriceLock] = useState<WithdrawPriceLock | null>(null)
     const [isLockingPrice, setIsLockingPrice] = useState(false)
     const router = useRouter()
-    const { sendMoney, balance } = useWallet()
+    const { sendMoney, spendableBalance: balance } = useWallet()
     const { signTransferUserOp } = useSignUserOp()
     const { isLoading, loadingState, setLoadingState } = useContext(loadingStateContext)
     const { user } = useAuth()

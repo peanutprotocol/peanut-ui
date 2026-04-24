@@ -56,7 +56,7 @@ export function useDirectSendFlow() {
         address: walletAddress,
         sendMoney,
         formattedBalance,
-        hasSufficientBalance,
+        hasSufficientSpendableBalance: hasSufficientBalance,
         isFetchingBalance,
     } = useWallet()
 
@@ -133,7 +133,7 @@ export function useDirectSendFlow() {
             setCharge(chargeResult)
 
             // step 2: send money via peanut wallet
-            const txResult = await sendMoney(recipient.address, amount)
+            const txResult = await sendMoney(recipient.address, amount, { kind: 'P2P_SEND' })
             const hash = (txResult.receipt?.transactionHash ?? txResult.userOpHash) as Hash
 
             setTxHash(hash)

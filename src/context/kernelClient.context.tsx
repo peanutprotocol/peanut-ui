@@ -15,6 +15,7 @@ import {
     type KernelAccountClient,
 } from '@zerodev/sdk'
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useState, useMemo } from 'react'
+import { arbitrum } from 'viem/chains'
 import { type Chain, http, type PublicClient, type Transport } from 'viem'
 import type { Address } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'

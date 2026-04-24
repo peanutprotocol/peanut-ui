@@ -50,7 +50,7 @@ export default function WithdrawBankPage() {
         setSelectedMethod,
     } = useWithdrawFlow()
     const { user, fetchUser } = useAuth()
-    const { address, sendMoney, balance } = useWallet()
+    const { address, sendMoney, spendableBalance: balance } = useWallet()
     const { guardWithTos, showBridgeTos, hideTos } = useBridgeTosGuard()
     const router = useRouter()
     const searchParams = useSearchParams()
@@ -215,17 +215,22 @@ export default function WithdrawBankPage() {
             }
 
             // Step 2: prepare and send the transaction from peanut wallet to the deposit address
-            const { receipt, userOpHash } = await sendMoney(
+            const { receipt, userOpHash, txHash } = await sendMoney(
                 data.depositInstructions.toAddress as `0x${string}`,
-                createPayload.amount
+                createPayload.amount,
+                { kind: 'FIAT_OFFRAMP' }
             )
 
             if (receipt !== null && isTxReverted(receipt)) {
                 throw new Error('Transaction reverted by the network.')
             }
 
-            // Step 3: Confirm the transfer with the backend to make it visible in history
-            const confirmResult = await confirmOfframp(data.transferId, receipt?.transactionHash ?? userOpHash)
+            // Step 3: Confirm the transfer with the backend to make it visible in history.
+            // Prefer the on-chain tx hash; fall back to the userOp hash (smart-only / mixed)
+            // or the collateral withdraw tx hash (collateral-only path).
+            const txIdentifier = receipt?.transactionHash ?? userOpHash ?? txHash
+            if (!txIdentifier) throw new Error('No transaction identifier returned from sendMoney')
+            const confirmResult = await confirmOfframp(data.transferId, txIdentifier)
 
             if (confirmResult.error) {
                 // This is a tricky state. The on-chain tx succeeded, but the backend failed to record it.

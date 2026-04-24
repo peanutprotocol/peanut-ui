@@ -14,9 +14,16 @@ import { bytesToNumber, encodeFunctionData, parseAbi, parseEventLogs, toBytes } 
 
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
+import { tokenSelectorContext } from '@/context/tokenSelector.context'
+import { useWallet } from '@/hooks/wallet/useWallet'
+import { useSignTypedData } from 'wagmi'
 
 export const useCreateLink = () => {
     const { setLoadingState } = useContext(loadingStateContext)
+    const { selectedChainID } = useContext(tokenSelectorContext)
+
+    const { address, sendTransactions } = useWallet()
+    const { signTypedDataAsync } = useSignTypedData()
     const { handleSendUserOpEncoded } = useZeroDev()
 
     const generatePassword = async () => {
@@ -64,14 +71,17 @@ export const useCreateLink = () => {
                 functionName: 'makeDeposit',
                 args: [tokenAddress, 1, amount, 0, generatedKeys.address as Hash],
             })
+            // Route through sendTransactions with `requiredUsdcAmount` so a Rain
+            // collateral withdraw is prepended to the UserOp when the smart
+            // account is short. Covers the mixed (smart + collateral) case.
             const [nextIndex, { receipt }] = await Promise.all([
                 getNextDepositIndex(contractVersion),
-                handleSendUserOpEncoded(
+                sendTransactions(
                     [
                         { to: tokenAddress, value: 0n, data: approveData },
                         { to: contractAddress, value: 0n, data: makeDepositData },
                     ],
-                    chainId
+                    { chainId, requiredUsdcAmount: amount, kind: 'LINK_CREATE' }
                 ),
             ])
             let depositIdx: number
@@ -107,7 +117,7 @@ export const useCreateLink = () => {
                 tokenAddress,
             }
         },
-        [handleSendUserOpEncoded]
+        [sendTransactions]
     )
 
     return {

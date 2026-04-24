@@ -1,4 +1,6 @@
 import { getEntryPoint, KERNEL_V3_1 } from '@zerodev/sdk/constants'
+import { extractChain } from 'viem'
+import * as chains from 'viem/chains'
 import { arbitrum, arbitrumSepolia } from 'viem/chains'
 
 // consts needed to define low level SDK kernel
@@ -14,15 +16,24 @@ export const PASSKEY_SERVER_URL = process.env.NEXT_PUBLIC_ZERO_DEV_PASSKEY_SERVE
 const SANDBOX_CHAIN_ID = process.env.NEXT_PUBLIC_PEANUT_WALLET_CHAIN_ID
 const USE_SEPOLIA = SANDBOX_CHAIN_ID === '421614'
 
-export const PEANUT_WALLET_CHAIN = USE_SEPOLIA ? arbitrumSepolia : arbitrum
-export const PEANUT_WALLET_TOKEN_DECIMALS = 6 // USDC decimals
+// Wallet chain & token — configurable via env for sandbox/testnet testing.
+// Defaults: Arbitrum mainnet + USDC. When NEXT_PUBLIC_PEANUT_WALLET_CHAIN_ID
+// is '421614' (Arb Sepolia), default token falls back to Circle's testnet USDC.
+const walletChainId = Number(process.env.NEXT_PUBLIC_PEANUT_WALLET_CHAIN_ID || arbitrum.id)
+export const PEANUT_WALLET_CHAIN =
+    walletChainId === arbitrum.id
+        ? arbitrum
+        : USE_SEPOLIA
+          ? arbitrumSepolia
+          : extractChain({ chains: Object.values(chains), id: walletChainId as any })
 export const PEANUT_WALLET_TOKEN =
     process.env.NEXT_PUBLIC_PEANUT_WALLET_TOKEN ??
     (USE_SEPOLIA
         ? '0x75faf114eafb1bdbe2f0316df893fd58ce46aa4d' // Circle USDC on Arb Sepolia
         : '0xaf88d065e77c8cc2239327c5edb3a432268e5831') // Circle USDC on Arb One
-export const PEANUT_WALLET_TOKEN_SYMBOL = 'USDC'
-export const PEANUT_WALLET_TOKEN_NAME = 'USD Coin'
+export const PEANUT_WALLET_TOKEN_DECIMALS = Number(process.env.NEXT_PUBLIC_PEANUT_WALLET_TOKEN_DECIMALS || 6)
+export const PEANUT_WALLET_TOKEN_SYMBOL = process.env.NEXT_PUBLIC_PEANUT_WALLET_TOKEN_SYMBOL || 'USDC'
+export const PEANUT_WALLET_TOKEN_NAME = process.env.NEXT_PUBLIC_PEANUT_WALLET_TOKEN_NAME || 'USD Coin'
 export const PEANUT_WALLET_TOKEN_IMG_URL =
     'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/logo.png'
 

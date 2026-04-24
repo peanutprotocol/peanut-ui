@@ -69,6 +69,7 @@
         "@wagmi/core": "2.19.0",
         "@zerodev/ecdsa-validator": "^5.4.9",
         "@zerodev/passkey-validator": "^5.6.0",
+        "@zerodev/permissions": "5.5.0",
         "@zerodev/sdk": "5.5.7",
         "@zerodev/webauthn-key": "^5.5.0",
         "autoprefixer": "^10.4.20",

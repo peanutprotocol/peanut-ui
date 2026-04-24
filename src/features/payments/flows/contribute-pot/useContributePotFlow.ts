@@ -63,7 +63,7 @@ export function useContributePotFlow() {
         address: walletAddress,
         sendMoney,
         formattedBalance,
-        hasSufficientBalance,
+        hasSufficientSpendableBalance: hasSufficientBalance,
         isFetchingBalance,
     } = useWallet()
 
@@ -192,7 +192,7 @@ export function useContributePotFlow() {
                 }
 
                 // step 2: send money via peanut wallet
-                const txResult = await sendMoney(recipient.address, amount)
+                const txResult = await sendMoney(recipient.address, amount, { kind: 'REQUEST_PAY' })
                 const hash = (txResult.receipt?.transactionHash ?? txResult.userOpHash) as Hash
 
                 setTxHash(hash)
