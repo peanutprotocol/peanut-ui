@@ -166,10 +166,6 @@ export const mantecaApi = {
         chainId: string
         entryPointAddress: Address
     }): Promise<QrPayment> => {
-        // 120s timeout for this long-running operation
-        const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 120000)
-
         const response = await serverFetch('/manteca/qr-payment/complete-with-signed-tx', {
             method: 'POST',
             body: jsonStringify({
@@ -179,10 +175,8 @@ export const mantecaApi = {
                 entryPointAddress,
                 qrType,
             }),
-            signal: controller.signal,
+            timeoutMs: 120_000, // long-running signed userop submission
         })
-
-        clearTimeout(timeoutId)
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}))

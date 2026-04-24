@@ -17,10 +17,13 @@ export async function POST(request: NextRequest) {
     const fullAPIUrl = `${PEANUT_API_URL}/${endpointToCall}`
 
     let jsonToPass = {}
-    try {
-        jsonToPass = await request.json()
-    } catch {
-        // no body or invalid json — proceed with empty object
+    const rawBody = await request.text()
+    if (rawBody.length > 0) {
+        try {
+            jsonToPass = JSON.parse(rawBody)
+        } catch (error) {
+            console.warn('proxy POST: malformed JSON body, proceeding with {}', error)
+        }
     }
 
     const userIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip')

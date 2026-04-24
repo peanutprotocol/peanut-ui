@@ -119,17 +119,11 @@ async function fetchInvitesGraph(
     handleStatusError?: (status: number) => string | null
 ): Promise<InvitesGraphResponse> {
     try {
-        // Add 30s timeout for large graph data
-        const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 30000)
-
         const response = await serverFetch(endpoint, {
             method: 'GET',
             headers: extraHeaders,
-            signal: controller.signal,
+            timeoutMs: 30_000, // large graph data can be slow
         })
-
-        clearTimeout(timeoutId)
 
         if (!response.ok) {
             console.error('getInvitesGraph: API request failed', response.status, response.statusText)

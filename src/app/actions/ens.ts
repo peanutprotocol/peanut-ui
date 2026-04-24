@@ -3,7 +3,7 @@ import { serverFetch } from '@/utils/api-fetch'
 
 export const resolveEns = unstable_cache(
     async (ensName: string): Promise<string | undefined> => {
-        const response = await serverFetch(`/ens/${ensName}`, {
+        const response = await serverFetch(`/ens/${encodeURIComponent(ensName)}`, {
             method: 'GET',
         })
         if (response.status === 404) return undefined
