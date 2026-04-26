@@ -31,7 +31,7 @@ import PageContainer from '../0_Bruddle/PageContainer'
 import PeanutLoading from '../Global/PeanutLoading'
 import * as _consts from './Claim.consts'
 import FlowManager from './Link/FlowManager'
-import { type PeanutCrossChainRoute } from '@/services/swap'
+import { type ClaimXChainPreview } from './Claim.consts'
 import { ClaimedView, ClaimErrorView } from './Generic'
 import { twMerge } from 'tailwind-merge'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
@@ -55,7 +55,7 @@ export const Claim = ({}) => {
     })
     const [tokenPrice, setTokenPrice] = useState<number>(0)
     const [estimatedPoints, setEstimatedPoints] = useState<number>(0)
-    const [selectedRoute, setSelectedRoute] = useState<PeanutCrossChainRoute | undefined>(undefined)
+    const [selectedRoute, setSelectedRoute] = useState<ClaimXChainPreview | undefined>(undefined)
     const [transactionHash, setTransactionHash] = useState<string>()
     const [hasFetchedRoute, setHasFetchedRoute] = useState<boolean>(false)
 

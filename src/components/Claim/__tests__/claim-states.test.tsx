@@ -167,7 +167,10 @@ jest.mock('@/utils/peanut-link.utils', () => ({
     getLinkFromParams: jest.fn(),
 }))
 
-jest.mock('@/services/swap', () => ({}))
+jest.mock('@/services/rhino-sda', () => ({
+    previewSdaTransfer: jest.fn(),
+    provisionSdaTransfer: jest.fn(),
+}))
 
 jest.mock('@/components/TransactionDetails/transactionTransformer', () => ({
     REWARD_TOKENS: {},

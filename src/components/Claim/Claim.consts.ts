@@ -1,8 +1,22 @@
 import type { RecipientType } from '@/interfaces/interfaces'
 import { type IOfframpSuccessScreenProps, type IOfframpConfirmScreenProps } from '../Offramp/Offramp.consts'
 import { type ClaimLinkData } from '@/services/sendLinks'
-import { type PeanutCrossChainRoute } from '@/services/swap'
+import type { Address } from 'viem'
 import type { IOfframpForm } from '@/constants/cashout.consts'
+
+/** Cross-chain claim preview returned by Rhino SDA. Replaces the heavier
+ *  Squid `PeanutCrossChainRoute` shape — the UI only ever needed the
+ *  destination chain/token + receive amount + fee. */
+export interface ClaimXChainPreview {
+    /** Destination chain id (where claimer receives). */
+    chainId: string
+    /** Destination token address. */
+    tokenAddress: Address
+    /** Human-readable amount the recipient will receive. */
+    receiveAmount: string
+    /** Rhino fee in USD. */
+    feeUsd: number
+}
 export type ClaimType = 'claim' | 'claimxchain'
 
 export type ClaimScreens = 'INITIAL' | 'CONFIRM' | 'SUCCESS'
@@ -42,8 +56,8 @@ export interface IClaimScreenProps {
     setEstimatedPoints: (points: number) => void
     attachment: { message: string | undefined; attachmentUrl: string | undefined }
     setAttachment: (attachment: { message: string | undefined; attachmentUrl: string | undefined }) => void
-    selectedRoute: PeanutCrossChainRoute | undefined
-    setSelectedRoute: (route: PeanutCrossChainRoute | undefined) => void
+    selectedRoute: ClaimXChainPreview | undefined
+    setSelectedRoute: (route: ClaimXChainPreview | undefined) => void
     hasFetchedRoute: boolean
     setHasFetchedRoute: (fetched: boolean) => void
     recipientType: RecipientType
