@@ -6,9 +6,9 @@
 import * as interfaces from '@/interfaces/peanut-sdk-types'
 import { supportedPeanutChains, peanutTokenDetails } from '@/constants/general.consts'
 
-type ChainWithTokens = interfaces.ISquidChain & { networkName: string; tokens: interfaces.ISquidToken[] }
+type ChainWithTokens = interfaces.IChainMeta & { networkName: string; tokens: interfaces.ITokenMeta[] }
 
-export async function getSquidChainsAndTokens(): Promise<Record<string, ChainWithTokens>> {
+export async function getSupportedChainsAndTokens(): Promise<Record<string, ChainWithTokens>> {
     const result: Record<string, ChainWithTokens> = {}
     for (const chain of supportedPeanutChains) {
         if (!chain.mainnet) continue

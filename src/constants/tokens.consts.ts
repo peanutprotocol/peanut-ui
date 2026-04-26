@@ -2,4 +2,4 @@
 export const NATIVE_TOKEN_ADDRESS = '0x0000000000000000000000000000000000000000'
 
 /** Squid's pseudo-address for native ETH (0xEeE…). */
-export const SQUID_ETH_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
+export const NATIVE_TOKEN_PROXY_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'

@@ -11,6 +11,6 @@ export interface ParsedURL {
         resolvedAddress: string
     } | null
     amount?: string
-    token?: interfaces.ISquidToken
-    chain?: interfaces.ISquidChain & { tokens: interfaces.ISquidToken[] }
+    token?: interfaces.ITokenMeta
+    chain?: interfaces.IChainMeta & { tokens: interfaces.ITokenMeta[] }
 }

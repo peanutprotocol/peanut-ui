@@ -15,8 +15,8 @@ export interface TokenChainIconData {
     resolvedTokenSymbol?: string
     chainFound: boolean
     tokenFound: boolean
-    chainDetails?: interfaces.ISquidChain & { tokens: interfaces.ISquidToken[] }
-    tokenDetails?: interfaces.ISquidToken
+    chainDetails?: interfaces.IChainMeta & { tokens: interfaces.ITokenMeta[] }
+    tokenDetails?: interfaces.ITokenMeta
 }
 
 export const useTokenChainIcons = ({
@@ -24,7 +24,7 @@ export const useTokenChainIcons = ({
     tokenAddress,
     tokenSymbol,
 }: TokenChainIconInputs): TokenChainIconData => {
-    const { supportedSquidChainsAndTokens } = useContext(tokenSelectorContext)
+    const { supportedChainsAndTokens } = useContext(tokenSelectorContext)
 
     const defaultResponse: TokenChainIconData = {
         chainFound: false,
@@ -36,7 +36,7 @@ export const useTokenChainIcons = ({
     }
 
     const chainIdStr = String(chainId)
-    const chainInfo = supportedSquidChainsAndTokens[chainIdStr]
+    const chainInfo = supportedChainsAndTokens[chainIdStr]
 
     if (!chainInfo) {
         // If chainInfo is not found, use chainIdStr for display name, if available
@@ -46,7 +46,7 @@ export const useTokenChainIcons = ({
 
     // use networkName if available, otherwise fallback to simple CHAIN
     const resolvedChainName = chainInfo.networkName ? chainInfo.networkName : `CHAIN`
-    let tokenInfo: interfaces.ISquidToken | undefined = undefined
+    let tokenInfo: interfaces.ITokenMeta | undefined = undefined
 
     if (tokenAddress) {
         tokenInfo = chainInfo.tokens.find((t) => t.address.toLowerCase() === tokenAddress.toLowerCase())

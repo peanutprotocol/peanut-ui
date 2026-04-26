@@ -19,7 +19,7 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.co
 import { tokenSelectorContext } from '@/context'
 import { type IToken, type IUserBalance } from '@/interfaces'
 import { areEvmAddressesEqual, isNativeCurrency, getChainName } from '@/utils/general.utils'
-import { SQUID_ETH_ADDRESS } from '@/utils/token.utils'
+import { NATIVE_TOKEN_PROXY_ADDRESS } from '@/utils/token.utils'
 import EmptyState from '../EmptyStates/EmptyState'
 import { Icon, type IconName } from '../Icons/Icon'
 import NetworkButton from './Components/NetworkButton'
@@ -61,11 +61,11 @@ interface NewTokenSelectorProps {
 
 const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewType = 'other', disabled }) => {
     // check if cross-chain is disabled via maintenance config
-    const isSquidWithdrawDisabled = viewType === 'withdraw' && underMaintenanceConfig.disableSquidWithdraw
-    const isSquidSendDisabled =
-        (viewType === 'claim' || viewType === 'req_pay') && underMaintenanceConfig.disableSquidSend
+    const isXchainWithdrawDisabled = viewType === 'withdraw' && underMaintenanceConfig.disableXchainWithdraw
+    const isXchainSendDisabled =
+        (viewType === 'claim' || viewType === 'req_pay') && underMaintenanceConfig.disableXchainSend
     // combined flag for any cross-chain disabled state
-    const isCrossChainDisabled = isSquidWithdrawDisabled || isSquidSendDisabled
+    const isCrossChainDisabled = isXchainWithdrawDisabled || isXchainSendDisabled
 
     // state to track content height
     const contentRef = useRef<HTMLDivElement>(null)
@@ -77,7 +77,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
     // state for image loading errors
     const [buttonImageError, setButtonImageError] = useState(false)
     const {
-        supportedSquidChainsAndTokens,
+        supportedChainsAndTokens,
         setSelectedTokenAddress,
         setSelectedChainID,
         selectedTokenAddress,
@@ -120,12 +120,12 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
     const selectedNetworkName = useMemo(() => {
         if (!selectedChainID) return null
         return getChainName(selectedChainID) || `Chain ${selectedChainID}`
-    }, [selectedChainID, supportedSquidChainsAndTokens])
+    }, [selectedChainID, supportedChainsAndTokens])
 
     const peanutWalletTokenDetails = useMemo(() => {
-        if (!supportedSquidChainsAndTokens) return null
+        if (!supportedChainsAndTokens) return null
 
-        const chainInfo = supportedSquidChainsAndTokens[PEANUT_WALLET_CHAIN.id]
+        const chainInfo = supportedChainsAndTokens[PEANUT_WALLET_CHAIN.id]
         if (!chainInfo) return null
 
         const token = chainInfo.tokens.find((t) => areEvmAddressesEqual(t.address, PEANUT_WALLET_TOKEN))
@@ -138,7 +138,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
             chainLogoURI: chainInfo.chainIconURI,
             balance: null,
         }
-    }, [supportedSquidChainsAndTokens])
+    }, [supportedChainsAndTokens])
 
     // button display variables - derive from selected token/chain
     let buttonSymbol: string | undefined = undefined
@@ -147,7 +147,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
     let buttonChainLogoURI: string | undefined = peanutWalletTokenDetails?.chainLogoURI
 
     if (selectedTokenAddress && selectedChainID) {
-        const chainInfo = supportedSquidChainsAndTokens[selectedChainID]
+        const chainInfo = supportedChainsAndTokens[selectedChainID]
         const tokenDetails = chainInfo?.tokens.find((t) => areEvmAddressesEqual(t.address, selectedTokenAddress))
         if (tokenDetails && chainInfo) {
             buttonSymbol = tokenDetails.symbol
@@ -160,9 +160,9 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
     const allowedChainIds = useMemo(() => new Set(TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS), [])
 
     const popularChainsForButtons = useMemo(() => {
-        if (!supportedSquidChainsAndTokens) return []
+        if (!supportedChainsAndTokens) return []
         return TOKEN_SELECTOR_POPULAR_NETWORK_IDS.map((popularNetwork) => {
-            const chain = supportedSquidChainsAndTokens[popularNetwork.chainId]
+            const chain = supportedChainsAndTokens[popularNetwork.chainId]
             // skip if the chain ID from popular list isn't found in squid data
             if (!chain) return null
 
@@ -172,15 +172,15 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                 iconURI: chain.chainIconURI || '',
             }
         }).filter((chain): chain is { chainId: string; name: string; iconURI: string } => Boolean(chain)) // type guard filter nulls
-    }, [supportedSquidChainsAndTokens])
+    }, [supportedChainsAndTokens])
 
     // build list of popular tokens (usdc, usdt, native) for display
     const popularTokensList = useMemo(() => {
         // when squid withdraw is disabled, only show USDC on Arbitrum
         if (isCrossChainDisabled) {
-            if (!supportedSquidChainsAndTokens) return []
+            if (!supportedChainsAndTokens) return []
             const arbitrumChainId = PEANUT_WALLET_CHAIN.id.toString()
-            const chainData = supportedSquidChainsAndTokens[arbitrumChainId]
+            const chainData = supportedChainsAndTokens[arbitrumChainId]
             if (!chainData?.tokens) return []
 
             const usdcToken = chainData.tokens.find((t) => areEvmAddressesEqual(t.address, PEANUT_WALLET_TOKEN))
@@ -237,10 +237,10 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
 
         const buildTokensForChainArray = (chainIds: string[], filterSymbol?: string): IUserBalance[] => {
             const tokens: IUserBalance[] = []
-            if (!supportedSquidChainsAndTokens) return tokens
+            if (!supportedChainsAndTokens) return tokens
 
             chainIds.forEach((chainId) => {
-                const chainData = supportedSquidChainsAndTokens[chainId]
+                const chainData = supportedChainsAndTokens[chainId]
                 if (chainData?.tokens) {
                     const processToken = (token: IToken) => {
                         if (filterSymbol) {
@@ -253,7 +253,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                             }
                         } else {
                             // no specific symbol filter, add USDC, USDT, Native
-                            if (areEvmAddressesEqual(token.address, SQUID_ETH_ADDRESS)) {
+                            if (areEvmAddressesEqual(token.address, NATIVE_TOKEN_PROXY_ADDRESS)) {
                                 tokens.push(createPopularTokenEntry(token, chainId))
                             } else if (popularSymbolsToFind.includes(token.symbol.toUpperCase())) {
                                 tokens.push(createPopularTokenEntry(token, chainId))
@@ -280,7 +280,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
         // default: popular tokens on popular chains
         const popularChainIds = popularChainsForButtons.map((pc) => pc.chainId)
         return buildTokensForChainArray(popularChainIds)
-    }, [searchValue, selectedChainID, supportedSquidChainsAndTokens, popularChainsForButtons, isCrossChainDisabled])
+    }, [searchValue, selectedChainID, supportedChainsAndTokens, popularChainsForButtons, isCrossChainDisabled])
 
     // filter popular tokens by search
     const filteredPopularTokensToDisplay = useMemo(() => {
@@ -384,7 +384,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                     <div ref={contentRef} className="mx-auto md:max-w-2xl">
                         {showNetworkList ? (
                             <NetworkListView
-                                chains={supportedSquidChainsAndTokens}
+                                chains={supportedChainsAndTokens}
                                 onSelectChain={handleChainSelectFromList}
                                 onBack={() => setShowNetworkList(false)}
                                 searchValue={networkSearchValue}

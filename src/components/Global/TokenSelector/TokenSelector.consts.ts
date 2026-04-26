@@ -10,7 +10,7 @@ interface CombinedType extends IPeanutChainDetails {
 export interface TokenSelectorProps {
     classNameButton?: string
     shouldBeConnected?: boolean
-    showOnlySquidSupported?: boolean
+    showOnlyXchainSupported?: boolean
     onReset?: () => void
 }
 

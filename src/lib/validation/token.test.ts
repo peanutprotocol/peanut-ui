@@ -4,7 +4,7 @@ import * as interfaces from '@/interfaces/peanut-sdk-types'
 
 const mockSquidChains: Record<
     string,
-    interfaces.ISquidChain & { networkName: string; tokens: interfaces.ISquidToken[] }
+    interfaces.IChainMeta & { networkName: string; tokens: interfaces.ITokenMeta[] }
 > = {
     '1': {
         chainId: '1',
@@ -103,8 +103,8 @@ jest.mock('@/constants/zerodev.consts', () => ({
     PEANUT_WALLET_TOKEN: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
 }))
 
-jest.mock('@/app/actions/squid', () => ({
-    getSquidChainsAndTokens: () => Promise.resolve(mockSquidChains),
+jest.mock('@/app/actions/supported-chains', () => ({
+    getSupportedChainsAndTokens: () => Promise.resolve(mockSquidChains),
 }))
 
 describe('Token Validation', () => {

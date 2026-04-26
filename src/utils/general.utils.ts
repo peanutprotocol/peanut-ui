@@ -13,7 +13,7 @@ import { getAddress, isAddress, erc20Abi } from 'viem'
 import * as wagmiChains from 'wagmi/chains'
 import { getPublicClient, type ChainId } from '@/app/actions/clients'
 import { type ChargeEntry } from '@/services/services.types'
-import { NATIVE_TOKEN_ADDRESS, SQUID_ETH_ADDRESS } from '@/constants/tokens.consts'
+import { NATIVE_TOKEN_ADDRESS, NATIVE_TOKEN_PROXY_ADDRESS } from '@/constants/tokens.consts'
 import { toWebAuthnKey } from '@zerodev/passkey-validator'
 import { USER_OPERATION_REVERT_REASON_TOPIC } from '@/constants/zerodev.consts'
 import { CHAIN_LOGOS, type ChainName } from '@/constants/rhino.consts'
@@ -437,8 +437,8 @@ export const isTestnetChain = (chainId: string) => {
 
 export const areEvmAddressesEqual = (address1: string, address2: string): boolean => {
     if (!isAddress(address1) || !isAddress(address2)) return false
-    if (address1.toLowerCase() === SQUID_ETH_ADDRESS.toLocaleLowerCase()) address1 = NATIVE_TOKEN_ADDRESS
-    if (address2.toLowerCase() === SQUID_ETH_ADDRESS.toLocaleLowerCase()) address2 = NATIVE_TOKEN_ADDRESS
+    if (address1.toLowerCase() === NATIVE_TOKEN_PROXY_ADDRESS.toLocaleLowerCase()) address1 = NATIVE_TOKEN_ADDRESS
+    if (address2.toLowerCase() === NATIVE_TOKEN_PROXY_ADDRESS.toLocaleLowerCase()) address2 = NATIVE_TOKEN_ADDRESS
     // By using getAddress we are safe from different cases
     // and other address formatting
     return getAddress(address1) === getAddress(address2)

@@ -20,7 +20,7 @@ import { ErrorHandler } from '@/utils/sdkErrorHandler.utils'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { apiFetch } from '@/utils/api-fetch'
 import { getBridgeChainName, getBridgeTokenName } from '@/utils/bridge-accounts.utils'
-import { NATIVE_TOKEN_ADDRESS, SQUID_ETH_ADDRESS, checkTokenSupportsXChain } from '@/utils/token.utils'
+import { NATIVE_TOKEN_ADDRESS, NATIVE_TOKEN_PROXY_ADDRESS, checkTokenSupportsXChain } from '@/utils/token.utils'
 import * as Sentry from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -107,7 +107,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         setRefetchXchainRoute,
         isXChain,
         setIsXChain,
-        supportedSquidChainsAndTokens,
+        supportedChainsAndTokens,
         setDevconnectChainId,
         setDevconnectRecipientAddress,
         setDevconnectTokenAddress,
@@ -135,7 +135,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             paramsDevconnectTokenAddress &&
             paramsDevconnectRecipientAddress &&
             paramsDevconnectChainId &&
-            Object.keys(supportedSquidChainsAndTokens).length > 0
+            Object.keys(supportedChainsAndTokens).length > 0
         ) {
             let isSupported = false
 
@@ -151,7 +151,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 isSupported = checkTokenSupportsXChain(
                     paramsDevconnectTokenAddress,
                     paramsDevconnectChainId,
-                    supportedSquidChainsAndTokens
+                    supportedChainsAndTokens
                 )
             }
 
@@ -168,7 +168,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         paramsDevconnectTokenAddress,
         paramsDevconnectChainId,
         paramsDevconnectRecipientAddress,
-        supportedSquidChainsAndTokens,
+        supportedChainsAndTokens,
         campaignTag,
         setDevconnectChainId,
         setDevconnectRecipientAddress,
@@ -608,7 +608,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
 
                 const fromToken =
                     claimLinkData.tokenAddress === NATIVE_TOKEN_ADDRESS
-                        ? SQUID_ETH_ADDRESS
+                        ? NATIVE_TOKEN_PROXY_ADDRESS
                         : claimLinkData.tokenAddress.toLowerCase()
 
                 const route = await getRoute(

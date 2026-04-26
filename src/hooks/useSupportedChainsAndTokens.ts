@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { getSquidChainsAndTokens } from '@/app/actions/squid'
+import { getSupportedChainsAndTokens } from '@/app/actions/supported-chains'
 
 /**
  * Hook to fetch and cache Squid chains and tokens configuration
@@ -11,13 +11,13 @@ import { getSquidChainsAndTokens } from '@/app/actions/squid'
  *
  * @example
  * ```typescript
- * const { data: chainsAndTokens = {} } = useSquidChainsAndTokens()
+ * const { data: chainsAndTokens = {} } = useSupportedChainsAndTokens()
  * ```
  */
-export const useSquidChainsAndTokens = () => {
+export const useSupportedChainsAndTokens = () => {
     return useQuery({
         queryKey: ['squidChainsAndTokens'],
-        queryFn: getSquidChainsAndTokens,
+        queryFn: getSupportedChainsAndTokens,
         staleTime: 24 * 60 * 60 * 1000, // 1 day in milliseconds
         gcTime: 24 * 60 * 60 * 1000, // 1 day in milliseconds
         refetchOnWindowFocus: false, // Don't refetch on tab focus

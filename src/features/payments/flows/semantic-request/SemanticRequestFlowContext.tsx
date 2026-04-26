@@ -72,7 +72,7 @@ interface SemanticRequestFlowContextValue {
 
     // token denomination from url (e.g., ETH when url is /address/0.0001eth)
     // when set, amounts should be displayed in this token rather than USD
-    urlToken: interfaces.ISquidToken | undefined
+    urlToken: interfaces.ITokenMeta | undefined
 
     // whether the url specified a non-stablecoin token (e.g., eth, not usdc)
     // when true, amounts are displayed in token units rather than USD

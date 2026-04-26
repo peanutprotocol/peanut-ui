@@ -1,4 +1,4 @@
-import { getSquidChainsAndTokens } from '@/app/actions/squid'
+import { getSupportedChainsAndTokens } from '@/app/actions/supported-chains'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import * as interfaces from '@/interfaces/peanut-sdk-types'
 import { ChainValidationError } from '../url-parser/errors'
@@ -7,14 +7,14 @@ import { POPULAR_CHAIN_NAME_VARIANTS } from '../url-parser/parser.consts'
 // This is used to support other tokens, specifically for reward tokens for
 // example, it was used to support beer token in polygon in early versions of the app
 // We keep the mapping for future configuration
-const EXTRA_TOKENS_BY_CHAIN: Record<string, interfaces.ISquidToken[]> = {}
+const EXTRA_TOKENS_BY_CHAIN: Record<string, interfaces.ITokenMeta[]> = {}
 
 export async function getTokenAndChainDetails(
     tokenSymbol: string,
     chain?: string | number
-): Promise<{ chain: interfaces.ISquidChain | null; token?: interfaces.ISquidToken }> {
+): Promise<{ chain: interfaces.IChainMeta | null; token?: interfaces.ITokenMeta }> {
     const normalizeTokenSymbol = tokenSymbol.toLowerCase()
-    const squidChainsAndTokens = await getSquidChainsAndTokens()
+    const squidChainsAndTokens = await getSupportedChainsAndTokens()
 
     if (chain) {
         //TODO what about chains and tokens that are not supported by squid? we should
@@ -57,9 +57,9 @@ export async function getTokenAndChainDetails(
 // utility to get human-readable chain name
 export function getChainDetails(
     chain: string | number,
-    squidChainsAndTokens: Record<string, interfaces.ISquidChain & { tokens: interfaces.ISquidToken[] }>
-): interfaces.ISquidChain & { tokens: interfaces.ISquidToken[] } {
-    let chainDetails: interfaces.ISquidChain & { tokens: interfaces.ISquidToken[] }
+    squidChainsAndTokens: Record<string, interfaces.IChainMeta & { tokens: interfaces.ITokenMeta[] }>
+): interfaces.IChainMeta & { tokens: interfaces.ITokenMeta[] } {
+    let chainDetails: interfaces.IChainMeta & { tokens: interfaces.ITokenMeta[] }
 
     // resolve chain by name
     if (typeof chain === 'string') {

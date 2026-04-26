@@ -16,9 +16,9 @@ import { STABLE_COINS, supportedMobulaChains } from '@/constants/general.consts'
 interface UseTokenPriceParams {
     tokenAddress: string | undefined
     chainId: string | undefined
-    supportedSquidChainsAndTokens: Record<
+    supportedChainsAndTokens: Record<
         string,
-        interfaces.ISquidChain & { networkName: string; tokens: interfaces.ISquidToken[] }
+        interfaces.IChainMeta & { networkName: string; tokens: interfaces.ITokenMeta[] }
     >
     isPeanutWallet: boolean
 }
@@ -42,7 +42,7 @@ interface UseTokenPriceParams {
 export const useTokenPrice = ({
     tokenAddress,
     chainId,
-    supportedSquidChainsAndTokens,
+    supportedChainsAndTokens,
     isPeanutWallet,
 }: UseTokenPriceParams) => {
     // React Query v5 rejects `undefined` returns from queryFn with
@@ -68,7 +68,7 @@ export const useTokenPrice = ({
                 }
 
                 // Case 2: Known stablecoin from supported tokens (always $1)
-                const token = supportedSquidChainsAndTokens[chainId!]?.tokens.find(
+                const token = supportedChainsAndTokens[chainId!]?.tokens.find(
                     (t) => t.address.toLowerCase() === tokenAddress!.toLowerCase()
                 )
 

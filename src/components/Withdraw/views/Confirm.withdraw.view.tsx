@@ -18,7 +18,7 @@ import { ROUTE_NOT_FOUND_ERROR } from '@/constants/general.consts'
 interface WithdrawConfirmViewProps {
     amount: string
     token: ITokenPriceData
-    chain: interfaces.ISquidChain & { networkName: string; tokens: interfaces.ISquidToken[] }
+    chain: interfaces.IChainMeta & { networkName: string; tokens: interfaces.ITokenMeta[] }
     toAddress: string
     networkFee?: number
     peanutFee?: string

@@ -19,7 +19,7 @@ interface InitialWithdrawViewProps {
     amount: string
     onReview: (data: {
         token: ITokenPriceData
-        chain: interfaces.ISquidChain & { networkName: string; tokens: interfaces.ISquidToken[] }
+        chain: interfaces.IChainMeta & { networkName: string; tokens: interfaces.ITokenMeta[] }
         address: string
     }) => void
     onBack?: () => void
@@ -32,7 +32,7 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
     const {
         selectedTokenData,
         selectedChainID,
-        supportedSquidChainsAndTokens,
+        supportedChainsAndTokens,
         setSelectedChainID,
         setSelectedTokenAddress,
     } = useContext(tokenSelectorContext)
@@ -49,7 +49,7 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
     } = useWithdrawFlow()
 
     const handleReview = () => {
-        const squidChainData = supportedSquidChainsAndTokens[selectedChainID]
+        const squidChainData = supportedChainsAndTokens[selectedChainID]
         // When the user is withdrawing on the Peanut wallet chain (same-chain,
         // no Squid bridge needed), Squid may not list that chain — especially
         // on testnets or env-configured chains. Synthesize a minimal chain
@@ -62,9 +62,9 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
                       chainId: PEANUT_WALLET_CHAIN.id.toString(),
                       networkName: PEANUT_WALLET_CHAIN.name,
                       tokens: [],
-                  } as unknown as interfaces.ISquidChain & {
+                  } as unknown as interfaces.IChainMeta & {
                       networkName: string
-                      tokens: interfaces.ISquidToken[]
+                      tokens: interfaces.ITokenMeta[]
                   })
                 : undefined
         const selectedChainData = squidChainData ?? fallbackChainData

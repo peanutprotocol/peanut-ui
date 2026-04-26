@@ -69,14 +69,14 @@ export interface SDKStatus {
 }
 
 /** Squid types — kept until the cross-chain UI surface is migrated to Rhino. */
-export interface ISquidChain {
+export interface IChainMeta {
 	chainId: string
 	axelarChainName: string
 	chainType: string
 	chainIconURI: string
 }
 
-export interface ISquidToken {
+export interface ITokenMeta {
 	active: boolean
 	chainId: string
 	address: string

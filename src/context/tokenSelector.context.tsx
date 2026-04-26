@@ -10,7 +10,7 @@ import {
     PEANUT_WALLET_TOKEN_SYMBOL,
 } from '@/constants/zerodev.consts'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { useSquidChainsAndTokens } from '@/hooks/useSquidChainsAndTokens'
+import { useSupportedChainsAndTokens } from '@/hooks/useSupportedChainsAndTokens'
 import { useTokenPrice } from '@/hooks/useTokenPrice'
 import { type ITokenPriceData } from '@/interfaces'
 import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
@@ -35,9 +35,9 @@ export const tokenSelectorContext = createContext({
     setIsXChain: (value: boolean) => {},
     selectedTokenData: undefined as ITokenPriceData | null | undefined,
     isFetchingTokenData: false as boolean,
-    supportedSquidChainsAndTokens: {} as Record<
+    supportedChainsAndTokens: {} as Record<
         string,
-        interfaces.ISquidChain & { networkName: string; tokens: interfaces.ISquidToken[] }
+        interfaces.IChainMeta & { networkName: string; tokens: interfaces.ITokenMeta[] }
     >,
     selectedTokenBalance: undefined as string | undefined,
     setSelectedTokenBalance: (balance: string | undefined) => {},
@@ -76,7 +76,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
     const [devconnectRecipientAddress, setDevconnectRecipientAddress] = useState<string>('')
 
     // Fetch Squid chains and tokens (cached for 24 hours - static data)
-    const { data: supportedSquidChainsAndTokens = {} } = useSquidChainsAndTokens()
+    const { data: supportedChainsAndTokens = {} } = useSupportedChainsAndTokens()
 
     // Fetch token price using TanStack Query (replaces manual useEffect + state)
     const {
@@ -86,7 +86,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
     } = useTokenPrice({
         tokenAddress: selectedTokenAddress,
         chainId: selectedChainID,
-        supportedSquidChainsAndTokens,
+        supportedChainsAndTokens,
         isPeanutWallet,
     })
 
@@ -134,7 +134,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
                 setIsXChain,
                 selectedTokenData,
                 isFetchingTokenData,
-                supportedSquidChainsAndTokens,
+                supportedChainsAndTokens,
                 selectedTokenBalance,
                 setSelectedTokenBalance,
                 devconnectTokenAddress,

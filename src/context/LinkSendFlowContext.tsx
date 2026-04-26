@@ -12,7 +12,6 @@
  */
 
 import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from 'react'
-import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 
 // view states for link send flow
 export type LinkSendFlowView = 'INITIAL' | 'SUCCESS'
@@ -43,8 +42,6 @@ interface LinkSendFlowContextType {
     setAttachmentOptions: (options: LinkSendAttachmentOptions) => void
     errorState: LinkSendErrorState | undefined
     setErrorState: (state: LinkSendErrorState | undefined) => void
-    crossChainDetails: peanutInterfaces.ISquidChain[] | undefined
-    setCrossChainDetails: (details: peanutInterfaces.ISquidChain[] | undefined) => void
 
     // actions
     resetLinkSendFlow: () => void
@@ -66,7 +63,6 @@ export const LinkSendFlowProvider: React.FC<LinkSendFlowProviderProps> = ({ chil
         rawFile: undefined,
     })
     const [errorState, setErrorState] = useState<LinkSendErrorState | undefined>(undefined)
-    const [crossChainDetails, setCrossChainDetails] = useState<peanutInterfaces.ISquidChain[] | undefined>(undefined)
 
     const resetLinkSendFlow = useCallback(() => {
         setView('INITIAL')
@@ -92,11 +88,9 @@ export const LinkSendFlowProvider: React.FC<LinkSendFlowProviderProps> = ({ chil
             setAttachmentOptions,
             errorState,
             setErrorState,
-            crossChainDetails,
-            setCrossChainDetails,
             resetLinkSendFlow,
         }),
-        [view, tokenValue, link, attachmentOptions, errorState, crossChainDetails, resetLinkSendFlow]
+        [view, tokenValue, link, attachmentOptions, errorState, resetLinkSendFlow]
     )
 
     return <LinkSendFlowContext.Provider value={value}>{children}</LinkSendFlowContext.Provider>

@@ -38,7 +38,7 @@ export interface IOfframpConfirmScreenProps {
 
     // available in claim link offramps
     claimLinkData?: ILinkDetails
-    crossChainDetails?: Array<peanutInterfaces.ISquidChain & { tokens: peanutInterfaces.ISquidToken[] }> | undefined
+    crossChainDetails?: Array<peanutInterfaces.IChainMeta & { tokens: peanutInterfaces.ITokenMeta[] }> | undefined
     tokenPrice?: number
     estimatedPoints?: number
     attachment?: { message: string | undefined; attachmentUrl: string | undefined }

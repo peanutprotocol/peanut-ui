@@ -29,7 +29,6 @@ import { useHaptic } from 'use-haptic'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { ROUTE_NOT_FOUND_ERROR } from '@/constants/general.consts'
 import { useCrossChainTransfer } from '@/features/payments/shared/hooks/useCrossChainTransfer'
-import { useRouteCalculation } from '@/features/payments/shared/hooks/useRouteCalculation'
 import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentRecorder'
 import { isTxReverted } from '@/utils/general.utils'
 import { ErrorHandler } from '@/utils/sdkErrorHandler.utils'
@@ -277,12 +276,12 @@ export default function WithdrawCryptoPage() {
         })
 
         try {
-            // For same-chain + same-token withdraws, useRouteCalculation produces
-            // a single `usdc.transfer(recipient, amount)` call. Route through
-            // sendMoney instead of sendTransactions so `useSpendBundle` can take
-            // the collateral-only path (directTransfer=true straight to the
-            // external recipient — no smart-account hop). Cross-chain still has
-            // to go through the Squid calls on the kernel, so it stays on the
+            // For same-chain + same-token withdraws, useCrossChainTransfer
+            // produces a single `usdc.transfer(recipient, amount)` call. Route
+            // through sendMoney instead of sendTransactions so `useSpendBundle`
+            // can take the collateral-only path (directTransfer=true straight
+            // to the external recipient — no smart-account hop). Cross-chain
+            // goes through Rhino SDA on the kernel, so it stays on the
             // sendTransactions mixed path.
             let finalTxHash: Hex | undefined
             let receipt: TransactionReceipt | null = null
@@ -333,10 +332,6 @@ export default function WithdrawCryptoPage() {
             // and would leave the Charge unmatched ("failed" in history). The
             // Rain webhook + TransactionIntent reconciliation is the source of
             // truth for those flows.
-            // FOLLOW-UP: Rhino SDA flow (Hugo's parallel rhino agent shipped
-            // useCrossChainTransfer + RhinoSda models on api-ts side) — its
-            // BRIDGE_EXECUTED webhook is also authoritative; verify whether
-            // this skip should also apply when the rhino path is taken.
             const routedThroughCollateral = strategy === 'collateral-only' || strategy === 'mixed'
 
             let payment: Awaited<ReturnType<typeof recordPayment>> | null = null
@@ -347,9 +342,6 @@ export default function WithdrawCryptoPage() {
                     txHash: finalTxHash,
                     tokenAddress: PEANUT_WALLET_TOKEN as Address,
                     payerAddress: address as Address,
-                    // FOLLOW-UP: re-plumb squidQuoteId once useRouteCalculation
-                    // exposes the underlying xChain route response (card-ui
-                    // referenced it but the variable wasn't carried in merge).
                 })
             }
 

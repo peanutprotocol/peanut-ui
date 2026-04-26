@@ -36,8 +36,8 @@ jest.mock('@/lib/validation/recipient', () => {
 })
 
 // mock Squid data
-jest.mock('@/app/actions/squid', () => ({
-    getSquidChainsAndTokens: () => ({
+jest.mock('@/app/actions/supported-chains', () => ({
+    getSupportedChainsAndTokens: () => ({
         '1': {
             chainId: 1,
             name: 'Ethereum',
