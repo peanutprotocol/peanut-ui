@@ -310,7 +310,7 @@ export function PeanutDebug() {
                     'peanutDebug.completeRhinoReqFulfilment({ depositAddress, recipient, ... })  advance Rhino req-fulfilment SDA → BRIDGE_EXECUTED',
                     'peanutDebug.failRhinoTransfer({ depositAddress, recipient, ... })      drive Rhino SDA to BRIDGE_REFUNDED (impersonator)',
                     'peanutDebug.resetMe()                     wipes your bridge/manteca/ledger rows',
-                    'peanutDebug.ledgerHealth()                ledger row counts + dual-write stats',
+                    'peanutDebug.ledgerHealth()                ledger row counts + invariant checks',
                     'peanutDebug.ledgerHistory()               ledger intents for this user (raw)',
                 ].join('\n')
                 console.log(lines)

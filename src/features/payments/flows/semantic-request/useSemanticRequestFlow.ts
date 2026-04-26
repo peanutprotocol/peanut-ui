@@ -23,7 +23,7 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { useAuth } from '@/context/authContext'
 import { tokenSelectorContext } from '@/context'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
-import { ErrorHandler } from '@/utils/sdkErrorHandler.utils'
+import { ErrorHandler } from '@/utils/friendly-error.utils'
 import { areEvmAddressesEqual } from '@/utils/general.utils'
 import { useQueryClient } from '@tanstack/react-query'
 import { TRANSACTIONS } from '@/constants/query.consts'
@@ -451,7 +451,7 @@ export function useSemanticRequestFlow() {
     }, [currentView, charge, prepareRoute])
 
     // SDA flow has no route expiry — deposit address is valid forever, so the
-    // expired/near-expiry handlers that existed under Squid are unnecessary.
+    // expired/near-expiry handlers that existed under the old Squid path are unnecessary.
 
     // execute payment from confirm view (handles both same-chain and cross-chain)
     const executePayment = useCallback(async () => {
@@ -478,7 +478,7 @@ export function useSemanticRequestFlow() {
                 })
                 hash = (txResult.receipt?.transactionHash ?? txResult.userOpHash) as Hash
             } else if (needsRoute && routeTransactions && routeTransactions.length > 0) {
-                // cross-chain or token swap payment via squid route
+                // cross-chain or token swap payment via Rhino SDA
                 const txResult = await sendTransactions(
                     routeTransactions.map((tx) => ({
                         to: tx.to,
@@ -496,7 +496,7 @@ export function useSemanticRequestFlow() {
             // record payment to backend
             // Under the Rhino SDA flow, BRIDGE_EXECUTED webhook is authoritative
             // for charge completion — this recordPayment writes the optimistic row
-            // so UI + history update immediately. squidQuoteId is gone; cross-chain
+            // so UI + history update immediately. Cross-chain
             // path uses the SDA-address + bridgeId correlation in the backend.
             const paymentResult = await recordPayment({
                 chargeId: charge.uuid,

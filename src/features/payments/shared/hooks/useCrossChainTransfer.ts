@@ -3,7 +3,7 @@
 /**
  * Unified cross-chain transfer hook — Rhino SDA flow.
  *
- * Replaces `useRouteCalculation` (Squid). Same three consumers:
+ * Replaces useRouteCalculation (the legacy Squid route hook). Same three consumers:
  *   - Withdraw flow   (user's kernel wallet → external chain)
  *   - Pay-request     (payer's kernel wallet → merchant's chain)
  *   - Claim-link      (relayer EOA → claimer's chain, via /claim)

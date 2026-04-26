@@ -3,7 +3,7 @@
 /**
  * Client-side wrappers around the unified Rhino SDA-transfer backend.
  *
- * Replaces the `@/services/swap` (Squid) primitive under Option A (SDA for
+ * Replaces the legacy Squid primitive under Option A (SDA for
  * every cross-chain flow). Three consumers: withdraw, pay-request-x-chain,
  * claim-link-x-chain — all route through these two calls.
  */

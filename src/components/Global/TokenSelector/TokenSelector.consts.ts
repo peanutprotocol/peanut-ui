@@ -49,7 +49,7 @@ export const TOKEN_SELECTOR_COMING_SOON_NETWORKS: NetworkConfig[] = [
     },
 ]
 
-// popular networks mapping for the token selector - using the chainId as the key to get chain details from squid within token selector component
+// popular networks mapping for the token selector — chainId keys lookup into supportedChainsAndTokens for chain metadata
 export const TOKEN_SELECTOR_POPULAR_NETWORK_IDS = [
     {
         chainId: '42161',

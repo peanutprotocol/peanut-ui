@@ -163,7 +163,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
         if (!supportedChainsAndTokens) return []
         return TOKEN_SELECTOR_POPULAR_NETWORK_IDS.map((popularNetwork) => {
             const chain = supportedChainsAndTokens[popularNetwork.chainId]
-            // skip if the chain ID from popular list isn't found in squid data
+            // skip if the chain ID isn't in supportedChainsAndTokens
             if (!chain) return null
 
             return {
@@ -176,7 +176,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
 
     // build list of popular tokens (usdc, usdt, native) for display
     const popularTokensList = useMemo(() => {
-        // when squid withdraw is disabled, only show USDC on Arbitrum
+        // when xchain withdraw is disabled, only show USDC on Arbitrum
         if (isCrossChainDisabled) {
             if (!supportedChainsAndTokens) return []
             const arbitrumChainId = PEANUT_WALLET_CHAIN.id.toString()

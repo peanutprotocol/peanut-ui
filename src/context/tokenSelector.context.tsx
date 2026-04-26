@@ -75,7 +75,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
     const [devconnectChainId, setDevconnectChainId] = useState<string>('')
     const [devconnectRecipientAddress, setDevconnectRecipientAddress] = useState<string>('')
 
-    // Fetch Squid chains and tokens (cached for 24 hours - static data)
+    // Fetch supported chains and tokens (cached for 24 hours - static data)
     const { data: supportedChainsAndTokens = {} } = useSupportedChainsAndTokens()
 
     // Fetch token price using TanStack Query (replaces manual useEffect + state)

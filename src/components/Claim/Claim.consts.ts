@@ -5,7 +5,7 @@ import type { Address } from 'viem'
 import type { IOfframpForm } from '@/constants/cashout.consts'
 
 /** Cross-chain claim preview returned by Rhino SDA. Replaces the heavier
- *  Squid `PeanutCrossChainRoute` shape — the UI only ever needed the
+ *  legacy `PeanutCrossChainRoute` shape — the UI only ever needed the
  *  destination chain/token + receive amount + fee. */
 export interface ClaimXChainPreview {
     /** Destination chain id (where claimer receives). */

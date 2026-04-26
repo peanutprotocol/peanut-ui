@@ -74,7 +74,6 @@ export const chargesApi = {
         sourceChainId,
         sourceTokenAddress,
         sourceTokenSymbol,
-        squidQuoteId,
     }: {
         chargeId: string
         chainId: string
@@ -84,7 +83,6 @@ export const chargesApi = {
         sourceChainId?: string
         sourceTokenAddress?: string
         sourceTokenSymbol?: string
-        squidQuoteId?: string
     }): Promise<PaymentCreationResponse> => {
         const response = await apiFetch(`/charges/${chargeId}/payments`, `/api/proxy/charges/${chargeId}/payments`, {
             method: 'POST',
@@ -96,7 +94,6 @@ export const chargesApi = {
                 sourceChainId,
                 sourceTokenAddress,
                 sourceTokenSymbol,
-                squidQuoteId,
             }),
         })
 

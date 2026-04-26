@@ -1,6 +1,6 @@
-/** Pre-decomplexify this hit Squid's API for chain + token metadata.
+/** Pre-decomplexify this hit a third-party API for chain + token metadata.
  *  Post-decomplexify (Rhino SDA cutover) the data is local — same shape,
- *  same callsites, no live API call. The `Squid` name is a hangover —
+ *  same callsites, no live API call. The legacy `Squid` naming —
  *  see decomplexify TODO #46 for the rename. */
 
 import * as interfaces from '@/interfaces/peanut-sdk-types'

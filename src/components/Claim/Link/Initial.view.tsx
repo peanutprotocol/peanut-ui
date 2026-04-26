@@ -16,7 +16,7 @@ import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { sendLinksApi } from '@/services/sendLinks'
 import { areEvmAddressesEqual, formatTokenAmount, printableAddress } from '@/utils/general.utils'
-import { ErrorHandler } from '@/utils/sdkErrorHandler.utils'
+import { ErrorHandler } from '@/utils/friendly-error.utils'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { apiFetch } from '@/utils/api-fetch'
 import { getBridgeChainName, getBridgeTokenName } from '@/utils/bridge-accounts.utils'
@@ -132,7 +132,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     const paramsDevconnectRecipientAddress = searchParams.get('address')
 
     useEffect(() => {
-        // Validate devconnect token and chain are supported by Squid
+        // Validate devconnect token and chain are supported
         if (
             campaignTag === 'devconnect_ba_2025' &&
             paramsDevconnectTokenAddress &&
@@ -142,14 +142,14 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         ) {
             let isSupported = false
 
-            // Allow for USDC Arbitrum claims to be made without checking if they are supported by Squid
+            // Allow for USDC Arbitrum claims to be made without checking xchain support
             if (
                 paramsDevconnectTokenAddress === PEANUT_WALLET_TOKEN &&
                 paramsDevconnectChainId === PEANUT_WALLET_CHAIN.id.toString()
             ) {
                 isSupported = true
             }
-            // Check if the token and chain are supported by Squid
+            // Check if the token and chain are supported xchain
             else {
                 isSupported = checkTokenSupportsXChain(
                     paramsDevconnectTokenAddress,

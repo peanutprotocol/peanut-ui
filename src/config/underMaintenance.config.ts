@@ -17,12 +17,12 @@
  *    - shows clear error message to users about provider outage
  *    - other providers continue to work normally
  *
- * 4. disableXchainWithdraw: disables cross-chain withdrawals via Squid
+ * 4. disableXchainWithdraw: disables cross-chain withdrawals via Rhino SDA
  *    - restricts withdraw token selector to only USDC on Arbitrum
  *    - shows info message explaining cross-chain is temporarily unavailable
  *    - same-chain withdrawals (USDC on Arbitrum) continue to work
  *
- * 5. disableXchainSend: disables cross-chain sends via Squid (claim, request payments)
+ * 5. disableXchainSend: disables cross-chain sends via Rhino SDA (claim, request payments)
  *    - restricts token selector to only USDC on Arbitrum for claim and req_pay flows
  *    - shows info message explaining cross-chain is temporarily unavailable
  *    - same-chain operations continue to work

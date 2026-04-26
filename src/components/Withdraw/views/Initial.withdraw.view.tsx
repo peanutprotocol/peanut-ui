@@ -49,15 +49,15 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
     } = useWithdrawFlow()
 
     const handleReview = () => {
-        const squidChainData = supportedChainsAndTokens[selectedChainID]
+        const xchainChainData = supportedChainsAndTokens[selectedChainID]
         // When the user is withdrawing on the Peanut wallet chain (same-chain,
-        // no Squid bridge needed), Squid may not list that chain — especially
+        // no Rhino bridge needed), supportedChainsAndTokens may not list that chain — especially
         // on testnets or env-configured chains. Synthesize a minimal chain
         // object in that case so the flow can proceed. Downstream code only
         // reads `chainId` and `networkName` off this object.
         const isPeanutWalletChain = selectedChainID === PEANUT_WALLET_CHAIN.id.toString()
         const fallbackChainData =
-            isPeanutWalletChain && !squidChainData
+            isPeanutWalletChain && !xchainChainData
                 ? ({
                       chainId: PEANUT_WALLET_CHAIN.id.toString(),
                       networkName: PEANUT_WALLET_CHAIN.name,
@@ -67,7 +67,7 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
                       tokens: interfaces.ITokenMeta[]
                   })
                 : undefined
-        const selectedChainData = squidChainData ?? fallbackChainData
+        const selectedChainData = xchainChainData ?? fallbackChainData
 
         if (selectedTokenData && selectedChainData && recipient.address) {
             onReview({

@@ -132,7 +132,7 @@ async function executeClaim({
 /**
  * Claims a link cross-chain via Rhino SDA composition.
  *
- * Flow (one relayer tx, no Squid, no contract changes):
+ * Flow (one relayer tx, no contract changes):
  *   1. Backend provisions an SDA on the origin chain:
  *        depositChain=link's chain, destinationChain=claimer's target,
  *        destinationAddress=claimer, tokenOut=USDC
@@ -145,7 +145,7 @@ async function executeClaim({
  *      for observational logging.
  *
  * Fixes the chain-reset bug by design: claim contract is never asked to call
- * Squid inline; it performs a plain same-chain transfer to the SDA.
+ * same-chain transfer inline to the SDA.
  */
 async function executeClaimXChain({
     link,
