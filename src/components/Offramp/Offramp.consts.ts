@@ -1,5 +1,5 @@
 import type { ILinkDetails, RecipientType } from '@/interfaces/interfaces'
-import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import type { IOfframpForm } from '@/constants/cashout.consts'
 
 export enum OfframpType {

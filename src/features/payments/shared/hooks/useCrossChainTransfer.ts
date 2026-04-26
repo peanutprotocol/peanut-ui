@@ -25,7 +25,8 @@
 import { useCallback, useState } from 'react'
 import { captureException } from '@sentry/nextjs'
 import { encodeFunctionData, erc20Abi, parseUnits, type Address, type Hex } from 'viem'
-import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
+import { prepareRequestLinkFulfillmentTransaction } from '@/utils/peanut-claim.utils'
 import { estimateTransactionCostUsd } from '@/app/actions/tokens'
 import {
     provisionSdaTransfer,
@@ -250,7 +251,7 @@ async function buildSameChainTx({
     setReceiveAmount,
     skipGasEstimate,
 }: SameChainParams): Promise<void> {
-    const tx = peanut.prepareRequestLinkFulfillmentTransaction({
+    const tx = prepareRequestLinkFulfillmentTransaction({
         recipientAddress: destination.recipientAddress,
         tokenAddress: destination.tokenAddress,
         tokenAmount: destination.tokenAmount,

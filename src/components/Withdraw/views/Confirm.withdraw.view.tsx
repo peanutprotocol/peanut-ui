@@ -11,7 +11,7 @@ import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { type ITokenPriceData } from '@/interfaces'
 import { formatAmount, isStableCoin } from '@/utils/general.utils'
-import { interfaces } from '@squirrel-labs/peanut-sdk'
+import * as interfaces from '@/interfaces/peanut-sdk-types'
 import { useMemo } from 'react'
 import { ROUTE_NOT_FOUND_ERROR } from '@/constants/general.consts'
 

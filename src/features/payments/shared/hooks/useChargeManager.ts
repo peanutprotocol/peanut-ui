@@ -21,7 +21,7 @@ import { requestsApi } from '@/services/requests'
 import { type TRequestChargeResponse, type TCharge, type TChargeTransactionType } from '@/services/services.types'
 import { isNativeCurrency } from '@/utils/general.utils'
 import { BASE_URL } from '@/constants/general.consts'
-import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import { type Address } from 'viem'
 
 // params for creating a new charge

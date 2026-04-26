@@ -3,7 +3,7 @@
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useAppDispatch, useWalletStore } from '@/redux/hooks'
 import { walletActions } from '@/redux/slices/wallet-slice'
-import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useIsFetching } from '@tanstack/react-query'
 import { formatUnits, type Hex, type Address } from 'viem'

@@ -2,12 +2,13 @@
 import { getNextDepositIndex } from '@/app/actions/claimLinks'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { saveToLocalStorage } from '@/utils/general.utils'
-import peanut, {
-    generateKeysFromString,
+import { generateKeysFromString, getLinkFromParams } from '@/utils/peanut-link.utils'
+import {
+    getContractAbi,
+    getContractAddress,
     getLatestContractVersion,
-    getLinkFromParams,
     getRandomString,
-} from '@squirrel-labs/peanut-sdk'
+} from '@/utils/peanut-claim.utils'
 import { useCallback, useContext } from 'react'
 import type { Hash, Address } from 'viem'
 import { bytesToNumber, encodeFunctionData, parseAbi, parseEventLogs, toBytes } from 'viem'
@@ -55,8 +56,8 @@ export const useCreateLink = () => {
                 type: 'normal',
             })
             const tokenAddress = PEANUT_WALLET_TOKEN as Hash
-            const contractAbi = peanut.getContractAbi(contractVersion)
-            const contractAddress: Address = peanut.getContractAddress(
+            const contractAbi = getContractAbi(contractVersion)
+            const contractAddress: Address = getContractAddress(
                 PEANUT_WALLET_CHAIN.id.toString(),
                 contractVersion
             ) as Hash

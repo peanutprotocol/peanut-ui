@@ -1,6 +1,6 @@
 import { getSquidChainsAndTokens } from '@/app/actions/squid'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
-import { interfaces } from '@squirrel-labs/peanut-sdk'
+import * as interfaces from '@/interfaces/peanut-sdk-types'
 import { ChainValidationError } from '../url-parser/errors'
 import { POPULAR_CHAIN_NAME_VARIANTS } from '../url-parser/parser.consts'
 

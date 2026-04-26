@@ -19,7 +19,7 @@ import { createContext, useContext, useState, useMemo, useCallback, type ReactNo
 import { type Address, type Hash } from 'viem'
 import { type TRequestChargeResponse, type PaymentCreationResponse } from '@/services/services.types'
 import { type ParsedURL, type RecipientType } from '@/lib/url-parser/types/payment'
-import { interfaces } from '@squirrel-labs/peanut-sdk'
+import * as interfaces from '@/interfaces/peanut-sdk-types'
 import { isStableCoin } from '@/utils/general.utils'
 
 // view states for semantic request flow

@@ -1,6 +1,6 @@
 import { ChainValidationError } from '@/lib/url-parser/errors'
 import { getChainDetails, getTokenAndChainDetails } from '@/lib/validation/token'
-import { interfaces } from '@squirrel-labs/peanut-sdk'
+import * as interfaces from '@/interfaces/peanut-sdk-types'
 
 const mockSquidChains: Record<
     string,

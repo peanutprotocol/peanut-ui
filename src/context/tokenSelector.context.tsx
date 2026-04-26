@@ -14,7 +14,7 @@ import { useSquidChainsAndTokens } from '@/hooks/useSquidChainsAndTokens'
 import { useTokenPrice } from '@/hooks/useTokenPrice'
 import { type ITokenPriceData } from '@/interfaces'
 import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
-import { interfaces } from '@squirrel-labs/peanut-sdk'
+import * as interfaces from '@/interfaces/peanut-sdk-types'
 
 export const tokenSelectorContext = createContext({
     selectedTokenAddress: '',

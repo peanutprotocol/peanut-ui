@@ -158,11 +158,13 @@ jest.mock('@/services/sendLinks', () => ({
     getParamsFromLink: (...args: any[]) => mockGetParamsFromLink(...args),
 }))
 
-jest.mock('@squirrel-labs/peanut-sdk', () => ({
+jest.mock('@/utils/peanut-link.utils', () => ({
     generateKeysFromString: jest.fn(() => ({
         address: '0xPUBKEY',
         privateKey: '0xPRIVKEY',
     })),
+    getParamsFromLink: jest.fn(),
+    getLinkFromParams: jest.fn(),
 }))
 
 jest.mock('@/services/swap', () => ({}))
@@ -462,7 +464,7 @@ describe('GROUP 4: Error States', () => {
     test('Wrong password shows error view', async () => {
         mockGetParamsFromLink.mockReturnValue({ password: 'wrongpassword' })
         // generateKeysFromString returns a pubkey that doesn't match
-        const { generateKeysFromString } = require('@squirrel-labs/peanut-sdk')
+        const { generateKeysFromString } = require('@/utils/peanut-link.utils')
         generateKeysFromString.mockReturnValue({ address: '0xWRONG_PUBKEY' })
 
         const link = makeSendLink({ pubKey: '0xPUBKEY' })

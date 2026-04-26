@@ -1,57 +1,41 @@
-import { getSquidChains, getSquidTokens } from '@squirrel-labs/peanut-sdk'
-import { unstable_cache } from '@/utils/no-cache'
-import { interfaces } from '@squirrel-labs/peanut-sdk'
-import { supportedPeanutChains } from '@/constants/general.consts'
+/** Pre-decomplexify this hit Squid's API for chain + token metadata.
+ *  Post-decomplexify (Rhino SDA cutover) the data is local — same shape,
+ *  same callsites, no live API call. The `Squid` name is a hangover —
+ *  see decomplexify TODO #46 for the rename. */
 
-const supportedByPeanut = (chain: interfaces.ISquidChain): boolean =>
-    'evm' === chain.chainType &&
-    supportedPeanutChains.some((supportedChain) => supportedChain.chainId === chain.chainId)
+import * as interfaces from '@/interfaces/peanut-sdk-types'
+import { supportedPeanutChains, peanutTokenDetails } from '@/constants/general.consts'
 
-const tokensSupportedByPeanut = (token: interfaces.ISquidToken): boolean =>
-    supportedPeanutChains.some((supportedChain) => supportedChain.chainId === token.chainId)
+type ChainWithTokens = interfaces.ISquidChain & { networkName: string; tokens: interfaces.ISquidToken[] }
 
-const getSquidChainsCache = unstable_cache(
-    async () => {
-        const chains = await getSquidChains({ isTestnet: false })
-        return chains.filter(supportedByPeanut)
-    },
-    ['getSquidChains'],
-    {
-        revalidate: 3600 * 12,
+export async function getSquidChainsAndTokens(): Promise<Record<string, ChainWithTokens>> {
+    const result: Record<string, ChainWithTokens> = {}
+    for (const chain of supportedPeanutChains) {
+        if (!chain.mainnet) continue
+        result[chain.chainId] = {
+            chainId: chain.chainId,
+            axelarChainName: chain.shortName ?? chain.name,
+            chainType: 'evm',
+            chainIconURI: chain.icon?.url ?? '',
+            networkName: chain.name,
+            tokens: [],
+        }
     }
-)
-const getSquidTokensCache = unstable_cache(
-    async () => {
-        const tokens = await getSquidTokens({ isTestnet: false })
-        return tokens.filter(tokensSupportedByPeanut)
-    },
-    ['getSquidTokens'],
-    {
-        revalidate: 3600 * 12,
+    for (const chainTokens of peanutTokenDetails) {
+        const bucket = result[chainTokens.chainId]
+        if (!bucket) continue
+        for (const token of chainTokens.tokens) {
+            bucket.tokens.push({
+                active: true,
+                chainId: chainTokens.chainId,
+                address: token.address,
+                decimals: token.decimals,
+                name: token.name,
+                symbol: token.symbol,
+                logoURI: token.logoURI,
+                usdPrice: 0,
+            })
+        }
     }
-)
-
-export const getSquidChainsAndTokens = unstable_cache(
-    async (): Promise<
-        Record<string, interfaces.ISquidChain & { networkName: string; tokens: interfaces.ISquidToken[] }>
-    > => {
-        const [chains, tokens] = await Promise.all([getSquidChainsCache(), getSquidTokensCache()])
-
-        const chainsById = chains.reduce<
-            Record<string, interfaces.ISquidChain & { networkName: string; tokens: interfaces.ISquidToken[] }>
-        >((acc, chain) => {
-            acc[chain.chainId] = { ...(chain as interfaces.ISquidChain & { networkName: string }), tokens: [] }
-            return acc
-        }, {})
-
-        tokens.forEach((token) => {
-            if (token.chainId in chainsById) {
-                chainsById[token.chainId].tokens.push(token)
-            }
-        })
-
-        return chainsById
-    },
-    ['getSquidChainsAndTokens'],
-    { revalidate: 3600 * 12 }
-)
+    return result
+}

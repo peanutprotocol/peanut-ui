@@ -12,7 +12,7 @@
  */
 
 import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from 'react'
-import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 
 // view states for link send flow
 export type LinkSendFlowView = 'INITIAL' | 'SUCCESS'

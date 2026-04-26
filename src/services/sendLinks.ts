@@ -1,5 +1,5 @@
 import { jsonParse, jsonStringify } from '@/utils/general.utils'
-import { generateKeysFromString, getParamsFromLink } from '@squirrel-labs/peanut-sdk'
+import { generateKeysFromString, getParamsFromLink } from '@/utils/peanut-link.utils'
 import type { SendLink } from '@/services/services.types'
 import { serverFetch } from '@/utils/api-fetch'
 import { isCapacitor } from '@/utils/capacitor'
@@ -9,7 +9,7 @@ import { PEANUT_API_URL } from '@/constants/general.consts'
 
 export { ESendLinkStatus } from '@/services/services.types'
 export type { SendLinkStatus, SendLink } from '@/services/services.types'
-export { getParamsFromLink } from '@squirrel-labs/peanut-sdk'
+export { getParamsFromLink } from '@/utils/peanut-link.utils'
 
 export type ClaimLinkData = SendLink & { link: string; password: string }
 

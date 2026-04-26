@@ -1,5 +1,5 @@
 'use client'
-import { generateKeysFromString } from '@squirrel-labs/peanut-sdk'
+import { generateKeysFromString } from '@/utils/peanut-link.utils'
 import { useContext, useEffect, useMemo, useState } from 'react'
 
 import { fetchTokenDetails, fetchTokenPrice } from '@/app/actions/tokens'

@@ -120,12 +120,8 @@ jest.mock('@/constants/query.consts', () => ({
     TRANSACTIONS: 'transactions',
 }))
 
-jest.mock('@squirrel-labs/peanut-sdk', () => ({
-    interfaces: {
-        EPeanutLinkType: { native: 0, erc20: 1 },
-    },
-    CHAIN_DETAILS: {},
-    TOKEN_DETAILS: [],
+jest.mock('@/interfaces/peanut-sdk-types', () => ({
+    EPeanutLinkType: { native: 0, erc20: 1 },
 }))
 
 // Mock Toast

@@ -1,4 +1,3 @@
-import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
 
 export type RecipientType = 'address' | 'ens' | 'iban' | 'us' | 'username'

@@ -1,5 +1,5 @@
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
-import { interfaces } from '@squirrel-labs/peanut-sdk'
+import * as interfaces from '@/interfaces/peanut-sdk-types'
 import { useContext } from 'react'
 
 interface TokenChainIconInputs {

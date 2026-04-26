@@ -8,7 +8,6 @@ import {
 import { STABLE_COINS, ENS_NAME_REGEX } from '@/constants/general.consts'
 import { AccountType } from '@/interfaces/interfaces'
 import * as Sentry from '@sentry/nextjs'
-import peanut, { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import type { Address, TransactionReceipt } from 'viem'
 import { getAddress, isAddress, erc20Abi } from 'viem'
 import * as wagmiChains from 'wagmi/chains'
@@ -429,11 +428,11 @@ export async function copyTextToClipboardWithFallback(text: string) {
 }
 
 export const isTestnetChain = (chainId: string) => {
-    const isTestnet = !Object.keys(peanut.CHAIN_DETAILS)
-        .map((key) => peanut.CHAIN_DETAILS[key as keyof typeof peanut.CHAIN_DETAILS])
-        .find((chain) => chain.chainId == chainId)?.mainnet
-
-    return isTestnet
+    // viem's chains carry a `testnet: true` flag; fall through to default
+    // false for unknown chains so prod paths fail closed (treat as mainnet).
+    const all = Object.values(wagmiChains as unknown as Record<string, { id: number; testnet?: boolean }>)
+    const chain = all.find((c) => c?.id === Number(chainId))
+    return chain?.testnet === true
 }
 
 export const areEvmAddressesEqual = (address1: string, address2: string): boolean => {
@@ -819,21 +818,6 @@ export const sanitizeRedirectURL = (redirectUrl: string): string | null => {
         // Reject anything else (including protocol-relative URLs like //evil.com)
         return null
     }
-}
-
-export function getLinkFromReceipt({
-    txReceipt,
-    linkDetails,
-    password,
-}: {
-    txReceipt: TransactionReceipt
-    linkDetails: peanutInterfaces.IPeanutLinkDetails
-    password: string
-}): string {
-    const { chainId, baseUrl, trackId } = linkDetails
-    const contractVersion = peanut.detectContractVersionFromTxReceipt(txReceipt, chainId)
-    const depositIdx = peanut.getDepositIdxs(txReceipt, chainId, contractVersion)[0]
-    return peanut.getLinkFromParams(chainId, contractVersion, depositIdx, password, baseUrl, trackId)
 }
 
 export const getInitialsFromName = (name: string): string => {

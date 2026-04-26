@@ -18,7 +18,8 @@
 import { useState, useCallback } from 'react'
 import { parseUnits } from 'viem'
 import { type Address, type Hex } from 'viem'
-import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
+import { prepareRequestLinkFulfillmentTransaction } from '@/utils/peanut-claim.utils'
 import { getRoute, type PeanutCrossChainRoute } from '@/services/swap'
 import { estimateTransactionCostUsd } from '@/app/actions/tokens'
 import { areEvmAddressesEqual } from '@/utils/general.utils'
@@ -151,7 +152,7 @@ export const useRouteCalculation = (): UseRouteCalculationReturn => {
                     setSlippagePercentage(slippage)
                 } else {
                     // same chain, same token - prepare simple transfer
-                    const tx = peanut.prepareRequestLinkFulfillmentTransaction({
+                    const tx = prepareRequestLinkFulfillmentTransaction({
                         recipientAddress: destination.recipientAddress,
                         tokenAddress: destination.tokenAddress,
                         tokenAmount: destination.tokenAmount,

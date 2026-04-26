@@ -1,7 +1,11 @@
 import type { IPeanutChainDetails, IPeanutTokenDetail } from '@/interfaces/interfaces'
 import { isCapacitor } from '@/utils/capacitor'
-import { CHAIN_DETAILS, TOKEN_DETAILS } from '@squirrel-labs/peanut-sdk'
+import chainDetailsJson from '@/constants/chain-details.json'
+import tokenDetailsJson from '@/constants/token-details.json'
 import { mainnet, arbitrum, arbitrumSepolia, polygon, optimism, base, bsc, scroll } from 'viem/chains'
+
+const CHAIN_DETAILS = chainDetailsJson as unknown as Record<string, IPeanutChainDetails>
+const TOKEN_DETAILS = tokenDetailsJson as unknown as IPeanutTokenDetail[]
 
 const INFURA_API_KEY = process.env.NEXT_PUBLIC_INFURA_API_KEY
 const ALCHEMY_API_KEY = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY

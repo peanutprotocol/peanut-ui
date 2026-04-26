@@ -10,7 +10,7 @@ import {
 } from '@/constants/zerodev.consts'
 import { type ITokenPriceData } from '@/interfaces'
 import * as Sentry from '@sentry/nextjs'
-import { interfaces } from '@squirrel-labs/peanut-sdk'
+import * as interfaces from '@/interfaces/peanut-sdk-types'
 import { STABLE_COINS, supportedMobulaChains } from '@/constants/general.consts'
 
 interface UseTokenPriceParams {

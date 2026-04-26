@@ -91,9 +91,6 @@ importers:
       '@simplewebauthn/browser':
         specifier: ^8.3.7
         version: 8.3.7
-      '@squirrel-labs/peanut-sdk':
-        specifier: ^0.6.2
-        version: 0.6.2(bufferutil@4.1.0)(utf-8-validate@5.0.10)
       '@sumsub/cordova-idensic-mobile-sdk-plugin':
         specifier: ^1.42.0
         version: 1.42.0
@@ -2599,9 +2596,6 @@ packages:
 
   '@spruceid/siwe-parser@2.1.2':
     resolution: {integrity: sha512-d/r3S1LwJyMaRAKQ0awmo9whfXeE88Qt00vRj91q5uv5ATtWIQEGJ67Yr5eSZw5zp1/fZCXZYuEckt8lSkereQ==}
-
-  '@squirrel-labs/peanut-sdk@0.6.2':
-    resolution: {integrity: sha512-TLlYjyaCMNdCZ5lqsEheXFRcor8KOQzf5SEEVD9YIEpQQVOARb3BUmwat+shb6WPG9ZnZCH0xIpkplHpXsBYSg==}
 
   '@stablelib/binary@1.0.1':
     resolution: {integrity: sha512-ClJWvmL6UBM/wjkvv/7m5VP3GMr9t0osr4yVgLZsLCOz4hGN9gIAFEqnJ0TsSMAN+n840nf2cHZnA5/KFqHC7Q==}
@@ -10259,13 +10253,6 @@ snapshots:
       apg-js: 4.4.0
       uri-js: 4.4.1
       valid-url: 1.0.9
-
-  '@squirrel-labs/peanut-sdk@0.6.2(bufferutil@4.1.0)(utf-8-validate@5.0.10)':
-    dependencies:
-      ethersv5: ethers@5.7.2(bufferutil@4.1.0)(utf-8-validate@5.0.10)
-    transitivePeerDependencies:
-      - bufferutil
-      - utf-8-validate
 
   '@stablelib/binary@1.0.1':
     dependencies:

@@ -1,11 +1,7 @@
 'use client'
 
-import {
-    generateKeysFromString,
-    getParamsFromLink,
-    getContractAddress,
-    signWithdrawalMessage,
-} from '@squirrel-labs/peanut-sdk'
+import { generateKeysFromString, getParamsFromLink } from '@/utils/peanut-link.utils'
+import { getContractAddress, signWithdrawalMessage } from '@/utils/peanut-claim.utils'
 import { evmChainIdToRhinoName } from '@/constants/rhino.consts'
 import { provisionSdaTransfer } from '@/services/rhino-sda'
 import { useContext, useMemo } from 'react'
@@ -67,7 +63,7 @@ async function createClaimPayload(link: string, recipientAddress: string, onlyRe
         params.chainId,
         getContractAddress(params.chainId, params.contractVersion),
         params.depositIdx,
-        recipientAddress,
+        recipientAddress as `0x${string}`,
         keys.privateKey,
         onlyRecipientMode
     )
