@@ -173,7 +173,7 @@ export const sendLinksApi = {
     // REMOVED: claim() and autoClaimLink() methods
     // These methods were INSECURE as they sent passwords to the backend.
     // All claims now use SDK's claimLinkGasless() which signs client-side
-    // and only sends signatures to /claim-v3 endpoint.
+    // and only sends signatures to /claim endpoint.
 
     /**
      * associates a logged-in user with a claim transaction.

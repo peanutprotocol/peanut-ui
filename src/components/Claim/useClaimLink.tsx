@@ -91,7 +91,7 @@ async function executeClaim({
     depositDetails,
     optimisticReturn = false,
     campaignTag,
-    baseUrl = `${next_proxy_url}/claim-v3`,
+    baseUrl = `${next_proxy_url}/claim`,
 }: {
     link: string
     recipientAddress: string
@@ -142,7 +142,7 @@ async function executeClaim({
  *        destinationAddress=claimer, tokenOut=USDC
  *   2. Frontend signs the withdrawal message with `recipientAddress = sdaAddress`
  *      (the SDA, not the claimer's wallet, is the on-chain recipient).
- *   3. Backend's /claim-v3 route sponsors the claim contract call — funds land
+ *   3. Backend's /claim route sponsors the claim contract call — funds land
  *      in the SDA on the origin chain.
  *   4. Rhino's SDA auto-bridges to the claimer's destination. BRIDGE_EXECUTED
  *      webhook → processRhinoWebhookEvent routes the CLAIM_XCHAIN payment type
@@ -200,7 +200,7 @@ async function executeClaimXChain({
         keys.privateKey
     )
 
-    const data = await postJson<{ txHash?: string }>(`${next_proxy_url}/claim-v3`, {
+    const data = await postJson<{ txHash?: string }>(`${next_proxy_url}/claim`, {
         claimParams,
         chainId: params.chainId,
         version: params.contractVersion,

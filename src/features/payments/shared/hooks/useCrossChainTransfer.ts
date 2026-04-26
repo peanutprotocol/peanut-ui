@@ -6,7 +6,7 @@
  * Replaces `useRouteCalculation` (Squid). Same three consumers:
  *   - Withdraw flow   (user's kernel wallet → external chain)
  *   - Pay-request     (payer's kernel wallet → merchant's chain)
- *   - Claim-link      (relayer EOA → claimer's chain, via /claim-v3)
+ *   - Claim-link      (relayer EOA → claimer's chain, via /claim)
  *
  * Same-chain same-token fallback uses Peanut SDK's
  * `prepareRequestLinkFulfillmentTransaction` — unchanged vs the old hook.
