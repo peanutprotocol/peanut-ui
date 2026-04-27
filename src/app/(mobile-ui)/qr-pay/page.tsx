@@ -668,7 +668,9 @@ export default function QRPayPage() {
 
         setLoadingState('Preparing transaction')
         let userOpHash: Hash | undefined
-        let receipt: TransactionReceipt | null
+        // sendMoney's collateral-only path returns receipt: undefined (not null).
+        // Allow both nullish forms here so the `!= null` guard below catches both.
+        let receipt: TransactionReceipt | null | undefined
         try {
             const result = await sendMoney(finalPayment.address, finalPayment.usdAmount, { kind: 'QR_PAY' })
             // sendMoney may return txHash (collateral-only) instead of userOpHash
@@ -687,7 +689,7 @@ export default function QRPayPage() {
             return
         }
 
-        if (receipt !== null && isTxReverted(receipt)) {
+        if (receipt != null && isTxReverted(receipt)) {
             setErrorMessage('Transaction was rejected by the network')
             setLoadingState('Idle')
             setIsSuccess(false)

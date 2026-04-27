@@ -3,7 +3,7 @@
     "version": "0.2.0",
     "private": true,
     "engines": {
-        "node": ">=21.1.0 <22.0.0 || ^18.18.0 || ^20.9.0"
+        "node": ">=21.1.0 <22.0.0 || ^20.9.0"
     },
     "scripts": {
         "dev": "NODE_OPTIONS=\"--max-old-space-size=8192\" next dev --turbo",
@@ -155,13 +155,12 @@
             ]
         },
         "transformIgnorePatterns": [
-            "node_modules/(?!(@wagmi|wagmi|viem|@viem|@squirrel-labs|@walletconnect|@justaname\\.id|@zerodev|permissionless)/)"
+            "node_modules/(?!(@wagmi|wagmi|viem|@viem|@walletconnect|@justaname\\.id|@zerodev|permissionless)/)"
         ],
         "moduleNameMapper": {
             "\\.(svg|png|jpg|jpeg|gif)$": "jest-transform-stub",
             "^@/config/wagmi\\.config$": "<rootDir>/src/utils/__mocks__/wagmi-config.ts",
             "^wagmi/chains$": "<rootDir>/src/utils/__mocks__/wagmi.ts",
-            "^@squirrel-labs/peanut-sdk$": "<rootDir>/src/utils/__mocks__/peanut-sdk.ts",
             "^@justaname\\.id/react$": "<rootDir>/src/utils/__mocks__/justaname.ts",
             "^next/cache$": "<rootDir>/src/utils/__mocks__/next-cache.ts",
             "^@zerodev/sdk(.*)$": "<rootDir>/src/utils/__mocks__/zerodev-sdk.ts",
