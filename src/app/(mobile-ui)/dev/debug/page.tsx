@@ -134,7 +134,7 @@ export default function DebugPage() {
                     key: 'fullSetup',
                     label: 'Full setup → activated user',
                     description:
-                        'KYC bridge + manteca + sumsub, fund $100, simulate Bridge $25 deposit, complete every PROCESSING intent. After this you should see activationStep=completed and identity verification cleared.',
+                        'KYC bridge + manteca + sumsub, grant Rain card access, fund $5 real testnet USDC (Peanut wallet), fund $5 real testnet USDCR (Rain card collateral — different ERC-20), simulate $25 Bridge sandbox deposit (synthetic — no chain movement), complete every PROCESSING intent. After this you should see activationStep=completed, identity verification cleared, and /card routing to AddCardEntryScreen.',
                     run: async () => {
                         await call('fullSetup', '/dev/cheats/full-setup', { userId })
                         await refreshWhoami()
@@ -156,9 +156,21 @@ export default function DebugPage() {
                     description:
                         'Bridge (US) + Manteca (AR) + Sumsub (US) in sequence. Use after signup if Full setup is too aggressive (no funding, no deposit simulation).',
                     run: async () => {
-                        await call('kycAllBridge', '/dev/cheats/approve-kyc', { userId, provider: 'bridge', country: 'US' })
-                        await call('kycAllManteca', '/dev/cheats/approve-kyc', { userId, provider: 'manteca', country: 'AR' })
-                        await call('kycAllSumsub', '/dev/cheats/approve-kyc', { userId, provider: 'sumsub', country: 'US' })
+                        await call('kycAllBridge', '/dev/cheats/approve-kyc', {
+                            userId,
+                            provider: 'bridge',
+                            country: 'US',
+                        })
+                        await call('kycAllManteca', '/dev/cheats/approve-kyc', {
+                            userId,
+                            provider: 'manteca',
+                            country: 'AR',
+                        })
+                        await call('kycAllSumsub', '/dev/cheats/approve-kyc', {
+                            userId,
+                            provider: 'sumsub',
+                            country: 'US',
+                        })
                         await refreshWhoami()
                     },
                 },
@@ -190,7 +202,8 @@ export default function DebugPage() {
                     label: 'Simulate Bridge $25 deposit',
                     description:
                         'Requires Bridge KYC. Fires sandbox simulate_deposit on the VA. Does NOT advance the intent — pair with "Complete every pending intent" or use Full setup.',
-                    run: () => call('simBridge25', '/dev/cheats/simulate-bridge-deposit', { userId, amountUsd: '25.00' }),
+                    run: () =>
+                        call('simBridge25', '/dev/cheats/simulate-bridge-deposit', { userId, amountUsd: '25.00' }),
                 },
             ],
         },
@@ -201,7 +214,8 @@ export default function DebugPage() {
                     key: 'kycBridge',
                     label: 'Approve KYC · Bridge · US',
                     description: 'Real Bridge sandbox customer + activates US rails (ACH/Wire).',
-                    run: () => call('kycBridge', '/dev/cheats/approve-kyc', { userId, provider: 'bridge', country: 'US' }),
+                    run: () =>
+                        call('kycBridge', '/dev/cheats/approve-kyc', { userId, provider: 'bridge', country: 'US' }),
                 },
                 {
                     key: 'kycBridgeEU',
@@ -222,7 +236,43 @@ export default function DebugPage() {
                     key: 'kycSumsub',
                     label: 'Create Sumsub applicant',
                     description: 'Real Sumsub sandbox applicant. Seeds user_kyc_verifications row.',
-                    run: () => call('kycSumsub', '/dev/cheats/approve-kyc', { userId, provider: 'sumsub', country: 'US' }),
+                    run: () =>
+                        call('kycSumsub', '/dev/cheats/approve-kyc', { userId, provider: 'sumsub', country: 'US' }),
+                },
+            ],
+        },
+        {
+            title: '💳 Card',
+            actions: [
+                {
+                    key: 'grantCardAccess',
+                    label: 'Grant Rain card access',
+                    description:
+                        'Sets users.card_access_granted_at so /card returns hasCardAccess=true and routes me into AddCardEntryScreen. Bypasses the Pioneer purchase gate.',
+                    run: async () => {
+                        await call('grantCardAccess', '/dev/cheats/grant-card-access', { userId })
+                        await refreshWhoami()
+                    },
+                },
+                {
+                    key: 'revokeCardAccess',
+                    label: 'Revoke Rain card access',
+                    description: 'Clears users.card_access_granted_at so /card falls back to the Pioneer paywall.',
+                    run: async () => {
+                        await call('revokeCardAccess', '/dev/cheats/grant-card-access', { userId, revoke: true })
+                        await refreshWhoami()
+                    },
+                },
+                {
+                    key: 'fundRainCollateral',
+                    label: 'Fund me $5 Rain USDCR (collateral)',
+                    description:
+                        'Real on-chain transfer of Rain testnet USDCR (RAIN_TOKEN_ADDRESS) from harness EOA → my SA. Different ERC-20 from the Peanut wallet USDC — auto-balancer reads/transfers this token on card spend, so the SA must hold it for card flows to work end-to-end.',
+                    run: () =>
+                        call('fundRainCollateral', '/dev/cheats/fund-rain-collateral', {
+                            userId,
+                            amountMicros: '5000000',
+                        }),
                 },
             ],
         },
@@ -232,7 +282,8 @@ export default function DebugPage() {
                 {
                     key: 'completeBridgeOnramp',
                     label: 'Prompt: complete a specific Bridge ONRAMP',
-                    description: 'Pastes intent or transfer id. Use the Auto-complete preset instead unless targeting one transfer.',
+                    description:
+                        'Pastes intent or transfer id. Use the Auto-complete preset instead unless targeting one transfer.',
                     run: async () => {
                         const id = window.prompt('intent or transfer id')
                         if (!id) return
@@ -324,7 +375,9 @@ export default function DebugPage() {
                                 <b>kycVerifications:</b>{' '}
                                 <code>
                                     {whoami.kycVerifications?.length
-                                        ? whoami.kycVerifications.map((v: any) => `${v.provider}=${v.status}`).join(', ')
+                                        ? whoami.kycVerifications
+                                              .map((v: any) => `${v.provider}=${v.status}`)
+                                              .join(', ')
                                         : '(none)'}
                                 </code>
                             </div>
