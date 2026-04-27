@@ -151,15 +151,6 @@ export interface IBridgeAccount {
     beneficiary_address_valid: boolean
 }
 
-interface Transaction {
-    tx_hash: string
-    chain_id: string
-    address: string
-    points: number
-    description: string | null
-    created_at: string
-}
-
 export type LinkStatus = 'loading' | 'unclaimed' | 'claimed' | 'expired' | 'cancelled'
 
 export interface PaymentLink {
@@ -167,12 +158,6 @@ export interface PaymentLink {
     amount: number
     username: string // creator or requester
     status: LinkStatus
-}
-
-interface ReferralConnection {
-    user_id: string
-    referrer: string
-    account_identifier: string
 }
 
 export enum MantecaKycStatus {
@@ -259,18 +244,10 @@ export interface Account {
     }
     createdAt: string
     updatedAt: string
-    // OLD Points V1 fields removed - use pointsV2 from stats instead
     chainId: string | null
-    connectorUuid: string | null
     bic?: string
     routingNumber?: string
     sortCode?: string // uk bank accounts
-    connector?: {
-        iconUrl: string
-        name: string
-    }
-    transactions: Transaction[]
-    referrals: ReferralConnection[]
 }
 
 interface userInvites {
