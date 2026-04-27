@@ -9,7 +9,13 @@ interface CountryFlagAndNameProps {
 }
 
 export const CountryFlagAndName = ({ countryCode, isBridgeRegion }: CountryFlagAndNameProps) => {
-    const countryName = countryData.find((c) => c.id === countryCode?.toUpperCase())?.title
+    // CR-flagged: incoming `countryCode` from `mantecaGeo` / `bridgeGeo` is
+    // ISO3 (e.g. 'USA'), but `getFlagUrl` expects ISO2 (e.g. 'us'). Look up
+    // the countryData entry first and pass its iso2; fall back to the raw
+    // input so already-ISO2 callers keep working.
+    const countryEntry = countryData.find((c) => c.id === countryCode?.toUpperCase())
+    const countryName = countryEntry?.title
+    const flagCode = countryEntry?.iso2?.toLowerCase() ?? countryCode
     return (
         <div className="flex items-center gap-2">
             {isBridgeRegion ? (
@@ -20,7 +26,7 @@ export const CountryFlagAndName = ({ countryCode, isBridgeRegion }: CountryFlagA
                 />
             ) : (
                 <Image
-                    src={getFlagUrl(countryCode)}
+                    src={getFlagUrl(flagCode)}
                     alt={`${countryName} flag`}
                     width={80}
                     height={80}
