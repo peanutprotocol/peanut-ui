@@ -11,7 +11,7 @@ import { captureException } from '@sentry/nextjs'
 
 import { CLAIM_LINK, CLAIM_LINK_XCHAIN, TRANSACTIONS } from '@/constants/query.consts'
 import { loadingStateContext } from '@/context'
-import { isTestnetChain } from '@/utils/general.utils'
+import { getTokenSymbol, isTestnetChain } from '@/utils/general.utils'
 import { sendLinksApi, ESendLinkStatus } from '@/services/sendLinks'
 import { next_proxy_url } from '@/constants/general.consts'
 
@@ -135,7 +135,7 @@ async function executeClaim({
  * Flow (one relayer tx, no contract changes):
  *   1. Backend provisions an SDA on the origin chain:
  *        depositChain=link's chain, destinationChain=claimer's target,
- *        destinationAddress=claimer, tokenOut=USDC
+ *        destinationAddress=claimer, tokenOut=USDC|USDT (resolved from selection)
  *   2. Frontend signs the withdrawal message with `recipientAddress = sdaAddress`
  *      (the SDA, not the claimer's wallet, is the on-chain recipient).
  *   3. Backend's /claim route sponsors the claim contract call — funds land
@@ -151,11 +151,12 @@ async function executeClaimXChain({
     link,
     recipientAddress,
     destinationChainId,
+    destinationToken,
 }: {
     link: string
     recipientAddress: string
     destinationChainId: string
-    destinationToken?: string | null
+    destinationToken: string
     baseUrl?: string
     isMainnet?: boolean
     slippage?: number
@@ -165,21 +166,30 @@ async function executeClaimXChain({
     const sourceRhinoChain = evmChainIdToRhinoName(params.chainId)
     const destRhinoChain = evmChainIdToRhinoName(destinationChainId)
     if (!sourceRhinoChain || !destRhinoChain) {
+        throw new Error(`Unsupported chain for Rhino SDA bridge (source=${params.chainId} dest=${destinationChainId})`)
+    }
+
+    // Rhino SDAs only emit USDC or USDT. Resolve the destination token's
+    // symbol; reject anything else with a clear error rather than silently
+    // bridging into the wrong asset.
+    const tokenSymbol = getTokenSymbol(destinationToken, destinationChainId)?.toUpperCase()
+    if (tokenSymbol !== 'USDC' && tokenSymbol !== 'USDT') {
         throw new Error(
-            `Unsupported chain for Rhino SDA bridge (source=${params.chainId} dest=${destinationChainId})`
+            `Cross-chain claim only supports USDC or USDT destinations (got ${tokenSymbol ?? destinationToken})`
         )
     }
 
-    // Provision (or reuse) the claim's SDA. contextId is the deterministic
-    // (chain, depositIdx) pair — idempotent re-claims resolve to the same
-    // SDA so Rhino's rate limit is not hit on retries.
+    // contextId binds the SDA to the full destination identity — chain,
+    // token, recipient — so that re-claims to the same destination reuse
+    // the SDA (idempotent, doesn't hit Rhino's rate limit) but a re-claim
+    // to a different chain/token/address gets a fresh SDA.
     const sda = await provisionSdaTransfer({
         context: 'claim-xchain',
-        contextId: `${params.chainId}:${params.depositIdx}`,
+        contextId: `${params.chainId}:${params.depositIdx}:${destinationChainId}:${tokenSymbol}:${recipientAddress.toLowerCase()}`,
         depositChain: sourceRhinoChain,
         destinationChain: destRhinoChain,
         destinationAddress: recipientAddress as `0x${string}`,
-        tokenOut: 'USDC',
+        tokenOut: tokenSymbol,
     })
 
     // Sign the withdrawal message targeting the SDA as the on-chain recipient.
