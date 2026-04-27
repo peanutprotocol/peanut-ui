@@ -229,9 +229,11 @@ export default function WithdrawBankPage() {
             }
 
             // Step 3: Confirm the transfer with the backend to make it visible in history.
-            // Prefer the on-chain tx hash; fall back to the userOp hash (smart-only / mixed)
-            // or the collateral withdraw tx hash (collateral-only path).
-            const txIdentifier = receipt?.transactionHash ?? userOpHash ?? txHash
+            // Prefer the on-chain tx hash; fall back to the collateral withdraw tx hash
+            // (collateral-only path) BEFORE the userOp hash. confirmOfframp expects a real
+            // 32-byte tx hash — userOpHash is an account-abstraction bundler hash, not a
+            // chain tx hash, and the BE rejects it.
+            const txIdentifier = receipt?.transactionHash ?? txHash ?? userOpHash
             if (!txIdentifier) throw new Error('No transaction identifier returned from sendMoney')
             const confirmResult = await confirmOfframp(data.transferId, txIdentifier)
 
