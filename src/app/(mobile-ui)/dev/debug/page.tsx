@@ -16,7 +16,7 @@
  * NEXT_PUBLIC_TEST_HARNESS_SECRET.
  */
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
 import { useAuth } from '@/context/authContext'
@@ -42,6 +42,10 @@ export default function DebugPage() {
     const [busy, setBusy] = useState<string | null>(null)
     const [results, setResults] = useState<Record<string, ActionResult>>({})
     const [whoami, setWhoami] = useState<any>(null)
+    // Single-flight guard for non-idempotent endpoints (fund-sa, simulate-
+    // deposit, reset-user). Button disabling alone doesn't survive a fast
+    // double-tap before the next paint — the synchronous ref check does.
+    const inFlightRef = useRef(false)
 
     const userId = user?.user?.userId ?? null
     const username = user?.user?.username ?? null
@@ -50,6 +54,15 @@ export default function DebugPage() {
 
     const call = useCallback(
         async (key: string, path: string, body?: object, method: 'GET' | 'POST' = 'POST') => {
+            // Synchronous single-flight guard. Button disabling sets `busy`
+            // via React state — a fast double-tap can fire two `call()`s
+            // before the disabled prop renders. The ref check survives that
+            // race so we never double-POST to fund-sa, reset-user, etc.
+            if (inFlightRef.current) {
+                debugLog(`SKIP ${method} ${path} — another debug action in flight`)
+                return { ok: false, raw: { error: 'another debug action is already running' }, ms: 0 }
+            }
+            inFlightRef.current = true
             setBusy(key)
             const start = performance.now()
             debugLog(`→ ${method} ${path}`, body ?? '')
@@ -71,13 +84,14 @@ export default function DebugPage() {
                 const ok = res.ok && raw?.ok !== false
                 debugLog(`${ok ? '✓' : '✗'} ${method} ${path} (${ms}ms)`, raw)
                 setResults((r) => ({ ...r, [key]: { ok, raw, ms } }))
-                return { ok, raw }
+                return { ok, raw, ms }
             } catch (err: any) {
                 const ms = Math.round(performance.now() - start)
                 debugLog(`✗ ${method} ${path} threw (${ms}ms)`, err)
                 setResults((r) => ({ ...r, [key]: { ok: false, raw: { error: err?.message ?? 'network error' }, ms } }))
-                return { ok: false, raw: { error: err?.message } }
+                return { ok: false, raw: { error: err?.message }, ms }
             } finally {
+                inFlightRef.current = false
                 setBusy(null)
             }
         },
