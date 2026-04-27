@@ -4,7 +4,7 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/z
 import { useAppDispatch, useWalletStore } from '@/redux/hooks'
 import { walletActions } from '@/redux/slices/wallet-slice'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useIsFetching } from '@tanstack/react-query'
 import { formatUnits, type Hex, type Address } from 'viem'
 import { useZeroDev } from '../useZeroDev'
@@ -53,6 +53,30 @@ export const useWallet = () => {
 
     // only fetch balance if both address and userAddress are defined AND they match
     const isAddressReady = !!address && !!userAddress && userAddress.toLowerCase() === address.toLowerCase()
+
+    // Dev-only diagnostic: if the gate refuses to fetch balance even though
+    // the user has loaded, log WHY exactly once. This was the silent-$0 bug
+    // shape we hit during the 2026-04-27 card playtest — without this log
+    // the only symptom is "balance shows 0 even though chain has funds",
+    // and you have to read four hooks deep to find which condition failed.
+    const loggedReasonRef = useRef<string | null>(null)
+    useEffect(() => {
+        if (process.env.NODE_ENV === 'production') return
+        if (!user?.user?.userId) return // user still loading — don't log yet
+        if (isAddressReady) {
+            loggedReasonRef.current = null
+            return
+        }
+        const reason = !address
+            ? 'kernel address undefined (useZeroDev not ready or kernel init failed)'
+            : !userAddress
+              ? "no PEANUT_WALLET account in user.accounts (BE didn't return it)"
+              : `address mismatch: kernel=${address} db=${userAddress}`
+        if (loggedReasonRef.current !== reason) {
+            console.warn('[useWallet] balance gate is blocked → showing $0 silently. reason:', reason)
+            loggedReasonRef.current = reason
+        }
+    }, [address, userAddress, isAddressReady, user?.user?.userId])
 
     // Use TanStack Query for auto-refreshing balance
     // only fetch balance when the validated address is ready
