@@ -196,16 +196,19 @@ const LucideWrapper: FC<
     // (the 12x18 / 12x56 widths we saw on the QR center button). Carrying the class everywhere keeps the
     // call site's `size={N}` honored regardless of where the icon ends up rendering.
     const mergedClassName = twMerge('custom-size', transformClassName, className) || undefined
-    const size = width ?? height
     const color = fill ? (fill as string) : undefined
     const baseStyle = filled ? FILL_CURRENT : FILL_NONE
     const mergedStyle = style ? { ...baseStyle, ...style } : baseStyle
     const viewBox = boostKey ? VIEWBOX_BOOST[boostKey] : undefined
 
+    // CR-flagged: collapsing `width ?? height` into a single Lucide `size`
+    // prop drops non-square sizing. Lucide accepts `width` + `height`
+    // independently — pass both through so explicit overrides land.
     return (
         <Icon
             {...rest}
-            size={size}
+            width={width}
+            height={height}
             color={color}
             className={mergedClassName}
             style={mergedStyle}
@@ -311,5 +314,7 @@ export const Icon: FC<IconProps> = ({ name, size = 24, width, height, className,
         return null
     }
 
-    return <IconComponent width={width || size} height={height || size} className={mergedClassName} {...props} />
+    // `??` not `||` so explicit `width={0}` / `height={0}` would still pass
+    // through (defensive — `0` is unlikely but the operator was wrong before).
+    return <IconComponent width={width ?? size} height={height ?? size} className={mergedClassName} {...props} />
 }
