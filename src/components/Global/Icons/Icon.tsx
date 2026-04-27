@@ -190,7 +190,12 @@ const LucideWrapper: FC<
         boostKey?: keyof typeof VIEWBOX_BOOST
     } & SVGProps<SVGSVGElement>
 > = ({ Icon, transformClassName, filled, fill, className, width, height, style, boostKey, ...rest }) => {
-    const mergedClassName = twMerge(transformClassName, className) || undefined
+    // 'custom-size' opts every Lucide icon out of the global `.btn svg:not(.custom-size) { @apply icon-18 }`
+    // rule in tailwind.config.js. That rule forced legacy MUI icons to 18px when nested in a .btn — Lucide
+    // already carries width/height attributes, so the global rule fights its own size and collapses the SVG
+    // (the 12x18 / 12x56 widths we saw on the QR center button). Carrying the class everywhere keeps the
+    // call site's `size={N}` honored regardless of where the icon ends up rendering.
+    const mergedClassName = twMerge('custom-size', transformClassName, className) || undefined
     const size = width ?? height
     const color = fill ? (fill as string) : undefined
     const baseStyle = filled ? FILL_CURRENT : FILL_NONE
@@ -292,13 +297,19 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     trash: (props) => <LucideWrapper Icon={Trash2} {...props} />,
 }
 
-export const Icon: FC<IconProps> = ({ name, size = 24, width, height, ...props }) => {
+export const Icon: FC<IconProps> = ({ name, size = 24, width, height, className, ...props }) => {
     const IconComponent = iconComponents[name]
+
+    // 'custom-size' opts out of the global `.btn svg:not(.custom-size) { @apply icon-18 }` rule
+    // in tailwind.config.js — see LucideWrapper for the full explanation. We add it at this
+    // outer layer too so custom-icon components (txn-off, docs, etc.) that bypass LucideWrapper
+    // also get the bypass.
+    const mergedClassName = twMerge('custom-size', className) || undefined
 
     if (!IconComponent) {
         console.warn(`Icon "${name}" not found`)
         return null
     }
 
-    return <IconComponent width={width || size} height={height || size} {...props} />
+    return <IconComponent width={width || size} height={height || size} className={mergedClassName} {...props} />
 }
