@@ -10,6 +10,7 @@ export const ANALYTICS_EVENTS = {
     SIGNUP_CLICKED: 'signup_signup_clicked',
     SIGNUP_LOGIN_ERROR: 'signup_login_error',
     SIGNUP_CREATE_WALLET_CLICKED: 'signup_create_wallet_clicked',
+    SIGNUP_WAITLIST_VIEWED: 'signup_waitlist_viewed',
     SIGNUP_USERNAME_VALIDATED: 'signup_username_validated',
     SIGNUP_PASSKEY_STARTED: 'signup_passkey_started',
     SIGNUP_PASSKEY_SUCCEEDED: 'signup_passkey_succeeded',
@@ -71,8 +72,10 @@ export const ANALYTICS_EVENTS = {
     INVITE_LINK_COPIED: 'invite_link_copied',
     INVITE_PAGE_VIEWED: 'invite_page_viewed',
     INVITE_CLAIM_CLICKED: 'invite_claim_clicked',
+    INVITE_CODE_VALIDATED: 'invite_code_validated',
     INVITE_ACCEPTED: 'invite_accepted',
     INVITE_ACCEPT_FAILED: 'invite_accept_failed',
+    WAITLIST_STEP_VIEWED: 'waitlist_step_viewed',
 
     // ── Points / Rewards ──
     POINTS_PAGE_VIEWED: 'points_page_viewed',
