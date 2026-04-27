@@ -1,19 +1,29 @@
 'use client'
 
 /**
- * PeanutDebug — install `window.peanutDebug.*` helpers in local dev.
+ * PeanutDebug — install `window.debug.*` helpers in local dev (also exposed
+ * as `window.cheats` for muscle memory).
  *
  * Everything here wraps the peanut-api-ts `/dev/cheats/*` endpoints (which
  * themselves delegate to the Nutcracker harness library — engineering/qa/
- * lib/*). Same backend as /dev/cheats UI panel, just callable from the
+ * lib/*). Same backend as the /dev/debug UI panel, just callable from the
  * browser console so you don't have to navigate.
  *
- * Only installs in dev builds (keyed off `/dev/cheats` gating — localhost
- * only, not prod). Safe to ship — the mount is behind a check.
+ * Only installs in dev builds (localhost gate). Every call logs through a
+ * pink banner so it's visible in the DevTools console.
  */
 
 import { useEffect } from 'react'
 import { PEANUT_API_URL } from '@/constants/general.consts'
+
+const PINK = '#FF90E8'
+const BANNER_STYLE = `background:${PINK};color:#000;padding:2px 6px;border-radius:2px;font-weight:bold`
+const TEXT_STYLE = `color:${PINK};font-weight:bold`
+
+function debugLog(label: string, ...args: any[]) {
+    // eslint-disable-next-line no-console
+    console.log(`%c[debug]%c ${label}`, BANNER_STYLE, TEXT_STYLE, ...args)
+}
 
 export function PeanutDebug() {
     useEffect(() => {
@@ -37,12 +47,17 @@ export function PeanutDebug() {
                 method === 'GET' && body
                     ? `${PEANUT_API_URL}${path}?${new URLSearchParams(body as any).toString()}`
                     : `${PEANUT_API_URL}${path}`
+            const start = performance.now()
+            debugLog(`→ ${method} ${path}`, body ?? '')
             const res = await fetch(url, {
                 method,
                 headers: { 'content-type': 'application/json', 'x-test-harness-secret': secret },
                 body: method === 'POST' && body ? JSON.stringify(body) : undefined,
             })
             const json = await res.json().catch(() => ({}))
+            const ms = Math.round(performance.now() - start)
+            const ok = res.ok && json?.ok !== false
+            debugLog(`${ok ? '✓' : '✗'} ${method} ${path} (${ms}ms)`, json)
             return json
         }
 
@@ -58,7 +73,7 @@ export function PeanutDebug() {
             return uid ?? null
         }
 
-        const peanutDebug = {
+        const debugApi = {
             // DB resets / session wipes
             async signOut() {
                 // Clear every cookie + storage + IndexedDB (full reset of tab)
@@ -81,7 +96,7 @@ export function PeanutDebug() {
                         )
                     )
                 } catch {}
-                console.log('[peanutDebug] signed out — reloading')
+                debugLog('signed out — reloading')
                 location.reload()
             },
 
@@ -257,6 +272,27 @@ export function PeanutDebug() {
                 return call('/dev/cheats/reset-user', { userId: uid })
             },
 
+            /**
+             * One-shot "make me a fully activated user": KYC bridge + manteca
+             * + sumsub, fund $100 USDC, simulate Bridge $25 deposit, complete
+             * every PROCESSING intent. Returns per-step ok/error.
+             */
+            async fullSetup(userId?: string) {
+                const uid = await resolveUserId(userId)
+                if (!uid) return { error: 'not signed in' }
+                return call('/dev/cheats/full-setup', { userId: uid })
+            },
+
+            /**
+             * Find every PROCESSING TransactionIntent for me and run the
+             * matching impersonator. Bridge ONRAMP/OFFRAMP only.
+             */
+            async autoComplete(userId?: string) {
+                const uid = await resolveUserId(userId)
+                if (!uid) return { error: 'not signed in' }
+                return call('/dev/cheats/auto-complete-pending', { userId: uid })
+            },
+
             async ledgerHealth() {
                 return call('/dev/ledger/health', undefined, 'GET')
             },
@@ -273,7 +309,7 @@ export function PeanutDebug() {
                 const addr = '0x441D796c62548F74505DE578c458908d936A3B53'
                 const msg = [
                     '',
-                    '🪙 Harness EOA is the USDC source for peanutDebug.fund().',
+                    '🪙 Harness EOA is the USDC source for debug.fund().',
                     '',
                     `   Address:  ${addr}`,
                     '   Chain:    Arbitrum Sepolia (421614)',
@@ -288,7 +324,7 @@ export function PeanutDebug() {
                     '   Bridge + Manteca sandboxes which hardcode the real contract.',
                     '',
                 ].join('\n')
-                console.log(msg)
+                debugLog('faucet help\n' + msg)
                 if (typeof window !== 'undefined') {
                     window.open('https://faucet.circle.com/', '_blank', 'noopener,noreferrer')
                 }
@@ -297,36 +333,36 @@ export function PeanutDebug() {
 
             help() {
                 const lines = [
-                    'peanutDebug.signOut()                     clear cookies + storage + reload',
-                    'peanutDebug.whoami()                      KYC / wallet / provider ids',
-                    'peanutDebug.fund(usdc="10")               harness EOA → your SA (default $10)',
-                    'peanutDebug.faucetHelp()                  print harness EOA + open Circle faucet',
-                    'peanutDebug.approveKyc(provider, country) "bridge" (US/EU), "manteca" (AR), "sumsub"',
-                    'peanutDebug.simulateBridgeDeposit("25")   fires sandbox VA simulate_deposit (does NOT advance transfers — see completeBridgeOnramp)',
-                    'peanutDebug.completeBridgeOnramp(id, opts)  advance pending onramp → PAYMENT_PROCESSED (impersonator)',
-                    'peanutDebug.completeBridgeOfframp(id, opts) advance pending offramp → PAYMENT_PROCESSED (impersonator)',
-                    'peanutDebug.failBridgeTransfer(id, reason)  drive transfer to terminal failure (impersonator)',
-                    'peanutDebug.completeRhinoDeposit({ depositAddress, recipient, ... })   advance Rhino SDA deposit → BRIDGE_EXECUTED (impersonator)',
-                    'peanutDebug.completeRhinoReqFulfilment({ depositAddress, recipient, ... })  advance Rhino req-fulfilment SDA → BRIDGE_EXECUTED',
-                    'peanutDebug.failRhinoTransfer({ depositAddress, recipient, ... })      drive Rhino SDA to BRIDGE_REFUNDED (impersonator)',
-                    'peanutDebug.resetMe()                     wipes your bridge/manteca/ledger rows',
-                    'peanutDebug.ledgerHealth()                ledger row counts + invariant checks',
-                    'peanutDebug.ledgerHistory()               ledger intents for this user (raw)',
+                    'debug.fullSetup()                   one-click: KYC-all + fund + simulate-deposit + complete-pending',
+                    'debug.autoComplete()                complete every PROCESSING intent (Bridge ONRAMP/OFFRAMP)',
+                    'debug.signOut()                     clear cookies + storage + reload',
+                    'debug.whoami()                      KYC / wallet / provider ids',
+                    'debug.fund(usdc="10")               harness EOA → your SA (default $10)',
+                    'debug.faucetHelp()                  print harness EOA + open Circle faucet',
+                    'debug.approveKyc(provider, country) "bridge" (US/EU), "manteca" (AR), "sumsub"',
+                    'debug.simulateBridgeDeposit("25")   fires sandbox VA simulate_deposit (does NOT advance transfers — see completeBridgeOnramp)',
+                    'debug.completeBridgeOnramp(id, opts)  advance pending onramp → PAYMENT_PROCESSED (impersonator)',
+                    'debug.completeBridgeOfframp(id, opts) advance pending offramp → PAYMENT_PROCESSED (impersonator)',
+                    'debug.failBridgeTransfer(id, reason)  drive transfer to terminal failure (impersonator)',
+                    'debug.completeRhinoDeposit({ depositAddress, recipient, ... })   advance Rhino SDA deposit → BRIDGE_EXECUTED (impersonator)',
+                    'debug.completeRhinoReqFulfilment({ depositAddress, recipient, ... })  advance Rhino req-fulfilment SDA → BRIDGE_EXECUTED',
+                    'debug.failRhinoTransfer({ depositAddress, recipient, ... })      drive Rhino SDA to BRIDGE_REFUNDED (impersonator)',
+                    'debug.resetMe()                     wipes your bridge/manteca/ledger rows',
+                    'debug.ledgerHealth()                ledger row counts + invariant checks',
+                    'debug.ledgerHistory()               ledger intents for this user (raw)',
                 ].join('\n')
-                console.log(lines)
+                debugLog('help\n' + lines)
                 return lines
             },
         }
 
-        ;(window as any).peanutDebug = peanutDebug
-        console.log(
-            '%c[peanutDebug]%c installed. type peanutDebug.help() to see commands.',
-            'background:#FF90E8;color:#000;padding:2px 6px;border-radius:2px;font-weight:bold',
-            'color:inherit'
-        )
+        ;(window as any).debug = debugApi
+        ;(window as any).cheats = debugApi
+        debugLog('installed. type debug.help() — or debug.fullSetup() to one-shot activate. (alias: cheats)')
 
         return () => {
-            delete (window as any).peanutDebug
+            delete (window as any).debug
+            delete (window as any).cheats
         }
     }, [])
 

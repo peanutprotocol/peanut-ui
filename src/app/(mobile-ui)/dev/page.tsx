@@ -33,10 +33,10 @@ export default function DevToolsPage() {
             icon: 'docs',
         },
         {
-            name: 'Cheats',
+            name: 'Debug',
             description:
-                'Sandbox-only: fund yourself USDC, fast-forward KYC, simulate deposits. Wraps Nutcracker harness helpers.',
-            path: '/dev/cheats',
+                'Sandbox-only: one-click full setup, fund USDC, fast-forward KYC, complete pending intents. Pink-banner console logs every action.',
+            path: '/dev/debug',
             icon: 'dollar',
         },
     ]
