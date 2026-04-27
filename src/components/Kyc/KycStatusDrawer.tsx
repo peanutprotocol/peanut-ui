@@ -4,6 +4,7 @@ import { KycFailed } from './states/KycFailed'
 import { KycNotStarted } from './states/KycNotStarted'
 import { KycProcessing } from './states/KycProcessing'
 import { KycRequiresDocuments } from './states/KycRequiresDocuments'
+import { KycProviderRejection } from './states/KycProviderRejection'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { Drawer, DrawerContent, DrawerTitle } from '../Global/Drawer'
 import { type BridgeKycStatus } from '@/utils/bridge-accounts.utils'
@@ -13,6 +14,7 @@ import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { getKycStatusCategory, isKycStatusNotStarted } from '@/constants/kyc.consts'
 import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import { useCallback } from 'react'
+import useProviderRejectionStatus from '@/hooks/useProviderRejectionStatus'
 
 interface KycStatusDrawerProps {
     isOpen: boolean
@@ -101,11 +103,33 @@ export const KycStatusDrawer = ({
         [closeAndStartKyc]
     )
 
+    // provider rejection status
+    const { bridge: bridgeRejection, manteca: mantecaRejection, hasAnyRejection } = useProviderRejectionStatus()
+
     const renderContent = () => {
         // user initiated kyc but abandoned before submitting — close drawer visually
         // but keep component mounted so SumsubKycModals persists for the SDK flow
         if (verification && isKycStatusNotStarted(status)) {
             return <KycNotStarted onResume={closeAndStartKyc} />
+        }
+
+        // provider rejection: sumsub approved but bridge/manteca rejected
+        // show two-level status: identity verified + provider-specific rejection
+        if (statusCategory === 'completed' && hasAnyRejection) {
+            const rejection =
+                bridgeRejection.state === 'fixable' || bridgeRejection.state === 'blocked'
+                    ? bridgeRejection
+                    : mantecaRejection
+            return (
+                <KycProviderRejection
+                    rejection={rejection}
+                    onStartResubmission={() => {
+                        onKeepMounted?.(true)
+                        onClose()
+                        sumsubFlow.handleSelfHealResubmit(rejection.provider)
+                    }}
+                />
+            )
         }
 
         // bridge additional document requirement — but don't mask terminal kyc states

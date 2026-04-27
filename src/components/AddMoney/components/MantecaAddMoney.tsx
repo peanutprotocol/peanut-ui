@@ -11,6 +11,7 @@ import { mantecaApi } from '@/services/manteca'
 import { parseUnits } from 'viem'
 import { useQueryClient } from '@tanstack/react-query'
 import useKycStatus from '@/hooks/useKycStatus'
+import useProviderRejectionStatus from '@/hooks/useProviderRejectionStatus'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
@@ -64,6 +65,7 @@ const MantecaAddMoney: FC = () => {
         return countryData.find((country) => country.type === 'country' && country.path === selectedCountryPath)
     }, [selectedCountryPath])
     const { isUserMantecaKycApproved } = useKycStatus()
+    const { manteca: mantecaRejection } = useProviderRejectionStatus()
     const currencyData = useCurrency(selectedCountry?.currency ?? 'ARS')
     const { user } = useAuth()
 
@@ -221,10 +223,22 @@ const MantecaAddMoney: FC = () => {
                     visible={showKycModal}
                     onClose={() => setShowKycModal(false)}
                     onVerify={async () => {
-                        await sumsubFlow.handleInitiateKyc('LATAM')
+                        const hasRejection =
+                            mantecaRejection.state === 'fixable' || mantecaRejection.state === 'blocked'
+                        if (hasRejection) {
+                            await sumsubFlow.handleSelfHealResubmit('MANTECA')
+                        } else {
+                            await sumsubFlow.handleInitiateKyc('LATAM')
+                        }
                         setShowKycModal(false)
                     }}
                     isLoading={sumsubFlow.isLoading}
+                    variant={
+                        mantecaRejection.state === 'fixable' || mantecaRejection.state === 'blocked'
+                            ? 'provider_rejection'
+                            : 'default'
+                    }
+                    providerMessage={mantecaRejection.userMessage ?? undefined}
                 />
                 <SumsubKycModals flow={sumsubFlow} />
                 <InputAmountStep
