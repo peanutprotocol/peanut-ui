@@ -275,6 +275,12 @@ export const SumsubKycWrapper = ({
                         variant: 'purple' as ButtonVariant,
                         shadowSize: '4' as const,
                     },
+                    {
+                        text: 'Cancel',
+                        onClick: () => setIsHelpModalOpen(false),
+                        variant: 'transparent' as ButtonVariant,
+                        className: 'underline text-sm font-medium w-full h-fit mt-3',
+                    },
                 ],
             }
         }

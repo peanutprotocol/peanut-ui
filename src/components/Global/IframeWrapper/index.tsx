@@ -61,6 +61,12 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage, skipStartVi
                         variant: 'transparent' as ButtonVariant,
                         className: 'underline text-sm font-medium w-full fill-none h-fit mt-3',
                     },
+                    {
+                        text: 'Cancel',
+                        onClick: () => setIsHelpModalOpen(false),
+                        variant: 'transparent' as ButtonVariant,
+                        className: 'underline text-sm font-medium w-full h-fit mt-3',
+                    },
                 ],
             }
         }
