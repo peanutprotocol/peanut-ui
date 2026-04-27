@@ -20,6 +20,8 @@ import { AccountType, type Account } from '@/interfaces'
 import { formatIban, shortenStringLong, isTxReverted } from '@/utils/general.utils'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { TRANSACTIONS } from '@/constants/query.consts'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
 import { ErrorHandler } from '@/utils/friendly-error.utils'
 import { getBridgeChainName } from '@/utils/bridge-accounts.utils'
@@ -52,6 +54,7 @@ export default function WithdrawBankPage() {
     const { user, fetchUser } = useAuth()
     const { address, sendMoney, spendableBalance: balance } = useWallet()
     const { guardWithTos, showBridgeTos, hideTos } = useBridgeTosGuard()
+    const queryClient = useQueryClient()
     const router = useRouter()
     const searchParams = useSearchParams()
     const [isLoading, setIsLoading] = useState(false)
@@ -242,6 +245,11 @@ export default function WithdrawBankPage() {
                 })
                 throw new Error(confirmResult.error)
             }
+
+            // Invalidate the transactions query so the Activity widget shows
+            // the pending OFFRAMP entry immediately, instead of waiting up to
+            // 30s tanstack staleTime + Bridge polling cadence.
+            queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
 
             setView('SUCCESS')
             posthog.capture(ANALYTICS_EVENTS.WITHDRAW_COMPLETED, {

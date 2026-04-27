@@ -7,6 +7,8 @@ import { useWebSocket } from '@/hooks/useWebSocket'
 import { useUserStore } from '@/redux/hooks'
 import * as Sentry from '@sentry/nextjs'
 import { useAuth } from '@/context/authContext'
+import { useQueryClient } from '@tanstack/react-query'
+import { TRANSACTIONS } from '@/constants/query.consts'
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
@@ -65,6 +67,7 @@ const HomeHistory = ({
     } = useTransactionHistory({ mode: 'latest', limit: 5, username, filterMutualTxs, enabled: isLoggedIn })
     // check if the username is the same as the current user
     const { fetchBalance } = useWallet()
+    const queryClient = useQueryClient()
     const { triggerHaptic } = useHaptic()
     const { fetchUser } = useAuth()
     const isViewingOwnHistory = useMemo(
@@ -84,8 +87,14 @@ const HomeHistory = ({
                 if (isBalanceAffecting || (entry.type === EHistoryEntryType.REQUEST && isCompleted)) {
                     fetchBalance()
                 }
+                // Any history-entry event invalidates the cached transactions
+                // query, so the Activity widget refetches immediately instead
+                // of waiting up to 30s tanstack staleTime. Covers OFFRAMP /
+                // ONRAMP / SEND_LINK / SEND_LINK_CLAIM / DIRECT_SEND / DEPOSIT
+                // / WITHDRAW / PERK_REWARD / etc — every WS-broadcast event.
+                queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
             },
-            [fetchBalance]
+            [fetchBalance, queryClient]
         ),
         onKycStatusUpdate: useCallback(
             async (newStatus: string) => {
