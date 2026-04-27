@@ -173,12 +173,12 @@ const FILL_CURRENT = { fill: 'currentColor' } as const
 // changing layout. Strokes near the edge are unaffected because Lucide
 // composes those icons with internal padding.
 const VIEWBOX_BOOST: Record<string, string> = {
-    'arrow-up-right': '4 4 16 16',
-    'arrow-down-left': '4 4 16 16',
-    'arrow-up': '4 4 16 16',
-    'arrow-down': '4 4 16 16',
-    'arrow-exchange': '3 3 18 18',
-    exchange: '3 3 18 18',
+    'arrow-up-right': '2 2 20 20',
+    'arrow-down-left': '2 2 20 20',
+    'arrow-up': '2 2 20 20',
+    'arrow-down': '2 2 20 20',
+    'arrow-exchange': '2 2 20 20',
+    exchange: '2 2 20 20',
     'qr-code': '2 2 20 20',
 }
 
