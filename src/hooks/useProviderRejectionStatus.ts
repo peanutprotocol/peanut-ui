@@ -92,8 +92,7 @@ export default function useProviderRejectionStatus() {
                     userMessage = first?.reason || first?.developer_reason || null
                 } else if (Array.isArray(endorsementIssues) && endorsementIssues.length > 0) {
                     // bridge endorsement issues: plain strings like 'government_id_verification_failed'
-                    const issue = String(endorsementIssues[0]).replace(/_/g, ' ')
-                    userMessage = `ID verification failed. Please upload a clearer photo.`
+                                        userMessage = `ID verification failed. Please upload a clearer photo.`
                 }
 
                 return {

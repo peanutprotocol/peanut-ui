@@ -280,6 +280,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 setAccessToken(response.data.token)
                 setShowWrapper(true)
             } else {
+                selfHealProviderRef.current = null
                 setError('Could not initiate document resubmission. Please try again.')
             }
         } catch (e: unknown) {

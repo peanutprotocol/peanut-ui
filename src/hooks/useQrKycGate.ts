@@ -5,6 +5,8 @@ import { useAuth } from '@/context/authContext'
 import { MantecaKycStatus } from '@/interfaces'
 import { isKycStatusApproved, isSumsubStatusInProgress } from '@/constants/kyc.consts'
 
+const MAX_SELF_HEAL_ATTEMPTS = 3
+
 export enum QrKycState {
     LOADING = 'loading',
     PROCEED_TO_PAY = 'proceed_to_pay',
@@ -81,7 +83,7 @@ export function useQrKycGate(paymentProcessor?: 'MANTECA' | 'SIMPLEFI' | null): 
                 const isFixable =
                     railMeta.selfHealable === true &&
                     mantecaKyc?.rejectType !== 'PROVIDER_FINAL' &&
-                    ((kycMeta.selfHealAttempt as number) || 0) < 3
+                    ((kycMeta.selfHealAttempt as number) || 0) < MAX_SELF_HEAL_ATTEMPTS
                 setKycGateState(
                     isFixable ? QrKycState.PROVIDER_REJECTION_FIXABLE : QrKycState.PROVIDER_REJECTION_BLOCKED
                 )

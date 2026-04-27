@@ -224,7 +224,7 @@ const MantecaAddMoney: FC = () => {
                     onClose={() => setShowKycModal(false)}
                     onVerify={async () => {
                         const hasRejection =
-                            mantecaRejection.state === 'fixable' || mantecaRejection.state === 'blocked'
+                            mantecaRejection.state === 'fixable'
                         if (hasRejection) {
                             await sumsubFlow.handleSelfHealResubmit('MANTECA')
                         } else {
