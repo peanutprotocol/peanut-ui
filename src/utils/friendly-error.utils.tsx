@@ -20,7 +20,11 @@ export const ErrorHandler = (error: any): string => {
     ) {
         return 'Transaction failed, please make sure you have enough native token on this network to cover gas fees.'
     }
-    if (text.includes('Something went wrong while fetching the token price. Please change the input denomination and try again'))
+    if (
+        text.includes(
+            'Something went wrong while fetching the token price. Please change the input denomination and try again'
+        )
+    )
         return 'Something went wrong while fetching the token price. Please change the input denomination and try again.'
     if (text.includes('Please ensure that the correct token and chain are defined'))
         return 'Please ensure that the correct token and chain are defined.'
@@ -37,7 +41,8 @@ export const ErrorHandler = (error: any): string => {
         return 'Error making the gasless deposit through the peanut api.'
     if (text.includes('Error sending the transaction.')) return 'Error sending the transaction.'
     if (text.includes('Error getting the link with transactionHash')) return error.message
-    if (text.includes('transfer amount exceeds balance')) return 'You do not have enough balance to complete the transaction.'
+    if (text.includes('transfer amount exceeds balance'))
+        return 'You do not have enough balance to complete the transaction.'
     if (text.includes('does not match the target chain for the transaction'))
         return 'Failed to switch network. Try switching to the correct network manually.'
     if (text.includes('Insufficient balance')) return "You don't have enough balance."

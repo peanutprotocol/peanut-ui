@@ -205,7 +205,14 @@ jest.mock('@/utils/bridge.utils', () => ({
         currency: 'usd',
     })),
     getCurrencySymbol: jest.fn((currency: string) => {
-        const map: Record<string, string> = { usd: '$', eur: '\u20AC', gbp: '\u00A3', mxn: 'MX$', USD: '$', EUR: '\u20AC' }
+        const map: Record<string, string> = {
+            usd: '$',
+            eur: '\u20AC',
+            gbp: '\u00A3',
+            mxn: 'MX$',
+            USD: '$',
+            EUR: '\u20AC',
+        }
         return map[currency] ?? currency
     }),
     getMinimumAmount: jest.fn(() => 1),
@@ -313,9 +320,7 @@ jest.mock('@/components/Global/AmountInput', () => ({
 
 jest.mock('@/components/Global/PeanutLoading', () => ({
     __esModule: true,
-    default: (props: any) => (
-        <div data-testid="peanut-loading">{props.message && <span>{props.message}</span>}</div>
-    ),
+    default: (props: any) => <div data-testid="peanut-loading">{props.message && <span>{props.message}</span>}</div>,
 }))
 
 jest.mock('@/components/Global/NavHeader', () => ({
@@ -363,7 +368,11 @@ jest.mock('@/components/Global/Icons/Icon', () => ({
 
 jest.mock('@/components/Global/ErrorAlert', () => ({
     __esModule: true,
-    default: (props: any) => <div data-testid="error-alert" role="alert">{props.description}</div>,
+    default: (props: any) => (
+        <div data-testid="error-alert" role="alert">
+            {props.description}
+        </div>
+    ),
 }))
 
 jest.mock('@/components/Global/ActionModal', () => ({
@@ -385,7 +394,9 @@ jest.mock('@/components/Global/InfoCard', () => ({
         <div data-testid="info-card">
             {props.title && <span>{props.title}</span>}
             {props.description && <span>{props.description}</span>}
-            {props.items?.map((item: any, i: number) => <span key={i}>{item}</span>)}
+            {props.items?.map((item: any, i: number) => (
+                <span key={i}>{item}</span>
+            ))}
             {props.customContent}
         </div>
     ),
@@ -455,15 +466,17 @@ jest.mock('@/components/Kyc/InitiateKycModal', () => ({
 }))
 
 jest.mock('@/components/Kyc/BridgeTosStep', () => ({
-    BridgeTosStep: (props: any) =>
-        props.visible ? <div data-testid="bridge-tos-step">Bridge TOS</div> : null,
+    BridgeTosStep: (props: any) => (props.visible ? <div data-testid="bridge-tos-step">Bridge TOS</div> : null),
 }))
 
 jest.mock('@/components/AddMoney/components/OnrampConfirmationModal', () => ({
     OnrampConfirmationModal: (props: any) =>
         props.visible ? (
             <div data-testid="onramp-confirmation-modal">
-                <span>Amount: {props.currency}{props.amount}</span>
+                <span>
+                    Amount: {props.currency}
+                    {props.amount}
+                </span>
                 <button data-testid="confirm-onramp" onClick={props.onConfirm}>
                     Confirm
                 </button>
@@ -490,9 +503,15 @@ jest.mock('@/components/AddMoney/components/ChooseNetworkDrawer', () => ({
     default: (props: any) =>
         props.open ? (
             <div data-testid="choose-network-drawer">
-                <button data-testid="select-evm" onClick={() => props.onSelect('EVM')}>EVM</button>
-                <button data-testid="select-sol" onClick={() => props.onSelect('SOL')}>Solana</button>
-                <button data-testid="select-tron" onClick={() => props.onSelect('TRON')}>Tron</button>
+                <button data-testid="select-evm" onClick={() => props.onSelect('EVM')}>
+                    EVM
+                </button>
+                <button data-testid="select-sol" onClick={() => props.onSelect('SOL')}>
+                    Solana
+                </button>
+                <button data-testid="select-tron" onClick={() => props.onSelect('TRON')}>
+                    Tron
+                </button>
             </div>
         ) : null,
 }))
@@ -504,8 +523,7 @@ jest.mock('@/components/AddMoney/components/ChainChip', () => ({
 
 jest.mock('@/components/AddMoney/components/HowToDepositModal', () => ({
     __esModule: true,
-    default: (props: any) =>
-        props.visible ? <div data-testid="how-to-deposit-modal">How to Deposit</div> : null,
+    default: (props: any) => (props.visible ? <div data-testid="how-to-deposit-modal">How to Deposit</div> : null),
 }))
 
 jest.mock('@/components/AddMoney/components/SupportedNetworksModal', () => ({
@@ -535,10 +553,7 @@ jest.mock('@/components/Common/CountryList', () => ({
             >
                 Argentina
             </button>
-            <button
-                data-testid="country-germany"
-                onClick={() => props.onCountryClick({ path: 'germany', id: 'DE' })}
-            >
+            <button data-testid="country-germany" onClick={() => props.onCountryClick({ path: 'germany', id: 'DE' })}>
                 Germany
             </button>
         </div>
@@ -564,7 +579,9 @@ jest.mock('@/components/AddMoney/components/MantecaAddMoney', () => ({
 // AddMoneyBankDetails (for US bank page and bank details step)
 jest.mock('@/components/AddMoney/components/AddMoneyBankDetails', () => ({
     __esModule: true,
-    default: (props: any) => <div data-testid="add-money-bank-details">Bank Details (flow: {props.flow ?? 'add-money'})</div>,
+    default: (props: any) => (
+        <div data-testid="add-money-bank-details">Bank Details (flow: {props.flow ?? 'add-money'})</div>
+    ),
 }))
 
 // MantecaDepositShareDetails
@@ -580,7 +597,9 @@ jest.mock('@/features/payments/shared/components/PaymentSuccessView', () => ({
         <div data-testid="payment-success-view">
             <span>{props.headerTitle}</span>
             <span>Amount: {props.usdAmount}</span>
-            <button data-testid="success-complete" onClick={props.onComplete}>Done</button>
+            <button data-testid="success-complete" onClick={props.onComplete}>
+                Done
+            </button>
         </div>
     ),
 }))
@@ -686,9 +705,7 @@ function createQueryClient() {
 
 function renderWithProviders(component: React.ReactElement) {
     const queryClient = createQueryClient()
-    return render(
-        <QueryClientProvider client={queryClient}>{component}</QueryClientProvider>
-    )
+    return render(<QueryClientProvider client={queryClient}>{component}</QueryClientProvider>)
 }
 
 // ---------- default mock values ----------

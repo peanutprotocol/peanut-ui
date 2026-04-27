@@ -119,14 +119,17 @@ function logCandidates(role: string) {
     const visible = allButtons.filter(isVisible)
     console.warn(
         `[harness-replay] ${role}s — total in DOM: ${allButtons.length}, visible: ${visible.length}` +
-        `, url=${location.pathname}${location.search}` +
-        `, bodyText.length=${(document.body.innerText || '').length}`
+            `, url=${location.pathname}${location.search}` +
+            `, bodyText.length=${(document.body.innerText || '').length}`
     )
-    console.warn(`[harness-replay] visible ${role}s:`, visible.map((el) => ({
-        tag: el.tagName.toLowerCase(),
-        name: accessibleName(el).slice(0, 60),
-        disabled: el.hasAttribute('disabled') || el.getAttribute('aria-disabled') === 'true',
-    })))
+    console.warn(
+        `[harness-replay] visible ${role}s:`,
+        visible.map((el) => ({
+            tag: el.tagName.toLowerCase(),
+            name: accessibleName(el).slice(0, 60),
+            disabled: el.hasAttribute('disabled') || el.getAttribute('aria-disabled') === 'true',
+        }))
+    )
     console.warn(`[harness-replay] body tail: ${(document.body.innerText || '').slice(-200).replace(/\s+/g, ' ')}`)
 }
 
@@ -279,11 +282,7 @@ async function runAction(a: Action): Promise<void> {
             return
         }
         case 'wait-for-selector': {
-            await waitFor(
-                () => document.querySelector<HTMLElement>(a.selector),
-                a.timeoutMs ?? 30000,
-                a.selector
-            )
+            await waitFor(() => document.querySelector<HTMLElement>(a.selector), a.timeoutMs ?? 30000, a.selector)
             return
         }
         default:
@@ -345,7 +344,9 @@ export function HarnessReplay() {
         ;(async () => {
             await sleep(grace)
             if (cancelled) return
-            console.log(`[harness-replay] ${startIdx === 0 ? 'starting' : `resuming at ${startIdx}`} — ${actions.length} actions`)
+            console.log(
+                `[harness-replay] ${startIdx === 0 ? 'starting' : `resuming at ${startIdx}`} — ${actions.length} actions`
+            )
             for (let i = startIdx; i < actions.length; i++) {
                 if (cancelled) return
                 const a = actions[i]
@@ -364,7 +365,9 @@ export function HarnessReplay() {
             sessionStorage.removeItem(HARNESS_REPLAY_INDEX_KEY)
         })()
 
-        return () => { cancelled = true }
+        return () => {
+            cancelled = true
+        }
     }, [])
 
     return null

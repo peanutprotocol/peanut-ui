@@ -51,7 +51,8 @@ export async function checkPasskeySupport(): Promise<PasskeyPreflightResult> {
     // even over plain http. Trust window.isSecureContext first (the
     // browser's own determination) and fall back to the hostname check.
     const hostname = window.location.hostname
-    const isLoopback = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]' || hostname === '::1'
+    const isLoopback =
+        hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]' || hostname === '::1'
 
     const diagnostics: PasskeyPreflightResult['diagnostics'] = {
         hasPublicKeyCredential: 'PublicKeyCredential' in window,

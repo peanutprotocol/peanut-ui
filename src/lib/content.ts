@@ -226,4 +226,3 @@ export function readSingletonContentLocalized<T = Record<string, unknown>>(
     }
     return null
 }
-

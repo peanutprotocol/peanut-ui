@@ -160,4 +160,3 @@ export const PASSKEY_WARNINGS = {
         NotAllowedError: 'Lower end Android devices may require recent security updates for passkeys to work properly.',
     },
 } as const
-

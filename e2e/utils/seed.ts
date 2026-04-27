@@ -15,25 +15,25 @@ import { API_BASE_URL, getHarnessSecret } from './env'
  * Throws on non-2xx response.
  */
 export async function seedScenario(scenario: string, label?: string): Promise<any> {
-	const res = await fetch(`${API_BASE_URL}/dev/seed-scenario`, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-			'x-test-harness-secret': getHarnessSecret(),
-		},
-		body: JSON.stringify({ scenario, harnessLabel: label || 'playwright' }),
-	})
+    const res = await fetch(`${API_BASE_URL}/dev/seed-scenario`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'x-test-harness-secret': getHarnessSecret(),
+        },
+        body: JSON.stringify({ scenario, harnessLabel: label || 'playwright' }),
+    })
 
-	if (!res.ok) {
-		const body = await res.text().catch(() => '<unreadable>')
-		throw new Error(
-			`seed-scenario "${scenario}" failed: ${res.status} — ${body}\n` +
-				`Ensure API is running at ${API_BASE_URL} with ENABLE_TEST_ROUTES=true`
-		)
-	}
+    if (!res.ok) {
+        const body = await res.text().catch(() => '<unreadable>')
+        throw new Error(
+            `seed-scenario "${scenario}" failed: ${res.status} — ${body}\n` +
+                `Ensure API is running at ${API_BASE_URL} with ENABLE_TEST_ROUTES=true`
+        )
+    }
 
-	const json = await res.json()
-	return json.data
+    const json = await res.json()
+    return json.data
 }
 
 /**
@@ -43,15 +43,15 @@ export async function seedScenario(scenario: string, label?: string): Promise<an
  * (e.g. testing claim from the receiver's perspective).
  */
 export async function authenticateAs(context: BrowserContext, token: string) {
-	await context.addCookies([
-		{
-			name: 'jwt-token',
-			value: token,
-			domain: 'localhost',
-			path: '/',
-			httpOnly: false,
-			secure: false,
-			sameSite: 'Lax',
-		},
-	])
+    await context.addCookies([
+        {
+            name: 'jwt-token',
+            value: token,
+            domain: 'localhost',
+            path: '/',
+            httpOnly: false,
+            secure: false,
+            sameSite: 'Lax',
+        },
+    ])
 }

@@ -34,17 +34,25 @@ test.describe('Claim flow (mocked)', () => {
         await dismissModals(page)
         await captureStep(page, testInfo, { name: '02-claim-loaded' })
 
-        const amountDisplay = page.locator(
-            '[data-test="claim-amount"], [class*="amount"], text=/\\$|USD|USDC/i'
-        )
-        if (await amountDisplay.first().isVisible({ timeout: 5000 }).catch(() => false)) {
+        const amountDisplay = page.locator('[data-test="claim-amount"], [class*="amount"], text=/\\$|USD|USDC/i')
+        if (
+            await amountDisplay
+                .first()
+                .isVisible({ timeout: 5000 })
+                .catch(() => false)
+        ) {
             await captureStep(page, testInfo, { name: '03-claim-amount-visible' })
         }
 
         const claimButton = page.locator(
             'button:has-text("Claim"), button:has-text("Receive"), button:has-text("Accept")'
         )
-        if (await claimButton.first().isVisible({ timeout: 3000 }).catch(() => false)) {
+        if (
+            await claimButton
+                .first()
+                .isVisible({ timeout: 3000 })
+                .catch(() => false)
+        ) {
             await captureStep(page, testInfo, { name: '04-claim-button-visible' })
         }
 
@@ -76,10 +84,13 @@ test.describe('Claim flow (mocked)', () => {
         await dismissModals(page)
         await captureStep(page, testInfo, { name: '02-claimed-loaded' })
 
-        const claimedIndicator = page.locator(
-            'text=/claimed|completed|already|expired/i, [data-test="claimed-status"]'
-        )
-        if (await claimedIndicator.first().isVisible({ timeout: 5000 }).catch(() => false)) {
+        const claimedIndicator = page.locator('text=/claimed|completed|already|expired/i, [data-test="claimed-status"]')
+        if (
+            await claimedIndicator
+                .first()
+                .isVisible({ timeout: 5000 })
+                .catch(() => false)
+        ) {
             await captureStep(page, testInfo, { name: '03-claimed-indicator-visible' })
         }
 

@@ -177,9 +177,7 @@ jest.mock('@/components/TransactionDetails/transactionTransformer', () => ({
 }))
 
 jest.mock('@/components/TransactionDetails/TransactionDetailsReceipt', () => ({
-    TransactionDetailsReceipt: (props: any) => (
-        <div data-testid="transaction-details-receipt">Receipt</div>
-    ),
+    TransactionDetailsReceipt: (props: any) => <div data-testid="transaction-details-receipt">Receipt</div>,
 }))
 
 jest.mock('@/context/ModalsContext', () => ({

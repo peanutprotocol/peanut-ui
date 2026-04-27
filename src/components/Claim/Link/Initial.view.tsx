@@ -589,9 +589,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
 
             try {
                 const existingRoute = routes.find(
-                    (route) =>
-                        route.chainId === chainId &&
-                        areEvmAddressesEqual(route.tokenAddress, tokenAddress)
+                    (route) => route.chainId === chainId && areEvmAddressesEqual(route.tokenAddress, tokenAddress)
                 )
 
                 if (existingRoute) {
@@ -611,7 +609,9 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 const destRhinoChain = evmChainIdToRhinoName(chainId)
                 const tokenSymbol = getTokenSymbol(tokenAddress, chainId)?.toUpperCase()
                 if (!sourceRhinoChain || !destRhinoChain || (tokenSymbol !== 'USDC' && tokenSymbol !== 'USDT')) {
-                    throw new Error(`Cross-chain route not supported (src=${claimLinkData.chainId} dest=${chainId} token=${tokenSymbol})`)
+                    throw new Error(
+                        `Cross-chain route not supported (src=${claimLinkData.chainId} dest=${chainId} token=${tokenSymbol})`
+                    )
                 }
 
                 // claimLinkData.amount is base units (bigint, 6-dec for USDC).

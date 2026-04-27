@@ -34,9 +34,7 @@ test.describe('KYC gate matrix', () => {
         }
     })
 
-    test('verified sender → unverified receiver sees bank option (leveraged KYC)', async ({
-        browser,
-    }, testInfo) => {
+    test('verified sender → unverified receiver sees bank option (leveraged KYC)', async ({ browser }, testInfo) => {
         test.skip(!seedData, 'Requires kyc-matrix seed data')
 
         const context = await browser.newContext({ ...devices['Pixel 7'] })
@@ -60,10 +58,11 @@ test.describe('KYC gate matrix', () => {
         await captureStep(page, testInfo, { name: '01-kyc-verified-sender-unverified-receiver' })
 
         // Bank option should be visible because sender is KYC verified
-        const bankOption = page.locator(
-            'button:has-text("Bank"), text=/bank.*account/i, [data-test="bank-option"]'
-        )
-        const bankVisible = await bankOption.first().isVisible({ timeout: 5000 }).catch(() => false)
+        const bankOption = page.locator('button:has-text("Bank"), text=/bank.*account/i, [data-test="bank-option"]')
+        const bankVisible = await bankOption
+            .first()
+            .isVisible({ timeout: 5000 })
+            .catch(() => false)
         await captureStep(page, testInfo, {
             name: bankVisible ? '02-bank-option-visible' : '02-bank-option-not-found',
         })
@@ -76,9 +75,7 @@ test.describe('KYC gate matrix', () => {
         await context.close()
     })
 
-    test('unverified sender → unverified receiver — bank option blocked', async ({
-        browser,
-    }, testInfo) => {
+    test('unverified sender → unverified receiver — bank option blocked', async ({ browser }, testInfo) => {
         test.skip(!seedData, 'Requires kyc-matrix seed data')
 
         const context = await browser.newContext({ ...devices['Pixel 7'] })
@@ -102,17 +99,23 @@ test.describe('KYC gate matrix', () => {
         await captureStep(page, testInfo, { name: '01-kyc-unverified-sender-unverified-receiver' })
 
         // Bank option should NOT be visible — neither party is verified
-        const bankOption = page.locator(
-            'button:has-text("Bank"), text=/bank.*account/i, [data-test="bank-option"]'
-        )
-        const bankVisible = await bankOption.first().isVisible({ timeout: 3000 }).catch(() => false)
+        const bankOption = page.locator('button:has-text("Bank"), text=/bank.*account/i, [data-test="bank-option"]')
+        const bankVisible = await bankOption
+            .first()
+            .isVisible({ timeout: 3000 })
+            .catch(() => false)
         await captureStep(page, testInfo, {
             name: bankVisible ? '02-bank-option-unexpectedly-visible' : '02-bank-option-correctly-hidden',
         })
 
         // Look for KYC prompt instead
         const kycPrompt = page.locator('text=/verify.*identity/i, text=/KYC/i, text=/verification/i')
-        if (await kycPrompt.first().isVisible({ timeout: 3000 }).catch(() => false)) {
+        if (
+            await kycPrompt
+                .first()
+                .isVisible({ timeout: 3000 })
+                .catch(() => false)
+        ) {
             await captureStep(page, testInfo, { name: '03-kyc-prompt-visible' })
         }
 
@@ -120,9 +123,7 @@ test.describe('KYC gate matrix', () => {
         await context.close()
     })
 
-    test('verified receiver can claim to bank regardless of sender KYC', async ({
-        browser,
-    }, testInfo) => {
+    test('verified receiver can claim to bank regardless of sender KYC', async ({ browser }, testInfo) => {
         test.skip(!seedData, 'Requires kyc-matrix seed data')
 
         const context = await browser.newContext({ ...devices['Pixel 7'] })
@@ -146,10 +147,11 @@ test.describe('KYC gate matrix', () => {
         await captureStep(page, testInfo, { name: '01-kyc-unverified-sender-verified-receiver' })
 
         // Bank option should be visible because receiver is KYC verified
-        const bankOption = page.locator(
-            'button:has-text("Bank"), text=/bank.*account/i, [data-test="bank-option"]'
-        )
-        const bankVisible = await bankOption.first().isVisible({ timeout: 5000 }).catch(() => false)
+        const bankOption = page.locator('button:has-text("Bank"), text=/bank.*account/i, [data-test="bank-option"]')
+        const bankVisible = await bankOption
+            .first()
+            .isVisible({ timeout: 5000 })
+            .catch(() => false)
         await captureStep(page, testInfo, {
             name: bankVisible ? '02-bank-option-visible' : '02-bank-option-not-found',
         })
@@ -188,15 +190,19 @@ test.describe('KYC gate matrix', () => {
         await captureStep(page, testInfo, { name: '01-kyc-both-verified' })
 
         // Both bank and wallet options should be visible
-        const bankOption = page.locator(
-            'button:has-text("Bank"), text=/bank.*account/i, [data-test="bank-option"]'
-        )
+        const bankOption = page.locator('button:has-text("Bank"), text=/bank.*account/i, [data-test="bank-option"]')
         const walletOption = page.locator(
             'button:has-text("Wallet"), button:has-text("Peanut"), [data-test="wallet-option"]'
         )
 
-        const bankVisible = await bankOption.first().isVisible({ timeout: 5000 }).catch(() => false)
-        const walletVisible = await walletOption.first().isVisible({ timeout: 3000 }).catch(() => false)
+        const bankVisible = await bankOption
+            .first()
+            .isVisible({ timeout: 5000 })
+            .catch(() => false)
+        const walletVisible = await walletOption
+            .first()
+            .isVisible({ timeout: 3000 })
+            .catch(() => false)
 
         await captureStep(page, testInfo, { name: '02-kyc-both-verified-options' })
 

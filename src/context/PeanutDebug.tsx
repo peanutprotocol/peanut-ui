@@ -58,7 +58,7 @@ export function PeanutDebug() {
             const cached = currentUserId()
             if (cached) return cached
             const res = await fetch('/api/peanut/user/get-user-from-cookie', { method: 'POST', credentials: 'include' })
-                .then((r) => r.ok ? r.json() : null)
+                .then((r) => (r.ok ? r.json() : null))
                 .catch(() => null)
             const uid = res?.user?.userId
             if (uid) (window as any).__peanut_user_id = uid
@@ -75,16 +75,24 @@ export function PeanutDebug() {
                     document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`
                     document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=${location.hostname}`
                 })
-                try { localStorage.clear() } catch {}
-                try { sessionStorage.clear() } catch {}
+                try {
+                    localStorage.clear()
+                } catch {}
+                try {
+                    sessionStorage.clear()
+                } catch {}
                 try {
                     const dbs = (await (indexedDB as any).databases?.()) ?? []
                     await Promise.all(
-                        dbs.map((d: { name: string }) =>
-                            new Promise((r) => {
-                                const req = indexedDB.deleteDatabase(d.name)
-                                ;(req as any).onsuccess = (req as any).onerror = (req as any).onblocked = () => r(null)
-                            })
+                        dbs.map(
+                            (d: { name: string }) =>
+                                new Promise((r) => {
+                                    const req = indexedDB.deleteDatabase(d.name)
+                                    ;(req as any).onsuccess =
+                                        (req as any).onerror =
+                                        (req as any).onblocked =
+                                            () => r(null)
+                                })
                         )
                     )
                 } catch {}

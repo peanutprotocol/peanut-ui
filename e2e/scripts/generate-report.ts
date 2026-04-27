@@ -22,168 +22,173 @@ const saveBaseline = process.argv.includes('--save-baseline')
 // ── Helpers ──────────────────────────────────────────────────────────────
 
 interface Screenshot {
-	name: string
-	path: string
-	relativePath: string
-	baselinePath: string | null
-	ariaPath: string | null
-	metaPath: string | null
+    name: string
+    path: string
+    relativePath: string
+    baselinePath: string | null
+    ariaPath: string | null
+    metaPath: string | null
 }
 
 interface Flow {
-	id: string
-	label: string
-	screenshots: Screenshot[]
+    id: string
+    label: string
+    screenshots: Screenshot[]
 }
 
 function extractFlowLabel(dirName: string): string {
-	// e.g. "home-Home-page-authenticated-home-renders-with-core-elements-mobile"
-	// → "Home page — authenticated home renders with core elements"
-	const parts = dirName.split('-')
+    // e.g. "home-Home-page-authenticated-home-renders-with-core-elements-mobile"
+    // → "Home page — authenticated home renders with core elements"
+    const parts = dirName.split('-')
 
-	// Find the spec name prefix (first segment before the test describe name)
-	const specNames = [
-		'Home', 'Claim', 'Send', 'Withdraw', 'Setup', 'QR',
-		'KYC', 'Profile', 'Public', 'Dev', 'Request',
-	]
+    // Find the spec name prefix (first segment before the test describe name)
+    const specNames = ['Home', 'Claim', 'Send', 'Withdraw', 'Setup', 'QR', 'KYC', 'Profile', 'Public', 'Dev', 'Request']
 
-	let label = dirName
-	for (const spec of specNames) {
-		const idx = dirName.indexOf(spec)
-		if (idx > 0) {
-			label = dirName.slice(idx).replace(/-mobile$/, '').replace(/-retry\d+$/, '')
-			break
-		}
-	}
+    let label = dirName
+    for (const spec of specNames) {
+        const idx = dirName.indexOf(spec)
+        if (idx > 0) {
+            label = dirName
+                .slice(idx)
+                .replace(/-mobile$/, '')
+                .replace(/-retry\d+$/, '')
+            break
+        }
+    }
 
-	return label
-		.replace(/--/g, ' — ')
-		.replace(/-/g, ' ')
-		.replace(/\b[a-f0-9]{5}\b/g, '') // remove hash fragments
-		.replace(/\s+/g, ' ')
-		.trim()
+    return label
+        .replace(/--/g, ' — ')
+        .replace(/-/g, ' ')
+        .replace(/\b[a-f0-9]{5}\b/g, '') // remove hash fragments
+        .replace(/\s+/g, ' ')
+        .trim()
 }
 
 function groupByFlow(resultsDir: string): Flow[] {
-	if (!fs.existsSync(resultsDir)) return []
+    if (!fs.existsSync(resultsDir)) return []
 
-	const dirs = fs.readdirSync(resultsDir).filter(d => {
-		const full = path.join(resultsDir, d)
-		return fs.statSync(full).isDirectory() && !d.startsWith('.')
-	})
+    const dirs = fs.readdirSync(resultsDir).filter((d) => {
+        const full = path.join(resultsDir, d)
+        return fs.statSync(full).isDirectory() && !d.startsWith('.')
+    })
 
-	// Group directories by spec file (first segment before the hash)
-	const flowMap = new Map<string, Flow>()
+    // Group directories by spec file (first segment before the hash)
+    const flowMap = new Map<string, Flow>()
 
-	for (const dir of dirs) {
-		// Skip retries — only show the final result
-		if (dir.includes('-retry')) continue
+    for (const dir of dirs) {
+        // Skip retries — only show the final result
+        if (dir.includes('-retry')) continue
 
-		const flowKey = dir.split('-').slice(0, 2).join('-')
-		const label = extractFlowLabel(dir)
+        const flowKey = dir.split('-').slice(0, 2).join('-')
+        const label = extractFlowLabel(dir)
 
-		if (!flowMap.has(flowKey)) {
-			flowMap.set(flowKey, { id: flowKey, label: label.split(' ')[0], screenshots: [] })
-		}
-		const flow = flowMap.get(flowKey)!
+        if (!flowMap.has(flowKey)) {
+            flowMap.set(flowKey, { id: flowKey, label: label.split(' ')[0], screenshots: [] })
+        }
+        const flow = flowMap.get(flowKey)!
 
-		// Find PNGs in this directory
-		const fullDir = path.join(resultsDir, dir)
-		const pngs = fs.readdirSync(fullDir)
-			.filter(f => f.endsWith('.png'))
-			.sort()
+        // Find PNGs in this directory
+        const fullDir = path.join(resultsDir, dir)
+        const pngs = fs
+            .readdirSync(fullDir)
+            .filter((f) => f.endsWith('.png'))
+            .sort()
 
-		for (const png of pngs) {
-			const screenshotPath = path.join(fullDir, png)
-			const relativePath = path.relative(path.dirname(REPORT_PATH), screenshotPath)
-			const baseName = png.replace('.png', '')
+        for (const png of pngs) {
+            const screenshotPath = path.join(fullDir, png)
+            const relativePath = path.relative(path.dirname(REPORT_PATH), screenshotPath)
+            const baseName = png.replace('.png', '')
 
-			// Check for baseline
-			const baselineFile = path.join(BASELINE_DIR, dir, png)
-			const baselinePath = fs.existsSync(baselineFile)
-				? path.relative(path.dirname(REPORT_PATH), baselineFile)
-				: null
+            // Check for baseline
+            const baselineFile = path.join(BASELINE_DIR, dir, png)
+            const baselinePath = fs.existsSync(baselineFile)
+                ? path.relative(path.dirname(REPORT_PATH), baselineFile)
+                : null
 
-			// Check for aria snapshot
-			const ariaFile = path.join(fullDir, `${baseName}-aria.txt`)
-			const ariaPath = fs.existsSync(ariaFile) ? ariaFile : null
+            // Check for aria snapshot
+            const ariaFile = path.join(fullDir, `${baseName}-aria.txt`)
+            const ariaPath = fs.existsSync(ariaFile) ? ariaFile : null
 
-			// Check for meta
-			const metaFile = path.join(fullDir, `${baseName}-meta.json`)
-			const metaPath = fs.existsSync(metaFile) ? metaFile : null
+            // Check for meta
+            const metaFile = path.join(fullDir, `${baseName}-meta.json`)
+            const metaPath = fs.existsSync(metaFile) ? metaFile : null
 
-			flow.screenshots.push({
-				name: `${label} / ${baseName}`,
-				path: screenshotPath,
-				relativePath,
-				baselinePath,
-				ariaPath,
-				metaPath,
-			})
-		}
-	}
+            flow.screenshots.push({
+                name: `${label} / ${baseName}`,
+                path: screenshotPath,
+                relativePath,
+                baselinePath,
+                ariaPath,
+                metaPath,
+            })
+        }
+    }
 
-	return Array.from(flowMap.values()).sort((a, b) => a.id.localeCompare(b.id))
+    return Array.from(flowMap.values()).sort((a, b) => a.id.localeCompare(b.id))
 }
 
 // ── Save baseline ────────────────────────────────────────────────────────
 
 function copyBaseline() {
-	if (fs.existsSync(BASELINE_DIR)) {
-		fs.rmSync(BASELINE_DIR, { recursive: true })
-	}
-	fs.mkdirSync(BASELINE_DIR, { recursive: true })
+    if (fs.existsSync(BASELINE_DIR)) {
+        fs.rmSync(BASELINE_DIR, { recursive: true })
+    }
+    fs.mkdirSync(BASELINE_DIR, { recursive: true })
 
-	const dirs = fs.readdirSync(RESULTS_DIR).filter(d => {
-		return fs.statSync(path.join(RESULTS_DIR, d)).isDirectory() && !d.startsWith('.')
-	})
+    const dirs = fs.readdirSync(RESULTS_DIR).filter((d) => {
+        return fs.statSync(path.join(RESULTS_DIR, d)).isDirectory() && !d.startsWith('.')
+    })
 
-	let count = 0
-	for (const dir of dirs) {
-		if (dir.includes('-retry')) continue
-		const srcDir = path.join(RESULTS_DIR, dir)
-		const dstDir = path.join(BASELINE_DIR, dir)
-		fs.mkdirSync(dstDir, { recursive: true })
+    let count = 0
+    for (const dir of dirs) {
+        if (dir.includes('-retry')) continue
+        const srcDir = path.join(RESULTS_DIR, dir)
+        const dstDir = path.join(BASELINE_DIR, dir)
+        fs.mkdirSync(dstDir, { recursive: true })
 
-		for (const f of fs.readdirSync(srcDir).filter(f => f.endsWith('.png'))) {
-			fs.copyFileSync(path.join(srcDir, f), path.join(dstDir, f))
-			count++
-		}
-	}
-	console.log(`[report] Saved ${count} screenshots as baseline to ${BASELINE_DIR}`)
+        for (const f of fs.readdirSync(srcDir).filter((f) => f.endsWith('.png'))) {
+            fs.copyFileSync(path.join(srcDir, f), path.join(dstDir, f))
+            count++
+        }
+    }
+    console.log(`[report] Saved ${count} screenshots as baseline to ${BASELINE_DIR}`)
 }
 
 // ── Generate HTML ────────────────────────────────────────────────────────
 
 function generateHTML(flows: Flow[]): string {
-	const hasBaseline = flows.some(f => f.screenshots.some(s => s.baselinePath))
-	const totalScreenshots = flows.reduce((n, f) => n + f.screenshots.length, 0)
-	const timestamp = new Date().toISOString().replace('T', ' ').slice(0, 19)
+    const hasBaseline = flows.some((f) => f.screenshots.some((s) => s.baselinePath))
+    const totalScreenshots = flows.reduce((n, f) => n + f.screenshots.length, 0)
+    const timestamp = new Date().toISOString().replace('T', ' ').slice(0, 19)
 
-	const flowSections = flows.map(flow => {
-		const cards = flow.screenshots.map(s => {
-			let aria = ''
-			if (s.ariaPath) {
-				try { aria = fs.readFileSync(s.ariaPath, 'utf-8').slice(0, 500) } catch {}
-			}
+    const flowSections = flows
+        .map((flow) => {
+            const cards = flow.screenshots
+                .map((s) => {
+                    let aria = ''
+                    if (s.ariaPath) {
+                        try {
+                            aria = fs.readFileSync(s.ariaPath, 'utf-8').slice(0, 500)
+                        } catch {}
+                    }
 
-			let meta = ''
-			if (s.metaPath) {
-				try {
-					const m = JSON.parse(fs.readFileSync(s.metaPath, 'utf-8'))
-					meta = `${m.url} · ${m.viewport?.width}×${m.viewport?.height}`
-				} catch {}
-			}
+                    let meta = ''
+                    if (s.metaPath) {
+                        try {
+                            const m = JSON.parse(fs.readFileSync(s.metaPath, 'utf-8'))
+                            meta = `${m.url} · ${m.viewport?.width}×${m.viewport?.height}`
+                        } catch {}
+                    }
 
-			const hasError = aria.includes('Error') || aria.includes('Application error')
-			const badge = hasError ? '<span class="badge error">ERROR</span>' : ''
+                    const hasError = aria.includes('Error') || aria.includes('Application error')
+                    const badge = hasError ? '<span class="badge error">ERROR</span>' : ''
 
-			// Stack both images; JS toggle controls which is visible
-			const baselineImg = s.baselinePath
-				? `<img class="img-baseline" src="${s.baselinePath}" loading="lazy" style="display:none" />`
-				: ''
+                    // Stack both images; JS toggle controls which is visible
+                    const baselineImg = s.baselinePath
+                        ? `<img class="img-baseline" src="${s.baselinePath}" loading="lazy" style="display:none" />`
+                        : ''
 
-			return `
+                    return `
 				<div class="card ${hasError ? 'has-error' : ''}" ${s.baselinePath ? 'data-has-baseline' : ''}>
 					<div class="card-header">
 						<span class="step-name">${s.name.split(' / ').pop()}</span>
@@ -196,20 +201,20 @@ function generateHTML(flows: Flow[]): string {
 					</div>
 					${aria && hasError ? `<details><summary>Aria</summary><pre>${escapeHtml(aria)}</pre></details>` : ''}
 				</div>`
-		}).join('\n')
+                })
+                .join('\n')
 
-		return `
+            return `
 			<section class="flow" id="${flow.id}">
 				<h2>${flow.label} <span class="count">(${flow.screenshots.length})</span></h2>
 				<div class="grid">${cards}</div>
 			</section>`
-	}).join('\n')
+        })
+        .join('\n')
 
-	const nav = flows.map(f =>
-		`<a href="#${f.id}">${f.label} (${f.screenshots.length})</a>`
-	).join('')
+    const nav = flows.map((f) => `<a href="#${f.id}">${f.label} (${f.screenshots.length})</a>`).join('')
 
-	return `<!DOCTYPE html>
+    return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
@@ -274,7 +279,9 @@ function generateHTML(flows: Flow[]): string {
 	</header>
 	<nav>${nav}</nav>
 	<div class="toolbar">
-		${hasBaseline ? `
+		${
+            hasBaseline
+                ? `
 		<div class="toggle-wrap">
 			<span class="toggle-label" id="lbl-current">Current</span>
 			<label class="toggle">
@@ -284,7 +291,9 @@ function generateHTML(flows: Flow[]): string {
 			<span class="toggle-label" id="lbl-baseline">Baseline</span>
 		</div>
 		<span style="font-size:11px;color:#888">Hold <kbd>B</kbd> to peek at baseline</span>
-		` : '<span style="font-size:12px;color:#888">No baseline. Run <code>npx tsx e2e/scripts/generate-report.ts --save-baseline</code> to set one.</span>'}
+		`
+                : '<span style="font-size:12px;color:#888">No baseline. Run <code>npx tsx e2e/scripts/generate-report.ts --save-baseline</code> to set one.</span>'
+        }
 		<label style="margin-left:auto"><input type="checkbox" id="errors-only" /> Errors only</label>
 	</div>
 	${flowSections}
@@ -339,20 +348,20 @@ function generateHTML(flows: Flow[]): string {
 }
 
 function escapeHtml(s: string): string {
-	return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
 // ── Main ─────────────────────────────────────────────────────────────────
 
 if (saveBaseline) {
-	copyBaseline()
+    copyBaseline()
 }
 
 const flows = groupByFlow(RESULTS_DIR)
 if (flows.length === 0) {
-	console.error('[report] No results found in', RESULTS_DIR)
-	console.error('Run: npx playwright test --project=mobile')
-	process.exit(1)
+    console.error('[report] No results found in', RESULTS_DIR)
+    console.error('Run: npx playwright test --project=mobile')
+    process.exit(1)
 }
 
 const html = generateHTML(flows)
@@ -363,5 +372,5 @@ console.log(`[report] ${flows.length} flows, ${flows.reduce((n, f) => n + f.scre
 console.log(`[report] Open: file://${REPORT_PATH}`)
 
 if (!fs.existsSync(BASELINE_DIR)) {
-	console.log(`[report] No baseline yet. Run with --save-baseline to save current as baseline.`)
+    console.log(`[report] No baseline yet. Run with --save-baseline to save current as baseline.`)
 }

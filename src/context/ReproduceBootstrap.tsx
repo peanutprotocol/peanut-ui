@@ -54,7 +54,9 @@ async function wipeUserScopedClientState() {
         for (const k of keys) {
             if (preserve.has(k)) continue
             // Keep a narrow allowlist only — anything else is suspect.
-            try { localStorage.removeItem(k) } catch {}
+            try {
+                localStorage.removeItem(k)
+            } catch {}
         }
     } catch {}
 
@@ -63,9 +65,7 @@ async function wipeUserScopedClientState() {
         try {
             const names = await caches.keys()
             await Promise.all(
-                names
-                    .filter((n) => USER_DATA_CACHE_PATTERNS.some((p) => n.includes(p)))
-                    .map((n) => caches.delete(n))
+                names.filter((n) => USER_DATA_CACHE_PATTERNS.some((p) => n.includes(p))).map((n) => caches.delete(n))
             )
         } catch {}
     }
@@ -88,13 +88,14 @@ async function wipeUserScopedClientState() {
             const dbs = await indexedDB.databases()
             await Promise.all(
                 (dbs || []).map(
-                    (db) => new Promise<void>((resolve) => {
-                        if (!db.name) return resolve()
-                        const req = indexedDB.deleteDatabase(db.name)
-                        req.onsuccess = () => resolve()
-                        req.onerror = () => resolve()
-                        req.onblocked = () => resolve()
-                    })
+                    (db) =>
+                        new Promise<void>((resolve) => {
+                            if (!db.name) return resolve()
+                            const req = indexedDB.deleteDatabase(db.name)
+                            req.onsuccess = () => resolve()
+                            req.onerror = () => resolve()
+                            req.onblocked = () => resolve()
+                        })
                 )
             )
         } catch {}
@@ -135,7 +136,9 @@ export function ReproduceBootstrap() {
                 // captured at screenshot time (recent methods, user prefs).
                 for (const [k, v] of Object.entries(manifest.localStorage ?? {})) {
                     if (v == null) continue
-                    try { localStorage.setItem(k, String(v)) } catch {}
+                    try {
+                        localStorage.setItem(k, String(v))
+                    } catch {}
                 }
                 // Step 2b: stash action descriptors for HarnessReplay to pick
                 // up after the reload. The replay component fires once, then

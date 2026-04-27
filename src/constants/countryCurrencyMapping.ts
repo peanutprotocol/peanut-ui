@@ -141,4 +141,3 @@ export function isUKCountry(countryIdentifier: string | undefined): boolean {
     const lower = countryIdentifier.toLowerCase()
     return lower === 'united-kingdom' || lower === 'gb' || lower === 'gbr'
 }
-

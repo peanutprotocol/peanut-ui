@@ -23,4 +23,3 @@ export function t(template: string, vars?: Record<string, string>): string {
     if (!vars) return template
     return template.replace(/\{(\w+)\}/g, (_, key) => vars[key] ?? `{${key}}`)
 }
-

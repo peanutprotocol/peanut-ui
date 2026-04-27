@@ -76,7 +76,13 @@ jest.mock('@/utils/general.utils', () => ({
 jest.mock('@/constants/actionlist.consts', () => ({
     ACTION_METHODS: [
         { id: 'bank', title: 'Bank', description: 'EUR, USD, MXN, ARS & more', icons: [], soon: false },
-        { id: 'exchange-or-wallet', title: 'Exchange or Wallet', description: 'Binance, Metamask and more', icons: [], soon: false },
+        {
+            id: 'exchange-or-wallet',
+            title: 'Exchange or Wallet',
+            description: 'Binance, Metamask and more',
+            icons: [],
+            soon: false,
+        },
     ],
 }))
 
@@ -110,11 +116,7 @@ jest.mock('@/components/Global/Icons/Icon', () => ({
 
 jest.mock('@/components/0_Bruddle/Button', () => ({
     Button: (props: any) => (
-        <button
-            data-testid={props['data-testid'] ?? 'button'}
-            onClick={props.onClick}
-            disabled={props.disabled}
-        >
+        <button data-testid={props['data-testid'] ?? 'button'} onClick={props.onClick} disabled={props.disabled}>
             {props.children}
         </button>
     ),
@@ -207,7 +209,13 @@ function applyDefaults() {
     mockUseGeoFilteredPaymentOptions.mockReturnValue({
         filteredMethods: [
             { id: 'bank', title: 'Bank', description: 'EUR, USD, MXN, ARS & more', icons: [], soon: false },
-            { id: 'exchange-or-wallet', title: 'Exchange or Wallet', description: 'Binance, Metamask and more', icons: [], soon: false },
+            {
+                id: 'exchange-or-wallet',
+                title: 'Exchange or Wallet',
+                description: 'Binance, Metamask and more',
+                icons: [],
+                soon: false,
+            },
         ],
     })
 

@@ -9,12 +9,7 @@ import {
     MAX_MANTECA_WITHDRAW_AMOUNT,
 } from '@/constants/payment.consts'
 import { formatExtendedNumber } from '@/utils/general.utils'
-import {
-    mapToLimitCurrency,
-    type LimitCurrency,
-    type LimitFlowType,
-    type LimitValidationResult,
-} from '../utils'
+import { mapToLimitCurrency, type LimitCurrency, type LimitFlowType, type LimitValidationResult } from '../utils'
 
 // threshold for showing warning (percentage of limit remaining after transaction)
 const WARNING_THRESHOLD_PERCENT = 30

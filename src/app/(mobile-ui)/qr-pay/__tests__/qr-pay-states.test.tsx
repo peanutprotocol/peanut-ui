@@ -271,9 +271,7 @@ jest.mock('@/components/Global/AmountInput', () => ({
 
 jest.mock('@/components/Global/PeanutLoading', () => ({
     __esModule: true,
-    default: (props: any) => (
-        <div data-testid="peanut-loading">{props.message && <span>{props.message}</span>}</div>
-    ),
+    default: (props: any) => <div data-testid="peanut-loading">{props.message && <span>{props.message}</span>}</div>,
 }))
 
 jest.mock('@/components/Global/NavHeader', () => ({
@@ -311,7 +309,11 @@ jest.mock('@/components/Global/Icons/Icon', () => ({
 
 jest.mock('@/components/Global/ErrorAlert', () => ({
     __esModule: true,
-    default: (props: any) => <div data-testid="error-alert" role="alert">{props.description}</div>,
+    default: (props: any) => (
+        <div data-testid="error-alert" role="alert">
+            {props.description}
+        </div>
+    ),
 }))
 
 jest.mock('@/components/Global/ActionModal', () => ({
@@ -339,7 +341,11 @@ jest.mock('@/components/Kyc/SumsubKycWrapper', () => ({
 }))
 
 jest.mock('@/components/Payment/PaymentInfoRow', () => ({
-    PaymentInfoRow: (props: any) => <div data-testid="payment-info-row">{props.label}: {props.value}</div>,
+    PaymentInfoRow: (props: any) => (
+        <div data-testid="payment-info-row">
+            {props.label}: {props.value}
+        </div>
+    ),
 }))
 
 jest.mock('@/components/Common/PointsCard', () => ({
@@ -1133,8 +1139,11 @@ describe('GROUP 4: Success States', () => {
     })
 
     test('Argentina QR3 success shows savings message', async () => {
-        const { isArgentinaMantecaQrPayment, calculateSavingsInCents, getSavingsMessage } =
-            require('@/utils/qr-payment.utils')
+        const {
+            isArgentinaMantecaQrPayment,
+            calculateSavingsInCents,
+            getSavingsMessage,
+        } = require('@/utils/qr-payment.utils')
 
         isArgentinaMantecaQrPayment.mockReturnValue(true)
         calculateSavingsInCents.mockReturnValue(150)
@@ -1194,9 +1203,7 @@ describe('GROUP 5: Error States', () => {
     })
 
     test('QR decode failure shows specific error message', async () => {
-        mockMantecaApi.initiateQrPayment.mockRejectedValue(
-            new Error('PAYMENT_DESTINATION_DECODING_ERROR')
-        )
+        mockMantecaApi.initiateQrPayment.mockRejectedValue(new Error('PAYMENT_DESTINATION_DECODING_ERROR'))
 
         renderQrPay({ qrCode: 'mercadopago://pay?id=bad', type: 'MERCADO_PAGO', t: '1' })
 
@@ -1271,8 +1278,7 @@ describe('GROUP 6: Edge Cases', () => {
     })
 
     test('BR user with limits blocking shows KYC wrapper visible', async () => {
-        const { getLimitsWarningCardProps, isBrUserEligibleForLimitIncrease } =
-            require('@/features/limits/utils')
+        const { getLimitsWarningCardProps, isBrUserEligibleForLimitIncrease } = require('@/features/limits/utils')
 
         getLimitsWarningCardProps.mockReturnValue({
             variant: 'error',
@@ -1294,9 +1300,7 @@ describe('GROUP 6: Edge Cases', () => {
     })
 
     test('Dynamic QR waiting for merchant amount shows loading indicator', async () => {
-        mockMantecaApi.initiateQrPayment.mockRejectedValue(
-            new Error('PAYMENT_DESTINATION_MISSING_AMOUNT')
-        )
+        mockMantecaApi.initiateQrPayment.mockRejectedValue(new Error('PAYMENT_DESTINATION_MISSING_AMOUNT'))
 
         renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
 

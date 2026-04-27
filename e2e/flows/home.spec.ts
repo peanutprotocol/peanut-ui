@@ -16,68 +16,68 @@ import { installApiMocks } from '../utils/mock-api'
 import { usePersona } from '../utils/personas'
 
 test.describe('Home page', () => {
-	test('authenticated home renders with core elements', async ({ page }, testInfo) => {
-		const consoleLogs = collectConsoleLogs(page)
-		await installApiMocks(page)
+    test('authenticated home renders with core elements', async ({ page }, testInfo) => {
+        const consoleLogs = collectConsoleLogs(page)
+        await installApiMocks(page)
 
-		await page.goto('/home')
-		await page.waitForTimeout(3000)
-		await dismissModals(page)
-		await captureStep(page, testInfo, { name: '01-home-initial' })
+        await page.goto('/home')
+        await page.waitForTimeout(3000)
+        await dismissModals(page)
+        await captureStep(page, testInfo, { name: '01-home-initial' })
 
-		// Wait for content to load past any loading spinners
-		await page.waitForTimeout(5000)
-		await dismissModals(page)
-		await captureStep(page, testInfo, { name: '02-home-settled' })
+        // Wait for content to load past any loading spinners
+        await page.waitForTimeout(5000)
+        await dismissModals(page)
+        await captureStep(page, testInfo, { name: '02-home-settled' })
 
-		// Verify no error states
-		const errorState = page.locator('text=/Error loading/i')
-		expect(await errorState.count()).toBe(0)
+        // Verify no error states
+        const errorState = page.locator('text=/Error loading/i')
+        expect(await errorState.count()).toBe(0)
 
-		// Verify page rendered (not stuck on loading/error)
-		const bodyText = await page.locator('body').innerText()
-		expect(bodyText).toContain('Send')
+        // Verify page rendered (not stuck on loading/error)
+        const bodyText = await page.locator('body').innerText()
+        expect(bodyText).toContain('Send')
 
-		// Scroll to see history
-		await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
-		await captureStep(page, testInfo, { name: '03-home-scrolled' })
+        // Scroll to see history
+        await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+        await captureStep(page, testInfo, { name: '03-home-scrolled' })
 
-		consoleLogs.flush(testInfo, 'home')
-	})
+        consoleLogs.flush(testInfo, 'home')
+    })
 
-	test('home with history persona — shows activity', async ({ browser }, testInfo) => {
-		const context = await browser.newContext({ ...devices['Pixel 7'] })
-		const persona = await usePersona(context, 'with-history')
+    test('home with history persona — shows activity', async ({ browser }, testInfo) => {
+        const context = await browser.newContext({ ...devices['Pixel 7'] })
+        const persona = await usePersona(context, 'with-history')
 
-		const page = await context.newPage()
-		const consoleLogs = collectConsoleLogs(page)
-		await installApiMocks(page)
+        const page = await context.newPage()
+        const consoleLogs = collectConsoleLogs(page)
+        await installApiMocks(page)
 
-		await page.goto('/home')
-		await page.waitForTimeout(3000)
-		await dismissModals(page)
-		await captureStep(page, testInfo, { name: '01-home-history-initial' })
+        await page.goto('/home')
+        await page.waitForTimeout(3000)
+        await dismissModals(page)
+        await captureStep(page, testInfo, { name: '01-home-history-initial' })
 
-		await page.waitForTimeout(5000)
-		await dismissModals(page)
-		await captureStep(page, testInfo, { name: '02-home-history-settled' })
+        await page.waitForTimeout(5000)
+        await dismissModals(page)
+        await captureStep(page, testInfo, { name: '02-home-history-settled' })
 
-		// Verify no error states
-		const errorState = page.locator('text=/Error loading/i')
-		expect(await errorState.count()).toBe(0)
+        // Verify no error states
+        const errorState = page.locator('text=/Error loading/i')
+        expect(await errorState.count()).toBe(0)
 
-		// Scroll to see history section
-		await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
-		await captureStep(page, testInfo, { name: '03-home-history-scrolled' })
+        // Scroll to see history section
+        await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+        await captureStep(page, testInfo, { name: '03-home-history-scrolled' })
 
-		if (persona) {
-			testInfo.annotations.push({
-				type: 'persona',
-				description: `with-history (${persona.userId})`,
-			})
-		}
+        if (persona) {
+            testInfo.annotations.push({
+                type: 'persona',
+                description: `with-history (${persona.userId})`,
+            })
+        }
 
-		consoleLogs.flush(testInfo, 'home-history')
-		await context.close()
-	})
+        consoleLogs.flush(testInfo, 'home-history')
+        await context.close()
+    })
 })

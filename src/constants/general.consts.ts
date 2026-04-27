@@ -10,7 +10,6 @@ const TOKEN_DETAILS = tokenDetailsJson as unknown as IPeanutTokenDetail[]
 const INFURA_API_KEY = process.env.NEXT_PUBLIC_INFURA_API_KEY
 const ALCHEMY_API_KEY = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY
 
-
 const infuraUrl = (subdomain: string) => (INFURA_API_KEY ? `https://${subdomain}.infura.io/v3/${INFURA_API_KEY}` : null)
 const alchemyUrl = (subdomain: string) =>
     ALCHEMY_API_KEY ? `https://${subdomain}.g.alchemy.com/v2/${ALCHEMY_API_KEY}` : null

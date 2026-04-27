@@ -88,9 +88,7 @@ jest.mock('@/services/charges', () => ({
 }))
 
 jest.mock('@/app/actions/tokens', () => ({
-    fetchTokenDetails: jest.fn(() =>
-        Promise.resolve({ symbol: 'USDC', decimals: 6, logoURI: '/usdc.png' })
-    ),
+    fetchTokenDetails: jest.fn(() => Promise.resolve({ symbol: 'USDC', decimals: 6, logoURI: '/usdc.png' })),
 }))
 
 jest.mock('@/utils/general.utils', () => ({
@@ -888,8 +886,6 @@ describe('GROUP 7: Edge Cases', () => {
         renderCreateRequest()
 
         expect(mockSetSelectedChainID).toHaveBeenCalledWith('42161')
-        expect(mockSetSelectedTokenAddress).toHaveBeenCalledWith(
-            '0xaf88d065e77c8cc2239327c5edb3a432268e5831'
-        )
+        expect(mockSetSelectedTokenAddress).toHaveBeenCalledWith('0xaf88d065e77c8cc2239327c5edb3a432268e5831')
     })
 })

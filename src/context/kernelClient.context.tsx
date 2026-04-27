@@ -308,14 +308,14 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
         let cancelled = false
         ;(async () => {
             const clients: Record<string, GenericSmartAccountClient> = {}
-            for (const [chainId, { client, chain, bundlerUrl, paymasterUrl }] of Object.entries(PUBLIC_CLIENTS_BY_CHAIN)) {
+            for (const [chainId, { client, chain, bundlerUrl, paymasterUrl }] of Object.entries(
+                PUBLIC_CLIENTS_BY_CHAIN
+            )) {
                 try {
-                    const kernelClient = await createHarnessEcdsaKernelClient(
-                        client,
-                        chain,
-                        pk as `0x${string}`,
-                        { bundlerUrl, paymasterUrl }
-                    )
+                    const kernelClient = await createHarnessEcdsaKernelClient(client, chain, pk as `0x${string}`, {
+                        bundlerUrl,
+                        paymasterUrl,
+                    })
                     clients[chainId] = kernelClient
                 } catch (e) {
                     console.error(`[harness] ECDSA kernel init failed for chain ${chainId}:`, e)

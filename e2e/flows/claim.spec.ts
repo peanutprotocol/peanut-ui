@@ -16,27 +16,27 @@ import { test, expect } from '@playwright/test'
 import { captureStep, collectConsoleLogs } from '../utils/capture'
 
 test.describe('Claim flow', () => {
-	test('claim page without pubKey — error state', async ({ page }, testInfo) => {
-		const consoleLogs = collectConsoleLogs(page)
+    test('claim page without pubKey — error state', async ({ page }, testInfo) => {
+        const consoleLogs = collectConsoleLogs(page)
 
-		await page.goto('/claim')
-		await captureStep(page, testInfo, { name: '01-claim-no-pubkey' })
+        await page.goto('/claim')
+        await captureStep(page, testInfo, { name: '01-claim-no-pubkey' })
 
-		await page.waitForTimeout(2000)
-		await captureStep(page, testInfo, { name: '02-claim-no-pubkey-settled' })
+        await page.waitForTimeout(2000)
+        await captureStep(page, testInfo, { name: '02-claim-no-pubkey-settled' })
 
-		consoleLogs.flush(testInfo, 'claim-no-pubkey')
-	})
+        consoleLogs.flush(testInfo, 'claim-no-pubkey')
+    })
 
-	test('claim page with invalid pubKey', async ({ page }, testInfo) => {
-		const consoleLogs = collectConsoleLogs(page)
+    test('claim page with invalid pubKey', async ({ page }, testInfo) => {
+        const consoleLogs = collectConsoleLogs(page)
 
-		await page.goto('/claim?pubKey=0xinvalid')
-		await captureStep(page, testInfo, { name: '01-claim-invalid-pubkey' })
+        await page.goto('/claim?pubKey=0xinvalid')
+        await captureStep(page, testInfo, { name: '01-claim-invalid-pubkey' })
 
-		await page.waitForTimeout(3000)
-		await captureStep(page, testInfo, { name: '02-claim-invalid-pubkey-settled' })
+        await page.waitForTimeout(3000)
+        await captureStep(page, testInfo, { name: '02-claim-invalid-pubkey-settled' })
 
-		consoleLogs.flush(testInfo, 'claim-invalid')
-	})
+        consoleLogs.flush(testInfo, 'claim-invalid')
+    })
 })

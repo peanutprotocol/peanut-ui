@@ -126,7 +126,14 @@ export function useCrossChainTransfer(): UseCrossChainTransferReturn {
     }, [])
 
     const calculate = useCallback(
-        async ({ source, destination, context, contextId, senderPeanutWalletAddress, skipGasEstimate }: CalculateInput) => {
+        async ({
+            source,
+            destination,
+            context,
+            contextId,
+            senderPeanutWalletAddress,
+            skipGasEstimate,
+        }: CalculateInput) => {
             setIsCalculating(true)
             setError(null)
             setIsFeeEstimationError(false)
@@ -168,7 +175,9 @@ export function useCrossChainTransfer(): UseCrossChainTransferReturn {
                 const tokenSymbol =
                     destination.tokenSymbol ?? inferTokenSymbol(destination.chainId, destination.tokenAddress)
                 if (!tokenSymbol) {
-                    throw new Error(`Cannot infer Rhino token symbol from ${destination.tokenAddress} on chain ${destination.chainId}`)
+                    throw new Error(
+                        `Cannot infer Rhino token symbol from ${destination.tokenAddress} on chain ${destination.chainId}`
+                    )
                 }
 
                 // Run preview + provision in parallel — they don't depend on each other.

@@ -88,7 +88,6 @@ export function getNativeRpId(): string {
     return process.env.NEXT_PUBLIC_NATIVE_RP_ID || 'peanut.me'
 }
 
-
 /**
  * opens a url in the appropriate way for the current platform
  * - on web: window.open with _blank

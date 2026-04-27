@@ -12,12 +12,12 @@ export const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:5000'
 export const UI_BASE_URL = process.env.UI_BASE_URL || 'http://localhost:3000'
 
 export function getHarnessSecret(): string {
-	const secret = process.env.TEST_HARNESS_SECRET
-	if (!secret) {
-		throw new Error(
-			'TEST_HARNESS_SECRET is not set. The e2e harness must match the value on the API side — ' +
-				'set it in your shell (.env.e2e, bin/qa env, or direct export) before running tests.',
-		)
-	}
-	return secret
+    const secret = process.env.TEST_HARNESS_SECRET
+    if (!secret) {
+        throw new Error(
+            'TEST_HARNESS_SECRET is not set. The e2e harness must match the value on the API side — ' +
+                'set it in your shell (.env.e2e, bin/qa env, or direct export) before running tests.'
+        )
+    }
+    return secret
 }
