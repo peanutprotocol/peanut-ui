@@ -11,6 +11,7 @@
         "dev:fallback": "next dev",
         "postinstall": "node scripts/copy-flags.mjs",
         "copy-flags": "node scripts/copy-flags.mjs",
+        "prebuild": "node scripts/copy-flags.mjs",
         "build": "next build --webpack",
         "start": "next start",
         "lint": "next lint",
