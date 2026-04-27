@@ -106,10 +106,13 @@ export const fetchWithSentry = async (
         clearTimeout(timeoutId)
 
         if (!response.ok) {
-            console.warn(`Request to ${String(url).replace(/[\r\n]/g, '')} failed with status ${response.status}`)
-
-            // Skip Sentry reporting for expected error responses
+            // Skip both the console warn AND Sentry submission for expected
+            // non-2xx responses (username availability 404, get-user-from-cookie
+            // 401 on cleared session, etc). Logging them clutters DevTools and
+            // gets picked up by forward-logs-shared as Sentry breadcrumbs.
             if (!shouldSkipReporting(url, response.status)) {
+                console.warn(`Request to ${String(url).replace(/[\r\n]/g, '')} failed with status ${response.status}`)
+
                 let errorContent: JSONValue
                 try {
                     errorContent = await response.clone().json()

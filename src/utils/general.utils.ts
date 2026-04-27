@@ -543,7 +543,11 @@ interface Portfolio {
     assetActivities: TransferDetails[]
 }
 
-export function formatDate(date: Date): string {
+export function formatDate(date: Date | null | undefined): string {
+    // Receipts and timeline rows pass dates that may be missing for paths
+    // that haven't reached that lifecycle event yet (e.g. cancelledDate on a
+    // not-yet-cancelled link). Return em-dash instead of throwing RangeError.
+    if (!date || isNaN(date.getTime())) return '—'
     const dateFormatter = new Intl.DateTimeFormat('en-US', {
         year: 'numeric',
         month: 'long',

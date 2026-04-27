@@ -38,7 +38,10 @@ export const useUserQuery = (dependsOn: boolean = true) => {
                   headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
                   body: JSON.stringify({}),
               })
-            : await fetchWithSentry('/api/peanut/user/get-user-from-cookie')
+            : await fetchWithSentry('/api/peanut/user/get-user-from-cookie', {
+                  method: 'POST',
+                  credentials: 'include',
+              })
         if (userResponse.ok) {
             const userData: IUserProfile | null = await userResponse.json()
             if (userData) {
