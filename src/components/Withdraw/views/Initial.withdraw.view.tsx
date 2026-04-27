@@ -52,17 +52,26 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
         const xchainChainData = supportedChainsAndTokens[selectedChainID]
         // When the user is withdrawing on the Peanut wallet chain (same-chain,
         // no Rhino bridge needed), supportedChainsAndTokens may not list that chain — especially
-        // on testnets or env-configured chains. Synthesize a minimal chain
-        // object in that case so the flow can proceed. Downstream code only
-        // reads `chainId` and `networkName` off this object.
+        // on testnets or env-configured chains. Synthesize a chain object
+        // in that case so the flow can proceed. Downstream code only reads
+        // `chainId` and `networkName` off this object — but the type
+        // requires the legacy Squid IChainMeta fields (axelarChainName,
+        // chainType, chainIconURI). Populate them with safe placeholders so
+        // we don't fall through `as unknown as` and silently mask missing
+        // shape (CR-flagged). Once the cross-chain surface fully migrates
+        // off the Squid types, the narrower-callback alternative is to
+        // tighten `onReview` to only the fields it actually reads.
         const isPeanutWalletChain = selectedChainID === PEANUT_WALLET_CHAIN.id.toString()
         const fallbackChainData =
             isPeanutWalletChain && !xchainChainData
                 ? ({
                       chainId: PEANUT_WALLET_CHAIN.id.toString(),
                       networkName: PEANUT_WALLET_CHAIN.name,
+                      axelarChainName: PEANUT_WALLET_CHAIN.name,
+                      chainType: 'evm',
+                      chainIconURI: '',
                       tokens: [],
-                  } as unknown as interfaces.IChainMeta & {
+                  } satisfies interfaces.IChainMeta & {
                       networkName: string
                       tokens: interfaces.ITokenMeta[]
                   })
