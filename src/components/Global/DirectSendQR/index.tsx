@@ -15,7 +15,7 @@ import * as Sentry from '@sentry/nextjs'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useMemo, useState, type ChangeEvent } from 'react'
 import { twMerge } from 'tailwind-merge'
-import { Icon, type IconName } from '../Icons/Icon'
+import { type IconName } from '../Icons/Icon'
 import { EQrType, NAME_BY_QR_TYPE, parseEip681, recognizeQr } from './utils'
 import { pixKeyToBRCode } from '@/utils/pix.utils'
 import { useHaptic } from 'use-haptic'
@@ -434,7 +434,9 @@ export default function DirectSendQr({
                     className
                 )}
                 disabled={disabled}
-                icon={<Icon name={icon} size={56} className="custom-size" />}
+                icon={icon}
+                iconSize={56}
+                iconContainerClassName="size-14"
             />
 
             <Modal
