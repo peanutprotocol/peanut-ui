@@ -126,9 +126,9 @@ export const KycStatusDrawer = ({
                     onStartResubmission={async () => {
                         onKeepMounted?.(true)
                         onClose()
-                        try {
-                            await sumsubFlow.handleSelfHealResubmit(rejection.provider)
-                        } catch (e) {
+                        await sumsubFlow.handleSelfHealResubmit(rejection.provider)
+                        // release keep-mounted if SDK didn't open (error path)
+                        if (!sumsubFlow.showWrapper) {
                             onKeepMounted?.(false)
                         }
                     }}
