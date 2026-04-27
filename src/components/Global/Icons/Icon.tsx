@@ -167,28 +167,54 @@ export interface IconProps extends SVGProps<SVGSVGElement> {
 const FILL_NONE = { fill: 'none' } as const
 const FILL_CURRENT = { fill: 'currentColor' } as const
 
+// Tighter viewBox for icons whose Lucide artwork is small relative to the
+// 24x24 grid (notably arrows: coords 7-17 = ~41% fill). Cropping the empty
+// padding boosts the rendered glyph to match MUI's optical weight without
+// changing layout. Strokes near the edge are unaffected because Lucide
+// composes those icons with internal padding.
+const VIEWBOX_BOOST: Record<string, string> = {
+    'arrow-up-right': '5 5 14 14',
+    'arrow-down-left': '5 5 14 14',
+    'arrow-up': '5 5 14 14',
+    'arrow-down': '5 5 14 14',
+    'arrow-exchange': '4 4 16 16',
+    exchange: '4 4 16 16',
+    'qr-code': '3 3 18 18',
+}
+
 const LucideWrapper: FC<
     {
         Icon: LucideIcon
         transformClassName?: string
         filled?: boolean
+        boostKey?: keyof typeof VIEWBOX_BOOST
     } & SVGProps<SVGSVGElement>
-> = ({ Icon, transformClassName, filled, fill, className, width, height, style, ...rest }) => {
+> = ({ Icon, transformClassName, filled, fill, className, width, height, style, boostKey, ...rest }) => {
     const mergedClassName = twMerge(transformClassName, className) || undefined
     const size = width ?? height
     const color = fill ? (fill as string) : undefined
     const baseStyle = filled ? FILL_CURRENT : FILL_NONE
     const mergedStyle = style ? { ...baseStyle, ...style } : baseStyle
+    const viewBox = boostKey ? VIEWBOX_BOOST[boostKey] : undefined
 
-    return <Icon {...rest} size={size} color={color} className={mergedClassName} style={mergedStyle} />
+    return (
+        <Icon
+            {...rest}
+            size={size}
+            color={color}
+            className={mergedClassName}
+            style={mergedStyle}
+            {...(viewBox ? { viewBox } : {})}
+        />
+    )
 }
 
 const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> = {
-    'arrow-down': (props) => <LucideWrapper Icon={ArrowDown} {...props} />,
-    'arrow-down-left': (props) => <LucideWrapper Icon={ArrowDownLeft} {...props} />,
-    'arrow-up': (props) => <LucideWrapper Icon={ArrowUp} {...props} />,
-    'arrow-up-right': (props) => <LucideWrapper Icon={ArrowUpRight} {...props} />,
-    'arrow-exchange': (props) => <LucideWrapper Icon={ArrowRightLeft} {...props} />,
+    'arrow-down': (props) => <LucideWrapper Icon={ArrowDown} boostKey="arrow-down" {...props} />,
+    'arrow-down-left': (props) => <LucideWrapper Icon={ArrowDownLeft} boostKey="arrow-down-left" {...props} />,
+    'arrow-up': (props) => <LucideWrapper Icon={ArrowUp} boostKey="arrow-up" {...props} />,
+    'arrow-up-right': (props) => <LucideWrapper Icon={ArrowUpRight} boostKey="arrow-up-right" {...props} />,
+    'arrow-exchange': (props) => <LucideWrapper Icon={ArrowRightLeft} boostKey="arrow-exchange" {...props} />,
     bank: (props) => <LucideWrapper Icon={Landmark} {...props} />,
     bell: (props) => <LucideWrapper Icon={Bell} {...props} />,
     badge: (props) => <LucideWrapper Icon={ShieldCheck} {...props} />,
@@ -201,7 +227,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     'double-check': DoubleCheckIcon,
     eye: (props) => <LucideWrapper Icon={Eye} {...props} />,
     'eye-slash': (props) => <LucideWrapper Icon={EyeOff} {...props} />,
-    exchange: (props) => <LucideWrapper Icon={ArrowLeftRight} {...props} />,
+    exchange: (props) => <LucideWrapper Icon={ArrowLeftRight} boostKey="exchange" {...props} />,
     fees: (props) => <LucideWrapper Icon={Tag} {...props} />,
     gift: (props) => <LucideWrapper Icon={Gift} {...props} />,
     home: (props) => <LucideWrapper Icon={Home} {...props} />,
@@ -223,7 +249,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     'user-plus': (props) => <LucideWrapper Icon={UserPlus} {...props} />,
     copy: (props) => <LucideWrapper Icon={Copy} {...props} />,
     cancel: (props) => <LucideWrapper Icon={X} {...props} />,
-    'qr-code': (props) => <LucideWrapper Icon={QrCode} {...props} />,
+    'qr-code': (props) => <LucideWrapper Icon={QrCode} boostKey="qr-code" {...props} />,
     history: (props) => <LucideWrapper Icon={History} {...props} />,
     error: (props) => <LucideWrapper Icon={AlertCircle} {...props} />,
     clip: (props) => <LucideWrapper Icon={Paperclip} {...props} />,
