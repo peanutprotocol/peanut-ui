@@ -30,6 +30,13 @@ jobs:
             - name: Check formatting
               run: pnpm prettier --check .
 
+            # Generate Next.js route + asset type declarations without a full
+            # build. tsconfig includes .next/types/**/*.ts; without these,
+            # next-env.d.ts's image-types references can't resolve and every
+            # static-asset import (.svg/.gif/.webp) cascades into TS2307.
+            - name: Generate Next types
+              run: pnpm next typegen
+
             - name: Typecheck
               run: pnpm typecheck
 
