@@ -92,7 +92,7 @@ export default function useProviderRejectionStatus() {
                     userMessage = first?.reason || first?.developer_reason || null
                 } else if (Array.isArray(endorsementIssues) && endorsementIssues.length > 0) {
                     // bridge endorsement issues: plain strings like 'government_id_verification_failed'
-                                        userMessage = `ID verification failed. Please upload a clearer photo.`
+                    userMessage = `ID verification failed. Please upload a clearer photo.`
                 }
 
                 return {
@@ -141,7 +141,16 @@ export default function useProviderRejectionStatus() {
     const hasAnyRejection = hasFixableRejection || hasBlockedRejection
 
     // the provider that needs attention first (fixable takes priority)
-    const primaryRejection = bridge.state === 'fixable' ? bridge : manteca.state === 'fixable' ? manteca : bridge.state === 'blocked' ? bridge : manteca.state === 'blocked' ? manteca : null
+    const primaryRejection =
+        bridge.state === 'fixable'
+            ? bridge
+            : manteca.state === 'fixable'
+              ? manteca
+              : bridge.state === 'blocked'
+                ? bridge
+                : manteca.state === 'blocked'
+                  ? manteca
+                  : null
 
     return {
         bridge,
