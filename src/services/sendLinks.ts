@@ -182,8 +182,12 @@ export const sendLinksApi = {
      * @param txhash - the transaction hash of the successful claim.
      */
     associateClaim: async (txHash: string): Promise<void> => {
+        // Fastify's body-parser rejects PATCH with no body as "Pass a valid json".
+        // Send an empty JSON object so the request makes it past the parser.
         const response = await serverFetch(`/send-links/claim/${txHash}/associate-user`, {
             method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: '{}',
         })
 
         if (!response.ok) {
