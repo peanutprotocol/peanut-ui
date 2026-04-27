@@ -21,18 +21,9 @@ import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
 import { useAuth } from '@/context/authContext'
 import { PEANUT_API_URL } from '@/constants/general.consts'
+import { debugLog } from '@/utils/debug-console'
 
 type ActionResult = { ok: boolean; raw: any; ms: number }
-
-const PINK = '#FF90E8'
-const BANNER_STYLE = `background:${PINK};color:#000;padding:2px 6px;border-radius:2px;font-weight:bold`
-const TEXT_STYLE = `color:${PINK};font-weight:bold`
-
-/** Pink-banner console.log so debug actions stand out in DevTools. */
-function debugLog(label: string, ...args: any[]) {
-    // eslint-disable-next-line no-console
-    console.log(`%c[debug]%c ${label}`, BANNER_STYLE, TEXT_STYLE, ...args)
-}
 
 interface DebugAction {
     key: string
@@ -352,7 +343,7 @@ export default function DebugPage() {
                                                 shadowSize="4"
                                                 size="small"
                                                 onClick={a.run}
-                                                disabled={isBusy || !!busy}
+                                                disabled={busy !== null}
                                             >
                                                 {isBusy ? 'running…' : 'run'}
                                             </Button>

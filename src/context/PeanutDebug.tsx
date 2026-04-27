@@ -15,15 +15,7 @@
 
 import { useEffect } from 'react'
 import { PEANUT_API_URL } from '@/constants/general.consts'
-
-const PINK = '#FF90E8'
-const BANNER_STYLE = `background:${PINK};color:#000;padding:2px 6px;border-radius:2px;font-weight:bold`
-const TEXT_STYLE = `color:${PINK};font-weight:bold`
-
-function debugLog(label: string, ...args: any[]) {
-    // eslint-disable-next-line no-console
-    console.log(`%c[debug]%c ${label}`, BANNER_STYLE, TEXT_STYLE, ...args)
-}
+import { debugLog } from '@/utils/debug-console'
 
 export function PeanutDebug() {
     useEffect(() => {
