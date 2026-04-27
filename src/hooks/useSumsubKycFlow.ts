@@ -271,6 +271,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             const response = await initiateSelfHealResubmission(provider)
 
             if (response.error) {
+                selfHealProviderRef.current = null
                 setError(response.error)
                 return
             }
@@ -282,6 +283,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 setError('Could not initiate document resubmission. Please try again.')
             }
         } catch (e: unknown) {
+            selfHealProviderRef.current = null
             const message = e instanceof Error ? e.message : 'An unexpected error occurred'
             setError(message)
         } finally {

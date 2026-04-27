@@ -85,10 +85,13 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         // (the multi-phase flow may have completed but websocket/state not yet propagated)
         await fetchUser()
 
-        // block users with bridge provider rejection — they need to resubmit docs first
-        if (bridgeRejection.state === 'fixable' || bridgeRejection.state === 'blocked') {
+        // block users with bridge provider rejection
+        if (bridgeRejection.state === 'fixable') {
             await sumsubFlow.handleSelfHealResubmit('BRIDGE')
             return {}
+        }
+        if (bridgeRejection.state === 'blocked') {
+            return { error: 'Bank transfers are not available for your account. Please contact support.' }
         }
 
         // scenario (1): happy path: if the user has already completed kyc, we can add the bank account directly

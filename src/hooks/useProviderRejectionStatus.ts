@@ -142,7 +142,7 @@ export default function useProviderRejectionStatus() {
     const hasAnyRejection = hasFixableRejection || hasBlockedRejection
 
     // the provider that needs attention first (fixable takes priority)
-    const primaryRejection = bridge.state === 'fixable' ? bridge : manteca.state === 'fixable' ? manteca : null
+    const primaryRejection = bridge.state === 'fixable' ? bridge : manteca.state === 'fixable' ? manteca : bridge.state === 'blocked' ? bridge : manteca.state === 'blocked' ? manteca : null
 
     return {
         bridge,

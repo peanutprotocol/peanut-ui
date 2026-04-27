@@ -532,7 +532,7 @@ export default function MantecaWithdrawFlow() {
                 visible={showKycModal}
                 onClose={() => setShowKycModal(false)}
                 onVerify={async () => {
-                    const hasRejection = mantecaRejection.state === 'fixable' || mantecaRejection.state === 'blocked'
+                    const hasRejection = mantecaRejection.state === 'fixable'
                     if (hasRejection) {
                         await sumsubFlow.handleSelfHealResubmit('MANTECA')
                     } else {

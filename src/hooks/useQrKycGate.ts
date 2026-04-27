@@ -74,7 +74,9 @@ export function useQrKycGate(paymentProcessor?: 'MANTECA' | 'SIMPLEFI' | null): 
             )
             if (rejectedMantecaRails.length > 0) {
                 const railMeta = (rejectedMantecaRails[0].metadata ?? {}) as Record<string, unknown>
-                const mantecaKyc = currentUser.kycVerifications?.find((v) => v.provider === 'MANTECA')
+                const mantecaKyc = currentUser.kycVerifications
+                    ?.filter((v) => v.provider === 'MANTECA')
+                    .sort((a, b) => new Date(b.updatedAt ?? 0).getTime() - new Date(a.updatedAt ?? 0).getTime())[0]
                 const kycMeta = (mantecaKyc?.metadata ?? {}) as Record<string, unknown>
                 const isFixable =
                     railMeta.selfHealable === true &&

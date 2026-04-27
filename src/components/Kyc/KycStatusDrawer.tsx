@@ -123,10 +123,14 @@ export const KycStatusDrawer = ({
             return (
                 <KycProviderRejection
                     rejection={rejection}
-                    onStartResubmission={() => {
+                    onStartResubmission={async () => {
                         onKeepMounted?.(true)
                         onClose()
-                        sumsubFlow.handleSelfHealResubmit(rejection.provider)
+                        try {
+                            await sumsubFlow.handleSelfHealResubmit(rejection.provider)
+                        } catch (e) {
+                            onKeepMounted?.(false)
+                        }
                     }}
                 />
             )

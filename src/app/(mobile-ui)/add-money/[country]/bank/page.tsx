@@ -397,7 +397,7 @@ export default function OnrampBankPage() {
                     visible={showKycModal}
                     onClose={() => setShowKycModal(false)}
                     onVerify={async () => {
-                        const hasRejection = bridgeRejection.state === 'fixable' || bridgeRejection.state === 'blocked'
+                        const hasRejection = bridgeRejection.state === 'fixable'
                         if (hasRejection) {
                             await sumsubFlow.handleSelfHealResubmit('BRIDGE')
                         } else {
