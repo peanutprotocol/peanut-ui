@@ -62,13 +62,19 @@ const Manteca = () => {
             </div>
 
             {/* Desktop layout */}
-            <div className="absolute -bottom-24 left-1/2 mx-auto hidden -translate-x-1/2 items-center justify-center gap-20 md:flex lg:gap-36">
-                <Image src={MEPA_ARGENTINA_LOGO} alt="Mepa Argentina" width={170} height={170} />
-                <Image src={mantecaIphone} alt="Mercado pago payment" width={250} height={250} />
-                <Image src={PIX_BRZ_LOGO} alt="Pix Brazil" width={170} height={170} />
+            <div className="mx-auto mt-12 hidden flex-col items-center justify-center gap-8 md:flex">
+                <div className="flex items-center justify-center gap-20 lg:gap-36">
+                    <Image src={MEPA_ARGENTINA_LOGO} alt="Mepa Argentina" width={170} height={170} />
+                    <Image src={mantecaIphone} alt="Mercado pago payment" width={250} height={250} />
+                    <Image src={PIX_BRZ_LOGO} alt="Pix Brazil" width={170} height={170} />
+                </div>
+
+                <p className="font-roboto-flex text-center text-sm opacity-70">
+                    Settles in digital dollars at the real exchange rate.
+                </p>
             </div>
 
-            <p className="font-roboto-flex relative mt-12 text-center text-sm opacity-70 md:absolute md:bottom-4 md:left-1/2 md:mt-0 md:-translate-x-1/2">
+            <p className="font-roboto-flex relative mt-12 text-center text-sm opacity-70 md:hidden">
                 Settles in digital dollars at the real exchange rate.
             </p>
         </section>
