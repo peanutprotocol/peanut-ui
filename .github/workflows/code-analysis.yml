@@ -20,7 +20,7 @@ permissions:
     pull-requests: write
 
 env:
-    MONO_REF: ${{ vars.MONO_REF || 'decomplexify' }}
+    MONO_REF: ${{ vars.MONO_REF || 'main' }}
 
 jobs:
     analyze:
