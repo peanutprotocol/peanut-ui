@@ -61,6 +61,11 @@ export interface TransactionDetails {
         addressExplorerUrl?: string
         originalType: EHistoryEntryType
         originalUserRole: EHistoryUserRole
+        /** Post-M3 transaction-intent kind (P2P_SEND, QR_PAY, CARD_SPEND, …).
+         *  Some predicates need this to disambiguate within TRANSACTION_INTENT
+         *  entries — e.g. QR payments now arrive as TRANSACTION_INTENT + kind=QR_PAY
+         *  rather than a dedicated originalType. */
+        kind?: string
         link?: string
         isLinkTransaction?: boolean
         transactionCardType?: TransactionCardType
@@ -443,11 +448,13 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                     break
                 }
                 default:
-                    // Card refunds come back as kind=REFUND with provider=RAIN
-                    // and a parentRainTxId pointing at the original spend. They
-                    // inherit the merchant from the parent so the feed reads
-                    // "Refund from {Merchant}".
-                    if (entry.extraData?.parentRainTxId) {
+                    // Card refunds come back with kind === 'REFUND', provider === RAIN
+                    // (toLegacyKindLabel surfaces them as 'OTHER' today since
+                    // there's no dedicated CARD_REFUND legacy kind). Scope
+                    // the refund branch to those two kinds — guarding on
+                    // parentRainTxId alone risks misrouting any future intent
+                    // that carries the linkage for some other reason.
+                    if ((kind === 'OTHER' || kind === 'REFUND') && entry.extraData?.parentRainTxId) {
                         const merchantName = (entry.extraData?.merchantName as string | null | undefined) ?? null
                         direction = 'receive'
                         transactionCardType = 'receive'
@@ -641,10 +648,17 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         // docs/product-conventions.md first.
         fee: undefined,
         // memo carries free-form user notes from non-card flows (link memos,
-        // request comments). Card spends suppress this — the merchant name and
-        // any decline reason render inside CardPaymentRows in the drawer, so
-        // populating memo here would render a duplicate "Comment" row.
-        memo: isTestDeposit ? 'Your peanut wallet is ready to use!' : entry.memo?.trim(),
+        // request comments). Card spends + Rain refunds suppress this — the
+        // merchant name and any decline reason render inside CardPaymentRows
+        // in the drawer, so a duplicate "Comment" row is just noise. Backend
+        // already sets memo=undefined for card entries, but defend in depth.
+        memo: (() => {
+            if (isTestDeposit) return 'Your peanut wallet is ready to use!'
+            const isCardEntry =
+                entry.extraData?.kind === 'CARD_SPEND' || !!entry.extraData?.parentRainTxId
+            if (isCardEntry) return undefined
+            return entry.memo?.trim()
+        })(),
         attachmentUrl: entry.attachmentUrl,
         cancelledDate: entry.cancelledAt,
         txHash: entry.txHash,
@@ -655,6 +669,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             addressExplorerUrl,
             originalType: entry.type as EHistoryEntryType,
             originalUserRole: entry.userRole as EHistoryUserRole,
+            kind: entry.extraData?.kind as string | undefined,
             link: entry.extraData?.link,
             isLinkTransaction: isLinkTx,
             transactionCardType,
@@ -665,8 +680,14 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             // card-refund entries. Drawer reads these to render the merchant
             // hero, status timeline, decline reason, and "Adjusted from $X"
             // settlement note. Backend source: src/transaction-intent/history.ts.
+            // Build the cardPayment block for any card-shaped intent (CARD_SPEND
+            // kind) and for Rain refunds (parentRainTxId set). Earlier we
+            // guarded on merchantName presence, but that dropped the block for
+            // unknown-merchant spends — losing the de-emphasis-on-failed,
+            // decline-reason rows, and merchant-detail Card. The block falls
+            // back to "Card payment" downstream when merchantName is null.
             cardPayment:
-                entry.extraData?.merchantName != null || entry.extraData?.parentRainTxId
+                entry.extraData?.kind === 'CARD_SPEND' || entry.extraData?.parentRainTxId
                     ? {
                           merchantName: entry.extraData?.merchantName as string | null,
                           merchantCategory: entry.extraData?.merchantCategory as string | null,

@@ -15,6 +15,25 @@ function nonBlank(value: string | null | undefined): string | null {
     return trimmed
 }
 
+/** Parse a cents amount and reject NaN / Infinity / null up-front so the
+ *  drawer never renders "Charged in NaN EUR". */
+function parseCents(value: string | null | undefined): number | null {
+    if (value == null) return null
+    const n = Number(value)
+    return Number.isFinite(n) ? n : null
+}
+
+/** Whether the transaction's local-currency block represents a real cross-
+ *  currency charge that should be surfaced to the user. Normalizes the
+ *  currency string and skips USD (the display currency). */
+function hasCrossCurrencyCharge(card: NonNullable<TransactionDetails['extraDataForDrawer']>['cardPayment']): boolean {
+    if (!card) return false
+    const currency = nonBlank(card.localCurrency)
+    if (!currency) return false
+    if (currency.toLowerCase() === 'usd') return false
+    return parseCents(card.localAmount) != null
+}
+
 /**
  * Whether CardPaymentRows would render any visible sub-row for this
  * transaction. The row-config in the receipt uses this to gate the
@@ -28,8 +47,8 @@ export function hasCardPaymentRowsContent(transaction: TransactionDetails): bool
 
     if (nonBlank(card.merchantCategory)) return true
     if (nonBlank(card.merchantCity) || nonBlank(card.merchantCountry)) return true
-    if (card.localAmount && card.localCurrency && card.localCurrency.toLowerCase() !== 'usd') return true
-    if (card.settlementAdjusted && card.authAmount) return true
+    if (hasCrossCurrencyCharge(card)) return true
+    if (card.settlementAdjusted && parseCents(card.authAmount) != null) return true
     if (transaction.status === 'failed' && card.declineReason) return true
     if (card.cancellationReason === 'auto_closed') return true
     return false
@@ -82,27 +101,29 @@ export function CardPaymentRows({
 
     // Cross-currency only — suppress when the local currency matches the USD
     // display currency (everyone's seen "Charged in 150 usd" alongside $1.50
-    // and it's just noise).
-    if (card.localAmount && card.localCurrency && card.localCurrency.toLowerCase() !== 'usd') {
-        // Local amount comes through as raw cents from Rain — format to a
-        // human number with two decimals before showing.
-        const localFormatted = (Number(card.localAmount) / 100).toFixed(2)
+    // and it's just noise). Normalized + NaN-guarded to avoid stray junk
+    // making it past the rendering predicate.
+    if (hasCrossCurrencyCharge(card)) {
+        const localCents = parseCents(card.localAmount)!
+        const currency = nonBlank(card.localCurrency)!.toUpperCase()
         subRows.push({
             key: 'chargedIn',
             label: 'Charged in',
-            value: `${localFormatted} ${card.localCurrency.toUpperCase()}`,
+            value: `${(localCents / 100).toFixed(2)} ${currency}`,
         })
     }
 
     // Spec §4.6 — settled amount differs from the original auth (overcapture,
     // tip, partial capture). Show the original auth amount as a hint.
-    if (card.settlementAdjusted && card.authAmount) {
-        const adjustedFromUsd = (Number(card.authAmount) / 100).toFixed(2)
-        subRows.push({
-            key: 'adjustedFrom',
-            label: 'Original amount',
-            value: `$${adjustedFromUsd}`,
-        })
+    if (card.settlementAdjusted) {
+        const authCents = parseCents(card.authAmount)
+        if (authCents != null) {
+            subRows.push({
+                key: 'adjustedFrom',
+                label: 'Original amount',
+                value: `$${(authCents / 100).toFixed(2)}`,
+            })
+        }
     }
 
     // Spec §4.4 — show why a card spend declined.

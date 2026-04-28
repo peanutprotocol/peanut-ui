@@ -36,8 +36,12 @@ export function BridgeDepositInstructions({ transaction }: { transaction: Transa
                 }
                 value={
                     <div className="flex items-center gap-2">
-                        <span>{instructions.deposit_message.slice(0, 10)}</span>
-                        <CopyToClipboard textToCopy={instructions.deposit_message.slice(0, 10)} iconSize="4" />
+                        {/* Display can wrap / be truncated visually via CSS, but
+                            the copyable text MUST be the full reference — Bridge
+                            won't reconcile a deposit if the user enters the
+                            truncated form. */}
+                        <span className="break-all">{instructions.deposit_message}</span>
+                        <CopyToClipboard textToCopy={instructions.deposit_message} iconSize="4" />
                     </div>
                 }
                 hideBottomBorder={false}
@@ -89,7 +93,21 @@ export function BridgeDepositInstructions({ transaction }: { transaction: Transa
                         hideBottomBorder={false}
                     />
 
-                    {instructions.iban && instructions.bic ? (
+                    {instructions.clabe ? (
+                        // Mexican format (SPEI) — CLABE is the canonical 18-digit
+                        // bank reference; account/routing aren't applicable.
+                        <PaymentInfoRow
+                            label="CLABE"
+                            value={
+                                <div className="flex items-center gap-2">
+                                    <span>{instructions.clabe}</span>
+                                    <CopyToClipboard textToCopy={instructions.clabe} iconSize="4" />
+                                </div>
+                            }
+                            allowCopy
+                            hideBottomBorder
+                        />
+                    ) : instructions.iban && instructions.bic ? (
                         // European format (IBAN/BIC)
                         <>
                             <PaymentInfoRow

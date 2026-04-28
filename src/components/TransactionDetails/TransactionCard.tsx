@@ -5,6 +5,7 @@ import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionA
 import { getBankAccountCountryCode } from '@/constants/countryCurrencyMapping'
 import { type TransactionDirection } from '@/components/TransactionDetails/TransactionDetailsHeaderCard'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
+import { isCardPaymentEntry } from '@/components/TransactionDetails/transaction-predicates'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import {
     formatNumberForDisplay,
@@ -129,8 +130,13 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     }
 
     // Spec §4.4: declined card transactions stay in the feed but are visually
-    // de-emphasized so they don't compete with successful items.
-    const isDeclinedCardSpend = status === 'failed' && transaction.extraDataForDrawer?.cardPayment != null
+    // de-emphasized so they don't compete with successful items. Scope to
+    // declined SPENDS specifically — refunds also populate cardPayment, but
+    // a failed refund (e.g. processing error) shouldn't be greyed out.
+    const isDeclinedCardSpend =
+        status === 'failed' &&
+        isCardPaymentEntry(transaction) &&
+        !transaction.extraDataForDrawer?.cardPayment?.isRefund
 
     return (
         <>

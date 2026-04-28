@@ -110,7 +110,17 @@ export function CancelDepositActions({
                     disabled={!!isLoading}
                     onClick={() =>
                         wrapAction(async () => {
-                            await cancelOnramp(transaction.extraDataForDrawer?.bridgeTransferId!)
+                            const bridgeTransferId = transaction.extraDataForDrawer?.bridgeTransferId
+                            if (!bridgeTransferId) {
+                                throw new Error(
+                                    'Cannot cancel REQUEST: missing bridgeTransferId on transaction'
+                                )
+                            }
+                            // Bridge cancel must succeed before we cancel the
+                            // charge — otherwise the onramp orphans on Bridge's
+                            // side while the user sees the request as cancelled.
+                            const bridgeResult = await cancelOnramp(bridgeTransferId)
+                            if (bridgeResult.error) throw new Error(bridgeResult.error)
                             await chargesApi.cancel(transaction.id)
                         })
                     }

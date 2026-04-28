@@ -43,14 +43,27 @@ const COMPLETED_LABEL_TYPES: ReadonlySet<EHistoryEntryType> = new Set([
     EHistoryEntryType.MANTECA_ONRAMP,
 ])
 
+/** Post-M3, QR payments arrive as TRANSACTION_INTENT entries with
+ *  `extraData.kind === 'QR_PAY'`. Pre-M3 (legacy rows still in the feed)
+ *  used dedicated `originalType` values. Recognize both. */
+function isTransactionIntentKind(transaction: TransactionDetails, kind: string): boolean {
+    return (
+        transaction.extraDataForDrawer?.originalType === EHistoryEntryType.TRANSACTION_INTENT &&
+        transaction.extraDataForDrawer?.kind === kind
+    )
+}
+
 export function isQRPayment(transaction: TransactionDetails): boolean {
     const type = transaction.extraDataForDrawer?.originalType
-    return type ? QR_PAYMENT_TYPES.has(type) : false
+    if (type && QR_PAYMENT_TYPES.has(type)) return true
+    return isTransactionIntentKind(transaction, 'QR_PAY')
 }
 
 export function hasShareableReceipt(transaction: TransactionDetails): boolean {
     const type = transaction.extraDataForDrawer?.originalType
-    return type ? SHAREABLE_RECEIPT_TYPES.has(type) : false
+    if (type && SHAREABLE_RECEIPT_TYPES.has(type)) return true
+    // QR payments via the unified intent path should also be shareable.
+    return isTransactionIntentKind(transaction, 'QR_PAY')
 }
 
 /** Renders "Completed" label for the timestamp row instead of "Sent"/"Received". */
