@@ -36,7 +36,8 @@
         "native:build": "node scripts/native-build.js",
         "native:sync": "npx cap sync android",
         "capgo:upload:dev": "node scripts/native-build.js && npx @capgo/cli@latest bundle upload --channel development --path ./out",
-        "capgo:upload:staging": "node scripts/native-build.js && npx @capgo/cli@latest bundle upload --channel staging --path ./out"
+        "capgo:upload:staging": "node scripts/native-build.js && npx @capgo/cli@latest bundle upload --channel staging --path ./out",
+        "test:unit:ci": "jest --coverage --reporters=default --reporters=jest-junit"
     },
     "dependencies": {
         "@capacitor/android": "8.2.0",
@@ -141,7 +142,8 @@
         "tailwindcss": "^3.4.15",
         "ts-jest": "^29.1.2",
         "tsx": "^4.19.3",
-        "typescript": "^5.6.3"
+        "typescript": "^5.6.3",
+        "jest-junit": "^16.0.0"
     },
     "jest": {
         "preset": "ts-jest",
@@ -209,5 +211,14 @@
             "path": ".next/static/chunks/*.js",
             "limit": "500 KB"
         }
-    ]
+    ],
+    "jest-junit": {
+        "outputDirectory": "test-results",
+        "outputName": "junit.xml",
+        "ancestorSeparator": " \u203a ",
+        "uniqueOutputName": "false",
+        "suiteNameTemplate": "{filepath}",
+        "classNameTemplate": "{classname}",
+        "titleTemplate": "{title}"
+    }
 }
