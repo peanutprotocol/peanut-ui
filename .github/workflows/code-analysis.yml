@@ -43,7 +43,7 @@ jobs:
 
             - name: Clone mono (for analyzer)
               env:
-                  TOKEN: ${{ secrets.SUBMODULE_TOKEN }}
+                  TOKEN: ${{ secrets.MONO_READ_TOKEN }}
               run: |
                   git clone --depth 1 --branch "$MONO_REF" \
                     "https://x-access-token:${TOKEN}@github.com/peanutprotocol/mono.git" /tmp/mono
