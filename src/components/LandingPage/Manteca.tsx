@@ -39,17 +39,15 @@ const Manteca = () => {
 
             <div className="relative flex flex-col items-center justify-center px-4">
                 <h1 className="font-roboto-flex-extrabold text-center text-[4rem] font-extraBlack md:text-left lg:text-headingMedium">
-                    GET PAID. PAY. DONE.
+                    PAY LIKE A LOCAL.
                 </h1>
 
                 <h2 className="font-roboto-flex mt-6 text-center text-xl md:text-5xl">
                     RECEIVE FROM ANYWHERE. NO LOCAL ID NEEDED.
                 </h2>
 
-                <h2 className="font-roboto-flex mt-6 text-center text-xl md:text-4xl">Get best exchange rate.</h2>
-
-                <h3 className="font-roboto-flex mt-6 text-center text-xl md:text-xl">
-                    up to <b>~15% cheaper</b> than Visa & Mastercard.
+                <h3 className="font-roboto-flex mt-6 text-center text-xl md:text-2xl">
+                    Pay MercadoPago QR in Argentina. Send PIX in Brazil. Just your passport.
                 </h3>
             </div>
 
@@ -69,6 +67,10 @@ const Manteca = () => {
                 <Image src={mantecaIphone} alt="Mercado pago payment" width={250} height={250} />
                 <Image src={PIX_BRZ_LOGO} alt="Pix Brazil" width={170} height={170} />
             </div>
+
+            <p className="font-roboto-flex relative mt-12 text-center text-sm opacity-70 md:absolute md:bottom-4 md:left-1/2 md:mt-0 md:-translate-x-1/2">
+                Settles in digital dollars at the real exchange rate.
+            </p>
         </section>
     )
 }
