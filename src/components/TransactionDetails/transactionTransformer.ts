@@ -61,6 +61,11 @@ export interface TransactionDetails {
         addressExplorerUrl?: string
         originalType: EHistoryEntryType
         originalUserRole: EHistoryUserRole
+        /** Post-M3 transaction-intent kind (P2P_SEND, QR_PAY, CARD_SPEND, …).
+         *  Some predicates need this to disambiguate within TRANSACTION_INTENT
+         *  entries — e.g. QR payments now arrive as TRANSACTION_INTENT + kind=QR_PAY
+         *  rather than a dedicated originalType. */
+        kind?: string
         link?: string
         isLinkTransaction?: boolean
         transactionCardType?: TransactionCardType
@@ -115,6 +120,31 @@ export interface TransactionDetails {
             gas_fee?: string
             final_amount?: string
             exchange_rate?: string
+        }
+        /** Card-payment specifics — populated for Rain CARD_SPEND / card-refund
+         *  entries only. Drives the merchant hero, status timeline, decline
+         *  reason, and "Adjusted from $X" settlement note in the drawer. */
+        cardPayment?: {
+            merchantName: string | null
+            merchantCategory: string | null
+            merchantCity: string | null
+            merchantCountry: string | null
+            merchantMcc: string | null
+            /** Rain-enriched brand logo URL when their enrichment identified the
+             *  merchant. Drawer keeps the generic card icon for v1; this is
+             *  plumbed so a future swap doesn't need a backend change. */
+            merchantLogo: string | null
+            merchantId: string | null
+            localAmount: string | null
+            localCurrency: string | null
+            declineReason: string | null
+            authAmount: string | null
+            settledAmount: string | null
+            settlementAdjusted: boolean
+            cancellationReason: string | null
+            parentRainTxId: string | null
+            rainTransactionId: string | null
+            isRefund: boolean
         }
     }
     sourceView?: 'status' | 'history'
@@ -404,13 +434,34 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                     nameForDetails = 'Bank Account'
                     isPeerActuallyUser = false
                     break
-                case 'CARD_SPEND':
+                case 'CARD_SPEND': {
+                    // Merchant fields come from the M3 history fetcher's extraData
+                    // (peanut-api-ts/src/transaction-intent/history.ts). Falling
+                    // back to "Card payment" only when the merchant name is
+                    // genuinely unknown — which should be rare once Rain enrichment
+                    // is live for the user.
+                    const merchantName = (entry.extraData?.merchantName as string | null | undefined) ?? null
                     direction = 'qr_payment'
                     transactionCardType = 'pay'
-                    nameForDetails = 'Card Payment'
+                    nameForDetails = merchantName || 'Card payment'
                     isPeerActuallyUser = false
                     break
+                }
                 default:
+                    // Card refunds come back with kind === 'REFUND', provider === RAIN
+                    // (toLegacyKindLabel surfaces them as 'OTHER' today since
+                    // there's no dedicated CARD_REFUND legacy kind). Scope
+                    // the refund branch to those two kinds — guarding on
+                    // parentRainTxId alone risks misrouting any future intent
+                    // that carries the linkage for some other reason.
+                    if ((kind === 'OTHER' || kind === 'REFUND') && entry.extraData?.parentRainTxId) {
+                        const merchantName = (entry.extraData?.merchantName as string | null | undefined) ?? null
+                        direction = 'receive'
+                        transactionCardType = 'receive'
+                        nameForDetails = merchantName ? `Refund from ${merchantName}` : 'Card refund'
+                        isPeerActuallyUser = false
+                        break
+                    }
                     direction = 'send'
                     transactionCardType = 'send'
                     nameForDetails = entry.recipientAccount?.identifier || 'Transaction'
@@ -596,7 +647,17 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         // drawer's fee row never renders. If this rule changes, update
         // docs/product-conventions.md first.
         fee: undefined,
-        memo: isTestDeposit ? 'Your peanut wallet is ready to use!' : entry.memo?.trim(),
+        // memo carries free-form user notes from non-card flows (link memos,
+        // request comments). Card spends + Rain refunds suppress this — the
+        // merchant name and any decline reason render inside CardPaymentRows
+        // in the drawer, so a duplicate "Comment" row is just noise. Backend
+        // already sets memo=undefined for card entries, but defend in depth.
+        memo: (() => {
+            if (isTestDeposit) return 'Your peanut wallet is ready to use!'
+            const isCardEntry = entry.extraData?.kind === 'CARD_SPEND' || !!entry.extraData?.parentRainTxId
+            if (isCardEntry) return undefined
+            return entry.memo?.trim()
+        })(),
         attachmentUrl: entry.attachmentUrl,
         cancelledDate: entry.cancelledAt,
         txHash: entry.txHash,
@@ -607,12 +668,45 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             addressExplorerUrl,
             originalType: entry.type as EHistoryEntryType,
             originalUserRole: entry.userRole as EHistoryUserRole,
+            kind: entry.extraData?.kind as string | undefined,
             link: entry.extraData?.link,
             isLinkTransaction: isLinkTx,
             transactionCardType,
             rewardData,
             fulfillmentType: entry.extraData?.fulfillmentType,
             bridgeTransferId: entry.extraData?.bridgeTransferId,
+            // Card-payment specifics — populated only for Rain CARD_SPEND /
+            // card-refund entries. Drawer reads these to render the merchant
+            // hero, status timeline, decline reason, and "Adjusted from $X"
+            // settlement note. Backend source: src/transaction-intent/history.ts.
+            // Build the cardPayment block for any card-shaped intent (CARD_SPEND
+            // kind) and for Rain refunds (parentRainTxId set). Earlier we
+            // guarded on merchantName presence, but that dropped the block for
+            // unknown-merchant spends — losing the de-emphasis-on-failed,
+            // decline-reason rows, and merchant-detail Card. The block falls
+            // back to "Card payment" downstream when merchantName is null.
+            cardPayment:
+                entry.extraData?.kind === 'CARD_SPEND' || entry.extraData?.parentRainTxId
+                    ? {
+                          merchantName: entry.extraData?.merchantName as string | null,
+                          merchantCategory: entry.extraData?.merchantCategory as string | null,
+                          merchantCity: entry.extraData?.merchantCity as string | null,
+                          merchantCountry: entry.extraData?.merchantCountry as string | null,
+                          merchantMcc: entry.extraData?.merchantMcc as string | null,
+                          merchantLogo: entry.extraData?.merchantLogo as string | null,
+                          merchantId: entry.extraData?.merchantId as string | null,
+                          localAmount: entry.extraData?.cardLocalAmount as string | null,
+                          localCurrency: entry.extraData?.cardLocalCurrency as string | null,
+                          declineReason: entry.extraData?.declineReason as string | null,
+                          authAmount: entry.extraData?.cardAuthAmount as string | null,
+                          settledAmount: entry.extraData?.cardSettledAmount as string | null,
+                          settlementAdjusted: Boolean(entry.extraData?.settlementAdjusted),
+                          cancellationReason: entry.extraData?.cancellationReason as string | null,
+                          parentRainTxId: entry.extraData?.parentRainTxId as string | null,
+                          rainTransactionId: entry.extraData?.rainTransactionId as string | null,
+                          isRefund: !!entry.extraData?.parentRainTxId,
+                      }
+                    : undefined,
             perkReward: entry.extraData?.perkReward as HistoryEntryPerkReward | undefined,
             perk: entry.extraData?.perk as
                 | {

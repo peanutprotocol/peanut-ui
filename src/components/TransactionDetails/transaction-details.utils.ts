@@ -19,6 +19,7 @@ export type TransactionDetailsRowKey =
     | 'comment'
     | 'attachment'
     | 'mantecaDepositInfo'
+    | 'cardPayment'
     | 'closed'
 
 // order of the rows in the receipt (must match actual rendering order in component)
@@ -32,6 +33,7 @@ export const transactionDetailsRowKeys: TransactionDetailsRowKey[] = [
     'to',
     'tokenAndNetwork',
     'txId',
+    'cardPayment',
     'fee',
     'mantecaDepositInfo',
     'exchangeRate',
