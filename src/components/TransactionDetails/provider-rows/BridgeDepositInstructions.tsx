@@ -148,28 +148,42 @@ export function BridgeDepositInstructions({ transaction }: { transaction: Transa
                             />
                         </>
                     ) : (
-                        // US format (Account Number/Routing Number + optional beneficiary)
+                        // US format (Account Number/Routing Number + optional beneficiary).
+                        // This branch is the fallback for any payload that doesn't fit
+                        // CLABE/IBAN/UK shapes — including future rails Bridge may add.
+                        // Each row gates on its own data so a partial payload never
+                        // renders or copies `undefined`.
                         <>
-                            <PaymentInfoRow
-                                label="Account Number"
-                                value={
-                                    <div className="flex items-center gap-2">
-                                        <span>{instructions.bank_account_number}</span>
-                                        <CopyToClipboard textToCopy={instructions.bank_account_number!} iconSize="4" />
-                                    </div>
-                                }
-                                hideBottomBorder={false}
-                            />
-                            <PaymentInfoRow
-                                label="Routing Number"
-                                value={
-                                    <div className="flex items-center gap-2">
-                                        <span>{instructions.bank_routing_number}</span>
-                                        <CopyToClipboard textToCopy={instructions.bank_routing_number!} iconSize="4" />
-                                    </div>
-                                }
-                                hideBottomBorder={false}
-                            />
+                            {instructions.bank_account_number && (
+                                <PaymentInfoRow
+                                    label="Account Number"
+                                    value={
+                                        <div className="flex items-center gap-2">
+                                            <span>{instructions.bank_account_number}</span>
+                                            <CopyToClipboard
+                                                textToCopy={instructions.bank_account_number}
+                                                iconSize="4"
+                                            />
+                                        </div>
+                                    }
+                                    hideBottomBorder={false}
+                                />
+                            )}
+                            {instructions.bank_routing_number && (
+                                <PaymentInfoRow
+                                    label="Routing Number"
+                                    value={
+                                        <div className="flex items-center gap-2">
+                                            <span>{instructions.bank_routing_number}</span>
+                                            <CopyToClipboard
+                                                textToCopy={instructions.bank_routing_number}
+                                                iconSize="4"
+                                            />
+                                        </div>
+                                    }
+                                    hideBottomBorder={false}
+                                />
+                            )}
                             {instructions.bank_beneficiary_name && (
                                 <PaymentInfoRow
                                     label="Beneficiary Name"
