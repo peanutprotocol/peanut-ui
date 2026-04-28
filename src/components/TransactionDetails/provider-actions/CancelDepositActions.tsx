@@ -100,8 +100,7 @@ export function CancelDepositActions({
     // bridge-side onramp first, then the charge so the recipient stops seeing
     // the request as outstanding.
     const showPendingBankRequestCancel =
-        isPendingBankRequest &&
-        transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER
+        isPendingBankRequest && transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER
 
     if (showPendingBankRequestCancel) {
         return (

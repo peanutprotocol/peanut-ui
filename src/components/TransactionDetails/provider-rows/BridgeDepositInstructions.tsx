@@ -137,10 +137,7 @@ export function BridgeDepositInstructions({ transaction }: { transaction: Transa
                                 value={
                                     <div className="flex items-center gap-2">
                                         <span>{instructions.bank_account_number}</span>
-                                        <CopyToClipboard
-                                            textToCopy={instructions.bank_account_number!}
-                                            iconSize="4"
-                                        />
+                                        <CopyToClipboard textToCopy={instructions.bank_account_number!} iconSize="4" />
                                     </div>
                                 }
                                 hideBottomBorder={false}
@@ -150,10 +147,7 @@ export function BridgeDepositInstructions({ transaction }: { transaction: Transa
                                 value={
                                     <div className="flex items-center gap-2">
                                         <span>{instructions.bank_routing_number}</span>
-                                        <CopyToClipboard
-                                            textToCopy={instructions.bank_routing_number!}
-                                            iconSize="4"
-                                        />
+                                        <CopyToClipboard textToCopy={instructions.bank_routing_number!} iconSize="4" />
                                     </div>
                                 }
                                 hideBottomBorder={false}

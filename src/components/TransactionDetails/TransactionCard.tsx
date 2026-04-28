@@ -130,8 +130,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
 
     // Spec §4.4: declined card transactions stay in the feed but are visually
     // de-emphasized so they don't compete with successful items.
-    const isDeclinedCardSpend =
-        status === 'failed' && transaction.extraDataForDrawer?.cardPayment != null
+    const isDeclinedCardSpend = status === 'failed' && transaction.extraDataForDrawer?.cardPayment != null
 
     return (
         <>

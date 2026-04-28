@@ -435,8 +435,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                     // back to "Card payment" only when the merchant name is
                     // genuinely unknown — which should be rare once Rain enrichment
                     // is live for the user.
-                    const merchantName =
-                        (entry.extraData?.merchantName as string | null | undefined) ?? null
+                    const merchantName = (entry.extraData?.merchantName as string | null | undefined) ?? null
                     direction = 'qr_payment'
                     transactionCardType = 'pay'
                     nameForDetails = merchantName || 'Card payment'
@@ -449,8 +448,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                     // inherit the merchant from the parent so the feed reads
                     // "Refund from {Merchant}".
                     if (entry.extraData?.parentRainTxId) {
-                        const merchantName =
-                            (entry.extraData?.merchantName as string | null | undefined) ?? null
+                        const merchantName = (entry.extraData?.merchantName as string | null | undefined) ?? null
                         direction = 'receive'
                         transactionCardType = 'receive'
                         nameForDetails = merchantName ? `Refund from ${merchantName}` : 'Card refund'

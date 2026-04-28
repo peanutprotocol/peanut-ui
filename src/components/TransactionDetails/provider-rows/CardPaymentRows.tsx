@@ -83,11 +83,7 @@ export function CardPaymentRows({
     // Cross-currency only — suppress when the local currency matches the USD
     // display currency (everyone's seen "Charged in 150 usd" alongside $1.50
     // and it's just noise).
-    if (
-        card.localAmount &&
-        card.localCurrency &&
-        card.localCurrency.toLowerCase() !== 'usd'
-    ) {
+    if (card.localAmount && card.localCurrency && card.localCurrency.toLowerCase() !== 'usd') {
         // Local amount comes through as raw cents from Rain — format to a
         // human number with two decimals before showing.
         const localFormatted = (Number(card.localAmount) / 100).toFixed(2)

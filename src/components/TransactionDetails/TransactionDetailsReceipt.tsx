@@ -779,9 +779,7 @@ export const TransactionDetailsReceipt = ({
                     )}
 
                     {/* Onramp deposit instructions for bridge_onramp transactions */}
-                    {rowVisibilityConfig.depositInstructions && (
-                        <BridgeDepositInstructions transaction={transaction} />
-                    )}
+                    {rowVisibilityConfig.depositInstructions && <BridgeDepositInstructions transaction={transaction} />}
 
                     {rowVisibilityConfig.points && transaction.points && (
                         <PaymentInfoRow
