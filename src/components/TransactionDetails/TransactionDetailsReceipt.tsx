@@ -63,7 +63,7 @@ import {
     isPerkReward as isPerkRewardTransaction,
     usesCompletedTimestampLabel,
 } from './transaction-predicates'
-import { CardPaymentRows } from './provider-rows/CardPaymentRows'
+import { CardPaymentRows, hasCardPaymentRowsContent } from './provider-rows/CardPaymentRows'
 import { MantecaDepositInfo } from './provider-rows/MantecaDepositInfo'
 import { BridgeDepositInstructions } from './provider-rows/BridgeDepositInstructions'
 import { CancelDepositActions } from './provider-actions/CancelDepositActions'
@@ -234,9 +234,12 @@ export const TransactionDetailsReceipt = ({
                 transaction.extraDataForDrawer?.originalType === EHistoryEntryType.MANTECA_ONRAMP &&
                 transaction.status === 'pending',
             // Card-payment slot owns merchant category / location / cross-currency
-            // / settlement-adjustment / decline-reason / auto-close note. The
-            // CardPaymentRows component decides which sub-rows to render.
-            cardPayment: isCardPaymentEntry(transaction),
+            // / settlement-adjustment / decline-reason / auto-close note. Gate on
+            // whether CardPaymentRows would actually emit a sub-row — otherwise
+            // an "all data absent" card spend leaves the slot visible-but-empty
+            // and `shouldHideBorder` mis-attributes the last-visible row,
+            // dangling a border into empty space below the previous row.
+            cardPayment: isCardPaymentEntry(transaction) && hasCardPaymentRowsContent(transaction),
             closed: !!(transaction.status === 'closed' && transaction.cancelledDate),
         }
     }, [transaction, isPendingBankRequest])

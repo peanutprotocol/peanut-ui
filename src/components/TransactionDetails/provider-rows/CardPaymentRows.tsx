@@ -5,6 +5,26 @@ import { type TransactionDetails } from '@/components/TransactionDetails/transac
 import { friendlyDeclineReason } from '@/utils/cardDeclineReason'
 
 /**
+ * Whether CardPaymentRows would render any visible sub-row for this
+ * transaction. The row-config in the receipt uses this to gate the
+ * `cardPayment` slot — without it, we'd end up with a "visible" but
+ * empty slot, which throws off `shouldHideBorder` and dangles the
+ * preceding row's border into empty space.
+ */
+export function hasCardPaymentRowsContent(transaction: TransactionDetails): boolean {
+    const card = transaction.extraDataForDrawer?.cardPayment
+    if (!card) return false
+
+    if (card.merchantCategory) return true
+    if (card.merchantCity || card.merchantCountry) return true
+    if (card.localAmount && card.localCurrency && card.localCurrency.toLowerCase() !== 'usd') return true
+    if (card.settlementAdjusted && card.authAmount) return true
+    if (transaction.status === 'failed' && card.declineReason) return true
+    if (card.cancellationReason === 'auto_closed') return true
+    return false
+}
+
+/**
  * Card-payment rows for the receipt's details Card.
  *
  * Slots into the row sequence between `txId` and `fee` via the
