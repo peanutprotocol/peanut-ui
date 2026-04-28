@@ -16,7 +16,7 @@ const Manteca = () => {
     return (
         <section
             id="qr-pay"
-            className="relative overflow-hidden py-20 text-n-1 md:h-[850px] lg:h-[750px]"
+            className="relative overflow-hidden py-20 text-n-1 md:min-h-[850px] lg:min-h-[750px]"
             style={{ backgroundColor: '#F9F4F0' }}
         >
             <div className="hidden md:block">
@@ -39,17 +39,15 @@ const Manteca = () => {
 
             <div className="relative flex flex-col items-center justify-center px-4">
                 <h1 className="font-roboto-flex-extrabold text-center text-[4rem] font-extraBlack md:text-left lg:text-headingMedium">
-                    GET PAID. PAY. DONE.
+                    PAY LIKE A LOCAL.
                 </h1>
 
                 <h2 className="font-roboto-flex mt-6 text-center text-xl md:text-5xl">
                     RECEIVE FROM ANYWHERE. NO LOCAL ID NEEDED.
                 </h2>
 
-                <h2 className="font-roboto-flex mt-6 text-center text-xl md:text-4xl">Get best exchange rate.</h2>
-
-                <h3 className="font-roboto-flex mt-6 text-center text-xl md:text-xl">
-                    up to <b>~15% cheaper</b> than Visa & Mastercard.
+                <h3 className="font-roboto-flex mt-6 text-center text-xl md:text-2xl">
+                    Pay MercadoPago QR in Argentina. Send PIX in Brazil. Just your passport.
                 </h3>
             </div>
 
@@ -64,11 +62,21 @@ const Manteca = () => {
             </div>
 
             {/* Desktop layout */}
-            <div className="absolute -bottom-24 left-1/2 mx-auto hidden -translate-x-1/2 items-center justify-center gap-20 md:flex lg:gap-36">
-                <Image src={MEPA_ARGENTINA_LOGO} alt="Mepa Argentina" width={170} height={170} />
-                <Image src={mantecaIphone} alt="Mercado pago payment" width={250} height={250} />
-                <Image src={PIX_BRZ_LOGO} alt="Pix Brazil" width={170} height={170} />
+            <div className="mx-auto mt-12 hidden flex-col items-center justify-center gap-8 md:flex">
+                <div className="flex items-center justify-center gap-20 lg:gap-36">
+                    <Image src={MEPA_ARGENTINA_LOGO} alt="Mepa Argentina" width={170} height={170} />
+                    <Image src={mantecaIphone} alt="Mercado pago payment" width={250} height={250} />
+                    <Image src={PIX_BRZ_LOGO} alt="Pix Brazil" width={170} height={170} />
+                </div>
+
+                <p className="font-roboto-flex text-center text-sm opacity-70">
+                    Settles in digital dollars at the real exchange rate.
+                </p>
             </div>
+
+            <p className="font-roboto-flex relative mt-12 text-center text-sm opacity-70 md:hidden">
+                Settles in digital dollars at the real exchange rate.
+            </p>
         </section>
     )
 }
