@@ -14,7 +14,6 @@ import { type StatusPillType } from '../Global/StatusPill'
 import type { Address } from 'viem'
 import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import { type HistoryEntryPerkReward, type ChargeEntry } from '@/services/services.types'
-import { friendlyDeclineReason } from '@/utils/cardDeclineReason'
 
 /**
  * @fileoverview maps raw transaction history data from the api/hook to the format needed by ui components.
@@ -643,19 +642,11 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         // drawer's fee row never renders. If this rule changes, update
         // docs/product-conventions.md first.
         fee: undefined,
-        memo: (() => {
-            if (isTestDeposit) return 'Your peanut wallet is ready to use!'
-            // Failed card spend → show the friendly decline reason inline so
-            // users understand "why didn't my payment go through?" without
-            // tapping into the drawer (per spec §4.4).
-            if (
-                uiStatus === 'failed' &&
-                (entry.extraData?.kind === 'CARD_SPEND' || entry.extraData?.declineReason)
-            ) {
-                return friendlyDeclineReason(entry.extraData?.declineReason as string | null | undefined)
-            }
-            return entry.memo?.trim()
-        })(),
+        // memo carries free-form user notes from non-card flows (link memos,
+        // request comments). Card spends suppress this — the merchant name and
+        // any decline reason render inside CardPaymentRows in the drawer, so
+        // populating memo here would render a duplicate "Comment" row.
+        memo: isTestDeposit ? 'Your peanut wallet is ready to use!' : entry.memo?.trim(),
         attachmentUrl: entry.attachmentUrl,
         cancelledDate: entry.cancelledAt,
         txHash: entry.txHash,
