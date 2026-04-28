@@ -22,7 +22,6 @@ import { formatPoints } from '@/utils/format.utils'
 import { getAvatarUrl } from '@/utils/history.utils'
 import {
     formatIban,
-    getContributorsFromCharge,
     printableAddress,
     shortenAddress,
     shortenStringLong,
@@ -46,30 +45,22 @@ import CopyToClipboard from '../Global/CopyToClipboard'
 import CancelSendLinkModal from '../Global/CancelSendLinkModal'
 import { twMerge } from 'tailwind-merge'
 import { isAddress } from 'viem'
-import {
-    getBankAccountLabel,
-    type TransactionDetailsRowKey,
-    transactionDetailsRowKeys,
-} from './transaction-details.utils'
+import { getBankAccountLabel } from './transaction-details.utils'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useRouter } from 'next/navigation'
-import { countryData } from '@/components/AddMoney/consts'
 import { getBankAccountCountryCode } from '@/constants/countryCurrencyMapping'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import {
-    hasShareableReceipt,
-    isCardPaymentEntry,
-    isQRPayment as isQRPaymentTransaction,
     isPerkReward as isPerkRewardTransaction,
     usesCompletedTimestampLabel,
 } from './transaction-predicates'
-import { CardPaymentRows, hasCardPaymentRowsContent } from './provider-rows/CardPaymentRows'
+import { useReceiptViewModel } from './useReceiptViewModel'
+import { CardPaymentRows } from './provider-rows/CardPaymentRows'
 import { MantecaDepositInfo } from './provider-rows/MantecaDepositInfo'
 import { BridgeDepositInstructions } from './provider-rows/BridgeDepositInstructions'
 import { CancelDepositActions } from './provider-actions/CancelDepositActions'
 import { PerkRewardReceipt } from './provider-receipts/PerkRewardReceipt'
 import { getReceiptUrl } from '@/utils/history.utils'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
 import ContributorCard from '../Global/Contributors/ContributorCard'
 import { requestsApi } from '@/services/requests'
 import { PasskeyDocsLink } from '../Setup/Views/SignTestTransaction'
@@ -122,229 +113,24 @@ export const TransactionDetailsReceipt = ({
         setIsModalOpen?.(showCancelLinkModal)
     }, [showCancelLinkModal, setIsModalOpen])
 
-    const isGuestBankClaim = useMemo(() => {
-        if (!transaction) return false
-        return transaction.extraDataForDrawer?.originalType === EHistoryEntryType.BANK_SEND_LINK_CLAIM
-    }, [transaction])
-
-    const isPendingBankRequest = useMemo(() => {
-        if (!transaction) return false
-        return (
-            transaction.status === 'pending' &&
-            transaction.extraDataForDrawer?.originalType === EHistoryEntryType.REQUEST &&
-            transaction.extraDataForDrawer?.fulfillmentType === 'bridge'
-        )
-    }, [transaction])
-
-    // check if token is usdc on arbitrum to hide token/network section
-    const isPeanutWalletToken = useMemo(() => {
-        if (!transaction) return false
-        const tokenSymbol = transaction.tokenSymbol?.toUpperCase()
-        const chainName = transaction.tokenDisplayDetails?.chainName?.toLowerCase()
-        return tokenSymbol === PEANUT_WALLET_TOKEN_SYMBOL && chainName === PEANUT_WALLET_CHAIN.name.toLowerCase()
-    }, [transaction])
-
-    // config to determine which rows are visible in the receipt
-    // this helps in managing layout and borders without repeating code
-    const rowVisibilityConfig = useMemo((): Record<TransactionDetailsRowKey, boolean> => {
-        if (!transaction) {
-            // if no transaction, return all false
-            return transactionDetailsRowKeys.reduce(
-                (acc, key) => {
-                    acc[key] = false
-                    return acc
-                },
-                {} as Record<TransactionDetailsRowKey, boolean>
-            )
-        }
-
-        // if transaction exists, calculate visibility for each row
-        // Hide the "Created" row when the "Sent"/"Completed" row is about to
-        // render (both point at the same lifecycle event for off-ramps /
-        // bank claims; two rows side-by-side is noise). Keep "Created" as
-        // the fallback for pending states where no completion timestamp exists.
-        const willShowCompleted = !!(
-            transaction.status === 'completed' &&
-            transaction.completedAt &&
-            transaction.extraDataForDrawer?.originalType !== EHistoryEntryType.DIRECT_SEND
-        )
-        return {
-            createdAt: !!transaction.createdAt && !willShowCompleted,
-            to: transaction.direction === 'claim_external',
-            tokenAndNetwork: !!(
-                transaction.tokenDisplayDetails &&
-                transaction.sourceView === 'history' &&
-                !isPeanutWalletToken &&
-                // hide token and network for send links in acitvity drawer for sender
-                !(
-                    transaction.extraDataForDrawer?.originalType === EHistoryEntryType.SEND_LINK &&
-                    transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER
-                ) &&
-                // hide token and network for refunded entries
-                transaction.status !== 'refunded'
-            ),
-            txId: !!transaction.txHash,
-            // show cancelled row if status is cancelled, use cancelledDate or fallback to createdAt
-            cancelled: transaction.status === 'cancelled',
-            claimed: !!(transaction.status === 'completed' && transaction.claimedAt),
-            completed: !!(
-                transaction.status === 'completed' &&
-                transaction.completedAt &&
-                transaction.extraDataForDrawer?.originalType !== EHistoryEntryType.DIRECT_SEND
-            ),
-            refunded: transaction.status === 'refunded',
-            fee: transaction.fee !== undefined && transaction.status !== 'cancelled',
-            exchangeRate: !!(
-                (transaction.direction === 'bank_deposit' ||
-                    transaction.direction === 'qr_payment' ||
-                    transaction.direction === 'bank_withdraw') &&
-                transaction.currency?.code &&
-                transaction.currency.code.toUpperCase() !== 'USD' &&
-                transaction.status !== 'cancelled'
-            ),
-            bankAccountDetails: !!(
-                transaction.bankAccountDetails &&
-                transaction.bankAccountDetails.identifier &&
-                transaction.status !== 'cancelled'
-            ),
-            transferId: !!(
-                transaction.id &&
-                (transaction.direction === 'bank_withdraw' || transaction.direction === 'bank_claim') &&
-                transaction.status !== 'cancelled'
-            ),
-            depositInstructions: !!(
-                (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.BRIDGE_ONRAMP ||
-                    (isPendingBankRequest &&
-                        transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER)) &&
-                transaction.status === 'pending' &&
-                transaction.extraDataForDrawer?.depositInstructions &&
-                transaction.extraDataForDrawer.depositInstructions.bank_name
-            ),
-            peanutFee: false, // Perk fee logic removed - perks now show as separate transactions
-            points: !!(transaction.points && transaction.points > 0 && transaction.status !== 'cancelled'),
-            comment: !!(transaction.memo?.trim() && transaction.status !== 'cancelled'),
-            networkFee: !!(
-                transaction.networkFeeDetails &&
-                transaction.sourceView === 'status' &&
-                transaction.status !== 'cancelled'
-            ),
-            attachment: !!(transaction.attachmentUrl && transaction.status !== 'cancelled'),
-            mantecaDepositInfo:
-                !isPublic &&
-                transaction.extraDataForDrawer?.originalType === EHistoryEntryType.MANTECA_ONRAMP &&
-                transaction.status === 'pending',
-            // Card-payment slot owns merchant category / location / cross-currency
-            // / settlement-adjustment / decline-reason / auto-close note. Gate on
-            // whether CardPaymentRows would actually emit a sub-row — otherwise
-            // an "all data absent" card spend leaves the slot visible-but-empty
-            // and `shouldHideBorder` mis-attributes the last-visible row,
-            // dangling a border into empty space below the previous row.
-            cardPayment: isCardPaymentEntry(transaction) && hasCardPaymentRowsContent(transaction),
-            closed: !!(transaction.status === 'closed' && transaction.cancelledDate),
-        }
-    }, [transaction, isPendingBankRequest])
-
-    const country = useMemo(() => {
-        if (!transaction?.currency?.code) return undefined
-        return countryData.find((c) => c.currency === transaction.currency?.code)
-    }, [transaction?.currency?.code])
-
-    const visibleRows = useMemo(() => {
-        // filter rowkeys to only include visible rows, maintaining the order
-        return transactionDetailsRowKeys.filter((key) => rowVisibilityConfig[key])
-    }, [rowVisibilityConfig])
-
-    // helper to hide border for the last visible row
-    const shouldHideBorder = (rowKey: TransactionDetailsRowKey) => {
-        const lastVisibleRow = visibleRows[visibleRows.length - 1]
-        return rowKey === lastVisibleRow
-    }
-
-    // reusable helper to get the last visible row in a specific group
-    const getLastVisibleInGroup = (groupKeys: TransactionDetailsRowKey[]) => {
-        const visibleInGroup = groupKeys.filter((key) => rowVisibilityConfig[key])
-        return visibleInGroup[visibleInGroup.length - 1]
-    }
-
-    // define row groups
-    const rowGroups = useMemo(
-        () => ({
-            dateRows: ['createdAt', 'cancelled', 'claimed', 'completed', 'closed'] as TransactionDetailsRowKey[],
-            txnDetails: ['tokenAndNetwork', 'txId'] as TransactionDetailsRowKey[],
-            fees: ['networkFee', 'peanutFee'] as TransactionDetailsRowKey[],
-        }),
-        []
-    )
-
-    // get last visible row for each group
-    const lastVisibleInGroups = useMemo(
-        () => ({
-            dateRows: getLastVisibleInGroup(rowGroups.dateRows),
-            txnDetails: getLastVisibleInGroup(rowGroups.txnDetails),
-            fees: getLastVisibleInGroup(rowGroups.fees),
-        }),
-        [rowVisibilityConfig]
-    )
-
-    // @dev TODO: Enable grouped borders when tackling receipt changes
-    // reusable helper to check if border should be hidden for a row in a specific group
-    const shouldHideGroupBorder = (rowKey: TransactionDetailsRowKey, groupName: keyof typeof rowGroups) => {
-        const isLastInGroup = rowKey === lastVisibleInGroups[groupName]
-        const isGlobalLast = shouldHideBorder(rowKey)
-
-        // if it's the last in its group, show border UNLESS it's also the global last
-        if (isLastInGroup) {
-            return isGlobalLast
-        }
-
-        // if not last in group, always hide border
-        return true
-    }
-
-    const isPendingRequestee = useMemo(() => {
-        if (!transaction) return false
-        return (
-            transaction.status === 'pending' &&
-            transaction.extraDataForDrawer?.originalType === EHistoryEntryType.REQUEST &&
-            transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER &&
-            !transaction.extraDataForDrawer?.fulfillmentType
-        )
-    }, [transaction])
-
-    const isPendingRequester = useMemo(() => {
-        if (!transaction) return false
-        return (
-            transaction.status === 'pending' &&
-            transaction.extraDataForDrawer?.originalType === EHistoryEntryType.REQUEST &&
-            transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.RECIPIENT
-        )
-    }, [transaction])
-
-    const isPendingSentLink = useMemo(() => {
-        if (!transaction) return false
-        return (
-            transaction.status === 'pending' &&
-            transaction.extraDataForDrawer?.originalType === EHistoryEntryType.SEND_LINK &&
-            transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER
-        )
-    }, [transaction])
-
-    const shouldShowShareReceipt = useMemo(() => {
-        if (isPublic) return false
-        if (!transaction || isPendingSentLink || isPendingRequester || isPendingRequestee) return false
-        if (transaction?.txHash && transaction.direction !== 'receive' && transaction.direction !== 'request_sent')
-            return true
-        return hasShareableReceipt(transaction)
-    }, [transaction, isPendingSentLink, isPendingRequester, isPendingRequestee])
-
-    const isQRPayment = transaction ? isQRPaymentTransaction(transaction) : false
-
-    const requestPotContributors = useMemo(() => {
-        if (!transaction || !transaction.requestPotPayments) return []
-        return getContributorsFromCharge(transaction.requestPotPayments)
-    }, [transaction])
-
-    const formattedTotalAmountCollected = formatCurrency(transaction?.totalAmountCollected?.toString() ?? '0', 2, 0)
+    // All derived row-visibility / status / share-receipt state lives in the
+    // hook so this component stays focused on JSX + side-effect callbacks.
+    const {
+        isGuestBankClaim,
+        isPendingBankRequest,
+        isPeanutWalletToken,
+        isPendingRequestee,
+        isPendingRequester,
+        isPendingSentLink,
+        isQRPayment,
+        country,
+        rowVisibilityConfig,
+        shouldHideBorder,
+        shouldHideGroupBorder,
+        shouldShowShareReceipt,
+        requestPotContributors,
+        formattedTotalAmountCollected,
+    } = useReceiptViewModel(transaction, { isPublic })
 
     useEffect(() => {
         const getTokenDetails = async () => {
