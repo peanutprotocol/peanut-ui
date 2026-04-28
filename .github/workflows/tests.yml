@@ -326,3 +326,31 @@ jobs:
                               body,
                           });
                       }
+
+    # Single umbrella check that aggregates all required test/quality jobs.
+    # Branch protection on `dev`/`main` requires only `ci-success` instead of
+    # listing every individual job — keeps the ruleset stable as jobs are
+    # added/renamed. To gate a new job: add it to `needs:` here.
+    #
+    # `if: always()` so this runs even when an upstream fails. Explicit
+    # `failure || cancelled` check because GitHub treats `skipped` as neutral
+    # (an upstream skip would silently let this pass without the explicit gate).
+    ci-success:
+        name: ci-success
+        if: always()
+        needs: [lint, typecheck, unit, e2e, report]
+        runs-on: ubuntu-latest
+        steps:
+            - name: Verify all required jobs passed
+              run: |
+                  if [[ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" == "true" ]]; then
+                      echo "::error::One or more required jobs failed or were cancelled"
+                      echo "Job results:"
+                      echo "  lint:      ${{ needs.lint.result }}"
+                      echo "  typecheck: ${{ needs.typecheck.result }}"
+                      echo "  unit:      ${{ needs.unit.result }}"
+                      echo "  e2e:       ${{ needs.e2e.result }}"
+                      echo "  report:    ${{ needs.report.result }}"
+                      exit 1
+                  fi
+                  echo "✅ All required jobs passed"
