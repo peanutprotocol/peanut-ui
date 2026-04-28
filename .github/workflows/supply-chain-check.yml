@@ -13,6 +13,11 @@ on:
             - '.npmrc'
             - 'scripts/check-min-release-age.mjs'
             - '.github/workflows/supply-chain-check.yml'
+    workflow_dispatch:
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    cancel-in-progress: true
 
 jobs:
     check-min-release-age:

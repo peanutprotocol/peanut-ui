@@ -3,6 +3,13 @@ name: Tests
 on:
     push:
         branches: ['**']
+    workflow_dispatch:
+
+# Cancel in-progress runs on the same branch when a newer commit lands.
+# Rapid-iteration sessions burn CI minutes on stale runs without this.
+concurrency:
+    group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    cancel-in-progress: true
 
 permissions:
     contents: read

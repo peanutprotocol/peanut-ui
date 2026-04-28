@@ -14,6 +14,19 @@ name: Code analysis
 on:
     pull_request:
         branches: [main, master, dev]
+        # Skip code-analysis on doc-only commits — pure overhead. Not a
+        # required gate (just a comment), so paths-ignore is safe here.
+        paths-ignore:
+            - '**/*.md'
+            - 'docs/**'
+            - '.gitignore'
+            - '.editorconfig'
+            - 'src/content/**'
+    workflow_dispatch:
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    cancel-in-progress: true
 
 permissions:
     contents: read
