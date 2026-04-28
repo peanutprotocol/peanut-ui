@@ -4,6 +4,17 @@ import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { friendlyDeclineReason } from '@/utils/cardDeclineReason'
 
+/** Strings from Rain's sandbox arrive whitespace-padded ("  ", " - ") and
+ *  legacy intents in the DB pre-date the backend cleanField pass — treat any
+ *  whitespace-only or placeholder-shaped value as absent. */
+function nonBlank(value: string | null | undefined): string | null {
+    if (!value) return null
+    const trimmed = value.trim()
+    if (trimmed.length === 0) return null
+    if (/^[-_]{1,3}$/.test(trimmed)) return null
+    return trimmed
+}
+
 /**
  * Whether CardPaymentRows would render any visible sub-row for this
  * transaction. The row-config in the receipt uses this to gate the
@@ -15,8 +26,8 @@ export function hasCardPaymentRowsContent(transaction: TransactionDetails): bool
     const card = transaction.extraDataForDrawer?.cardPayment
     if (!card) return false
 
-    if (card.merchantCategory) return true
-    if (card.merchantCity || card.merchantCountry) return true
+    if (nonBlank(card.merchantCategory)) return true
+    if (nonBlank(card.merchantCity) || nonBlank(card.merchantCountry)) return true
     if (card.localAmount && card.localCurrency && card.localCurrency.toLowerCase() !== 'usd') return true
     if (card.settlementAdjusted && card.authAmount) return true
     if (transaction.status === 'failed' && card.declineReason) return true
@@ -54,15 +65,18 @@ export function CardPaymentRows({
     // border-suppressed if this whole slot is also the receipt's last.
     const subRows: { label: string; value: string; key: string }[] = []
 
-    if (card.merchantCategory) {
-        subRows.push({ key: 'category', label: 'Category', value: card.merchantCategory })
+    const categoryClean = nonBlank(card.merchantCategory)
+    if (categoryClean) {
+        subRows.push({ key: 'category', label: 'Category', value: categoryClean })
     }
 
-    if (card.merchantCity || card.merchantCountry) {
+    const cityClean = nonBlank(card.merchantCity)
+    const countryClean = nonBlank(card.merchantCountry)
+    if (cityClean || countryClean) {
         subRows.push({
             key: 'location',
             label: 'Location',
-            value: [card.merchantCity, card.merchantCountry].filter(Boolean).join(', '),
+            value: [cityClean, countryClean].filter(Boolean).join(', '),
         })
     }
 
