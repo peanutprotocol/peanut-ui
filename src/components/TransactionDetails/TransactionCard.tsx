@@ -134,9 +134,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     // declined SPENDS specifically — refunds also populate cardPayment, but
     // a failed refund (e.g. processing error) shouldn't be greyed out.
     const isDeclinedCardSpend =
-        status === 'failed' &&
-        isCardPaymentEntry(transaction) &&
-        !transaction.extraDataForDrawer?.cardPayment?.isRefund
+        status === 'failed' && isCardPaymentEntry(transaction) && !transaction.extraDataForDrawer?.cardPayment?.isRefund
 
     return (
         <>

@@ -654,8 +654,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         // already sets memo=undefined for card entries, but defend in depth.
         memo: (() => {
             if (isTestDeposit) return 'Your peanut wallet is ready to use!'
-            const isCardEntry =
-                entry.extraData?.kind === 'CARD_SPEND' || !!entry.extraData?.parentRainTxId
+            const isCardEntry = entry.extraData?.kind === 'CARD_SPEND' || !!entry.extraData?.parentRainTxId
             if (isCardEntry) return undefined
             return entry.memo?.trim()
         })(),

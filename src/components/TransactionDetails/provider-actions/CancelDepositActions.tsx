@@ -112,9 +112,7 @@ export function CancelDepositActions({
                         wrapAction(async () => {
                             const bridgeTransferId = transaction.extraDataForDrawer?.bridgeTransferId
                             if (!bridgeTransferId) {
-                                throw new Error(
-                                    'Cannot cancel REQUEST: missing bridgeTransferId on transaction'
-                                )
+                                throw new Error('Cannot cancel REQUEST: missing bridgeTransferId on transaction')
                             }
                             // Bridge cancel must succeed before we cancel the
                             // charge — otherwise the onramp orphans on Bridge's

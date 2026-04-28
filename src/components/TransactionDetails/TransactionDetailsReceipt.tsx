@@ -20,13 +20,7 @@ import useClaimLink from '@/components/Claim/useClaimLink'
 import { formatAmount, formatDate, isStableCoin, formatCurrency } from '@/utils/general.utils'
 import { formatPoints } from '@/utils/format.utils'
 import { getAvatarUrl } from '@/utils/history.utils'
-import {
-    formatIban,
-    printableAddress,
-    shortenAddress,
-    shortenStringLong,
-    slugify,
-} from '@/utils/general.utils'
+import { formatIban, printableAddress, shortenAddress, shortenStringLong, slugify } from '@/utils/general.utils'
 import { cancelOnramp } from '@/app/actions/onramp'
 import { captureException } from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
@@ -50,10 +44,7 @@ import { useModalsContext } from '@/context/ModalsContext'
 import { useRouter } from 'next/navigation'
 import { getBankAccountCountryCode } from '@/constants/countryCurrencyMapping'
 import { useToast } from '@/components/0_Bruddle/Toast'
-import {
-    isPerkReward as isPerkRewardTransaction,
-    usesCompletedTimestampLabel,
-} from './transaction-predicates'
+import { isPerkReward as isPerkRewardTransaction, usesCompletedTimestampLabel } from './transaction-predicates'
 import { useReceiptViewModel } from './useReceiptViewModel'
 import { CardPaymentRows } from './provider-rows/CardPaymentRows'
 import { MantecaDepositInfo } from './provider-rows/MantecaDepositInfo'
