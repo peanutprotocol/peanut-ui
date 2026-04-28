@@ -1,21 +1,28 @@
 name: Tests
 
 on:
-    push:
-        branches: ['**']
+    pull_request:
+        branches:
+            - main
+            - dev
+            - develop
     workflow_dispatch:
 
-# Cancel in-progress runs on the same branch when a newer commit lands.
-# Rapid-iteration sessions burn CI minutes on stale runs without this.
+# Cancel in-progress runs on the same PR when a newer commit lands.
 concurrency:
     group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
     cancel-in-progress: true
 
 permissions:
     contents: read
+    # `checks: write` lets dorny/test-reporter publish per-PR check
+    # annotations from the JUnit XML below.
+    checks: write
 
 jobs:
-    test:
+    # Lint + format. Fast, no node_modules needed beyond what setup-node
+    # cache restores.
+    lint:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
@@ -23,19 +30,46 @@ jobs:
                   submodules: true
                   token: ${{ secrets.SUBMODULE_TOKEN }}
 
+            - uses: pnpm/action-setup@v4
+              with:
+                  version: 10
+
             - uses: actions/setup-node@v4
               with:
-                  node-version: '21.1.0'
+                  node-version: '20'
+                  cache: 'pnpm'
+
+            - run: pnpm install --frozen-lockfile
+
+            - name: Check formatting
+              run: pnpm prettier --check .
+
+            # Validates content-submodule integrity. Currently advisory
+            # because of unrelated content-baseline drift.
+            - name: Validate internal links
+              run: pnpm validate-links
+              continue-on-error: true
+
+    # Typecheck job. Independent of unit tests so type errors surface in
+    # parallel.
+    typecheck:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  submodules: true
+                  token: ${{ secrets.SUBMODULE_TOKEN }}
 
             - uses: pnpm/action-setup@v4
               with:
                   version: 10
 
-            - name: Install Dependencies
-              run: pnpm install
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  cache: 'pnpm'
 
-            - name: Check formatting
-              run: pnpm prettier --check .
+            - run: pnpm install --frozen-lockfile
 
             # Generate Next.js route + asset type declarations without a full
             # build. tsconfig includes .next/types/**/*.ts; without these,
@@ -47,37 +81,282 @@ jobs:
             - name: Typecheck
               run: pnpm typecheck
 
-            # Validates content-submodule integrity (broken links, MDX
-            # component coverage, page-count baseline). Owned by the content
-            # team — currently failing on src/content drift unrelated to
-            # code PRs. Advisory until the content baseline is rebased.
-            - name: Validate internal links
-              run: pnpm validate-links
-              continue-on-error: true
+    unit:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  submodules: true
+                  token: ${{ secrets.SUBMODULE_TOKEN }}
 
-            - name: Run Unit Tests
-              run: pnpm test
+            - uses: pnpm/action-setup@v4
+              with:
+                  version: 10
 
-            - name: Install Playwright Browsers
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  cache: 'pnpm'
+
+            - run: pnpm install --frozen-lockfile
+
+            - name: Generate Next types
+              run: pnpm next typegen
+
+            - name: Run unit tests
+              run: pnpm test:unit:ci
+
+            - name: Publish unit test report
+              uses: dorny/test-reporter@v1
+              if: always()
+              with:
+                  name: Unit test report
+                  path: test-results/junit.xml
+                  reporter: jest-junit
+                  fail-on-error: false
+
+            - name: Upload unit coverage
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: coverage-unit
+                  path: coverage/coverage-final.json
+                  retention-days: 7
+
+            - name: Upload unit JUnit XML
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: junit-unit
+                  path: test-results/junit.xml
+                  retention-days: 7
+
+    # Playwright e2e — advisory until TEST_HARNESS_SECRET + harness API
+    # reachability are wired in repo settings (per the prior comment).
+    e2e:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  submodules: true
+                  token: ${{ secrets.SUBMODULE_TOKEN }}
+
+            - uses: pnpm/action-setup@v4
+              with:
+                  version: 10
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  cache: 'pnpm'
+
+            - run: pnpm install --frozen-lockfile
+
+            - name: Install Playwright browsers
               run: npx playwright install --with-deps chromium
 
-            # Playwright e2e tests need TEST_HARNESS_SECRET to match the API
-            # side. Until that secret is wired into repo settings + the
-            # harness API is reachable from CI, this is advisory. Local devs
-            # still run via `pnpm test:e2e` against the dev stack.
-            - name: Run E2E Tests
+            - name: Run E2E tests
               run: pnpm test:e2e
               continue-on-error: true
 
-            - name: Upload Coverage
-              uses: actions/upload-artifact@v4
-              with:
-                  name: coverage
-                  path: coverage/
-
-            - name: Upload Playwright Report
+            - name: Upload Playwright report
               if: always()
               uses: actions/upload-artifact@v4
               with:
                   name: playwright-report
                   path: playwright-report/
+                  retention-days: 7
+
+    # Coverage + test-summary aggregator. Mirrors the pattern from
+    # peanut-api-ts/.github/workflows/tests.yaml `report` job.
+    report:
+        runs-on: ubuntu-latest
+        # Wait for lint + typecheck + e2e too — the report header says
+        # "all green", which would lie if only unit results were
+        # considered (per CR feedback on PR #1908).
+        needs: [lint, typecheck, unit, e2e]
+        if: always()
+        permissions:
+            contents: read
+            pull-requests: write
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+
+            - name: Download unit coverage
+              uses: actions/download-artifact@v4
+              continue-on-error: true
+              with:
+                  name: coverage-unit
+                  path: coverage-raw/unit
+
+            - name: Download unit JUnit
+              uses: actions/download-artifact@v4
+              continue-on-error: true
+              with:
+                  name: junit-unit
+                  path: junit-raw/unit
+
+            - name: Summarize
+              id: report
+              run: |
+                  set -euo pipefail
+                  mkdir -p coverage-merged coverage-input
+
+                  [[ -f coverage-raw/unit/coverage-final.json ]] && cp coverage-raw/unit/coverage-final.json coverage-input/unit.json || echo "no unit coverage"
+
+                  if ls coverage-input/*.json >/dev/null 2>&1; then
+                      npx --yes nyc@15 merge coverage-input coverage-merged/coverage-final.json
+                      npx --yes nyc@15 report --reporter=json-summary --temp-dir=coverage-merged --report-dir=coverage-merged
+                  else
+                      echo '{"total":{"statements":{"pct":0},"branches":{"pct":0},"functions":{"pct":0},"lines":{"pct":0}}}' > coverage-merged/coverage-summary.json
+                  fi
+
+                  node -e "
+                  const fs = require('fs');
+                  let cov = { total: { statements:{pct:0}, branches:{pct:0}, functions:{pct:0}, lines:{pct:0} } };
+                  try { cov = JSON.parse(fs.readFileSync('coverage-merged/coverage-summary.json','utf8')); } catch {}
+
+                  function decode(s) {
+                      return s.replaceAll('&amp;','&').replaceAll('&lt;','<').replaceAll('&gt;','>').replaceAll('&quot;','\"').replaceAll('&apos;','\\'');
+                  }
+
+                  function parseJunit(p, label) {
+                      try {
+                          const xml = fs.readFileSync(p,'utf8');
+                          const tests = parseInt((xml.match(/<testsuites [^>]*tests=\"(\d+)\"/) || [])[1] || '0', 10);
+                          const failures = parseInt((xml.match(/<testsuites [^>]*failures=\"(\d+)\"/) || [])[1] || '0', 10);
+                          const skipped = parseInt((xml.match(/<testsuites [^>]*skipped=\"(\d+)\"/) || [])[1] || '0', 10);
+                          const time = parseFloat((xml.match(/<testsuites [^>]*time=\"([\d.]+)\"/) || [])[1] || '0');
+                          const cases = [];
+                          for (const m of xml.matchAll(/<testsuite name=\"([^\"]+)\"[^>]*>([\\s\\S]*?)<\\/testsuite>/g)) {
+                              const file = decode(m[1]);
+                              for (const tc of m[2].matchAll(/<testcase[^>]*classname=\"([^\"]*)\"[^>]*name=\"([^\"]+)\"[^>]*time=\"([\d.]+)\"[^>]*(\\/>|>([\\s\\S]*?)<\\/testcase>)/g)) {
+                                  const failed = tc[5] && /<failure/.test(tc[5]);
+                                  cases.push({ file, project: label, suite: decode(tc[1]), name: decode(tc[2]), time: parseFloat(tc[3]), failed: !!failed });
+                              }
+                          }
+                          return { tests, failures, skipped, time, cases };
+                      } catch { return null; }
+                  }
+
+                  const unit = parseJunit('junit-raw/unit/junit.xml','unit');
+                  const allCases = unit?.cases || [];
+                  const failed = allCases.filter(c => c.failed);
+                  const slowest = [...allCases].sort((a,b) => b.time - a.time).slice(0, 10);
+                  fs.writeFileSync('report-payload.json', JSON.stringify({ cov, unit, failed, slowest }, null, 2));
+                  "
+
+            - name: Comment on PR
+              if: github.event_name == 'pull_request'
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const fs = require('fs');
+                      const p = JSON.parse(fs.readFileSync('report-payload.json','utf8'));
+                      const pct = (n) => (n == null ? '—' : `${n.toFixed(1)}%`);
+                      const dur = (n) => (n == null ? '—' : n >= 60 ? `${(n/60).toFixed(1)}m` : `${n.toFixed(1)}s`);
+
+                      const status = p.failed.length === 0 ? '✅ all green' : `🔴 ${p.failed.length} failing`;
+                      const suiteLine = (label, s) => {
+                          if (!s) return `- **${label}**: skipped / unavailable`;
+                          const icon = s.failures > 0 ? '🔴' : '✅';
+                          return `- ${icon} **${label}**: ${s.tests - s.skipped} ran, ${s.failures} failed, ${s.skipped} skipped, ${dur(s.time)}`;
+                      };
+                      const failedBlock = p.failed.length === 0 ? '' : [
+                          '### 🔴 Failing tests',
+                          '',
+                          ...p.failed.map(c => `- \`${c.file}\` › ${c.suite ? c.suite + ' › ' : ''}**${c.name}** — ${c.time.toFixed(2)}s`),
+                          '',
+                      ].join('\n');
+                      const slowBlock = p.slowest.length === 0 ? '' : [
+                          '<details><summary>⏱ 10 slowest test cases</summary>',
+                          '',
+                          '| time | test |',
+                          '| ---: | --- |',
+                          ...p.slowest.map(c => `| ${c.time >= 5 ? '🐢 ' : ''}${dur(c.time)} | \`${c.file}\` › ${c.name} |`),
+                          '',
+                          '</details>',
+                      ].join('\n');
+                      const covBlock = [
+                          '### 📊 Coverage (unit)',
+                          '',
+                          '| metric | % |',
+                          '| --- | ---: |',
+                          `| statements | ${pct(p.cov.total.statements?.pct)} |`,
+                          `| branches   | ${pct(p.cov.total.branches?.pct)} |`,
+                          `| functions  | ${pct(p.cov.total.functions?.pct)} |`,
+                          `| lines      | ${pct(p.cov.total.lines?.pct)} |`,
+                      ].join('\n');
+
+                      const body = [
+                          '<!-- ui-test-report -->',
+                          `## 🧪 UI test report — ${status}`,
+                          '',
+                          '### Suites',
+                          suiteLine('unit', p.unit),
+                          '',
+                          failedBlock,
+                          covBlock,
+                          '',
+                          slowBlock,
+                          '',
+                          '<sub>📍 Inline annotations are in the **Unit test report** check above. Coverage artifact: `coverage-unit`. Generated by `.github/workflows/tests.yml`.</sub>',
+                      ].filter(Boolean).join('\n');
+
+                      const tag = '<!-- ui-test-report -->';
+                      // Paginate so the idempotent-update lookup doesn't break once
+                      // a PR accumulates >30 comments (CR feedback on #1908).
+                      const comments = await github.paginate(github.rest.issues.listComments, {
+                          issue_number: context.issue.number,
+                          owner: context.repo.owner,
+                          repo: context.repo.repo,
+                          per_page: 100,
+                      });
+                      const existing = comments.find(c => c.body && c.body.includes(tag));
+                      if (existing) {
+                          await github.rest.issues.updateComment({
+                              comment_id: existing.id,
+                              owner: context.repo.owner,
+                              repo: context.repo.repo,
+                              body,
+                          });
+                      } else {
+                          await github.rest.issues.createComment({
+                              issue_number: context.issue.number,
+                              owner: context.repo.owner,
+                              repo: context.repo.repo,
+                              body,
+                          });
+                      }
+
+    # Single umbrella check that aggregates all required test/quality jobs.
+    # Branch protection on `dev`/`main` requires only `ci-success` instead of
+    # listing every individual job — keeps the ruleset stable as jobs are
+    # added/renamed. To gate a new job: add it to `needs:` here.
+    #
+    # `if: always()` so this runs even when an upstream fails. Explicit
+    # `failure || cancelled` check because GitHub treats `skipped` as neutral
+    # (an upstream skip would silently let this pass without the explicit gate).
+    ci-success:
+        name: ci-success
+        if: always()
+        needs: [lint, typecheck, unit, e2e, report]
+        runs-on: ubuntu-latest
+        steps:
+            - name: Verify all required jobs passed
+              run: |
+                  if [[ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" == "true" ]]; then
+                      echo "::error::One or more required jobs failed or were cancelled"
+                      echo "Job results:"
+                      echo "  lint:      ${{ needs.lint.result }}"
+                      echo "  typecheck: ${{ needs.typecheck.result }}"
+                      echo "  unit:      ${{ needs.unit.result }}"
+                      echo "  e2e:       ${{ needs.e2e.result }}"
+                      echo "  report:    ${{ needs.report.result }}"
+                      exit 1
+                  fi
+                  echo "✅ All required jobs passed"

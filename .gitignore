@@ -98,3 +98,5 @@ keystore.properties
 
 # capgo ota signing key
 .capgo_key_v2
+test-results/
+coverage/
