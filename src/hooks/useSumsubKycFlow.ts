@@ -209,6 +209,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // called when sdk signals applicant submitted
     const handleSdkComplete = useCallback(() => {
         userInitiatedRef.current = true
+        selfHealProviderRef.current = null
         setShowWrapper(false)
         setIsActionFlow(false)
         setIsVerificationProgressModalOpen(true)
