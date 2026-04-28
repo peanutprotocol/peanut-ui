@@ -2,7 +2,7 @@
 
 import { type ITokenPriceData, type Account } from '@/interfaces'
 import { type TRequestChargeResponse, type PaymentCreationResponse } from '@/services/services.types'
-import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import React, { createContext, type ReactNode, useContext, useMemo, useState, useCallback } from 'react'
 
 export interface WithdrawMethod {
@@ -18,7 +18,7 @@ export type WithdrawView = 'INITIAL' | 'CONFIRM' | 'STATUS'
 
 export interface WithdrawData {
     token: ITokenPriceData
-    chain: peanutInterfaces.ISquidChain & { networkName: string; tokens: peanutInterfaces.ISquidToken[] }
+    chain: peanutInterfaces.IChainMeta & { networkName: string; tokens: peanutInterfaces.ITokenMeta[] }
     address: string
     amount: string
 }

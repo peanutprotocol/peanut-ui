@@ -45,6 +45,3 @@ function FeedbackBanner() {
         </button>
     )
 }
-
-export { GenericBanner } from './GenericBanner'
-export { MaintenanceBanner } from './MaintenanceBanner'

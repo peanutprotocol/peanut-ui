@@ -1,16 +1,16 @@
 import { SOLANA_ICON, TRON_ICON } from '@/assets'
 import { networks } from '@/config'
-import * as interfaces from '@/interfaces'
+import type { IPeanutChainDetails, IToken } from '@/interfaces/interfaces'
 import { celo, linea, worldchain } from 'viem/chains'
 
-interface CombinedType extends interfaces.IPeanutChainDetails {
-    tokens: interfaces.IToken[]
+interface CombinedType extends IPeanutChainDetails {
+    tokens: IToken[]
 }
 
 export interface TokenSelectorProps {
     classNameButton?: string
     shouldBeConnected?: boolean
-    showOnlySquidSupported?: boolean
+    showOnlyXchainSupported?: boolean
     onReset?: () => void
 }
 
@@ -49,7 +49,7 @@ export const TOKEN_SELECTOR_COMING_SOON_NETWORKS: NetworkConfig[] = [
     },
 ]
 
-// popular networks mapping for the token selector - using the chainId as the key to get chain details from squid within token selector component
+// popular networks mapping for the token selector — chainId keys lookup into supportedChainsAndTokens for chain metadata
 export const TOKEN_SELECTOR_POPULAR_NETWORK_IDS = [
     {
         chainId: '42161',

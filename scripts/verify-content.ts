@@ -611,9 +611,16 @@ function checkPageCountRegression() {
         )
     }
 
-    // Update baseline (only if count went up or file doesn't exist)
+    // Update baseline (only if count went up or file doesn't exist).
+    // Use a file descriptor to write — avoids the check-then-write TOCTOU
+    // pattern that CodeQL flags (js/file-system-race).
     if (publishedCount >= baseline) {
-        fs.writeFileSync(BASELINE_FILE, String(publishedCount) + '\n')
+        const fd = fs.openSync(BASELINE_FILE, 'w')
+        try {
+            fs.writeSync(fd, String(publishedCount) + '\n')
+        } finally {
+            fs.closeSync(fd)
+        }
     }
 
     console.log(

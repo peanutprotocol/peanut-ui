@@ -85,6 +85,11 @@ const JoinWaitlistPage = () => {
         if (user?.user.email) setEmailStepDone(true)
     }, [user?.user.email])
 
+    // Track waitlist step views — measures email-capture conversion + jail-stuck volume
+    useEffect(() => {
+        posthog.capture(ANALYTICS_EVENTS.WAITLIST_STEP_VIEWED, { step })
+    }, [step])
+
     // Step 1: Submit email via server action
     const handleEmailSubmit = async () => {
         if (!isValidEmail(emailValue) || isSubmittingEmail) return
@@ -144,7 +149,11 @@ const JoinWaitlistPage = () => {
         setIsValidating(true)
         try {
             const res = await invitesApi.validateInviteCode(code)
+            posthog.capture(ANALYTICS_EVENTS.INVITE_CODE_VALIDATED, { valid: res.success, source: 'waitlist_page' })
             return res.success
+        } catch (e) {
+            posthog.capture(ANALYTICS_EVENTS.INVITE_CODE_VALIDATED, { valid: false, source: 'waitlist_page' })
+            throw e
         } finally {
             setIsValidating(false)
         }

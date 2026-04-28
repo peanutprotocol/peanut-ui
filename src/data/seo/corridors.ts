@@ -5,7 +5,6 @@
 import {
     readEntityData,
     readPageContent,
-    readPageContentLocalized,
     listEntitySlugs,
     listContentSlugs,
     listCorridorOrigins,
@@ -206,24 +205,6 @@ const _loaded = loadAll()
 
 export const COUNTRIES_SEO: Record<string, CountrySEO> = _loaded.countries
 export const CORRIDORS: Corridor[] = _loaded.corridors
-
-/** Get country SEO data with locale-specific content (falls back via chain) */
-export function getLocalizedSEO(country: string, locale: Locale): CountrySEO | null {
-    const base = COUNTRIES_SEO[country]
-    if (!base) return null
-    if (locale === 'en') return base
-
-    const localized = readPageContentLocalized<CountryContentFrontmatter>('countries', country, locale)
-    if (!localized) return base
-
-    const localizedFaqs = extractFaqs(localized.body)
-
-    return {
-        ...base,
-        context: localized.body,
-        faqs: localizedFaqs.length > 0 ? localizedFaqs : base.faqs,
-    }
-}
 
 /** Get localized country display name */
 export function getCountryName(slug: string, _locale: Locale): string {

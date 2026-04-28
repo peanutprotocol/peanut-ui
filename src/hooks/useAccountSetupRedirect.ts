@@ -36,6 +36,7 @@ export const useAccountSetupRedirect = () => {
             }, 3000)
             return () => clearTimeout(fallback)
         }
+        return undefined
     }, [needsRedirect, router])
 
     return { needsRedirect, isCheckingAccount: isFetchingUser }

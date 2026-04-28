@@ -14,7 +14,14 @@ jest.mock('js-cookie', () => ({
 }))
 
 const mockIsCapacitor = isCapacitor as jest.MockedFunction<typeof isCapacitor>
-const mockCookies = Cookies as jest.Mocked<typeof Cookies>
+// Cookies.get has overloaded signatures (one-arg returns string|undefined, no-arg
+// returns { [key: string]: string }). jest.Mocked<typeof Cookies> picks the no-arg
+// overload for mockReturnValue, which blocks mocking string returns. Narrow it.
+const mockCookies = Cookies as unknown as {
+    get: jest.Mock<string | undefined, [name?: string]>
+    set: jest.Mock
+    remove: jest.Mock
+}
 
 import { getAuthToken, setAuthToken, clearAuthToken, getAuthHeaders } from '../auth-token'
 

@@ -6,7 +6,6 @@ import TopNavbar from '@/components/Global/TopNavbar'
 import WalletNavigation from '@/components/Global/WalletNavigation'
 import OfflineScreen from '@/components/Global/OfflineScreen'
 import BackendErrorScreen from '@/components/Global/BackendErrorScreen'
-import { ThemeProvider } from '@/config'
 import { useAuth } from '@/context/authContext'
 import classNames from 'classnames'
 import { usePathname } from 'next/navigation'
@@ -21,6 +20,7 @@ import { useSetupStore } from '@/redux/hooks'
 import ForceIOSPWAInstall from '@/components/ForceIOSPWAInstall'
 import { isPublicRoute } from '@/constants/routes'
 import { IS_DEV } from '@/constants/general.consts'
+import { HARNESS_ENABLED } from '@/constants/harness.consts'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 import { useAccountSetupRedirect } from '@/hooks/useAccountSetupRedirect'
@@ -85,6 +85,13 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const isRedirecting = useRef(false)
 
     useEffect(() => {
+        // Harness-only: if a reproduce session is in progress, ReproduceBootstrap
+        // will set cookies + reload imminently — don't racing-redirect to /setup
+        // before it completes.
+        if (HARNESS_ENABLED && typeof window !== 'undefined') {
+            const url = new URL(window.location.href)
+            if (url.searchParams.get('__reproduce')) return
+        }
         if (!isPublicPath && isReady && !isFetchingUser && !user && !isRedirecting.current) {
             isRedirecting.current = true
             router.replace('/setup')
@@ -94,6 +101,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             }, 3000)
             return () => clearTimeout(fallback)
         }
+        return undefined
     }, [user, isFetchingUser, isReady, isPublicPath, router])
 
     // redirect logged-in users without peanut wallet account to complete setup
@@ -185,19 +193,17 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                             )
                         )}
                     >
-                        <ThemeProvider>
-                            <div
-                                className={twMerge(
-                                    'flex w-full items-center justify-center md:ml-auto md:w-[calc(100%-160px)]',
-                                    alignStart && 'items-start',
-                                    isSupport && 'h-full',
-                                    isUserLoggedIn ? 'min-h-[calc(100dvh-160px)]' : 'min-h-[calc(100dvh-64px)]',
-                                    isDev && 'min-h-[100dvh] items-start justify-start md:ml-0 md:w-full'
-                                )}
-                            >
-                                {children}
-                            </div>
-                        </ThemeProvider>
+                        <div
+                            className={twMerge(
+                                'flex w-full items-center justify-center md:ml-auto md:w-[calc(100%-160px)]',
+                                alignStart && 'items-start',
+                                isSupport && 'h-full',
+                                isUserLoggedIn ? 'min-h-[calc(100dvh-160px)]' : 'min-h-[calc(100dvh-64px)]',
+                                isDev && 'min-h-[100dvh] items-start justify-start md:ml-0 md:w-full'
+                            )}
+                        >
+                            {children}
+                        </div>
                     </div>
 
                     {/* Mobile navigation */}

@@ -115,6 +115,3 @@ export function PaymentMethodActionList({
         </div>
     )
 }
-
-// re-export for backward compatibility
-export { PaymentMethodActionList as SendActionList }

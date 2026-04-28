@@ -13,6 +13,7 @@ import { getCardPosition } from '../Global/Card/card.utils'
 import { useGeoLocation } from '@/hooks/useGeoLocation'
 import { CountryListSkeleton } from './CountryListSkeleton'
 import AvatarWithBadge from '../Profile/AvatarWithBadge'
+import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import EasterEggModal, { EASTER_EGG_COUNTRIES } from '@/components/Global/EasterEggModal'
 import StatusBadge from '../Global/Badges/StatusBadge'
 import Loading from '../Global/Loading'
@@ -206,7 +207,7 @@ export const CountryList = ({
                                     leftIcon={
                                         <div className="relative h-8 w-8">
                                             <Image
-                                                src={`https://flagcdn.com/w160/${twoLetterCountryCode.toLowerCase()}.png`}
+                                                src={getFlagUrl(twoLetterCountryCode)}
                                                 alt={`${country.title} flag`}
                                                 width={80}
                                                 height={80}

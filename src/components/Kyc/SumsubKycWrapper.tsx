@@ -48,6 +48,10 @@ export const SumsubKycWrapper = ({
     const onErrorRef = useRef(onError)
     const onRefreshTokenRef = useRef(onRefreshToken)
     const isMultiLevelRef = useRef(isMultiLevel)
+    // flips to true as soon as any "the user finished something" event fires.
+    // Drives the close-confirmation short-circuit: if the user has already
+    // submitted, tapping X closes the modal without asking "stop verification?"
+    const hasSubmittedRef = useRef(false)
 
     useEffect(() => {
         onCompleteRef.current = onComplete
@@ -104,6 +108,7 @@ export const SumsubKycWrapper = ({
 
             const handleSubmitted = () => {
                 console.log('[sumsub] onApplicantSubmitted fired')
+                hasSubmittedRef.current = true
                 // for multi-level workflows (LATAM), the SDK transitions to Level 2
                 // internally. don't close the modal on Level 1 submission.
                 if (isMultiLevelRef.current) return
@@ -113,6 +118,17 @@ export const SumsubKycWrapper = ({
             // always close SDK regardless of multi-level — the retry is a fresh submission.
             const handleResubmitted = () => {
                 console.log('[sumsub] onApplicantResubmitted fired')
+                hasSubmittedRef.current = true
+                stableOnComplete()
+            }
+            // Applicant Actions (like rain-card-application) emit this instead
+            // of onApplicantSubmitted. Without the listener we'd miss the
+            // signal and the close button would keep warning about
+            // abandonment after a successful action submission.
+            const handleActionSubmitted = () => {
+                console.log('[sumsub] action submitted fired')
+                hasSubmittedRef.current = true
+                if (isMultiLevelRef.current) return
                 stableOnComplete()
             }
             const handleStatusChanged = (payload: {
@@ -131,6 +147,7 @@ export const SumsubKycWrapper = ({
                 if (isMultiLevelRef.current) return
                 // auto-close when sumsub shows success screen
                 if (payload?.reviewStatus === 'completed' && payload?.reviewResult?.reviewAnswer === 'GREEN') {
+                    hasSubmittedRef.current = true
                     stableOnComplete()
                 }
             }
@@ -154,11 +171,16 @@ export const SumsubKycWrapper = ({
                 .on('onApplicantSubmitted', handleSubmitted)
                 .on('onApplicantResubmitted', handleResubmitted)
                 .on('onApplicantStatusChanged', handleStatusChanged)
+                // Applicant Action events (card-application, additional-docs, etc.)
+                .on('onActionSubmitted', handleActionSubmitted)
+                .on('onApplicantActionSubmitted', handleActionSubmitted)
                 .on('onApplicantActionStatusChanged', handleActionCompleted)
                 // also listen for idCheck-prefixed events (some sdk versions use these)
                 .on('idCheck.onApplicantSubmitted', handleSubmitted)
                 .on('idCheck.onApplicantResubmitted', handleResubmitted)
                 .on('idCheck.onApplicantStatusChanged', handleStatusChanged)
+                .on('idCheck.onActionSubmitted', handleActionSubmitted)
+                .on('idCheck.onApplicantActionSubmitted', handleActionSubmitted)
                 .on('idCheck.onApplicantActionStatusChanged', handleActionCompleted)
                 .on('onError', (error: unknown) => {
                     console.error('[sumsub] sdk error', error)
@@ -211,6 +233,7 @@ export const SumsubKycWrapper = ({
         if (!visible) {
             setIsVerificationStarted(false)
             setSdkLoadError(false)
+            hasSubmittedRef.current = false
             if (sdkInstanceRef.current) {
                 try {
                     sdkInstanceRef.current.destroy()
@@ -224,6 +247,18 @@ export const SumsubKycWrapper = ({
             setIsVerificationStarted(true)
         }
     }, [visible, autoStart])
+
+    // Close-button handler. After the user has submitted, the "are you sure
+    // you want to stop?" modal is misleading — they're done, not abandoning.
+    // Skip straight to onClose in that case.
+    const handleCloseButton = useCallback(() => {
+        if (hasSubmittedRef.current) {
+            onClose()
+            return
+        }
+        setModalVariant('stop-verification')
+        setIsHelpModalOpen(true)
+    }, [onClose])
 
     const modalDetails = useMemo(() => {
         if (modalVariant === 'trouble') {
@@ -239,6 +274,12 @@ export const SumsubKycWrapper = ({
                         onClick: () => setIsSupportModalOpen(true),
                         variant: 'purple' as ButtonVariant,
                         shadowSize: '4' as const,
+                    },
+                    {
+                        text: 'Cancel',
+                        onClick: () => setIsHelpModalOpen(false),
+                        variant: 'transparent' as ButtonVariant,
+                        className: 'underline text-sm font-medium w-full h-fit mt-3',
                     },
                 ],
             }
@@ -335,13 +376,7 @@ export const SumsubKycWrapper = ({
                             >
                                 <Icon name="peanut-support" size={20} className="text-grey-1" />
                             </button>
-                            <button
-                                onClick={() => {
-                                    setModalVariant('stop-verification')
-                                    setIsHelpModalOpen(true)
-                                }}
-                                className="p-1"
-                            >
+                            <button onClick={handleCloseButton} className="p-1">
                                 <Icon name="cancel" size={24} />
                             </button>
                         </div>

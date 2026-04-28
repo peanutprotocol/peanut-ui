@@ -43,6 +43,7 @@ export function ScreenOrientationLocker() {
                 screen.orientation.removeEventListener('change', handleOrientationChange)
             }
         }
+        return undefined
     }, [])
 
     return null

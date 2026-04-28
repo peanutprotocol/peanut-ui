@@ -4,35 +4,6 @@ import { fetchWithSentry } from '@/utils/sentry.utils'
 import { isIBAN } from 'validator'
 import { apiFetch } from '@/utils/api-fetch'
 
-const ALLOWED_PARENT_DOMAINS = ['intersend.io', 'app.intersend.io']
-
-// Helper function to check if the app is running within an allowed iframe
-const isInAllowedFrame = (): boolean => {
-    if (window.location === window.parent.location) return false
-
-    // Check ancestor origins (modern browsers)
-    if (window.location.ancestorOrigins?.length) {
-        return ALLOWED_PARENT_DOMAINS.some((domain) => window.location.ancestorOrigins[0].includes(domain))
-    }
-
-    // Fallback to referrer check
-    return ALLOWED_PARENT_DOMAINS.some((domain) => document.referrer.includes(domain))
-}
-
-export const convertPersonaUrl = (url: string) => {
-    const parsedUrl = new URL(url)
-
-    const templateId = parsedUrl.searchParams.get('inquiry-template-id')
-    const iqtToken = parsedUrl.searchParams.get('fields[iqt_token]')
-    const developerId = parsedUrl.searchParams.get('fields[developer_id]')
-    const referenceId = parsedUrl.searchParams.get('reference-id')
-
-    // Use parent frame origin if in allowed iframe, otherwise use current origin
-    const origin = encodeURIComponent(isInAllowedFrame() ? new URL(document.referrer).origin : window.location.origin)
-
-    return `https://bridge.withpersona.com/widget?environment=production&inquiry-template-id=${templateId}&fields[iqt_token=${iqtToken}&iframe-origin=${origin}&redirect-uri=${origin}&fields[developer_id]=${developerId}&reference-id=${referenceId}`
-}
-
 // Re-export from interfaces (defined there to avoid circular dependency)
 export type { BridgeKycStatus } from '@/interfaces/interfaces'
 

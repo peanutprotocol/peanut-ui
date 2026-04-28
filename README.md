@@ -13,27 +13,28 @@ Live at: [peanut.me](https://peanut.me) | [staging.peanut.me](https://staging.pe
 
 ## Getting Started
 
+**Local dev and QA: start from mono root, not here.**
+
+```bash
+cd ..                       # mono root
+./scripts/dev               # brings up API :5050 + UI :3050 + Nutcracker :3060
+```
+
+Then open [http://localhost:3050](http://localhost:3050). See [`mono/GETTING-STARTED.md`](../GETTING-STARTED.md) → "Running the app locally" for the full cheat sheet, log paths, and in-browser `peanutDebug.*` helpers.
+
 Ask in Peanut [Discord](https://discord.gg/B99T9mQqBv) #dev channel if you have any questions.
 
-First install the dependencies (location: root folder):
+### pnpm dev (escape hatch)
+
+Running `pnpm dev` in this subrepo directly bypasses the sandbox env overrides (`PEANUT_API_URL`, chain IDs, bundler URLs, `NEXT_PUBLIC_HARNESS_SKIP_PASSKEY_CHECK`, Infura disable) injected by `mono/engineering/qa/lib/servers.sh`. By default the UI will talk to staging — rarely what you want for local QA.
 
 ```bash
 git submodule update --init --recursive
 pnpm install
+cp .env.example .env         # edit as needed
+pnpm dev                     # listens on :3000
+# pnpm run dev:https         # HTTPS dev server (secure-context features)
 ```
-
-```bash
-cp .env.example .env
-# fill in dummy values
-```
-
-```bash
-pnpm dev
-
-# Note: run pnpm run dev:https if you need to work in a secure secure context
-```
-
-Then open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
 ## Contributing
 

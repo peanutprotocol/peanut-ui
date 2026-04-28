@@ -23,16 +23,3 @@ export function t(template: string, vars?: Record<string, string>): string {
     if (!vars) return template
     return template.replace(/\{(\w+)\}/g, (_, key) => vars[key] ?? `{${key}}`)
 }
-
-export { type Locale, type Translations } from './types'
-export { SUPPORTED_LOCALES, DEFAULT_LOCALE } from './types'
-export {
-    ROUTE_SLUGS,
-    localizedPath,
-    localizedBarePath,
-    getAlternates,
-    getBareAlternates,
-    isValidLocale,
-    NON_DEFAULT_LOCALES,
-    type RouteSlug,
-} from './config'

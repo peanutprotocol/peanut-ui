@@ -20,7 +20,7 @@ import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentR
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useAuth } from '@/context/authContext'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
-import { ErrorHandler } from '@/utils/sdkErrorHandler.utils'
+import { ErrorHandler } from '@/utils/friendly-error.utils'
 
 export function useDirectSendFlow() {
     const {
@@ -56,7 +56,7 @@ export function useDirectSendFlow() {
         address: walletAddress,
         sendMoney,
         formattedBalance,
-        hasSufficientBalance,
+        hasSufficientSpendableBalance: hasSufficientBalance,
         isFetchingBalance,
     } = useWallet()
 
@@ -133,7 +133,7 @@ export function useDirectSendFlow() {
             setCharge(chargeResult)
 
             // step 2: send money via peanut wallet
-            const txResult = await sendMoney(recipient.address, amount)
+            const txResult = await sendMoney(recipient.address, amount, { kind: 'P2P_SEND' })
             const hash = (txResult.receipt?.transactionHash ?? txResult.userOpHash) as Hash
 
             setTxHash(hash)

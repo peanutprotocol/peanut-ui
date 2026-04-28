@@ -1,81 +1,81 @@
 import { type ComponentType, type FC, type SVGProps } from 'react'
+import { twMerge } from 'tailwind-merge'
+import type { LucideIcon } from 'lucide-react'
 import {
-    ArrowDownward,
-    SouthWest,
-    ArrowUpward,
-    NorthEast,
-    AccountBalanceRounded,
-    NotificationsActiveOutlined,
-    GppGoodOutlined,
-    CameraAlt,
+    AlertCircle,
+    AlertTriangle,
+    ArrowDown,
+    ArrowDownLeft,
+    ArrowLeftRight,
+    ArrowRightLeft,
+    ArrowUp,
+    ArrowUpRight,
+    Award,
+    Banknote,
+    Bell,
+    Camera,
     Check,
-    KeyboardArrowUp,
-    GetAppRounded,
-    AttachMoneyRounded,
-    DoneAllRounded,
-    RemoveRedEyeRounded,
-    VisibilityOffRounded,
-    CurrencyExchangeRounded,
-    LocalOfferOutlined,
-    CardGiftcardRounded,
-    CreditCardRounded,
-    HomeRounded,
-    SearchRounded,
-    AccountBalanceWalletRounded,
-    AccountBalanceWalletOutlined,
-    PaymentsOutlined,
-    WorkspacePremiumOutlined,
-    LinkOutlined,
-    LinkOffOutlined,
-    LogoutOutlined,
-    AttachmentRounded,
-    MoodOutlined,
-    PersonOutlineOutlined,
-    IosShareOutlined,
-    StarRounded,
-    PersonAddOutlined,
-    ContentCopyOutlined,
-    ContentPasteRounded,
-    CloseRounded,
-    QrCode2Rounded,
-    UpdateRounded,
-    ErrorOutlined,
-    InfoOutlined,
-    OpenInNewOutlined,
-    AddRounded,
-    WarningAmberRounded,
-    PowerSettingsNewRounded,
-    CheckCircleOutlineRounded,
-    InstallMobileOutlined,
-    AutorenewRounded,
-    AssignmentIndOutlined,
-    AccessTimeOutlined,
-    HourglassEmptyRounded,
-    KeyboardArrowDownRounded,
-    HelpOutlineRounded,
-    VerifiedUserOutlined,
-    EmojiEventsOutlined,
-    LockOutlined,
-    GroupsRounded,
-    VpnLockOutlined,
-    CameraswitchRounded,
-    ControlPointRounded,
-    RemoveCircleOutlineRounded,
-    CloudUploadOutlined,
-    CompareArrowsRounded,
-    WarningRounded,
-    SpeedRounded,
-    InfoRounded,
-    UndoRounded,
-} from '@mui/icons-material'
+    CircleCheck,
+    CircleHelp,
+    CircleMinus,
+    CirclePlus,
+    Clipboard,
+    Clock,
+    ContactRound,
+    Copy,
+    CreditCard,
+    ChevronDown,
+    ChevronUp,
+    DollarSign,
+    Download,
+    ExternalLink,
+    Eye,
+    EyeOff,
+    Gauge,
+    Gift,
+    Globe,
+    History,
+    Home,
+    Hourglass,
+    Info,
+    Landmark,
+    Link as LinkIcon,
+    LogOut,
+    Lock,
+    MoreHorizontal,
+    Paperclip,
+    Plus,
+    Power,
+    QrCode,
+    RefreshCw,
+    Search,
+    Share,
+    Shield,
+    ShieldCheck,
+    Smartphone,
+    Smile,
+    Star,
+    SwitchCamera,
+    Tag,
+    Trash2,
+    Trophy,
+    Undo,
+    Unlink,
+    UploadCloud,
+    User,
+    UserPlus,
+    Users,
+    Wallet,
+    X,
+} from 'lucide-react'
 import { DocsIcon } from './docs'
 import { PeanutSupportIcon } from './peanut-support'
 import { TxnOffIcon } from './txn-off'
 import { WalletCancelIcon } from './wallet-cancel'
 import { InviteHeartIcon } from './invite-heart'
 import { BulbIcon } from './bulb'
+import { DoubleCheckIcon } from './double-check'
 
-// available icon names
 export type IconName =
     | 'alert'
     | 'arrow-down'
@@ -154,157 +154,167 @@ export type IconName =
     | 'alert-filled'
     | 'paste'
     | 'credit-card'
+    | 'more-horizontal'
+    | 'trash'
 export interface IconProps extends SVGProps<SVGSVGElement> {
     name: IconName
     size?: number | string
 }
 
-// wrapper component to apply black color and transformations
-const MaterialIconWrapper: FC<
-    {
-        Icon: ComponentType<any>
-        transformClassName?: string
-    } & SVGProps<SVGSVGElement> & { sx?: any }
-> = ({ Icon, transformClassName = '', sx, fill, className, width, height, ...props }) => {
-    // merge transform className with provided className
-    const mergedClassName = [transformClassName, className].filter(Boolean).join(' ')
-    // Material UI icons use fontSize for sizing
-    const size = width || height
+// Inline style beats tailwind.config.js `.btn svg { fill: inherit }` which otherwise
+// forces black fill on icons inside buttons and collapses open-curve Lucide paths
+// (refresh, logout, chevron) into blobs. Class-level CSS can't win on specificity.
+const FILL_NONE = { fill: 'none' } as const
+const FILL_CURRENT = { fill: 'currentColor' } as const
 
-    // determine icon color:
-    // 1. if fill prop is provided, use it (highest priority)
-    // 2. if className contains text-* classes, don't set color in sx (let Tailwind CSS handle it)
-    // 3. otherwise default to black
-    const hasTextColorClass = className && /text-/.test(className)
-
-    // build sx object - only set color if no Tailwind color class is present
-    // Material UI icons use currentColor by default, so we let CSS handle it when className has color
-    const sxProps: any = {
-        fontSize: size,
-        ...sx,
-    }
-
-    // only set color in sx if:
-    // - fill prop is provided (use it)
-    // - no Tailwind color class is present (default to black)
-    // when Tailwind color class is present, don't set color in sx - let CSS/Tailwind handle it
-    if (fill) {
-        sxProps.color = fill
-    } else if (!hasTextColorClass) {
-        sxProps.color = 'black'
-    }
-    // if hasTextColorClass, don't set color in sx - Material UI icons will inherit from CSS
-
-    // use htmlColor to ensure SVG fill uses currentColor when Tailwind color class is present
-    const iconProps: any = {
-        ...props,
-        className: mergedClassName || undefined,
-        sx: sxProps,
-    }
-
-    if (hasTextColorClass && !fill) {
-        // ensure SVG fill uses currentColor to inherit from Tailwind classes
-        iconProps.htmlColor = 'currentColor'
-    } else if (fill) {
-        iconProps.htmlColor = fill
-    }
-
-    return <Icon {...iconProps} />
+// Tighter viewBox for icons whose Lucide artwork is small relative to the
+// 24x24 grid (notably arrows: coords 7-17 = ~41% fill). Cropping the empty
+// padding boosts the rendered glyph to match MUI's optical weight without
+// changing layout. Strokes near the edge are unaffected because Lucide
+// composes those icons with internal padding.
+const VIEWBOX_BOOST: Record<string, string> = {
+    'arrow-up-right': '2 2 20 20',
+    'arrow-down-left': '2 2 20 20',
+    'arrow-up': '2 2 20 20',
+    'arrow-down': '2 2 20 20',
+    'arrow-exchange': '2 2 20 20',
+    exchange: '2 2 20 20',
+    'qr-code': '2 2 20 20',
 }
 
-// icon names mapping to their components
+const LucideWrapper: FC<
+    {
+        Icon: LucideIcon
+        transformClassName?: string
+        filled?: boolean
+        boostKey?: keyof typeof VIEWBOX_BOOST
+    } & SVGProps<SVGSVGElement>
+> = ({ Icon, transformClassName, filled, fill, className, width, height, style, boostKey, ...rest }) => {
+    // 'custom-size' opts every Lucide icon out of the global `.btn svg:not(.custom-size) { @apply icon-18 }`
+    // rule in tailwind.config.js. That rule forced legacy MUI icons to 18px when nested in a .btn — Lucide
+    // already carries width/height attributes, so the global rule fights its own size and collapses the SVG
+    // (the 12x18 / 12x56 widths we saw on the QR center button). Carrying the class everywhere keeps the
+    // call site's `size={N}` honored regardless of where the icon ends up rendering.
+    const mergedClassName = twMerge('custom-size', transformClassName, className) || undefined
+    const color = fill ? (fill as string) : undefined
+    const baseStyle = filled ? FILL_CURRENT : FILL_NONE
+    const mergedStyle = style ? { ...baseStyle, ...style } : baseStyle
+    const viewBox = boostKey ? VIEWBOX_BOOST[boostKey] : undefined
+
+    // CR-flagged: collapsing `width ?? height` into a single Lucide `size`
+    // prop drops non-square sizing. Lucide accepts `width` + `height`
+    // independently — pass both through so explicit overrides land.
+    return (
+        <Icon
+            {...rest}
+            width={width}
+            height={height}
+            color={color}
+            className={mergedClassName}
+            style={mergedStyle}
+            {...(viewBox ? { viewBox } : {})}
+        />
+    )
+}
+
 const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> = {
-    'arrow-down': (props) => <MaterialIconWrapper Icon={ArrowDownward} {...props} />,
-    'arrow-down-left': (props) => <MaterialIconWrapper Icon={SouthWest} {...props} />,
-    'arrow-up': (props) => <MaterialIconWrapper Icon={ArrowUpward} {...props} />,
-    'arrow-up-right': (props) => <MaterialIconWrapper Icon={NorthEast} {...props} />,
-    bank: (props) => <MaterialIconWrapper Icon={AccountBalanceRounded} {...props} />,
-    bell: (props) => <MaterialIconWrapper Icon={NotificationsActiveOutlined} {...props} />,
-    badge: (props) => <MaterialIconWrapper Icon={GppGoodOutlined} {...props} />,
-    camera: (props) => <MaterialIconWrapper Icon={CameraAlt} {...props} />,
-    'camera-flip': (props) => <MaterialIconWrapper Icon={CameraswitchRounded} {...props} />,
-    check: (props) => <MaterialIconWrapper Icon={Check} {...props} />,
-    'chevron-up': (props) => <MaterialIconWrapper Icon={KeyboardArrowUp} {...props} />,
-    download: (props) => <MaterialIconWrapper Icon={GetAppRounded} {...props} />,
-    dollar: (props) => <MaterialIconWrapper Icon={AttachMoneyRounded} {...props} />,
-    'double-check': (props) => <MaterialIconWrapper Icon={DoneAllRounded} {...props} />,
-    eye: (props) => <MaterialIconWrapper Icon={RemoveRedEyeRounded} {...props} />,
-    'eye-slash': (props) => <MaterialIconWrapper Icon={VisibilityOffRounded} {...props} />,
-    exchange: (props) => <MaterialIconWrapper Icon={CurrencyExchangeRounded} {...props} />,
-    fees: (props) => <MaterialIconWrapper Icon={LocalOfferOutlined} {...props} />,
-    gift: (props) => <MaterialIconWrapper Icon={CardGiftcardRounded} {...props} />,
-    home: (props) => <MaterialIconWrapper Icon={HomeRounded} {...props} />,
+    'arrow-down': (props) => <LucideWrapper Icon={ArrowDown} boostKey="arrow-down" {...props} />,
+    'arrow-down-left': (props) => <LucideWrapper Icon={ArrowDownLeft} boostKey="arrow-down-left" {...props} />,
+    'arrow-up': (props) => <LucideWrapper Icon={ArrowUp} boostKey="arrow-up" {...props} />,
+    'arrow-up-right': (props) => <LucideWrapper Icon={ArrowUpRight} boostKey="arrow-up-right" {...props} />,
+    'arrow-exchange': (props) => <LucideWrapper Icon={ArrowRightLeft} boostKey="arrow-exchange" {...props} />,
+    bank: (props) => <LucideWrapper Icon={Landmark} {...props} />,
+    bell: (props) => <LucideWrapper Icon={Bell} {...props} />,
+    badge: (props) => <LucideWrapper Icon={ShieldCheck} {...props} />,
+    camera: (props) => <LucideWrapper Icon={Camera} {...props} />,
+    'camera-flip': (props) => <LucideWrapper Icon={SwitchCamera} {...props} />,
+    check: (props) => <LucideWrapper Icon={Check} {...props} />,
+    'chevron-up': (props) => <LucideWrapper Icon={ChevronUp} {...props} />,
+    download: (props) => <LucideWrapper Icon={Download} {...props} />,
+    dollar: (props) => <LucideWrapper Icon={DollarSign} {...props} />,
+    'double-check': DoubleCheckIcon,
+    eye: (props) => <LucideWrapper Icon={Eye} {...props} />,
+    'eye-slash': (props) => <LucideWrapper Icon={EyeOff} {...props} />,
+    exchange: (props) => <LucideWrapper Icon={ArrowLeftRight} boostKey="exchange" {...props} />,
+    fees: (props) => <LucideWrapper Icon={Tag} {...props} />,
+    gift: (props) => <LucideWrapper Icon={Gift} {...props} />,
+    home: (props) => <LucideWrapper Icon={Home} {...props} />,
     'peanut-support': PeanutSupportIcon,
-    search: (props) => <MaterialIconWrapper Icon={SearchRounded} {...props} transformClassName="scale-x-[-1]" />,
-    wallet: (props) => <MaterialIconWrapper Icon={AccountBalanceWalletRounded} {...props} />,
+    search: (props) => <LucideWrapper Icon={Search} {...props} transformClassName="scale-x-[-1]" />,
+    wallet: (props) => <LucideWrapper Icon={Wallet} {...props} />,
     'wallet-cancel': WalletCancelIcon,
-    'wallet-outline': (props) => <MaterialIconWrapper Icon={AccountBalanceWalletOutlined} {...props} />,
-    currency: (props) => <MaterialIconWrapper Icon={PaymentsOutlined} {...props} />,
-    achievements: (props) => <MaterialIconWrapper Icon={WorkspacePremiumOutlined} {...props} />,
-    link: (props) => <MaterialIconWrapper Icon={LinkOutlined} {...props} transformClassName="rotate-[-45deg]" />,
-    'link-slash': (props) => <MaterialIconWrapper Icon={LinkOffOutlined} {...props} />,
-    logout: (props) => <MaterialIconWrapper Icon={LogoutOutlined} {...props} />,
-    paperclip: (props) => (
-        <MaterialIconWrapper Icon={AttachmentRounded} {...props} transformClassName="rotate-[-45deg]" />
-    ),
-    smile: (props) => <MaterialIconWrapper Icon={MoodOutlined} {...props} />,
-    user: (props) => <MaterialIconWrapper Icon={PersonOutlineOutlined} {...props} />,
-    share: (props) => <MaterialIconWrapper Icon={IosShareOutlined} {...props} />,
-    star: (props) => <MaterialIconWrapper Icon={StarRounded} {...props} />,
-    'user-plus': (props) => <MaterialIconWrapper Icon={PersonAddOutlined} {...props} />,
-    copy: (props) => <MaterialIconWrapper Icon={ContentCopyOutlined} {...props} />,
-    cancel: (props) => <MaterialIconWrapper Icon={CloseRounded} {...props} />,
-    'qr-code': (props) => <MaterialIconWrapper Icon={QrCode2Rounded} {...props} />,
-    history: (props) => (
-        <MaterialIconWrapper Icon={UpdateRounded} {...props} transformClassName="rotate-[10deg] scale-x-[-1]" />
-    ),
-    error: (props) => <MaterialIconWrapper Icon={ErrorOutlined} {...props} />,
-    clip: (props) => <MaterialIconWrapper Icon={AttachmentRounded} {...props} transformClassName="rotate-[-45deg]" />,
-    info: (props) => <MaterialIconWrapper Icon={InfoOutlined} {...props} />,
-    'external-link': (props) => <MaterialIconWrapper Icon={OpenInNewOutlined} {...props} />,
-    'info-filled': (props) => <MaterialIconWrapper Icon={InfoRounded} {...props} fill="currentColor" />,
-    plus: (props) => <MaterialIconWrapper Icon={AddRounded} {...props} />,
-    alert: (props) => <MaterialIconWrapper Icon={WarningAmberRounded} {...props} />,
-    switch: (props) => <MaterialIconWrapper Icon={PowerSettingsNewRounded} {...props} />,
-    'check-circle': (props) => <MaterialIconWrapper Icon={CheckCircleOutlineRounded} {...props} />,
-    'mobile-install': (props) => <MaterialIconWrapper Icon={InstallMobileOutlined} {...props} />,
-    retry: (props) => <MaterialIconWrapper Icon={AutorenewRounded} {...props} />,
-    'user-id': (props) => <MaterialIconWrapper Icon={AssignmentIndOutlined} {...props} />,
-    clock: (props) => <MaterialIconWrapper Icon={AccessTimeOutlined} {...props} />,
-    success: (props) => <MaterialIconWrapper Icon={Check} {...props} />,
-    pending: (props) => <MaterialIconWrapper Icon={HourglassEmptyRounded} {...props} />,
-    processing: (props) => <MaterialIconWrapper Icon={AutorenewRounded} {...props} />,
-    failed: (props) => <MaterialIconWrapper Icon={ErrorOutlined} {...props} />,
-    'chevron-down': (props) => <MaterialIconWrapper Icon={KeyboardArrowDownRounded} {...props} />,
-    'question-mark': (props) => <MaterialIconWrapper Icon={HelpOutlineRounded} {...props} />,
-    shield: (props) => <MaterialIconWrapper Icon={VerifiedUserOutlined} {...props} />,
-    trophy: (props) => <MaterialIconWrapper Icon={EmojiEventsOutlined} {...props} />,
-    lock: (props) => <MaterialIconWrapper Icon={LockOutlined} {...props} />,
-    split: (props) => <MaterialIconWrapper Icon={GroupsRounded} {...props} />,
-    'globe-lock': (props) => <MaterialIconWrapper Icon={VpnLockOutlined} {...props} />,
-    'plus-circle': (props) => <MaterialIconWrapper Icon={ControlPointRounded} {...props} />,
-    'minus-circle': (props) => <MaterialIconWrapper Icon={RemoveCircleOutlineRounded} {...props} />,
-    'arrow-exchange': (props) => <MaterialIconWrapper Icon={CompareArrowsRounded} {...props} />,
-    meter: (props) => <MaterialIconWrapper Icon={SpeedRounded} {...props} />,
-    // custom icons
+    'wallet-outline': (props) => <LucideWrapper Icon={Wallet} {...props} />,
+    currency: (props) => <LucideWrapper Icon={Banknote} {...props} />,
+    achievements: (props) => <LucideWrapper Icon={Award} {...props} />,
+    link: (props) => <LucideWrapper Icon={LinkIcon} {...props} />,
+    'link-slash': (props) => <LucideWrapper Icon={Unlink} {...props} />,
+    logout: (props) => <LucideWrapper Icon={LogOut} {...props} />,
+    paperclip: (props) => <LucideWrapper Icon={Paperclip} {...props} />,
+    smile: (props) => <LucideWrapper Icon={Smile} {...props} />,
+    user: (props) => <LucideWrapper Icon={User} {...props} />,
+    share: (props) => <LucideWrapper Icon={Share} {...props} />,
+    star: (props) => <LucideWrapper Icon={Star} {...props} />,
+    'user-plus': (props) => <LucideWrapper Icon={UserPlus} {...props} />,
+    copy: (props) => <LucideWrapper Icon={Copy} {...props} />,
+    cancel: (props) => <LucideWrapper Icon={X} {...props} />,
+    'qr-code': (props) => <LucideWrapper Icon={QrCode} boostKey="qr-code" {...props} />,
+    history: (props) => <LucideWrapper Icon={History} {...props} />,
+    error: (props) => <LucideWrapper Icon={AlertCircle} {...props} />,
+    clip: (props) => <LucideWrapper Icon={Paperclip} {...props} />,
+    info: (props) => <LucideWrapper Icon={Info} {...props} />,
+    'external-link': (props) => <LucideWrapper Icon={ExternalLink} {...props} />,
+    'info-filled': (props) => <LucideWrapper Icon={Info} {...props} filled />,
+    plus: (props) => <LucideWrapper Icon={Plus} {...props} />,
+    alert: (props) => <LucideWrapper Icon={AlertTriangle} {...props} />,
+    switch: (props) => <LucideWrapper Icon={Power} {...props} />,
+    'check-circle': (props) => <LucideWrapper Icon={CircleCheck} {...props} />,
+    'mobile-install': (props) => <LucideWrapper Icon={Smartphone} {...props} />,
+    retry: (props) => <LucideWrapper Icon={RefreshCw} {...props} />,
+    'user-id': (props) => <LucideWrapper Icon={ContactRound} {...props} />,
+    clock: (props) => <LucideWrapper Icon={Clock} {...props} />,
+    success: (props) => <LucideWrapper Icon={Check} {...props} />,
+    pending: (props) => <LucideWrapper Icon={Hourglass} {...props} />,
+    processing: (props) => <LucideWrapper Icon={RefreshCw} {...props} />,
+    failed: (props) => <LucideWrapper Icon={AlertCircle} {...props} />,
+    'chevron-down': (props) => <LucideWrapper Icon={ChevronDown} {...props} />,
+    'question-mark': (props) => <LucideWrapper Icon={CircleHelp} {...props} />,
+    shield: (props) => <LucideWrapper Icon={Shield} {...props} />,
+    trophy: (props) => <LucideWrapper Icon={Trophy} {...props} />,
+    lock: (props) => <LucideWrapper Icon={Lock} {...props} />,
+    split: (props) => <LucideWrapper Icon={Users} {...props} />,
+    'globe-lock': (props) => <LucideWrapper Icon={Globe} {...props} />,
+    'plus-circle': (props) => <LucideWrapper Icon={CirclePlus} {...props} />,
+    'minus-circle': (props) => <LucideWrapper Icon={CircleMinus} {...props} />,
+    meter: (props) => <LucideWrapper Icon={Gauge} {...props} />,
+    // custom icons (unchanged)
     'txn-off': TxnOffIcon,
     docs: DocsIcon,
     bulb: BulbIcon,
-    undo: (props) => <MaterialIconWrapper Icon={UndoRounded} {...props} />,
-    'upload-cloud': (props) => <MaterialIconWrapper Icon={CloudUploadOutlined} {...props} />,
+    undo: (props) => <LucideWrapper Icon={Undo} {...props} />,
+    'upload-cloud': (props) => <LucideWrapper Icon={UploadCloud} {...props} />,
     'invite-heart': InviteHeartIcon,
-    'alert-filled': (props) => <MaterialIconWrapper Icon={WarningRounded} {...props} />,
-    paste: (props) => <MaterialIconWrapper Icon={ContentPasteRounded} {...props} />,
-    'credit-card': (props) => <MaterialIconWrapper Icon={CreditCardRounded} {...props} />,
+    'alert-filled': (props) => <LucideWrapper Icon={AlertTriangle} {...props} filled />,
+    paste: (props) => <LucideWrapper Icon={Clipboard} {...props} />,
+    'credit-card': (props) => <LucideWrapper Icon={CreditCard} {...props} />,
+    'more-horizontal': (props) => <LucideWrapper Icon={MoreHorizontal} {...props} />,
+    trash: (props) => <LucideWrapper Icon={Trash2} {...props} />,
 }
 
-export const Icon: FC<IconProps> = ({ name, size = 24, width, height, ...props }) => {
+export const Icon: FC<IconProps> = ({ name, size = 24, width, height, className, ...props }) => {
     const IconComponent = iconComponents[name]
+
+    // 'custom-size' opts out of the global `.btn svg:not(.custom-size) { @apply icon-18 }` rule
+    // in tailwind.config.js — see LucideWrapper for the full explanation. We add it at this
+    // outer layer too so custom-icon components (txn-off, docs, etc.) that bypass LucideWrapper
+    // also get the bypass.
+    const mergedClassName = twMerge('custom-size', className) || undefined
 
     if (!IconComponent) {
         console.warn(`Icon "${name}" not found`)
         return null
     }
 
-    return <IconComponent width={width || size} height={height || size} {...props} />
+    // `??` not `||` so explicit `width={0}` / `height={0}` would still pass
+    // through (defensive — `0` is unlikely but the operator was wrong before).
+    return <IconComponent width={width ?? size} height={height ?? size} className={mergedClassName} {...props} />
 }

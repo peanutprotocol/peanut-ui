@@ -16,11 +16,11 @@ import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { sendLinksApi } from '@/services/sendLinks'
 import { areEvmAddressesEqual, formatTokenAmount, printableAddress } from '@/utils/general.utils'
-import { ErrorHandler } from '@/utils/sdkErrorHandler.utils'
+import { ErrorHandler } from '@/utils/friendly-error.utils'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { apiFetch } from '@/utils/api-fetch'
 import { getBridgeChainName, getBridgeTokenName } from '@/utils/bridge-accounts.utils'
-import { NATIVE_TOKEN_ADDRESS, SQUID_ETH_ADDRESS, checkTokenSupportsXChain } from '@/utils/token.utils'
+import { NATIVE_TOKEN_ADDRESS, NATIVE_TOKEN_PROXY_ADDRESS, checkTokenSupportsXChain } from '@/utils/token.utils'
 import * as Sentry from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -34,7 +34,10 @@ import useClaimLink from '../useClaimLink'
 import ActionModal from '@/components/Global/ActionModal'
 import { Slider } from '@/components/Slider'
 import { BankFlowManager } from './views/BankFlowManager.view'
-import { type PeanutCrossChainRoute, getRoute } from '@/services/swap'
+import { type ClaimXChainPreview } from '../Claim.consts'
+import { previewSdaTransfer } from '@/services/rhino-sda'
+import { evmChainIdToRhinoName } from '@/constants/rhino.consts'
+import { getTokenSymbol } from '@/utils/general.utils'
 import { Button } from '@/components/0_Bruddle/Button'
 import Image from 'next/image'
 import { PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
@@ -80,7 +83,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
     const [isXchainLoading, setIsXchainLoading] = useState<boolean>(false)
-    const [routes, setRoutes] = useState<PeanutCrossChainRoute[]>([])
+    const [routes, setRoutes] = useState<ClaimXChainPreview[]>([])
     const [inputChanging, setInputChanging] = useState<boolean>(false)
     const [showConfirmationModal, setShowConfirmationModal] = useState<boolean>(false)
 
@@ -107,7 +110,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         setRefetchXchainRoute,
         isXChain,
         setIsXChain,
-        supportedSquidChainsAndTokens,
+        supportedChainsAndTokens,
         setDevconnectChainId,
         setDevconnectRecipientAddress,
         setDevconnectTokenAddress,
@@ -129,29 +132,29 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     const paramsDevconnectRecipientAddress = searchParams.get('address')
 
     useEffect(() => {
-        // Validate devconnect token and chain are supported by Squid
+        // Validate devconnect token and chain are supported
         if (
             campaignTag === 'devconnect_ba_2025' &&
             paramsDevconnectTokenAddress &&
             paramsDevconnectRecipientAddress &&
             paramsDevconnectChainId &&
-            Object.keys(supportedSquidChainsAndTokens).length > 0
+            Object.keys(supportedChainsAndTokens).length > 0
         ) {
             let isSupported = false
 
-            // Allow for USDC Arbitrum claims to be made without checking if they are supported by Squid
+            // Allow for USDC Arbitrum claims to be made without checking xchain support
             if (
                 paramsDevconnectTokenAddress === PEANUT_WALLET_TOKEN &&
                 paramsDevconnectChainId === PEANUT_WALLET_CHAIN.id.toString()
             ) {
                 isSupported = true
             }
-            // Check if the token and chain are supported by Squid
+            // Check if the token and chain are supported xchain
             else {
                 isSupported = checkTokenSupportsXChain(
                     paramsDevconnectTokenAddress,
                     paramsDevconnectChainId,
-                    supportedSquidChainsAndTokens
+                    supportedChainsAndTokens
                 )
             }
 
@@ -168,7 +171,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         paramsDevconnectTokenAddress,
         paramsDevconnectChainId,
         paramsDevconnectRecipientAddress,
-        supportedSquidChainsAndTokens,
+        supportedChainsAndTokens,
         campaignTag,
         setDevconnectChainId,
         setDevconnectRecipientAddress,
@@ -586,14 +589,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
 
             try {
                 const existingRoute = routes.find(
-                    (route) =>
-                        route.rawResponse.route.estimate.fromToken.chainId === claimLinkData.chainId &&
-                        areEvmAddressesEqual(
-                            route.rawResponse.route.estimate.fromToken.address,
-                            claimLinkData.tokenAddress
-                        ) &&
-                        route.rawResponse.route.estimate.toToken.chainId === chainId &&
-                        areEvmAddressesEqual(route.rawResponse.route.estimate.toToken.address, tokenAddress)
+                    (route) => route.chainId === chainId && areEvmAddressesEqual(route.tokenAddress, tokenAddress)
                 )
 
                 if (existingRoute) {
@@ -604,35 +600,38 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     return undefined
                 }
 
-                const tokenAmount = claimLinkData.amount
+                // Map source/destination to Rhino's chain + token vocabulary.
+                // Rhino SDA only supports USDC/USDT cross-chain — anything else
+                // is unroutable from this hook (the UI gates token selection
+                // against `supportedChainsAndTokens` upstream, but bail
+                // explicitly here for safety).
+                const sourceRhinoChain = evmChainIdToRhinoName(claimLinkData.chainId)
+                const destRhinoChain = evmChainIdToRhinoName(chainId)
+                const tokenSymbol = getTokenSymbol(tokenAddress, chainId)?.toUpperCase()
+                if (!sourceRhinoChain || !destRhinoChain || (tokenSymbol !== 'USDC' && tokenSymbol !== 'USDT')) {
+                    throw new Error(
+                        `Cross-chain route not supported (src=${claimLinkData.chainId} dest=${chainId} token=${tokenSymbol})`
+                    )
+                }
 
-                const fromToken =
-                    claimLinkData.tokenAddress === NATIVE_TOKEN_ADDRESS
-                        ? SQUID_ETH_ADDRESS
-                        : claimLinkData.tokenAddress.toLowerCase()
+                // claimLinkData.amount is base units (bigint, 6-dec for USDC).
+                // Rhino preview expects a decimal string, so format down.
+                const decimals = selectedTokenData?.decimals ?? 6
+                const previewAmount = formatUnits(claimLinkData.amount, decimals)
+                const preview = await previewSdaTransfer({
+                    chainIn: sourceRhinoChain,
+                    chainOut: destRhinoChain,
+                    token: tokenSymbol,
+                    amount: previewAmount,
+                    mode: 'pay',
+                })
 
-                const route = await getRoute(
-                    {
-                        from: {
-                            address: (claimLinkData.sender?.accounts?.[0]?.identifier ??
-                                claimLinkData.senderAddress) as Address,
-                            tokenAddress: fromToken as Address,
-                            chainId: claimLinkData.chainId,
-                        },
-                        to: {
-                            address:
-                                recipientType === 'us' || recipientType === 'iban'
-                                    ? '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C'
-                                    : (recipient.address as Address) || '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
-                            tokenAddress: tokenAddress as Address,
-                            chainId,
-                        },
-                        fromAmount: tokenAmount,
-                    },
-                    { disableCoral: true }
-                )
-
-                if (route.error) throw new Error(route.error)
+                const route: ClaimXChainPreview = {
+                    chainId,
+                    tokenAddress: tokenAddress as Address,
+                    receiveAmount: preview.receiveAmount,
+                    feeUsd: preview.feeUsd,
+                }
 
                 setRoutes([...routes, route])
                 if (!toToken && !toChain) {
@@ -644,7 +643,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 console.error('Error fetching route:', error)
                 if (!toToken && !toChain) {
                     setSelectedRoute(undefined)
-                    setHasFetchedRoute(true) // Mark as fetched to show error and allow retry
+                    setHasFetchedRoute(true)
                 }
                 setErrorState({
                     showError: true,
@@ -657,7 +656,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 setLoadingState('Idle')
             }
         },
-        [claimLinkData, isXChain, selectedTokenData, setLoadingState, recipient, recipientType, routes]
+        [claimLinkData, isXChain, selectedTokenData, setLoadingState, routes]
     )
 
     useEffect(() => {
@@ -773,17 +772,12 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             if (isXChainTransfer) {
                 // If there's an existing route, validate it matches the current selection
                 if (selectedRoute) {
-                    const routeChainId = selectedRoute.rawResponse.route.params.toChain
-                    const routeTokenAddress = selectedRoute.rawResponse.route.estimate.toToken.address
-
-                    // If route doesn't match selection, mark it for refetch
                     if (
-                        routeChainId !== selectedTokenData.chainId ||
-                        !areEvmAddressesEqual(routeTokenAddress, selectedTokenData.address)
+                        selectedRoute.chainId !== selectedTokenData.chainId ||
+                        !areEvmAddressesEqual(selectedRoute.tokenAddress, selectedTokenData.address)
                     ) {
                         setRefetchXchainRoute(true)
                     } else {
-                        // Route matches, mark as fetched
                         setRefetchXchainRoute(false)
                         setHasFetchedRoute(true)
                     }

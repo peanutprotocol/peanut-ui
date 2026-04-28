@@ -119,6 +119,7 @@ const InstallPWA = ({
             }, 500)
             return () => clearTimeout(timer)
         }
+        return undefined
     }, [deviceType, screenId])
 
     const handleInstall = useCallback(async () => {
@@ -287,6 +288,7 @@ const InstallPWA = ({
                     </>
                 )
             }
+            return null
 
         default:
             return null

@@ -12,6 +12,7 @@ import { simplefiApi } from '@/services/simplefi'
 import type { SimpleFiQrPaymentResponse } from '@/services/simplefi'
 import NavHeader from '@/components/Global/NavHeader'
 import { MERCADO_PAGO, PIX, SIMPLEFI } from '@/assets/payment-apps'
+import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import Image from 'next/image'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import AmountInput from '@/components/Global/AmountInput'
@@ -81,7 +82,7 @@ export default function QRPayPage() {
     const qrCode = decodeURIComponent(searchParams.get('qrCode') || '')
     const timestamp = searchParams.get('t')
     const qrType = searchParams.get('type')
-    const { balance, sendMoney } = useWallet()
+    const { spendableBalance: balance, sendMoney } = useWallet()
     const { signTransferUserOp } = useSignUserOp()
     const [isSuccess, setIsSuccess] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -476,7 +477,7 @@ export default function QRPayPage() {
             case EQrType.MERCADO_PAGO:
                 return MERCADO_PAGO
             case EQrType.ARGENTINA_QR3:
-                return 'https://flagcdn.com/w160/ar.png'
+                return getFlagUrl('ar')
             case EQrType.PIX:
                 return PIX
             case EQrType.SIMPLEFI_STATIC:
@@ -666,11 +667,15 @@ export default function QRPayPage() {
         }
 
         setLoadingState('Preparing transaction')
-        let userOpHash: Hash
-        let receipt: TransactionReceipt | null
+        let userOpHash: Hash | undefined
+        // sendMoney's collateral-only path returns receipt: undefined (not null).
+        // Allow both nullish forms here so the `!= null` guard below catches both.
+        let receipt: TransactionReceipt | null | undefined
         try {
-            const result = await sendMoney(finalPayment.address, finalPayment.usdAmount)
-            userOpHash = result.userOpHash
+            const result = await sendMoney(finalPayment.address, finalPayment.usdAmount, { kind: 'QR_PAY' })
+            // sendMoney may return txHash (collateral-only) instead of userOpHash
+            // in that case — either is a fine identifier for downstream confirmation.
+            userOpHash = (result.userOpHash ?? (result.txHash as Hash | undefined)) as Hash | undefined
             receipt = result.receipt
         } catch (error) {
             if ((error as Error).toString().includes('not allowed')) {
@@ -684,7 +689,7 @@ export default function QRPayPage() {
             return
         }
 
-        if (receipt !== null && isTxReverted(receipt)) {
+        if (receipt != null && isTxReverted(receipt)) {
             setErrorMessage('Transaction was rejected by the network')
             setLoadingState('Idle')
             setIsSuccess(false)

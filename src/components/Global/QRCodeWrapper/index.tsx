@@ -31,6 +31,7 @@ const QRCodeWrapper = ({
             return () => clearTimeout(timer)
         } else {
             setQrRendered(false)
+            return undefined
         }
     }, [url, isLoading])
 

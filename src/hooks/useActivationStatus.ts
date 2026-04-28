@@ -3,9 +3,13 @@
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import useKycStatus from '@/hooks/useKycStatus'
-import { useMemo } from 'react'
+import { useRainCardOverview } from '@/hooks/useRainCardOverview'
+import { useQuery } from '@tanstack/react-query'
+import { cardApi, type CardInfoResponse } from '@/services/card'
+import { findActiveCard } from '@/components/Card/cardState.utils'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
-export type ActivationStep = 'verify' | 'deposit' | 'outbound' | 'completed'
+export type ActivationStep = 'verify' | 'deposit' | 'card' | 'outbound' | 'completed'
 
 interface ActivationStatus {
     /** whether user has completed activation funnel (kyc + first outbound tx) */
@@ -16,13 +20,21 @@ interface ActivationStatus {
     activationStep: ActivationStep
     /** true while user data is still loading */
     isLoading: boolean
+    /** dismiss the card step — persists locally so it doesn't re-appear */
+    dismissCardStep: () => void
 }
+
+const CARD_DISMISSED_STORAGE_KEY = 'peanut_card_activation_dismissed'
 
 /**
  * derives the user's activation status for gating rewards/referral UI.
  *
- * activation funnel: registered → verified → funded → activated
+ * activation funnel: registered → verified → funded → card → activated
  * (activated = kyc approved + ≥1 outbound transaction with fees)
+ *
+ * The `card` step only appears when the user is eligible for a Rain card
+ * (hasCardAccess) but doesn't have an active one yet, and hasn't dismissed
+ * it via "Maybe later". Otherwise the funnel skips straight to outbound.
  *
  * before backend ships isActivated, falls back to treating all users as activated
  * so no UI breaks during the transition.
@@ -31,6 +43,29 @@ export function useActivationStatus(): ActivationStatus {
     const { user } = useAuth()
     const { balance, isFetchingBalance } = useWallet()
     const { isUserKycApproved } = useKycStatus()
+    const { overview } = useRainCardOverview()
+    const userId = user?.user?.userId
+
+    const { data: cardInfo } = useQuery<CardInfoResponse>({
+        queryKey: ['card-info', userId],
+        queryFn: () => cardApi.getInfo(),
+        enabled: !!userId,
+        staleTime: 30_000,
+    })
+
+    // Read the dismissal flag after mount to avoid hydration mismatch.
+    const [cardDismissed, setCardDismissed] = useState(false)
+    useEffect(() => {
+        if (typeof window === 'undefined') return
+        setCardDismissed(localStorage.getItem(CARD_DISMISSED_STORAGE_KEY) === 'true')
+    }, [])
+
+    const dismissCardStep = useCallback(() => {
+        if (typeof window !== 'undefined') {
+            localStorage.setItem(CARD_DISMISSED_STORAGE_KEY, 'true')
+        }
+        setCardDismissed(true)
+    }, [])
 
     const isLoading = !user || isFetchingBalance
 
@@ -71,8 +106,19 @@ export function useActivationStatus(): ActivationStatus {
             }
         }
 
-        return { isActivated, activatedAt, activationStep }
-    }, [user?.user, isUserKycApproved, balance])
+        // Insert the card step between `deposit` and `outbound`: user has
+        // funded but hasn't taken the card yet. Skipped if they can't access
+        // the card flow, already have a card, or explicitly dismissed.
+        if (activationStep === 'outbound') {
+            const hasCardAccess = cardInfo?.hasCardAccess ?? false
+            const hasCard = !!findActiveCard(overview)
+            if (hasCardAccess && !hasCard && !cardDismissed) {
+                activationStep = 'card'
+            }
+        }
 
-    return { ...derived, isLoading }
+        return { isActivated, activatedAt, activationStep }
+    }, [user?.user, isUserKycApproved, balance, cardInfo?.hasCardAccess, overview, cardDismissed])
+
+    return { ...derived, isLoading, dismissCardStep }
 }

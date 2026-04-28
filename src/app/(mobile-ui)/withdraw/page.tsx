@@ -81,7 +81,7 @@ export default function WithdrawPage() {
     // raw amount currently typed in the input
     const [rawTokenAmount, setRawTokenAmount] = useState<string>(amountFromContext || '')
 
-    const { balance } = useWallet()
+    const { spendableBalance: balance } = useWallet()
 
     const maxDecimalAmount = useMemo(() => {
         return balance !== undefined ? Number(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS)) : 0
@@ -251,6 +251,7 @@ export default function WithdrawPage() {
                 return () => clearTimeout(timeoutId)
             }
         }
+        return undefined
     }, [rawTokenAmount, validateAmount, setError, step])
 
     const handleAmountContinue = () => {

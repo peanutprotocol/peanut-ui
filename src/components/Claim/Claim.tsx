@@ -1,5 +1,5 @@
 'use client'
-import { generateKeysFromString } from '@squirrel-labs/peanut-sdk'
+import { generateKeysFromString } from '@/utils/peanut-link.utils'
 import { useContext, useEffect, useMemo, useState } from 'react'
 
 import { fetchTokenDetails, fetchTokenPrice } from '@/app/actions/tokens'
@@ -12,7 +12,7 @@ import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer
 import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import * as interfaces from '@/interfaces'
+import type { RecipientType } from '@/interfaces/interfaces'
 import { ESendLinkStatus, getParamsFromLink, sendLinksApi, type ClaimLinkData } from '@/services/sendLinks'
 import {
     getInitialsFromName,
@@ -31,7 +31,7 @@ import PageContainer from '../0_Bruddle/PageContainer'
 import PeanutLoading from '../Global/PeanutLoading'
 import * as _consts from './Claim.consts'
 import FlowManager from './Link/FlowManager'
-import { type PeanutCrossChainRoute } from '@/services/swap'
+import { type ClaimXChainPreview } from './Claim.consts'
 import { ClaimedView, ClaimErrorView } from './Generic'
 import { twMerge } from 'tailwind-merge'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
@@ -55,11 +55,11 @@ export const Claim = ({}) => {
     })
     const [tokenPrice, setTokenPrice] = useState<number>(0)
     const [estimatedPoints, setEstimatedPoints] = useState<number>(0)
-    const [selectedRoute, setSelectedRoute] = useState<PeanutCrossChainRoute | undefined>(undefined)
+    const [selectedRoute, setSelectedRoute] = useState<ClaimXChainPreview | undefined>(undefined)
     const [transactionHash, setTransactionHash] = useState<string>()
     const [hasFetchedRoute, setHasFetchedRoute] = useState<boolean>(false)
 
-    const [recipientType, setRecipientType] = useState<interfaces.RecipientType>('address')
+    const [recipientType, setRecipientType] = useState<RecipientType>('address')
     const [offrampForm, setOfframpForm] = useState<IOfframpForm>({
         name: '',
         email: '',

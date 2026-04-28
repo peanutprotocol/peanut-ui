@@ -18,7 +18,7 @@ interface AvatarWithBadgeProps {
     inlineStyle?: React.CSSProperties // for dynamic background colors based on username (hex codes)
     textColor?: string
     iconFillColor?: string
-    logo?: StaticImageData
+    logo?: string | StaticImageData
 }
 
 /**

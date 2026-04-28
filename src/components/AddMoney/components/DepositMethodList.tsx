@@ -4,6 +4,7 @@ import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import Image from 'next/image'
 import { twMerge } from 'tailwind-merge'
 import { ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '../consts'
+import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { ActionListCard } from '@/components/ActionListCard'
 
 export interface DepositMethod {
@@ -76,7 +77,7 @@ export const DepositMethodList = ({ methods, onItemClick, isAllMethodsView = fal
                                 />
                             ) : method.type === 'country' ? (
                                 <Image
-                                    src={`https://flagcdn.com/w160/${countryCodeForFlag.toLowerCase()}.png`}
+                                    src={getFlagUrl(countryCodeForFlag)}
                                     alt={`${method.title} flag`}
                                     width={80}
                                     height={80}

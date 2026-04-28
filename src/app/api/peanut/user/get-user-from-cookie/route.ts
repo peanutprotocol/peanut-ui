@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { getJWTCookie } from '@/utils/cookie-migration.utils'
 
-export async function GET(_request: NextRequest) {
+export async function POST(_request: NextRequest) {
     const token = await getJWTCookie()
     const apiKey = process.env.PEANUT_API_KEY
 
@@ -26,9 +26,12 @@ export async function GET(_request: NextRequest) {
                 'Content-Type': 'application/json',
             }
 
-            // on auth failure, clear the jwt cookie and sw cache so the client
-            // can recover even if running old cached code
-            if (response.status === 401) {
+            // 401 (expired/invalid signature) and 404 (user no longer exists —
+            // typically the local DB got re-seeded out from under a stale cookie)
+            // both mean the JWT is irrecoverable. Clear it + the SW cache so the
+            // client redirect to /setup actually escapes the loop instead of
+            // re-firing the same dead cookie on every navigation.
+            if (response.status === 401 || response.status === 404) {
                 headers['Set-Cookie'] = 'jwt-token=; Path=/; Max-Age=0; SameSite=Lax'
                 headers['Clear-Site-Data'] = '"cache"'
             }

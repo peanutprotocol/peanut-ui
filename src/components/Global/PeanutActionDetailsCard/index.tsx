@@ -9,6 +9,7 @@ import Card from '../Card'
 import { Icon, type IconName } from '../Icons/Icon'
 import RouteExpiryTimer from '../RouteExpiryTimer'
 import Image, { type StaticImageData } from 'next/image'
+import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import Loading from '../Loading'
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
 
@@ -91,6 +92,7 @@ export default function PeanutActionDetailsCard({
             transactionType === 'REGIONAL_METHOD_CLAIM'
         )
             return 'arrow-up'
+        return undefined
     }
 
     const getTitle = () => {
@@ -168,7 +170,7 @@ export default function PeanutActionDetailsCard({
     const isRegionalMethodClaim = transactionType === 'REGIONAL_METHOD_CLAIM'
 
     const withdrawBankIcon = () => {
-        const imgSrc = logo ? logo : `https://flagcdn.com/w320/${countryCodeForFlag}.png`
+        const imgSrc = logo ? logo : getFlagUrl(countryCodeForFlag)
         if (isWithdrawBankAccount || isAddBankAccount || isClaimLinkBankAccount || isRegionalMethodClaim)
             return (
                 <div className="relative mr-1 h-12 w-12">

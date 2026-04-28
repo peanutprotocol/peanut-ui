@@ -3,7 +3,7 @@ import { BUNDLER_URL, PAYMASTER_URL, PEANUT_WALLET_CHAIN } from '@/constants/zer
 import type { PublicClient, Chain, Transport } from 'viem'
 import { createPublicClient, http, extractChain, fallback } from 'viem'
 import * as chains from 'viem/chains'
-import { arbitrum, mainnet, base, linea } from 'viem/chains'
+import { arbitrum, arbitrumSepolia, mainnet, base, linea } from 'viem/chains'
 
 const allChains = Object.values(chains)
 export type ChainId = (typeof allChains)[number]['id']
@@ -38,6 +38,8 @@ const zerodevV3Url = (chainId: number | string) => `${ZERODEV_V3_URL}/chain/${ch
  * included if NEXT_PUBLIC_ZERO_DEV_RECOVERY_BUNDLER_URL is configured.
  * Note: PUBLIC_CLIENTS_BY_CHAIN and peanutPublicClient are now exported from here to avoid circular dependencies
  */
+// Primary wallet chain is picked by PEANUT_WALLET_CHAIN (env-overridable in
+// zerodev.consts.ts). Sandbox uses arbitrumSepolia, prod uses arbitrum.
 export const PUBLIC_CLIENTS_BY_CHAIN: Record<
     string,
     {
@@ -47,14 +49,18 @@ export const PUBLIC_CLIENTS_BY_CHAIN: Record<
         paymasterUrl: string
     }
 > = {
-    // Arbitrum (primary wallet chain - always included)
-    [arbitrum.id]: {
+    // Primary wallet chain - always included (configurable via NEXT_PUBLIC_PEANUT_WALLET_CHAIN_ID)
+    [PEANUT_WALLET_CHAIN.id]: {
+        // FOLLOW-UP: PEANUT_WALLET_CHAIN is `Chain | <extractChain return>`
+        // (env-driven). The extractChain return is broader than Chain at the
+        // type level even though it's structurally identical at runtime. Cast
+        // here so the rest of the map literal infers cleanly.
         client: createPublicClient({
-            transport: getTransportWithFallback(arbitrum.id),
-            chain: arbitrum,
+            transport: getTransportWithFallback(PEANUT_WALLET_CHAIN.id as ChainId),
+            chain: PEANUT_WALLET_CHAIN as Chain,
             pollingInterval: 500,
         }),
-        chain: PEANUT_WALLET_CHAIN,
+        chain: PEANUT_WALLET_CHAIN as Chain,
         bundlerUrl: BUNDLER_URL,
         paymasterUrl: PAYMASTER_URL,
     },

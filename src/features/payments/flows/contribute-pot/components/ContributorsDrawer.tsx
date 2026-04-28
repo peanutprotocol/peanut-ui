@@ -16,7 +16,7 @@ import { getCardPosition } from '@/components/Global/Card/card.utils'
 import { Button } from '@/components/0_Bruddle/Button'
 import { type PotContributor } from '../ContributePotFlowContext'
 import { useMemo } from 'react'
-import Groups2OutlinedIcon from '@mui/icons-material/Groups2Outlined'
+import { Users } from 'lucide-react'
 
 interface ContributorsDrawerProps {
     contributors: PotContributor[]
@@ -44,7 +44,7 @@ export function ContributorsDrawer({ contributors }: ContributorsDrawerProps) {
         <Drawer>
             <DrawerTrigger asChild>
                 <Button
-                    icon={<Groups2OutlinedIcon />}
+                    icon={<Users />}
                     variant="transparent"
                     className="h-5 w-fit self-start p-0 text-xs font-normal underline underline-offset-2 active:translate-x-0"
                 >

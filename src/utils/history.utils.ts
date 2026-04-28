@@ -26,6 +26,12 @@ export enum EHistoryEntryType {
     BRIDGE_GUEST_OFFRAMP = 'BRIDGE_GUEST_OFFRAMP',
     SIMPLEFI_QR_PAYMENT = 'SIMPLEFI_QR_PAYMENT',
     PERK_REWARD = 'PERK_REWARD',
+    RAIN_CARD_TRANSACTION = 'RAIN_CARD_TRANSACTION',
+    /** User-initiated money movement; receipts for collateral/mixed-strategy
+     *  Rain spends, same-chain withdraws, and (future) all other flows live
+     *  here instead of behind an orphan Charge. Frontend branches on
+     *  extraData.kind to style the card. */
+    TRANSACTION_INTENT = 'TRANSACTION_INTENT',
 }
 export function historyTypeToNumber(type: EHistoryEntryType): number {
     return Object.values(EHistoryEntryType).indexOf(type)
@@ -136,6 +142,8 @@ export type HistoryEntry = {
     completedAt?: string | Date
     isVerified?: boolean
     points?: number
+    /** Provider fee in USD (human units, e.g. 0.01). Populated by bridge offramp/onramp. */
+    fee?: number
     isRequestLink?: boolean // true if the transaction is a request pot link
     charges?: ChargeEntry[]
     totalAmountCollected?: number
@@ -163,6 +171,7 @@ export function getReceiptUrl(transaction: TransactionDetails): string | undefin
     if (transaction.extraDataForDrawer?.link) {
         return transaction.extraDataForDrawer.link
     }
+    return undefined
 }
 
 export function getAvatarUrl(transaction: TransactionDetails): string | undefined {
@@ -182,6 +191,7 @@ export function getAvatarUrl(transaction: TransactionDetails): string | undefine
     if (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.SIMPLEFI_QR_PAYMENT) {
         return SIMPLEFI
     }
+    return undefined
 }
 
 /** Returns the sign of the transaction, based on the direction and status of the transaction. */

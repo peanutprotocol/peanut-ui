@@ -1,6 +1,5 @@
 'use client'
 import { ContextProvider } from '@/config'
-import peanut from '@squirrel-labs/peanut-sdk'
 import { Analytics } from '@vercel/analytics/react'
 import countries from 'i18n-iso-countries'
 import enLocale from 'i18n-iso-countries/langs/en.json'
@@ -17,8 +16,6 @@ import { CRISP_WEBSITE_ID } from '@/constants/crisp'
 export function PeanutProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         if (process.env.NODE_ENV !== 'development') {
-            peanut.toggleVerbose(true)
-            // LogRocket.init('x2zwq1/peanut-protocol')
             countries.registerLocale(enLocale)
         }
 

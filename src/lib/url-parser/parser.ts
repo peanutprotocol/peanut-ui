@@ -1,6 +1,6 @@
-import { getSquidChainsAndTokens } from '@/app/actions/squid'
+import { getSupportedChainsAndTokens } from '@/app/actions/supported-chains'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
-import { interfaces } from '@squirrel-labs/peanut-sdk'
+import * as interfaces from '@/interfaces/peanut-sdk-types'
 import { validateAmount } from '../validation/amount'
 import { validateAndResolveRecipient } from '../validation/recipient'
 import { getChainDetails, getTokenAndChainDetails } from '../validation/token'
@@ -90,7 +90,7 @@ export async function parsePaymentURL(
     // 3. Fetch and validate recipient and chains/tokens data
     const [recipientResult, squidChainsResult] = await Promise.allSettled([
         validateAndResolveRecipient(recipient),
-        getSquidChainsAndTokens(),
+        getSupportedChainsAndTokens(),
     ])
     if (recipientResult.status === 'rejected') {
         return { parsedUrl: null, error: { message: EParseUrlError.INVALID_RECIPIENT, recipient } }
@@ -103,7 +103,7 @@ export async function parsePaymentURL(
     const isPeanutRecipient = recipientDetails.recipientType === 'USERNAME'
 
     // 4. Resolve chain details
-    let chainDetails: (interfaces.ISquidChain & { tokens: interfaces.ISquidToken[] }) | undefined = undefined
+    let chainDetails: (interfaces.IChainMeta & { tokens: interfaces.ITokenMeta[] }) | undefined = undefined
     if (chainId) {
         try {
             chainDetails = getChainDetails(chainId, squidChainsAndTokens)
@@ -120,7 +120,7 @@ export async function parsePaymentURL(
 
     // 5. Handle amount and token parsing from second segment
     let parsedAmount: { amount: string } | undefined = undefined
-    let tokenDetails: interfaces.ISquidToken | undefined = undefined
+    let tokenDetails: interfaces.ITokenMeta | undefined = undefined
     if (segments.length > 1) {
         const { amount, token } = parseAmountAndToken(segments[1])
         if (amount) {
@@ -144,7 +144,7 @@ export async function parsePaymentURL(
 
             // Update chain details for non-USERNAME recipients if needed
             if (!chainDetails && !isPeanutRecipient && tokenAndChainData.chain) {
-                chainDetails = tokenAndChainData.chain as interfaces.ISquidChain & { tokens: interfaces.ISquidToken[] }
+                chainDetails = tokenAndChainData.chain as interfaces.IChainMeta & { tokens: interfaces.ITokenMeta[] }
             }
         } else if (isPeanutRecipient) {
             tokenDetails = chainDetails?.tokens.find(

@@ -76,3 +76,28 @@ export const RHINO_SUPPORTED_TOKENS = (Object.keys(TOKEN_LOGOS) as TokenName[]).
     name,
     logoUrl: TOKEN_LOGOS[name],
 }))
+
+/**
+ * EVM numeric chainId → Rhino chain-name mapping. Source of truth: Rhino's
+ * `/configs` endpoint response (mirrored in peanut-api-ts `src/rhino/consts.ts`).
+ *
+ * Includes Arbitrum Sepolia (421614) as an alias for Rhino's ARBITRUM entry
+ * — matters for the sandbox harness, where our smart accounts live on Arb
+ * Sepolia while Rhino's endpoints only recognize mainnet chain names.
+ */
+export const EVM_CHAIN_ID_TO_RHINO_NAME: Record<string, ChainName | undefined> = {
+    '1': 'ETHEREUM',
+    '10': 'OPTIMISM',
+    '56': 'BNB',
+    '100': 'GNOSIS',
+    '137': 'POLYGON',
+    '534352': 'SCROLL',
+    '42161': 'ARBITRUM',
+    '421614': 'ARBITRUM', // Arb Sepolia — same Rhino bucket for sandbox runs
+    '8453': 'BASE',
+    '42220': 'CELO',
+}
+
+export function evmChainIdToRhinoName(chainId: string | number): ChainName | undefined {
+    return EVM_CHAIN_ID_TO_RHINO_NAME[String(chainId)]
+}

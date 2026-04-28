@@ -7,9 +7,6 @@ import { type User } from '@/interfaces'
 
 export enum RequestFulfillmentBankFlowStep {
     BankCountryList = 'bank-country-list',
-    DepositBankDetails = 'deposit-bank-details',
-    OnrampConfirmation = 'onramp-confirmation',
-    CollectUserDetails = 'collect-user-details',
 }
 
 interface RequestFulfillmentFlowContextType {

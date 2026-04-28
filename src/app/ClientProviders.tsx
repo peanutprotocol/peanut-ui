@@ -12,8 +12,20 @@ import { TranslationSafeWrapper } from '@/components/Global/TranslationSafeWrapp
 import { PeanutProvider } from '@/config'
 import { ContextProvider } from '@/context'
 import { FooterVisibilityProvider } from '@/context/footerVisibility'
+import { HARNESS_ENABLED } from '@/constants/harness.consts'
 import { useOtaUpdates } from '@/hooks/useOtaUpdates'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
+import dynamic from 'next/dynamic'
+import { Suspense } from 'react'
+import { PeanutDebug } from '@/context/PeanutDebug'
+
+// Harness bootstrap ships only in harness builds. In prod bundles the dynamic
+// import is in dead code behind `if (false)` and webpack drops the chunk.
+const HarnessBootstrap = HARNESS_ENABLED
+    ? dynamic(() => import('@/context/HarnessBootstrap').then((m) => m.HarnessBootstrap), {
+          ssr: false,
+      })
+    : null
 
 export function ClientProviders({ children }: { children: React.ReactNode }) {
     // initialize capgo ota updates (calls notifyAppReady on mount, no-op on web)
@@ -27,6 +39,12 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
                         <TranslationSafeWrapper>
                             <ConsoleGreeting />
                             <ScreenOrientationLocker />
+                            <PeanutDebug />
+                            {HarnessBootstrap && (
+                                <Suspense fallback={null}>
+                                    <HarnessBootstrap />
+                                </Suspense>
+                            )}
                             {children}
                         </TranslationSafeWrapper>
                     </FooterVisibilityProvider>

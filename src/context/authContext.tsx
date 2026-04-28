@@ -1,7 +1,7 @@
 'use client'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { useUserQuery } from '@/hooks/query/user'
-import * as interfaces from '@/interfaces'
+import type { IUserProfile } from '@/interfaces/interfaces'
 import { useAppDispatch } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { userActions } from '@/redux/slices/user-slice'
@@ -26,10 +26,10 @@ import { captureException } from '@sentry/nextjs'
 import { USER_DATA_CACHE_PATTERNS } from '@/constants/cache.consts'
 
 interface AuthContextType {
-    user: interfaces.IUserProfile | null
+    user: IUserProfile | null
     userId: string | undefined
     username: string | undefined
-    fetchUser: () => Promise<interfaces.IUserProfile | null>
+    fetchUser: () => Promise<IUserProfile | null>
     addAccount: ({
         accountIdentifier,
         accountType,

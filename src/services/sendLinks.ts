@@ -1,6 +1,5 @@
-// Removed claimSendLink import - no longer used (was insecure)
 import { jsonParse, jsonStringify } from '@/utils/general.utils'
-import { generateKeysFromString, getParamsFromLink } from '@squirrel-labs/peanut-sdk'
+import { generateKeysFromString, getParamsFromLink } from '@/utils/peanut-link.utils'
 import type { SendLink } from '@/services/services.types'
 import { serverFetch } from '@/utils/api-fetch'
 import { isCapacitor } from '@/utils/capacitor'
@@ -10,7 +9,7 @@ import { PEANUT_API_URL } from '@/constants/general.consts'
 
 export { ESendLinkStatus } from '@/services/services.types'
 export type { SendLinkStatus, SendLink } from '@/services/services.types'
-export { getParamsFromLink } from '@squirrel-labs/peanut-sdk'
+export { getParamsFromLink } from '@/utils/peanut-link.utils'
 
 export type ClaimLinkData = SendLink & { link: string; password: string }
 
@@ -174,7 +173,7 @@ export const sendLinksApi = {
     // REMOVED: claim() and autoClaimLink() methods
     // These methods were INSECURE as they sent passwords to the backend.
     // All claims now use SDK's claimLinkGasless() which signs client-side
-    // and only sends signatures to /claim-v3 endpoint.
+    // and only sends signatures to /claim endpoint.
 
     /**
      * associates a logged-in user with a claim transaction.
@@ -183,8 +182,12 @@ export const sendLinksApi = {
      * @param txhash - the transaction hash of the successful claim.
      */
     associateClaim: async (txHash: string): Promise<void> => {
+        // Fastify's body-parser rejects PATCH with no body as "Pass a valid json".
+        // Send an empty JSON object so the request makes it past the parser.
         const response = await serverFetch(`/send-links/claim/${txHash}/associate-user`, {
             method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: '{}',
         })
 
         if (!response.ok) {

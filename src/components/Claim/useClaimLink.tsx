@@ -1,22 +1,17 @@
 'use client'
 
-import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
-import {
-    generateKeysFromString,
-    getParamsFromLink,
-    getContractAddress,
-    signWithdrawalMessage,
-    createClaimXChainPayload,
-} from '@squirrel-labs/peanut-sdk'
+import { generateKeysFromString, getParamsFromLink } from '@/utils/peanut-link.utils'
+import { getContractAddress, signWithdrawalMessage } from '@/utils/peanut-claim.utils'
+import { evmChainIdToRhinoName } from '@/constants/rhino.consts'
+import { provisionSdaTransfer } from '@/services/rhino-sda'
 import { useContext, useMemo } from 'react'
-import { useSwitchChain, useAccount } from 'wagmi'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { captureException } from '@sentry/nextjs'
 
 import { CLAIM_LINK, CLAIM_LINK_XCHAIN, TRANSACTIONS } from '@/constants/query.consts'
 import { loadingStateContext } from '@/context'
-import { isTestnetChain } from '@/utils/general.utils'
+import { getTokenSymbol, isTestnetChain } from '@/utils/general.utils'
 import { sendLinksApi, ESendLinkStatus } from '@/services/sendLinks'
 import { next_proxy_url } from '@/constants/general.consts'
 
@@ -68,7 +63,7 @@ async function createClaimPayload(link: string, recipientAddress: string, onlyRe
         params.chainId,
         getContractAddress(params.chainId, params.contractVersion),
         params.depositIdx,
-        recipientAddress,
+        recipientAddress as `0x${string}`,
         keys.privateKey,
         onlyRecipientMode
     )
@@ -92,7 +87,7 @@ async function executeClaim({
     depositDetails,
     optimisticReturn = false,
     campaignTag,
-    baseUrl = `${next_proxy_url}/claim-v3`,
+    baseUrl = `${next_proxy_url}/claim`,
 }: {
     link: string
     recipientAddress: string
@@ -135,54 +130,95 @@ async function executeClaim({
 }
 
 /**
- * Claims a link x-chain through the Peanut API
+ * Claims a link cross-chain via Rhino SDA composition.
+ *
+ * Flow (one relayer tx, no contract changes):
+ *   1. Backend provisions an SDA on the origin chain:
+ *        depositChain=link's chain, destinationChain=claimer's target,
+ *        destinationAddress=claimer, tokenOut=USDC|USDT (resolved from selection)
+ *   2. Frontend signs the withdrawal message with `recipientAddress = sdaAddress`
+ *      (the SDA, not the claimer's wallet, is the on-chain recipient).
+ *   3. Backend's /claim route sponsors the claim contract call — funds land
+ *      in the SDA on the origin chain.
+ *   4. Rhino's SDA auto-bridges to the claimer's destination. BRIDGE_EXECUTED
+ *      webhook → processRhinoWebhookEvent routes the CLAIM_XCHAIN payment type
+ *      for observational logging.
+ *
+ * Fixes the chain-reset bug by design: claim contract is never asked to call
+ * same-chain transfer inline to the SDA.
  */
 async function executeClaimXChain({
     link,
     recipientAddress,
     destinationChainId,
     destinationToken,
-    baseUrl = `${next_proxy_url}/claim-x-chain`,
-    isMainnet = true,
-    slippage = 1,
 }: {
     link: string
     recipientAddress: string
     destinationChainId: string
-    destinationToken: string | null
+    destinationToken: string
     baseUrl?: string
     isMainnet?: boolean
     slippage?: number
 }): Promise<string> {
-    const payload = await createClaimXChainPayload({
-        isMainnet,
-        destinationChainId,
-        ...(destinationToken !== null && { destinationToken }),
-        link: link,
-        recipient: recipientAddress,
-        squidRouterUrl: `${next_proxy_url}/get-squid-route`,
-        slippage,
+    const params = getParamsFromLink(link)
+
+    const sourceRhinoChain = evmChainIdToRhinoName(params.chainId)
+    const destRhinoChain = evmChainIdToRhinoName(destinationChainId)
+    if (!sourceRhinoChain || !destRhinoChain) {
+        throw new Error(`Unsupported chain for Rhino SDA bridge (source=${params.chainId} dest=${destinationChainId})`)
+    }
+
+    // Rhino SDAs only emit USDC or USDT. Resolve the destination token's
+    // symbol; reject anything else with a clear error rather than silently
+    // bridging into the wrong asset.
+    const tokenSymbol = getTokenSymbol(destinationToken, destinationChainId)?.toUpperCase()
+    if (tokenSymbol !== 'USDC' && tokenSymbol !== 'USDT') {
+        throw new Error(
+            `Cross-chain claim only supports USDC or USDT destinations (got ${tokenSymbol ?? destinationToken})`
+        )
+    }
+
+    // contextId binds the SDA to the full destination identity — chain,
+    // token, recipient — so that re-claims to the same destination reuse
+    // the SDA (idempotent, doesn't hit Rhino's rate limit) but a re-claim
+    // to a different chain/token/address gets a fresh SDA.
+    const sda = await provisionSdaTransfer({
+        context: 'claim-xchain',
+        contextId: `${params.chainId}:${params.depositIdx}:${destinationChainId}:${tokenSymbol}:${recipientAddress.toLowerCase()}`,
+        depositChain: sourceRhinoChain,
+        destinationChain: destRhinoChain,
+        destinationAddress: recipientAddress as `0x${string}`,
+        tokenOut: tokenSymbol,
     })
 
-    const data = await postJson<{ txHash: string }>(baseUrl, {
-        chainId: payload.chainId,
-        contractVersion: payload.contractVersion,
-        peanutAddress: payload.peanutAddress,
-        depositIndex: payload.depositIndex,
-        withdrawalSignature: payload.withdrawalSignature,
-        squidFee: payload.squidFee.toString(),
-        peanutFee: payload.peanutFee.toString(),
-        squidData: payload.squidData,
-        routingSignature: payload.routingSignature,
-        recipientAddress: recipientAddress,
+    // Sign the withdrawal message targeting the SDA as the on-chain recipient.
+    // Whoever knows the password (= anyone with the link) authorizes the claim;
+    // we re-direct the destination from user-wallet to sda-address, which Rhino
+    // then forwards to the user-wallet on the target chain.
+    const keys = generateKeysFromString(params.password)
+    const claimParams = await signWithdrawalMessage(
+        params.contractVersion,
+        params.chainId,
+        getContractAddress(params.chainId, params.contractVersion),
+        params.depositIdx,
+        sda.sdaAddress,
+        keys.privateKey
+    )
+
+    const data = await postJson<{ txHash?: string }>(`${next_proxy_url}/claim`, {
+        claimParams,
+        chainId: params.chainId,
+        version: params.contractVersion,
     })
 
+    if (!data.txHash) {
+        throw new Error('Claim-v3 returned no txHash')
+    }
     return data.txHash
 }
 
 const useClaimLink = () => {
-    const { chain: currentChain } = useAccount()
-    const { switchChainAsync } = useSwitchChain()
     const pathname = usePathname()
     const searchParams = useSearchParams()
     const queryClient = useQueryClient()
@@ -403,23 +439,6 @@ const useClaimLink = () => {
         })
     }
 
-    const switchNetwork = async (chainId: string) => {
-        try {
-            await switchNetworkUtil({
-                chainId,
-                currentChainId: String(currentChain?.id),
-                setLoadingState,
-                switchChainAsync: async ({ chainId }) => {
-                    await switchChainAsync({ chainId: chainId as number })
-                },
-            })
-            console.log(`Switched to chain ${chainId}`)
-        } catch (error) {
-            console.error('Failed to switch network:', error)
-            captureException(error)
-        }
-    }
-
     const addParamStep = (step: 'bank' | 'claim' | 'regional-claim' | 'regional-req-fulfill') => {
         const params = new URLSearchParams(searchParams)
         params.set('step', step)
@@ -530,7 +549,6 @@ const useClaimLink = () => {
         claimLinkXchain,
 
         // Utility functions
-        switchNetwork,
         addParamStep,
         removeParamStep,
         cancelLinkAndClaim,

@@ -72,6 +72,9 @@ certificates
 public/sw*
 public/swe-worker*
 
+# circle-flags SVGs copied from node_modules via scripts/copy-flags.mjs
+public/flags/
+
 .idea
 
 # mobile — android/ is tracked (native app source code)
@@ -80,6 +83,13 @@ public/swe-worker*
 
 # AI tool worktrees
 .claude/worktrees/
+
+# Playwright e2e harness
+e2e/__results__/
+e2e/__baseline__/
+e2e/__report__/
+e2e/__snapshots__/
+e2e/.auth/
 
 # native app signing
 *.keystore

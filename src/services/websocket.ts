@@ -8,6 +8,17 @@ export interface RailStatusUpdate {
     provider?: string
 }
 
+export type RainCardBalanceChangeReason =
+    | 'transaction_created'
+    | 'transaction_updated'
+    | 'transaction_completed'
+    | 'contract_created'
+    | 'auto_balance_deposit'
+
+export interface RainCardBalanceChangedData {
+    reason: RainCardBalanceChangeReason
+}
+
 export type WebSocketMessage = {
     type:
         | 'ping'
@@ -19,7 +30,8 @@ export type WebSocketMessage = {
         | 'persona_tos_status_update'
         | 'pending_perk'
         | 'user_rail_status_changed'
-    data?: HistoryEntry | PendingPerk | RailStatusUpdate
+        | 'rain_card_balance_changed'
+    data?: HistoryEntry | PendingPerk | RailStatusUpdate | RainCardBalanceChangedData
 }
 
 export class PeanutWebSocket {
@@ -157,6 +169,12 @@ export class PeanutWebSocket {
                     }
                     break
 
+                case 'rain_card_balance_changed':
+                    if (message.data && 'reason' in (message.data as object)) {
+                        this.emit('rain_card_balance_changed', message.data)
+                    }
+                    break
+
                 default:
                     // Handle other message types if needed
                     this.emit(message.type, message.data)
@@ -239,13 +257,29 @@ export class PeanutWebSocket {
     }
 }
 
-// Singleton instance for app-wide usage
+// Singleton instance for app-wide usage. Keyed on username so that we
+// don't bind the singleton to the wrong path if a caller mounts before
+// auth has resolved, and so that logout → login rebuilds cleanly.
 let websocketInstance: PeanutWebSocket | null = null
+let websocketInstanceUsername: string | null = null
 
-export const getWebSocketInstance = (username?: string): PeanutWebSocket => {
-    if (!websocketInstance && typeof window !== 'undefined') {
+export const getWebSocketInstance = (username?: string): PeanutWebSocket | null => {
+    if (typeof window === 'undefined') return null
+    // Can't connect without a username — the server route is /ws/charges/:username.
+    // Returning null lets callers bail out and re-try once auth is ready.
+    if (!username) return null
+
+    // If the singleton was created for a different user, tear it down before
+    // returning a fresh one.
+    if (websocketInstance && websocketInstanceUsername !== username) {
+        websocketInstance.disconnect()
+        websocketInstance = null
+        websocketInstanceUsername = null
+    }
+
+    if (!websocketInstance) {
         let wsUrl = process.env.NEXT_PUBLIC_PEANUT_WS_URL || ''
-        const path = username ? `/ws/charges/${username}` : '/ws/charges'
+        const path = `/ws/charges/${username}`
 
         // use ws:// for local development to avoid SSL issues
         if (window.location.hostname === 'localhost' && wsUrl.startsWith('wss://')) {
@@ -253,7 +287,8 @@ export const getWebSocketInstance = (username?: string): PeanutWebSocket => {
         }
 
         websocketInstance = new PeanutWebSocket(wsUrl, path)
+        websocketInstanceUsername = username
     }
 
-    return websocketInstance as PeanutWebSocket
+    return websocketInstance
 }

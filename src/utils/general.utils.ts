@@ -5,41 +5,19 @@ import {
     pathTitles,
     BASE_URL,
 } from '@/constants/general.consts'
-import { type LoadingStates } from '@/constants/loadingStates.consts'
 import { STABLE_COINS, ENS_NAME_REGEX } from '@/constants/general.consts'
 import { AccountType } from '@/interfaces/interfaces'
 import * as Sentry from '@sentry/nextjs'
-import peanut, { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import type { Address, TransactionReceipt } from 'viem'
 import { getAddress, isAddress, erc20Abi } from 'viem'
 import * as wagmiChains from 'wagmi/chains'
 import { getPublicClient, type ChainId } from '@/app/actions/clients'
-import { NATIVE_TOKEN_ADDRESS, SQUID_ETH_ADDRESS } from './token.utils'
 import { type ChargeEntry } from '@/services/services.types'
+import { NATIVE_TOKEN_ADDRESS, NATIVE_TOKEN_PROXY_ADDRESS } from '@/constants/tokens.consts'
 import { toWebAuthnKey } from '@zerodev/passkey-validator'
 import { USER_OPERATION_REVERT_REASON_TOPIC } from '@/constants/zerodev.consts'
 import { CHAIN_LOGOS, type ChainName } from '@/constants/rhino.consts'
 import { isUserKycVerified } from '@/constants/kyc.consts'
-
-export function urlBase64ToUint8Array(base64String: string) {
-    const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
-    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
-
-    const rawData = window.atob(base64)
-    const outputArray = new Uint8Array(rawData.length)
-
-    for (let i = 0; i < rawData.length; ++i) {
-        outputArray[i] = rawData.charCodeAt(i)
-    }
-    return outputArray
-}
-
-export const colorMap = {
-    lavender: '#90A8ED',
-    pink: '#FF90E7',
-    green: '#98E9AB',
-    yellow: '#FFC900',
-}
 
 export const shortenAddress = (address?: string, chars?: number) => {
     if (!address) return ''
@@ -450,17 +428,17 @@ export async function copyTextToClipboardWithFallback(text: string) {
 }
 
 export const isTestnetChain = (chainId: string) => {
-    const isTestnet = !Object.keys(peanut.CHAIN_DETAILS)
-        .map((key) => peanut.CHAIN_DETAILS[key as keyof typeof peanut.CHAIN_DETAILS])
-        .find((chain) => chain.chainId == chainId)?.mainnet
-
-    return isTestnet
+    // viem's chains carry a `testnet: true` flag; fall through to default
+    // false for unknown chains so prod paths fail closed (treat as mainnet).
+    const all = Object.values(wagmiChains as unknown as Record<string, { id: number; testnet?: boolean }>)
+    const chain = all.find((c) => c?.id === Number(chainId))
+    return chain?.testnet === true
 }
 
 export const areEvmAddressesEqual = (address1: string, address2: string): boolean => {
     if (!isAddress(address1) || !isAddress(address2)) return false
-    if (address1.toLowerCase() === SQUID_ETH_ADDRESS.toLocaleLowerCase()) address1 = NATIVE_TOKEN_ADDRESS
-    if (address2.toLowerCase() === SQUID_ETH_ADDRESS.toLocaleLowerCase()) address2 = NATIVE_TOKEN_ADDRESS
+    if (address1.toLowerCase() === NATIVE_TOKEN_PROXY_ADDRESS.toLocaleLowerCase()) address1 = NATIVE_TOKEN_ADDRESS
+    if (address2.toLowerCase() === NATIVE_TOKEN_PROXY_ADDRESS.toLocaleLowerCase()) address2 = NATIVE_TOKEN_ADDRESS
     // By using getAddress we are safe from different cases
     // and other address formatting
     return getAddress(address1) === getAddress(address2)
@@ -502,9 +480,9 @@ export const updateUserPreferences = (
     userId: string | undefined,
     partialPrefs: Partial<UserPreferences>
 ): UserPreferences | undefined => {
-    if (!userId) return
+    if (!userId) return undefined
     try {
-        if (typeof localStorage === 'undefined') return
+        if (typeof localStorage === 'undefined') return undefined
 
         const currentPrefs = getUserPreferences(userId) ?? {}
         const newPrefs: UserPreferences = {
@@ -516,11 +494,12 @@ export const updateUserPreferences = (
     } catch (error) {
         Sentry.captureException(error)
         console.error('Error updating user preferences:', error)
+        return undefined
     }
 }
 
 export const getUserPreferences = (userId: string | undefined): UserPreferences | undefined => {
-    if (!userId) return
+    if (!userId) return undefined
     try {
         const storedData = getFromLocalStorage(`${userId}:user-preferences`)
         if (!storedData) return undefined
@@ -528,6 +507,7 @@ export const getUserPreferences = (userId: string | undefined): UserPreferences 
     } catch (error) {
         Sentry.captureException(error)
         console.error('Error getting user preferences:', error)
+        return undefined
     }
 }
 
@@ -563,7 +543,11 @@ interface Portfolio {
     assetActivities: TransferDetails[]
 }
 
-export function formatDate(date: Date): string {
+export function formatDate(date: Date | null | undefined): string {
+    // Receipts and timeline rows pass dates that may be missing for paths
+    // that haven't reached that lifecycle event yet (e.g. cancelledDate on a
+    // not-yet-cancelled link). Return em-dash instead of throwing RangeError.
+    if (!date || isNaN(date.getTime())) return '—'
     const dateFormatter = new Intl.DateTimeFormat('en-US', {
         year: 'numeric',
         month: 'long',
@@ -585,32 +569,6 @@ export const formatIban = (iban: string) => {
         .toUpperCase()
         .replace(/(.{4})/g, '$1 ')
         .trim()
-}
-
-export const switchNetwork = async ({
-    chainId,
-    currentChainId,
-    setLoadingState,
-    switchChainAsync,
-}: {
-    chainId: string
-    currentChainId: string | undefined
-    setLoadingState: (state: LoadingStates) => void
-    switchChainAsync: ({ chainId }: { chainId: number }) => Promise<void>
-}) => {
-    if (currentChainId !== chainId) {
-        setLoadingState('Allow network switch')
-        try {
-            await switchChainAsync({ chainId: Number(chainId) })
-            setLoadingState('Switching network')
-            await new Promise((resolve) => setTimeout(resolve, 2000))
-            setLoadingState('Loading')
-        } catch (error) {
-            console.error('Error switching network:', error)
-            Sentry.captureException(error)
-            throw new Error('Error switching network.')
-        }
-    }
 }
 
 /** Gets the token decimals for a given token address and chain ID. */
@@ -866,21 +824,6 @@ export const sanitizeRedirectURL = (redirectUrl: string): string | null => {
     }
 }
 
-export function getLinkFromReceipt({
-    txReceipt,
-    linkDetails,
-    password,
-}: {
-    txReceipt: TransactionReceipt
-    linkDetails: peanutInterfaces.IPeanutLinkDetails
-    password: string
-}): string {
-    const { chainId, baseUrl, trackId } = linkDetails
-    const contractVersion = peanut.detectContractVersionFromTxReceipt(txReceipt, chainId)
-    const depositIdx = peanut.getDepositIdxs(txReceipt, chainId, contractVersion)[0]
-    return peanut.getLinkFromParams(chainId, contractVersion, depositIdx, password, baseUrl, trackId)
-}
-
 export const getInitialsFromName = (name: string): string => {
     const nameParts = name.trim().split(/\s+/)
     if (nameParts.length === 1) {
@@ -918,11 +861,11 @@ export const generateInvitesShareText = (inviteLink: string) => {
 }
 
 /**
- * Generate a deterministic 3-digit suffix from username
- * This is purely cosmetic and derived from a hash of the username
+ * Generate a deterministic 3-digit suffix from username — pure hash.
  *
- * ⚠️ IMPORTANT: This logic is duplicated in the backend (peanut-api-ts/src/utils.ts)
- * If you change this, you MUST update the backend version to match!
+ * Duplicated on the backend (peanut-api-ts/src/utils/invite.ts). Parity is
+ * enforced by shared test vectors in __tests__/invite-suffix.test.ts and
+ * peanut-api-ts/src/utils/invite.test.ts. Don't edit one without the other.
  */
 export const generateInviteCodeSuffix = (username: string): string => {
     const lowerUsername = username.toLowerCase()

@@ -179,24 +179,6 @@ export function listCorridorOrigins(destination: string): string[] {
     }
 }
 
-/** List available locales for a content page */
-export function listPageLocales(intent: string, slug: string): string[] {
-    const dir = path.join(CONTENT_ROOT, 'content', intent, slug)
-    try {
-        return fs
-            .readdirSync(dir)
-            .filter((f) => f.endsWith('.md'))
-            .map((f) => f.replace('.md', ''))
-    } catch {
-        return []
-    }
-}
-
-/** Check if a page content file exists for the given locale (no fallback) */
-export function pageLocaleExists(intent: string, slug: string, locale: string): boolean {
-    return fs.existsSync(path.join(CONTENT_ROOT, 'content', intent, slug, `${locale}.md`))
-}
-
 // --- Publication status ---
 
 interface PublishableContent {
@@ -243,10 +225,4 @@ export function readSingletonContentLocalized<T = Record<string, unknown>>(
         if (content) return content
     }
     return null
-}
-
-/** Check if a singleton content page is published */
-export function isSingletonPublished(intent: string): boolean {
-    const content = readSingletonContent<PublishableContent>(intent, 'en')
-    return isPublished(content)
 }

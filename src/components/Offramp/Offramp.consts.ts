@@ -1,26 +1,8 @@
-import * as interfaces from '@/interfaces'
-import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import type { ILinkDetails, RecipientType } from '@/interfaces/interfaces'
+import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import type { IOfframpForm } from '@/constants/cashout.consts'
 
-export interface CrossChainDetails {
-    chainId: string
-    // ... ?
-}
-
-export interface LiquidationAddress {
-    id: string
-    address: string
-    chain: string
-    currency: string
-    external_account_id: string
-}
-
-export interface PeanutAccount {
-    account_id: string
-}
-
 export enum OfframpType {
-    CASHOUT = 'CASHOUT',
     CLAIM = 'CLAIM',
 }
 
@@ -55,12 +37,12 @@ export interface IOfframpConfirmScreenProps {
         | undefined
 
     // available in claim link offramps
-    claimLinkData?: interfaces.ILinkDetails
-    crossChainDetails?: Array<peanutInterfaces.ISquidChain & { tokens: peanutInterfaces.ISquidToken[] }> | undefined
+    claimLinkData?: ILinkDetails
+    crossChainDetails?: Array<peanutInterfaces.IChainMeta & { tokens: peanutInterfaces.ITokenMeta[] }> | undefined
     tokenPrice?: number
     estimatedPoints?: number
     attachment?: { message: string | undefined; attachmentUrl: string | undefined }
-    recipientType?: interfaces.RecipientType
+    recipientType?: RecipientType
     appliedPromoCode?: string | null
     onPromoCodeApplied: (code: string | null) => void
     estimatedGasCost?: string
@@ -75,9 +57,9 @@ export interface IOfframpSuccessScreenProps {
     usdValue?: string | undefined
 
     // available in claim link offramps
-    claimLinkData?: interfaces.ILinkDetails
+    claimLinkData?: ILinkDetails
     tokenPrice?: number
-    recipientType?: interfaces.RecipientType
+    recipientType?: RecipientType
     transactionHash?: string
     appliedPromoCode?: string | null
 }

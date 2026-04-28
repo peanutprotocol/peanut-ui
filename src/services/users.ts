@@ -7,7 +7,7 @@ import {
 import { AccountType, type IUserKycVerification } from '@/interfaces'
 import { type IAttachmentOptions } from '@/interfaces/attachment'
 import { serverFetch } from '@/utils/api-fetch'
-import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import { chargesApi } from './charges'
 import { type TCharge } from './services.types'
 import { BASE_URL } from '@/constants/general.consts'
@@ -37,12 +37,6 @@ export type ApiUser = {
         color?: string | null
         earnedAt?: string
     }>
-}
-
-export type RecentUser = Pick<ApiUser, 'userId' | 'username' | 'fullName' | 'bridgeKycStatus'>
-
-export interface UserSearchResponse {
-    users: Array<ApiUser>
 }
 
 export const usersApi = {

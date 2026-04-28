@@ -9,10 +9,12 @@ import PeanutActionCard from '@/components/Global/PeanutActionCard'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import ShareButton from '@/components/Global/ShareButton'
 import AmountInput from '@/components/Global/AmountInput'
+import { HARNESS_ENABLED } from '@/constants/harness.consts'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
+import { tokenSelectorContext } from '@/context/tokenSelector.context'
+import { loadingStateContext } from '@/context/loadingStates.context'
 import { BASE_URL } from '@/constants/general.consts'
-import * as context from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -22,7 +24,7 @@ import { requestsApi } from '@/services/requests'
 import { fetchTokenSymbol, formatTokenAmount, getRequestLink, isNativeCurrency } from '@/utils/general.utils'
 import { printableUsdc } from '@/utils/balance.utils'
 import * as Sentry from '@sentry/nextjs'
-import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
@@ -34,8 +36,8 @@ export const CreateRequestLinkView = () => {
     const { address, isConnected, balance } = useWallet()
     const { user } = useAuth()
     const { selectedChainID, setSelectedChainID, selectedTokenAddress, setSelectedTokenAddress, selectedTokenData } =
-        useContext(context.tokenSelectorContext)
-    const { setLoadingState } = useContext(context.loadingStateContext)
+        useContext(tokenSelectorContext)
+    const { setLoadingState } = useContext(loadingStateContext)
     const queryClient = useQueryClient()
     const searchParams = useSearchParams()
     const paramsAmount = searchParams.get('amount')
@@ -84,14 +86,26 @@ export const CreateRequestLinkView = () => {
         return (parseFloat(tokenValue) * selectedTokenData.price).toString()
     }, [tokenValue, selectedTokenData?.price])
 
+    // Harness-only: when the playwright session sets the passkey-bypass flag,
+    // fall back to the user's peanut-wallet identifier (seeded by the harness)
+    // so Create doesn't block on wagmi connection state. HARNESS_ENABLED is
+    // inlined at build time — prod bundles tree-shake this entire branch.
+    const harnessFallbackAddress = useMemo(() => {
+        if (!HARNESS_ENABLED) return ''
+        if (typeof window === 'undefined') return ''
+        if (window.localStorage?.getItem('__harness_skip_passkey') !== 'true') return ''
+        const peanutAccount = user?.accounts?.find((a) => a.type === 'peanut-wallet')
+        return peanutAccount?.identifier || ''
+    }, [user?.accounts])
+
     const recipientAddress = useMemo(() => {
-        if (!isConnected || !address) return ''
-        return address
-    }, [isConnected, address])
+        if (isConnected && address) return address
+        return harnessFallbackAddress
+    }, [isConnected, address, harnessFallbackAddress])
 
     const isValidRecipient = useMemo(() => {
-        return isConnected && !!address
-    }, [isConnected, address])
+        return (isConnected && !!address) || !!harnessFallbackAddress
+    }, [isConnected, address, harnessFallbackAddress])
 
     const hasAttachment = useMemo(() => {
         return !!(attachmentOptions.rawFile || attachmentOptions.message)

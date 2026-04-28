@@ -5,7 +5,7 @@ import BaseInput from '../0_Bruddle/BaseInput'
 import { Icon } from '../Global/Icons/Icon'
 import { twMerge } from 'tailwind-merge'
 import Image from 'next/image'
-import countryCurrencyMappings from '@/constants/countryCurrencyMapping'
+import countryCurrencyMappings, { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import StatusBadge from '../Global/Badges/StatusBadge'
 
 interface CurrencySelectProps {
@@ -161,7 +161,7 @@ const CurrencyBox = ({
         >
             <div className="flex items-center gap-2">
                 <Image
-                    src={`https://flagcdn.com/w320/${countryCode}.png`}
+                    src={getFlagUrl(countryCode)}
                     alt={`${countryCode} flag`}
                     width={160}
                     height={160}

@@ -1,4 +1,4 @@
-import { interfaces } from '@squirrel-labs/peanut-sdk'
+import * as interfaces from '@/interfaces/peanut-sdk-types'
 import { type Chain } from 'viem'
 
 export type RecipientType = 'ENS' | 'ADDRESS' | 'USERNAME'
@@ -11,6 +11,6 @@ export interface ParsedURL {
         resolvedAddress: string
     } | null
     amount?: string
-    token?: interfaces.ISquidToken
-    chain?: interfaces.ISquidChain & { tokens: interfaces.ISquidToken[] }
+    token?: interfaces.ITokenMeta
+    chain?: interfaces.IChainMeta & { tokens: interfaces.ITokenMeta[] }
 }

@@ -51,6 +51,18 @@ export const getOfframpCurrencyConfig = (countryId: string): CurrencyConfig => {
 }
 
 /**
+ * Map ISO fiat currency → Bridge bank AccountType. Used by onramp quote
+ * + exchange-rate callers that only have the currency string in hand.
+ */
+export const currencyToAccountType = (currency: string): AccountType => {
+    const normalized = currency.toLowerCase()
+    if (normalized === 'usd') return AccountType.US
+    if (normalized === 'mxn') return AccountType.CLABE
+    if (normalized === 'gbp') return AccountType.GB
+    return AccountType.IBAN
+}
+
+/**
  * Get the fiat currency symbol for display purposes
  */
 export const getCurrencySymbol = (currency: string): string => {

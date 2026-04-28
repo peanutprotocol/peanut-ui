@@ -70,7 +70,7 @@ export default async function StoriesIndexPage({ params }: PageProps) {
                         {stories.map((story) => (
                             <Link
                                 key={story.slug}
-                                href={`/${locale}/stories/${story.slug}`}
+                                href={`/${locale}/stories/${encodeURIComponent(story.slug)}`}
                                 className="flex flex-col gap-1.5 bg-white px-5 py-4 transition-colors hover:bg-gray-50"
                             >
                                 <span className="text-sm font-medium text-n-1">{story.title}</span>

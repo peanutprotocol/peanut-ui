@@ -8,7 +8,7 @@ import { loadingStateContext } from '@/context'
 import { createBridgeExternalAccountForGuest } from '@/app/actions/external-accounts'
 import { confirmOfframp, createOfframp, createOfframpForGuest } from '@/app/actions/offramp'
 import { type Address, formatUnits } from 'viem'
-import { ErrorHandler } from '@/utils/sdkErrorHandler.utils'
+import { ErrorHandler } from '@/utils/friendly-error.utils'
 import { formatTokenAmount } from '@/utils/general.utils'
 import * as Sentry from '@sentry/nextjs'
 import useClaimLink from '../../useClaimLink'
@@ -17,7 +17,8 @@ import { useAuth } from '@/context/authContext'
 import { type TCreateOfframpRequest, type TCreateOfframpResponse } from '@/services/services.types'
 import { getOfframpCurrencyConfig } from '@/utils/bridge.utils'
 import { getBridgeChainName, getBridgeTokenName } from '@/utils/bridge-accounts.utils'
-import peanut from '@squirrel-labs/peanut-sdk'
+import { generateKeysFromString, getParamsFromLink } from '@/utils/peanut-link.utils'
+import { getContractAddress } from '@/utils/peanut-claim.utils'
 import { addBankAccount, getUserById } from '@/app/actions/users'
 import SavedAccountsView from '../../../Common/SavedAccountsView'
 import { BankClaimType, useDetermineBankClaimType } from '@/hooks/useDetermineBankClaimType'
@@ -171,11 +172,11 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
             if (!paymentRail || !currency) throw new Error('Chain or token not supported for bank withdrawal')
 
             // get params from send link
-            const params = peanut.getParamsFromLink(claimLinkData.link)
-            const { address: pubKey } = peanut.generateKeysFromString(params.password)
+            const params = getParamsFromLink(claimLinkData.link)
+            const { address: pubKey } = generateKeysFromString(params.password)
             const chainId = params.chainId
             const contractVersion = params.contractVersion
-            const peanutContractAddress = peanut.getContractAddress(chainId, contractVersion) as Address
+            const peanutContractAddress = getContractAddress(chainId, contractVersion) as Address
 
             const externalAccountId = (account.bridgeAccountId ?? account.id) as string
 

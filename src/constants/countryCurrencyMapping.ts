@@ -1,3 +1,5 @@
+import { AccountType } from '@/interfaces/interfaces'
+
 export interface CountryCurrencyMapping {
     currencyCode: string
     currencyName: string
@@ -52,11 +54,13 @@ export default countryCurrencyMappings
 // country/currency utility functions
 
 /**
- * generates flag url from iso2 country code
- * uses flagcdn.com pattern used throughout the app
+ * Resolves an ISO-2 country code to its flag SVG served from `public/flags/`
+ * (copied from `circle-flags` via `scripts/copy-flags.mjs`). Unknown/missing
+ * codes fall back to the UN flag (`xx.svg`, shipped by circle-flags).
  */
-export function getFlagUrl(iso2: string, size: 160 | 320 = 160): string {
-    return `https://flagcdn.com/w${size}/${iso2.toLowerCase()}.png`
+export function getFlagUrl(iso2: string | null | undefined): string {
+    if (!iso2) return '/flags/xx.svg'
+    return `/flags/${iso2.toLowerCase()}.svg`
 }
 
 /**
@@ -69,19 +73,47 @@ export function getCurrencyFlagCode(currencyCode: string): string | null {
 }
 
 /**
- * gets flag url directly from currency code
- * combines getCurrencyFlagCode + getFlagUrl
+ * Resolves an ISO-2 flag code for a bank transaction. Prefers the most specific
+ * signal:
+ *   1. IBAN prefix (e.g. "ES76..." → "es", "DE89..." → "de")
+ *   2. Account type that implies country (us / clabe=mx / gb)
+ *   3. Currency-based fallback (e.g. EUR → "eu", USD → "us")
+ *
+ * Returns null when nothing matches — caller should show the bank fallback icon.
  */
-export function getCurrencyFlagUrl(currencyCode: string, size: 160 | 320 = 160): string | null {
-    const flagCode = getCurrencyFlagCode(currencyCode)
-    return flagCode ? getFlagUrl(flagCode, size) : null
+export function getBankAccountCountryCode(
+    bankAccountDetails?: { identifier?: string; type?: string | AccountType } | null,
+    currencyCode?: string | null
+): string | null {
+    const type = bankAccountDetails?.type?.toLowerCase() as AccountType | undefined
+    const identifier = bankAccountDetails?.identifier
+
+    if (type === AccountType.IBAN && identifier) {
+        const prefix = identifier.replace(/\s+/g, '').slice(0, 2).toLowerCase()
+        if (/^[a-z]{2}$/.test(prefix)) return prefix
+    }
+    if (type === AccountType.US) return 'us'
+    if (type === AccountType.CLABE) return 'mx'
+    if (type === AccountType.GB) return 'gb'
+    // `manteca` is a LATAM passthrough — Argentina (ARS/CBU) or Brazil (BRL/PIX).
+    // The account type itself doesn't carry country, but currency does.
+    if (type === AccountType.MANTECA) {
+        const c = currencyCode?.toUpperCase()
+        if (c === 'ARS') return 'ar'
+        if (c === 'BRL') return 'br'
+    }
+
+    if (currencyCode) return getCurrencyFlagCode(currencyCode)
+    return null
 }
 
 /**
- * gets country info from currency code
+ * gets flag url directly from currency code
+ * combines getCurrencyFlagCode + getFlagUrl
  */
-export function getCountryByCurrency(currencyCode: string): CountryCurrencyMapping | null {
-    return countryCurrencyMappings.find((m) => m.currencyCode.toUpperCase() === currencyCode.toUpperCase()) ?? null
+export function getCurrencyFlagUrl(currencyCode: string): string | null {
+    const flagCode = getCurrencyFlagCode(currencyCode)
+    return flagCode ? getFlagUrl(flagCode) : null
 }
 
 /**
@@ -108,9 +140,4 @@ export function isUKCountry(countryIdentifier: string | undefined): boolean {
     if (!countryIdentifier) return false
     const lower = countryIdentifier.toLowerCase()
     return lower === 'united-kingdom' || lower === 'gb' || lower === 'gbr'
-}
-
-/** Find a currency mapping by country slug (e.g. 'argentina', 'united-kingdom'). */
-export function findMappingBySlug(slug: string): CountryCurrencyMapping | undefined {
-    return countryCurrencyMappings.find((m) => m.path === slug || m.country.toLowerCase().replace(/ /g, '-') === slug)
 }

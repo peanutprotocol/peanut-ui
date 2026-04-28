@@ -20,8 +20,10 @@ import { AccountType, type Account } from '@/interfaces'
 import { formatIban, shortenStringLong, isTxReverted } from '@/utils/general.utils'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { TRANSACTIONS } from '@/constants/query.consts'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
-import { ErrorHandler } from '@/utils/sdkErrorHandler.utils'
+import { ErrorHandler } from '@/utils/friendly-error.utils'
 import { getBridgeChainName } from '@/utils/bridge-accounts.utils'
 import { getOfframpCurrencyConfig, getCountryFromPath } from '@/utils/bridge.utils'
 import { createOfframp, confirmOfframp } from '@/app/actions/offramp'
@@ -50,8 +52,9 @@ export default function WithdrawBankPage() {
         setSelectedMethod,
     } = useWithdrawFlow()
     const { user, fetchUser } = useAuth()
-    const { address, sendMoney, balance } = useWallet()
+    const { address, sendMoney, spendableBalance: balance } = useWallet()
     const { guardWithTos, showBridgeTos, hideTos } = useBridgeTosGuard()
+    const queryClient = useQueryClient()
     const router = useRouter()
     const searchParams = useSearchParams()
     const [isLoading, setIsLoading] = useState(false)
@@ -215,17 +218,24 @@ export default function WithdrawBankPage() {
             }
 
             // Step 2: prepare and send the transaction from peanut wallet to the deposit address
-            const { receipt, userOpHash } = await sendMoney(
+            const { receipt, userOpHash, txHash } = await sendMoney(
                 data.depositInstructions.toAddress as `0x${string}`,
-                createPayload.amount
+                createPayload.amount,
+                { kind: 'FIAT_OFFRAMP' }
             )
 
             if (receipt !== null && isTxReverted(receipt)) {
                 throw new Error('Transaction reverted by the network.')
             }
 
-            // Step 3: Confirm the transfer with the backend to make it visible in history
-            const confirmResult = await confirmOfframp(data.transferId, receipt?.transactionHash ?? userOpHash)
+            // Step 3: Confirm the transfer with the backend to make it visible in history.
+            // Prefer the on-chain tx hash; fall back to the collateral withdraw tx hash
+            // (collateral-only path) BEFORE the userOp hash. confirmOfframp expects a real
+            // 32-byte tx hash — userOpHash is an account-abstraction bundler hash, not a
+            // chain tx hash, and the BE rejects it.
+            const txIdentifier = receipt?.transactionHash ?? txHash ?? userOpHash
+            if (!txIdentifier) throw new Error('No transaction identifier returned from sendMoney')
+            const confirmResult = await confirmOfframp(data.transferId, txIdentifier)
 
             if (confirmResult.error) {
                 // This is a tricky state. The on-chain tx succeeded, but the backend failed to record it.
@@ -237,6 +247,11 @@ export default function WithdrawBankPage() {
                 })
                 throw new Error(confirmResult.error)
             }
+
+            // Invalidate the transactions query so the Activity widget shows
+            // the pending OFFRAMP entry immediately, instead of waiting up to
+            // 30s tanstack staleTime + Bridge polling cadence.
+            queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
 
             setView('SUCCESS')
             posthog.capture(ANALYTICS_EVENTS.WITHDRAW_COMPLETED, {

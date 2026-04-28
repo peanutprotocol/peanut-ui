@@ -58,7 +58,7 @@ export function RequestPotActionList({
     const router = useRouter()
     const dispatch = useAppDispatch()
     const { user } = useAuth()
-    const { hasSufficientBalance, isFetchingBalance } = useWallet()
+    const { hasSufficientSpendableBalance: hasSufficientBalance, isFetchingBalance } = useWallet()
     const { isUserMantecaKycApproved } = useKycStatus()
     const { requestType } = useDetermineBankRequestType(recipientUserId ?? '')
 
