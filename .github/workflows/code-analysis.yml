@@ -1,0 +1,147 @@
+name: Code analysis
+
+# Static-analysis diff comment on every PR. Runs the painscore +
+# complexity + dup + churn analyzers on HEAD and base, posts the diff
+# as an idempotent PR comment.
+#
+# Tool lives in mono/engineering/code-analysis. CI clones mono using
+# SUBMODULE_TOKEN (same secret used for peanut-content sync) at the
+# ref pinned by the MONO_REF repo variable (default 'main').
+#
+# Threshold gate is advisory for the first 2 weeks (continue-on-error).
+# Tighten by removing continue-on-error once the team is acclimatised.
+
+on:
+    pull_request:
+        branches: [main, master, dev]
+
+permissions:
+    contents: read
+    pull-requests: write
+
+env:
+    MONO_REF: ${{ vars.MONO_REF || 'decomplexify' }}
+
+jobs:
+    analyze:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout PR head
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+                  submodules: false
+
+            - uses: pnpm/action-setup@v4
+              with:
+                  version: 10
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  cache: 'pnpm'
+
+            - name: Clone mono (for analyzer)
+              env:
+                  TOKEN: ${{ secrets.SUBMODULE_TOKEN }}
+              run: |
+                  git clone --depth 1 --branch "$MONO_REF" \
+                    "https://x-access-token:${TOKEN}@github.com/peanutprotocol/mono.git" /tmp/mono
+
+            - name: Install analyzer deps
+              working-directory: /tmp/mono/engineering/code-analysis
+              run: pnpm install --frozen-lockfile
+
+            # ---- HEAD analysis
+            - name: Analyze HEAD
+              run: |
+                  node /tmp/mono/engineering/code-analysis/bin/analyze.mjs \
+                    --root . \
+                    --include src \
+                    --extensions .ts,.tsx \
+                    --analyzers complexity,cognitive,structural-dup,dead-code,import-graph,churn,type-errors,ts-quality,react,nextjs \
+                    --filter jsx-aware \
+                    --use-ast \
+                    --parallel \
+                    --label peanut-ui-head \
+                    --out-dir analysis-head
+
+            # ---- BASE analysis (fetch + worktree the PR base ref)
+            - name: Checkout base ref into a worktree
+              run: |
+                  git fetch origin "${{ github.base_ref }}":base-ref
+                  git worktree add ../base-tree base-ref
+
+            - name: Analyze base
+              run: |
+                  node /tmp/mono/engineering/code-analysis/bin/analyze.mjs \
+                    --root ../base-tree \
+                    --include src \
+                    --extensions .ts,.tsx \
+                    --analyzers complexity,cognitive,structural-dup,dead-code,import-graph,churn,type-errors,ts-quality,react,nextjs \
+                    --filter jsx-aware \
+                    --use-ast \
+                    --parallel \
+                    --label peanut-ui-base \
+                    --out-dir analysis-base
+
+            # ---- Diff
+            - name: Diff
+              run: |
+                  node /tmp/mono/engineering/code-analysis/bin/diff.mjs \
+                    --base analysis-base \
+                    --head analysis-head \
+                    --out diff.md \
+                    --out-json diff.json
+
+            - name: Upload artifacts
+              uses: actions/upload-artifact@v4
+              with:
+                  name: code-analysis-${{ github.event.pull_request.number }}
+                  path: |
+                      analysis-head/
+                      diff.md
+                      diff.json
+                  retention-days: 14
+
+            # ---- PR comment (idempotent — re-edits prior comment)
+            - name: Comment on PR
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const fs = require('fs');
+                      const body = fs.readFileSync('diff.md', 'utf-8');
+                      const { data: comments } = await github.rest.issues.listComments({
+                        issue_number: context.issue.number,
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                      });
+                      const tag = '<!-- code-analysis -->';
+                      const existing = comments.find(c => c.body && c.body.includes(tag));
+                      const final = tag + '\n' + body;
+                      if (existing) {
+                        await github.rest.issues.updateComment({
+                          comment_id: existing.id,
+                          owner: context.repo.owner,
+                          repo: context.repo.repo,
+                          body: final,
+                        });
+                      } else {
+                        await github.rest.issues.createComment({
+                          issue_number: context.issue.number,
+                          owner: context.repo.owner,
+                          repo: context.repo.repo,
+                          body: final,
+                        });
+                      }
+
+            # ---- Regression gate (advisory for first 2 weeks)
+            - name: Fail if regression > 50 net findings
+              continue-on-error: true
+              run: |
+                  NET=$(node -e "console.log(require('./diff.json').counts.net)")
+                  echo "Net new findings: $NET"
+                  if [ "$NET" -gt 50 ]; then
+                      echo "::warning::+$NET net findings (threshold: 50)"
+                      exit 1
+                  fi
