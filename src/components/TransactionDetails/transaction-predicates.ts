@@ -13,7 +13,10 @@
  */
 
 import { type TransactionDetails } from './transactionTransformer'
-import { EHistoryEntryType } from '@/hooks/useTransactionHistory'
+// Pulled from utils/history.utils directly (not via the useTransactionHistory
+// hook re-export) so test files that mock the hook don't accidentally erase
+// the enum at module-load time. See send-states.test.tsx for the failure mode.
+import { EHistoryEntryType } from '@/utils/history.utils'
 
 const QR_PAYMENT_TYPES: ReadonlySet<EHistoryEntryType> = new Set([
     EHistoryEntryType.MANTECA_QR_PAYMENT,
