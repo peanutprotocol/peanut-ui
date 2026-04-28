@@ -126,6 +126,11 @@ export interface TransactionDetails {
             merchantCity: string | null
             merchantCountry: string | null
             merchantMcc: string | null
+            /** Rain-enriched brand logo URL when their enrichment identified the
+             *  merchant. Drawer keeps the generic card icon for v1; this is
+             *  plumbed so a future swap doesn't need a backend change. */
+            merchantLogo: string | null
+            merchantId: string | null
             localAmount: string | null
             localCurrency: string | null
             declineReason: string | null
@@ -679,6 +684,8 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                           merchantCity: entry.extraData?.merchantCity as string | null,
                           merchantCountry: entry.extraData?.merchantCountry as string | null,
                           merchantMcc: entry.extraData?.merchantMcc as string | null,
+                          merchantLogo: entry.extraData?.merchantLogo as string | null,
+                          merchantId: entry.extraData?.merchantId as string | null,
                           localAmount: entry.extraData?.cardLocalAmount as string | null,
                           localCurrency: entry.extraData?.cardLocalCurrency as string | null,
                           declineReason: entry.extraData?.declineReason as string | null,
