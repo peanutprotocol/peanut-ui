@@ -58,6 +58,7 @@ import { useRouter } from 'next/navigation'
 import { countryData } from '@/components/AddMoney/consts'
 import { getBankAccountCountryCode } from '@/constants/countryCurrencyMapping'
 import { useToast } from '@/components/0_Bruddle/Toast'
+import { friendlyDeclineReason } from '@/utils/cardDeclineReason'
 import {
     MANTECA_COUNTRIES_CONFIG,
     MANTECA_ARG_DEPOSIT_CUIT,
@@ -633,6 +634,99 @@ export const TransactionDetailsReceipt = ({
                 fullName={transaction.fullName}
                 countryCode={getBankAccountCountryCode(transaction.bankAccountDetails, transaction.currency?.code)}
             />
+
+            {/* Card-payment detail block — merchant context, settlement notes,
+                cancellation/decline copy, and a "Report a problem" → Crisp link.
+                Renders only when extraDataForDrawer.cardPayment is populated
+                (Rain CARD_SPEND or card-refund entries). */}
+            {transaction.extraDataForDrawer?.cardPayment && (
+                <Card position="single" className="px-4 py-4">
+                    <div className="space-y-3">
+                        {/* Merchant header */}
+                        <div className="flex items-center gap-3">
+                            <div className="flex size-10 items-center justify-center rounded-full bg-yellow-1">
+                                <Icon name="credit-card" size={20} />
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="font-semibold">
+                                    {transaction.extraDataForDrawer.cardPayment.merchantName ?? 'Card payment'}
+                                </span>
+                                {transaction.extraDataForDrawer.cardPayment.merchantCategory && (
+                                    <span className="text-xs text-grey-1">
+                                        {transaction.extraDataForDrawer.cardPayment.merchantCategory}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Location */}
+                        {(transaction.extraDataForDrawer.cardPayment.merchantCity ||
+                            transaction.extraDataForDrawer.cardPayment.merchantCountry) && (
+                            <PaymentInfoRow
+                                label="Location"
+                                value={[
+                                    transaction.extraDataForDrawer.cardPayment.merchantCity,
+                                    transaction.extraDataForDrawer.cardPayment.merchantCountry,
+                                ]
+                                    .filter(Boolean)
+                                    .join(', ')}
+                                hideBottomBorder
+                            />
+                        )}
+
+                        {/* Local-currency line — present for cross-currency spends */}
+                        {transaction.extraDataForDrawer.cardPayment.localAmount &&
+                            transaction.extraDataForDrawer.cardPayment.localCurrency && (
+                                <PaymentInfoRow
+                                    label="Charged in"
+                                    value={`${transaction.extraDataForDrawer.cardPayment.localAmount} ${transaction.extraDataForDrawer.cardPayment.localCurrency}`}
+                                    hideBottomBorder
+                                />
+                            )}
+
+                        {/* Overcapture / partial-capture / tip note (spec §4.6) */}
+                        {transaction.extraDataForDrawer.cardPayment.settlementAdjusted &&
+                            transaction.extraDataForDrawer.cardPayment.authAmount && (
+                                <p className="text-xs text-grey-1">
+                                    Adjusted from $
+                                    {(
+                                        Number(transaction.extraDataForDrawer.cardPayment.authAmount) / 100
+                                    ).toFixed(2)}
+                                </p>
+                            )}
+
+                        {/* Decline reason — failed status only */}
+                        {transaction.status === 'failed' &&
+                            transaction.extraDataForDrawer.cardPayment.declineReason && (
+                                <p className="text-xs text-error">
+                                    {friendlyDeclineReason(
+                                        transaction.extraDataForDrawer.cardPayment.declineReason
+                                    )}
+                                </p>
+                            )}
+
+                        {/* Stale auto-close note (spec §4.7) */}
+                        {transaction.extraDataForDrawer.cardPayment.cancellationReason === 'auto_closed' && (
+                            <p className="text-xs text-grey-1">
+                                This transaction was automatically cancelled because the merchant didn't complete it.
+                            </p>
+                        )}
+
+                        {/* "Report a problem" → Crisp chat. Future: in-app dispute flow */}
+                        <button
+                            type="button"
+                            onClick={() => {
+                                if (typeof window !== 'undefined' && window.$crisp) {
+                                    window.$crisp.push(['do', 'chat:open'])
+                                }
+                            }}
+                            className="text-sm text-black underline"
+                        >
+                            Report a problem
+                        </button>
+                    </div>
+                </Card>
+            )}
 
             {/* Perk eligibility banner */}
             {transaction.extraDataForDrawer?.perk?.claimed && transaction.status !== 'pending' && (

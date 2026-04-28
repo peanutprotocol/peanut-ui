@@ -128,10 +128,19 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
         currencyDisplayAmount = `≈ ${transaction.currency.code.toUpperCase()} ${formattedCurrencyAmount}`
     }
 
+    // Spec §4.4: declined card transactions stay in the feed but are visually
+    // de-emphasized so they don't compete with successful items.
+    const isDeclinedCardSpend =
+        status === 'failed' && transaction.extraDataForDrawer?.cardPayment != null
+
     return (
         <>
             {/* the clickable card */}
-            <Card position={position} onClick={handleClick} className="cursor-pointer">
+            <Card
+                position={position}
+                onClick={handleClick}
+                className={twMerge('cursor-pointer', isDeclinedCardSpend && 'opacity-60')}
+            >
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         {/* txn avatar component handles icon/initials/colors */}
