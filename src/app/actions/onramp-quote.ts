@@ -1,9 +1,7 @@
-'use server'
-
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { AccountType } from '@/interfaces'
-
-const API_KEY = process.env.PEANUT_API_KEY!
+import { PEANUT_API_URL } from '@/constants/general.consts'
+import { getAuthHeaders } from '@/utils/auth-token'
 
 export interface OnrampQuoteResponse {
     from: string
@@ -29,14 +27,8 @@ export async function getOnrampQuote(
     accountType: AccountType,
     sourceAmount?: number
 ): Promise<{ data?: OnrampQuoteResponse; error?: string }> {
-    const apiUrl = process.env.PEANUT_API_URL
-
-    if (!apiUrl || !API_KEY) {
-        return { error: 'Server configuration error.' }
-    }
-
     try {
-        const url = new URL(`${apiUrl}/bridge/onramp/quote`)
+        const url = new URL(`${PEANUT_API_URL}/bridge/onramp/quote`)
         url.searchParams.append('accountType', accountType)
         if (sourceAmount !== undefined) {
             url.searchParams.append('sourceAmount', String(sourceAmount))
@@ -44,7 +36,7 @@ export async function getOnrampQuote(
 
         const response = await fetchWithSentry(url.toString(), {
             method: 'GET',
-            headers: { 'Content-Type': 'application/json', 'api-key': API_KEY },
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         })
 
         const data = await response.json()

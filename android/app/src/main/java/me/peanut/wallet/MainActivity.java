@@ -1,4 +1,4 @@
-package me.peanut.app;
+package me.peanut.wallet;
 
 import android.os.Bundle;
 import android.webkit.WebResourceRequest;

@@ -15,7 +15,7 @@ try {
 } catch {}
 
 const config: CapacitorConfig = {
-    appId: 'me.peanut.app',
+    appId: 'me.peanut.wallet',
     appName: 'Peanut',
     webDir: 'out',
     // no server.url — static export loads from local out/ directory

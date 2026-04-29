@@ -7,14 +7,14 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "me.peanut.app"
+    namespace = "me.peanut.wallet"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "me.peanut.app"
+        applicationId "me.peanut.wallet"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 10
-        versionName "1.0.9"
+        versionCode 1
+        versionName "1.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
