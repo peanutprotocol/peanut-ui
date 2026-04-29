@@ -152,14 +152,31 @@ export const SumsubKycWrapper = ({
                 }
             }
 
-            // for applicant actions, the SDK fires action-specific events.
-            // only close on terminal status to avoid premature SDK closure.
+            // For applicant actions (rain-card-application, additional-docs):
+            // the SDK fires onApplicantActionStatusChanged with the action's
+            // CURRENT state on launch — including for actions that are already
+            // `completed + RED + RETRY` from a prior attempt. If we close on
+            // any `completed`, the modal disappears before the WebSDK can
+            // render its "data mismatch / retry" UI for RETRY-able actions,
+            // and the user is permanently stuck.
+            //
+            // Mirror handleStatusChanged: ignore events within 3s of SDK init
+            // (those reflect pre-existing state, not a new submission), and
+            // only close on success (completed + GREEN). RED stays open so
+            // the user can resubmit; the resubmission path emits
+            // onApplicantActionSubmitted, which `handleActionSubmitted` closes.
             const handleActionCompleted = (payload: {
                 reviewStatus?: string
                 reviewResult?: { reviewAnswer?: string }
             }) => {
                 console.log('[sumsub] onApplicantActionStatusChanged fired', payload)
-                if (payload?.reviewStatus === 'completed') {
+                if (Date.now() - sdkInitTime < 3000) {
+                    console.log('[sumsub] ignoring early onApplicantActionStatusChanged (pre-existing state)')
+                    return
+                }
+                if (isMultiLevelRef.current) return
+                if (payload?.reviewStatus === 'completed' && payload?.reviewResult?.reviewAnswer === 'GREEN') {
+                    hasSubmittedRef.current = true
                     stableOnComplete()
                 }
             }
