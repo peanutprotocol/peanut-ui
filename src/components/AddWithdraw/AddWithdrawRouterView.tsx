@@ -220,16 +220,22 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                 savedAccounts={savedAccounts}
                 onAccountClick={(account, _path) => {
                     setSelectedBankAccount(account)
+                    // `details` may be empty/null on accounts that pre-date
+                    // provider_account_links backfill (post-cutover staging
+                    // hit this on every legacy IBAN). Optional-chain through
+                    // the country fields so the click handler doesn't crash
+                    // before the user can act on the account.
+                    const countryPath = account.details?.countryName ?? ''
                     setSelectedMethod({
                         type: account.type === AccountType.MANTECA ? 'manteca' : 'bridge',
-                        countryPath: account.details.countryName,
+                        countryPath,
                         title: 'To Bank',
                     })
                     if (account.type === AccountType.MANTECA) {
                         // preserve method param if coming from send flow
                         const additionalParams = isBankFromSend ? `&method=${methodParam}` : ''
                         router.push(
-                            `/withdraw/manteca?country=${account.details.countryName}&destination=${account.identifier}&isSavedAccount=true${additionalParams}`
+                            `/withdraw/manteca?country=${countryPath}&destination=${account.identifier}&isSavedAccount=true${additionalParams}`
                         )
                     }
                 }}

@@ -159,14 +159,14 @@ export function getCountryFromPath(countryPath: string): CountryData | undefined
 }
 
 export function getCountryFromAccount(account: Account): CountryData | undefined {
-    const threeLetterCountryCode = (account.details.countryCode ?? '').toUpperCase()
+    const threeLetterCountryCode = (account.details?.countryCode ?? '').toUpperCase()
 
     let countryInfo
     if (account.type === AccountType.US) {
         countryInfo = ALL_METHODS_DATA.find((c) => c.id === 'US')
     } else {
-        countryInfo = account.details.countryName
-            ? ALL_METHODS_DATA.find((c) => c.path.toLowerCase() === account.details.countryName?.toLowerCase())
+        countryInfo = account.details?.countryName
+            ? ALL_METHODS_DATA.find((c) => c.path.toLowerCase() === account.details?.countryName?.toLowerCase())
             : ALL_METHODS_DATA.find((c) => c.id === threeLetterCountryCode)
     }
     return countryInfo

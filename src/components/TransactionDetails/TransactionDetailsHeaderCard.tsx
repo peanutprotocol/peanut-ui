@@ -61,21 +61,28 @@ const getTitle = (
 ): React.ReactNode => {
     let titleText = userName
 
-    if (isLinkTransaction && (status === 'pending' || status === 'cancelled' || !userName)) {
+    // Link transactions short-circuit. The userName is just a label like
+    // 'Sent via link' / 'Received via Link' / 'Requested via Link', and the
+    // drawer should NOT prefix it with "Sent to" / "Received from" / etc —
+    // doing so produces "Sent to Sent via link" (real bug from staging
+    // post-cutover). Also covers the legacy completed-status case.
+    if (isLinkTransaction) {
         const displayName = userName
         switch (direction) {
             case 'send':
-                titleText = displayName
+                titleText = status === 'completed' ? 'You sent via link' : displayName
                 break
             case 'request_sent':
                 titleText = 'Requested via Link'
                 break
             case 'receive':
+                titleText = status === 'completed' ? 'You received via link' : displayName
+                break
             case 'request_received':
                 titleText = 'Request via Link'
                 break
             default:
-                titleText = 'Link Transaction'
+                titleText = displayName || 'Link Transaction'
                 break
         }
     } else {

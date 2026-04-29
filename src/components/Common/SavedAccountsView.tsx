@@ -110,7 +110,7 @@ export function SavedAccountsMapping({
                         className="p-4 py-2.5"
                         leftIcon={
                             <div className="relative h-8 w-8">
-                                {countryCodeForFlag && (
+                                {countryCodeForFlag ? (
                                     <Image
                                         src={getFlagUrl(account.type === AccountType.US ? 'us' : countryCodeForFlag)}
                                         alt={`${details.countryName ?? 'country'} flag`}
@@ -118,6 +118,14 @@ export function SavedAccountsMapping({
                                         height={80}
                                         className="h-8 w-8 rounded-full object-cover"
                                     />
+                                ) : (
+                                    // Country missing (legacy account without provider_account_links
+                                    // metadata, or backfill in flight). Show a neutral grey
+                                    // placeholder instead of leaving the icon space empty —
+                                    // the bank badge alone reads as "broken icon" on the FE.
+                                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-grey-2">
+                                        <Icon size={16} name="bank" className="text-n-1" />
+                                    </div>
                                 )}
                                 <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-yellow-400 p-1">
                                     <Icon size={12} name="bank" className="text-black" />
