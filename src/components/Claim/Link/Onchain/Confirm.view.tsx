@@ -21,7 +21,7 @@ import { sendLinksApi } from '@/services/sendLinks'
 import { useSearchParams } from 'next/navigation'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import underMaintenanceConfig from '@/config/underMaintenance.config'
+import underMaintenanceConfig, { CROSS_CHAIN_DISABLED_MESSAGE } from '@/config/underMaintenance.config'
 
 export const ConfirmClaimLinkView = ({
     onNext,
@@ -99,7 +99,10 @@ export const ConfirmClaimLinkView = ({
             let claimTxHash: string | undefined = ''
             if (selectedRoute) {
                 if (underMaintenanceConfig.disableSquidSend) {
-                    throw new Error('Cross-chain claims are temporarily unavailable. Please claim on the same chain or try again later.')
+                    // safety net for stale routes — picker normally prevents reaching this view with a route
+                    setErrorState({ showError: true, errorMessage: CROSS_CHAIN_DISABLED_MESSAGE })
+                    setLoadingState('Idle')
+                    return
                 }
                 claimTxHash = await claimLinkXchain({
                     address: recipient ? recipient.address : (address ?? ''),
