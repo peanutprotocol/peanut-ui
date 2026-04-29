@@ -14,6 +14,7 @@ import { type StatusPillType } from '../Global/StatusPill'
 import type { Address } from 'viem'
 import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import { type HistoryEntryPerkReward, type ChargeEntry } from '@/services/services.types'
+import { dispatchStrategy } from './strategies/registry'
 
 /**
  * @fileoverview maps raw transaction history data from the api/hook to the format needed by ui components.
@@ -35,10 +36,7 @@ import { type HistoryEntryPerkReward, type ChargeEntry } from '@/services/servic
 function shouldPlumbBankAccountDetails(entry: HistoryEntry): boolean {
     if (entry.type === EHistoryEntryType.BRIDGE_OFFRAMP) return true
     if (entry.type === EHistoryEntryType.MANTECA_OFFRAMP) return true
-    if (
-        entry.type === EHistoryEntryType.BANK_SEND_LINK_CLAIM &&
-        entry.userRole === EHistoryUserRole.RECIPIENT
-    ) {
+    if (entry.type === EHistoryEntryType.BANK_SEND_LINK_CLAIM && entry.userRole === EHistoryUserRole.RECIPIENT) {
         return true
     }
     if (entry.type === EHistoryEntryType.TRANSACTION_INTENT) {
@@ -243,8 +241,11 @@ interface MappedTransactionData {
  */
 export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransactionData {
     // initialize variables
-    let direction: TransactionDirection
-    let transactionCardType: TransactionCardType
+    // Defaults match the legacy `default:` arm below, so unmigrated kinds
+    // that fall through render predictably. Strategies and explicit case
+    // arms below overwrite these.
+    let direction: TransactionDirection = 'send'
+    let transactionCardType: TransactionCardType = 'send'
     let nameForDetails = ''
     let uiStatus: StatusPillType = 'pending'
     let isLinkTx = false
@@ -252,420 +253,20 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     let fullName = '' // Full name of the user for PFP Avatar
     let showFullName: boolean | undefined = undefined // User's preference for showing full name
 
-    // determine direction, card type, peer name, and flags based on original type and user role
-    switch (entry.type) {
-        case EHistoryEntryType.DIRECT_SEND:
-            isPeerActuallyUser = true
-            direction = 'send'
-            transactionCardType = 'send'
-            if (entry.userRole === EHistoryUserRole.SENDER) {
-                nameForDetails = entry.recipientAccount?.username ?? entry.recipientAccount?.identifier
-                fullName = entry.recipientAccount?.fullName ?? ''
-                showFullName = entry.recipientAccount?.showFullName
-            } else {
-                direction = 'receive'
-                transactionCardType = 'receive'
-                nameForDetails =
-                    entry.senderAccount?.username ?? entry.senderAccount?.identifier ?? 'Requested via Link'
-                ;((fullName = entry.senderAccount?.fullName ?? ''), (isLinkTx = !entry.senderAccount)) // If the sender is not an user then it's a public link
-                showFullName = entry.senderAccount?.showFullName
-            }
-            break
-        case EHistoryEntryType.SEND_LINK:
-            isLinkTx = true
-            direction = 'send'
-            transactionCardType = 'send'
-            if (entry.userRole === EHistoryUserRole.SENDER) {
-                nameForDetails =
-                    entry.recipientAccount?.username ||
-                    entry.recipientAccount?.identifier ||
-                    (entry.status === 'COMPLETED' ? 'You sent via link' : "You're sending via link")
-                fullName = entry.recipientAccount?.username ?? ''
-                showFullName = entry.recipientAccount?.showFullName
-                isPeerActuallyUser = !!entry.recipientAccount?.isUser
-                isLinkTx = !isPeerActuallyUser
-            } else if (entry.userRole === EHistoryUserRole.RECIPIENT) {
-                // if the recipient is not a peanut user, it's an external claim
-                if (entry.recipientAccount && !entry.recipientAccount.isUser) {
-                    direction = 'claim_external'
-                    transactionCardType = 'claim_external'
-                    nameForDetails = entry.recipientAccount.identifier
-                    isPeerActuallyUser = false
-                    isLinkTx = true
-                } else {
-                    direction = 'receive'
-                    transactionCardType = 'receive'
-                    nameForDetails =
-                        entry.senderAccount?.username || entry.senderAccount?.identifier || 'Received via Link'
-                    fullName = entry.senderAccount?.fullName ?? ''
-                    showFullName = entry.senderAccount?.showFullName
-                    isPeerActuallyUser = !!entry.senderAccount?.isUser
-                    isLinkTx = !isPeerActuallyUser
-                }
-            } else if (entry.userRole === EHistoryUserRole.BOTH) {
-                isPeerActuallyUser = true
-                uiStatus = 'cancelled'
-                nameForDetails = 'Sent via Link'
-            } else {
-                direction = 'claim_external'
-                transactionCardType = 'claim_external'
-                nameForDetails = entry.recipientAccount?.username || entry.recipientAccount?.identifier
-                fullName = entry.recipientAccount?.username ?? ''
-                showFullName = entry.recipientAccount?.showFullName
-            }
-            break
-        case EHistoryEntryType.REQUEST:
-            if (entry.extraData?.fulfillmentType === 'bridge' && entry.userRole === EHistoryUserRole.SENDER) {
-                transactionCardType = 'bank_request_fulfillment'
-                direction = 'bank_request_fulfillment'
-                nameForDetails = entry.recipientAccount?.username ?? entry.recipientAccount?.identifier
-                fullName = entry.recipientAccount?.fullName ?? ''
-                showFullName = entry.recipientAccount?.showFullName
-                isPeerActuallyUser = !!entry.recipientAccount?.isUser || !!entry.senderAccount?.isUser
-            } else if (entry.userRole === EHistoryUserRole.RECIPIENT) {
-                direction = 'request_sent'
-                transactionCardType = 'request'
-                nameForDetails =
-                    entry.senderAccount?.username || entry.senderAccount?.identifier || 'Requested via Link'
-                fullName = entry.senderAccount?.fullName ?? ''
-                showFullName = entry.senderAccount?.showFullName
-                isPeerActuallyUser = !!entry.senderAccount?.isUser
-            } else {
-                if (
-                    entry.status?.toUpperCase() === 'NEW' ||
-                    (entry.status?.toUpperCase() === 'PENDING' && !entry.extraData?.fulfillmentType)
-                ) {
-                    direction = 'request_received'
-                    transactionCardType = 'request'
-                    nameForDetails =
-                        entry.recipientAccount?.username ||
-                        entry.recipientAccount?.identifier ||
-                        `Request From ${entry.recipientAccount?.username || entry.recipientAccount?.identifier}`
-                    fullName = entry.recipientAccount?.fullName ?? ''
-                    showFullName = entry.recipientAccount?.showFullName
-                    isPeerActuallyUser = !!entry.recipientAccount?.isUser
-                } else {
-                    direction = 'send'
-                    transactionCardType = 'send'
-                    nameForDetails =
-                        entry.recipientAccount?.username || entry.recipientAccount?.identifier || 'Paid Request To'
-                    fullName = entry.recipientAccount?.fullName ?? ''
-                    isPeerActuallyUser = !!entry.recipientAccount?.isUser
-                }
-            }
-            isLinkTx = !isPeerActuallyUser
-            break
-        case EHistoryEntryType.WITHDRAW:
-            direction = 'withdraw'
-            transactionCardType = 'withdraw'
-            nameForDetails = entry.recipientAccount?.identifier || 'External Account'
-            isPeerActuallyUser = false
-            break
-        case EHistoryEntryType.CASHOUT:
-            direction = 'withdraw'
-            transactionCardType = 'withdraw'
-            nameForDetails = entry.recipientAccount?.identifier || 'Bank Account'
-            isPeerActuallyUser = false
-            break
-        case EHistoryEntryType.BRIDGE_OFFRAMP:
-        case EHistoryEntryType.MANTECA_OFFRAMP:
-            direction = 'bank_withdraw'
-            transactionCardType = 'bank_withdraw'
-            nameForDetails = 'Bank Account'
-            isPeerActuallyUser = false
-            break
-        case EHistoryEntryType.BANK_SEND_LINK_CLAIM:
-            // this handles how a bank claim is displayed in the transaction history.
-            if (entry.userRole === EHistoryUserRole.SENDER || entry.userRole === EHistoryUserRole.BOTH) {
-                // from the sender's perspective (or when sender claims their own link).
-                if (entry.recipientAccount.isUser) {
-                    // cases 1 & 2: claimed by a peanut user (kyc'd or not). show as direct send.
-                    direction = 'send'
-                    transactionCardType = 'send'
-                    nameForDetails =
-                        entry.recipientAccount?.username ??
-                        entry.recipientAccount?.fullName ??
-                        entry.recipientAccount?.identifier
-                    fullName = entry.recipientAccount?.fullName ?? ''
-                    isPeerActuallyUser = true
-                } else {
-                    // case 3: claimed by a guest. show as generic bank claim.
-                    direction = 'bank_claim'
-                    transactionCardType = 'bank_claim'
-                    nameForDetails = 'Claimed to Bank'
-                    isPeerActuallyUser = false
-                }
-            } else {
-                // from the claimant's perspective, it's always a bank claim.
-                direction = 'bank_claim'
-                transactionCardType = 'bank_claim'
-                nameForDetails = 'Claimed to Bank'
-                isPeerActuallyUser = false
-            }
-            break
-        case EHistoryEntryType.BRIDGE_ONRAMP:
-        case EHistoryEntryType.MANTECA_ONRAMP:
-            direction = 'bank_deposit'
-            transactionCardType = 'bank_deposit'
-            nameForDetails = 'Bank Account'
-            isPeerActuallyUser = false
-            break
-        case EHistoryEntryType.DEPOSIT: {
-            direction = 'add'
-            transactionCardType = 'add'
-            // check if this is a test transaction (0 amount deposit during account setup), ideally this should be handled in the backend, but for now we'll handle it here cuz its a quick fix, and in promisland of post devconnect this should be handled in the backend.
-            const isTestTransaction = String(entry.amount) === '0' || entry.extraData?.usdAmount === '0'
-            if (isTestTransaction) {
-                nameForDetails = 'Enjoy Peanut!'
-            } else {
-                nameForDetails = entry.senderAccount?.identifier || 'Deposit Source'
-            }
-            isPeerActuallyUser = false
-            break
-        }
-        case EHistoryEntryType.MANTECA_QR_PAYMENT:
-            direction = 'qr_payment'
-            transactionCardType = 'pay'
-            nameForDetails = entry.recipientAccount?.identifier || 'Merchant'
-            isPeerActuallyUser = false
-            break
-        case EHistoryEntryType.SIMPLEFI_QR_PAYMENT:
-            direction = 'qr_payment'
-            transactionCardType = 'pay'
-            nameForDetails = entry.recipientAccount?.identifier || 'Merchant'
-            // We dont have merchant name so we try to prettify the slug,
-            // replacing dashws with speaces and making the first letter uppercase
-            nameForDetails = nameForDetails.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
-            isPeerActuallyUser = false
-            break
-        case EHistoryEntryType.PERK_REWARD:
-            direction = 'receive'
-            transactionCardType = 'receive'
-            nameForDetails = 'Peanut Reward'
-            fullName = 'Peanut Rewards'
-            isPeerActuallyUser = false
-            break
-        case EHistoryEntryType.TRANSACTION_INTENT: {
-            // Intent-sourced entries carry a user-semantic `kind` that drives
-            // the card label. Direction + recipient come from the intent, not
-            // from account lookups (intents store the raw recipient address).
-            const kind = (entry.extraData?.kind as string | undefined) ?? 'OTHER'
-            switch (kind) {
-                case 'P2P_SEND':
-                case 'REQUEST_PAY':
-                    // Bridge-fulfilled requests render as bank-request
-                    // fulfillments on the sender side (mirrors legacy REQUEST
-                    // case at line 268). Viewer is paying via bank rails.
-                    if (
-                        kind === 'REQUEST_PAY' &&
-                        entry.extraData?.fulfillmentType === 'bridge' &&
-                        entry.userRole === 'SENDER'
-                    ) {
-                        direction = 'bank_request_fulfillment'
-                        transactionCardType = 'bank_request_fulfillment'
-                        nameForDetails =
-                            entry.recipientAccount?.username ?? entry.recipientAccount?.identifier ?? 'Recipient'
-                        fullName = entry.recipientAccount?.fullName ?? ''
-                        showFullName = entry.recipientAccount?.showFullName
-                        isPeerActuallyUser =
-                            !!entry.recipientAccount?.isUser || !!entry.senderAccount?.isUser
-                        break
-                    }
-                    if (entry.userRole === 'RECIPIENT') {
-                        // Viewer is on the receiving side. Two sub-cases:
-                        //  (a) Senderaccount.identifier is set → an actual paid
-                        //      send. Render as a receive.
-                        //  (b) Sender is empty → unfulfilled request the viewer
-                        //      created. Render as a request_received with a
-                        //      neutral label ("Request" — the FE's
-                        //      TransactionDetailsHeaderCard already styles this).
-                        const senderResolved = !!entry.senderAccount?.identifier
-                        if (senderResolved) {
-                            direction = 'receive'
-                            transactionCardType = 'receive'
-                            nameForDetails =
-                                entry.senderAccount?.username || entry.senderAccount?.identifier || 'Sender'
-                            isPeerActuallyUser = !!entry.senderAccount?.isUser
-                        } else {
-                            direction = 'request_received'
-                            transactionCardType = 'request'
-                            nameForDetails = 'Request'
-                            isPeerActuallyUser = false
-                        }
-                    } else {
-                        direction = 'send'
-                        transactionCardType = 'send'
-                        nameForDetails =
-                            entry.recipientAccount?.username || entry.recipientAccount?.identifier || 'Recipient'
-                        isPeerActuallyUser = !!entry.recipientAccount?.isUser
-                    }
-                    break
-                case 'QR_PAY':
-                    direction = 'qr_payment'
-                    transactionCardType = 'pay'
-                    nameForDetails = entry.recipientAccount?.identifier || 'Merchant'
-                    isPeerActuallyUser = false
-                    break
-                case 'LINK_CREATE':
-                    if (entry.userRole === 'RECIPIENT') {
-                        // The viewer claimed someone else's link. Mirrors the legacy
-                        // SEND_LINK × RECIPIENT branch — show the sender as the peer.
-                        if (entry.senderAccount?.isUser) {
-                            direction = 'receive'
-                            transactionCardType = 'receive'
-                            nameForDetails =
-                                entry.senderAccount?.username ||
-                                entry.senderAccount?.identifier ||
-                                'Received via Link'
-                            fullName = entry.senderAccount?.fullName ?? ''
-                            showFullName = entry.senderAccount?.showFullName
-                            isPeerActuallyUser = true
-                            isLinkTx = false
-                        } else {
-                            direction = 'receive'
-                            transactionCardType = 'receive'
-                            nameForDetails =
-                                entry.senderAccount?.username ||
-                                entry.senderAccount?.identifier ||
-                                'Received via Link'
-                            fullName = entry.senderAccount?.fullName ?? ''
-                            isPeerActuallyUser = false
-                            isLinkTx = true
-                        }
-                    } else {
-                        // SENDER (creator). Resolve claimer if it's a peanut user;
-                        // otherwise show the link-shaped placeholder.
-                        if (entry.recipientAccount?.isUser) {
-                            direction = 'send'
-                            transactionCardType = 'send'
-                            nameForDetails =
-                                entry.recipientAccount?.username ?? entry.recipientAccount?.identifier
-                            fullName = entry.recipientAccount?.fullName ?? ''
-                            showFullName = entry.recipientAccount?.showFullName
-                            isPeerActuallyUser = true
-                            isLinkTx = false
-                        } else {
-                            direction = 'send'
-                            transactionCardType = 'send'
-                            nameForDetails = 'Sent via link'
-                            isLinkTx = true
-                            isPeerActuallyUser = false
-                        }
-                    }
-                    break
-                case 'CRYPTO_DEPOSIT':
-                    // Incoming on-chain deposit. If the sender resolved to a known
-                    // Peanut user, surface their username + clickable avatar
-                    // (improvement over the legacy DEPOSIT branch which always
-                    // forced isPeerActuallyUser=false).
-                    direction = 'add'
-                    transactionCardType = 'add'
-                    nameForDetails =
-                        entry.senderAccount?.username || entry.senderAccount?.identifier || 'Deposit Source'
-                    fullName = entry.senderAccount?.fullName ?? ''
-                    showFullName = entry.senderAccount?.showFullName
-                    isPeerActuallyUser = !!entry.senderAccount?.isUser
-                    break
-                case 'CRYPTO_WITHDRAW':
-                    if (entry.userRole === 'RECIPIENT') {
-                        // The viewer received crypto from someone else's withdraw
-                        // (e.g. another user sent to this user's wallet via a
-                        // CRYPTO_WITHDRAW). Render as a deposit-style row.
-                        direction = 'add'
-                        transactionCardType = 'add'
-                        nameForDetails =
-                            entry.senderAccount?.username || entry.senderAccount?.identifier || 'External Wallet'
-                        isPeerActuallyUser = !!entry.senderAccount?.isUser
-                    } else {
-                        direction = 'withdraw'
-                        transactionCardType = 'withdraw'
-                        nameForDetails = entry.recipientAccount?.identifier || 'External Account'
-                        isPeerActuallyUser = false
-                    }
-                    break
-                case 'FIAT_OFFRAMP':
-                    if (entry.userRole === 'RECIPIENT') {
-                        // Multi-user fulfillment edge case — viewer received a
-                        // bank withdraw initiated by another user. Render as a
-                        // receive (USDC arrives in viewer's wallet from offramp
-                        // funder).
-                        direction = 'receive'
-                        transactionCardType = 'receive'
-                        nameForDetails =
-                            entry.senderAccount?.username || entry.senderAccount?.identifier || 'Bank Account'
-                        isPeerActuallyUser = !!entry.senderAccount?.isUser
-                    } else {
-                        direction = 'bank_withdraw'
-                        transactionCardType = 'bank_withdraw'
-                        nameForDetails = 'Bank Account'
-                        isPeerActuallyUser = false
-                    }
-                    break
-                case 'CARD_SPEND': {
-                    // Merchant fields come from the M3 history fetcher's extraData
-                    // (peanut-api-ts/src/transaction-intent/history.ts). Falling
-                    // back to "Card payment" only when the merchant name is
-                    // genuinely unknown — which should be rare once Rain enrichment
-                    // is live for the user.
-                    const merchantName = (entry.extraData?.merchantName as string | null | undefined) ?? null
-                    direction = 'qr_payment'
-                    transactionCardType = 'pay'
-                    nameForDetails = merchantName || 'Card payment'
-                    isPeerActuallyUser = false
-                    break
-                }
-                default:
-                    // Card refunds come back with kind === 'REFUND', provider === RAIN
-                    // (toLegacyKindLabel surfaces them as 'OTHER' today since
-                    // there's no dedicated CARD_REFUND legacy kind). Scope
-                    // the refund branch to those two kinds — guarding on
-                    // parentRainTxId alone risks misrouting any future intent
-                    // that carries the linkage for some other reason.
-                    if ((kind === 'OTHER' || kind === 'REFUND') && entry.extraData?.parentRainTxId) {
-                        const merchantName = (entry.extraData?.merchantName as string | null | undefined) ?? null
-                        direction = 'receive'
-                        transactionCardType = 'receive'
-                        nameForDetails = merchantName ? `Refund from ${merchantName}` : 'Card refund'
-                        isPeerActuallyUser = false
-                        break
-                    }
-                    // Unknown TRANSACTION_INTENT kind — log to Sentry so we
-                    // catch BE-added kinds the FE doesn't yet handle. Render
-                    // a defensive fallback so the row still appears.
-                    if (typeof window !== 'undefined') {
-                        // Lazy import to avoid bundling Sentry in non-browser
-                        // contexts (test, SSR). Logged as a warning, not a
-                        // hard error — the row still renders.
-                        import('@sentry/nextjs')
-                            .then((Sentry) =>
-                                Sentry.captureMessage(
-                                    `transactionTransformer: unhandled TRANSACTION_INTENT kind "${kind}"`,
-                                    {
-                                        level: 'warning',
-                                        tags: { feature: 'history', kind },
-                                        extra: { entryUuid: entry.uuid, userRole: entry.userRole },
-                                    }
-                                )
-                            )
-                            .catch(() => {
-                                // Sentry not available (test env) — no-op.
-                            })
-                    }
-                    direction = 'send'
-                    transactionCardType = 'send'
-                    nameForDetails = entry.recipientAccount?.identifier || 'Transaction'
-                    isPeerActuallyUser = false
-                    break
-            }
-            break
-        }
-        default:
-            direction = 'send'
-            transactionCardType = 'send'
-            nameForDetails = entry.recipientAccount?.identifier || 'Unknown'
-            isPeerActuallyUser = !!entry.recipientAccount?.isUser
-            break
-    }
+    // Pick the per-kind strategy (legacy type or TRANSACTION_INTENT
+    // composite key). Strategies are pure functions of HistoryEntry and
+    // own the direction / counterparty / flags decision. Post-strategy
+    // code below applies status mapping, the reaper-failed override, and
+    // derived fields (explorer URL, token logos, initials).
+    const out = dispatchStrategy(entry)(entry)
+    direction = out.direction
+    transactionCardType = out.transactionCardType
+    nameForDetails = out.nameForDetails
+    isPeerActuallyUser = out.isPeerActuallyUser
+    isLinkTx = out.isLinkTx
+    fullName = out.fullName ?? ''
+    showFullName = out.showFullName
+    if (out.uiStatus) uiStatus = out.uiStatus
 
     if (!isPeerActuallyUser) {
         isPeerActuallyUser = false
