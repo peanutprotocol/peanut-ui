@@ -116,10 +116,19 @@ function mapEntryStatusToUiStatus(entry: HistoryEntry, direction: TransactionDir
         case 'NEW':
         case 'PENDING':
             return 'pending'
-        case 'COMPLETED':
-            return EHistoryEntryType.SEND_LINK === entry.type && direction !== 'claim_external'
-                ? 'pending'
-                : 'completed'
+        case 'COMPLETED': {
+            // Send links stay 'pending' for the sender side until the link is
+            // claimed — the BE's intent.status hits COMPLETED on escrow, but
+            // from the sender's UI perspective the link isn't "done" until
+            // claimed. Covers both legacy `EHistoryEntryType.SEND_LINK` rows
+            // and post-decomplexify `TRANSACTION_INTENT × kind=LINK_CREATE`.
+            const isUnclaimedSendLinkSender =
+                direction !== 'claim_external' &&
+                (entry.type === EHistoryEntryType.SEND_LINK ||
+                    (entry.type === EHistoryEntryType.TRANSACTION_INTENT &&
+                        entry.extraData?.kind === 'LINK_CREATE'))
+            return isUnclaimedSendLinkSender ? 'pending' : 'completed'
+        }
         case 'SUCCESSFUL':
         case 'CLAIMED':
         case 'PAID':

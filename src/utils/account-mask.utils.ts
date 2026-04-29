@@ -32,14 +32,22 @@ interface MaskRule {
  * Per-rail rules. Account types come from the BE's `Account.type` field
  * (peanut-api-ts/prisma/schema.prisma `AccountType` enum).
  */
+// Keyed on the uppercased account type. BE sends Prisma `AccountType` enum
+// values (`BANK_IBAN`, `BANK_ACH`, `BANK_CLABE`, ...) — list both the bare
+// name and the BANK_ prefix so display logic works regardless of which
+// shape comes through. Without the BANK_* entries the lookup falls to
+// the 'plain' fallback below, which renders the raw lowercase IBAN.
 const MASK_RULES: Record<string, MaskRule> = {
     IBAN: { mode: 'last-4' },
+    BANK_IBAN: { mode: 'last-4' },
     CLABE: { mode: 'last-4' },
+    BANK_CLABE: { mode: 'last-4' },
     CBU: { mode: 'last-4' },
     CVU: { mode: 'last-4' },
     BANK_CBU: { mode: 'last-4' },
     BANK_CVU: { mode: 'last-4' },
     US: { mode: 'last-4-account-only' },
+    BANK_ACH: { mode: 'last-4-account-only' },
     GB: { mode: 'last-4-account-only' },
     PIX: { mode: 'truncate-32' },
     BANK_PIX: { mode: 'truncate-32' },
