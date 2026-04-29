@@ -159,17 +159,18 @@ export function getCountryFromPath(countryPath: string): CountryData | undefined
 }
 
 export function getCountryFromAccount(account: Account): CountryData | undefined {
-    const threeLetterCountryCode = (account.details?.countryCode ?? '').toUpperCase()
+    const code = (account.details?.countryCode ?? '').toUpperCase()
 
     if (account.type === AccountType.US) {
         return ALL_METHODS_DATA.find((c) => c.id === 'US')
     }
-    // Try countryName first; fall back to the three-letter code so a name
-    // mismatch (e.g. legacy 'usa' vs 'us') doesn't drop the lookup entirely.
+    // Try countryName first; fall back to the country code. Bridge stores
+    // ISO3 ('USA', 'GBR'); CountryData carries both `iso3` and `iso2` (= `id`),
+    // so accept either shape so a name mismatch doesn't drop the lookup.
     const byName = account.details?.countryName
         ? ALL_METHODS_DATA.find((c) => c.path.toLowerCase() === account.details?.countryName?.toLowerCase())
         : undefined
-    return byName ?? ALL_METHODS_DATA.find((c) => c.id === threeLetterCountryCode)
+    return byName ?? ALL_METHODS_DATA.find((c) => c.iso3 === code || c.id === code)
 }
 
 /**
