@@ -21,6 +21,7 @@ import { sendLinksApi } from '@/services/sendLinks'
 import { useSearchParams } from 'next/navigation'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import underMaintenanceConfig from '@/config/underMaintenance.config'
 
 export const ConfirmClaimLinkView = ({
     onNext,
@@ -97,6 +98,9 @@ export const ConfirmClaimLinkView = ({
         try {
             let claimTxHash: string | undefined = ''
             if (selectedRoute) {
+                if (underMaintenanceConfig.disableSquidSend) {
+                    throw new Error('Cross-chain claims are temporarily unavailable. Please claim on the same chain or try again later.')
+                }
                 claimTxHash = await claimLinkXchain({
                     address: recipient ? recipient.address : (address ?? ''),
                     link: claimLinkData.link,

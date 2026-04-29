@@ -30,6 +30,7 @@ import { type IClaimScreenProps } from '../Claim.consts'
 import SendLinkActionList from '@/components/Claim/Link/SendLinkActionList'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import useClaimLink from '../useClaimLink'
+import underMaintenanceConfig from '@/config/underMaintenance.config'
 import ActionModal from '@/components/Global/ActionModal'
 import { Slider } from '@/components/Slider'
 import { BankFlowManager } from './views/BankFlowManager.view'
@@ -322,6 +323,9 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
 
                 // check if cross-chain claiming is needed
                 if (isXChain) {
+                    if (underMaintenanceConfig.disableSquidSend) {
+                        throw new Error('Cross-chain claims are temporarily unavailable. Please claim on the same chain or try again later.')
+                    }
                     if (!selectedTokenData?.chainId || !selectedTokenData?.address) {
                         throw new Error('Selected token data is required for cross-chain claims')
                     }
