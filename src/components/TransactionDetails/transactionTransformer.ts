@@ -77,6 +77,129 @@ const REAPER_FAIL_COPY: Record<string, string> = {
 }
 
 /**
+ * Map raw `entry.status` to the drawer's StatusPillType. Two regimes:
+ * Bridge/bank rails (AWAITING_FUNDS / FUNDS_RECEIVED / PAYMENT_*) and
+ * the rest (NEW/PENDING/COMPLETED/...). SEND_LINK with COMPLETED status
+ * stays "pending" until claimed (sender-side).
+ */
+function mapEntryStatusToUiStatus(entry: HistoryEntry, direction: TransactionDirection): StatusPillType {
+    const status = entry.status?.toUpperCase()
+    const isBridgeRails =
+        entry.type === EHistoryEntryType.BRIDGE_OFFRAMP ||
+        entry.type === EHistoryEntryType.BRIDGE_ONRAMP ||
+        entry.type === EHistoryEntryType.BANK_SEND_LINK_CLAIM ||
+        entry.extraData?.fulfillmentType === 'bridge'
+
+    if (isBridgeRails) {
+        switch (status) {
+            case 'AWAITING_FUNDS':
+                return 'pending'
+            case 'IN_REVIEW':
+            case 'FUNDS_RECEIVED':
+            case 'PAYMENT_SUBMITTED':
+                return 'processing'
+            case 'PAYMENT_PROCESSED':
+                return 'completed'
+            case 'UNDELIVERABLE':
+            case 'RETURNED':
+            case 'REFUNDED':
+            case 'ERROR':
+                return 'failed'
+            case 'CANCELED':
+                return 'cancelled'
+            default:
+                return 'processing'
+        }
+    }
+
+    switch (status) {
+        case 'NEW':
+        case 'PENDING':
+            return 'pending'
+        case 'COMPLETED':
+            return EHistoryEntryType.SEND_LINK === entry.type && direction !== 'claim_external'
+                ? 'pending'
+                : 'completed'
+        case 'SUCCESSFUL':
+        case 'CLAIMED':
+        case 'PAID':
+        case 'APPROVED':
+            return 'completed'
+        case 'FAILED':
+        case 'ERROR':
+        case 'CANCELED':
+        case 'EXPIRED':
+            return 'failed'
+        case 'CANCELLED':
+            return 'cancelled'
+        case 'REFUNDED':
+            return 'refunded'
+        case 'CLOSED':
+            // 0 collected → treated as cancelled, not closed
+            return entry.totalAmountCollected === 0 ? 'cancelled' : 'closed'
+        default: {
+            const knownStatuses: StatusType[] = ['completed', 'pending', 'failed', 'cancelled', 'soon', 'processing']
+            const lower = entry.status?.toLowerCase()
+            return lower && knownStatuses.includes(lower as StatusPillType) ? (lower as StatusPillType) : 'pending'
+        }
+    }
+}
+
+/**
+ * Derived display fields — explorer URLs, token/chain icons, reward
+ * lookup. Computed from `entry` alone; doesn't read the strategy output.
+ */
+function computeDerivedFields(entry: HistoryEntry): {
+    explorerUrlWithTx: string | undefined
+    addressExplorerUrl: string | undefined
+    tokenDisplayDetails:
+        | {
+              tokenSymbol: string | undefined
+              tokenIconUrl: string | undefined
+              chainName: string | undefined
+              chainIconUrl: string | undefined
+          }
+        | undefined
+    rewardData: RewardData | undefined
+} {
+    // For deposits, force the explorer URL to Peanut's wallet chain
+    // (Arbitrum) — the underlying chainId field is the deposit-source chain.
+    const explorerUrlChainID =
+        entry.type === EHistoryEntryType.DEPOSIT ? PEANUT_WALLET_CHAIN.id.toString() : entry.chainId
+    const baseUrl = getExplorerUrl(explorerUrlChainID)
+
+    let explorerUrlWithTx: string | undefined
+    let addressExplorerUrl: string | undefined
+    if (baseUrl) {
+        if (entry.senderAccount?.identifier) {
+            addressExplorerUrl = `${baseUrl}/address/${entry.senderAccount.identifier}`
+        }
+        if (entry.txHash && explorerUrlChainID) {
+            explorerUrlWithTx = `${baseUrl}/tx/${entry.txHash}`
+        }
+    }
+
+    let tokenDisplayDetails
+    if (entry.tokenAddress && entry.chainId) {
+        const tokenDetails = getTokenDetails({
+            tokenAddress: entry.tokenAddress as Address,
+            chainId: entry.chainId,
+        })
+        const chainName = getChainName(entry.chainId)
+        const tokenSymbol = entry.tokenSymbol ?? tokenDetails?.symbol
+        tokenDisplayDetails = {
+            tokenSymbol,
+            tokenIconUrl: tokenSymbol ? getTokenLogo(tokenSymbol) : undefined,
+            chainName,
+            chainIconUrl: chainName ? getChainLogo(chainName) : undefined,
+        }
+    }
+
+    const rewardData = REWARD_TOKENS[entry.tokenAddress?.toLowerCase()]
+    return { explorerUrlWithTx, addressExplorerUrl, tokenDisplayDetails, rewardData }
+}
+
+/**
  * defines the structure of the data expected by the transaction details drawer component.
  * includes ui-specific fields derived from the original history entry.
  */
@@ -274,136 +397,16 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         isPeerActuallyUser = false
     }
 
-    // map the raw status string to the defined ui status types — but only
-    // if the strategy didn't already provide an override (e.g. SEND_LINK
-    // BOTH → 'cancelled'). Otherwise the global mapping silently clobbers it.
-    if (strategyOverrodeUiStatus) {
-        // strategy already set uiStatus; skip the global mapping below
-    } else if (
-        entry.type === EHistoryEntryType.BRIDGE_OFFRAMP ||
-        entry.type === EHistoryEntryType.BRIDGE_ONRAMP ||
-        entry.type === EHistoryEntryType.BANK_SEND_LINK_CLAIM ||
-        entry.extraData?.fulfillmentType === 'bridge'
-    ) {
-        switch (entry.status?.toUpperCase()) {
-            case 'AWAITING_FUNDS':
-                uiStatus = 'pending'
-                break
-            case 'IN_REVIEW':
-            case 'FUNDS_RECEIVED':
-            case 'PAYMENT_SUBMITTED':
-                uiStatus = 'processing'
-                break
-            case 'PAYMENT_PROCESSED':
-                uiStatus = 'completed'
-                break
-            case 'UNDELIVERABLE':
-            case 'RETURNED':
-            case 'REFUNDED':
-            case 'ERROR':
-                uiStatus = 'failed'
-                break
-            case 'CANCELED':
-                uiStatus = 'cancelled'
-                break
-            default:
-                uiStatus = 'processing'
-                break
-        }
-    } else {
-        switch (entry.status?.toUpperCase()) {
-            case 'NEW':
-            case 'PENDING':
-                uiStatus = 'pending'
-                break
-            case 'COMPLETED':
-                uiStatus =
-                    EHistoryEntryType.SEND_LINK === entry.type && direction !== 'claim_external'
-                        ? 'pending'
-                        : 'completed'
-                break
-            case 'SUCCESSFUL':
-            case 'CLAIMED':
-            case 'PAID':
-            case 'APPROVED':
-                uiStatus = 'completed'
-                break
-            case 'FAILED':
-            case 'ERROR':
-            case 'CANCELED':
-            case 'EXPIRED':
-                uiStatus = 'failed'
-                break
-            case 'CANCELLED':
-            case 'EXPIRED':
-                uiStatus = 'cancelled'
-                break
-            case 'REFUNDED':
-                uiStatus = 'refunded'
-                break
-            case 'CLOSED':
-                // If the total amount collected is 0, the link is treated as cancelled
-                uiStatus = entry.totalAmountCollected === 0 ? 'cancelled' : 'closed'
-                break
-            default:
-                {
-                    const knownStatuses: StatusType[] = [
-                        'completed',
-                        'pending',
-                        'failed',
-                        'cancelled',
-                        'soon',
-                        'processing',
-                    ]
-                    if (entry.status && knownStatuses.includes(entry.status.toLowerCase() as StatusPillType)) {
-                        uiStatus = entry.status.toLowerCase() as StatusPillType
-                    } else {
-                        uiStatus = 'pending'
-                    }
-                }
-                break
-        }
-    }
+    // Strategy uiStatus wins (e.g. SEND_LINK BOTH → 'cancelled'); otherwise
+    // map raw entry.status via the shared helper.
+    if (!strategyOverrodeUiStatus) uiStatus = mapEntryStatusToUiStatus(entry, direction)
 
     // parse the amount from the usdamount string in extradata
     const amount = entry.extraData?.usdAmount
         ? parseFloat(String(entry.extraData.usdAmount).replace(/[^\d.-]/g, ''))
         : 0
 
-    // construct explorer url if possible
-    let explorerUrlWithTx: string | undefined = undefined
-    let addressExplorerUrl: string | undefined = undefined
-
-    // for deposits, explicitly set arbitrum as chain id for explorer url
-    const explorerUrlChainID =
-        entry.type === EHistoryEntryType.DEPOSIT ? PEANUT_WALLET_CHAIN.id.toString() : entry.chainId
-    const baseUrl = getExplorerUrl(explorerUrlChainID)
-    if (baseUrl) {
-        if (entry.senderAccount?.identifier) {
-            addressExplorerUrl = `${baseUrl}/address/${entry.senderAccount.identifier}`
-        }
-        if (entry.txHash && explorerUrlChainID) {
-            explorerUrlWithTx = `${baseUrl}/tx/${entry.txHash}`
-        }
-    }
-
-    let tokenDisplayDetails
-    if (entry.tokenAddress && entry.chainId) {
-        const tokenDetails = getTokenDetails({
-            tokenAddress: entry.tokenAddress as Address,
-            chainId: entry.chainId,
-        })
-        const chainName = getChainName(entry.chainId)
-        const tokenSymbol = entry.tokenSymbol ?? tokenDetails?.symbol
-        tokenDisplayDetails = {
-            tokenSymbol,
-            tokenIconUrl: tokenSymbol ? getTokenLogo(tokenSymbol) : undefined,
-            chainName,
-            chainIconUrl: chainName ? getChainLogo(chainName) : undefined,
-        }
-    }
-
-    const rewardData = REWARD_TOKENS[entry.tokenAddress?.toLowerCase()]
+    const { explorerUrlWithTx, addressExplorerUrl, tokenDisplayDetails, rewardData } = computeDerivedFields(entry)
 
     // If full name is empty, set it to same as nameForDetails as fallback
     if (!fullName || fullName === '') {
