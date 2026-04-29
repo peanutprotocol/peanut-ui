@@ -1,3 +1,5 @@
+import { formatIban } from './general.utils'
+
 /**
  * Per-rail bank account masking for receipt display.
  *
@@ -93,6 +95,15 @@ export function maskAccountIdentifier(
             return identifier.slice(0, 29) + '…'
         }
         case 'plain':
+            // BE sometimes ships IBAN-shaped identifiers without a precise
+            // type (`MANTECA_ALIAS` aliasing an IBAN, guest-claim flows, or
+            // legacy rows with type=null). Detect IBAN shape (2 letters
+            // followed by digits) and uppercase + 4-char-group via
+            // formatIban so the receipt drawer doesn't render
+            // `es2700750984...` lowercase. Non-IBAN plain values pass through.
+            if (/^[a-zA-Z]{2}\d/.test(identifier)) {
+                return formatIban(identifier)
+            }
             return identifier
     }
 }
