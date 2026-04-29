@@ -1,10 +1,5 @@
 import { mapTransactionDataForDrawer } from '../transactionTransformer'
-import {
-    EHistoryEntryType,
-    EHistoryUserRole,
-    EHistoryStatus,
-    type HistoryEntry,
-} from '@/utils/history.utils'
+import { EHistoryEntryType, EHistoryUserRole, EHistoryStatus, type HistoryEntry } from '@/utils/history.utils'
 
 jest.mock('@/assets', () => ({}))
 jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '', PIX: '', SIMPLEFI: '' }))
@@ -80,88 +75,180 @@ const cases: TestCase[] = [
     // ───── DIRECT_SEND ─────
     {
         name: 'DIRECT_SEND × SENDER → outgoing send to user',
-        entry: baseEntry({ type: EHistoryEntryType.DIRECT_SEND, userRole: EHistoryUserRole.SENDER, recipientAccount: aliceUser, isVerified: true }),
-        expect: { direction: 'send', transactionCardType: 'send', userName: 'alice', isPeerActuallyUser: true, isLinkTransaction: false },
+        entry: baseEntry({
+            type: EHistoryEntryType.DIRECT_SEND,
+            userRole: EHistoryUserRole.SENDER,
+            recipientAccount: aliceUser,
+            isVerified: true,
+        }),
+        expect: {
+            direction: 'send',
+            transactionCardType: 'send',
+            userName: 'alice',
+            isPeerActuallyUser: true,
+            isLinkTransaction: false,
+        },
     },
     {
         name: 'DIRECT_SEND × RECIPIENT → incoming receive from user',
-        entry: baseEntry({ type: EHistoryEntryType.DIRECT_SEND, userRole: EHistoryUserRole.RECIPIENT, senderAccount: bobUser, recipientAccount: aliceUser, isVerified: true }),
+        entry: baseEntry({
+            type: EHistoryEntryType.DIRECT_SEND,
+            userRole: EHistoryUserRole.RECIPIENT,
+            senderAccount: bobUser,
+            recipientAccount: aliceUser,
+            isVerified: true,
+        }),
         expect: { direction: 'receive', transactionCardType: 'receive', userName: 'bob', isPeerActuallyUser: true },
     },
 
     // ───── SEND_LINK ─────
     {
         name: 'SEND_LINK × SENDER (claimed by peanut user) → send to claimer username',
-        entry: baseEntry({ type: EHistoryEntryType.SEND_LINK, userRole: EHistoryUserRole.SENDER, recipientAccount: aliceUser, isVerified: true }),
-        expect: { direction: 'send', transactionCardType: 'send', userName: 'alice', isPeerActuallyUser: true, isLinkTransaction: false },
+        entry: baseEntry({
+            type: EHistoryEntryType.SEND_LINK,
+            userRole: EHistoryUserRole.SENDER,
+            recipientAccount: aliceUser,
+            isVerified: true,
+        }),
+        expect: {
+            direction: 'send',
+            transactionCardType: 'send',
+            userName: 'alice',
+            isPeerActuallyUser: true,
+            isLinkTransaction: false,
+        },
     },
     {
         name: 'SEND_LINK × SENDER (unclaimed) → still send via link, no peer',
-        entry: baseEntry({ type: EHistoryEntryType.SEND_LINK, userRole: EHistoryUserRole.SENDER, status: EHistoryStatus.PENDING, recipientAccount: { ...externalEoa }, isVerified: true }),
+        entry: baseEntry({
+            type: EHistoryEntryType.SEND_LINK,
+            userRole: EHistoryUserRole.SENDER,
+            status: EHistoryStatus.PENDING,
+            recipientAccount: { ...externalEoa },
+            isVerified: true,
+        }),
         expect: { direction: 'send', transactionCardType: 'send', isPeerActuallyUser: false, isLinkTransaction: true },
     },
     {
         name: 'SEND_LINK × RECIPIENT (claimed by external addr) → claim_external',
-        entry: baseEntry({ type: EHistoryEntryType.SEND_LINK, userRole: EHistoryUserRole.RECIPIENT, recipientAccount: externalEoa }),
-        expect: { direction: 'claim_external', transactionCardType: 'claim_external', userName: externalEoa.identifier, isLinkTransaction: true },
+        entry: baseEntry({
+            type: EHistoryEntryType.SEND_LINK,
+            userRole: EHistoryUserRole.RECIPIENT,
+            recipientAccount: externalEoa,
+        }),
+        expect: {
+            direction: 'claim_external',
+            transactionCardType: 'claim_external',
+            userName: externalEoa.identifier,
+            isLinkTransaction: true,
+        },
     },
     {
         name: 'SEND_LINK × BOTH → cancelled-by-self (link tx, peer = self)',
-        entry: baseEntry({ type: EHistoryEntryType.SEND_LINK, userRole: EHistoryUserRole.BOTH, recipientAccount: aliceUser }),
+        entry: baseEntry({
+            type: EHistoryEntryType.SEND_LINK,
+            userRole: EHistoryUserRole.BOTH,
+            recipientAccount: aliceUser,
+        }),
         expect: { isLinkTransaction: true },
     },
 
     // ───── BRIDGE_OFFRAMP ─────
     {
         name: 'BRIDGE_OFFRAMP → bank_withdraw with bankAccountDetails populated',
-        entry: baseEntry({ type: EHistoryEntryType.BRIDGE_OFFRAMP, userRole: EHistoryUserRole.SENDER, recipientAccount: ibanAccountES }),
-        expect: { direction: 'bank_withdraw', transactionCardType: 'bank_withdraw', userName: 'Bank Account', bankAccountDetailsDefined: true },
+        entry: baseEntry({
+            type: EHistoryEntryType.BRIDGE_OFFRAMP,
+            userRole: EHistoryUserRole.SENDER,
+            recipientAccount: ibanAccountES,
+        }),
+        expect: {
+            direction: 'bank_withdraw',
+            transactionCardType: 'bank_withdraw',
+            userName: 'Bank Account',
+            bankAccountDetailsDefined: true,
+        },
     },
 
     // ───── MANTECA_OFFRAMP — bankAccountDetails plumbed (legacy bug fixed in PR-B) ─────
     {
         name: 'MANTECA_OFFRAMP → bank_withdraw with bankAccountDetails populated (post-PR-B)',
-        entry: baseEntry({ type: EHistoryEntryType.MANTECA_OFFRAMP, userRole: EHistoryUserRole.SENDER, recipientAccount: ibanAccountES }),
+        entry: baseEntry({
+            type: EHistoryEntryType.MANTECA_OFFRAMP,
+            userRole: EHistoryUserRole.SENDER,
+            recipientAccount: ibanAccountES,
+        }),
         expect: { direction: 'bank_withdraw', transactionCardType: 'bank_withdraw', bankAccountDetailsDefined: true },
     },
 
     // ───── BRIDGE_ONRAMP / MANTECA_ONRAMP ─────
     {
         name: 'BRIDGE_ONRAMP → bank_deposit',
-        entry: baseEntry({ type: EHistoryEntryType.BRIDGE_ONRAMP, userRole: EHistoryUserRole.RECIPIENT, recipientAccount: aliceUser }),
+        entry: baseEntry({
+            type: EHistoryEntryType.BRIDGE_ONRAMP,
+            userRole: EHistoryUserRole.RECIPIENT,
+            recipientAccount: aliceUser,
+        }),
         expect: { direction: 'bank_deposit', transactionCardType: 'bank_deposit', userName: 'Bank Account' },
     },
     {
         name: 'MANTECA_ONRAMP → bank_deposit',
-        entry: baseEntry({ type: EHistoryEntryType.MANTECA_ONRAMP, userRole: EHistoryUserRole.RECIPIENT, recipientAccount: aliceUser }),
+        entry: baseEntry({
+            type: EHistoryEntryType.MANTECA_ONRAMP,
+            userRole: EHistoryUserRole.RECIPIENT,
+            recipientAccount: aliceUser,
+        }),
         expect: { direction: 'bank_deposit', transactionCardType: 'bank_deposit', userName: 'Bank Account' },
     },
 
     // ───── DEPOSIT (CRYPTO_DEPOSIT legacy) ─────
     {
         name: 'DEPOSIT regular → add, with sender identifier (legacy: never marks peer as user)',
-        entry: baseEntry({ type: EHistoryEntryType.DEPOSIT, userRole: EHistoryUserRole.RECIPIENT, senderAccount: bobUser, recipientAccount: aliceUser, isVerified: true }),
+        entry: baseEntry({
+            type: EHistoryEntryType.DEPOSIT,
+            userRole: EHistoryUserRole.RECIPIENT,
+            senderAccount: bobUser,
+            recipientAccount: aliceUser,
+            isVerified: true,
+        }),
         // Legacy DEPOSIT case sets isPeerActuallyUser=false even when sender is a user.
         // PR-B's TRANSACTION_INTENT/CRYPTO_DEPOSIT branch will improve on this; legacy stays as-is.
-        expect: { direction: 'add', transactionCardType: 'add', userName: bobUser.identifier, isPeerActuallyUser: false },
+        expect: {
+            direction: 'add',
+            transactionCardType: 'add',
+            userName: bobUser.identifier,
+            isPeerActuallyUser: false,
+        },
     },
     {
         name: 'DEPOSIT zero-amount test transaction → "Enjoy Peanut!"',
-        entry: baseEntry({ type: EHistoryEntryType.DEPOSIT, userRole: EHistoryUserRole.RECIPIENT, amount: '0', recipientAccount: aliceUser }),
+        entry: baseEntry({
+            type: EHistoryEntryType.DEPOSIT,
+            userRole: EHistoryUserRole.RECIPIENT,
+            amount: '0',
+            recipientAccount: aliceUser,
+        }),
         expect: { direction: 'add', transactionCardType: 'add', userName: 'Enjoy Peanut!' },
     },
 
     // ───── QR PAYMENTS ─────
     {
         name: 'MANTECA_QR_PAYMENT → qr_payment / pay',
-        entry: baseEntry({ type: EHistoryEntryType.MANTECA_QR_PAYMENT, userRole: EHistoryUserRole.SENDER, recipientAccount: { identifier: 'merchant-xyz', type: 'MERCHANT', isUser: false } }),
+        entry: baseEntry({
+            type: EHistoryEntryType.MANTECA_QR_PAYMENT,
+            userRole: EHistoryUserRole.SENDER,
+            recipientAccount: { identifier: 'merchant-xyz', type: 'MERCHANT', isUser: false },
+        }),
         expect: { direction: 'qr_payment', transactionCardType: 'pay', userName: 'merchant-xyz' },
     },
 
     // ───── PERK_REWARD ─────
     {
         name: 'PERK_REWARD → receive Peanut Reward',
-        entry: baseEntry({ type: EHistoryEntryType.PERK_REWARD, userRole: EHistoryUserRole.RECIPIENT, recipientAccount: aliceUser }),
+        entry: baseEntry({
+            type: EHistoryEntryType.PERK_REWARD,
+            userRole: EHistoryUserRole.RECIPIENT,
+            recipientAccount: aliceUser,
+        }),
         expect: { direction: 'receive', transactionCardType: 'receive', userName: 'Peanut Reward' },
     },
 
@@ -227,11 +314,19 @@ const cases: TestCase[] = [
         entry: baseEntry({
             type: EHistoryEntryType.TRANSACTION_INTENT,
             userRole: EHistoryUserRole.RECIPIENT,
-            senderAccount: { identifier: '0xSomeone0000000000000000000000000000000000', type: 'WALLET_EXTERNAL', isUser: false },
+            senderAccount: {
+                identifier: '0xSomeone0000000000000000000000000000000000',
+                type: 'WALLET_EXTERNAL',
+                isUser: false,
+            },
             recipientAccount: aliceUser,
             extraData: { kind: 'CRYPTO_WITHDRAW' },
         }),
-        expect: { direction: 'add', transactionCardType: 'add', userName: '0xSomeone0000000000000000000000000000000000' },
+        expect: {
+            direction: 'add',
+            transactionCardType: 'add',
+            userName: '0xSomeone0000000000000000000000000000000000',
+        },
     },
     {
         name: 'TRANSACTION_INTENT × FIAT_OFFRAMP × SENDER → bank_withdraw',
@@ -251,7 +346,12 @@ const cases: TestCase[] = [
             recipientAccount: aliceUser,
             extraData: { kind: 'CARD_SPEND', merchantName: 'Acme Coffee', rainTransactionId: 'rain-123' },
         }),
-        expect: { direction: 'qr_payment', transactionCardType: 'pay', userName: 'Acme Coffee', cardPaymentDefined: true },
+        expect: {
+            direction: 'qr_payment',
+            transactionCardType: 'pay',
+            userName: 'Acme Coffee',
+            cardPaymentDefined: true,
+        },
     },
     {
         name: 'TRANSACTION_INTENT × CARD_SPEND with no merchant → fallback "Card payment"',
@@ -261,7 +361,12 @@ const cases: TestCase[] = [
             recipientAccount: aliceUser,
             extraData: { kind: 'CARD_SPEND' },
         }),
-        expect: { direction: 'qr_payment', transactionCardType: 'pay', userName: 'Card payment', cardPaymentDefined: true },
+        expect: {
+            direction: 'qr_payment',
+            transactionCardType: 'pay',
+            userName: 'Card payment',
+            cardPaymentDefined: true,
+        },
     },
     {
         name: 'TRANSACTION_INTENT × OTHER + parentRainTxId → card refund',
@@ -271,7 +376,12 @@ const cases: TestCase[] = [
             recipientAccount: aliceUser,
             extraData: { kind: 'OTHER', parentRainTxId: 'rain-456', merchantName: 'Acme Coffee' },
         }),
-        expect: { direction: 'receive', transactionCardType: 'receive', userName: 'Refund from Acme Coffee', cardPaymentDefined: true },
+        expect: {
+            direction: 'receive',
+            transactionCardType: 'receive',
+            userName: 'Refund from Acme Coffee',
+            cardPaymentDefined: true,
+        },
     },
 
     // ═════════════════════════════════════════════════════════════════════
@@ -324,7 +434,11 @@ const cases: TestCase[] = [
     },
     {
         name: '[PR-B] MANTECA_OFFRAMP plumbs bankAccountDetails (independent legacy bug)',
-        entry: baseEntry({ type: EHistoryEntryType.MANTECA_OFFRAMP, userRole: EHistoryUserRole.SENDER, recipientAccount: ibanAccountES }),
+        entry: baseEntry({
+            type: EHistoryEntryType.MANTECA_OFFRAMP,
+            userRole: EHistoryUserRole.SENDER,
+            recipientAccount: ibanAccountES,
+        }),
         expect: { bankAccountDetailsDefined: true },
     },
 
@@ -371,10 +485,14 @@ describe('mapTransactionDataForDrawer', () => {
 
         if (e.direction !== undefined) expect(result.direction).toBe(e.direction)
         if (e.userName !== undefined) expect(result.userName).toBe(e.userName)
-        if (e.transactionCardType !== undefined) expect(result.extraDataForDrawer?.transactionCardType).toBe(e.transactionCardType)
-        if (e.isLinkTransaction !== undefined) expect(result.extraDataForDrawer?.isLinkTransaction).toBe(e.isLinkTransaction)
-        if (e.cardPaymentDefined !== undefined) expect(!!result.extraDataForDrawer?.cardPayment).toBe(e.cardPaymentDefined)
-        if (e.bankAccountDetailsDefined !== undefined) expect(!!result.bankAccountDetails).toBe(e.bankAccountDetailsDefined)
+        if (e.transactionCardType !== undefined)
+            expect(result.extraDataForDrawer?.transactionCardType).toBe(e.transactionCardType)
+        if (e.isLinkTransaction !== undefined)
+            expect(result.extraDataForDrawer?.isLinkTransaction).toBe(e.isLinkTransaction)
+        if (e.cardPaymentDefined !== undefined)
+            expect(!!result.extraDataForDrawer?.cardPayment).toBe(e.cardPaymentDefined)
+        if (e.bankAccountDetailsDefined !== undefined)
+            expect(!!result.bankAccountDetails).toBe(e.bankAccountDetailsDefined)
         if (e.isPeerActuallyUser !== undefined) {
             // isPeerActuallyUser isn't directly exposed; isVerified output is gated by it
             // (isVerified = entry.isVerified && isPeerActuallyUser). Cases that assert this
