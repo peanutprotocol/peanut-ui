@@ -1,6 +1,7 @@
 import { type HistoryEntry } from '@/hooks/useTransactionHistory'
 import { type TransactionStrategy, type TransactionStrategyOutput } from './types'
 import { cardRefund } from './intent/card'
+import { pipelineAlert } from '@/utils/pipelineAlerts'
 
 export const intentFallback: TransactionStrategy = (entry: HistoryEntry): TransactionStrategyOutput => {
     const kind = (entry.extraData?.kind as string | undefined) ?? 'OTHER'
@@ -12,19 +13,12 @@ export const intentFallback: TransactionStrategy = (entry: HistoryEntry): Transa
         return cardRefund(entry)
     }
 
-    // Lazy Sentry import keeps it out of test / SSR bundles. PR #1914 will
-    // consolidate this onto the shared pipelineAlert helper.
-    if (typeof window !== 'undefined') {
-        import('@sentry/nextjs')
-            .then((Sentry) =>
-                Sentry.captureMessage(`transactionTransformer: unhandled TRANSACTION_INTENT kind "${kind}"`, {
-                    level: 'warning',
-                    tags: { feature: 'history', kind },
-                    extra: { entryUuid: entry.uuid, userRole: entry.userRole },
-                })
-            )
-            .catch(() => {})
-    }
+    pipelineAlert(
+        'unknown_transformer_kind',
+        `transactionTransformer: unhandled TRANSACTION_INTENT kind "${kind}"`,
+        { entryUuid: entry.uuid, kind, userRole: entry.userRole },
+        'warning'
+    )
 
     return {
         direction: 'send',
