@@ -55,9 +55,13 @@ const underMaintenanceConfig: MaintenanceConfig = {
     enableFullMaintenance: false, // set to true to redirect all pages to /maintenance
     enableMaintenanceBanner: false, // set to true to show maintenance banner on all pages
     disabledPaymentProviders: [], // set to ['MANTECA'] to disable Manteca QR payments
-    disableSquidWithdraw: false, // set to true to disable cross-chain withdrawals (only allows USDC on Arbitrum)
-    disableSquidSend: false, // set to true to disable cross-chain sends (claim, request payments - only allows USDC on Arbitrum)
+    disableSquidWithdraw: true, // set to true to disable cross-chain withdrawals (only allows USDC on Arbitrum)
+    disableSquidSend: true, // set to true to disable cross-chain sends (claim, request payments - only allows USDC on Arbitrum)
     disableCardPioneers: true, // set to false to enable the Card Pioneers waitlist feature
 }
+
+// shared user-facing copy for cross-chain disabled paths — keep wording aligned with TokenSelector banner
+export const CROSS_CHAIN_DISABLED_MESSAGE =
+    'Cross-chain claims are temporarily unavailable. Try claiming to an external wallet on the same chain as the link, or try again later.'
 
 export default underMaintenanceConfig
