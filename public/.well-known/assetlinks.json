@@ -3,9 +3,9 @@
         "relation": ["delegate_permission/common.handle_all_urls", "delegate_permission/common.get_login_creds"],
         "target": {
             "namespace": "android_app",
-            "package_name": "me.peanut.app",
+            "package_name": "me.peanut.wallet",
             "sha256_cert_fingerprints": [
-                "0F:A7:14:0D:F6:12:5C:36:F8:EB:F1:90:87:FC:99:D8:5E:7D:18:D2:89:A4:62:C1:9E:04:54:61:9A:8C:66:26",
+                "FB:29:F2:1C:4F:18:5D:3B:50:BB:8C:55:58:E6:48:CB:C3:C2:51:2D:88:C8:73:96:F5:D8:44:21:59:79:87:39",
                 "93:5F:2F:BD:0B:5F:F0:6A:D3:4D:FD:03:5E:8C:B9:E7:AE:11:E0:20:8A:6C:DB:70:B3:B1:39:4F:9C:79:29:78",
                 "42:E1:F7:7F:2B:2F:C7:26:26:19:4A:15:D3:07:BC:41:62:26:12:6F:7F:C9:0A:54:C3:7A:F5:E2:2D:42:6A:D0"
             ]
