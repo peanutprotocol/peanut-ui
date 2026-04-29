@@ -21,6 +21,7 @@ import { formatAmount, formatDate, isStableCoin, formatCurrency } from '@/utils/
 import { formatPoints } from '@/utils/format.utils'
 import { getAvatarUrl } from '@/utils/history.utils'
 import { formatIban, printableAddress, shortenAddress, shortenStringLong, slugify } from '@/utils/general.utils'
+import { maskAccountIdentifier } from '@/utils/account-mask.utils'
 import { cancelOnramp } from '@/app/actions/onramp'
 import { captureException } from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
@@ -529,9 +530,15 @@ export const TransactionDetailsReceipt = ({
                                     <span>
                                         {isGuestBankClaim
                                             ? transaction.bankAccountDetails.identifier
-                                            : formatIban(transaction.bankAccountDetails.identifier)}
+                                            : maskAccountIdentifier(
+                                                  transaction.bankAccountDetails.identifier,
+                                                  transaction.bankAccountDetails.type
+                                              )}
                                     </span>
                                     {!isGuestBankClaim && (
+                                        // Copy yields the FULL identifier — masking is for
+                                        // visual privacy on shared screens / receipts; the user
+                                        // owns the account and may need to paste it elsewhere.
                                         <CopyToClipboard
                                             textToCopy={formatIban(transaction.bankAccountDetails.identifier)}
                                             iconSize="4"
@@ -769,6 +776,10 @@ export const TransactionDetailsReceipt = ({
                                     await navigator.share({ text })
                                 } else {
                                     await navigator.clipboard.writeText(text)
+                                    // Desktop-fallback path: navigator.share is mobile-only.
+                                    // Without a toast the click is silent — users assume the
+                                    // button is broken (Hugo's screenshot b on 2026-04-29).
+                                    toast.info('Invite link copied!')
                                 }
                             } catch {
                                 // user cancelled share sheet — ignore

@@ -19,6 +19,35 @@ import { type HistoryEntryPerkReward, type ChargeEntry } from '@/services/servic
  * @fileoverview maps raw transaction history data from the api/hook to the format needed by ui components.
  */
 
+/**
+ * Should the receipt drawer's `bankAccountDetails` row render for this entry?
+ *
+ * Original gate (pre-decomplexify) only fired for legacy `BRIDGE_OFFRAMP` and
+ * `BANK_SEND_LINK_CLAIM × RECIPIENT`. Post-decomplexify, the same flows arrive
+ * as `TRANSACTION_INTENT` with `kind ∈ {FIAT_OFFRAMP, CRYPTO_WITHDRAW}`, so the
+ * gate must include those too — otherwise the IBAN row disappears and the
+ * country-by-IBAN flag fallback in `getBankAccountCountryCode` kicks in,
+ * showing an EU flag for an ES IBAN (Hugo's screenshot d on 2026-04-29).
+ *
+ * Also includes legacy `MANTECA_OFFRAMP` — independent legacy bug, was never
+ * plumbed before. Catches Argentina/Brazil rail withdrawals.
+ */
+function shouldPlumbBankAccountDetails(entry: HistoryEntry): boolean {
+    if (entry.type === EHistoryEntryType.BRIDGE_OFFRAMP) return true
+    if (entry.type === EHistoryEntryType.MANTECA_OFFRAMP) return true
+    if (
+        entry.type === EHistoryEntryType.BANK_SEND_LINK_CLAIM &&
+        entry.userRole === EHistoryUserRole.RECIPIENT
+    ) {
+        return true
+    }
+    if (entry.type === EHistoryEntryType.TRANSACTION_INTENT) {
+        const kind = entry.extraData?.kind as string | undefined
+        if (kind === 'FIAT_OFFRAMP' || kind === 'CRYPTO_WITHDRAW') return true
+    }
+    return false
+}
+
 export type RewardData = {
     symbol: string
     formatAmount: (amount: number | bigint) => string
@@ -27,6 +56,27 @@ export type RewardData = {
 }
 // Configure reward tokens here
 export const REWARD_TOKENS: { [key: string]: RewardData } = {}
+
+/**
+ * User-facing copy for reaper-failed rows. Keyed by the failReason string
+ * the BE reaper writes (`${kindStr.toLowerCase()}_timeout`).
+ *
+ * Why per-kind: a generic "Transaction failed" is ambiguous ("did funds
+ * move?"). These strings make clear the action never happened — no funds
+ * moved, no chain TX exists. Don't show a Cancel button; the row is already
+ * terminal.
+ */
+const REAPER_FAIL_COPY: Record<string, string> = {
+    p2p_send_timeout: "Send didn't complete",
+    p2p_request_fulfill_timeout: "Payment didn't complete",
+    send_link_timeout: "Link didn't complete",
+    send_link_claim_timeout: "Claim didn't complete",
+    crypto_withdraw_timeout: "Withdrawal didn't complete",
+    qr_pay_timeout: "QR payment didn't complete",
+    onramp_timeout: "Bank deposit didn't arrive",
+    offramp_timeout: "Bank transfer didn't complete",
+    refund_timeout: "Refund didn't complete",
+}
 
 /**
  * defines the structure of the data expected by the transaction details drawer component.
@@ -403,11 +453,52 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             switch (kind) {
                 case 'P2P_SEND':
                 case 'REQUEST_PAY':
-                    direction = 'send'
-                    transactionCardType = 'send'
-                    nameForDetails =
-                        entry.recipientAccount?.username || entry.recipientAccount?.identifier || 'Recipient'
-                    isPeerActuallyUser = !!entry.recipientAccount?.isUser
+                    // Bridge-fulfilled requests render as bank-request
+                    // fulfillments on the sender side (mirrors legacy REQUEST
+                    // case at line 268). Viewer is paying via bank rails.
+                    if (
+                        kind === 'REQUEST_PAY' &&
+                        entry.extraData?.fulfillmentType === 'bridge' &&
+                        entry.userRole === 'SENDER'
+                    ) {
+                        direction = 'bank_request_fulfillment'
+                        transactionCardType = 'bank_request_fulfillment'
+                        nameForDetails =
+                            entry.recipientAccount?.username ?? entry.recipientAccount?.identifier ?? 'Recipient'
+                        fullName = entry.recipientAccount?.fullName ?? ''
+                        showFullName = entry.recipientAccount?.showFullName
+                        isPeerActuallyUser =
+                            !!entry.recipientAccount?.isUser || !!entry.senderAccount?.isUser
+                        break
+                    }
+                    if (entry.userRole === 'RECIPIENT') {
+                        // Viewer is on the receiving side. Two sub-cases:
+                        //  (a) Senderaccount.identifier is set → an actual paid
+                        //      send. Render as a receive.
+                        //  (b) Sender is empty → unfulfilled request the viewer
+                        //      created. Render as a request_received with a
+                        //      neutral label ("Request" — the FE's
+                        //      TransactionDetailsHeaderCard already styles this).
+                        const senderResolved = !!entry.senderAccount?.identifier
+                        if (senderResolved) {
+                            direction = 'receive'
+                            transactionCardType = 'receive'
+                            nameForDetails =
+                                entry.senderAccount?.username || entry.senderAccount?.identifier || 'Sender'
+                            isPeerActuallyUser = !!entry.senderAccount?.isUser
+                        } else {
+                            direction = 'request_received'
+                            transactionCardType = 'request'
+                            nameForDetails = 'Request'
+                            isPeerActuallyUser = false
+                        }
+                    } else {
+                        direction = 'send'
+                        transactionCardType = 'send'
+                        nameForDetails =
+                            entry.recipientAccount?.username || entry.recipientAccount?.identifier || 'Recipient'
+                        isPeerActuallyUser = !!entry.recipientAccount?.isUser
+                    }
                     break
                 case 'QR_PAY':
                     direction = 'qr_payment'
@@ -416,23 +507,99 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                     isPeerActuallyUser = false
                     break
                 case 'LINK_CREATE':
-                    direction = 'send'
-                    transactionCardType = 'send'
-                    nameForDetails = 'Sent via link'
-                    isLinkTx = true
-                    isPeerActuallyUser = false
+                    if (entry.userRole === 'RECIPIENT') {
+                        // The viewer claimed someone else's link. Mirrors the legacy
+                        // SEND_LINK × RECIPIENT branch — show the sender as the peer.
+                        if (entry.senderAccount?.isUser) {
+                            direction = 'receive'
+                            transactionCardType = 'receive'
+                            nameForDetails =
+                                entry.senderAccount?.username ||
+                                entry.senderAccount?.identifier ||
+                                'Received via Link'
+                            fullName = entry.senderAccount?.fullName ?? ''
+                            showFullName = entry.senderAccount?.showFullName
+                            isPeerActuallyUser = true
+                            isLinkTx = false
+                        } else {
+                            direction = 'receive'
+                            transactionCardType = 'receive'
+                            nameForDetails =
+                                entry.senderAccount?.username ||
+                                entry.senderAccount?.identifier ||
+                                'Received via Link'
+                            fullName = entry.senderAccount?.fullName ?? ''
+                            isPeerActuallyUser = false
+                            isLinkTx = true
+                        }
+                    } else {
+                        // SENDER (creator). Resolve claimer if it's a peanut user;
+                        // otherwise show the link-shaped placeholder.
+                        if (entry.recipientAccount?.isUser) {
+                            direction = 'send'
+                            transactionCardType = 'send'
+                            nameForDetails =
+                                entry.recipientAccount?.username ?? entry.recipientAccount?.identifier
+                            fullName = entry.recipientAccount?.fullName ?? ''
+                            showFullName = entry.recipientAccount?.showFullName
+                            isPeerActuallyUser = true
+                            isLinkTx = false
+                        } else {
+                            direction = 'send'
+                            transactionCardType = 'send'
+                            nameForDetails = 'Sent via link'
+                            isLinkTx = true
+                            isPeerActuallyUser = false
+                        }
+                    }
+                    break
+                case 'CRYPTO_DEPOSIT':
+                    // Incoming on-chain deposit. If the sender resolved to a known
+                    // Peanut user, surface their username + clickable avatar
+                    // (improvement over the legacy DEPOSIT branch which always
+                    // forced isPeerActuallyUser=false).
+                    direction = 'add'
+                    transactionCardType = 'add'
+                    nameForDetails =
+                        entry.senderAccount?.username || entry.senderAccount?.identifier || 'Deposit Source'
+                    fullName = entry.senderAccount?.fullName ?? ''
+                    showFullName = entry.senderAccount?.showFullName
+                    isPeerActuallyUser = !!entry.senderAccount?.isUser
                     break
                 case 'CRYPTO_WITHDRAW':
-                    direction = 'withdraw'
-                    transactionCardType = 'withdraw'
-                    nameForDetails = entry.recipientAccount?.identifier || 'External Account'
-                    isPeerActuallyUser = false
+                    if (entry.userRole === 'RECIPIENT') {
+                        // The viewer received crypto from someone else's withdraw
+                        // (e.g. another user sent to this user's wallet via a
+                        // CRYPTO_WITHDRAW). Render as a deposit-style row.
+                        direction = 'add'
+                        transactionCardType = 'add'
+                        nameForDetails =
+                            entry.senderAccount?.username || entry.senderAccount?.identifier || 'External Wallet'
+                        isPeerActuallyUser = !!entry.senderAccount?.isUser
+                    } else {
+                        direction = 'withdraw'
+                        transactionCardType = 'withdraw'
+                        nameForDetails = entry.recipientAccount?.identifier || 'External Account'
+                        isPeerActuallyUser = false
+                    }
                     break
                 case 'FIAT_OFFRAMP':
-                    direction = 'bank_withdraw'
-                    transactionCardType = 'bank_withdraw'
-                    nameForDetails = 'Bank Account'
-                    isPeerActuallyUser = false
+                    if (entry.userRole === 'RECIPIENT') {
+                        // Multi-user fulfillment edge case — viewer received a
+                        // bank withdraw initiated by another user. Render as a
+                        // receive (USDC arrives in viewer's wallet from offramp
+                        // funder).
+                        direction = 'receive'
+                        transactionCardType = 'receive'
+                        nameForDetails =
+                            entry.senderAccount?.username || entry.senderAccount?.identifier || 'Bank Account'
+                        isPeerActuallyUser = !!entry.senderAccount?.isUser
+                    } else {
+                        direction = 'bank_withdraw'
+                        transactionCardType = 'bank_withdraw'
+                        nameForDetails = 'Bank Account'
+                        isPeerActuallyUser = false
+                    }
                     break
                 case 'CARD_SPEND': {
                     // Merchant fields come from the M3 history fetcher's extraData
@@ -462,6 +629,28 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                         isPeerActuallyUser = false
                         break
                     }
+                    // Unknown TRANSACTION_INTENT kind — log to Sentry so we
+                    // catch BE-added kinds the FE doesn't yet handle. Render
+                    // a defensive fallback so the row still appears.
+                    if (typeof window !== 'undefined') {
+                        // Lazy import to avoid bundling Sentry in non-browser
+                        // contexts (test, SSR). Logged as a warning, not a
+                        // hard error — the row still renders.
+                        import('@sentry/nextjs')
+                            .then((Sentry) =>
+                                Sentry.captureMessage(
+                                    `transactionTransformer: unhandled TRANSACTION_INTENT kind "${kind}"`,
+                                    {
+                                        level: 'warning',
+                                        tags: { feature: 'history', kind },
+                                        extra: { entryUuid: entry.uuid, userRole: entry.userRole },
+                                    }
+                                )
+                            )
+                            .catch(() => {
+                                // Sentry not available (test env) — no-op.
+                            })
+                    }
                     direction = 'send'
                     transactionCardType = 'send'
                     nameForDetails = entry.recipientAccount?.identifier || 'Transaction'
@@ -481,6 +670,19 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     if (!isPeerActuallyUser) {
         isPeerActuallyUser = false
     } else if (entry.recipientAccount?.isUser === false && entry.senderAccount?.isUser === false) {
+        isPeerActuallyUser = false
+    }
+
+    // Reaper-failed rows (orphaned PENDING intents the BE timed out — see
+    // peanut-api-ts/src/ledger/reaper.ts) get user-friendly copy. Without
+    // this branch the row renders with whatever userName the kind-switch
+    // landed on, which for a P2P_SEND that never confirmed is misleading
+    // ("Sent to alice" implies funds moved). The reaper sets
+    // metadata.failReason to '${kind}_timeout' before transitioning FAILED;
+    // the BE history fetcher surfaces it as `entry.extraData.failReason`.
+    const reaperFailReason = entry.extraData?.failReason as string | undefined
+    if (entry.status === 'FAILED' && reaperFailReason && reaperFailReason.endsWith('_timeout')) {
+        nameForDetails = REAPER_FAIL_COPY[reaperFailReason] ?? 'Transaction did not complete'
         isPeerActuallyUser = false
     }
 
@@ -728,14 +930,12 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         },
         sourceView: 'history',
         points: entry.points,
-        bankAccountDetails:
-            entry.type === EHistoryEntryType.BRIDGE_OFFRAMP ||
-            (entry.type === EHistoryEntryType.BANK_SEND_LINK_CLAIM && entry.userRole === EHistoryUserRole.RECIPIENT)
-                ? {
-                      identifier: entry.recipientAccount.identifier,
-                      type: entry.recipientAccount.type,
-                  }
-                : undefined,
+        bankAccountDetails: shouldPlumbBankAccountDetails(entry)
+            ? {
+                  identifier: entry.recipientAccount.identifier,
+                  type: entry.recipientAccount.type,
+              }
+            : undefined,
         claimedAt: entry.claimedAt,
         createdAt: entry.createdAt,
         completedAt: entry.completedAt,

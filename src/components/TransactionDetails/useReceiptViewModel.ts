@@ -188,6 +188,9 @@ export function useReceiptViewModel(
             ),
             depositInstructions: !!(
                 (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.BRIDGE_ONRAMP ||
+                    // Post-decomplexify: BRIDGE_ONRAMP arrives as TRANSACTION_INTENT/kind=ONRAMP.
+                    (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.TRANSACTION_INTENT &&
+                        transaction.extraDataForDrawer?.kind === 'ONRAMP') ||
                     (isPendingBankRequest &&
                         transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER)) &&
                 transaction.status === 'pending' &&
@@ -205,7 +208,14 @@ export function useReceiptViewModel(
             attachment: !!(transaction.attachmentUrl && transaction.status !== 'cancelled'),
             mantecaDepositInfo:
                 !isPublic &&
-                transaction.extraDataForDrawer?.originalType === EHistoryEntryType.MANTECA_ONRAMP &&
+                (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.MANTECA_ONRAMP ||
+                    // Post-decomplexify: MANTECA_ONRAMP arrives as TRANSACTION_INTENT/kind=ONRAMP
+                    // (provider differentiates Manteca vs Bridge — same kind, different provider).
+                    // Without provider plumbed through to the FE, gate on kind alone — Bridge
+                    // onramps with deposit instructions branch above; this path covers Manteca's
+                    // ARS/BRL deposit info row.
+                    (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.TRANSACTION_INTENT &&
+                        transaction.extraDataForDrawer?.kind === 'ONRAMP')) &&
                 transaction.status === 'pending',
             // Gate on whether CardPaymentRows would actually emit a sub-row.
             // Otherwise an "all-data-absent" card spend leaves the slot
