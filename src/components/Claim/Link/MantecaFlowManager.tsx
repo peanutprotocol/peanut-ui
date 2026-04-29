@@ -12,6 +12,7 @@ import MantecaReviewStep from './views/MantecaReviewStep'
 import { Button } from '@/components/0_Bruddle/Button'
 import { useRouter } from 'next/navigation'
 import useKycStatus from '@/hooks/useKycStatus'
+import useProviderRejectionStatus from '@/hooks/useProviderRejectionStatus'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
@@ -28,6 +29,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
     const router = useRouter()
     const [destinationAddress, setDestinationAddress] = useState('')
     const { isUserMantecaKycApproved } = useKycStatus()
+    const { manteca: mantecaRejection } = useProviderRejectionStatus()
 
     // inline sumsub kyc flow for manteca users who need LATAM verification
     // regionIntent is NOT passed here to avoid creating a backend record on mount.
@@ -120,10 +122,21 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                 visible={showKycModal}
                 onClose={() => setShowKycModal(false)}
                 onVerify={async () => {
-                    await sumsubFlow.handleInitiateKyc('LATAM')
+                    const hasRejection = mantecaRejection.state === 'fixable'
+                    if (hasRejection) {
+                        await sumsubFlow.handleSelfHealResubmit('MANTECA')
+                    } else {
+                        await sumsubFlow.handleInitiateKyc('LATAM')
+                    }
                     setShowKycModal(false)
                 }}
                 isLoading={sumsubFlow.isLoading}
+                variant={
+                    mantecaRejection.state === 'fixable' || mantecaRejection.state === 'blocked'
+                        ? 'provider_rejection'
+                        : 'default'
+                }
+                providerMessage={mantecaRejection.userMessage ?? undefined}
             />
             <SumsubKycModals flow={sumsubFlow} />
         </div>

@@ -21,6 +21,7 @@ import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useAppDispatch } from '@/redux/hooks'
 import { bankFormActions } from '@/redux/slices/bank-form-slice'
 import useKycStatus from '@/hooks/useKycStatus'
+import useProviderRejectionStatus from '@/hooks/useProviderRejectionStatus'
 import KycVerifiedOrReviewModal from '../Global/KycVerifiedOrReviewModal'
 import { ActionListCard } from '@/components/ActionListCard'
 import TokenAndNetworkConfirmationModal from '../Global/TokenAndNetworkConfirmationModal'
@@ -65,6 +66,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const [isSupportedTokensModalOpen, setIsSupportedTokensModalOpen] = useState(false)
 
     const { isUserKycApproved, isUserBridgeKycUnderReview } = useKycStatus()
+    const { bridge: bridgeRejection } = useProviderRejectionStatus()
     const [showKycStatusModal, setShowKycStatusModal] = useState(false)
 
     const countryPathParts = Array.isArray(params.country) ? params.country : [params.country]
@@ -82,6 +84,15 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         // re-fetch user to ensure we have the latest KYC status
         // (the multi-phase flow may have completed but websocket/state not yet propagated)
         await fetchUser()
+
+        // block users with bridge provider rejection
+        if (bridgeRejection.state === 'fixable') {
+            await sumsubFlow.handleSelfHealResubmit('BRIDGE')
+            return {}
+        }
+        if (bridgeRejection.state === 'blocked') {
+            return { error: 'Bank transfers are not available for your account. Please contact support.' }
+        }
 
         // scenario (1): happy path: if the user has already completed kyc, we can add the bank account directly
         // email and name are now collected by sumsub — no need to check them here

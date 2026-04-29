@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useUserStore } from '@/redux/hooks'
-import { initiateSumsubKyc } from '@/app/actions/sumsub'
+import { initiateSumsubKyc, initiateSelfHealResubmission } from '@/app/actions/sumsub'
 import { type KYCRegionIntent, type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
 
 interface UseSumsubKycFlowOptions {
@@ -36,6 +36,8 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // guard: only fire onKycSuccess when the user initiated a kyc flow in this session.
     // prevents stale websocket events or mount-time fetches from auto-closing the drawer.
     const userInitiatedRef = useRef(false)
+    // tracks self-heal provider for token refresh — null when in regular KYC flow
+    const selfHealProviderRef = useRef<'BRIDGE' | 'MANTECA' | null>(null)
 
     useEffect(() => {
         regionIntentRef.current = regionIntent
@@ -129,6 +131,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         async (overrideIntent?: KYCRegionIntent, levelName?: string, crossRegion?: boolean) => {
             userInitiatedRef.current = true
             initiatingRef.current = true
+            selfHealProviderRef.current = null
             setIsLoading(true)
             setError(null)
 
@@ -206,6 +209,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // called when sdk signals applicant submitted
     const handleSdkComplete = useCallback(() => {
         userInitiatedRef.current = true
+        selfHealProviderRef.current = null
         setShowWrapper(false)
         setIsActionFlow(false)
         setIsVerificationProgressModalOpen(true)
@@ -219,8 +223,17 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     }, [onManualClose])
 
     // token refresh function passed to the sdk for when the token expires.
-    // uses regionIntentRef + levelNameRef so refresh always matches the template used during initiation.
+    // uses self-heal provider ref when in self-heal mode, otherwise regular KYC endpoint.
     const refreshToken = useCallback(async (): Promise<string> => {
+        if (selfHealProviderRef.current) {
+            const response = await initiateSelfHealResubmission(selfHealProviderRef.current)
+            if (response.error || !response.data?.token) {
+                throw new Error(response.error || 'Failed to refresh self-heal token')
+            }
+            setAccessToken(response.data.token)
+            return response.data.token
+        }
+
         const response = await initiateSumsubKyc({
             regionIntent: regionIntentRef.current,
             levelName: levelNameRef.current,
@@ -247,6 +260,39 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         setError(null)
     }, [])
 
+    // initiate self-heal document resubmission: calls the resubmit API
+    // and opens the sumsub SDK with the action token
+    const handleSelfHealResubmit = useCallback(async (provider: 'BRIDGE' | 'MANTECA') => {
+        setIsLoading(true)
+        setError(null)
+        userInitiatedRef.current = true
+        selfHealProviderRef.current = provider
+
+        try {
+            const response = await initiateSelfHealResubmission(provider)
+
+            if (response.error) {
+                selfHealProviderRef.current = null
+                setError(response.error)
+                return
+            }
+
+            if (response.data?.token) {
+                setAccessToken(response.data.token)
+                setShowWrapper(true)
+            } else {
+                selfHealProviderRef.current = null
+                setError('Could not initiate document resubmission. Please try again.')
+            }
+        } catch (e: unknown) {
+            selfHealProviderRef.current = null
+            const message = e instanceof Error ? e.message : 'An unexpected error occurred'
+            setError(message)
+        } finally {
+            setIsLoading(false)
+        }
+    }, [])
+
     return {
         isLoading,
         error,
@@ -255,6 +301,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         liveKycStatus,
         rejectLabels,
         handleInitiateKyc,
+        handleSelfHealResubmit,
         handleSdkComplete,
         handleClose,
         refreshToken,

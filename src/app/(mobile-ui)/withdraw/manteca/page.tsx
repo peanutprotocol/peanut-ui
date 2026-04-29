@@ -34,6 +34,7 @@ import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { useQueryClient } from '@tanstack/react-query'
 import { captureException } from '@sentry/nextjs'
 import useKycStatus from '@/hooks/useKycStatus'
+import useProviderRejectionStatus from '@/hooks/useProviderRejectionStatus'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
@@ -91,6 +92,7 @@ export default function MantecaWithdrawFlow() {
     const { setIsSupportModalOpen, openSupportWithMessage } = useModalsContext()
     const queryClient = useQueryClient()
     const { isUserMantecaKycApproved } = useKycStatus()
+    const { manteca: mantecaRejection } = useProviderRejectionStatus()
     const { hasPendingTransactions } = usePendingTransactions()
 
     // inline sumsub kyc flow for manteca users who need LATAM verification
@@ -530,10 +532,21 @@ export default function MantecaWithdrawFlow() {
                 visible={showKycModal}
                 onClose={() => setShowKycModal(false)}
                 onVerify={async () => {
-                    await sumsubFlow.handleInitiateKyc('LATAM')
+                    const hasRejection = mantecaRejection.state === 'fixable'
+                    if (hasRejection) {
+                        await sumsubFlow.handleSelfHealResubmit('MANTECA')
+                    } else {
+                        await sumsubFlow.handleInitiateKyc('LATAM')
+                    }
                     setShowKycModal(false)
                 }}
                 isLoading={sumsubFlow.isLoading}
+                variant={
+                    mantecaRejection.state === 'fixable' || mantecaRejection.state === 'blocked'
+                        ? 'provider_rejection'
+                        : 'default'
+                }
+                providerMessage={mantecaRejection.userMessage ?? undefined}
             />
             <SumsubKycModals flow={sumsubFlow} />
             <SumsubKycWrapper

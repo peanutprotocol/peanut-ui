@@ -11,6 +11,7 @@ import { formatAmount } from '@/utils/general.utils'
 import { countryData } from '@/components/AddMoney/consts'
 import { useAuth } from '@/context/authContext'
 import useKycStatus from '@/hooks/useKycStatus'
+import useProviderRejectionStatus from '@/hooks/useProviderRejectionStatus'
 import { useCreateOnramp } from '@/hooks/useCreateOnramp'
 import { useRouter, useParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -94,6 +95,7 @@ export default function OnrampBankPage() {
     const isUK = isUKCountry(selectedCountryPath)
 
     const { isUserKycApproved } = useKycStatus()
+    const { bridge: bridgeRejection } = useProviderRejectionStatus()
     const { guardWithTos, showBridgeTos, hideTos } = useBridgeTosGuard()
 
     useEffect(() => {
@@ -194,7 +196,7 @@ export default function OnrampBankPage() {
     const handleAmountContinue = () => {
         if (!validateAmount(rawTokenAmount)) return
 
-        if (!isUserKycApproved) {
+        if (!isUserKycApproved || bridgeRejection.state === 'fixable' || bridgeRejection.state === 'blocked') {
             setShowKycModal(true)
             return
         }
@@ -395,10 +397,21 @@ export default function OnrampBankPage() {
                     visible={showKycModal}
                     onClose={() => setShowKycModal(false)}
                     onVerify={async () => {
-                        await sumsubFlow.handleInitiateKyc('STANDARD')
+                        const hasRejection = bridgeRejection.state === 'fixable'
+                        if (hasRejection) {
+                            await sumsubFlow.handleSelfHealResubmit('BRIDGE')
+                        } else {
+                            await sumsubFlow.handleInitiateKyc('STANDARD')
+                        }
                         setShowKycModal(false)
                     }}
                     isLoading={sumsubFlow.isLoading}
+                    variant={
+                        bridgeRejection.state === 'fixable' || bridgeRejection.state === 'blocked'
+                            ? 'provider_rejection'
+                            : 'default'
+                    }
+                    providerMessage={bridgeRejection.userMessage ?? undefined}
                 />
 
                 <SumsubKycModals flow={sumsubFlow} autoStartSdk />

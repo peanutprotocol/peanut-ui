@@ -143,6 +143,7 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
         accessToken,
         liveKycStatus,
         handleInitiateKyc: originalHandleInitiateKyc,
+        handleSelfHealResubmit,
         handleSdkComplete: originalHandleSdkComplete,
         handleClose,
         refreshToken,
@@ -321,6 +322,7 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
     return {
         // initiation
         handleInitiateKyc,
+        handleSelfHealResubmit,
         isLoading,
         error,
         liveKycStatus,
