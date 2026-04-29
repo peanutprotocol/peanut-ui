@@ -14,6 +14,7 @@ import { type StatusPillType } from '../Global/StatusPill'
 import type { Address } from 'viem'
 import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import { type HistoryEntryPerkReward, type ChargeEntry } from '@/services/services.types'
+import { pipelineAlert } from '@/utils/pipelineAlerts'
 
 /**
  * @fileoverview maps raw transaction history data from the api/hook to the format needed by ui components.
@@ -35,10 +36,7 @@ import { type HistoryEntryPerkReward, type ChargeEntry } from '@/services/servic
 function shouldPlumbBankAccountDetails(entry: HistoryEntry): boolean {
     if (entry.type === EHistoryEntryType.BRIDGE_OFFRAMP) return true
     if (entry.type === EHistoryEntryType.MANTECA_OFFRAMP) return true
-    if (
-        entry.type === EHistoryEntryType.BANK_SEND_LINK_CLAIM &&
-        entry.userRole === EHistoryUserRole.RECIPIENT
-    ) {
+    if (entry.type === EHistoryEntryType.BANK_SEND_LINK_CLAIM && entry.userRole === EHistoryUserRole.RECIPIENT) {
         return true
     }
     if (entry.type === EHistoryEntryType.TRANSACTION_INTENT) {
@@ -467,8 +465,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                             entry.recipientAccount?.username ?? entry.recipientAccount?.identifier ?? 'Recipient'
                         fullName = entry.recipientAccount?.fullName ?? ''
                         showFullName = entry.recipientAccount?.showFullName
-                        isPeerActuallyUser =
-                            !!entry.recipientAccount?.isUser || !!entry.senderAccount?.isUser
+                        isPeerActuallyUser = !!entry.recipientAccount?.isUser || !!entry.senderAccount?.isUser
                         break
                     }
                     if (entry.userRole === 'RECIPIENT') {
@@ -514,9 +511,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                             direction = 'receive'
                             transactionCardType = 'receive'
                             nameForDetails =
-                                entry.senderAccount?.username ||
-                                entry.senderAccount?.identifier ||
-                                'Received via Link'
+                                entry.senderAccount?.username || entry.senderAccount?.identifier || 'Received via Link'
                             fullName = entry.senderAccount?.fullName ?? ''
                             showFullName = entry.senderAccount?.showFullName
                             isPeerActuallyUser = true
@@ -525,9 +520,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                             direction = 'receive'
                             transactionCardType = 'receive'
                             nameForDetails =
-                                entry.senderAccount?.username ||
-                                entry.senderAccount?.identifier ||
-                                'Received via Link'
+                                entry.senderAccount?.username || entry.senderAccount?.identifier || 'Received via Link'
                             fullName = entry.senderAccount?.fullName ?? ''
                             isPeerActuallyUser = false
                             isLinkTx = true
@@ -538,8 +531,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                         if (entry.recipientAccount?.isUser) {
                             direction = 'send'
                             transactionCardType = 'send'
-                            nameForDetails =
-                                entry.recipientAccount?.username ?? entry.recipientAccount?.identifier
+                            nameForDetails = entry.recipientAccount?.username ?? entry.recipientAccount?.identifier
                             fullName = entry.recipientAccount?.fullName ?? ''
                             showFullName = entry.recipientAccount?.showFullName
                             isPeerActuallyUser = true
@@ -632,25 +624,12 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                     // Unknown TRANSACTION_INTENT kind — log to Sentry so we
                     // catch BE-added kinds the FE doesn't yet handle. Render
                     // a defensive fallback so the row still appears.
-                    if (typeof window !== 'undefined') {
-                        // Lazy import to avoid bundling Sentry in non-browser
-                        // contexts (test, SSR). Logged as a warning, not a
-                        // hard error — the row still renders.
-                        import('@sentry/nextjs')
-                            .then((Sentry) =>
-                                Sentry.captureMessage(
-                                    `transactionTransformer: unhandled TRANSACTION_INTENT kind "${kind}"`,
-                                    {
-                                        level: 'warning',
-                                        tags: { feature: 'history', kind },
-                                        extra: { entryUuid: entry.uuid, userRole: entry.userRole },
-                                    }
-                                )
-                            )
-                            .catch(() => {
-                                // Sentry not available (test env) — no-op.
-                            })
-                    }
+                    pipelineAlert(
+                        'unknown_transformer_kind',
+                        `transactionTransformer: unhandled TRANSACTION_INTENT kind "${kind}"`,
+                        { entryUuid: entry.uuid, kind, userRole: entry.userRole },
+                        'warning'
+                    )
                     direction = 'send'
                     transactionCardType = 'send'
                     nameForDetails = entry.recipientAccount?.identifier || 'Transaction'
