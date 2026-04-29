@@ -61,30 +61,17 @@ const getTitle = (
 ): React.ReactNode => {
     let titleText = userName
 
-    // Link transactions short-circuit. The userName is just a label like
-    // 'Sent via link' / 'Received via Link' / 'Requested via Link', and the
-    // drawer should NOT prefix it with "Sent to" / "Received from" / etc —
-    // doing so produces "Sent to Sent via link" (real bug from staging
-    // post-cutover). Also covers the legacy completed-status case.
+    // Link transactions short-circuit; userName is already a self-describing
+    // label so the "Sent to ${displayName}" prefix doesn't apply.
     if (isLinkTransaction) {
-        const displayName = userName
-        switch (direction) {
-            case 'send':
-                titleText = status === 'completed' ? 'You sent via link' : displayName
-                break
-            case 'request_sent':
-                titleText = 'Requested via Link'
-                break
-            case 'receive':
-                titleText = status === 'completed' ? 'You received via link' : displayName
-                break
-            case 'request_received':
-                titleText = 'Request via Link'
-                break
-            default:
-                titleText = displayName || 'Link Transaction'
-                break
+        const completed = status === 'completed'
+        const titleByDirection: Partial<Record<TransactionDirection, string>> = {
+            send: completed ? 'You sent via link' : userName,
+            receive: completed ? 'You received via link' : userName,
+            request_sent: 'Requested via Link',
+            request_received: 'Request via Link',
         }
+        titleText = titleByDirection[direction] ?? userName ?? 'Link Transaction'
     } else {
         const isAddress = isWalletAddress(userName)
         const displayName = isAddress ? printableAddress(userName) : userName

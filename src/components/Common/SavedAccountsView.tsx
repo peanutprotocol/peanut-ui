@@ -119,10 +119,6 @@ export function SavedAccountsMapping({
                                         className="h-8 w-8 rounded-full object-cover"
                                     />
                                 ) : (
-                                    // Country missing (legacy account without provider_account_links
-                                    // metadata, or backfill in flight). Show a neutral grey
-                                    // placeholder instead of leaving the icon space empty —
-                                    // the bank badge alone reads as "broken icon" on the FE.
                                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-grey-2">
                                         <Icon size={16} name="bank" className="text-n-1" />
                                     </div>
