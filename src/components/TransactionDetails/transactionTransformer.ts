@@ -125,8 +125,7 @@ function mapEntryStatusToUiStatus(entry: HistoryEntry, direction: TransactionDir
             const isUnclaimedSendLinkSender =
                 direction !== 'claim_external' &&
                 (entry.type === EHistoryEntryType.SEND_LINK ||
-                    (entry.type === EHistoryEntryType.TRANSACTION_INTENT &&
-                        entry.extraData?.kind === 'LINK_CREATE'))
+                    (entry.type === EHistoryEntryType.TRANSACTION_INTENT && entry.extraData?.kind === 'LINK_CREATE'))
             return isUnclaimedSendLinkSender ? 'pending' : 'completed'
         }
         case 'SUCCESSFUL':
