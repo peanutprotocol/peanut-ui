@@ -253,6 +253,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     let fullName = out.fullName ?? ''
     const showFullName = out.showFullName
     let uiStatus: StatusPillType = out.uiStatus ?? 'pending'
+    const strategyOverrodeUiStatus = out.uiStatus !== undefined
 
     if (!isPeerActuallyUser) {
         isPeerActuallyUser = false
@@ -273,8 +274,12 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         isPeerActuallyUser = false
     }
 
-    // map the raw status string to the defined ui status types
-    if (
+    // map the raw status string to the defined ui status types — but only
+    // if the strategy didn't already provide an override (e.g. SEND_LINK
+    // BOTH → 'cancelled'). Otherwise the global mapping silently clobbers it.
+    if (strategyOverrodeUiStatus) {
+        // strategy already set uiStatus; skip the global mapping below
+    } else if (
         entry.type === EHistoryEntryType.BRIDGE_OFFRAMP ||
         entry.type === EHistoryEntryType.BRIDGE_ONRAMP ||
         entry.type === EHistoryEntryType.BANK_SEND_LINK_CLAIM ||

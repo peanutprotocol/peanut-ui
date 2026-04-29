@@ -62,6 +62,7 @@ const STRATEGIES: Record<string, TransactionStrategy> = {
     [INTENT_KEY('CRYPTO_DEPOSIT')]: cryptoDeposit,
     [INTENT_KEY('CRYPTO_WITHDRAW')]: cryptoWithdraw,
     [INTENT_KEY('FIAT_OFFRAMP')]: fiatOfframp,
+    [INTENT_KEY('FIAT_ONRAMP')]: bankOnramp,
     [INTENT_KEY('CARD_SPEND')]: cardSpend,
 }
 
