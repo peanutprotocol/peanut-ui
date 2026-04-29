@@ -1,4 +1,4 @@
-import { type HistoryEntry } from '@/hooks/useTransactionHistory'
+import { EHistoryUserRole, type HistoryEntry } from '@/hooks/useTransactionHistory'
 import { type TransactionStrategy, type TransactionStrategyOutput } from '../types'
 
 export const cryptoDeposit: TransactionStrategy = (entry: HistoryEntry): TransactionStrategyOutput => ({
@@ -12,7 +12,7 @@ export const cryptoDeposit: TransactionStrategy = (entry: HistoryEntry): Transac
 })
 
 export const cryptoWithdraw: TransactionStrategy = (entry: HistoryEntry): TransactionStrategyOutput => {
-    if (entry.userRole === 'RECIPIENT') {
+    if (entry.userRole === EHistoryUserRole.RECIPIENT) {
         return {
             direction: 'add',
             transactionCardType: 'add',

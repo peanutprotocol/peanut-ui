@@ -1,9 +1,9 @@
-import { type HistoryEntry } from '@/hooks/useTransactionHistory'
+import { EHistoryUserRole, type HistoryEntry } from '@/hooks/useTransactionHistory'
 import { type TransactionStrategy, type TransactionStrategyOutput } from '../types'
 
 export const linkCreate: TransactionStrategy = (entry: HistoryEntry): TransactionStrategyOutput => {
-    if (entry.userRole === 'RECIPIENT') {
-        // Viewer claimed someone else's link. Mirror legacy SEND_LINK × RECIPIENT.
+    if (entry.userRole === EHistoryUserRole.RECIPIENT) {
+        // Viewer claimed someone else's link.
         const isPeerActuallyUser = !!entry.senderAccount?.isUser
         return {
             direction: 'receive',
@@ -15,7 +15,6 @@ export const linkCreate: TransactionStrategy = (entry: HistoryEntry): Transactio
             isLinkTx: !isPeerActuallyUser,
         }
     }
-    // SENDER (creator)
     if (entry.recipientAccount?.isUser) {
         return {
             direction: 'send',

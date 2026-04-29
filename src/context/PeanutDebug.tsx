@@ -95,8 +95,7 @@ export function PeanutDebug() {
         // works in one shot — no need to pass `{ pk }` every time. Local-only;
         // gated by HARNESS_ENABLED + the dev cheat route's requireTestMode.
         // Sandbox harness keys are NOT secrets — Konrad's call.
-        const DEFAULT_HARNESS_PK =
-            '0x8501e6e37f45d268618debb9f0d95528ca90a2eadcb29ac2277c0284d0ec861b'
+        const DEFAULT_HARNESS_PK = '0x8501e6e37f45d268618debb9f0d95528ca90a2eadcb29ac2277c0284d0ec861b'
 
         const debugApi: any = {
             // Local-dev impersonation cheat. Mints a JWT for the given userId

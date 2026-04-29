@@ -1,8 +1,8 @@
-import { type HistoryEntry } from '@/hooks/useTransactionHistory'
+import { EHistoryUserRole, type HistoryEntry } from '@/hooks/useTransactionHistory'
 import { type TransactionStrategy, type TransactionStrategyOutput } from '../types'
 
 export const fiatOfframp: TransactionStrategy = (entry: HistoryEntry): TransactionStrategyOutput => {
-    if (entry.userRole === 'RECIPIENT') {
+    if (entry.userRole === EHistoryUserRole.RECIPIENT) {
         // Multi-user fulfillment edge case — viewer received a bank
         // withdraw initiated by another user. USDC arrives in viewer's
         // wallet from offramp funder.

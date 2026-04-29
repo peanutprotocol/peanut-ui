@@ -54,7 +54,10 @@ const MASK_RULES: Record<string, MaskRule> = {
  * @param accountType the rail (`IBAN`, `CLABE`, `PIX`, …) — falls back to plain if unknown
  * @returns the masked display string. Empty/missing input returns ''.
  */
-export function maskAccountIdentifier(identifier: string | null | undefined, accountType: string | null | undefined): string {
+export function maskAccountIdentifier(
+    identifier: string | null | undefined,
+    accountType: string | null | undefined
+): string {
     if (!identifier) return ''
     const rail = (accountType ?? '').toUpperCase()
     const rule = MASK_RULES[rail] ?? { mode: 'plain' as MaskMode }

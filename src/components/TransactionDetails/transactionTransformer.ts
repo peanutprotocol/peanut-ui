@@ -241,32 +241,18 @@ interface MappedTransactionData {
  */
 export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransactionData {
     // initialize variables
-    // Defaults match the legacy `default:` arm below, so unmigrated kinds
-    // that fall through render predictably. Strategies and explicit case
-    // arms below overwrite these.
-    let direction: TransactionDirection = 'send'
-    let transactionCardType: TransactionCardType = 'send'
-    let nameForDetails = ''
-    let uiStatus: StatusPillType = 'pending'
-    let isLinkTx = false
-    let isPeerActuallyUser = false
-    let fullName = '' // Full name of the user for PFP Avatar
-    let showFullName: boolean | undefined = undefined // User's preference for showing full name
-
-    // Pick the per-kind strategy (legacy type or TRANSACTION_INTENT
-    // composite key). Strategies are pure functions of HistoryEntry and
-    // own the direction / counterparty / flags decision. Post-strategy
-    // code below applies status mapping, the reaper-failed override, and
-    // derived fields (explorer URL, token logos, initials).
+    // Pick the per-kind strategy. Post-strategy code below applies status
+    // mapping, the reaper-failed override, and derived fields (explorer
+    // URL, token logos, initials).
     const out = dispatchStrategy(entry)(entry)
-    direction = out.direction
-    transactionCardType = out.transactionCardType
-    nameForDetails = out.nameForDetails
-    isPeerActuallyUser = out.isPeerActuallyUser
-    isLinkTx = out.isLinkTx
-    fullName = out.fullName ?? ''
-    showFullName = out.showFullName
-    if (out.uiStatus) uiStatus = out.uiStatus
+    const direction: TransactionDirection = out.direction
+    const transactionCardType: TransactionCardType = out.transactionCardType
+    let nameForDetails = out.nameForDetails
+    let isPeerActuallyUser = out.isPeerActuallyUser
+    const isLinkTx = out.isLinkTx
+    let fullName = out.fullName ?? ''
+    const showFullName = out.showFullName
+    let uiStatus: StatusPillType = out.uiStatus ?? 'pending'
 
     if (!isPeerActuallyUser) {
         isPeerActuallyUser = false

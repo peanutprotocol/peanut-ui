@@ -1,12 +1,3 @@
-// Fallbacks for two cases:
-//   1. TRANSACTION_INTENT with an unrecognised kind. Card refunds come
-//      back as kind ∈ {OTHER, REFUND} + parentRainTxId set — those route
-//      to the cardRefund strategy. Anything else logs to Sentry and
-//      renders a defensive "unknown" row.
-//   2. Legacy EHistoryEntryType values not covered by a registered
-//      strategy. Renders the same default row the legacy switch's
-//      `default:` arm produced.
-
 import { type HistoryEntry } from '@/hooks/useTransactionHistory'
 import { type TransactionStrategy, type TransactionStrategyOutput } from './types'
 import { cardRefund } from './intent/card'
@@ -14,18 +5,15 @@ import { cardRefund } from './intent/card'
 export const intentFallback: TransactionStrategy = (entry: HistoryEntry): TransactionStrategyOutput => {
     const kind = (entry.extraData?.kind as string | undefined) ?? 'OTHER'
 
-    // Card refunds come back with kind === 'REFUND' or kind === 'OTHER'
-    // alongside provider === RAIN. Scope strictly to these two kinds —
-    // guarding only on parentRainTxId would misroute any future intent
-    // that happens to carry the linkage.
+    // Card refunds arrive with kind ∈ {OTHER, REFUND} + parentRainTxId set
+    // (provider === RAIN). Scope strictly to these two kinds — guarding only
+    // on parentRainTxId would misroute any future intent carrying the linkage.
     if ((kind === 'OTHER' || kind === 'REFUND') && entry.extraData?.parentRainTxId) {
         return cardRefund(entry)
     }
 
-    // Unknown kind — log to Sentry so we catch BE-added kinds the FE
-    // doesn't yet handle. Lazy import keeps Sentry out of non-browser
-    // bundles (test, SSR). This mirrors the legacy default-arm shape;
-    // the Lane 4 FE PR (#1914) consolidates this onto pipelineAlert.
+    // Lazy Sentry import keeps it out of test / SSR bundles. PR #1914 will
+    // consolidate this onto the shared pipelineAlert helper.
     if (typeof window !== 'undefined') {
         import('@sentry/nextjs')
             .then((Sentry) =>

@@ -1,18 +1,19 @@
-// Strategy for TRANSACTION_INTENT × kind ∈ {P2P_SEND, REQUEST_PAY}.
-// Both kinds resolve through the same body — REQUEST_PAY is the
-// post-decomplexify rename of legacy P2P_REQUEST_FULFILL, P2P_SEND is
-// the synthetic-charge direct-send.
+// REQUEST_PAY is the post-decomplexify rename of P2P_REQUEST_FULFILL;
+// shares this strategy with P2P_SEND.
 
-import { type HistoryEntry } from '@/hooks/useTransactionHistory'
+import { EHistoryUserRole, type HistoryEntry } from '@/hooks/useTransactionHistory'
 import { type TransactionStrategy, type TransactionStrategyOutput } from '../types'
 
 export const p2pSendOrRequestPay: TransactionStrategy = (entry: HistoryEntry): TransactionStrategyOutput => {
-    const kind = (entry.extraData?.kind as string | undefined) ?? ''
+    const kind = entry.extraData?.kind as string | undefined
 
     // Bridge-fulfilled requests render as bank-request fulfillments on the
-    // sender side (mirrors legacy REQUEST × bridge × SENDER). Viewer is
-    // paying via bank rails.
-    if (kind === 'REQUEST_PAY' && entry.extraData?.fulfillmentType === 'bridge' && entry.userRole === 'SENDER') {
+    // sender side. Viewer is paying via bank rails.
+    if (
+        kind === 'REQUEST_PAY' &&
+        entry.extraData?.fulfillmentType === 'bridge' &&
+        entry.userRole === EHistoryUserRole.SENDER
+    ) {
         return {
             direction: 'bank_request_fulfillment',
             transactionCardType: 'bank_request_fulfillment',
@@ -24,7 +25,7 @@ export const p2pSendOrRequestPay: TransactionStrategy = (entry: HistoryEntry): T
         }
     }
 
-    if (entry.userRole === 'RECIPIENT') {
+    if (entry.userRole === EHistoryUserRole.RECIPIENT) {
         const senderResolved = !!entry.senderAccount?.identifier
         if (senderResolved) {
             return {
