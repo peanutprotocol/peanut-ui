@@ -270,7 +270,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                             addBankAccountResponse.data.type === 'us' || addBankAccountResponse.data.type === 'gb'
                                 ? addBankAccountResponse.data.identifier || ''
                                 : '',
-                        country: addBankAccountResponse.data.details.countryCode,
+                        country: addBankAccountResponse.data.details?.countryCode ?? '',
                         id: addBankAccountResponse.data.id,
                         bridgeAccountId: addBankAccountResponse.data.bridgeAccountId,
                         bic: addBankAccountResponse.data.bic ?? '',
@@ -387,12 +387,12 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                         const lastName = lastNameParts.join(' ')
 
                         const bankDetails = {
-                            name: account.details.accountOwnerName || user?.user.fullName || '',
+                            name: account.details?.accountOwnerName || user?.user.fullName || '',
                             iban: account.type === 'iban' ? account.identifier || '' : '',
                             clabe: account.type === 'clabe' ? account.identifier || '' : '',
                             accountNumber:
                                 account.type === 'us' || account.type === 'gb' ? account.identifier || '' : '',
-                            country: account.details.countryCode,
+                            country: account.details?.countryCode ?? '',
                             id: account.id,
                             bridgeAccountId: account.bridgeAccountId,
                             bic: account.bic ?? '',

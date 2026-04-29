@@ -218,18 +218,19 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                 pageTitle={pageTitle}
                 onPrev={onBackClick || defaultBackNavigation}
                 savedAccounts={savedAccounts}
-                onAccountClick={(account, _path) => {
+                onAccountClick={(account, path) => {
                     setSelectedBankAccount(account)
+                    const countryPath = account.details?.countryName || path || ''
                     setSelectedMethod({
                         type: account.type === AccountType.MANTECA ? 'manteca' : 'bridge',
-                        countryPath: account.details.countryName,
+                        countryPath,
                         title: 'To Bank',
                     })
                     if (account.type === AccountType.MANTECA) {
                         // preserve method param if coming from send flow
                         const additionalParams = isBankFromSend ? `&method=${methodParam}` : ''
                         router.push(
-                            `/withdraw/manteca?country=${account.details.countryName}&destination=${account.identifier}&isSavedAccount=true${additionalParams}`
+                            `/withdraw/manteca?country=${encodeURIComponent(countryPath)}&destination=${encodeURIComponent(account.identifier)}&isSavedAccount=true${additionalParams}`
                         )
                     }
                 }}
