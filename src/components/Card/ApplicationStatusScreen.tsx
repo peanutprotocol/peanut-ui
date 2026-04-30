@@ -3,7 +3,7 @@ import type { FC } from 'react'
 import Image from 'next/image'
 import PEANUTMAN_CRY from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_05.gif'
 import NavHeader from '@/components/Global/NavHeader'
-import Loading from '@/components/Global/Loading'
+import PeanutLoading from '@/components/Global/PeanutLoading'
 
 type Variant = 'pending' | 'manual-review' | 'rejected'
 
@@ -34,7 +34,7 @@ const ApplicationStatusScreen: FC<Props> = ({ variant, onContactSupport, onPrev 
         <div className="flex min-h-[inherit] flex-col gap-8">
             <NavHeader title="Add card" onPrev={onPrev} />
             <div className="my-auto flex flex-col items-center gap-6 text-center">
-                {variant === 'pending' && <Loading />}
+                {variant === 'pending' && <PeanutLoading />}
                 {variant === 'rejected' && (
                     <Image
                         src={PEANUTMAN_CRY.src}
