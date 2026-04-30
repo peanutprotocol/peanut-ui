@@ -21,6 +21,7 @@ import { formatAmount, formatDate, isStableCoin, formatCurrency } from '@/utils/
 import { formatPoints } from '@/utils/format.utils'
 import { getAvatarUrl } from '@/utils/history.utils'
 import { formatIban, printableAddress, shortenAddress, shortenStringLong, slugify } from '@/utils/general.utils'
+import { maskAccountIdentifier } from '@/utils/account-mask.utils'
 import { cancelOnramp } from '@/app/actions/onramp'
 import { captureException } from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
@@ -105,7 +106,7 @@ export const TransactionDetailsReceipt = ({
     }, [showCancelLinkModal, setIsModalOpen])
 
     // All derived row-visibility / status / share-receipt state lives in the
-    // hook so this component stays focused on JSX + side-effect callbacks.
+    // hook so this component stays focused on JSX + callbacks.
     const {
         isGuestBankClaim,
         isPendingBankRequest,
@@ -174,16 +175,18 @@ export const TransactionDetailsReceipt = ({
         if (!transaction) return null
         const code = transaction.currency?.code
         const amount = transaction.currency?.amount
-        // Show the converted amount below the primary for any non-USD fiat
-        // leg — on/offramps, bank claims. The amount carries the effective
-        // conversion (fees baked in per Peanut product convention), so there's
-        // no need to render the rate separately. Previously this was gated on
-        // `receipt.exchange_rate` which Bridge sandbox populates only on true
-        // settlement, leaving the row hidden through PAYMENT_PROCESSED; the
-        // currency + amount alone are sufficient to render it.
+        // Show the converted amount under the primary for any non-USD fiat
+        // leg (on/offramps, bank claims). The amount already carries the
+        // effective conversion (fees baked in), so the rate isn't rendered
+        // separately. Don't gate on `receipt.exchange_rate` — Bridge sandbox
+        // only populates it on true settlement, hiding the row through
+        // PAYMENT_PROCESSED; currency + amount alone suffice.
         if (!code || !amount) return null
-        if (code.toUpperCase() === 'USD') return null
-        return `${code.toUpperCase()} ${formatCurrency(amount)}`
+        const upper = code.toUpperCase()
+        // USD-pegged stablecoins read like USD to the user — don't render
+        // `≈ USDC 0.10` under `$0.10`. (Same rule as TransactionCard.)
+        if (upper === 'USD' || isStableCoin(upper)) return null
+        return `${upper} ${formatCurrency(amount)}`
     }, [transaction])
 
     if (!transaction) return null
@@ -221,8 +224,8 @@ export const TransactionDetailsReceipt = ({
                 transaction.extraDataForDrawer.originalUserRole === EHistoryUserRole.RECIPIENT))
 
     const getLabelText = (transaction: TransactionDetails) => {
-        // Bank off-ramps / on-ramps / bank claims → "Completed" (the user isn't
-        // sending to another person; it's a lifecycle milestone of a bank transfer).
+        // Bank off-ramps / on-ramps / bank claims → "Completed" (lifecycle
+        // milestone of a bank transfer, not a peer interaction).
         if (usesCompletedTimestampLabel(transaction)) return 'Completed'
         return transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER ? 'Sent' : 'Received'
     }
@@ -529,9 +532,15 @@ export const TransactionDetailsReceipt = ({
                                     <span>
                                         {isGuestBankClaim
                                             ? transaction.bankAccountDetails.identifier
-                                            : formatIban(transaction.bankAccountDetails.identifier)}
+                                            : maskAccountIdentifier(
+                                                  transaction.bankAccountDetails.identifier,
+                                                  transaction.bankAccountDetails.type
+                                              )}
                                     </span>
                                     {!isGuestBankClaim && (
+                                        // Copy yields the FULL identifier — masking is for
+                                        // visual privacy only; the user owns the account
+                                        // and may need to paste it elsewhere.
                                         <CopyToClipboard
                                             textToCopy={formatIban(transaction.bankAccountDetails.identifier)}
                                             iconSize="4"
@@ -769,6 +778,10 @@ export const TransactionDetailsReceipt = ({
                                     await navigator.share({ text })
                                 } else {
                                     await navigator.clipboard.writeText(text)
+                                    // Desktop fallback: navigator.share is mobile-only.
+                                    // Without a toast the click is silent and users assume
+                                    // the button is broken.
+                                    toast.info('Invite link copied!')
                                 }
                             } catch {
                                 // user cancelled share sheet — ignore

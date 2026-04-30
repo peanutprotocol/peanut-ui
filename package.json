@@ -19,6 +19,9 @@
         "format": "prettier --write .",
         "analyze": "ANALYZE=true next build",
         "typecheck": "tsc --noEmit",
+        "gen:api": "openapi-typescript src/types/api.openapi.json -o src/types/api.generated.ts && prettier --write src/types/api.generated.ts",
+        "gen:api:live": "curl -sSf ${PEANUT_API_OPENAPI_URL:-http://localhost:5050/openapi.json} | python3 -m json.tool > src/types/api.openapi.json && pnpm gen:api",
+        "check:api": "pnpm gen:api && git diff --exit-code src/types/api.generated.ts",
         "test": "jest",
         "test:watch": "jest --watch",
         "test:coverage": "jest --coverage",
@@ -131,8 +134,10 @@
         "@types/validator": "^13.12.2",
         "jest": "^29.7.0",
         "jest-environment-jsdom": "^29.7.0",
+        "jest-junit": "^16.0.0",
         "jest-transform-stub": "^2.0.0",
         "knip": "^5.37.1",
+        "openapi-typescript": "^7.13.0",
         "postcss": "^8.4.49",
         "postcss-import": "^16.1.0",
         "prettier": "^3.3.3",
@@ -142,8 +147,7 @@
         "tailwindcss": "^3.4.15",
         "ts-jest": "^29.1.2",
         "tsx": "^4.19.3",
-        "typescript": "^5.6.3",
-        "jest-junit": "^16.0.0"
+        "typescript": "^5.6.3"
     },
     "jest": {
         "preset": "ts-jest",

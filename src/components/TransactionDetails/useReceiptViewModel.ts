@@ -14,7 +14,7 @@ import {
 } from '@/components/TransactionDetails/transaction-predicates'
 import { hasCardPaymentRowsContent } from '@/components/TransactionDetails/provider-rows/CardPaymentRows'
 import { countryData } from '@/components/AddMoney/consts'
-import { getContributorsFromCharge, formatCurrency } from '@/utils/general.utils'
+import { getContributorsFromCharge, formatCurrency, isStableCoin } from '@/utils/general.utils'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
 
 const ROW_GROUPS = {
@@ -66,12 +66,9 @@ export interface ReceiptViewModel {
 }
 
 /**
- * All the derived state the receipt drawer needs in one place. Receipt
- * component stays focused on JSX + side-effect callbacks.
- *
- * Pure derivation — no IO, no effects, no refs. Memoized off `transaction`
- * + `isPublic` so identity stays stable across renders when the input
- * doesn't change.
+ * Derived state for the receipt drawer in one place — keeps the component
+ * focused on JSX + callbacks. Pure: no IO, no effects. Memoized on
+ * `transaction` + `isPublic`.
  */
 export function useReceiptViewModel(
     transaction: TransactionDetails | null,
@@ -120,7 +117,7 @@ export function useReceiptViewModel(
     )
 
     // Hide the token+network row when token = USDC on Arb (the wallet's
-    // native pair) — that's noise for every Peanut-internal flow.
+    // native pair) — noise for every Peanut-internal flow.
     const isPeanutWalletToken = useMemo(() => {
         if (!transaction) return false
         const tokenSymbol = transaction.tokenSymbol?.toUpperCase()
@@ -137,8 +134,8 @@ export function useReceiptViewModel(
         if (!transaction) return ALL_ROWS_HIDDEN
 
         // Hide "Created" when "Sent"/"Completed" is about to render — same
-        // lifecycle event for off-ramps / bank claims, two rows side-by-side
-        // is noise. Keep "Created" as the fallback for pending states.
+        // lifecycle event for off-ramps / bank claims; keep "Created" as the
+        // fallback for pending states.
         const willShowCompleted = !!(
             transaction.status === 'completed' &&
             transaction.completedAt &&
@@ -174,6 +171,8 @@ export function useReceiptViewModel(
                     transaction.direction === 'bank_withdraw') &&
                 transaction.currency?.code &&
                 transaction.currency.code.toUpperCase() !== 'USD' &&
+                // No FX between USD and USDC/USDT — suppress the rate row.
+                !isStableCoin(transaction.currency.code) &&
                 transaction.status !== 'cancelled'
             ),
             bankAccountDetails: !!(
@@ -188,13 +187,16 @@ export function useReceiptViewModel(
             ),
             depositInstructions: !!(
                 (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.BRIDGE_ONRAMP ||
+                    // BRIDGE_ONRAMP also arrives as TRANSACTION_INTENT/kind=ONRAMP.
+                    (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.TRANSACTION_INTENT &&
+                        transaction.extraDataForDrawer?.kind === 'ONRAMP') ||
                     (isPendingBankRequest &&
                         transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER)) &&
                 transaction.status === 'pending' &&
                 transaction.extraDataForDrawer?.depositInstructions &&
                 transaction.extraDataForDrawer.depositInstructions.bank_name
             ),
-            peanutFee: false, // Removed when perks moved to separate transactions.
+            peanutFee: false,
             points: !!(transaction.points && transaction.points > 0 && transaction.status !== 'cancelled'),
             comment: !!(transaction.memo?.trim() && transaction.status !== 'cancelled'),
             networkFee: !!(
@@ -205,12 +207,18 @@ export function useReceiptViewModel(
             attachment: !!(transaction.attachmentUrl && transaction.status !== 'cancelled'),
             mantecaDepositInfo:
                 !isPublic &&
-                transaction.extraDataForDrawer?.originalType === EHistoryEntryType.MANTECA_ONRAMP &&
+                (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.MANTECA_ONRAMP ||
+                    // MANTECA_ONRAMP also arrives as TRANSACTION_INTENT/kind=ONRAMP. Provider
+                    // distinguishes Manteca from Bridge but isn't plumbed through to the FE;
+                    // Bridge onramps with deposit instructions take the branch above, leaving
+                    // this path for Manteca's ARS/BRL deposit info row.
+                    (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.TRANSACTION_INTENT &&
+                        transaction.extraDataForDrawer?.kind === 'ONRAMP')) &&
                 transaction.status === 'pending',
-            // Gate on whether CardPaymentRows would actually emit a sub-row.
-            // Otherwise an "all-data-absent" card spend leaves the slot
+            // Gate on whether CardPaymentRows would actually emit a sub-row;
+            // otherwise an "all-data-absent" card spend leaves the slot
             // visible-but-empty and `shouldHideBorder` mis-attributes the
-            // last-visible row, dangling a border below the previous row.
+            // last-visible row.
             cardPayment: isCardPaymentEntry(transaction) && hasCardPaymentRowsContent(transaction),
             closed: !!(transaction.status === 'closed' && transaction.cancelledDate),
         }

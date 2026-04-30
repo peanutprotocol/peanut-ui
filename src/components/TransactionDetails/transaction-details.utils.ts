@@ -47,13 +47,14 @@ export const transactionDetailsRowKeys: TransactionDetailsRowKey[] = [
     'attachment',
 ]
 
+/**
+ * BE sends Prisma `AccountType` enum values like `BANK_IBAN` / `BANK_CLABE`
+ * (not raw `'iban'`). Match by suffix so `BANK_IBAN` → "IBAN" without a
+ * separate normalisation layer at every call site.
+ */
 export const getBankAccountLabel = (type: string) => {
-    switch (type.toLowerCase()) {
-        case 'iban':
-            return 'IBAN'
-        case 'clabe':
-            return 'CLABE'
-        default:
-            return 'Account Number'
-    }
+    const t = type.toLowerCase()
+    if (t.endsWith('iban')) return 'IBAN'
+    if (t.endsWith('clabe')) return 'CLABE'
+    return 'Account Number'
 }

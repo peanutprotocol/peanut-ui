@@ -85,16 +85,25 @@ export function getBankAccountCountryCode(
     bankAccountDetails?: { identifier?: string; type?: string | AccountType } | null,
     currencyCode?: string | null
 ): string | null {
-    const type = bankAccountDetails?.type?.toLowerCase() as AccountType | undefined
+    // BE sends Prisma AccountType values (e.g. `BANK_IBAN`, `BANK_ACH`,
+    // `BANK_CLABE`) — match by suffix so this works regardless of which
+    // enum-shape side the value comes from. Wider FE AccountType enum
+    // reconciliation tracked separately.
+    const rawType = bankAccountDetails?.type?.toLowerCase()
+    const type = rawType as AccountType | undefined
     const identifier = bankAccountDetails?.identifier
+    const isIban = rawType === AccountType.IBAN || rawType?.endsWith('iban')
+    const isUs = rawType === AccountType.US || rawType?.endsWith('ach')
+    const isClabe = rawType === AccountType.CLABE || rawType?.endsWith('clabe')
+    const isGb = rawType === AccountType.GB || rawType?.endsWith('gb')
 
-    if (type === AccountType.IBAN && identifier) {
-        const prefix = identifier.replace(/\s+/g, '').slice(0, 2).toLowerCase()
-        if (/^[a-z]{2}$/.test(prefix)) return prefix
+    if (isIban && identifier) {
+        const prefix = identifier.replace(/\s+/g, '').slice(0, 2).toUpperCase()
+        if (/^[A-Z]{2}$/.test(prefix)) return prefix.toLowerCase()
     }
-    if (type === AccountType.US) return 'us'
-    if (type === AccountType.CLABE) return 'mx'
-    if (type === AccountType.GB) return 'gb'
+    if (isUs) return 'us'
+    if (isClabe) return 'mx'
+    if (isGb) return 'gb'
     // `manteca` is a LATAM passthrough — Argentina (ARS/CBU) or Brazil (BRL/PIX).
     // The account type itself doesn't carry country, but currency does.
     if (type === AccountType.MANTECA) {
