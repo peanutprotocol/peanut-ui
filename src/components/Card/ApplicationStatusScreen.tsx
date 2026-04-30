@@ -1,9 +1,9 @@
 'use client'
 import type { FC } from 'react'
 import Image from 'next/image'
+import PEANUTMAN_CRY from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_05.gif'
 import NavHeader from '@/components/Global/NavHeader'
 import Loading from '@/components/Global/Loading'
-import { PEANUTMAN_SAD } from '@/assets/peanut'
 
 type Variant = 'pending' | 'manual-review' | 'rejected'
 
@@ -24,7 +24,7 @@ const COPY: Record<Variant, { title: string; body: string }> = {
     },
     rejected: {
         title: "We couldn't verify your identity",
-        body: "Your card application wasn't approved. This might be because of incomplete documents, information mismatch, or regional restrictions. Our support team can help you sort it out.",
+        body: "Your card application wasn't approved. This might be because of incomplete documents, information mismatch, or regional restrictions.",
     },
 }
 
@@ -37,10 +37,10 @@ const ApplicationStatusScreen: FC<Props> = ({ variant, onContactSupport, onPrev 
                 {variant === 'pending' && <Loading />}
                 {variant === 'rejected' && (
                     <Image
-                        src={PEANUTMAN_SAD}
-                        alt="Sad peanut"
-                        width={122}
-                        height={152}
+                        src={PEANUTMAN_CRY.src}
+                        alt="Peanutman crying 😭"
+                        width={128}
+                        height={128}
                         className="select-none"
                         priority
                     />
