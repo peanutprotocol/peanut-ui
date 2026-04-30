@@ -1,6 +1,6 @@
 import { getSupportedChainsAndTokens } from '@/app/actions/supported-chains'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
-import * as interfaces from '@/interfaces/peanut-sdk-types'
+import type { ChainMeta, TokenMeta } from '@/interfaces/chain-meta'
 import { validateAmount } from '../validation/amount'
 import { validateAndResolveRecipient } from '../validation/recipient'
 import { getChainDetails, getTokenAndChainDetails } from '../validation/token'
@@ -88,25 +88,25 @@ export async function parsePaymentURL(
     }
 
     // 3. Fetch and validate recipient and chains/tokens data
-    const [recipientResult, squidChainsResult] = await Promise.allSettled([
+    const [recipientResult, chainsAndTokensResult] = await Promise.allSettled([
         validateAndResolveRecipient(recipient),
         getSupportedChainsAndTokens(),
     ])
     if (recipientResult.status === 'rejected') {
         return { parsedUrl: null, error: { message: EParseUrlError.INVALID_RECIPIENT, recipient } }
     }
-    if (squidChainsResult.status === 'rejected') {
+    if (chainsAndTokensResult.status === 'rejected') {
         return { parsedUrl: null, error: { message: EParseUrlError.INVALID_URL_FORMAT } }
     }
     const recipientDetails = recipientResult.value
-    const squidChainsAndTokens = squidChainsResult.value
+    const supportedChainsAndTokens = chainsAndTokensResult.value
     const isPeanutRecipient = recipientDetails.recipientType === 'USERNAME'
 
     // 4. Resolve chain details
-    let chainDetails: (interfaces.IChainMeta & { tokens: interfaces.ITokenMeta[] }) | undefined = undefined
+    let chainDetails: (ChainMeta & { tokens: TokenMeta[] }) | undefined = undefined
     if (chainId) {
         try {
-            chainDetails = getChainDetails(chainId, squidChainsAndTokens)
+            chainDetails = getChainDetails(chainId, supportedChainsAndTokens)
             if (isPeanutRecipient && PEANUT_WALLET_CHAIN.id.toString() !== chainDetails.chainId) {
                 throw new Error('Invalid chain')
             }
@@ -115,12 +115,12 @@ export async function parsePaymentURL(
         }
     } else if (isPeanutRecipient) {
         // If no chain specified, use peanut wallet chain for username types
-        chainDetails = squidChainsAndTokens[PEANUT_WALLET_CHAIN.id]
+        chainDetails = supportedChainsAndTokens[PEANUT_WALLET_CHAIN.id]
     }
 
     // 5. Handle amount and token parsing from second segment
     let parsedAmount: { amount: string } | undefined = undefined
-    let tokenDetails: interfaces.ITokenMeta | undefined = undefined
+    let tokenDetails: TokenMeta | undefined = undefined
     if (segments.length > 1) {
         const { amount, token } = parseAmountAndToken(segments[1])
         if (amount) {
@@ -133,7 +133,7 @@ export async function parsePaymentURL(
         if (token) {
             if (!chainDetails && !isPeanutRecipient) {
                 // default to arb even for non-USERNAME recipients if no chain is specified
-                chainDetails = squidChainsAndTokens[PEANUT_WALLET_CHAIN.id]
+                chainDetails = supportedChainsAndTokens[PEANUT_WALLET_CHAIN.id]
             }
             const tokenAndChainData = await getTokenAndChainDetails(token, chainId)
             tokenDetails = tokenAndChainData?.token
@@ -144,7 +144,7 @@ export async function parsePaymentURL(
 
             // Update chain details for non-USERNAME recipients if needed
             if (!chainDetails && !isPeanutRecipient && tokenAndChainData.chain) {
-                chainDetails = tokenAndChainData.chain as interfaces.IChainMeta & { tokens: interfaces.ITokenMeta[] }
+                chainDetails = tokenAndChainData.chain as ChainMeta & { tokens: TokenMeta[] }
             }
         } else if (isPeanutRecipient) {
             tokenDetails = chainDetails?.tokens.find(

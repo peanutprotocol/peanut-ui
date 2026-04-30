@@ -16,7 +16,7 @@ import { type ChargeEntry } from '@/services/services.types'
 import { NATIVE_TOKEN_ADDRESS, NATIVE_TOKEN_PROXY_ADDRESS } from '@/constants/tokens.consts'
 import { toWebAuthnKey } from '@zerodev/passkey-validator'
 import { USER_OPERATION_REVERT_REASON_TOPIC } from '@/constants/zerodev.consts'
-import { CHAIN_LOGOS, type ChainName } from '@/constants/rhino.consts'
+import { CHAIN_LOGOS, TOKEN_LOGOS, type ChainName, type TokenName } from '@/constants/rhino.consts'
 import { isUserKycVerified } from '@/constants/kyc.consts'
 
 export const shortenAddress = (address?: string, chars?: number) => {
@@ -753,9 +753,8 @@ export function getRequestLink(
     return link
 }
 
-// for now it works
 export function getTokenLogo(tokenSymbol: string): string {
-    return `https://raw.githubusercontent.com/0xsquid/assets/main/images/tokens/${tokenSymbol.toLowerCase()}.svg`
+    return TOKEN_LOGOS[tokenSymbol.toUpperCase() as TokenName] ?? ''
 }
 
 export function getChainLogo(chainName: string): string {
@@ -772,13 +771,7 @@ export function getChainLogo(chainName: string): string {
             name = chainName.toLowerCase()
     }
 
-    const chainLogo = CHAIN_LOGOS[name.toUpperCase() as ChainName]
-
-    if (chainLogo) {
-        return chainLogo
-    }
-
-    return `https://raw.githubusercontent.com/0xsquid/assets/main/images/webp128/chains/${name}.webp`
+    return CHAIN_LOGOS[name.toUpperCase() as ChainName] ?? ''
 }
 
 export function isStableCoin(tokenSymbol: string): boolean {

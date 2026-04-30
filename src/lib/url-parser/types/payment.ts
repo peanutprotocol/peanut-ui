@@ -1,4 +1,4 @@
-import * as interfaces from '@/interfaces/peanut-sdk-types'
+import type { ChainMeta, TokenMeta } from '@/interfaces/chain-meta'
 import { type Chain } from 'viem'
 
 export type RecipientType = 'ENS' | 'ADDRESS' | 'USERNAME'
@@ -11,6 +11,6 @@ export interface ParsedURL {
         resolvedAddress: string
     } | null
     amount?: string
-    token?: interfaces.ITokenMeta
-    chain?: interfaces.IChainMeta & { tokens: interfaces.ITokenMeta[] }
+    token?: TokenMeta
+    chain?: ChainMeta & { tokens: TokenMeta[] }
 }

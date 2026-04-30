@@ -1,5 +1,6 @@
 import type { ILinkDetails, RecipientType } from '@/interfaces/interfaces'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
+import type { ChainMeta, TokenMeta } from '@/interfaces/chain-meta'
 import type { IOfframpForm } from '@/constants/cashout.consts'
 
 export enum OfframpType {
@@ -38,7 +39,7 @@ export interface IOfframpConfirmScreenProps {
 
     // available in claim link offramps
     claimLinkData?: ILinkDetails
-    crossChainDetails?: Array<peanutInterfaces.IChainMeta & { tokens: peanutInterfaces.ITokenMeta[] }> | undefined
+    crossChainDetails?: Array<ChainMeta & { tokens: TokenMeta[] }> | undefined
     tokenPrice?: number
     estimatedPoints?: number
     attachment?: { message: string | undefined; attachmentUrl: string | undefined }

@@ -1,5 +1,5 @@
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
-import * as interfaces from '@/interfaces/peanut-sdk-types'
+import type { ChainMeta, TokenMeta } from '@/interfaces/chain-meta'
 import { useContext } from 'react'
 
 interface TokenChainIconInputs {
@@ -15,8 +15,8 @@ export interface TokenChainIconData {
     resolvedTokenSymbol?: string
     chainFound: boolean
     tokenFound: boolean
-    chainDetails?: interfaces.IChainMeta & { tokens: interfaces.ITokenMeta[] }
-    tokenDetails?: interfaces.ITokenMeta
+    chainDetails?: ChainMeta & { tokens: TokenMeta[] }
+    tokenDetails?: TokenMeta
 }
 
 export const useTokenChainIcons = ({
@@ -46,7 +46,7 @@ export const useTokenChainIcons = ({
 
     // use networkName if available, otherwise fallback to simple CHAIN
     const resolvedChainName = chainInfo.networkName ? chainInfo.networkName : `CHAIN`
-    let tokenInfo: interfaces.ITokenMeta | undefined = undefined
+    let tokenInfo: TokenMeta | undefined = undefined
 
     if (tokenAddress) {
         tokenInfo = chainInfo.tokens.find((t) => t.address.toLowerCase() === tokenAddress.toLowerCase())

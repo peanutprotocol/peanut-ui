@@ -11,14 +11,14 @@ import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { type ITokenPriceData } from '@/interfaces'
 import { formatAmount, isStableCoin } from '@/utils/general.utils'
-import * as interfaces from '@/interfaces/peanut-sdk-types'
+import type { ChainMeta, TokenMeta } from '@/interfaces/chain-meta'
 import { useMemo } from 'react'
 import { ROUTE_NOT_FOUND_ERROR } from '@/constants/general.consts'
 
 interface WithdrawConfirmViewProps {
     amount: string
     token: ITokenPriceData
-    chain: interfaces.IChainMeta & { networkName: string; tokens: interfaces.ITokenMeta[] }
+    chain: ChainMeta & { networkName: string; tokens: TokenMeta[] }
     toAddress: string
     networkFee?: number
     peanutFee?: string

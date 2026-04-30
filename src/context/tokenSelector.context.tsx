@@ -14,7 +14,7 @@ import { useSupportedChainsAndTokens } from '@/hooks/useSupportedChainsAndTokens
 import { useTokenPrice } from '@/hooks/useTokenPrice'
 import { type ITokenPriceData } from '@/interfaces'
 import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
-import * as interfaces from '@/interfaces/peanut-sdk-types'
+import type { ChainMeta, TokenMeta } from '@/interfaces/chain-meta'
 
 export const tokenSelectorContext = createContext({
     selectedTokenAddress: '',
@@ -35,10 +35,7 @@ export const tokenSelectorContext = createContext({
     setIsXChain: (value: boolean) => {},
     selectedTokenData: undefined as ITokenPriceData | null | undefined,
     isFetchingTokenData: false as boolean,
-    supportedChainsAndTokens: {} as Record<
-        string,
-        interfaces.IChainMeta & { networkName: string; tokens: interfaces.ITokenMeta[] }
-    >,
+    supportedChainsAndTokens: {} as Record<string, ChainMeta & { networkName: string; tokens: TokenMeta[] }>,
     selectedTokenBalance: undefined as string | undefined,
     setSelectedTokenBalance: (balance: string | undefined) => {},
 })

@@ -450,8 +450,7 @@ export function useSemanticRequestFlow() {
         }
     }, [currentView, charge, prepareRoute])
 
-    // SDA flow has no route expiry — deposit address is valid forever, so the
-    // expired/near-expiry handlers that existed under the old Squid path are unnecessary.
+    // SDA deposit addresses don't expire — no route-expiry handlers needed.
 
     // execute payment from confirm view (handles both same-chain and cross-chain)
     const executePayment = useCallback(async () => {
