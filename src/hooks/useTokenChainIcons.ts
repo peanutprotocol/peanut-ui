@@ -1,5 +1,5 @@
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
-import type { ChainMeta, TokenMeta } from '@/interfaces/chain-meta'
+import type { ChainWithTokens, TokenMeta } from '@/interfaces/chain-meta'
 import { useContext } from 'react'
 
 interface TokenChainIconInputs {
@@ -15,7 +15,7 @@ export interface TokenChainIconData {
     resolvedTokenSymbol?: string
     chainFound: boolean
     tokenFound: boolean
-    chainDetails?: ChainMeta & { tokens: TokenMeta[] }
+    chainDetails?: ChainWithTokens
     tokenDetails?: TokenMeta
 }
 

@@ -18,3 +18,7 @@ export interface TokenMeta {
     logoURI: string
     usdPrice: number
 }
+
+/** Canonical chain record as returned by `getSupportedChainsAndTokens` —
+ *  every consumer that reads chains-with-tokens expects this shape. */
+export type ChainWithTokens = ChainMeta & { networkName: string; tokens: TokenMeta[] }

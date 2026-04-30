@@ -1,4 +1,4 @@
-import type { ChainMeta, TokenMeta } from '@/interfaces/chain-meta'
+import type { ChainWithTokens, TokenMeta } from '@/interfaces/chain-meta'
 import { type Chain } from 'viem'
 
 export type RecipientType = 'ENS' | 'ADDRESS' | 'USERNAME'
@@ -12,5 +12,5 @@ export interface ParsedURL {
     } | null
     amount?: string
     token?: TokenMeta
-    chain?: ChainMeta & { tokens: TokenMeta[] }
+    chain?: ChainWithTokens
 }

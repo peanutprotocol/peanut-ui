@@ -2,7 +2,7 @@
 
 import { type ITokenPriceData, type Account } from '@/interfaces'
 import { type TRequestChargeResponse, type PaymentCreationResponse } from '@/services/services.types'
-import type { ChainMeta, TokenMeta } from '@/interfaces/chain-meta'
+import type { ChainWithTokens } from '@/interfaces/chain-meta'
 import React, { createContext, type ReactNode, useContext, useMemo, useState, useCallback } from 'react'
 
 export interface WithdrawMethod {
@@ -18,7 +18,7 @@ export type WithdrawView = 'INITIAL' | 'CONFIRM' | 'STATUS'
 
 export interface WithdrawData {
     token: ITokenPriceData
-    chain: ChainMeta & { networkName: string; tokens: TokenMeta[] }
+    chain: ChainWithTokens
     address: string
     amount: string
 }

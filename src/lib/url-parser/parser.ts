@@ -1,6 +1,6 @@
 import { getSupportedChainsAndTokens } from '@/app/actions/supported-chains'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
-import type { ChainMeta, TokenMeta } from '@/interfaces/chain-meta'
+import type { ChainWithTokens, TokenMeta } from '@/interfaces/chain-meta'
 import { validateAmount } from '../validation/amount'
 import { validateAndResolveRecipient } from '../validation/recipient'
 import { getChainDetails, getTokenAndChainDetails } from '../validation/token'
@@ -103,7 +103,7 @@ export async function parsePaymentURL(
     const isPeanutRecipient = recipientDetails.recipientType === 'USERNAME'
 
     // 4. Resolve chain details
-    let chainDetails: (ChainMeta & { tokens: TokenMeta[] }) | undefined = undefined
+    let chainDetails: ChainWithTokens | undefined = undefined
     if (chainId) {
         try {
             chainDetails = getChainDetails(chainId, supportedChainsAndTokens)
@@ -144,7 +144,7 @@ export async function parsePaymentURL(
 
             // Update chain details for non-USERNAME recipients if needed
             if (!chainDetails && !isPeanutRecipient && tokenAndChainData.chain) {
-                chainDetails = tokenAndChainData.chain as ChainMeta & { tokens: TokenMeta[] }
+                chainDetails = tokenAndChainData.chain as ChainWithTokens
             }
         } else if (isPeanutRecipient) {
             tokenDetails = chainDetails?.tokens.find(

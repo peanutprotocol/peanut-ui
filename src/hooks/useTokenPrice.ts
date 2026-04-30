@@ -10,13 +10,13 @@ import {
 } from '@/constants/zerodev.consts'
 import { type ITokenPriceData } from '@/interfaces'
 import * as Sentry from '@sentry/nextjs'
-import type { ChainMeta, TokenMeta } from '@/interfaces/chain-meta'
+import type { ChainWithTokens } from '@/interfaces/chain-meta'
 import { STABLE_COINS, supportedMobulaChains } from '@/constants/general.consts'
 
 interface UseTokenPriceParams {
     tokenAddress: string | undefined
     chainId: string | undefined
-    supportedChainsAndTokens: Record<string, ChainMeta & { networkName: string; tokens: TokenMeta[] }>
+    supportedChainsAndTokens: Record<string, ChainWithTokens>
     isPeanutWallet: boolean
 }
 

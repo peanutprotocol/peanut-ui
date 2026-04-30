@@ -1,8 +1,8 @@
 import { ChainValidationError } from '@/lib/url-parser/errors'
 import { getChainDetails, getTokenAndChainDetails } from '@/lib/validation/token'
-import type { ChainMeta, TokenMeta } from '@/interfaces/chain-meta'
+import type { ChainWithTokens } from '@/interfaces/chain-meta'
 
-const mockChainsAndTokens: Record<string, ChainMeta & { networkName: string; tokens: TokenMeta[] }> = {
+const mockChainsAndTokens: Record<string, ChainWithTokens> = {
     '1': {
         chainId: '1',
         networkName: 'Ethereum',

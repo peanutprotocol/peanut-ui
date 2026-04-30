@@ -1,6 +1,6 @@
 import { getSupportedChainsAndTokens } from '@/app/actions/supported-chains'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
-import type { ChainMeta, TokenMeta } from '@/interfaces/chain-meta'
+import type { ChainMeta, ChainWithTokens, TokenMeta } from '@/interfaces/chain-meta'
 import { ChainValidationError } from '../url-parser/errors'
 import { POPULAR_CHAIN_NAME_VARIANTS } from '../url-parser/parser.consts'
 
@@ -55,9 +55,9 @@ export async function getTokenAndChainDetails(
 // utility to get human-readable chain name
 export function getChainDetails(
     chain: string | number,
-    supportedChainsAndTokens: Record<string, ChainMeta & { tokens: TokenMeta[] }>
-): ChainMeta & { tokens: TokenMeta[] } {
-    let chainDetails: ChainMeta & { tokens: TokenMeta[] }
+    supportedChainsAndTokens: Record<string, ChainWithTokens>
+): ChainWithTokens {
+    let chainDetails: ChainWithTokens
 
     // resolve chain by name
     if (typeof chain === 'string') {

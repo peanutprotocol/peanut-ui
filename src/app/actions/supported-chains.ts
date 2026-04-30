@@ -1,7 +1,5 @@
-import type { ChainMeta, TokenMeta } from '@/interfaces/chain-meta'
+import type { ChainWithTokens } from '@/interfaces/chain-meta'
 import { supportedPeanutChains, peanutTokenDetails } from '@/constants/general.consts'
-
-type ChainWithTokens = ChainMeta & { networkName: string; tokens: TokenMeta[] }
 
 export async function getSupportedChainsAndTokens(): Promise<Record<string, ChainWithTokens>> {
     const result: Record<string, ChainWithTokens> = {}

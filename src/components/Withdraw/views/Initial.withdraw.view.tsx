@@ -8,7 +8,7 @@ import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { type ITokenPriceData } from '@/interfaces'
-import type { ChainMeta, TokenMeta } from '@/interfaces/chain-meta'
+import type { ChainWithTokens } from '@/interfaces/chain-meta'
 import { formatAmount } from '@/utils/general.utils'
 import { useRouter } from 'next/navigation'
 import { useContext, useEffect } from 'react'
@@ -19,7 +19,7 @@ interface InitialWithdrawViewProps {
     amount: string
     onReview: (data: {
         token: ITokenPriceData
-        chain: ChainMeta & { networkName: string; tokens: TokenMeta[] }
+        chain: ChainWithTokens
         address: string
     }) => void
     onBack?: () => void
@@ -61,7 +61,7 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
                       networkName: PEANUT_WALLET_CHAIN.name,
                       chainIconURI: '',
                       tokens: [],
-                  } satisfies ChainMeta & { networkName: string; tokens: TokenMeta[] })
+                  } satisfies ChainWithTokens)
                 : undefined
         const selectedChainData = xchainChainData ?? fallbackChainData
 
