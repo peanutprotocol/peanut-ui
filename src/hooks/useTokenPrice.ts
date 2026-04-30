@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { fetchTokenPrice } from '@/app/actions/tokens'
+import { fetchTokenPrice } from '@/services/tokens-price'
 import {
     PEANUT_WALLET_CHAIN,
     PEANUT_WALLET_TOKEN,
