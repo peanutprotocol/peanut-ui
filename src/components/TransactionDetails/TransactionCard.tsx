@@ -124,9 +124,12 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     }
 
     let currencyDisplayAmount: string | undefined
-    if (transaction.currency && transaction.currency.code.toUpperCase() !== 'USD') {
+    // Skip the secondary "≈ <CCY> <amount>" line when the currency is USD or a
+    // USD-pegged stablecoin — `$0.10` next to `≈ USDC 0.10` is just noise.
+    const ccyCode = transaction.currency?.code.toUpperCase()
+    if (transaction.currency && ccyCode && ccyCode !== 'USD' && !isStableCoin(ccyCode)) {
         const formattedCurrencyAmount = formatNumberForDisplay(transaction.currency.amount, { maxDecimals: 2 })
-        currencyDisplayAmount = `≈ ${transaction.currency.code.toUpperCase()} ${formattedCurrencyAmount}`
+        currencyDisplayAmount = `≈ ${ccyCode} ${formattedCurrencyAmount}`
     }
 
     // Spec §4.4: declined card transactions stay in the feed but are visually
