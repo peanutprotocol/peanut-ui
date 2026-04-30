@@ -23,6 +23,7 @@ import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { rainApi } from '@/services/rain'
 import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
+import { useModalsContext } from '@/context/ModalsContext'
 
 const CardPage: FC = () => {
     const router = useRouter()
@@ -44,6 +45,7 @@ const CardPage: FC = () => {
 
     const { overview, isLoading: overviewLoading, error: overviewError } = useRainCardOverview()
     const { serializeGrant } = useGrantSessionKey()
+    const { setIsSupportModalOpen } = useModalsContext()
 
     // Sumsub card-application token — populated when POST /rain/cards reports
     // the user still needs to complete the rain-card-application level.
@@ -271,14 +273,15 @@ const CardPage: FC = () => {
             case 'manual-review':
                 return <ApplicationStatusScreen variant="manual-review" onPrev={() => router.back()} />
             case 'rejected':
-                // No retry CTA: Rain denials are terminal on our side. The only
-                // path forward is support reviewing the case manually (PEP /
-                // sanctions / fraud-pattern flags need a human in the loop on
-                // Rain's end). The CTA is "Contact support" only.
+                // No retry CTA: Rain denials are terminal on our side. The
+                // only path forward is support reviewing the case manually
+                // (PEP / sanctions / fraud-pattern flags need a human in the
+                // loop on Rain's end). Open Crisp directly — sending the user
+                // to /support's FAQ first adds a step for no upside.
                 return (
                     <ApplicationStatusScreen
                         variant="rejected"
-                        onContactSupport={() => router.push('/support')}
+                        onContactSupport={() => setIsSupportModalOpen(true)}
                         onPrev={() => router.back()}
                     />
                 )

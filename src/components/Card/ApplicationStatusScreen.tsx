@@ -1,9 +1,7 @@
 'use client'
 import type { FC } from 'react'
-import Image from 'next/image'
 import NavHeader from '@/components/Global/NavHeader'
 import Loading from '@/components/Global/Loading'
-import { PEANUTMAN_SAD } from '@/assets/peanut'
 
 type Variant = 'pending' | 'manual-review' | 'rejected'
 
@@ -24,7 +22,7 @@ const COPY: Record<Variant, { title: string; body: string }> = {
     },
     rejected: {
         title: "We couldn't verify your identity",
-        body: "Your card application wasn't approved. This might be because of incomplete documents, information mismatch, or regional restrictions. Our support team can help you sort it out.",
+        body: "Your card application wasn't approved. This might be because of incomplete documents, information mismatch, or regional restrictions.",
     },
 }
 
@@ -35,16 +33,9 @@ const ApplicationStatusScreen: FC<Props> = ({ variant, onContactSupport, onPrev 
             <NavHeader title="Add card" onPrev={onPrev} />
             <div className="my-auto flex flex-col items-center gap-6 text-center">
                 {variant === 'pending' && <Loading />}
-                {variant === 'rejected' && (
-                    <Image
-                        src={PEANUTMAN_SAD}
-                        alt="Sad peanut"
-                        width={122}
-                        height={152}
-                        className="select-none"
-                        priority
-                    />
-                )}
+                {/* TODO: drop the new crying-peanut illustration here for the
+                    rejected variant — the previous `peanutman-sad.svg` was the
+                    older illustration style and was deleted with this change. */}
                 <div className="flex flex-col gap-3">
                     <h1 className="text-2xl font-extrabold text-n-1">{copy.title}</h1>
                     <p className="text-grey-1">{copy.body}</p>
