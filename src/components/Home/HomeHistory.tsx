@@ -258,6 +258,19 @@ const HomeHistory = ({
         )
     }, [combinedEntries])
 
+    // Memoize per-row drawer projection — `mapTransactionDataForDrawer`
+    // dispatches a strategy + builds derived view-model state per call. Two
+    // .map() sites below render dozens of rows; without this memo each row
+    // recomputes on every parent rerender (websocket tick, hover, etc.).
+    const drawerByUuid = useMemo(() => {
+        const m = new Map<string, ReturnType<typeof mapTransactionDataForDrawer>>()
+        for (const item of combinedEntries) {
+            if (isKycStatusItem(item) || isBadgeHistoryItem(item)) continue
+            if (!m.has(item.uuid)) m.set(item.uuid, mapTransactionDataForDrawer(item))
+        }
+        return m
+    }, [combinedEntries])
+
     // show loading state
     if (isLoading) {
         return (
@@ -342,8 +355,8 @@ const HomeHistory = ({
                     <div className="h-full w-full">
                         {/* map over the latest entries and render transactioncard */}
                         {pendingRequests.map((item, index) => {
-                            // map the raw history entry to the format needed by the ui components
-                            const { transactionDetails, transactionCardType } = mapTransactionDataForDrawer(item)
+                            const { transactionDetails, transactionCardType } =
+                                drawerByUuid.get(item.uuid) ?? mapTransactionDataForDrawer(item)
 
                             // determine card position for styling (first, middle, last, single)
                             const position = getCardPosition(index, pendingRequests.length)
@@ -408,8 +421,8 @@ const HomeHistory = ({
                             return <BadgeStatusItem key={item.uuid} position={position} entry={item} />
                         }
 
-                        // map the raw history entry to the format needed by the ui components
-                        const { transactionDetails, transactionCardType } = mapTransactionDataForDrawer(item)
+                        const { transactionDetails, transactionCardType } =
+                            drawerByUuid.get(item.uuid) ?? mapTransactionDataForDrawer(item)
 
                         // determine card position for styling (first, middle, last, single)
 

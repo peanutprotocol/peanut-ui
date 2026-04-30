@@ -185,6 +185,18 @@ const HistoryPage = () => {
         return entries
     }, [allEntries, user, isLoading])
 
+    // Memoize per-row drawer projection so the .map() below doesn't recompute
+    // mapTransactionDataForDrawer per row on every parent rerender (websocket
+    // tick, infinite-scroll fetch). One Map<uuid, mapped> per visible page.
+    const drawerByUuid = useMemo(() => {
+        const m = new Map<string, ReturnType<typeof mapTransactionDataForDrawer>>()
+        for (const item of combinedAndSortedEntries) {
+            if (isKycStatusItem(item) || isBadgeHistoryItem(item)) continue
+            if (!m.has(item.uuid)) m.set(item.uuid, mapTransactionDataForDrawer(item))
+        }
+        return m
+    }, [combinedAndSortedEntries])
+
     if (isLoading && combinedAndSortedEntries.length === 0) {
         return <PeanutLoading />
     }
@@ -264,7 +276,7 @@ const HistoryPage = () => {
                             ) : (
                                 (() => {
                                     const { transactionDetails, transactionCardType } =
-                                        mapTransactionDataForDrawer(item)
+                                        drawerByUuid.get(item.uuid) ?? mapTransactionDataForDrawer(item)
                                     return (
                                         <TransactionCard
                                             type={transactionCardType}

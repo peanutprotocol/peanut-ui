@@ -135,9 +135,9 @@ function mapEntryStatusToUiStatus(entry: HistoryEntry, direction: TransactionDir
             return 'completed'
         case 'FAILED':
         case 'ERROR':
-        case 'CANCELED':
         case 'EXPIRED':
             return 'failed'
+        case 'CANCELED':
         case 'CANCELLED':
             return 'cancelled'
         case 'REFUNDED':
@@ -533,12 +533,17 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         },
         sourceView: 'history',
         points: entry.points,
-        bankAccountDetails: shouldPlumbBankAccountDetails(entry)
-            ? {
-                  identifier: entry.recipientAccount.identifier,
-                  type: entry.recipientAccount.type,
-              }
-            : undefined,
+        // shouldPlumbBankAccountDetails gates on type/kind/role; also require
+        // identifier + type to be present so getBankAccountLabel doesn't crash
+        // on rows whose recipientAccount payload is incomplete (seen on
+        // mid-flight FIAT_OFFRAMP intents before the BE stamps the account).
+        bankAccountDetails:
+            shouldPlumbBankAccountDetails(entry) && entry.recipientAccount?.identifier && entry.recipientAccount?.type
+                ? {
+                      identifier: entry.recipientAccount.identifier,
+                      type: entry.recipientAccount.type,
+                  }
+                : undefined,
         claimedAt: entry.claimedAt,
         createdAt: entry.createdAt,
         completedAt: entry.completedAt,

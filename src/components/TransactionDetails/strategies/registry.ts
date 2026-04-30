@@ -38,9 +38,45 @@ import { intentFallback, legacyFallback } from './fallback'
 // `@/hooks/useTransactionHistory` (and thus break the enum re-export) can
 // still load this module — the registry is wired at module-init time.
 const TRANSACTION_INTENT = 'TRANSACTION_INTENT'
-const INTENT_KEY = (kind: string): string => `${TRANSACTION_INTENT}:${kind}`
 
-const STRATEGIES: Record<string, TransactionStrategy> = {
+// Legacy EHistoryEntryType values handled by a strategy. Adding a new legacy
+// type here without a corresponding entry in STRATEGIES is a compile error.
+type LegacyKey =
+    | 'DIRECT_SEND'
+    | 'SEND_LINK'
+    | 'REQUEST'
+    | 'WITHDRAW'
+    | 'CASHOUT'
+    | 'BRIDGE_OFFRAMP'
+    | 'MANTECA_OFFRAMP'
+    | 'BANK_SEND_LINK_CLAIM'
+    | 'BRIDGE_ONRAMP'
+    | 'MANTECA_ONRAMP'
+    | 'DEPOSIT'
+    | 'MANTECA_QR_PAYMENT'
+    | 'SIMPLEFI_QR_PAYMENT'
+    | 'PERK_REWARD'
+
+// TRANSACTION_INTENT kinds rendered by an explicit strategy. Adding a new
+// BE TransactionIntentKind that should render distinctly requires updating
+// this union AND the STRATEGIES map below — TS guarantees both move together.
+type IntentKind =
+    | 'P2P_SEND'
+    | 'REQUEST_PAY'
+    | 'QR_PAY'
+    | 'LINK_CREATE'
+    | 'CRYPTO_DEPOSIT'
+    | 'CRYPTO_WITHDRAW'
+    | 'FIAT_OFFRAMP'
+    | 'FIAT_ONRAMP'
+    | 'CARD_SPEND'
+
+type RegistryKey = LegacyKey | `${typeof TRANSACTION_INTENT}:${IntentKind}`
+
+const INTENT_KEY = <K extends IntentKind>(kind: K): `${typeof TRANSACTION_INTENT}:${K}` =>
+    `${TRANSACTION_INTENT}:${kind}`
+
+const STRATEGIES: Record<RegistryKey, TransactionStrategy> = {
     DIRECT_SEND: directSend,
     SEND_LINK: sendLink,
     REQUEST: request,
@@ -69,13 +105,13 @@ const STRATEGIES: Record<string, TransactionStrategy> = {
 function key(entry: HistoryEntry): string {
     if (entry.type === TRANSACTION_INTENT) {
         const kind = (entry.extraData?.kind as string | undefined) ?? ''
-        return INTENT_KEY(kind)
+        return `${TRANSACTION_INTENT}:${kind}`
     }
     return String(entry.type)
 }
 
 export function dispatchStrategy(entry: HistoryEntry): TransactionStrategy {
-    const direct = STRATEGIES[key(entry)]
+    const direct = (STRATEGIES as Record<string, TransactionStrategy>)[key(entry)]
     if (direct) return direct
     if (entry.type === TRANSACTION_INTENT) return intentFallback
     return legacyFallback
