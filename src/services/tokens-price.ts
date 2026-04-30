@@ -6,14 +6,14 @@
  * The Mobula API key can't be exposed to the client and Capacitor builds
  * can't use Next.js server actions, so these calls live on peanut-api-ts
  * (`GET /tokens/price`, `GET /tokens/wallet-portfolio`) and we hit them
- * via apiFetch (web → proxy, native → direct).
+ * via serverFetch (auto-routes web → /api/proxy/get/*, native → direct).
  */
 
-import { apiFetch } from '@/utils/api-fetch'
+import { serverFetch } from '@/utils/api-fetch'
 import { type ITokenPriceData, type IUserBalance } from '@/interfaces'
 
 async function getJson<T>(path: string, errorLabel: string): Promise<T | null> {
-    const response = await apiFetch(path, `/api/peanut${path}`, { method: 'GET' })
+    const response = await serverFetch(path, { method: 'GET' })
     if (response.status === 404) return null
     if (!response.ok) {
         const text = await response.text().catch(() => '')
