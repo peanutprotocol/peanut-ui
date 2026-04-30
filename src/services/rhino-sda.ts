@@ -11,7 +11,12 @@ import { apiFetch } from '@/utils/api-fetch'
 import type { Address } from 'viem'
 
 export type RhinoTransferContext = 'withdraw' | 'pay-request' | 'claim-xchain'
-export type RhinoSupportedToken = 'USDC' | 'USDT'
+/**
+ * Token symbol passed to the Rhino backend. Plain string — Rhino validates
+ * against the (chainIn, chainOut) pair. The legacy `'USDC' | 'USDT'`
+ * restriction was an artificial FE limit that blocked cross-token withdraw.
+ */
+export type RhinoSupportedToken = string
 
 export interface SdaTransferRequest {
     context: RhinoTransferContext

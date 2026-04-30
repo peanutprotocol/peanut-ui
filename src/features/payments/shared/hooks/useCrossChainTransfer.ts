@@ -91,8 +91,12 @@ interface CalculateInput {
 }
 
 function inferTokenSymbol(chainId: string, tokenAddress: Address): RhinoSupportedToken | undefined {
-    const symbol = getTokenSymbol(tokenAddress, chainId)?.toUpperCase()
-    return symbol === 'USDC' || symbol === 'USDT' ? symbol : undefined
+    // Whatever the curated FE list calls the token (USDC, USDT, ETH, WETH, …);
+    // backend forwards it to Rhino, which validates against its own per-route
+    // supported-tokens map. Native ETH on EVM uses the SAME 'ETH' symbol —
+    // address differs by chain (proxy 0xeee… or zero), but Rhino keys on the
+    // symbol.
+    return getTokenSymbol(tokenAddress, chainId)?.toUpperCase()
 }
 
 export function useCrossChainTransfer(): UseCrossChainTransferReturn {
