@@ -10,6 +10,7 @@ import MantecaDetailsStep from './views/MantecaDetailsStep.view'
 import { MercadoPagoStep } from '@/types/manteca.types'
 import MantecaReviewStep from './views/MantecaReviewStep'
 import { Button } from '@/components/0_Bruddle/Button'
+import ErrorAlert from '@/components/Global/ErrorAlert'
 import { useRouter } from 'next/navigation'
 import useKycStatus from '@/hooks/useKycStatus'
 import useProviderRejectionStatus from '@/hooks/useProviderRejectionStatus'
@@ -139,9 +140,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                 providerMessage={mantecaRejection.userMessage ?? undefined}
             />
             <SumsubKycModals flow={sumsubFlow} />
-            {sumsubFlow.error && (
-                <p className="text-center text-sm text-red-500">{sumsubFlow.error}</p>
-            )}
+            {sumsubFlow.error && <ErrorAlert description={sumsubFlow.error} />}
         </div>
     )
 }
