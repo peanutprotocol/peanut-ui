@@ -17,11 +17,7 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.co
 
 interface InitialWithdrawViewProps {
     amount: string
-    onReview: (data: {
-        token: ITokenPriceData
-        chain: ChainWithTokens
-        address: string
-    }) => void
+    onReview: (data: { token: ITokenPriceData; chain: ChainWithTokens; address: string }) => void
     onBack?: () => void
     isProcessing?: boolean
 }
