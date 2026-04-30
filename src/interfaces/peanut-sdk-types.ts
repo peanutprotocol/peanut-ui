@@ -1,8 +1,6 @@
 /** Local replacements for `@squirrel-labs/peanut-sdk`'s `interfaces` namespace.
  *  Lifted byte-for-byte from the SDK's `dist/index.d.ts` so consumers swap
- *  imports without behaviour change. New code should not extend these — the
- *  Squid-shaped pieces are kept only so the cross-chain UI surface compiles
- *  while it's being migrated to Rhino. */
+ *  imports without behaviour change. */
 
 export interface IPeanutLinkDetails {
     chainId: string
@@ -66,23 +64,4 @@ export enum ESignAndSubmitTx {
 export interface SDKStatus {
     code: number
     extraInfo?: unknown
-}
-
-/** Squid types — kept until the cross-chain UI surface is migrated to Rhino. */
-export interface IChainMeta {
-    chainId: string
-    axelarChainName: string
-    chainType: string
-    chainIconURI: string
-}
-
-export interface ITokenMeta {
-    active: boolean
-    chainId: string
-    address: string
-    decimals: number
-    name: string
-    symbol: string
-    logoURI: string
-    usdPrice: number
 }

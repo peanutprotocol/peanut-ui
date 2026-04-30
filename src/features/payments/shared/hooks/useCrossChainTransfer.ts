@@ -3,19 +3,18 @@
 /**
  * Unified cross-chain transfer hook — Rhino SDA flow.
  *
- * Replaces useRouteCalculation (the legacy Squid route hook). Same three consumers:
+ * Three consumers:
  *   - Withdraw flow   (user's kernel wallet → external chain)
  *   - Pay-request     (payer's kernel wallet → merchant's chain)
  *   - Claim-link      (relayer EOA → claimer's chain, via /claim)
  *
- * Same-chain same-token fallback uses Peanut SDK's
- * `prepareRequestLinkFulfillmentTransaction` — unchanged vs the old hook.
+ * Same-chain same-token: uses Peanut SDK's `prepareRequestLinkFulfillmentTransaction`.
  *
- * For cross-chain: provisions (or reuses) an SDA on the source chain via
- * the unified /rhino/sda-transfer endpoint and returns a single ERC20
- * transfer() tx the smart account signs. Rhino's BRIDGE_EXECUTED webhook
- * advances downstream state (charge paid, claim settled, etc.) — the UI
- * does NOT call recordPayment for cross-chain; the webhook does it.
+ * Cross-chain: provisions (or reuses) an SDA on the source chain via the unified
+ * /rhino/sda-transfer endpoint and returns a single ERC20 transfer() tx the smart
+ * account signs. Rhino's BRIDGE_EXECUTED webhook advances downstream state
+ * (charge paid, claim settled, etc.) — the UI does NOT call recordPayment for
+ * cross-chain; the webhook does it.
  *
  * @example
  * const { transactions, receiveAmount, sdaAddress, calculate, isCalculating } = useCrossChainTransfer()

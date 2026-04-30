@@ -35,7 +35,7 @@ jest.mock('@/lib/validation/recipient', () => {
     }
 })
 
-// mock Squid data
+// mock chain + token data
 jest.mock('@/app/actions/supported-chains', () => ({
     getSupportedChainsAndTokens: () => ({
         '1': {
@@ -57,10 +57,6 @@ jest.mock('@/app/actions/supported-chains', () => ({
         '8453': {
             chainId: '8453',
             name: 'Base',
-            networkIdentifier: 'base',
-            chainName: 'Chain 8453',
-            axelarChainName: 'base',
-            type: 'evm',
             networkName: 'Base',
             tokens: [
                 {
@@ -69,7 +65,6 @@ jest.mock('@/app/actions/supported-chains', () => ({
                     chainId: '8453',
                     name: 'ETH',
                     decimals: 18,
-                    active: true,
                 },
                 {
                     symbol: 'USDC',
@@ -77,7 +72,6 @@ jest.mock('@/app/actions/supported-chains', () => ({
                     chainId: '8453',
                     name: 'USDC',
                     decimals: 6,
-                    active: true,
                 },
             ],
         },

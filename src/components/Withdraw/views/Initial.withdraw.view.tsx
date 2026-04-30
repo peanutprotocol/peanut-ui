@@ -8,8 +8,8 @@ import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { type ITokenPriceData } from '@/interfaces'
+import type { ChainWithTokens } from '@/interfaces/chain-meta'
 import { formatAmount } from '@/utils/general.utils'
-import * as interfaces from '@/interfaces/peanut-sdk-types'
 import { useRouter } from 'next/navigation'
 import { useContext, useEffect } from 'react'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
@@ -17,11 +17,7 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.co
 
 interface InitialWithdrawViewProps {
     amount: string
-    onReview: (data: {
-        token: ITokenPriceData
-        chain: interfaces.IChainMeta & { networkName: string; tokens: interfaces.ITokenMeta[] }
-        address: string
-    }) => void
+    onReview: (data: { token: ITokenPriceData; chain: ChainWithTokens; address: string }) => void
     onBack?: () => void
     isProcessing?: boolean
 }
@@ -50,31 +46,18 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
 
     const handleReview = () => {
         const xchainChainData = supportedChainsAndTokens[selectedChainID]
-        // When the user is withdrawing on the Peanut wallet chain (same-chain,
-        // no Rhino bridge needed), supportedChainsAndTokens may not list that chain — especially
-        // on testnets or env-configured chains. Synthesize a chain object
-        // in that case so the flow can proceed. Downstream code only reads
-        // `chainId` and `networkName` off this object — but the type
-        // requires the legacy Squid IChainMeta fields (axelarChainName,
-        // chainType, chainIconURI). Populate them with safe placeholders so
-        // we don't fall through `as unknown as` and silently mask missing
-        // shape (CR-flagged). Once the cross-chain surface fully migrates
-        // off the Squid types, the narrower-callback alternative is to
-        // tighten `onReview` to only the fields it actually reads.
+        // supportedChainsAndTokens may not list the Peanut wallet chain on
+        // testnets / env-configured chains. Synthesize a minimal entry so the
+        // same-chain (no-bridge) path can proceed.
         const isPeanutWalletChain = selectedChainID === PEANUT_WALLET_CHAIN.id.toString()
         const fallbackChainData =
             isPeanutWalletChain && !xchainChainData
                 ? ({
                       chainId: PEANUT_WALLET_CHAIN.id.toString(),
                       networkName: PEANUT_WALLET_CHAIN.name,
-                      axelarChainName: PEANUT_WALLET_CHAIN.name,
-                      chainType: 'evm',
                       chainIconURI: '',
                       tokens: [],
-                  } satisfies interfaces.IChainMeta & {
-                      networkName: string
-                      tokens: interfaces.ITokenMeta[]
-                  })
+                  } satisfies ChainWithTokens)
                 : undefined
         const selectedChainData = xchainChainData ?? fallbackChainData
 

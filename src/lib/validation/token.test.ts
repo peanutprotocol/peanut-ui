@@ -1,17 +1,12 @@
 import { ChainValidationError } from '@/lib/url-parser/errors'
 import { getChainDetails, getTokenAndChainDetails } from '@/lib/validation/token'
-import * as interfaces from '@/interfaces/peanut-sdk-types'
+import type { ChainWithTokens } from '@/interfaces/chain-meta'
 
-const mockSquidChains: Record<
-    string,
-    interfaces.IChainMeta & { networkName: string; tokens: interfaces.ITokenMeta[] }
-> = {
+const mockChainsAndTokens: Record<string, ChainWithTokens> = {
     '1': {
         chainId: '1',
-        axelarChainName: 'Ethereum',
         networkName: 'Ethereum',
-        chainType: 'evm',
-        chainIconURI: 'https://raw.githubusercontent.com/0xsquid/assets/main/images/webp128/chains/ethereum.webp',
+        chainIconURI: 'https://example.test/chains/ethereum.webp',
         tokens: [
             {
                 symbol: 'ETH',
@@ -20,8 +15,7 @@ const mockSquidChains: Record<
                 name: 'ETH',
                 decimals: 18,
                 usdPrice: 2094.96,
-                logoURI: 'https://raw.githubusercontent.com/0xsquid/assets/main/images/tokens/eth.svg',
-                active: true,
+                logoURI: 'https://example.test/tokens/eth.svg',
             },
             {
                 symbol: 'USDC',
@@ -30,17 +24,14 @@ const mockSquidChains: Record<
                 name: 'USD Coin',
                 decimals: 6,
                 usdPrice: 1,
-                logoURI: 'https://raw.githubusercontent.com/0xsquid/assets/main/images/tokens/usdc.svg',
-                active: true,
+                logoURI: 'https://example.test/tokens/usdc.svg',
             },
         ],
     },
     '10': {
         chainId: '10',
-        axelarChainName: 'optimism',
         networkName: 'optimism',
-        chainType: 'evm',
-        chainIconURI: 'https://raw.githubusercontent.com/0xsquid/assets/main/images/webp128/chains/optimism.webp',
+        chainIconURI: 'https://example.test/chains/optimism.webp',
         tokens: [
             {
                 symbol: 'ETH',
@@ -49,8 +40,7 @@ const mockSquidChains: Record<
                 name: 'ETH',
                 decimals: 18,
                 usdPrice: 2093.52,
-                logoURI: 'https://raw.githubusercontent.com/0xsquid/assets/main/images/tokens/eth.svg',
-                active: true,
+                logoURI: 'https://example.test/tokens/eth.svg',
             },
             {
                 symbol: 'USDC',
@@ -59,17 +49,14 @@ const mockSquidChains: Record<
                 name: 'USD Coin',
                 decimals: 6,
                 usdPrice: 1,
-                logoURI: 'https://raw.githubusercontent.com/0xsquid/assets/main/images/tokens/usdc.svg',
-                active: true,
+                logoURI: 'https://example.test/tokens/usdc.svg',
             },
         ],
     },
     '8453': {
         chainId: '8453',
-        axelarChainName: 'base',
         networkName: 'base',
-        chainType: 'evm',
-        chainIconURI: 'https://raw.githubusercontent.com/0xsquid/assets/main/images/chains/base.svg',
+        chainIconURI: 'https://example.test/chains/base.svg',
         tokens: [
             {
                 symbol: 'ETH',
@@ -78,8 +65,7 @@ const mockSquidChains: Record<
                 name: 'ETH',
                 decimals: 18,
                 usdPrice: 2094.96,
-                logoURI: 'https://raw.githubusercontent.com/0xsquid/assets/main/images/tokens/eth.svg',
-                active: true,
+                logoURI: 'https://example.test/tokens/eth.svg',
             },
             {
                 symbol: 'USDC',
@@ -88,8 +74,7 @@ const mockSquidChains: Record<
                 name: 'USD Coin',
                 decimals: 6,
                 usdPrice: 1,
-                logoURI: 'https://raw.githubusercontent.com/0xsquid/assets/main/images/tokens/usdc.svg',
-                active: true,
+                logoURI: 'https://example.test/tokens/usdc.svg',
             },
         ],
     },
@@ -104,43 +89,43 @@ jest.mock('@/constants/zerodev.consts', () => ({
 }))
 
 jest.mock('@/app/actions/supported-chains', () => ({
-    getSupportedChainsAndTokens: () => Promise.resolve(mockSquidChains),
+    getSupportedChainsAndTokens: () => Promise.resolve(mockChainsAndTokens),
 }))
 
 describe('Token Validation', () => {
     describe('getChainDetails', () => {
         it('should resolve chain by name', () => {
-            expect(getChainDetails('ethereum', mockSquidChains)).toEqual(mockSquidChains['1'])
+            expect(getChainDetails('ethereum', mockChainsAndTokens)).toEqual(mockChainsAndTokens['1'])
         })
 
         it('should resolve chain by decimal ID', () => {
-            expect(getChainDetails('1', mockSquidChains)).toEqual(mockSquidChains['1'])
-            expect(getChainDetails(1, mockSquidChains)).toEqual(mockSquidChains['1'])
+            expect(getChainDetails('1', mockChainsAndTokens)).toEqual(mockChainsAndTokens['1'])
+            expect(getChainDetails(1, mockChainsAndTokens)).toEqual(mockChainsAndTokens['1'])
         })
 
         it('should resolve chain by hex ID', () => {
-            expect(getChainDetails('0x1', mockSquidChains)).toEqual(mockSquidChains['1'])
+            expect(getChainDetails('0x1', mockChainsAndTokens)).toEqual(mockChainsAndTokens['1'])
         })
 
         it('should throw for unsupported chains', () => {
-            expect(() => getChainDetails('invalid', mockSquidChains)).toThrow(ChainValidationError)
-            expect(() => getChainDetails('999', mockSquidChains)).toThrow(ChainValidationError)
+            expect(() => getChainDetails('invalid', mockChainsAndTokens)).toThrow(ChainValidationError)
+            expect(() => getChainDetails('999', mockChainsAndTokens)).toThrow(ChainValidationError)
         })
 
         it('should be case insensitive for chain names', () => {
-            expect(getChainDetails('ETHEREUM', mockSquidChains)).toEqual(mockSquidChains['1'])
-            expect(getChainDetails('EthereUM', mockSquidChains)).toEqual(mockSquidChains['1'])
+            expect(getChainDetails('ETHEREUM', mockChainsAndTokens)).toEqual(mockChainsAndTokens['1'])
+            expect(getChainDetails('EthereUM', mockChainsAndTokens)).toEqual(mockChainsAndTokens['1'])
         })
 
         it('should resolve optimism chain variants', () => {
-            expect(getChainDetails('optimism', mockSquidChains)).toEqual(mockSquidChains['10'])
-            expect(getChainDetails('op', mockSquidChains)).toEqual(mockSquidChains['10'])
-            expect(getChainDetails('10', mockSquidChains)).toEqual(mockSquidChains['10'])
+            expect(getChainDetails('optimism', mockChainsAndTokens)).toEqual(mockChainsAndTokens['10'])
+            expect(getChainDetails('op', mockChainsAndTokens)).toEqual(mockChainsAndTokens['10'])
+            expect(getChainDetails('10', mockChainsAndTokens)).toEqual(mockChainsAndTokens['10'])
         })
 
         it('should resolve base chain variants', () => {
-            expect(getChainDetails('base', mockSquidChains)).toEqual(mockSquidChains['8453'])
-            expect(getChainDetails('8453', mockSquidChains)).toEqual(mockSquidChains['8453'])
+            expect(getChainDetails('base', mockChainsAndTokens)).toEqual(mockChainsAndTokens['8453'])
+            expect(getChainDetails('8453', mockChainsAndTokens)).toEqual(mockChainsAndTokens['8453'])
         })
     })
 
@@ -148,8 +133,8 @@ describe('Token Validation', () => {
         it('should resolve token with specified chain', async () => {
             const result = await getTokenAndChainDetails('ETH', '1')
             expect(result).toEqual({
-                chain: mockSquidChains['1'],
-                token: mockSquidChains['1'].tokens[0],
+                chain: mockChainsAndTokens['1'],
+                token: mockChainsAndTokens['1'].tokens[0],
             })
         })
 
@@ -157,23 +142,23 @@ describe('Token Validation', () => {
             const result = await getTokenAndChainDetails('USDC')
             expect(result).toEqual({
                 chain: null,
-                token: mockSquidChains['1'].tokens[1],
+                token: mockChainsAndTokens['1'].tokens[1],
             })
         })
 
         it('should handle case insensitive token symbols', async () => {
             const result = await getTokenAndChainDetails('eth', '1')
             expect(result).toEqual({
-                chain: mockSquidChains['1'],
-                token: mockSquidChains['1'].tokens[0],
+                chain: mockChainsAndTokens['1'],
+                token: mockChainsAndTokens['1'].tokens[0],
             })
         })
 
         it('should return default token when no token specified', async () => {
             const result = await getTokenAndChainDetails('')
             expect(result).toEqual({
-                chain: mockSquidChains['1'],
-                token: mockSquidChains['1'].tokens[1], // USDC
+                chain: mockChainsAndTokens['1'],
+                token: mockChainsAndTokens['1'].tokens[1], // USDC
             })
         })
 

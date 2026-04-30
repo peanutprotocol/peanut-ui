@@ -2,10 +2,9 @@ import { useQuery } from '@tanstack/react-query'
 import { getSupportedChainsAndTokens } from '@/app/actions/supported-chains'
 
 /**
- * Hook to fetch and cache Squid chains and tokens configuration
+ * Hook to fetch and cache supported chains and tokens configuration.
  *
- * This data is static and rarely changes, so we cache it for one day.
- * This prevents redundant API calls on every component mount.
+ * Sourced locally (no live API call); cached for 24h since the data is static.
  *
  * @returns TanStack Query result with chains and tokens data
  *
@@ -16,7 +15,7 @@ import { getSupportedChainsAndTokens } from '@/app/actions/supported-chains'
  */
 export const useSupportedChainsAndTokens = () => {
     return useQuery({
-        queryKey: ['squidChainsAndTokens'],
+        queryKey: ['supportedChainsAndTokens'],
         queryFn: getSupportedChainsAndTokens,
         staleTime: 24 * 60 * 60 * 1000, // 1 day in milliseconds
         gcTime: 24 * 60 * 60 * 1000, // 1 day in milliseconds

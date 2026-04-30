@@ -19,7 +19,7 @@ import { createContext, useContext, useState, useMemo, useCallback, type ReactNo
 import { type Address, type Hash } from 'viem'
 import { type TRequestChargeResponse, type PaymentCreationResponse } from '@/services/services.types'
 import { type ParsedURL, type RecipientType } from '@/lib/url-parser/types/payment'
-import * as interfaces from '@/interfaces/peanut-sdk-types'
+import type { TokenMeta } from '@/interfaces/chain-meta'
 import { isStableCoin } from '@/utils/general.utils'
 
 // view states for semantic request flow
@@ -72,7 +72,7 @@ interface SemanticRequestFlowContextValue {
 
     // token denomination from url (e.g., ETH when url is /address/0.0001eth)
     // when set, amounts should be displayed in this token rather than USD
-    urlToken: interfaces.ITokenMeta | undefined
+    urlToken: TokenMeta | undefined
 
     // whether the url specified a non-stablecoin token (e.g., eth, not usdc)
     // when true, amounts are displayed in token units rather than USD

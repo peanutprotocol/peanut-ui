@@ -3,9 +3,8 @@
 /**
  * Client-side wrappers around the unified Rhino SDA-transfer backend.
  *
- * Replaces the legacy Squid primitive under Option A (SDA for
- * every cross-chain flow). Three consumers: withdraw, pay-request-x-chain,
- * claim-link-x-chain — all route through these two calls.
+ * Three consumers: withdraw, pay-request-x-chain, claim-link-x-chain —
+ * all route through these two calls.
  */
 
 import { apiFetch } from '@/utils/api-fetch'
