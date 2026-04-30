@@ -1,9 +1,11 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
+import Checkbox from '@/components/0_Bruddle/Checkbox'
 import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
 import Image from 'next/image'
+import { useState } from 'react'
 import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
 
 interface CardDetailsScreenProps {
@@ -16,6 +18,7 @@ interface CardDetailsScreenProps {
 const CardDetailsScreen = ({ price, currentTier, onContinue, onBack }: CardDetailsScreenProps) => {
     const isDiscounted = currentTier >= 2
     const originalPrice = 10
+    const [acceptedTerms, setAcceptedTerms] = useState(false)
 
     return (
         <div className="flex min-h-[inherit] flex-col gap-8">
@@ -52,7 +55,7 @@ const CardDetailsScreen = ({ price, currentTier, onContinue, onBack }: CardDetai
                     </Card>
                     <Card position="middle" className="py-3">
                         <p className="text-sm text-black">
-                            <span className="font-bold">2.</span> You'll be first to get your card on April 14th
+                            <span className="font-bold">2.</span> You'll be first to get your card
                         </p>
                     </Card>
                     <Card position="middle" className="py-3">
@@ -82,8 +85,30 @@ const CardDetailsScreen = ({ price, currentTier, onContinue, onBack }: CardDetai
                     </a>
                 </p>
 
+                {/* T&C acceptance */}
+                <div className="flex w-full items-start gap-2">
+                    <Checkbox value={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} />
+                    <p className="pt-0.5 text-xs text-black">
+                        I accept the{' '}
+                        <a
+                            href="https://peanutprotocol.notion.site/Terms-of-Service-Privacy-Policy-1f245331837f4b7e860261be8374cc3a?pvs=74"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="underline"
+                        >
+                            Terms &amp; Conditions
+                        </a>
+                    </p>
+                </div>
+
                 {/* CTA Button */}
-                <Button variant="purple" shadowSize="4" onClick={onContinue} className="w-full">
+                <Button
+                    variant="purple"
+                    shadowSize="4"
+                    onClick={onContinue}
+                    disabled={!acceptedTerms}
+                    className="w-full"
+                >
                     Continue
                 </Button>
             </div>
