@@ -1,8 +1,0 @@
-export { default as ANDROID_CHROME_1 } from '@/assets/camera-permission/android_chrome1.webp'
-export { default as ANDROID_CHROME_2 } from '@/assets/camera-permission/android_chrome2.webp'
-export { default as ANDROID_CHROME_3 } from '@/assets/camera-permission/android_chrome3.webp'
-export { default as IOS_CHROME_1 } from '@/assets/camera-permission/ios_chrome_1.webp'
-export { default as IOS_CHROME_2 } from '@/assets/camera-permission/ios_chrome2.webp'
-export { default as IOS_SAFARI_1 } from '@/assets/camera-permission/safari1.webp'
-export { default as IOS_SAFARI_2 } from '@/assets/camera-permission/safari2.webp'
-export { default as IOS_SAFARI_3 } from '@/assets/camera-permission/safari3.webp'
