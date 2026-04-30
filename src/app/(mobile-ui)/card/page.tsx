@@ -100,6 +100,15 @@ const CardPage: FC = () => {
                     posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
                     return
                 }
+                // Main applicant is missing a doc Rain requires (e.g. SELFIE
+                // after liveness was added to the level). Open WebSDK at the
+                // MAIN level — Sumsub asks only for the missing step. Same
+                // wrapper handles both action and main-level tokens.
+                if (res.status === 'main-kyc-required' && 'sumsubAccessToken' in res) {
+                    setSumsubToken(res.sumsubAccessToken)
+                    posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
+                    return
+                }
                 if (res.status === 'terms-required' && 'isUsResident' in res) {
                     setPendingTerms({ isUsResident: res.isUsResident })
                     return
@@ -187,7 +196,7 @@ const CardPage: FC = () => {
 
     const handleSumsubRefreshToken = useCallback(async () => {
         const res = await rainApi.applyForCard({ termsAccepted: false })
-        if (res.status === 'incomplete' && 'sumsubAccessToken' in res) {
+        if ((res.status === 'incomplete' || res.status === 'main-kyc-required') && 'sumsubAccessToken' in res) {
             return res.sumsubAccessToken
         }
         // Edge case: the user became "ready" between initial apply and the

@@ -122,7 +122,8 @@ export const ANALYTICS_EVENTS = {
     // ── Card: acquisition funnel (Rain virtual card) ──
     // State observed on /card mount or transition. `state` matches CardTopLevelState.
     CARD_STATE_VIEWED: 'card_state_viewed',
-    // POST /rain/cards lifecycle. `outcome` ∈ pending|terms-required|incomplete|enabled|error|already-applied.
+    // POST /rain/cards lifecycle. `outcome` ∈
+    // pending|terms-required|incomplete|main-kyc-required|enabled|error|already-applied.
     CARD_APPLY_ATTEMPTED: 'card_apply_attempted',
     CARD_APPLY_SUCCEEDED: 'card_apply_succeeded',
     CARD_APPLY_FAILED: 'card_apply_failed',
