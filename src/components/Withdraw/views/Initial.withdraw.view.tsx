@@ -148,6 +148,18 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
                     Review
                 </Button>
 
+                {/* TEMP DEBUG — remove once we find which gate is blocking Review on ETH select */}
+                <div className="rounded-sm border border-dashed border-error bg-error/10 p-2 font-mono text-xs">
+                    <div>tokenData? {selectedTokenData ? `yes (${selectedTokenData.symbol})` : 'NO ⛔'}</div>
+                    <div>chainID? {selectedChainID || 'NO ⛔'}</div>
+                    <div>recipient.address? {recipient.address ? `yes (${recipient.address.slice(0, 12)}…)` : 'NO ⛔'}</div>
+                    <div>isValidRecipient? {String(isValidRecipient)}{!isValidRecipient && ' ⛔'}</div>
+                    <div>error.showError? {String(error.showError)}{error.showError && ' ⛔'}</div>
+                    <div>error.errorMessage: {error.errorMessage || '(none)'}</div>
+                    <div>inputChanging? {String(inputChanging)}{inputChanging && ' ⛔'}</div>
+                    <div>isProcessing? {String(isProcessing)}{isProcessing && ' ⛔'}</div>
+                </div>
+
                 {error.showError && !!error.errorMessage && <ErrorAlert description={error.errorMessage} />}
             </div>
         </div>
