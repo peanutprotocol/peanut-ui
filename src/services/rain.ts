@@ -148,8 +148,11 @@ export class RainCardRateLimitError extends Error {
 
 /**
  * Response shapes for `POST /rain/cards` — apply for a Rain card.
- * - `incomplete`: user's Sumsub profile is missing data; returned token opens
- *   the card-application Applicant Action so the user can fill it in.
+ * - `incomplete`: card-application action is missing data; returned token
+ *   opens the card-application Applicant Action.
+ * - `main-kyc-required`: main applicant is missing a doc Rain requires
+ *   (e.g. SELFIE after liveness was added to the level). Token opens the
+ *   WebSDK at the MAIN level so the user supplies just the missing step.
  * - `pending`: application submitted to Rain; wait for webhook to approve.
  * - any other string: existing application in that state (ENABLED / REJECTED / …).
  */
@@ -158,6 +161,11 @@ export type ApplyForCardResponse =
           status: 'incomplete'
           missing: string[]
           questionnaireComplete: boolean
+          sumsubAccessToken: string
+      }
+    | {
+          status: 'main-kyc-required'
+          missingDocTypes: string[]
           sumsubAccessToken: string
       }
     | {
