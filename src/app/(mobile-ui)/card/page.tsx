@@ -271,10 +271,13 @@ const CardPage: FC = () => {
             case 'manual-review':
                 return <ApplicationStatusScreen variant="manual-review" onPrev={() => router.back()} />
             case 'rejected':
+                // No retry CTA: Rain denials are terminal on our side. The only
+                // path forward is support reviewing the case manually (PEP /
+                // sanctions / fraud-pattern flags need a human in the loop on
+                // Rain's end). The CTA is "Contact support" only.
                 return (
                     <ApplicationStatusScreen
                         variant="rejected"
-                        onRetry={() => handleApply(false)}
                         onContactSupport={() => router.push('/support')}
                         onPrev={() => router.back()}
                     />
