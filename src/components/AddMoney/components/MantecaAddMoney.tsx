@@ -227,7 +227,7 @@ const MantecaAddMoney: FC = () => {
                         if (hasRejection) {
                             await sumsubFlow.handleSelfHealResubmit('MANTECA')
                         } else {
-                            await sumsubFlow.handleInitiateKyc('LATAM')
+                            await sumsubFlow.handleInitiateKyc('LATAM', undefined, true)
                         }
                         setShowKycModal(false)
                     }}
@@ -245,7 +245,7 @@ const MantecaAddMoney: FC = () => {
                     setTokenAmount={handleUsdAmountChange}
                     onSubmit={handleAmountSubmit}
                     isLoading={isCreatingDeposit}
-                    error={error}
+                    error={error || sumsubFlow.error}
                     currencyData={currencyData}
                     setCurrencyAmount={handleLocalCurrencyAmountChange}
                     setCurrentDenomination={handleDenominationChange}

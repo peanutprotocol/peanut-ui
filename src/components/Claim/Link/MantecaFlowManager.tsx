@@ -126,7 +126,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                     if (hasRejection) {
                         await sumsubFlow.handleSelfHealResubmit('MANTECA')
                     } else {
-                        await sumsubFlow.handleInitiateKyc('LATAM')
+                        await sumsubFlow.handleInitiateKyc('LATAM', undefined, true)
                     }
                     setShowKycModal(false)
                 }}
@@ -139,6 +139,9 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                 providerMessage={mantecaRejection.userMessage ?? undefined}
             />
             <SumsubKycModals flow={sumsubFlow} />
+            {sumsubFlow.error && (
+                <p className="text-center text-sm text-red-500">{sumsubFlow.error}</p>
+            )}
         </div>
     )
 }

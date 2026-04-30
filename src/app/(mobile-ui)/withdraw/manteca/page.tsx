@@ -101,6 +101,7 @@ export default function MantecaWithdrawFlow() {
     const sumsubFlow = useMultiPhaseKycFlow({})
     const [showKycModal, setShowKycModal] = useState(false)
     const [isRedirectingToOnboarding, setIsRedirectingToOnboarding] = useState(false)
+
     // Get method and country from URL parameters
     const selectedMethodType = searchParams.get('method') // mercadopago, pix, bank-transfer, etc.
     const countryFromUrl = searchParams.get('country') // argentina, brazil, etc.
@@ -536,7 +537,7 @@ export default function MantecaWithdrawFlow() {
                     if (hasRejection) {
                         await sumsubFlow.handleSelfHealResubmit('MANTECA')
                     } else {
-                        await sumsubFlow.handleInitiateKyc('LATAM')
+                        await sumsubFlow.handleInitiateKyc('LATAM', undefined, true)
                     }
                     setShowKycModal(false)
                 }}
@@ -758,7 +759,7 @@ export default function MantecaWithdrawFlow() {
                                   : 'Review'}
                         </Button>
 
-                        {errorMessage && <ErrorAlert description={errorMessage} />}
+                        {(errorMessage || sumsubFlow.error) && <ErrorAlert description={(errorMessage || sumsubFlow.error)!} />}
                     </div>
                 </div>
             )}
@@ -815,7 +816,7 @@ export default function MantecaWithdrawFlow() {
                     >
                         {isLoading ? loadingState : 'Withdraw'}
                     </Button>
-                    {errorMessage && <ErrorAlert description={errorMessage} />}
+                    {(errorMessage || sumsubFlow.error) && <ErrorAlert description={(errorMessage || sumsubFlow.error)!} />}
                 </div>
             )}
         </div>
