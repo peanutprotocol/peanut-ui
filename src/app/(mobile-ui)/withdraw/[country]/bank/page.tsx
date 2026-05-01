@@ -28,6 +28,10 @@ import { createOfframp, confirmOfframp } from '@/app/actions/offramp'
 import { useAuth } from '@/context/authContext'
 import { useBridgeTosGuard } from '@/hooks/useBridgeTosGuard'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
+import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
+import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
+import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
+import useKycStatus from '@/hooks/useKycStatus'
 import ExchangeRate from '@/components/ExchangeRate'
 import countryCurrencyMappings, { isNonEuroSepaCountry } from '@/constants/countryCurrencyMapping'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
@@ -61,6 +65,10 @@ export default function WithdrawBankPage() {
     const [balanceErrorMessage, setBalanceErrorMessage] = useState<string | null>(null)
     const { hasPendingTransactions } = usePendingTransactions()
     const { isBridgeSupportedCountry } = useIdentityVerification()
+    const { isUserSumsubKycApproved, isUserBridgeKycApproved } = useKycStatus()
+    const sumsubFlow = useMultiPhaseKycFlow({})
+    const [showKycModal, setShowKycModal] = useState(false)
+    const needsBridgeEnrollment = isUserSumsubKycApproved && !isUserBridgeKycApproved && !user?.user.bridgeCustomerId
 
     // validate country is supported for bank withdrawals
     useEffect(() => {
@@ -155,6 +163,11 @@ export default function WithdrawBankPage() {
     }
 
     const handleCreateAndInitiateOfframp = async () => {
+        if (needsBridgeEnrollment) {
+            setShowKycModal(true)
+            return
+        }
+
         if (guardWithTos()) return
 
         setIsLoading(true)
@@ -428,6 +441,19 @@ export default function WithdrawBankPage() {
                 }}
                 onSkip={hideTos}
             />
+
+            <InitiateKycModal
+                visible={showKycModal}
+                onClose={() => setShowKycModal(false)}
+                onVerify={async () => {
+                    await sumsubFlow.handleInitiateKyc('STANDARD', undefined, true)
+                    setShowKycModal(false)
+                }}
+                isLoading={sumsubFlow.isLoading}
+                variant="cross_region"
+                regionName={getCountryFromPath(country)?.title}
+            />
+            <SumsubKycModals flow={sumsubFlow} />
         </div>
     )
 }

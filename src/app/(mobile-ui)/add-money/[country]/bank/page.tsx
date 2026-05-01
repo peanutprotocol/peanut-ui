@@ -94,7 +94,8 @@ export default function OnrampBankPage() {
     // uk-specific check
     const isUK = isUKCountry(selectedCountryPath)
 
-    const { isUserKycApproved } = useKycStatus()
+    const { isUserKycApproved, isUserSumsubKycApproved, isUserBridgeKycApproved, isUserBridgeKycUnderReview } =
+        useKycStatus()
     const { bridge: bridgeRejection } = useProviderRejectionStatus()
     const { guardWithTos, showBridgeTos, hideTos } = useBridgeTosGuard()
 
@@ -193,10 +194,17 @@ export default function OnrampBankPage() {
         }
     }, [rawTokenAmount, validateAmount, setError])
 
+    const needsBridgeEnrollment = isUserSumsubKycApproved && !isUserBridgeKycApproved && !isUserBridgeKycUnderReview
+
     const handleAmountContinue = () => {
         if (!validateAmount(rawTokenAmount)) return
 
-        if (!isUserKycApproved || bridgeRejection.state === 'fixable' || bridgeRejection.state === 'blocked') {
+        if (
+            needsBridgeEnrollment ||
+            !isUserKycApproved ||
+            bridgeRejection.state === 'fixable' ||
+            bridgeRejection.state === 'blocked'
+        ) {
             setShowKycModal(true)
             return
         }
@@ -401,7 +409,7 @@ export default function OnrampBankPage() {
                         if (hasRejection) {
                             await sumsubFlow.handleSelfHealResubmit('BRIDGE')
                         } else {
-                            await sumsubFlow.handleInitiateKyc('STANDARD')
+                            await sumsubFlow.handleInitiateKyc('STANDARD', undefined, needsBridgeEnrollment || undefined)
                         }
                         setShowKycModal(false)
                     }}
@@ -409,9 +417,12 @@ export default function OnrampBankPage() {
                     variant={
                         bridgeRejection.state === 'fixable' || bridgeRejection.state === 'blocked'
                             ? 'provider_rejection'
-                            : 'default'
+                            : needsBridgeEnrollment
+                              ? 'cross_region'
+                              : 'default'
                     }
                     providerMessage={bridgeRejection.userMessage ?? undefined}
+                    regionName={selectedCountry?.title}
                 />
 
                 <SumsubKycModals flow={sumsubFlow} autoStartSdk />
