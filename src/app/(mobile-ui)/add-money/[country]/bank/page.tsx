@@ -94,7 +94,8 @@ export default function OnrampBankPage() {
     // uk-specific check
     const isUK = isUKCountry(selectedCountryPath)
 
-    const { isUserKycApproved } = useKycStatus()
+    const { isUserKycApproved, isUserSumsubKycApproved, isUserBridgeKycApproved, isUserBridgeKycUnderReview } =
+        useKycStatus()
     const { bridge: bridgeRejection } = useProviderRejectionStatus()
     const { guardWithTos, showBridgeTos, hideTos } = useBridgeTosGuard()
 
@@ -193,10 +194,17 @@ export default function OnrampBankPage() {
         }
     }, [rawTokenAmount, validateAmount, setError])
 
+    const needsBridgeEnrollment = isUserSumsubKycApproved && !isUserBridgeKycApproved && !isUserBridgeKycUnderReview
+
     const handleAmountContinue = () => {
         if (!validateAmount(rawTokenAmount)) return
 
-        if (!isUserKycApproved || bridgeRejection.state === 'fixable' || bridgeRejection.state === 'blocked') {
+        if (
+            needsBridgeEnrollment ||
+            !isUserKycApproved ||
+            bridgeRejection.state === 'fixable' ||
+            bridgeRejection.state === 'blocked'
+        ) {
             setShowKycModal(true)
             return
         }
@@ -397,21 +405,25 @@ export default function OnrampBankPage() {
                     visible={showKycModal}
                     onClose={() => setShowKycModal(false)}
                     onVerify={async () => {
-                        const hasRejection = bridgeRejection.state === 'fixable'
-                        if (hasRejection) {
+                        // needsBridgeEnrollment takes priority: user has no bridge customer,
+                        // so rejection state from a stale/deleted customer is irrelevant
+                        if (!needsBridgeEnrollment && bridgeRejection.state === 'fixable') {
                             await sumsubFlow.handleSelfHealResubmit('BRIDGE')
                         } else {
-                            await sumsubFlow.handleInitiateKyc('STANDARD')
+                            await sumsubFlow.handleInitiateKyc('STANDARD', undefined, needsBridgeEnrollment || undefined)
                         }
                         setShowKycModal(false)
                     }}
                     isLoading={sumsubFlow.isLoading}
                     variant={
-                        bridgeRejection.state === 'fixable' || bridgeRejection.state === 'blocked'
-                            ? 'provider_rejection'
-                            : 'default'
+                        needsBridgeEnrollment
+                            ? 'cross_region'
+                            : bridgeRejection.state === 'fixable' || bridgeRejection.state === 'blocked'
+                              ? 'provider_rejection'
+                              : 'default'
                     }
                     providerMessage={bridgeRejection.userMessage ?? undefined}
+                    regionName={selectedCountry?.title}
                 />
 
                 <SumsubKycModals flow={sumsubFlow} autoStartSdk />

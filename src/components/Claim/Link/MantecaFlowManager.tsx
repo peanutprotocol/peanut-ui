@@ -10,6 +10,7 @@ import MantecaDetailsStep from './views/MantecaDetailsStep.view'
 import { MercadoPagoStep } from '@/types/manteca.types'
 import MantecaReviewStep from './views/MantecaReviewStep'
 import { Button } from '@/components/0_Bruddle/Button'
+import ErrorAlert from '@/components/Global/ErrorAlert'
 import { useRouter } from 'next/navigation'
 import useKycStatus from '@/hooks/useKycStatus'
 import useProviderRejectionStatus from '@/hooks/useProviderRejectionStatus'
@@ -28,7 +29,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
     const [currentStep, setCurrentStep] = useState<MercadoPagoStep>(MercadoPagoStep.DETAILS)
     const router = useRouter()
     const [destinationAddress, setDestinationAddress] = useState('')
-    const { isUserMantecaKycApproved } = useKycStatus()
+    const { isUserMantecaKycApproved, isUserSumsubKycApproved } = useKycStatus()
     const { manteca: mantecaRejection } = useProviderRejectionStatus()
 
     // inline sumsub kyc flow for manteca users who need LATAM verification
@@ -117,6 +118,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                 />
 
                 {renderStepDetails()}
+                {sumsubFlow.error && <ErrorAlert description={sumsubFlow.error} />}
             </div>
             <InitiateKycModal
                 visible={showKycModal}
@@ -126,7 +128,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                     if (hasRejection) {
                         await sumsubFlow.handleSelfHealResubmit('MANTECA')
                     } else {
-                        await sumsubFlow.handleInitiateKyc('LATAM')
+                        await sumsubFlow.handleInitiateKyc('LATAM', undefined, true)
                     }
                     setShowKycModal(false)
                 }}
@@ -134,9 +136,12 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                 variant={
                     mantecaRejection.state === 'fixable' || mantecaRejection.state === 'blocked'
                         ? 'provider_rejection'
-                        : 'default'
+                        : isUserSumsubKycApproved
+                          ? 'cross_region'
+                          : 'default'
                 }
                 providerMessage={mantecaRejection.userMessage ?? undefined}
+                regionName={selectedCountry?.title}
             />
             <SumsubKycModals flow={sumsubFlow} />
         </div>

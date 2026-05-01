@@ -64,7 +64,7 @@ const MantecaAddMoney: FC = () => {
     const selectedCountry = useMemo(() => {
         return countryData.find((country) => country.type === 'country' && country.path === selectedCountryPath)
     }, [selectedCountryPath])
-    const { isUserMantecaKycApproved } = useKycStatus()
+    const { isUserMantecaKycApproved, isUserSumsubKycApproved } = useKycStatus()
     const { manteca: mantecaRejection } = useProviderRejectionStatus()
     const currencyData = useCurrency(selectedCountry?.currency ?? 'ARS')
     const { user } = useAuth()
@@ -227,7 +227,7 @@ const MantecaAddMoney: FC = () => {
                         if (hasRejection) {
                             await sumsubFlow.handleSelfHealResubmit('MANTECA')
                         } else {
-                            await sumsubFlow.handleInitiateKyc('LATAM')
+                            await sumsubFlow.handleInitiateKyc('LATAM', undefined, true)
                         }
                         setShowKycModal(false)
                     }}
@@ -235,9 +235,12 @@ const MantecaAddMoney: FC = () => {
                     variant={
                         mantecaRejection.state === 'fixable' || mantecaRejection.state === 'blocked'
                             ? 'provider_rejection'
-                            : 'default'
+                            : isUserSumsubKycApproved
+                              ? 'cross_region'
+                              : 'default'
                     }
                     providerMessage={mantecaRejection.userMessage ?? undefined}
+                    regionName={selectedCountry?.title}
                 />
                 <SumsubKycModals flow={sumsubFlow} />
                 <InputAmountStep
@@ -245,7 +248,7 @@ const MantecaAddMoney: FC = () => {
                     setTokenAmount={handleUsdAmountChange}
                     onSubmit={handleAmountSubmit}
                     isLoading={isCreatingDeposit}
-                    error={error}
+                    error={error || sumsubFlow.error}
                     currencyData={currencyData}
                     setCurrencyAmount={handleLocalCurrencyAmountChange}
                     setCurrentDenomination={handleDenominationChange}

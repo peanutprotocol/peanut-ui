@@ -174,7 +174,12 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
         posthog.capture(ANALYTICS_EVENTS.KYC_SUBMITTED, { region_intent: regionIntent })
         isRealtimeFlowRef.current = true
         originalHandleSdkComplete()
-    }, [originalHandleSdkComplete, regionIntent])
+        // for action flows (manteca, self-heal), the base status is already APPROVED
+        // and won't transition — directly start the preparing/tracking phase
+        if (isActionFlow) {
+            handleSumsubApproved()
+        }
+    }, [originalHandleSdkComplete, handleSumsubApproved, isActionFlow, regionIntent])
 
     // wrap handleInitiateKyc to reset state for new attempts
     const handleInitiateKyc = useCallback(

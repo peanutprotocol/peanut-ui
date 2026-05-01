@@ -39,7 +39,12 @@ export const initiateSumsubKyc = async (params?: {
         const responseJson = await response.json()
 
         if (!response.ok) {
-            return { error: responseJson.message || responseJson.error || 'Failed to initiate identity verification' }
+            return {
+                error:
+                    responseJson.userMessage ||
+                    responseJson.error ||
+                    'Failed to initiate identity verification',
+            }
         }
 
         return {
