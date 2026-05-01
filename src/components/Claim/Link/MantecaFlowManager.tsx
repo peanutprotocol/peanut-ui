@@ -118,6 +118,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                 />
 
                 {renderStepDetails()}
+                {sumsubFlow.error && <ErrorAlert description={sumsubFlow.error} />}
             </div>
             <InitiateKycModal
                 visible={showKycModal}
@@ -140,7 +141,6 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                 providerMessage={mantecaRejection.userMessage ?? undefined}
             />
             <SumsubKycModals flow={sumsubFlow} />
-            {sumsubFlow.error && <ErrorAlert description={sumsubFlow.error} />}
         </div>
     )
 }
