@@ -64,7 +64,7 @@ const MantecaAddMoney: FC = () => {
     const selectedCountry = useMemo(() => {
         return countryData.find((country) => country.type === 'country' && country.path === selectedCountryPath)
     }, [selectedCountryPath])
-    const { isUserMantecaKycApproved } = useKycStatus()
+    const { isUserMantecaKycApproved, isUserSumsubKycApproved } = useKycStatus()
     const { manteca: mantecaRejection } = useProviderRejectionStatus()
     const currencyData = useCurrency(selectedCountry?.currency ?? 'ARS')
     const { user } = useAuth()
@@ -235,9 +235,12 @@ const MantecaAddMoney: FC = () => {
                     variant={
                         mantecaRejection.state === 'fixable' || mantecaRejection.state === 'blocked'
                             ? 'provider_rejection'
-                            : 'default'
+                            : isUserSumsubKycApproved
+                              ? 'cross_region'
+                              : 'default'
                     }
                     providerMessage={mantecaRejection.userMessage ?? undefined}
+                    regionName={selectedCountry?.title}
                 />
                 <SumsubKycModals flow={sumsubFlow} />
                 <InputAmountStep

@@ -29,7 +29,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
     const [currentStep, setCurrentStep] = useState<MercadoPagoStep>(MercadoPagoStep.DETAILS)
     const router = useRouter()
     const [destinationAddress, setDestinationAddress] = useState('')
-    const { isUserMantecaKycApproved } = useKycStatus()
+    const { isUserMantecaKycApproved, isUserSumsubKycApproved } = useKycStatus()
     const { manteca: mantecaRejection } = useProviderRejectionStatus()
 
     // inline sumsub kyc flow for manteca users who need LATAM verification
@@ -136,9 +136,12 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                 variant={
                     mantecaRejection.state === 'fixable' || mantecaRejection.state === 'blocked'
                         ? 'provider_rejection'
-                        : 'default'
+                        : isUserSumsubKycApproved
+                          ? 'cross_region'
+                          : 'default'
                 }
                 providerMessage={mantecaRejection.userMessage ?? undefined}
+                regionName={selectedCountry?.title}
             />
             <SumsubKycModals flow={sumsubFlow} />
         </div>

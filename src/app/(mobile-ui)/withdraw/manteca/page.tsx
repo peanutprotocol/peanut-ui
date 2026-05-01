@@ -91,7 +91,7 @@ export default function MantecaWithdrawFlow() {
     const { user } = useAuth()
     const { setIsSupportModalOpen, openSupportWithMessage } = useModalsContext()
     const queryClient = useQueryClient()
-    const { isUserMantecaKycApproved } = useKycStatus()
+    const { isUserMantecaKycApproved, isUserSumsubKycApproved } = useKycStatus()
     const { manteca: mantecaRejection } = useProviderRejectionStatus()
     const { hasPendingTransactions } = usePendingTransactions()
 
@@ -545,9 +545,12 @@ export default function MantecaWithdrawFlow() {
                 variant={
                     mantecaRejection.state === 'fixable' || mantecaRejection.state === 'blocked'
                         ? 'provider_rejection'
-                        : 'default'
+                        : isUserSumsubKycApproved
+                          ? 'cross_region'
+                          : 'default'
                 }
                 providerMessage={mantecaRejection.userMessage ?? undefined}
+                regionName={selectedCountry?.title}
             />
             <SumsubKycModals flow={sumsubFlow} />
             <SumsubKycWrapper
