@@ -45,6 +45,7 @@ export const InitiateKycModal = ({
             onClose={onClose}
             title={isProviderRejection ? 'We need extra documents' : 'Verify your identity'}
             description={getDescription()}
+            preventClose
             icon={'badge' as IconName}
             modalPanelClassName="max-w-full m-2"
             ctaClassName="grid grid-cols-1 gap-3"

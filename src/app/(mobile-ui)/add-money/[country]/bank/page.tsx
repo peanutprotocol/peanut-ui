@@ -405,8 +405,9 @@ export default function OnrampBankPage() {
                     visible={showKycModal}
                     onClose={() => setShowKycModal(false)}
                     onVerify={async () => {
-                        const hasRejection = bridgeRejection.state === 'fixable'
-                        if (hasRejection) {
+                        // needsBridgeEnrollment takes priority: user has no bridge customer,
+                        // so rejection state from a stale/deleted customer is irrelevant
+                        if (!needsBridgeEnrollment && bridgeRejection.state === 'fixable') {
                             await sumsubFlow.handleSelfHealResubmit('BRIDGE')
                         } else {
                             await sumsubFlow.handleInitiateKyc('STANDARD', undefined, needsBridgeEnrollment || undefined)
@@ -415,10 +416,10 @@ export default function OnrampBankPage() {
                     }}
                     isLoading={sumsubFlow.isLoading}
                     variant={
-                        bridgeRejection.state === 'fixable' || bridgeRejection.state === 'blocked'
-                            ? 'provider_rejection'
-                            : needsBridgeEnrollment
-                              ? 'cross_region'
+                        needsBridgeEnrollment
+                            ? 'cross_region'
+                            : bridgeRejection.state === 'fixable' || bridgeRejection.state === 'blocked'
+                              ? 'provider_rejection'
                               : 'default'
                     }
                     providerMessage={bridgeRejection.userMessage ?? undefined}

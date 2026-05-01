@@ -27,6 +27,7 @@ import { ActionListCard } from '@/components/ActionListCard'
 import TokenAndNetworkConfirmationModal from '../Global/TokenAndNetworkConfirmationModal'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
+import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 
 interface AddWithdrawCountriesListProps {
     flow: 'add' | 'withdraw'
@@ -65,7 +66,8 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const formRef = useRef<{ handleSubmit: () => void }>(null)
     const [isSupportedTokensModalOpen, setIsSupportedTokensModalOpen] = useState(false)
 
-    const { isUserKycApproved, isUserBridgeKycUnderReview } = useKycStatus()
+    const { isUserKycApproved, isUserBridgeKycUnderReview, isUserSumsubKycApproved, isUserBridgeKycApproved } =
+        useKycStatus()
     const { bridge: bridgeRejection } = useProviderRejectionStatus()
     const [showKycStatusModal, setShowKycStatusModal] = useState(false)
 
@@ -92,6 +94,13 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         }
         if (bridgeRejection.state === 'blocked') {
             return { error: 'Bank transfers are not available for your account. Please contact support.' }
+        }
+
+        // JIT bridge enrollment: user is sumsub-approved but no bridge customer yet
+        // show the KYC modal — enrollment happens when user clicks "Start Verification"
+        if (isUserSumsubKycApproved && !isUserBridgeKycApproved && !user?.user.bridgeCustomerId) {
+            setIsKycModalOpen(true)
+            return {}
         }
 
         // scenario (1): happy path: if the user has already completed kyc, we can add the bank account directly
@@ -275,6 +284,17 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                     onSuccess={handleFormSubmit}
                     initialData={{}}
                     error={null}
+                />
+                <InitiateKycModal
+                    visible={isKycModalOpen}
+                    onClose={() => setIsKycModalOpen(false)}
+                    onVerify={async () => {
+                        await sumsubFlow.handleInitiateKyc('STANDARD', undefined, true)
+                        setIsKycModalOpen(false)
+                    }}
+                    isLoading={sumsubFlow.isLoading}
+                    variant="cross_region"
+                    regionName={currentCountry?.title}
                 />
                 <SumsubKycModals flow={sumsubFlow} />
             </div>
