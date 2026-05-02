@@ -34,8 +34,12 @@ export const LINKS = [
         url: '/en/help',
     },
     {
-        name: 'Terms & Privacy',
-        url: 'https://peanutprotocol.notion.site/Terms-of-Service-Privacy-Policy-1f245331837f4b7e860261be8374cc3a?pvs=4',
+        name: 'Terms',
+        url: '/en/terms',
+    },
+    {
+        name: 'Privacy',
+        url: '/en/privacy',
     },
     {
         name: 'Jobs',
