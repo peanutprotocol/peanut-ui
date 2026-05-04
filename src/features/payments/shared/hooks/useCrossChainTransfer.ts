@@ -391,7 +391,25 @@ async function runBridgePath({
         throw new Error('Rhino did not return a bridge contract address — cannot construct tx')
     }
 
+    // Rhino's bridge contract pulls USDC via transferFrom — the kernel SA
+    // must approve it first. Prepend USDC.approve(bridgeContract, amount)
+    // to the batch so it's atomic with the bridge call (same userOp).
+    // USDC source amount in base units — quote.amountIn is the decimal pay
+    // amount; our source token is always USDC (6 decimals).
+    const STABLECOIN_DECIMALS = 6
+    const approveAmount = parseUnits(quote.amountIn, STABLECOIN_DECIMALS)
+    const approveData = encodeFunctionData({
+        abi: erc20Abi,
+        functionName: 'approve',
+        args: [commit.calldata.to as Address, approveAmount],
+    })
+
     setTransactions([
+        {
+            to: source.tokenAddress,
+            data: approveData,
+            value: undefined,
+        },
         {
             to: commit.calldata.to as Address,
             data: commit.calldata.data as Hex,
