@@ -51,6 +51,23 @@ import { areEvmAddressesEqual, getTokenSymbol } from '@/utils/general.utils'
  *  through the bridge quote/commit flow which supports the wider token set. */
 const SDA_SUPPORTED_TOKENS = new Set(['USDC', 'USDT'])
 
+/** Minimal fragment of Rhino's DVFDepositContract used for cross-chain
+ *  bridge / cross-chain swap deposits. Source: rhino.fi SDK
+ *  (adapters/evm/abis/DVFDepositContract). */
+const DVF_DEPOSIT_WITH_ID_ABI = [
+    {
+        type: 'function',
+        name: 'depositWithId',
+        stateMutability: 'nonpayable',
+        inputs: [
+            { name: 'tokenAddress', type: 'address' },
+            { name: 'amount', type: 'uint256' },
+            { name: 'commitmentId', type: 'uint256' },
+        ],
+        outputs: [],
+    },
+] as const
+
 export interface CrossChainSourceInfo {
     address: Address
     tokenAddress: Address
@@ -382,8 +399,8 @@ async function runBridgePath({
     //     swap routes with `InvalidRequest: Receive mode is not supported
     //     for the selected tokens`). With 'pay', the input amount is the
     //     source USDC the user spends; Rhino computes the destination output.
-    const isCrossChain = sourceRhinoChain !== destRhinoChain
-    const mode: 'pay' | 'receive' = isCrossChain ? 'pay' : 'receive'
+    const isSameChainSwap = sourceRhinoChain === destRhinoChain
+    const mode: 'pay' | 'receive' = isSameChainSwap ? 'receive' : 'pay'
     const quote: BridgeQuoteResponse = await getBridgeQuote({
         amount: destination.tokenAmount,
         tokenIn: 'USDC',
@@ -394,24 +411,46 @@ async function runBridgePath({
         mode,
     })
 
-    const commit: BridgeCommitResponse = await commitBridgeQuote(quote.quoteId, quote.isSwap)
+    const commit: BridgeCommitResponse = await commitBridgeQuote(quote.quoteId, quote.isSwap, isSameChainSwap)
 
     if (!commit.contractAddress) {
         throw new Error('Rhino did not return a bridge contract address — cannot construct tx')
     }
 
-    // Rhino's bridge contract pulls USDC via transferFrom — the kernel SA
-    // must approve it first. Prepend USDC.approve(bridgeContract, amount)
-    // to the batch so it's atomic with the bridge call (same userOp).
-    // USDC source amount in base units — quote.amountIn is the decimal pay
-    // amount; our source token is always USDC (6 decimals).
     const STABLECOIN_DECIMALS = 6
     const approveAmount = parseUnits(quote.amountIn, STABLECOIN_DECIMALS)
+    // Approve USDC for Rhino's bridge contract — required for both same-chain
+    // swap (the swap contract does transferFrom) and cross-chain depositWithId.
     const approveData = encodeFunctionData({
         abi: erc20Abi,
         functionName: 'approve',
-        args: [commit.calldata.to as Address, approveAmount],
+        args: [commit.contractAddress as Address, approveAmount],
     })
+
+    let bridgeCall: PreparedTransaction
+    if (commit.kind === 'swap-calldata') {
+        // Same-chain atomic swap: user signs Rhino's swap-contract calldata.
+        bridgeCall = {
+            to: commit.calldata.to as Address,
+            data: commit.calldata.data as Hex,
+            value: commit.calldata.value ? BigInt(commit.calldata.value) : undefined,
+        }
+    } else {
+        // Cross-chain: encode depositWithId(tokenAddress, amount, commitmentId)
+        // ourselves. Rhino's API doesn't return calldata for this path — the
+        // SDK constructs it client-side via DVFDepositContract__factory.
+        // commitmentId is hex-encoded BigInt of the quoteId.
+        const depositData = encodeFunctionData({
+            abi: DVF_DEPOSIT_WITH_ID_ABI,
+            functionName: 'depositWithId',
+            args: [source.tokenAddress, approveAmount, BigInt(`0x${commit.commitmentId}`)],
+        })
+        bridgeCall = {
+            to: commit.contractAddress as Address,
+            data: depositData,
+            value: undefined,
+        }
+    }
 
     setTransactions([
         {
@@ -419,11 +458,7 @@ async function runBridgePath({
             data: approveData,
             value: undefined,
         },
-        {
-            to: commit.calldata.to as Address,
-            data: commit.calldata.data as Hex,
-            value: commit.calldata.value ? BigInt(commit.calldata.value) : undefined,
-        },
+        bridgeCall,
     ])
     setReceiveAmount(quote.amountOut)
     setFeeUsd(quote.feeUsd + quote.gasFeeUsd)

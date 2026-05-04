@@ -49,6 +49,7 @@ export interface BridgeCommitResponse {
         value: string
     }
     contractAddress: string | null
+    kind: 'swap-calldata' | 'deposit-with-id'
 }
 
 export type BridgeStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'EXPIRED' | string
@@ -97,8 +98,16 @@ export function getBridgeQuote(params: BridgeQuoteParams): Promise<BridgeQuoteRe
     return postJson('/rhino/bridge/quote', params, 'Failed to get bridge quote')
 }
 
-export function commitBridgeQuote(quoteId: string, isSwap: boolean): Promise<BridgeCommitResponse> {
-    return postJson('/rhino/bridge/commit', { quoteId, isSwap }, 'Failed to commit bridge quote')
+export function commitBridgeQuote(
+    quoteId: string,
+    isSwap: boolean,
+    isSameChainSwap: boolean
+): Promise<BridgeCommitResponse> {
+    return postJson(
+        '/rhino/bridge/commit',
+        { quoteId, isSwap, isSameChainSwap },
+        'Failed to commit bridge quote'
+    )
 }
 
 export function getBridgeStatus(bridgeId: string): Promise<BridgeStatusResponse> {
