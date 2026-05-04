@@ -17,7 +17,10 @@ import { getAuthHeaders } from '@/utils/auth-token'
 
 export interface BridgeQuoteParams {
     amount: string
-    token: string
+    /** Source token (what the user pays). Always USDC from the Peanut wallet. */
+    tokenIn: string
+    /** Destination token (what the recipient gets). Cross-token if != tokenIn. */
+    tokenOut: string
     chainOut: string
     recipient: string
     depositor: string
@@ -33,6 +36,9 @@ export interface BridgeQuoteResponse {
     gasFeeUsd: number
     estimatedDuration?: number
     expiresAt: string // ISO timestamp
+    /** Backend echoes this so the FE passes it back through commit — discriminates
+     *  the Rhino finalisation path (getSwapCalldata vs deposit-address). */
+    isSwap: boolean
 }
 
 export interface BridgeCommitResponse {
@@ -91,8 +97,8 @@ export function getBridgeQuote(params: BridgeQuoteParams): Promise<BridgeQuoteRe
     return postJson('/rhino/bridge/quote', params, 'Failed to get bridge quote')
 }
 
-export function commitBridgeQuote(quoteId: string): Promise<BridgeCommitResponse> {
-    return postJson('/rhino/bridge/commit', { quoteId }, 'Failed to commit bridge quote')
+export function commitBridgeQuote(quoteId: string, isSwap: boolean): Promise<BridgeCommitResponse> {
+    return postJson('/rhino/bridge/commit', { quoteId, isSwap }, 'Failed to commit bridge quote')
 }
 
 export function getBridgeStatus(bridgeId: string): Promise<BridgeStatusResponse> {

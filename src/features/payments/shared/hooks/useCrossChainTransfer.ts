@@ -371,10 +371,13 @@ async function runBridgePath({
     setQuoteExpiresAt,
     setCommitmentId,
 }: BridgePathParams): Promise<void> {
-    void source
+    // Source is always USDC from the Peanut wallet — symbol-only is enough
+    // for Rhino (it resolves the address from its bridge config). For cross-
+    // token withdraw, tokenIn=USDC, tokenOut=destination token.
     const quote: BridgeQuoteResponse = await getBridgeQuote({
         amount: destination.tokenAmount,
-        token: tokenSymbol,
+        tokenIn: 'USDC',
+        tokenOut: tokenSymbol,
         chainOut: destRhinoChain,
         recipient: destination.recipientAddress,
         depositor: source.address,
@@ -382,7 +385,7 @@ async function runBridgePath({
     })
     void sourceRhinoChain // chainIn is fixed to ARBITRUM on backend
 
-    const commit: BridgeCommitResponse = await commitBridgeQuote(quote.quoteId)
+    const commit: BridgeCommitResponse = await commitBridgeQuote(quote.quoteId, quote.isSwap)
 
     if (!commit.contractAddress) {
         throw new Error('Rhino did not return a bridge contract address — cannot construct tx')
