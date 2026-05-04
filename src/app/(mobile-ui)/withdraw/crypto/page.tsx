@@ -165,7 +165,17 @@ export default function WithdrawCryptoPage() {
             setIsPreparingReview(true)
 
             try {
-                const completeWithdrawData = { ...data, amount: amountToWithdraw }
+                // AmountInput's primary denomination is USD ($), so amountToWithdraw
+                // is the USD value the user typed. Convert to destination token
+                // units before persisting the request/charge — otherwise meta
+                // ends up with `tokenAmount: "1"` + `tokenSymbol: "ETH"` and
+                // history renders "1 ETH" for what was actually a $1 withdraw.
+                const usdValue = parseFloat(amountToWithdraw)
+                const tokenPrice = data.token.price ?? 0
+                const destinationTokenAmount =
+                    tokenPrice > 0 ? (usdValue / tokenPrice).toFixed(Number(data.token.decimals)) : amountToWithdraw
+
+                const completeWithdrawData = { ...data, amount: destinationTokenAmount }
                 setWithdrawData(completeWithdrawData)
                 const apiRequestPayload: CreateRequestPayloadServices = {
                     recipientAddress: completeWithdrawData.address,
@@ -176,7 +186,7 @@ export default function WithdrawCryptoPage() {
                             ? peanutInterfaces.EPeanutLinkType.native
                             : peanutInterfaces.EPeanutLinkType.erc20
                     ),
-                    tokenAmount: amountToWithdraw,
+                    tokenAmount: destinationTokenAmount,
                     tokenDecimals: completeWithdrawData.token.decimals.toString(),
                     tokenSymbol: completeWithdrawData.token.symbol,
                 }
@@ -188,12 +198,12 @@ export default function WithdrawCryptoPage() {
 
                 const chargePayload: CreateChargeRequest = {
                     pricing_type: 'fixed_price',
-                    local_price: { amount: completeWithdrawData.amount || amountToWithdraw, currency: 'USD' },
+                    local_price: { amount: usdValue.toString(), currency: 'USD' },
                     baseUrl: window.location.origin,
                     requestId: newRequest.uuid,
                     requestProps: {
                         chainId: completeWithdrawData.chain.chainId.toString(),
-                        tokenAmount: completeWithdrawData.amount,
+                        tokenAmount: destinationTokenAmount,
                         tokenAddress: completeWithdrawData.token.address,
                         tokenType:
                             completeWithdrawData.token.address.toLowerCase() === NATIVE_TOKEN_ADDRESS.toLowerCase()

@@ -124,12 +124,23 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     }
 
     let currencyDisplayAmount: string | undefined
-    // Skip the secondary "≈ <CCY> <amount>" line when the currency is USD or a
-    // USD-pegged stablecoin — `$0.10` next to `≈ USDC 0.10` is just noise.
+    // Secondary line preference:
+    //   1. Local fiat (e.g. ARS for Manteca off-ramp) via currency.code/amount
+    //   2. Destination token (e.g. ETH for cross-token withdraw) via amount + tokenSymbol
+    // Skip both for USD / USD-pegged stablecoins to avoid `$0.10 / ≈ USDC 0.10` noise.
     const ccyCode = transaction.currency?.code.toUpperCase()
+    const tokenSymbolUpper = (transaction.tokenSymbol ?? '').toUpperCase()
     if (transaction.currency && ccyCode && ccyCode !== 'USD' && !isStableCoin(ccyCode)) {
         const formattedCurrencyAmount = formatNumberForDisplay(transaction.currency.amount, { maxDecimals: 2 })
         currencyDisplayAmount = `≈ ${ccyCode} ${formattedCurrencyAmount}`
+    } else if (
+        tokenSymbolUpper &&
+        tokenSymbolUpper !== 'USD' &&
+        !isStableCoin(tokenSymbolUpper) &&
+        transaction.tokenAmount
+    ) {
+        const formattedTokenAmount = formatNumberForDisplay(transaction.tokenAmount, { maxDecimals: 6 })
+        currencyDisplayAmount = `≈ ${formattedTokenAmount} ${tokenSymbolUpper}`
     }
 
     // Spec §4.4: declined card transactions stay in the feed but are visually

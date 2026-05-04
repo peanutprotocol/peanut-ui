@@ -148,7 +148,6 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
                     Review
                 </Button>
 
-
                 {error.showError && !!error.errorMessage && <ErrorAlert description={error.errorMessage} />}
             </div>
         </div>

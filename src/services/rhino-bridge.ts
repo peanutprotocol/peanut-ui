@@ -103,11 +103,7 @@ export function commitBridgeQuote(
     isSwap: boolean,
     isSameChainSwap: boolean
 ): Promise<BridgeCommitResponse> {
-    return postJson(
-        '/rhino/bridge/commit',
-        { quoteId, isSwap, isSameChainSwap },
-        'Failed to commit bridge quote'
-    )
+    return postJson('/rhino/bridge/commit', { quoteId, isSwap, isSameChainSwap }, 'Failed to commit bridge quote')
 }
 
 export function getBridgeStatus(bridgeId: string): Promise<BridgeStatusResponse> {
