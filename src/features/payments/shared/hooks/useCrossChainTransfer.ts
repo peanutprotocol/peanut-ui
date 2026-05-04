@@ -35,8 +35,21 @@ import {
     type SdaPreviewResult,
     type SdaTransferResult,
 } from '@/services/rhino-sda'
+import {
+    getBridgeQuote,
+    commitBridgeQuote,
+    getBridgeStatus,
+    isQuoteNearExpiry,
+    type BridgeQuoteResponse,
+    type BridgeCommitResponse,
+    type BridgeStatusResponse,
+} from '@/services/rhino-bridge'
 import { evmChainIdToRhinoName } from '@/constants/rhino.consts'
 import { areEvmAddressesEqual, getTokenSymbol } from '@/utils/general.utils'
+
+/** Tokens Rhino's SDA primitive accepts as `tokenOut`. Anything else routes
+ *  through the bridge quote/commit flow which supports the wider token set. */
+const SDA_SUPPORTED_TOKENS = new Set(['USDC', 'USDT'])
 
 export interface CrossChainSourceInfo {
     address: Address
@@ -61,6 +74,12 @@ export interface PreparedTransaction {
     value?: bigint
 }
 
+/** Indicates which Rhino primitive backed the calculate result.
+ *  - `sda`         → user does ERC20.transfer(sdaAddress, amount); webhook settles
+ *  - `bridge`      → user signs calldata against Rhino's bridge contract directly
+ *  - `same-chain`  → no Rhino; Peanut SDK request-link fulfillment */
+export type CrossChainPath = 'sda' | 'bridge' | 'same-chain'
+
 export interface UseCrossChainTransferReturn {
     transactions: PreparedTransaction[] | null
     sdaAddress: Address | null
@@ -74,6 +93,15 @@ export interface UseCrossChainTransferReturn {
     isCalculating: boolean
     isFeeEstimationError: boolean
     error: string | null
+    /** Which path produced the current `transactions` (null before calculate). */
+    path: CrossChainPath | null
+    /** Bridge-only: ISO expiry on Rhino quote. SDA / same-chain don't expire. */
+    quoteExpiresAt: string | null
+    /** Bridge-only: commitment id (for status polling after the user signs). */
+    commitmentId: string | null
+    isQuoteExpired: boolean
+    /** Poll `/rhino/bridge/status/:id` until COMPLETED/FAILED/EXPIRED. Bridge only. */
+    pollBridgeStatus: (commitmentId: string, opts?: { timeoutMs?: number }) => Promise<BridgeStatusResponse>
     calculate: (params: CalculateInput) => Promise<void>
     reset: () => void
 }
@@ -112,6 +140,9 @@ export function useCrossChainTransfer(): UseCrossChainTransferReturn {
     const [isCalculating, setIsCalculating] = useState(false)
     const [isFeeEstimationError, setIsFeeEstimationError] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [path, setPath] = useState<CrossChainPath | null>(null)
+    const [quoteExpiresAt, setQuoteExpiresAt] = useState<string | null>(null)
+    const [commitmentId, setCommitmentId] = useState<string | null>(null)
 
     const reset = useCallback(() => {
         setTransactions(null)
@@ -126,7 +157,33 @@ export function useCrossChainTransfer(): UseCrossChainTransferReturn {
         setIsCalculating(false)
         setIsFeeEstimationError(false)
         setError(null)
+        setPath(null)
+        setQuoteExpiresAt(null)
+        setCommitmentId(null)
     }, [])
+
+    const isQuoteExpired = quoteExpiresAt ? isQuoteNearExpiry(quoteExpiresAt, 0) : false
+
+    /** Poll `/rhino/bridge/status/:id` at 3s intervals until terminal or timeout. */
+    const pollBridgeStatus = useCallback(
+        async (id: string, opts: { timeoutMs?: number } = {}): Promise<BridgeStatusResponse> => {
+            const timeoutMs = opts.timeoutMs ?? 5 * 60 * 1000 // 5 min — covers normal Rhino bridge ETA
+            const intervalMs = 3000
+            const deadline = Date.now() + timeoutMs
+            // Treat anything with the substring as terminal — Rhino's status enum
+            // capitalisation has shifted between versions; substring keeps us
+            // resilient to that.
+            const isTerminal = (s: string) => /COMPLETED|FAILED|EXPIRED/i.test(s)
+
+            while (Date.now() < deadline) {
+                const status = await getBridgeStatus(id)
+                if (isTerminal(status.status)) return status
+                await new Promise((r) => setTimeout(r, intervalMs))
+            }
+            throw new Error(`Bridge status poll timed out after ${timeoutMs}ms (id=${id})`)
+        },
+        []
+    )
 
     const calculate = useCallback(
         async ({
@@ -145,6 +202,9 @@ export function useCrossChainTransfer(): UseCrossChainTransferReturn {
             setReceiveAmount(null)
             setFeeUsd(undefined)
             setEstimatedGasCostUsd(undefined)
+            setPath(null)
+            setQuoteExpiresAt(null)
+            setCommitmentId(null)
 
             try {
                 const _isXChain = source.chainId !== destination.chainId
@@ -163,10 +223,10 @@ export function useCrossChainTransfer(): UseCrossChainTransferReturn {
                         setReceiveAmount,
                         skipGasEstimate,
                     })
+                    setPath('same-chain')
                     return
                 }
 
-                // Cross-chain via Rhino SDA
                 const sourceRhinoChain = evmChainIdToRhinoName(source.chainId)
                 const destRhinoChain = evmChainIdToRhinoName(destination.chainId)
                 if (!sourceRhinoChain || !destRhinoChain) {
@@ -181,6 +241,31 @@ export function useCrossChainTransfer(): UseCrossChainTransferReturn {
                     throw new Error(
                         `Cannot infer Rhino token symbol from ${destination.tokenAddress} on chain ${destination.chainId}`
                     )
+                }
+
+                // Path selection: Rhino SDA's `tokenOut` is whitelisted to USDC/USDT
+                // (DepositAddressTokenOutNotSupported for ETH/WETH/etc); anything
+                // else routes through the bridge quote/commit flow which supports
+                // the wider token set.
+                const useBridgePath = !SDA_SUPPORTED_TOKENS.has(tokenSymbol)
+
+                if (useBridgePath) {
+                    await runBridgePath({
+                        source,
+                        destination,
+                        sourceRhinoChain,
+                        destRhinoChain,
+                        tokenSymbol,
+                        setTransactions,
+                        setReceiveAmount,
+                        setFeeUsd,
+                        setEstimatedGasCostUsd,
+                        setIsFeeEstimationError,
+                        setQuoteExpiresAt,
+                        setCommitmentId,
+                    })
+                    setPath('bridge')
+                    return
                 }
 
                 // Run preview + provision in parallel — they don't depend on each other.
@@ -216,6 +301,7 @@ export function useCrossChainTransfer(): UseCrossChainTransferReturn {
                     setEstimatedGasCostUsd,
                     setIsFeeEstimationError,
                 })
+                setPath('sda')
             } catch (err) {
                 const message = err instanceof Error ? err.message : 'failed to calculate cross-chain transfer'
                 setError(message)
@@ -241,9 +327,80 @@ export function useCrossChainTransfer(): UseCrossChainTransferReturn {
         isCalculating,
         isFeeEstimationError,
         error,
+        path,
+        quoteExpiresAt,
+        commitmentId,
+        isQuoteExpired,
+        pollBridgeStatus,
         calculate,
         reset,
     }
+}
+
+interface BridgePathParams {
+    source: CrossChainSourceInfo
+    destination: CrossChainDestinationInfo
+    sourceRhinoChain: string
+    destRhinoChain: string
+    tokenSymbol: string
+    setTransactions: (tx: PreparedTransaction[] | null) => void
+    setReceiveAmount: (v: string | null) => void
+    setFeeUsd: (v: number | undefined) => void
+    setEstimatedGasCostUsd: (v: number | undefined) => void
+    setIsFeeEstimationError: (v: boolean) => void
+    setQuoteExpiresAt: (v: string | null) => void
+    setCommitmentId: (v: string | null) => void
+}
+
+/**
+ * Bridge path: quote → commit → calldata. Used for non-stablecoin tokenOut
+ * (ETH, WETH, etc.) where Rhino's SDA primitive rejects with
+ * `DepositAddressTokenOutNotSupported`.
+ */
+async function runBridgePath({
+    source,
+    destination,
+    sourceRhinoChain,
+    destRhinoChain,
+    tokenSymbol,
+    setTransactions,
+    setReceiveAmount,
+    setFeeUsd,
+    setEstimatedGasCostUsd,
+    setIsFeeEstimationError,
+    setQuoteExpiresAt,
+    setCommitmentId,
+}: BridgePathParams): Promise<void> {
+    void source
+    const quote: BridgeQuoteResponse = await getBridgeQuote({
+        amount: destination.tokenAmount,
+        token: tokenSymbol,
+        chainOut: destRhinoChain,
+        recipient: destination.recipientAddress,
+        depositor: source.address,
+        mode: 'receive', // UI always asks "merchant gets X" — user pays X + fee
+    })
+    void sourceRhinoChain // chainIn is fixed to ARBITRUM on backend
+
+    const commit: BridgeCommitResponse = await commitBridgeQuote(quote.quoteId)
+
+    if (!commit.contractAddress) {
+        throw new Error('Rhino did not return a bridge contract address — cannot construct tx')
+    }
+
+    setTransactions([
+        {
+            to: commit.calldata.to as Address,
+            data: commit.calldata.data as Hex,
+            value: commit.calldata.value ? BigInt(commit.calldata.value) : undefined,
+        },
+    ])
+    setReceiveAmount(quote.amountOut)
+    setFeeUsd(quote.feeUsd + quote.gasFeeUsd)
+    setEstimatedGasCostUsd(0) // gas paid by paymaster — same as SDA path
+    setIsFeeEstimationError(false)
+    setQuoteExpiresAt(quote.expiresAt)
+    setCommitmentId(commit.commitmentId)
 }
 
 interface SameChainParams {
