@@ -2,7 +2,8 @@
 import { generateKeysFromString } from '@/utils/peanut-link.utils'
 import { useContext, useEffect, useMemo, useState } from 'react'
 
-import { fetchTokenDetails, fetchTokenPrice } from '@/app/actions/tokens'
+import { fetchTokenDetails } from '@/app/actions/tokens'
+import { fetchTokenPrice } from '@/services/tokens-price'
 import { type StatusType } from '@/components/Global/Badges/StatusBadge'
 import { TransactionDetailsReceipt } from '@/components/TransactionDetails/TransactionDetailsReceipt'
 import { type TransactionDetails, REWARD_TOKENS } from '@/components/TransactionDetails/transactionTransformer'

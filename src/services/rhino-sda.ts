@@ -3,15 +3,25 @@
 /**
  * Client-side wrappers around the unified Rhino SDA-transfer backend.
  *
- * Three consumers: withdraw, pay-request-x-chain, claim-link-x-chain —
- * all route through these two calls.
+ * Direct calls to PEANUT_API_URL — no Next.js proxy in the path so this
+ * works identically on web (CORS-allowed origin) and native (no Next.js
+ * server exists). JWT forwarded for the backend's verifyAuth preHandler.
+ *
+ * Three consumers: withdraw, pay-request-x-chain, claim-link-x-chain.
  */
 
-import { apiFetch } from '@/utils/api-fetch'
+import { PEANUT_API_URL } from '@/constants/general.consts'
+import { fetchWithSentry } from '@/utils/sentry.utils'
+import { getAuthHeaders } from '@/utils/auth-token'
 import type { Address } from 'viem'
 
 export type RhinoTransferContext = 'withdraw' | 'pay-request' | 'claim-xchain'
-export type RhinoSupportedToken = 'USDC' | 'USDT'
+/**
+ * Token symbol passed to the Rhino backend. Plain string — Rhino validates
+ * against the (chainIn, chainOut) pair. The legacy `'USDC' | 'USDT'`
+ * restriction was an artificial FE limit that blocked cross-token withdraw.
+ */
+export type RhinoSupportedToken = string
 
 export interface SdaTransferRequest {
     context: RhinoTransferContext
@@ -52,8 +62,12 @@ export interface SdaPreviewResult {
 }
 
 async function postRhino<TReq, TRes>(path: string, body: TReq, errorLabel: string): Promise<TRes> {
-    const response = await apiFetch(path, `/api/peanut${path}`, {
+    const response = await fetchWithSentry(`${PEANUT_API_URL}${path}`, {
         method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            ...getAuthHeaders(),
+        },
         body: JSON.stringify(body),
     })
     if (!response.ok) {

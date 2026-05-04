@@ -218,6 +218,10 @@ export interface TransactionDetails {
     fullName: string
     showFullName?: boolean
     amount: number | bigint
+    /** Raw destination-token amount string from the BE (e.g. "0.000416666"
+     *  for a $1 ETH withdraw). Preserves full decimals for receipt rendering;
+     *  feed cards still truncate via formatNumberForDisplay. */
+    tokenAmount?: string
     currency?: {
         amount: string
         code: string
@@ -435,6 +439,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         direction: direction,
         userName: nameForDetails,
         amount,
+        tokenAmount: entry.amount,
         fullName,
         showFullName,
         currency: rewardData ? undefined : entry.currency,

@@ -68,6 +68,8 @@ export default function WithdrawCryptoPage() {
         receiveAmount,
         feeUsd,
         isCalculating,
+        isXChain,
+        isDiffToken,
         error: routeError,
         calculate: calculateRoute,
         reset: resetRouteCalculation,
@@ -163,7 +165,17 @@ export default function WithdrawCryptoPage() {
             setIsPreparingReview(true)
 
             try {
-                const completeWithdrawData = { ...data, amount: amountToWithdraw }
+                // AmountInput's primary denomination is USD ($), so amountToWithdraw
+                // is the USD value the user typed. Convert to destination token
+                // units before persisting the request/charge — otherwise meta
+                // ends up with `tokenAmount: "1"` + `tokenSymbol: "ETH"` and
+                // history renders "1 ETH" for what was actually a $1 withdraw.
+                const usdValue = parseFloat(amountToWithdraw)
+                const tokenPrice = data.token.price ?? 0
+                const destinationTokenAmount =
+                    tokenPrice > 0 ? (usdValue / tokenPrice).toFixed(Number(data.token.decimals)) : amountToWithdraw
+
+                const completeWithdrawData = { ...data, amount: destinationTokenAmount }
                 setWithdrawData(completeWithdrawData)
                 const apiRequestPayload: CreateRequestPayloadServices = {
                     recipientAddress: completeWithdrawData.address,
@@ -174,7 +186,7 @@ export default function WithdrawCryptoPage() {
                             ? peanutInterfaces.EPeanutLinkType.native
                             : peanutInterfaces.EPeanutLinkType.erc20
                     ),
-                    tokenAmount: amountToWithdraw,
+                    tokenAmount: destinationTokenAmount,
                     tokenDecimals: completeWithdrawData.token.decimals.toString(),
                     tokenSymbol: completeWithdrawData.token.symbol,
                 }
@@ -186,12 +198,12 @@ export default function WithdrawCryptoPage() {
 
                 const chargePayload: CreateChargeRequest = {
                     pricing_type: 'fixed_price',
-                    local_price: { amount: completeWithdrawData.amount || amountToWithdraw, currency: 'USD' },
+                    local_price: { amount: usdValue.toString(), currency: 'USD' },
                     baseUrl: window.location.origin,
                     requestId: newRequest.uuid,
                     requestProps: {
                         chainId: completeWithdrawData.chain.chainId.toString(),
-                        tokenAmount: completeWithdrawData.amount,
+                        tokenAmount: destinationTokenAmount,
                         tokenAddress: completeWithdrawData.token.address,
                         tokenType:
                             completeWithdrawData.token.address.toLowerCase() === NATIVE_TOKEN_ADDRESS.toLowerCase()
@@ -242,17 +254,15 @@ export default function WithdrawCryptoPage() {
         }
     }, [chargeDetails, withdrawData, setCurrentView, setShowCompatibilityModal, setError])
 
-    // check if this is a cross-chain withdrawal — determines whether we can
-    // route same-chain spends through the direct collateral-only path.
+    // True when the withdraw needs a Rhino path (SDA or bridge swap) rather
+    // than a direct USDC transfer. Crosses a chain boundary OR a token
+    // boundary — `isCrossChainWithdrawal` historically only checked chains,
+    // which silently downgraded cross-token same-chain (USDC → ETH on Arb)
+    // to a plain USDC.transfer to the recipient.
     const isCrossChainWithdrawal = useMemo<boolean>(() => {
         if (!withdrawData || !chargeDetails) return false
-
-        // in withdraw flow, we're moving from Peanut Wallet to the selected chain
-        const fromChainId = isPeanutWallet ? PEANUT_WALLET_CHAIN.id.toString() : withdrawData.chain.chainId
-        const toChainId = chargeDetails.chainId
-
-        return fromChainId !== toChainId
-    }, [withdrawData, chargeDetails, isPeanutWallet])
+        return isXChain || isDiffToken
+    }, [withdrawData, chargeDetails, isXChain, isDiffToken])
 
     const handleConfirmWithdrawal = useCallback(async () => {
         if (!chargeDetails || !withdrawData || !amountToWithdraw || !address) {

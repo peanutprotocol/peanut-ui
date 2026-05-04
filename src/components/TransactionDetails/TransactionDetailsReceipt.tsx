@@ -173,20 +173,24 @@ export const TransactionDetailsReceipt = ({
 
     const convertedAmount = useMemo(() => {
         if (!transaction) return null
+        // Preference order:
+        //   1. Local fiat (e.g. ARS for Manteca on/off-ramps) via currency.code/amount
+        //   2. Destination token (e.g. ETH for cross-token withdraw) via amount + tokenSymbol
+        //      — full decimals here, not truncated, so the receipt is auditable.
+        // USD-pegged stablecoins are skipped (same rule as TransactionCard).
         const code = transaction.currency?.code
         const amount = transaction.currency?.amount
-        // Show the converted amount under the primary for any non-USD fiat
-        // leg (on/offramps, bank claims). The amount already carries the
-        // effective conversion (fees baked in), so the rate isn't rendered
-        // separately. Don't gate on `receipt.exchange_rate` — Bridge sandbox
-        // only populates it on true settlement, hiding the row through
-        // PAYMENT_PROCESSED; currency + amount alone suffice.
-        if (!code || !amount) return null
-        const upper = code.toUpperCase()
-        // USD-pegged stablecoins read like USD to the user — don't render
-        // `≈ USDC 0.10` under `$0.10`. (Same rule as TransactionCard.)
-        if (upper === 'USD' || isStableCoin(upper)) return null
-        return `${upper} ${formatCurrency(amount)}`
+        if (code && amount) {
+            const upper = code.toUpperCase()
+            if (upper !== 'USD' && !isStableCoin(upper)) {
+                return `${upper} ${formatCurrency(amount)}`
+            }
+        }
+        const tokenSymbol = transaction.tokenSymbol?.toUpperCase()
+        if (tokenSymbol && tokenSymbol !== 'USD' && !isStableCoin(tokenSymbol) && transaction.tokenAmount) {
+            return `${transaction.tokenAmount} ${tokenSymbol}`
+        }
+        return null
     }, [transaction])
 
     if (!transaction) return null
