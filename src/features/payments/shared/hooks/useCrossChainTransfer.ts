@@ -374,6 +374,16 @@ async function runBridgePath({
     // Source is always USDC from the Peanut wallet — symbol-only is enough
     // for Rhino (it resolves the address from its bridge config). For cross-
     // token withdraw, tokenIn=USDC, tokenOut=destination token.
+    //
+    // Mode selection:
+    //   - Same-chain swap → 'receive' (Rhino accepts it; user-friendly UX
+    //     "merchant gets X")
+    //   - Cross-chain swap → 'pay' (Rhino rejects 'receive' for cross-chain
+    //     swap routes with `InvalidRequest: Receive mode is not supported
+    //     for the selected tokens`). With 'pay', the input amount is the
+    //     source USDC the user spends; Rhino computes the destination output.
+    const isCrossChain = sourceRhinoChain !== destRhinoChain
+    const mode: 'pay' | 'receive' = isCrossChain ? 'pay' : 'receive'
     const quote: BridgeQuoteResponse = await getBridgeQuote({
         amount: destination.tokenAmount,
         tokenIn: 'USDC',
@@ -381,9 +391,8 @@ async function runBridgePath({
         chainOut: destRhinoChain,
         recipient: destination.recipientAddress,
         depositor: source.address,
-        mode: 'receive', // UI always asks "merchant gets X" — user pays X + fee
+        mode,
     })
-    void sourceRhinoChain // chainIn is fixed to ARBITRUM on backend
 
     const commit: BridgeCommitResponse = await commitBridgeQuote(quote.quoteId, quote.isSwap)
 
