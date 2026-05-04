@@ -68,6 +68,8 @@ export default function WithdrawCryptoPage() {
         receiveAmount,
         feeUsd,
         isCalculating,
+        isXChain,
+        isDiffToken,
         error: routeError,
         calculate: calculateRoute,
         reset: resetRouteCalculation,
@@ -242,17 +244,15 @@ export default function WithdrawCryptoPage() {
         }
     }, [chargeDetails, withdrawData, setCurrentView, setShowCompatibilityModal, setError])
 
-    // check if this is a cross-chain withdrawal — determines whether we can
-    // route same-chain spends through the direct collateral-only path.
+    // True when the withdraw needs a Rhino path (SDA or bridge swap) rather
+    // than a direct USDC transfer. Crosses a chain boundary OR a token
+    // boundary — `isCrossChainWithdrawal` historically only checked chains,
+    // which silently downgraded cross-token same-chain (USDC → ETH on Arb)
+    // to a plain USDC.transfer to the recipient.
     const isCrossChainWithdrawal = useMemo<boolean>(() => {
         if (!withdrawData || !chargeDetails) return false
-
-        // in withdraw flow, we're moving from Peanut Wallet to the selected chain
-        const fromChainId = isPeanutWallet ? PEANUT_WALLET_CHAIN.id.toString() : withdrawData.chain.chainId
-        const toChainId = chargeDetails.chainId
-
-        return fromChainId !== toChainId
-    }, [withdrawData, chargeDetails, isPeanutWallet])
+        return isXChain || isDiffToken
+    }, [withdrawData, chargeDetails, isXChain, isDiffToken])
 
     const handleConfirmWithdrawal = useCallback(async () => {
         if (!chargeDetails || !withdrawData || !amountToWithdraw || !address) {
