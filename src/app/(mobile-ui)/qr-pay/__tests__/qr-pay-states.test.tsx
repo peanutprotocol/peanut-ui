@@ -97,9 +97,32 @@ jest.mock('@/hooks/wallet/useWallet', () => ({
     useWallet: () => mockUseWallet(),
 }))
 
-const mockSignTransferUserOp = jest.fn()
-jest.mock('@/hooks/wallet/useSignUserOp', () => ({
-    useSignUserOp: () => ({ signTransferUserOp: mockSignTransferUserOp }),
+const mockSignSpend = jest.fn()
+jest.mock('@/hooks/wallet/useSignSpendBundle', () => ({
+    useSignSpendBundle: () => ({ signSpend: mockSignSpend }),
+}))
+
+jest.mock('@/hooks/wallet/useSpendBundle', () => ({
+    InsufficientSpendableError: class extends Error {
+        constructor() {
+            super('Insufficient spendable balance')
+            this.name = 'InsufficientSpendableError'
+        }
+    },
+    SessionKeyGrantRequiredError: class extends Error {
+        constructor() {
+            super('Session-key grant required')
+            this.name = 'SessionKeyGrantRequiredError'
+        }
+    },
+}))
+
+jest.mock('@/hooks/useRainCardOverview', () => ({
+    useRainCardOverview: () => ({ overview: { balance: { spendingPower: 0 } } }),
+}))
+
+jest.mock('@/utils/balance.utils', () => ({
+    rainSpendingPowerToWei: jest.fn(() => 0n),
 }))
 
 const mockUseTransactionDetailsDrawer = jest.fn()
@@ -500,26 +523,29 @@ function applyDefaults() {
         },
     })
 
-    mockSignTransferUserOp.mockResolvedValue({
+    mockSignSpend.mockResolvedValue({
+        strategy: 'smart-only',
         signedUserOp: {
-            sender: '0x1',
-            nonce: '0x0',
-            callData: '0x',
-            signature: '0x',
-            callGasLimit: '0x0',
-            verificationGasLimit: '0x0',
-            preVerificationGas: '0x0',
-            factory: null,
-            factoryData: null,
-            maxFeePerGas: '0x0',
-            maxPriorityFeePerGas: '0x0',
-            paymaster: null,
-            paymasterData: null,
-            paymasterVerificationGasLimit: '0x0',
-            paymasterPostOpGasLimit: '0x0',
+            signedUserOp: {
+                sender: '0x1',
+                nonce: '0x0',
+                callData: '0x',
+                signature: '0x',
+                callGasLimit: '0x0',
+                verificationGasLimit: '0x0',
+                preVerificationGas: '0x0',
+                factory: null,
+                factoryData: null,
+                maxFeePerGas: '0x0',
+                maxPriorityFeePerGas: '0x0',
+                paymaster: null,
+                paymasterData: null,
+                paymasterVerificationGasLimit: '0x0',
+                paymasterPostOpGasLimit: '0x0',
+            },
+            chainId: '42161',
+            entryPointAddress: '0xentry',
         },
-        chainId: 137,
-        entryPointAddress: '0xentry',
     })
 }
 
@@ -778,7 +804,7 @@ describe('GROUP 3: Processing States', () => {
         })
 
         // After clicking pay, loading state should trigger PeanutLoading
-        // (signTransferUserOp resolves, then completeQrPayment hangs)
+        // (signSpend resolves, then completeQrPayment hangs)
         await waitFor(() => {
             // Component is in loading state - either shows PeanutLoading or loading button text
             const loadingEl = screen.queryByTestId('peanut-loading')
@@ -806,8 +832,8 @@ describe('GROUP 3: Processing States', () => {
             creationTime: '2026-04-16T00:00:00Z',
         })
 
-        // signTransferUserOp rejects with "not allowed" — wallet confirmation denied
-        mockSignTransferUserOp.mockRejectedValue(new Error('User action is not allowed'))
+        // signSpend rejects with "not allowed" — wallet confirmation denied
+        mockSignSpend.mockRejectedValue(new Error('User action is not allowed'))
 
         renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
 
