@@ -5,10 +5,10 @@ import Script from 'next/script'
 
 interface Props {
     diagrams: Array<{ title: string; code: string }>
-    filePath: string
+    source: string
 }
 
-export function MermaidRenderer({ diagrams, filePath }: Props) {
+export function MermaidRenderer({ diagrams, source }: Props) {
     const containerRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
@@ -68,7 +68,7 @@ export function MermaidRenderer({ diagrams, filePath }: Props) {
                 <h1 style={{ fontSize: 28, marginBottom: 8 }}>KYC Flows — State Machine Reference</h1>
                 <p style={{ color: '#666', marginBottom: 16 }}>
                     {diagrams.length} diagrams loaded from mono repo. Source:{' '}
-                    <code style={{ fontSize: 12 }}>{filePath}</code>
+                    <code style={{ fontSize: 12 }}>{source}</code>
                 </p>
                 <p style={{ color: '#999', marginBottom: 40, fontSize: 13 }}>
                     edit the markdown in mono, refresh this page to see changes.
