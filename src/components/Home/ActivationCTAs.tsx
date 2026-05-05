@@ -86,7 +86,8 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
 
     // provider rejection overrides the step copy when user is past the verify step
     // (sumsub approved but provider rejected — deposit/outbound CTAs are useless)
-    const hasProviderRejection = activationStep !== 'verify' && (hasFixableRejection || hasBlockedRejection)
+    const hasProviderRejection =
+        activationStep !== 'verify' && activationStep !== 'card' && (hasFixableRejection || hasBlockedRejection)
 
     const step: StepConfig | null = useMemo(() => {
         if (activationStep === 'completed' && !hasProviderRejection) return null

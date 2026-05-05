@@ -70,6 +70,10 @@ export const initiateSelfHealResubmission = async (
             }
         }
 
+        if (!responseJson.token || !responseJson.applicantId) {
+            return { error: 'Invalid response from server' }
+        }
+
         return { data: responseJson }
     } catch (e: unknown) {
         const message = e instanceof Error ? e.message : 'An unexpected error occurred'
