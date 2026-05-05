@@ -67,7 +67,6 @@ jest.mock('@/utils/confetti', () => ({
 jest.mock('@/assets/payment-apps', () => ({
     MERCADO_PAGO: '/mercado-pago.png',
     PIX: '/pix.png',
-    SIMPLEFI: '/simplefi.png',
 }))
 
 jest.mock('@/assets', () => ({
@@ -109,7 +108,7 @@ jest.mock('@/hooks/useTransactionDetailsDrawer', () => ({
 }))
 
 jest.mock('@/hooks/useTransactionHistory', () => ({
-    EHistoryEntryType: { MANTECA_QR_PAYMENT: 'MANTECA_QR_PAYMENT', SIMPLEFI_QR_PAYMENT: 'SIMPLEFI_QR_PAYMENT' },
+    EHistoryEntryType: { MANTECA_QR_PAYMENT: 'MANTECA_QR_PAYMENT' },
     EHistoryUserRole: { SENDER: 'SENDER' },
 }))
 
@@ -126,13 +125,6 @@ jest.mock('@/services/manteca', () => ({
     mantecaApi: mockMantecaApi,
 }))
 
-const mockSimplefiApi = {
-    initiateQrPayment: jest.fn(),
-}
-jest.mock('@/services/simplefi', () => ({
-    simplefiApi: mockSimplefiApi,
-}))
-
 jest.mock('@/app/actions/currency', () => ({
     getCurrencyPrice: jest.fn(() => Promise.resolve({ sell: 1200, buy: 1250 })),
 }))
@@ -142,25 +134,17 @@ jest.mock('@/app/actions/increase-limits', () => ({
 }))
 
 const mockIsPaymentProcessorQR = jest.fn()
-const mockParseSimpleFiQr = jest.fn()
 jest.mock('@/components/Global/DirectSendQR/utils', () => ({
     isPaymentProcessorQR: (...args: any[]) => mockIsPaymentProcessorQR(...args),
-    parseSimpleFiQr: (...args: any[]) => mockParseSimpleFiQr(...args),
     EQrType: {
         MERCADO_PAGO: 'MERCADO_PAGO',
         ARGENTINA_QR3: 'ARGENTINA_QR3',
         PIX: 'PIX',
-        SIMPLEFI_STATIC: 'SIMPLEFI_STATIC',
-        SIMPLEFI_DYNAMIC: 'SIMPLEFI_DYNAMIC',
-        SIMPLEFI_USER_SPECIFIED: 'SIMPLEFI_USER_SPECIFIED',
     },
     NAME_BY_QR_TYPE: {
         MERCADO_PAGO: 'Mercado Pago',
         ARGENTINA_QR3: 'QR Interoperable',
         PIX: 'PIX',
-        SIMPLEFI_STATIC: 'SimpleFi',
-        SIMPLEFI_DYNAMIC: 'SimpleFi',
-        SIMPLEFI_USER_SPECIFIED: 'SimpleFi',
     },
 }))
 
@@ -202,10 +186,6 @@ jest.mock('@/hooks/useLimits', () => ({
         mantecaLimits: null,
         refetch: jest.fn(),
     }),
-}))
-
-jest.mock('@/hooks/useWebSocket', () => ({
-    useWebSocket: jest.fn(),
 }))
 
 jest.mock('@/hooks/usePointsCalculation', () => ({
@@ -471,7 +451,6 @@ function applyDefaults() {
     })
 
     mockIsPaymentProcessorQR.mockReturnValue(true)
-    mockParseSimpleFiQr.mockReturnValue(null)
 
     // Manteca payment lock — returned by TanStack useQuery
     mockMantecaApi.initiateQrPayment.mockResolvedValue({
@@ -519,15 +498,6 @@ function applyDefaults() {
             discountPercentage: 5,
             txHash: '0xabc',
         },
-    })
-
-    mockSimplefiApi.initiateQrPayment.mockResolvedValue({
-        id: 'sf1',
-        usdAmount: '10',
-        currency: 'ARS',
-        currencyAmount: '12000',
-        price: '1200',
-        address: '0xsf',
     })
 
     mockSignTransferUserOp.mockResolvedValue({
@@ -664,23 +634,6 @@ describe('GROUP 2: Payment Form States', () => {
 
         expect(screen.getByTestId('amount-input')).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Pay' })).toBeInTheDocument()
-    })
-
-    test('SimpleFi static form ready shows amount disabled + pay button', async () => {
-        mockParseSimpleFiQr.mockReturnValue({
-            type: 'SIMPLEFI_STATIC',
-            merchantSlug: 'cool-coffee',
-        })
-
-        renderQrPay({ qrCode: 'simplefi://static/cool-coffee', type: 'SIMPLEFI_STATIC', t: '1' })
-
-        await waitFor(() => {
-            expect(screen.getByText('Cool Coffee')).toBeInTheDocument()
-        })
-
-        // Amount should be disabled for static SimpleFi (preset amount)
-        const amountInput = screen.getByTestId('amount-input')
-        expect(amountInput).toBeInTheDocument()
     })
 
     test.skip('Insufficient balance shows pay button disabled + error', async () => {
@@ -831,41 +784,6 @@ describe('GROUP 3: Processing States', () => {
             const loadingEl = screen.queryByTestId('peanut-loading')
             const loadingButton = screen.queryByText('Loading...')
             expect(loadingEl || loadingButton).toBeTruthy()
-        })
-    })
-
-    test('SimpleFi WebSocket waiting shows processing indicator', async () => {
-        const mockSendMoney = jest.fn().mockResolvedValue({
-            userOpHash: '0xhash',
-            receipt: null, // null receipt means waiting for confirmation
-        })
-        mockUseWallet.mockReturnValue({
-            balance: parseUnits('100', 6),
-            sendMoney: mockSendMoney,
-        })
-
-        mockParseSimpleFiQr.mockReturnValue({
-            type: 'SIMPLEFI_STATIC',
-            merchantSlug: 'cool-coffee',
-        })
-
-        renderQrPay({ qrCode: 'simplefi://static/cool-coffee', type: 'SIMPLEFI_STATIC', t: '1' })
-
-        await waitFor(() => {
-            expect(screen.getByText('Cool Coffee')).toBeInTheDocument()
-        })
-
-        // Click pay
-        const payButton = screen.getByRole('button', { name: 'Pay' })
-        await act(async () => {
-            fireEvent.click(payButton)
-        })
-
-        // Should show processing state
-        await waitFor(() => {
-            const processingText = screen.queryByText('Processing Payment...')
-            const loadingEl = screen.queryByTestId('peanut-loading')
-            expect(processingText || loadingEl).toBeTruthy()
         })
     })
 
@@ -1043,59 +961,6 @@ describe('GROUP 4: Success States', () => {
         jest.useRealTimers()
     })
 
-    test('SimpleFi success shows SimpleFi success card', async () => {
-        const mockSendMoney = jest.fn().mockResolvedValue({
-            userOpHash: '0xhash',
-            receipt: { status: 'success' },
-        })
-        mockUseWallet.mockReturnValue({
-            balance: parseUnits('100', 6),
-            sendMoney: mockSendMoney,
-        })
-
-        mockParseSimpleFiQr.mockReturnValue({
-            type: 'SIMPLEFI_STATIC',
-            merchantSlug: 'cool-coffee',
-        })
-
-        // Override useWebSocket to capture the callback and fire it
-        const { useWebSocket } = require('@/hooks/useWebSocket')
-        let wsCallback: Function
-        useWebSocket.mockImplementation((opts: any) => {
-            wsCallback = opts.onHistoryEntry
-        })
-
-        renderQrPay({ qrCode: 'simplefi://static/cool-coffee', type: 'SIMPLEFI_STATIC', t: '1' })
-
-        await waitFor(() => {
-            expect(screen.getByText('Cool Coffee')).toBeInTheDocument()
-        })
-
-        const payButton = screen.getByRole('button', { name: 'Pay' })
-        await act(async () => {
-            fireEvent.click(payButton)
-        })
-
-        // Simulate WebSocket response
-        await act(async () => {
-            if (wsCallback) {
-                await wsCallback({
-                    uuid: 'sf1',
-                    type: 'SIMPLEFI_QR_PAYMENT',
-                    status: 'approved',
-                    amount: '10',
-                    currency: { code: 'ARS', amount: '12000' },
-                    extraData: { usdAmount: '10' },
-                })
-            }
-        })
-
-        await waitFor(() => {
-            const youPaid = screen.queryByText(/You paid/)
-            expect(youPaid).toBeInTheDocument()
-        })
-    })
-
     test('PIX success shows PIX icon', async () => {
         renderQrPay({ qrCode: 'pix://payment?id=123', type: 'PIX', t: '1' })
 
@@ -1164,44 +1029,6 @@ describe('GROUP 4: Success States', () => {
 // GROUP 5: Error States
 // ============================================================
 describe('GROUP 5: Error States', () => {
-    test('Transaction reverted shows error card + retry', async () => {
-        const { isTxReverted } = require('@/utils/general.utils')
-        isTxReverted.mockReturnValue(true)
-
-        const mockSendMoney = jest.fn().mockResolvedValue({
-            userOpHash: '0xhash',
-            receipt: { status: 'reverted' },
-        })
-        mockUseWallet.mockReturnValue({
-            balance: parseUnits('100', 6),
-            sendMoney: mockSendMoney,
-        })
-
-        mockParseSimpleFiQr.mockReturnValue({
-            type: 'SIMPLEFI_STATIC',
-            merchantSlug: 'cool-coffee',
-        })
-
-        renderQrPay({ qrCode: 'simplefi://static/cool-coffee', type: 'SIMPLEFI_STATIC', t: '1' })
-
-        await waitFor(() => {
-            expect(screen.getByText('Cool Coffee')).toBeInTheDocument()
-        })
-
-        const payButton = screen.getByRole('button', { name: 'Pay' })
-        await act(async () => {
-            fireEvent.click(payButton)
-        })
-
-        await waitFor(() => {
-            const errorAlert = screen.getByTestId('error-alert')
-            expect(errorAlert).toHaveTextContent('rejected by the network')
-        })
-
-        // Reset mock
-        isTxReverted.mockReturnValue(false)
-    })
-
     test('QR decode failure shows specific error message', async () => {
         mockMantecaApi.initiateQrPayment.mockRejectedValue(new Error('PAYMENT_DESTINATION_DECODING_ERROR'))
 
@@ -1210,48 +1037,6 @@ describe('GROUP 5: Error States', () => {
         await waitFor(() => {
             expect(screen.getByText(/could not decode/i)).toBeInTheDocument()
         })
-    })
-
-    test('SimpleFi timeout shows error + retry', async () => {
-        jest.useFakeTimers()
-
-        const mockSendMoney = jest.fn().mockResolvedValue({
-            userOpHash: '0xhash',
-            receipt: null,
-        })
-        mockUseWallet.mockReturnValue({
-            balance: parseUnits('100', 6),
-            sendMoney: mockSendMoney,
-        })
-
-        mockParseSimpleFiQr.mockReturnValue({
-            type: 'SIMPLEFI_STATIC',
-            merchantSlug: 'cool-coffee',
-        })
-
-        renderQrPay({ qrCode: 'simplefi://static/cool-coffee', type: 'SIMPLEFI_STATIC', t: '1' })
-
-        await waitFor(() => {
-            expect(screen.getByText('Cool Coffee')).toBeInTheDocument()
-        })
-
-        const payButton = screen.getByRole('button', { name: 'Pay' })
-        await act(async () => {
-            fireEvent.click(payButton)
-        })
-
-        // Advance 5 minutes for WebSocket timeout
-        await act(async () => {
-            jest.advanceTimersByTime(5 * 60 * 1000 + 100)
-        })
-
-        await waitFor(() => {
-            const errorAlert = screen.queryByTestId('error-alert')
-            expect(errorAlert).toBeInTheDocument()
-            expect(errorAlert).toHaveTextContent('taking longer than expected')
-        })
-
-        jest.useRealTimers()
     })
 
     test('Manteca API error shows generic error', async () => {
