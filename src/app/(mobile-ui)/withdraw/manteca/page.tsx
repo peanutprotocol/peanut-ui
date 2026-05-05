@@ -35,6 +35,7 @@ import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { useQueryClient } from '@tanstack/react-query'
 import { captureException } from '@sentry/nextjs'
 import useKycStatus from '@/hooks/useKycStatus'
+import useProviderRejectionStatus from '@/hooks/useProviderRejectionStatus'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
@@ -92,7 +93,8 @@ export default function MantecaWithdrawFlow() {
     const { user } = useAuth()
     const { setIsSupportModalOpen, openSupportWithMessage } = useModalsContext()
     const queryClient = useQueryClient()
-    const { isUserMantecaKycApproved } = useKycStatus()
+    const { isUserMantecaKycApproved, isUserSumsubKycApproved } = useKycStatus()
+    const { manteca: mantecaRejection } = useProviderRejectionStatus()
     const { hasPendingTransactions } = usePendingTransactions()
 
     // inline sumsub kyc flow for manteca users who need LATAM verification
@@ -101,6 +103,7 @@ export default function MantecaWithdrawFlow() {
     const sumsubFlow = useMultiPhaseKycFlow({})
     const [showKycModal, setShowKycModal] = useState(false)
     const [isRedirectingToOnboarding, setIsRedirectingToOnboarding] = useState(false)
+
     // Get method and country from URL parameters
     const selectedMethodType = searchParams.get('method') // mercadopago, pix, bank-transfer, etc.
     const countryFromUrl = searchParams.get('country') // argentina, brazil, etc.
@@ -532,10 +535,24 @@ export default function MantecaWithdrawFlow() {
                 visible={showKycModal}
                 onClose={() => setShowKycModal(false)}
                 onVerify={async () => {
-                    await sumsubFlow.handleInitiateKyc('LATAM')
+                    const hasRejection = mantecaRejection.state === 'fixable'
+                    if (hasRejection) {
+                        await sumsubFlow.handleSelfHealResubmit('MANTECA')
+                    } else {
+                        await sumsubFlow.handleInitiateKyc('LATAM', undefined, true)
+                    }
                     setShowKycModal(false)
                 }}
                 isLoading={sumsubFlow.isLoading}
+                variant={
+                    mantecaRejection.state === 'fixable' || mantecaRejection.state === 'blocked'
+                        ? 'provider_rejection'
+                        : isUserSumsubKycApproved
+                          ? 'cross_region'
+                          : 'default'
+                }
+                providerMessage={mantecaRejection.userMessage ?? undefined}
+                regionName={selectedCountry?.title}
             />
             <SumsubKycModals flow={sumsubFlow} />
             <SumsubKycWrapper
@@ -747,7 +764,7 @@ export default function MantecaWithdrawFlow() {
                                   : 'Review'}
                         </Button>
 
-                        {errorMessage && <ErrorAlert description={errorMessage} />}
+                        {(errorMessage || sumsubFlow.error) && <ErrorAlert description={(errorMessage || sumsubFlow.error)!} />}
                     </div>
                 </div>
             )}
@@ -804,7 +821,7 @@ export default function MantecaWithdrawFlow() {
                     >
                         {isLoading ? loadingState : 'Withdraw'}
                     </Button>
-                    {errorMessage && <ErrorAlert description={errorMessage} />}
+                    {(errorMessage || sumsubFlow.error) && <ErrorAlert description={(errorMessage || sumsubFlow.error)!} />}
                 </div>
             )}
         </div>

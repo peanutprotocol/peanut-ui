@@ -5,11 +5,15 @@ import { useAuth } from '@/context/authContext'
 import { MantecaKycStatus } from '@/interfaces'
 import { isKycStatusApproved, isSumsubStatusInProgress } from '@/constants/kyc.consts'
 
+const MAX_SELF_HEAL_ATTEMPTS = 3
+
 export enum QrKycState {
     LOADING = 'loading',
     PROCEED_TO_PAY = 'proceed_to_pay',
     REQUIRES_IDENTITY_VERIFICATION = 'requires_identity_verification',
     IDENTITY_VERIFICATION_IN_PROGRESS = 'identity_verification_in_progress',
+    PROVIDER_REJECTION_FIXABLE = 'provider_rejection_fixable',
+    PROVIDER_REJECTION_BLOCKED = 'provider_rejection_blocked',
 }
 
 export interface QrKycGateResult {
@@ -61,12 +65,30 @@ export function useQrKycGate(paymentProcessor?: 'MANTECA' | 'SIMPLEFI' | null): 
             return
         }
 
-        // sumsub approved users (including foreign users) can proceed to qr pay.
-        // note: backend enforces per-rail access separately — frontend gate only checks identity verification.
+        // sumsub approved users can proceed to qr pay, unless manteca rejected them
         const hasSumsubApproved = currentUser.kycVerifications?.some(
             (v) => v.provider === 'SUMSUB' && isKycStatusApproved(v.status)
         )
         if (hasSumsubApproved) {
+            // check if manteca has rejected rails (qr payments use manteca)
+            const rejectedMantecaRails = (user?.rails ?? []).filter(
+                (r) => r.rail.provider.code === 'MANTECA' && r.status === 'REJECTED'
+            )
+            if (rejectedMantecaRails.length > 0) {
+                const railMeta = (rejectedMantecaRails[0].metadata ?? {}) as Record<string, unknown>
+                const mantecaKyc = currentUser.kycVerifications
+                    ?.filter((v) => v.provider === 'MANTECA')
+                    .sort((a, b) => new Date(b.updatedAt ?? 0).getTime() - new Date(a.updatedAt ?? 0).getTime())[0]
+                const kycMeta = (mantecaKyc?.metadata ?? {}) as Record<string, unknown>
+                const isFixable =
+                    railMeta.selfHealable === true &&
+                    mantecaKyc?.rejectType !== 'PROVIDER_FINAL' &&
+                    ((kycMeta.selfHealAttempt as number) || 0) < MAX_SELF_HEAL_ATTEMPTS
+                setKycGateState(
+                    isFixable ? QrKycState.PROVIDER_REJECTION_FIXABLE : QrKycState.PROVIDER_REJECTION_BLOCKED
+                )
+                return
+            }
             setKycGateState(QrKycState.PROCEED_TO_PAY)
             return
         }
@@ -121,6 +143,8 @@ export function useQrKycGate(paymentProcessor?: 'MANTECA' | 'SIMPLEFI' | null): 
         shouldBlockPay:
             kycGateState === QrKycState.REQUIRES_IDENTITY_VERIFICATION ||
             kycGateState === QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS ||
+            kycGateState === QrKycState.PROVIDER_REJECTION_FIXABLE ||
+            kycGateState === QrKycState.PROVIDER_REJECTION_BLOCKED ||
             kycGateState === QrKycState.LOADING,
     }
 

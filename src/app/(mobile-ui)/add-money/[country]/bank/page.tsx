@@ -11,6 +11,7 @@ import { formatAmount } from '@/utils/general.utils'
 import { countryData } from '@/components/AddMoney/consts'
 import { useAuth } from '@/context/authContext'
 import useKycStatus from '@/hooks/useKycStatus'
+import useProviderRejectionStatus from '@/hooks/useProviderRejectionStatus'
 import { useCreateOnramp } from '@/hooks/useCreateOnramp'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -96,7 +97,9 @@ export default function OnrampBankPage() {
     // uk-specific check
     const isUK = isUKCountry(selectedCountryPath)
 
-    const { isUserKycApproved } = useKycStatus()
+    const { isUserKycApproved, isUserSumsubKycApproved, isUserBridgeKycApproved, isUserBridgeKycUnderReview } =
+        useKycStatus()
+    const { bridge: bridgeRejection } = useProviderRejectionStatus()
     const { guardWithTos, showBridgeTos, hideTos } = useBridgeTosGuard()
 
     useEffect(() => {
@@ -194,10 +197,17 @@ export default function OnrampBankPage() {
         }
     }, [rawTokenAmount, validateAmount, setError])
 
+    const needsBridgeEnrollment = isUserSumsubKycApproved && !isUserBridgeKycApproved && !isUserBridgeKycUnderReview
+
     const handleAmountContinue = () => {
         if (!validateAmount(rawTokenAmount)) return
 
-        if (!isUserKycApproved) {
+        if (
+            needsBridgeEnrollment ||
+            !isUserKycApproved ||
+            bridgeRejection.state === 'fixable' ||
+            bridgeRejection.state === 'blocked'
+        ) {
             setShowKycModal(true)
             return
         }
@@ -398,10 +408,25 @@ export default function OnrampBankPage() {
                     visible={showKycModal}
                     onClose={() => setShowKycModal(false)}
                     onVerify={async () => {
-                        await sumsubFlow.handleInitiateKyc('STANDARD')
+                        // needsBridgeEnrollment takes priority: user has no bridge customer,
+                        // so rejection state from a stale/deleted customer is irrelevant
+                        if (!needsBridgeEnrollment && bridgeRejection.state === 'fixable') {
+                            await sumsubFlow.handleSelfHealResubmit('BRIDGE')
+                        } else {
+                            await sumsubFlow.handleInitiateKyc('STANDARD', undefined, needsBridgeEnrollment || undefined)
+                        }
                         setShowKycModal(false)
                     }}
                     isLoading={sumsubFlow.isLoading}
+                    variant={
+                        needsBridgeEnrollment
+                            ? 'cross_region'
+                            : bridgeRejection.state === 'fixable' || bridgeRejection.state === 'blocked'
+                              ? 'provider_rejection'
+                              : 'default'
+                    }
+                    providerMessage={bridgeRejection.userMessage ?? undefined}
+                    regionName={selectedCountry?.title}
                 />
 
                 <SumsubKycModals flow={sumsubFlow} autoStartSdk />

@@ -60,4 +60,8 @@ const underMaintenanceConfig: MaintenanceConfig = {
     disableCardPioneers: false, // set to false to enable the Card Pioneers waitlist feature
 }
 
+// shared user-facing copy for cross-chain disabled paths — keep wording aligned with TokenSelector banner
+export const CROSS_CHAIN_DISABLED_MESSAGE =
+    'Cross-chain claims are temporarily unavailable. Try claiming to an external wallet on the same chain as the link, or try again later.'
+
 export default underMaintenanceConfig
