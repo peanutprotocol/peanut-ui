@@ -7,6 +7,7 @@ import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import { Button, type ButtonVariant } from '@/components/0_Bruddle/Button'
 import { useModalsContext } from '@/context/ModalsContext'
 import StartVerificationView from '../Global/IframeWrapper/StartVerificationView'
+import { evaluateSumsubStatusEvent, type SumsubStatusEventPayload } from './sumsubStatusEvent.utils'
 
 // todo: move to consts
 const SUMSUB_SDK_URL = 'https://static.sumsub.com/idensic/static/sns-websdk-builder.js'
@@ -131,55 +132,22 @@ export const SumsubKycWrapper = ({
                 if (isMultiLevelRef.current) return
                 stableOnComplete()
             }
-            const handleStatusChanged = (payload: {
-                reviewStatus?: string
-                reviewResult?: { reviewAnswer?: string }
-            }) => {
-                console.log('[sumsub] onApplicantStatusChanged fired', payload)
-                // ignore status events that fire within 3s of sdk init — these reflect
-                // pre-existing state (e.g. user already approved), not a new submission
-                if (Date.now() - sdkInitTime < 3000) {
-                    console.log('[sumsub] ignoring early onApplicantStatusChanged (pre-existing state)')
-                    return
-                }
-                // for multi-level workflows (LATAM), Level 1 fires completed+GREEN
-                // before Level 2 is shown. don't close the SDK.
-                if (isMultiLevelRef.current) return
-                // auto-close when sumsub shows success screen
-                if (payload?.reviewStatus === 'completed' && payload?.reviewResult?.reviewAnswer === 'GREEN') {
-                    hasSubmittedRef.current = true
-                    stableOnComplete()
-                }
+            // RED stays open so the user can resubmit; the resubmission path
+            // emits onApplicantActionSubmitted, which handleActionSubmitted
+            // closes. See evaluateSumsubStatusEvent for the early-guard rules.
+            const handleStatusEvent = (eventName: string) => (payload: SumsubStatusEventPayload) => {
+                console.log(`[sumsub] ${eventName} fired`, payload)
+                const evaluation = evaluateSumsubStatusEvent({
+                    payload,
+                    sdkInitTime,
+                    now: Date.now(),
+                    isMultiLevel: !!isMultiLevelRef.current,
+                })
+                if (evaluation.markSubmitted) hasSubmittedRef.current = true
+                if (evaluation.autoClose) stableOnComplete()
             }
-
-            // For applicant actions (rain-card-application, additional-docs):
-            // the SDK fires onApplicantActionStatusChanged with the action's
-            // CURRENT state on launch — including for actions that are already
-            // `completed + RED + RETRY` from a prior attempt. If we close on
-            // any `completed`, the modal disappears before the WebSDK can
-            // render its "data mismatch / retry" UI for RETRY-able actions,
-            // and the user is permanently stuck.
-            //
-            // Mirror handleStatusChanged: ignore events within 3s of SDK init
-            // (those reflect pre-existing state, not a new submission), and
-            // only close on success (completed + GREEN). RED stays open so
-            // the user can resubmit; the resubmission path emits
-            // onApplicantActionSubmitted, which `handleActionSubmitted` closes.
-            const handleActionCompleted = (payload: {
-                reviewStatus?: string
-                reviewResult?: { reviewAnswer?: string }
-            }) => {
-                console.log('[sumsub] onApplicantActionStatusChanged fired', payload)
-                if (Date.now() - sdkInitTime < 3000) {
-                    console.log('[sumsub] ignoring early onApplicantActionStatusChanged (pre-existing state)')
-                    return
-                }
-                if (isMultiLevelRef.current) return
-                if (payload?.reviewStatus === 'completed' && payload?.reviewResult?.reviewAnswer === 'GREEN') {
-                    hasSubmittedRef.current = true
-                    stableOnComplete()
-                }
-            }
+            const handleStatusChanged = handleStatusEvent('onApplicantStatusChanged')
+            const handleActionCompleted = handleStatusEvent('onApplicantActionStatusChanged')
 
             const sdk = window.snsWebSdk
                 .init(accessToken, stableOnRefreshToken)

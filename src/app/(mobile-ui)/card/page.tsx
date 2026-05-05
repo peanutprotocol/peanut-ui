@@ -12,6 +12,7 @@ import { useAuth } from '@/context/authContext'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY, useRainCardOverview } from '@/hooks/useRainCardOverview'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { computeCardState, findActiveCard, type CardTopLevelState } from '@/components/Card/cardState.utils'
+import { pollUntilApplyAdvances } from '@/components/Card/cardApply.utils'
 import CardPioneerFlow from '@/components/Card/CardPioneerFlow'
 import AddCardEntryScreen from '@/components/Card/AddCardEntryScreen'
 import ApplicationStatusScreen from '@/components/Card/ApplicationStatusScreen'
@@ -183,10 +184,38 @@ const CardPage: FC = () => {
         sumsubCompletedRef.current = true
         posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_COMPLETED)
         setSumsubToken(null)
-        // Re-submit now that the user finished the applicant action. Backend
-        // will return terms-required next (since termsAccepted is still false).
-        await handleApply(false)
-    }, [handleApply])
+        setApplyError(null)
+        setIsIssuing(true)
+
+        try {
+            const res = await pollUntilApplyAdvances({
+                fetchApply: () => rainApi.applyForCard({ termsAccepted: false }),
+                intervalMs: 1000,
+                timeoutMs: 15000,
+            })
+            if (res.status === 'timeout') {
+                setApplyError('Verification is taking longer than expected. Please try again.')
+                return
+            }
+            posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_SUCCEEDED, { outcome: res.status })
+            if (res.status === 'main-kyc-required' && 'sumsubAccessToken' in res) {
+                setSumsubToken(res.sumsubAccessToken)
+                posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
+            } else if (res.status === 'terms-required' && 'isUsResident' in res) {
+                setPendingTerms({ isUsResident: res.isUsResident })
+            } else {
+                setPendingTerms(null)
+                invalidateOverview()
+            }
+        } catch (e) {
+            const message = e instanceof Error ? e.message : 'Failed to apply for card'
+            console.error('[card apply] post-sumsub poll error:', e)
+            setApplyError(message)
+            posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_FAILED, { error_message: message })
+        } finally {
+            setIsIssuing(false)
+        }
+    }, [invalidateOverview])
 
     const handleSumsubClose = useCallback(() => {
         if (!sumsubCompletedRef.current) {
