@@ -65,7 +65,9 @@ export default function KycFlowsPage() {
                 <p>Searched paths:</p>
                 <ul>
                     {MONO_PATHS.map((p) => (
-                        <li key={p}><code>{p}</code></li>
+                        <li key={p}>
+                            <code>{p}</code>
+                        </li>
                     ))}
                 </ul>
             </div>

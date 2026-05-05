@@ -55,10 +55,7 @@ export function MermaidRenderer({ diagrams, filePath }: Props) {
 
     return (
         <>
-            <Script
-                src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"
-                strategy="afterInteractive"
-            />
+            <Script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js" strategy="afterInteractive" />
             <div
                 ref={containerRef}
                 style={{
@@ -70,7 +67,8 @@ export function MermaidRenderer({ diagrams, filePath }: Props) {
             >
                 <h1 style={{ fontSize: 28, marginBottom: 8 }}>KYC Flows — State Machine Reference</h1>
                 <p style={{ color: '#666', marginBottom: 16 }}>
-                    {diagrams.length} diagrams loaded from mono repo. Source: <code style={{ fontSize: 12 }}>{filePath}</code>
+                    {diagrams.length} diagrams loaded from mono repo. Source:{' '}
+                    <code style={{ fontSize: 12 }}>{filePath}</code>
                 </p>
                 <p style={{ color: '#999', marginBottom: 40, fontSize: 13 }}>
                     edit the markdown in mono, refresh this page to see changes.
@@ -78,7 +76,9 @@ export function MermaidRenderer({ diagrams, filePath }: Props) {
 
                 {diagrams.map((d, i) => (
                     <section key={i} style={{ marginBottom: 60 }}>
-                        <h2 style={{ fontSize: 20, marginBottom: 16, borderBottom: '1px solid #eee', paddingBottom: 8 }}>
+                        <h2
+                            style={{ fontSize: 20, marginBottom: 16, borderBottom: '1px solid #eee', paddingBottom: 8 }}
+                        >
                             {d.title}
                         </h2>
                         <div
