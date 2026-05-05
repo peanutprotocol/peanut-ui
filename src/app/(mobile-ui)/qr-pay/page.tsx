@@ -15,12 +15,15 @@ import Image from 'next/image'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import AmountInput from '@/components/Global/AmountInput'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { useSignUserOp } from '@/hooks/wallet/useSignUserOp'
+import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
+import { InsufficientSpendableError, SessionKeyGrantRequiredError } from '@/hooks/wallet/useSpendBundle'
+import { useRainCardOverview } from '@/hooks/useRainCardOverview'
+import { rainSpendingPowerToWei } from '@/utils/balance.utils'
 import { isTxReverted, saveRedirectUrl, formatNumberForDisplay } from '@/utils/general.utils'
 import { getShakeClass, type ShakeIntensity } from '@/utils/perk.utils'
 import { calculateSavingsInCents, isArgentinaMantecaQrPayment, getSavingsMessage } from '@/utils/qr-payment.utils'
 import ErrorAlert from '@/components/Global/ErrorAlert'
-import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { PERK_HOLD_DURATION_MS } from '@/constants/general.consts'
 import { MANTECA_DEPOSIT_ADDRESS } from '@/constants/manteca.consts'
 import { MIN_MANTECA_QR_PAYMENT_AMOUNT, MIN_PIX_AMOUNT_BRL } from '@/constants/payment.consts'
@@ -71,7 +74,8 @@ export default function QRPayPage() {
     const timestamp = searchParams.get('t')
     const qrType = searchParams.get('type')
     const { spendableBalance: balance, sendMoney } = useWallet()
-    const { signTransferUserOp } = useSignUserOp()
+    const { signSpend } = useSignSpendBundle()
+    const { overview: rainCardOverview } = useRainCardOverview()
     const [isSuccess, setIsSuccess] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [balanceErrorMessage, setBalanceErrorMessage] = useState<string | null>(null)
@@ -445,50 +449,64 @@ export default function QRPayPage() {
         }
 
         setLoadingState('Preparing transaction')
-        let signedUserOpData
+        // Route across smart-only / mixed / collateral-only — pure-collateral
+        // payments (smart wallet empty, card collateral covers it) used to fail
+        // here because ZeroDev's paymaster simulated a USDC transfer from a
+        // zero-balance smart account and refused to sponsor. The signSpend
+        // hook now picks the right routing, including a single-tap
+        // collateral-only path that lets Rain transfer straight from the
+        // collateral proxy to MANTECA's deposit address.
+        let signedArtifact
         try {
-            signedUserOpData = await signTransferUserOp(MANTECA_DEPOSIT_ADDRESS, finalPaymentLock.paymentAgainstAmount)
+            const requiredUsdcAmount = parseUnits(finalPaymentLock.paymentAgainstAmount, PEANUT_WALLET_TOKEN_DECIMALS)
+            signedArtifact = await signSpend({
+                requiredUsdcAmount,
+                recipient: MANTECA_DEPOSIT_ADDRESS,
+                smartBalance: balance ?? 0n,
+                rainSpendingPower: rainSpendingPowerToWei(rainCardOverview?.balance?.spendingPower),
+                kind: 'QR_PAY',
+            })
         } catch (error) {
-            if ((error as Error).toString().includes('not allowed')) {
+            if (error instanceof InsufficientSpendableError) {
+                setErrorMessage('Not enough USDC in your wallet or card to cover this payment.')
+            } else if (error instanceof SessionKeyGrantRequiredError) {
+                setErrorMessage('Card permission needed to pay from card balance — please try again.')
+            } else if ((error as Error).toString().includes('not allowed')) {
                 setErrorMessage('Please confirm the transaction.')
             } else {
                 captureException(error)
                 setErrorMessage('Could not sign the transaction.')
-                setIsSuccess(false)
             }
+            setIsSuccess(false)
             setLoadingState('Idle')
             return
         }
 
-        // Send signed UserOp to backend for coordinated execution
-        // Backend will: 1) Complete Manteca payment, 2) Broadcast UserOp only if Manteca succeeds
-        // schedule "paying" state after 3 seconds to give user feedback that payment is processing
+        // Send signed artifact to backend for coordinated execution.
+        // Backend creates the Manteca order FIRST, then either broadcasts the
+        // signed UserOp (smart-only / mixed) or submits the Rain withdrawal via
+        // the user's session-key UserOp (collateral-only).
+        // Schedule "paying" state after 3s so the user sees something is happening.
         payingStateTimerRef.current = setTimeout(() => setLoadingState('Paying'), 3000)
         try {
-            const signedUserOp = {
-                sender: signedUserOpData.signedUserOp.sender,
-                nonce: signedUserOpData.signedUserOp.nonce,
-                callData: signedUserOpData.signedUserOp.callData,
-                signature: signedUserOpData.signedUserOp.signature,
-                callGasLimit: signedUserOpData.signedUserOp.callGasLimit,
-                verificationGasLimit: signedUserOpData.signedUserOp.verificationGasLimit,
-                preVerificationGas: signedUserOpData.signedUserOp.preVerificationGas,
-                factory: signedUserOpData.signedUserOp.factory,
-                factoryData: signedUserOpData.signedUserOp.factoryData,
-                maxFeePerGas: signedUserOpData.signedUserOp.maxFeePerGas,
-                maxPriorityFeePerGas: signedUserOpData.signedUserOp.maxPriorityFeePerGas,
-                paymaster: signedUserOpData.signedUserOp.paymaster,
-                paymasterData: signedUserOpData.signedUserOp.paymasterData,
-                paymasterVerificationGasLimit: signedUserOpData.signedUserOp.paymasterVerificationGasLimit,
-                paymasterPostOpGasLimit: signedUserOpData.signedUserOp.paymasterPostOpGasLimit,
-            }
-            const qrPayment = await mantecaApi.completeQrPaymentWithSignedTx({
-                paymentLockCode: finalPaymentLock.code,
-                signedUserOp,
-                chainId: signedUserOpData.chainId,
-                entryPointAddress: signedUserOpData.entryPointAddress,
-                qrType: qrType ?? undefined,
-            })
+            const requestBody =
+                signedArtifact.strategy === 'collateral-only'
+                    ? ({
+                          kind: 'rainWithdrawal' as const,
+                          paymentLockCode: finalPaymentLock.code,
+                          qrType: qrType ?? undefined,
+                          signedRainWithdrawal: signedArtifact.rainWithdrawal,
+                          chainId: PEANUT_WALLET_CHAIN.id.toString(),
+                      } as const)
+                    : ({
+                          kind: 'userOp' as const,
+                          paymentLockCode: finalPaymentLock.code,
+                          qrType: qrType ?? undefined,
+                          signedUserOp: signedArtifact.signedUserOp.signedUserOp,
+                          chainId: signedArtifact.signedUserOp.chainId,
+                          entryPointAddress: signedArtifact.signedUserOp.entryPointAddress,
+                      } as const)
+            const qrPayment = await mantecaApi.completeQrPaymentWithSignedTx(requestBody)
             // clear the timer since we got a response
             if (payingStateTimerRef.current) {
                 clearTimeout(payingStateTimerRef.current)
@@ -535,7 +553,16 @@ export default function QRPayPage() {
         } finally {
             setLoadingState('Idle')
         }
-    }, [paymentLock?.code, signTransferUserOp, qrCode, currencyAmount, setLoadingState, qrType])
+    }, [
+        paymentLock?.code,
+        signSpend,
+        balance,
+        rainCardOverview?.balance?.spendingPower,
+        qrCode,
+        currencyAmount,
+        setLoadingState,
+        qrType,
+    ])
 
     const payQR = useCallback(async () => {
         if (paymentProcessor === 'MANTECA') {

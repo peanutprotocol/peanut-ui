@@ -125,57 +125,70 @@ export const mantecaApi = {
         return response.json()
     },
     /**
-     * Complete QR payment with a pre-signed UserOperation.
-     * This allows the backend to complete the Manteca payment BEFORE broadcasting the transaction,
-     * preventing funds from being stuck in Manteca if their payment fails.
+     * Complete QR payment with a pre-signed transaction.
      *
-     * Flow:
-     * 1. Frontend signs UserOp (funds still in user's wallet)
-     * 2. Backend receives signed UserOp
-     * 3. Backend completes Manteca payment first
-     * 4. If Manteca succeeds, backend broadcasts UserOp
-     * 5. If Manteca fails, UserOp is never broadcasted (funds safe)
+     * Two shapes by `kind`:
+     * - 'userOp' (smart-only / mixed): backend broadcasts the signed kernel
+     *   UserOp via the bundler. For mixed, the UserOp's batched callData
+     *   embeds a Rain `withdrawAsset` call so collateral materializes into
+     *   the smart account atomically with the transfer to MANTECA.
+     * - 'rainWithdrawal' (collateral-only): backend submits the signed Rain
+     *   withdrawal via the user's session-key UserOp with `directTransfer=true`
+     *   straight to MANTECA's deposit address. One passkey tap (admin EIP-712).
+     *
+     * In all cases, backend creates the Manteca order FIRST so funds don't
+     * leave the user's side if Manteca fails.
      */
-    completeQrPaymentWithSignedTx: async ({
-        paymentLockCode,
-        signedUserOp,
-        chainId,
-        entryPointAddress,
-        qrType,
-    }: {
-        paymentLockCode: string
-        qrType?: string
-        signedUserOp: Pick<
-            SignUserOperationReturnType,
-            | 'sender'
-            | 'nonce'
-            | 'callData'
-            | 'signature'
-            | 'callGasLimit'
-            | 'verificationGasLimit'
-            | 'preVerificationGas'
-            | 'maxFeePerGas'
-            | 'maxPriorityFeePerGas'
-            | 'paymaster'
-            | 'paymasterData'
-            | 'paymasterVerificationGasLimit'
-            | 'paymasterPostOpGasLimit'
-            | 'factory'
-            | 'factoryData'
-        >
-        chainId: string
-        entryPointAddress: Address
-    }): Promise<QrPayment> => {
+    completeQrPaymentWithSignedTx: async (
+        body:
+            | {
+                  kind: 'userOp'
+                  paymentLockCode: string
+                  qrType?: string
+                  signedUserOp: Pick<
+                      SignUserOperationReturnType,
+                      | 'sender'
+                      | 'nonce'
+                      | 'callData'
+                      | 'signature'
+                      | 'callGasLimit'
+                      | 'verificationGasLimit'
+                      | 'preVerificationGas'
+                      | 'maxFeePerGas'
+                      | 'maxPriorityFeePerGas'
+                      | 'paymaster'
+                      | 'paymasterData'
+                      | 'paymasterVerificationGasLimit'
+                      | 'paymasterPostOpGasLimit'
+                      | 'factory'
+                      | 'factoryData'
+                  >
+                  chainId: string
+                  entryPointAddress: Address
+              }
+            | {
+                  kind: 'rainWithdrawal'
+                  paymentLockCode: string
+                  qrType?: string
+                  signedRainWithdrawal: {
+                      preparationId: string
+                      amount: string
+                      recipientAddress: Address
+                      directTransfer: boolean
+                      adminSalt: string
+                      adminNonce: string
+                      adminSignature: string
+                      executorSignature: string
+                      executorSalt: string
+                      expiresAt: number
+                  }
+                  chainId: string
+              }
+    ): Promise<QrPayment> => {
         const response = await serverFetch('/manteca/qr-payment/complete-with-signed-tx', {
             method: 'POST',
-            body: jsonStringify({
-                paymentLockCode,
-                signedUserOp,
-                chainId,
-                entryPointAddress,
-                qrType,
-            }),
-            timeoutMs: 120_000, // long-running signed userop submission
+            body: jsonStringify(body),
+            timeoutMs: 120_000, // long-running signed-tx submission
         })
 
         if (!response.ok) {

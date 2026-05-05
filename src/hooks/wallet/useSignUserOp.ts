@@ -29,6 +29,33 @@ export const useSignUserOp = () => {
     const { getClientForChain } = useKernelClient()
 
     /**
+     * Signs a UserOperation containing arbitrary kernel calls without
+     * broadcasting it. Used by sign-then-broadcast flows (Manteca) where the
+     * backend gates the broadcast on an external precondition.
+     */
+    const signCallsUserOp = useCallback(
+        async (
+            calls: { to: Hex; value: bigint; data: Hex }[],
+            chainId: string = PEANUT_WALLET_CHAIN.id.toString()
+        ): Promise<SignedUserOpData> => {
+            const client = getClientForChain(chainId)
+            if (!client.account) {
+                throw new Error('Smart account not initialized')
+            }
+            const signedUserOp = await signUserOperation(client, {
+                account: client.account,
+                callData: await client.account.encodeCalls(calls),
+            })
+            return {
+                signedUserOp,
+                chainId,
+                entryPointAddress: USER_OP_ENTRY_POINT.address,
+            }
+        },
+        [getClientForChain]
+    )
+
+    /**
      * Signs a USDC transfer UserOperation without broadcasting it.
      *
      * @param toAddress - Recipient address
@@ -45,45 +72,23 @@ export const useSignUserOp = () => {
             chainId: string = PEANUT_WALLET_CHAIN.id.toString()
         ): Promise<SignedUserOpData> => {
             try {
-                const client = getClientForChain(chainId)
-
-                // Ensure account is initialized
-                if (!client.account) {
-                    throw new Error('Smart account not initialized')
-                }
-
-                // Parse amount to USDC decimals (6 decimals)
                 const amount = parseUnits(amountInUsd.replace(/,/g, ''), PEANUT_WALLET_TOKEN_DECIMALS)
-
-                // Encode USDC transfer function call
                 const txData = encodeFunctionData({
                     abi: erc20Abi,
                     functionName: 'transfer',
                     args: [toAddress, amount],
                 }) as Hex
 
-                // Build USDC transfer call (not native token transfer)
-                const calls = [
-                    {
-                        to: PEANUT_WALLET_TOKEN as Hex, // USDC contract address
-                        value: 0n, // No native token sent
-                        data: txData, // Encoded transfer call
-                    },
-                ]
-
-                // Sign the UserOperation (does NOT broadcast)
-                // This fills in all required fields (gas, nonce, paymaster, signature)
-                const signedUserOp = await signUserOperation(client, {
-                    account: client.account,
-                    callData: await client.account!.encodeCalls(calls),
-                })
-
-                // Return everything the backend needs to submit the UserOp
-                return {
-                    signedUserOp,
-                    chainId,
-                    entryPointAddress: USER_OP_ENTRY_POINT.address,
-                }
+                return await signCallsUserOp(
+                    [
+                        {
+                            to: PEANUT_WALLET_TOKEN as Hex,
+                            value: 0n,
+                            data: txData,
+                        },
+                    ],
+                    chainId
+                )
             } catch (error) {
                 console.error('[useSignUserOp] Error signing UserOperation:', error)
                 captureException(error, {
@@ -97,8 +102,8 @@ export const useSignUserOp = () => {
                 throw error
             }
         },
-        [getClientForChain]
+        [signCallsUserOp]
     )
 
-    return { signTransferUserOp }
+    return { signTransferUserOp, signCallsUserOp }
 }
