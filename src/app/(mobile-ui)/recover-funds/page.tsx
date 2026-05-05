@@ -6,7 +6,7 @@ import TokenListItem from '@/components/Global/TokenSelector/Components/TokenLis
 import { type IUserBalance } from '@/interfaces'
 import { useState, useEffect, useCallback, useContext } from 'react'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { fetchWalletBalances } from '@/app/actions/tokens'
+import { fetchWalletBalances } from '@/services/tokens-price'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { nativeCurrencyAddresses } from '@/constants/general.consts'
 import { areEvmAddressesEqual, isTxReverted, getExplorerUrl, getChainName, getTokenLogo } from '@/utils/general.utils'

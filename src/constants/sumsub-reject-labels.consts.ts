@@ -322,11 +322,11 @@ export const isTerminalRejection = ({
     failureCount,
     rejectLabels,
 }: {
-    rejectType?: 'RETRY' | 'FINAL' | null
+    rejectType?: 'RETRY' | 'FINAL' | 'PROVIDER_FIXABLE' | 'PROVIDER_FINAL' | null
     failureCount?: number
     rejectLabels?: string[] | null
 }): boolean => {
-    if (rejectType === 'FINAL') return true
+    if (rejectType === 'FINAL' || rejectType === 'PROVIDER_FINAL') return true
     if (failureCount && failureCount >= MAX_RETRY_COUNT) return true
     if (rejectLabels?.length && hasTerminalRejectLabel(rejectLabels)) return true
     return false

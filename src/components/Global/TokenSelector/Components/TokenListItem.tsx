@@ -39,15 +39,15 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
     const [chainLogoPlaceholder, setChainLogoPlaceholder] = useState(false)
     const [tokenImageError, setTokenImageError] = useState(false)
     const [chainImageError, setChainImageError] = useState(false)
-    const { supportedSquidChainsAndTokens } = useContext(tokenSelectorContext)
+    const { supportedChainsAndTokens } = useContext(tokenSelectorContext)
 
     const chainDetails = useMemo(() => {
-        const chain = supportedSquidChainsAndTokens[String(balance.chainId)]
+        const chain = supportedChainsAndTokens[String(balance.chainId)]
         return {
             name: chain?.networkName || `Chain ${balance.chainId}`,
             iconURI: chain?.chainIconURI,
         }
-    }, [supportedSquidChainsAndTokens, balance.chainId])
+    }, [supportedChainsAndTokens, balance.chainId])
 
     const formattedBalance = useMemo(() => {
         if (isPopularToken || !balance.amount || typeof balance.decimals === 'undefined') return null

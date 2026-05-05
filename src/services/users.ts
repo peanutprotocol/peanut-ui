@@ -6,12 +6,11 @@ import {
 } from '@/constants/zerodev.consts'
 import { AccountType, type IUserKycVerification } from '@/interfaces'
 import { type IAttachmentOptions } from '@/interfaces/attachment'
-import { fetchWithSentry } from '@/utils/sentry.utils'
-import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import { serverFetch } from '@/utils/api-fetch'
+import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import { chargesApi } from './charges'
 import { type TCharge } from './services.types'
-import Cookies from 'js-cookie'
-import { PEANUT_API_URL } from '@/constants/general.consts'
+import { BASE_URL } from '@/constants/general.consts'
 
 type ApiAccount = {
     identifier: string
@@ -40,31 +39,18 @@ export type ApiUser = {
     }>
 }
 
-export type RecentUser = Pick<ApiUser, 'userId' | 'username' | 'fullName' | 'bridgeKycStatus'>
-
-export interface UserSearchResponse {
-    users: Array<ApiUser>
-}
-
 export const usersApi = {
     getByUsername: async (username: string): Promise<ApiUser> => {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/users/username/${username}`, {
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${Cookies.get('jwt-token')}`,
-            },
+        const response = await serverFetch(`/users/username/${username}`, {
+            method: 'GET',
         })
         return await response.json()
     },
 
     getInteractionStatus: async (userIds: string[]): Promise<Record<string, boolean>> => {
         // returns a map of userIds to booleans indicating if the current user has sent money to them
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/users/interaction-status`, {
+        const response = await serverFetch('/users/interaction-status', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${Cookies.get('jwt-token')}`,
-            },
             body: JSON.stringify({ userIds }),
         })
         return await response.json()
@@ -84,7 +70,7 @@ export const usersApi = {
         return chargesApi.create({
             pricing_type: 'fixed_price',
             local_price: { amount, currency: 'USD' },
-            baseUrl: window.location.origin,
+            baseUrl: BASE_URL,
             requestId: undefined,
             requestProps: {
                 chainId: PEANUT_WALLET_CHAIN.id.toString(),

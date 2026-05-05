@@ -13,6 +13,7 @@ process.env.NEXT_PUBLIC_INFURA_API_KEY = process.env.NEXT_PUBLIC_INFURA_API_KEY 
 process.env.VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || 'test-vapid-public'
 process.env.VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || 'test-vapid-private'
 process.env.VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:test@example.com'
+process.env.PEANUT_API_KEY = process.env.PEANUT_API_KEY || 'test-peanut-api-key'
 
 // Add any global test setup here
 global.console = {

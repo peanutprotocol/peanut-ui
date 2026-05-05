@@ -1,9 +1,9 @@
 import { useState, useCallback } from 'react'
-import Cookies from 'js-cookie'
 import { getCurrencyConfig } from '@/utils/bridge.utils'
 import { type CountryData } from '@/components/AddMoney/consts'
 import type { Address } from 'viem'
 import { getCurrencyPrice } from '@/app/actions/currency'
+import { apiFetch } from '@/utils/api-fetch'
 
 export type CreateOnrampParams = {
     country: CountryData
@@ -39,22 +39,14 @@ export const useCreateOnramp = (): UseCreateOnrampReturn => {
             setError(null)
 
             try {
-                const jwtToken = Cookies.get('jwt-token')
-
                 const { currency, paymentRail } = getCurrencyConfig(country.id, 'onramp')
                 if (usdAmount) {
-                    // Get currency configuration for the country
                     const price = await getCurrencyPrice(currency)
                     amount = (Number(usdAmount) * price.buy).toFixed(2)
                 }
 
-                // Call backend to create onramp via proxy route
-                const response = await fetch('/api/proxy/bridge/onramp/create', {
+                const response = await apiFetch('/bridge/onramp/create', '/api/proxy/bridge/onramp/create', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Bearer ${jwtToken}`,
-                    },
                     body: JSON.stringify({
                         amount,
                         chargeId,

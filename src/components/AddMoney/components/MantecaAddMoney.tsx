@@ -2,7 +2,7 @@
 import { type FC, useEffect, useMemo, useState, useCallback } from 'react'
 import MantecaDepositShareDetails from '@/components/AddMoney/components/MantecaDepositShareDetails'
 import InputAmountStep from '@/components/AddMoney/components/InputAmountStep'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import { type CountryData, countryData } from '@/components/AddMoney/consts'
 import { type MantecaDepositResponseData } from '@/types/manteca.types'
 import { useCurrency } from '@/hooks/useCurrency'
@@ -11,6 +11,7 @@ import { mantecaApi } from '@/services/manteca'
 import { parseUnits } from 'viem'
 import { useQueryClient } from '@tanstack/react-query'
 import useKycStatus from '@/hooks/useKycStatus'
+import useProviderRejectionStatus from '@/hooks/useProviderRejectionStatus'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
@@ -30,6 +31,7 @@ type CurrencyDenomination = 'USD' | 'ARS' | 'BRL' | 'MXN' | 'EUR'
 
 const MantecaAddMoney: FC = () => {
     const params = useParams()
+    const searchParams = useSearchParams()
     const queryClient = useQueryClient()
 
     // URL state - persisted in query params
@@ -59,11 +61,13 @@ const MantecaAddMoney: FC = () => {
     const [error, setError] = useState<string | null>(null)
     const [depositDetails, setDepositDetails] = useState<MantecaDepositResponseData>()
 
-    const selectedCountryPath = params.country as string
+    // path params (web) or query params (native static export)
+    const selectedCountryPath = (params.country as string) || searchParams.get('country') || ''
     const selectedCountry = useMemo(() => {
         return countryData.find((country) => country.type === 'country' && country.path === selectedCountryPath)
     }, [selectedCountryPath])
-    const { isUserMantecaKycApproved } = useKycStatus()
+    const { isUserMantecaKycApproved, isUserSumsubKycApproved } = useKycStatus()
+    const { manteca: mantecaRejection } = useProviderRejectionStatus()
     const currencyData = useCurrency(selectedCountry?.currency ?? 'ARS')
     const { user } = useAuth()
 
@@ -221,10 +225,32 @@ const MantecaAddMoney: FC = () => {
                     visible={showKycModal}
                     onClose={() => setShowKycModal(false)}
                     onVerify={async () => {
-                        await sumsubFlow.handleInitiateKyc('LATAM')
+                        if (mantecaRejection.state === 'blocked') {
+                            // blocked users cannot self-heal — route to support
+                            if (typeof window !== 'undefined' && (window as any).$crisp) {
+                                ;(window as any).$crisp.push(['do', 'chat:open'])
+                            }
+                            setShowKycModal(false)
+                            return
+                        }
+                        const hasRejection = mantecaRejection.state === 'fixable'
+                        if (hasRejection) {
+                            await sumsubFlow.handleSelfHealResubmit('MANTECA')
+                        } else {
+                            await sumsubFlow.handleInitiateKyc('LATAM', undefined, true)
+                        }
                         setShowKycModal(false)
                     }}
                     isLoading={sumsubFlow.isLoading}
+                    variant={
+                        mantecaRejection.state === 'fixable' || mantecaRejection.state === 'blocked'
+                            ? 'provider_rejection'
+                            : isUserSumsubKycApproved
+                              ? 'cross_region'
+                              : 'default'
+                    }
+                    providerMessage={mantecaRejection.userMessage ?? undefined}
+                    regionName={selectedCountry?.title}
                 />
                 <SumsubKycModals flow={sumsubFlow} />
                 <InputAmountStep
@@ -232,7 +258,7 @@ const MantecaAddMoney: FC = () => {
                     setTokenAmount={handleUsdAmountChange}
                     onSubmit={handleAmountSubmit}
                     isLoading={isCreatingDeposit}
-                    error={error}
+                    error={error || sumsubFlow.error}
                     currencyData={currencyData}
                     setCurrencyAmount={handleLocalCurrencyAmountChange}
                     setCurrentDenomination={handleDenominationChange}

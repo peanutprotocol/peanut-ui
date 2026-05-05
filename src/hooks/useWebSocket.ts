@@ -1,5 +1,11 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { PeanutWebSocket, getWebSocketInstance, type PendingPerk, type RailStatusUpdate } from '@/services/websocket'
+import {
+    PeanutWebSocket,
+    getWebSocketInstance,
+    type PendingPerk,
+    type RailStatusUpdate,
+    type RainCardBalanceChangedData,
+} from '@/services/websocket'
 import { type HistoryEntry } from './useTransactionHistory'
 
 type WebSocketStatus = 'connecting' | 'connected' | 'disconnected' | 'error'
@@ -14,6 +20,7 @@ interface UseWebSocketOptions {
     onTosUpdate?: (data: { accepted: boolean }) => void
     onPendingPerk?: (perk: PendingPerk) => void
     onRailStatusUpdate?: (data: RailStatusUpdate) => void
+    onRainCardBalanceChanged?: (data: RainCardBalanceChangedData) => void
     onConnect?: () => void
     onDisconnect?: () => void
     onError?: (error: Event) => void
@@ -30,6 +37,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         onTosUpdate,
         onPendingPerk,
         onRailStatusUpdate,
+        onRainCardBalanceChanged,
         onConnect,
         onDisconnect,
         onError,
@@ -47,6 +55,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         onTosUpdate,
         onPendingPerk,
         onRailStatusUpdate,
+        onRainCardBalanceChanged,
         onConnect,
         onDisconnect,
         onError,
@@ -62,6 +71,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
             onTosUpdate,
             onPendingPerk,
             onRailStatusUpdate,
+            onRainCardBalanceChanged,
             onConnect,
             onDisconnect,
             onError,
@@ -74,6 +84,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         onTosUpdate,
         onPendingPerk,
         onRailStatusUpdate,
+        onRainCardBalanceChanged,
         onConnect,
         onDisconnect,
         onError,
@@ -83,6 +94,10 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     const connect = useCallback(() => {
         try {
             const ws = getWebSocketInstance(username)
+            if (!ws) {
+                // No username yet — the effect below will re-run and reconnect once auth resolves.
+                return
+            }
             wsRef.current = ws
 
             setStatus('connecting')
@@ -104,6 +119,11 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     // Listen for WebSocket events
     useEffect(() => {
         const ws = getWebSocketInstance(username)
+        if (!ws) {
+            // Username not available yet (auth still loading). Skip setup —
+            // the effect re-runs when username becomes defined.
+            return
+        }
         wsRef.current = ws
 
         // Ensure we're not connected with old credentials
@@ -192,6 +212,12 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
             }
         }
 
+        const handleRainCardBalanceChanged = (data: RainCardBalanceChangedData) => {
+            if (callbacksRef.current.onRainCardBalanceChanged) {
+                callbacksRef.current.onRainCardBalanceChanged(data)
+            }
+        }
+
         // Register event handlers
         ws.on('connect', handleConnect)
         ws.on('disconnect', handleDisconnect)
@@ -203,6 +229,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         ws.on('persona_tos_status_update', handleTosUpdate)
         ws.on('pending_perk', handlePendingPerk)
         ws.on('user_rail_status_changed', handleRailStatusUpdate)
+        ws.on('rain_card_balance_changed', handleRainCardBalanceChanged)
 
         // Auto-connect if enabled
         if (autoConnect) {
@@ -221,6 +248,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
             ws.off('persona_tos_status_update', handleTosUpdate)
             ws.off('pending_perk', handlePendingPerk)
             ws.off('user_rail_status_changed', handleRailStatusUpdate)
+            ws.off('rain_card_balance_changed', handleRainCardBalanceChanged)
         }
     }, [autoConnect, connect, username])
 

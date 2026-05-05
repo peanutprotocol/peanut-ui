@@ -21,12 +21,21 @@ async function handleFormDataRequest(request: NextRequest, method: string) {
         return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
     }
 
+    const headers: Record<string, string> = {
+        // Don't set Content-Type header, let it be automatically set as multipart/form-data
+        'api-key': apiKey,
+    }
+    // Forward Authorization so backend routes can read the user's JWT.
+    // Parity with /api/proxy/[...slug] (POST). Without this, the backend's
+    // soft-auth path on /charges sees no user — withdraws to external
+    // addresses then FK-violate on transaction_intents_user_id_fkey when
+    // the recipient isn't a known Peanut account.
+    const authHeader = request.headers.get('authorization')
+    if (authHeader) headers['authorization'] = authHeader
+
     const response = await fetchWithSentry(fullAPIUrl, {
         method,
-        headers: {
-            // Don't set Content-Type header, let it be automatically set as multipart/form-data
-            'api-key': apiKey,
-        },
+        headers,
         body: apiFormData,
     })
 

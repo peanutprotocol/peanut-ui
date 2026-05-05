@@ -30,8 +30,6 @@ export interface RecordPaymentParams {
     sourceChainId?: string
     sourceTokenAddress?: string
     sourceTokenSymbol?: string
-    // squid quote ID for cross-chain analytics
-    squidQuoteId?: string
 }
 
 // return type for the hook
@@ -63,7 +61,6 @@ export const usePaymentRecorder = (): UsePaymentRecorderReturn => {
                 sourceChainId: params.sourceChainId,
                 sourceTokenAddress: params.sourceTokenAddress,
                 sourceTokenSymbol: params.sourceTokenSymbol,
-                squidQuoteId: params.squidQuoteId,
             })
 
             setPayment(paymentResponse)

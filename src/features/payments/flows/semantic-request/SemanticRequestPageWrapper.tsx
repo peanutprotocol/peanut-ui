@@ -37,14 +37,8 @@ export function SemanticRequestPageWrapper({ recipient }: SemanticRequestPageWra
 
     // parse the url segments
     useEffect(() => {
-        if (!recipient || recipient.length === 0) {
-            setError({ message: 'Invalid URL format' } as ParseUrlError)
-            setIsLoading(false)
-            return
-        }
-
-        // If we have a chargeId, skip URL parsing - charge will provide all needed data
-        // Use a dummy parsedUrl to satisfy the component contract
+        // if we have a chargeId, skip URL parsing — charge will provide all needed data.
+        // check this before recipient validation so /pay-request?chargeId=X works with empty recipient.
         if (chargeIdFromUrl) {
             setParsedUrl({
                 recipient: null, // Will be populated from charge
@@ -52,6 +46,12 @@ export function SemanticRequestPageWrapper({ recipient }: SemanticRequestPageWra
                 token: undefined,
                 chain: undefined,
             })
+            setIsLoading(false)
+            return
+        }
+
+        if (!recipient || recipient.length === 0) {
+            setError({ message: 'Invalid URL format' } as ParseUrlError)
             setIsLoading(false)
             return
         }

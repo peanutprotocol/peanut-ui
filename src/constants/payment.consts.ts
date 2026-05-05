@@ -19,6 +19,9 @@ export const MIN_MANTECA_WITHDRAW_AMOUNT = 1
 export const MIN_MANTECA_QR_PAYMENT_AMOUNT = 0.1 // Manteca provider minimum
 export const MAX_QR_PAYMENT_AMOUNT_FOREIGN = 2000 // max per transaction for foreign users
 
+// PIX network minimum payment amount (in BRL, not USD)
+export const MIN_PIX_AMOUNT_BRL = 1
+
 // Bridge developer fee applied to cross-currency (non-USD) transfers.
 // Must match backend BRIDGE_DEVELOPER_FEE_PERCENT in peanut-api-ts/src/bridge/consts.ts
 export const BRIDGE_DEVELOPER_FEE_RATE = 0.005

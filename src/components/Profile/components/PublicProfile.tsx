@@ -10,6 +10,7 @@ import ProfileHeader from './ProfileHeader'
 import { useState, useEffect, useMemo } from 'react'
 import { usersApi } from '@/services/users'
 import { useRouter } from 'next/navigation'
+import { requestUrl } from '@/utils/native-routes'
 import Card from '@/components/Global/Card'
 import { checkIfInternalNavigation } from '@/utils/general.utils'
 import { useAuth } from '@/context/authContext'
@@ -125,7 +126,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                         <Button
                             onClick={() => {
                                 if (isLoggedIn && user?.user.hasAppAccess) {
-                                    router.push(`/request/${username}`)
+                                    router.push(requestUrl(username))
                                 } else {
                                     setShowInviteModal(true)
                                 }

@@ -34,7 +34,7 @@ export const useBalance = (address: Address | undefined) => {
         queryKey: ['balance', address],
         queryFn: async () => {
             const balance = await peanutPublicClient.readContract({
-                address: PEANUT_WALLET_TOKEN,
+                address: PEANUT_WALLET_TOKEN as Address,
                 abi: erc20Abi,
                 functionName: 'balanceOf',
                 args: [address!], // Safe non-null assertion because enabled guards this

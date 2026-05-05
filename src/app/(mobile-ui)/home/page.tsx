@@ -12,13 +12,11 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { useUserStore } from '@/redux/hooks'
 import { formatExtendedNumber, getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { printableUsdc } from '@/utils/balance.utils'
-import { useDisconnect } from '@reown/appkit/react'
+import { useDisconnect } from 'wagmi'
 import Link from 'next/link'
 import { useEffect, useMemo, useState, useCallback, lazy, Suspense } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { useAccount } from 'wagmi'
-// import ReferralCampaignModal from '@/components/Home/ReferralCampaignModal'
-// import FloatingReferralButton from '@/components/Home/FloatingReferralButton'
 import { formatUnits } from 'viem'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { PostSignupActionManager } from '@/components/Global/PostSignupActionManager'
@@ -28,6 +26,7 @@ import { useNotifications } from '@/hooks/useNotifications'
 import useKycStatus from '@/hooks/useKycStatus'
 import { useCardPioneerInfo } from '@/hooks/useCardPioneerInfo'
 import HomeCarouselCTA from '@/components/Home/HomeCarouselCTA'
+import EnableAutoBalanceBanner from '@/components/Home/EnableAutoBalanceBanner'
 import InvitesIcon from '@/components/Home/InvitesIcon'
 import NavigationArrow from '@/components/Global/NavigationArrow'
 import { updateUserById } from '@/app/actions/users'
@@ -55,7 +54,7 @@ const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_
 
 export default function Home() {
     const { showPermissionModal } = useNotifications()
-    const { balance, isFetchingBalance } = useWallet()
+    const { balance, isFetchingBalance, spendableBalance, isFetchingSpendableBalance } = useWallet()
     const { resetFlow: resetClaimBankFlow } = useClaimBankFlow()
     const { resetWithdrawFlow } = useWithdrawFlow()
     const { user } = useUserStore()
@@ -69,7 +68,7 @@ export default function Home() {
 
     const { isFetchingUser, fetchUser } = useAuth()
     const { isUserKycApproved } = useKycStatus()
-    const { isActivated, activationStep } = useActivationStatus()
+    const { isActivated, activationStep, dismissCardStep } = useActivationStatus()
     const {
         hasPurchased: hasCardPioneerPurchased,
         isLoading: isCardInfoLoading,
@@ -78,7 +77,6 @@ export default function Home() {
     const username = user?.user.username
 
     const [showBalanceWarningModal, setShowBalanceWarningModal] = useState(false)
-    // const [showReferralCampaignModal, setShowReferralCampaignModal] = useState(false)
     const [isPostSignupActionModalVisible, setIsPostSignupActionModalVisible] = useState(false)
     const [showKycModal, setShowKycModal] = useState(user?.user.showKycCompletedModal ?? false)
 
@@ -189,10 +187,10 @@ export default function Home() {
                     </ActionButtonGroup>
 
                     <WalletBalance
-                        balance={balance}
+                        balance={spendableBalance}
                         isBalanceHidden={isBalanceHidden}
                         onToggleBalanceVisibility={handleToggleBalanceVisibility}
-                        isFetchingBalance={isFetchingBalance}
+                        isFetchingBalance={isFetchingSpendableBalance}
                     />
 
                     <ActionButtonGroup>
@@ -208,7 +206,12 @@ export default function Home() {
                 </div>
 
                 <div className="space-y-2">
-                    {isActivated ? <HomeCarouselCTA /> : <ActivationCTAs activationStep={activationStep} />}
+                    <EnableAutoBalanceBanner />
+                    {isActivated ? (
+                        <HomeCarouselCTA />
+                    ) : (
+                        <ActivationCTAs activationStep={activationStep} onDismissCard={dismissCardStep} />
+                    )}
                     <HomeHistory
                         username={username ?? undefined}
                         hideTxnAmount={isBalanceHidden}
@@ -309,16 +312,6 @@ export default function Home() {
                     </LazyLoadErrorBoundary>
                 )}
 
-            {/* Referral Campaign Modal - DISABLED FOR NOW */}
-            {/* <ReferralCampaignModal
-                visible={showReferralCampaignModal}
-                onClose={() => setShowReferralCampaignModal(false)}
-            /> */}
-
-            {/* Floating Referral Button - DISABLED FOR NOW */}
-            {/* <FloatingReferralButton onClick={() => setShowReferralCampaignModal(true)} /> */}
-
-            {/* Post Signup Action Modal */}
             <PostSignupActionManager onActionModalVisibilityChange={setIsPostSignupActionModalVisible} />
         </PageContainer>
     )

@@ -4,6 +4,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import { useParams, useRouter } from 'next/navigation'
 import { useMemo } from 'react'
 import { countryData } from '@/components/AddMoney/consts'
+import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import ShareButton from '@/components/Global/ShareButton'
 import { type MantecaDepositResponseData } from '@/types/manteca.types'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
@@ -90,7 +91,7 @@ const MantecaDepositShareDetails = ({
                     <div className="flex items-center space-x-3">
                         <div className="relative h-12 w-12">
                             <Image
-                                src={`https://flagcdn.com/w160/${countryCodeForFlag}.png`}
+                                src={getFlagUrl(countryCodeForFlag)}
                                 alt={`flag`}
                                 width={48}
                                 height={48}

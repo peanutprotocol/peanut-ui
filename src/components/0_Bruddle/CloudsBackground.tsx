@@ -76,7 +76,7 @@ const CloudsBackground: React.FC<CloudsBackgroundProps> = ({ minimal = false }) 
     const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth <= 768 : false)
 
     useEffect(() => {
-        if (typeof window === 'undefined') return
+        if (typeof window === 'undefined') return undefined
 
         const handleResize = () => {
             if (typeof window === 'undefined') return
@@ -86,10 +86,8 @@ const CloudsBackground: React.FC<CloudsBackgroundProps> = ({ minimal = false }) 
 
         handleResize()
 
-        if (typeof window !== 'undefined') {
-            window.addEventListener('resize', handleResize)
-            return () => window.removeEventListener('resize', handleResize)
-        }
+        window.addEventListener('resize', handleResize)
+        return () => window.removeEventListener('resize', handleResize)
     }, [])
 
     // Separate cloud configurations for desktop and mobile

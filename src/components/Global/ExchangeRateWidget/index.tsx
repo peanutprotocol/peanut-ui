@@ -1,5 +1,5 @@
 import CurrencySelect from '@/components/LandingPage/CurrencySelect'
-import countryCurrencyMappings from '@/constants/countryCurrencyMapping'
+import countryCurrencyMappings, { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
 import { applyBridgeCrossCurrencyFee, reverseBridgeCrossCurrencyFee } from '@/utils/bridge.utils'
@@ -203,7 +203,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
                         trigger={
                             <button className="flex w-20 items-center gap-2">
                                 <Image
-                                    src={`https://flagcdn.com/w320/${sourceCurrencyFlag}.png`}
+                                    src={getFlagUrl(sourceCurrencyFlag)}
                                     alt={`${sourceCurrencyFlag} flag`}
                                     width={160}
                                     height={160}
@@ -262,7 +262,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
                         trigger={
                             <button className="flex w-20 items-center gap-2">
                                 <Image
-                                    src={`https://flagcdn.com/w320/${destinationCurrencyFlag}.png`}
+                                    src={getFlagUrl(destinationCurrencyFlag)}
                                     alt={`${destinationCurrencyFlag} flag`}
                                     width={160}
                                     height={160}

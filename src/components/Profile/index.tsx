@@ -45,13 +45,12 @@ export const Profile = () => {
                         href="/dummy" // Dummy link, wont be called
                         position="single"
                     />
-                    {/* Card Pioneer Entry */}
-                    {!underMaintenanceConfig.disableCardPioneers && (
-                        <ProfileMenuItem icon="wallet" label="My Card" href="/card" position="single" badge="NEW" />
-                    )}
                     {/* Menu Items - First Group */}
                     <div>
-                        <ProfileMenuItem icon="achievements" label="Your Badges" href="/badges" position="first" />
+                        {!underMaintenanceConfig.disableCardPioneers && (
+                            <ProfileMenuItem icon="credit-card" label="Your Card" href="/card" position="first" />
+                        )}
+                        <ProfileMenuItem icon="achievements" label="Your Badges" href="/badges" position="middle" />
                         <ProfileMenuItem
                             icon={<Image src={STAR_STRAIGHT_ICON} alt="star" width={20} height={20} />}
                             label="Points"

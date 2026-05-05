@@ -32,6 +32,13 @@ export default function DevToolsPage() {
             path: '/dev/ds',
             icon: 'docs',
         },
+        {
+            name: 'Debug',
+            description:
+                'Sandbox-only: one-click full setup, fund USDC, fast-forward KYC, complete pending intents. Pink-banner console logs every action.',
+            path: '/dev/debug',
+            icon: 'dollar',
+        },
     ]
 
     return (

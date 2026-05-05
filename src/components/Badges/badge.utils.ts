@@ -43,5 +43,3 @@ export function getPublicBadgeDescription(code?: string): string | null {
     if (!code) return null
     return PUBLIC_DESCRIPTIONS[code] || null
 }
-
-export { CODE_TO_PATH as BADGE_ICON_MAP }

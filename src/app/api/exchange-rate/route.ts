@@ -14,9 +14,12 @@ export async function GET(request: NextRequest) {
         const from = searchParams.get('from')
         const to = searchParams.get('to')
 
-        // Validate required parameters
-        if (!from || !to) {
-            return NextResponse.json({ error: 'Missing required parameters: from and to' }, { status: 400 })
+        // Validate required parameters. ISO-4217 codes plus a couple of internal 4-letter
+        // tickers (PUSD); reject anything else so downstream logs can't carry CRLF or
+        // other control characters from arbitrary query input.
+        const ISO_CODE = /^[A-Za-z]{3,4}$/
+        if (!from || !to || !ISO_CODE.test(from) || !ISO_CODE.test(to)) {
+            return NextResponse.json({ error: 'Missing or invalid parameters: from and to' }, { status: 400 })
         }
 
         const fromUc = from.toUpperCase()

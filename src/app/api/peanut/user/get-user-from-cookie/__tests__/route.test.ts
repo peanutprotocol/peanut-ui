@@ -30,7 +30,7 @@ jest.mock('@/constants/general.consts', () => ({
 
 // --- Tests ---
 
-import { GET } from '../route'
+import { POST } from '../route'
 
 function makeRequest() {
     return new NextRequest('http://localhost/api/peanut/user/get-user-from-cookie')
@@ -41,11 +41,11 @@ beforeEach(() => {
     process.env.PEANUT_API_KEY = 'test-api-key'
 })
 
-describe('GET /api/peanut/user/get-user-from-cookie', () => {
+describe('POST /api/peanut/user/get-user-from-cookie', () => {
     it('returns 400 when no JWT cookie exists', async () => {
         mockCookieGet.mockReturnValue(undefined)
 
-        const res = await GET(makeRequest())
+        const res = await POST(makeRequest())
 
         expect(res.status).toBe(400)
         expect(mockFetch).not.toHaveBeenCalled()
@@ -58,7 +58,7 @@ describe('GET /api/peanut/user/get-user-from-cookie', () => {
             json: async () => ({ user: { userId: '123', email: 'test@test.com' } }),
         })
 
-        const res = await GET(makeRequest())
+        const res = await POST(makeRequest())
         const body = await res.json()
 
         expect(res.status).toBe(200)
@@ -80,7 +80,7 @@ describe('GET /api/peanut/user/get-user-from-cookie', () => {
             status: 401,
         })
 
-        const res = await GET(makeRequest())
+        const res = await POST(makeRequest())
 
         expect(res.status).toBe(401)
 
@@ -98,7 +98,7 @@ describe('GET /api/peanut/user/get-user-from-cookie', () => {
             status: 500,
         })
 
-        const res = await GET(makeRequest())
+        const res = await POST(makeRequest())
 
         expect(res.status).toBe(500)
         expect(mockCookieSet).not.toHaveBeenCalled()
@@ -114,7 +114,7 @@ describe('GET /api/peanut/user/get-user-from-cookie', () => {
             throw new Error('cookies() can only be used in server components')
         })
 
-        const res = await GET(makeRequest())
+        const res = await POST(makeRequest())
 
         // Should still succeed — cookie refresh is best-effort
         expect(res.status).toBe(200)

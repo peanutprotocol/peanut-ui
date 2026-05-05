@@ -7,6 +7,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import Card from '@/components/Global/Card'
 import { cardApi, CardPurchaseError } from '@/services/card'
 import Loading from '@/components/Global/Loading'
+import { openExternalUrl } from '@/utils/capacitor'
 
 interface CardPurchaseScreenProps {
     price: number
@@ -70,7 +71,7 @@ const CardPurchaseScreen = ({
     // Open payment URL in new tab
     const openPaymentUrl = useCallback(() => {
         if (paymentUrl) {
-            window.open(paymentUrl, '_blank', 'noopener,noreferrer')
+            openExternalUrl(paymentUrl)
         }
     }, [paymentUrl])
 

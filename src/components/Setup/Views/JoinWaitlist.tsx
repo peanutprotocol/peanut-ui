@@ -3,7 +3,7 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import ValidatedInput from '@/components/Global/ValidatedInput'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import * as Sentry from '@sentry/nextjs'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
@@ -12,6 +12,8 @@ import { setupActions } from '@/redux/slices/setup-slice'
 import { invitesApi } from '@/services/invites'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { useLogin } from '@/hooks/useLogin'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 const JoinWaitlist = () => {
     const [inviteCode, setInviteCode] = useState('')
@@ -25,17 +27,23 @@ const JoinWaitlist = () => {
     const dispatch = useAppDispatch()
     const { handleLoginClick, isLoggingIn } = useLogin()
 
+    useEffect(() => {
+        posthog.capture(ANALYTICS_EVENTS.SIGNUP_WAITLIST_VIEWED)
+    }, [])
+
     const validateInviteCode = async (inviteCode: string): Promise<boolean> => {
         try {
             setError('')
             setisLoading(true)
             const res = await invitesApi.validateInviteCode(inviteCode)
             const isValid = res.success
+            posthog.capture(ANALYTICS_EVENTS.INVITE_CODE_VALIDATED, { valid: isValid, source: 'setup' })
             if (!isValid) {
                 setError('Invalid invite code')
             }
             return isValid
         } catch (e) {
+            posthog.capture(ANALYTICS_EVENTS.INVITE_CODE_VALIDATED, { valid: false, source: 'setup' })
             setError('Invalid invite code')
             return false
         } finally {

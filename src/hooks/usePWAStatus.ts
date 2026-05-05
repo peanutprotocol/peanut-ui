@@ -1,9 +1,16 @@
 import { useEffect, useState } from 'react'
+import { isCapacitor } from '@/utils/capacitor'
 
 export const usePWAStatus = () => {
     const [isPWA, setIsPWA] = useState(false)
 
     useEffect(() => {
+        // capacitor native app is treated as "installed" (same as PWA)
+        if (isCapacitor()) {
+            setIsPWA(true)
+            return
+        }
+
         // Check if the app is running in standalone mode (PWA)
         const isStandalone =
             window.matchMedia('(display-mode: standalone)').matches ||

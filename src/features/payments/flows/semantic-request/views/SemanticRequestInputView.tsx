@@ -56,7 +56,7 @@ export function SemanticRequestInputView() {
         setSelectedTokenAddress,
         selectedChainID,
         selectedTokenAddress,
-        supportedSquidChainsAndTokens,
+        supportedChainsAndTokens,
         selectedTokenData,
     } = useContext(tokenSelectorContext)
 
@@ -77,7 +77,7 @@ export function SemanticRequestInputView() {
             setSelectedTokenAddress(parsedUrl.token.address)
         } else if (parsedUrl.chain?.chainId) {
             // default to usdc on the selected chain
-            const chainData = supportedSquidChainsAndTokens[parsedUrl.chain.chainId]
+            const chainData = supportedChainsAndTokens[parsedUrl.chain.chainId]
             const defaultToken = chainData?.tokens.find((t) => t.symbol.toLowerCase() === 'usdc')
             if (defaultToken) {
                 setSelectedTokenAddress(defaultToken.address)
@@ -86,7 +86,7 @@ export function SemanticRequestInputView() {
             // default to peanut wallet usdc
             setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
         }
-    }, [parsedUrl, setSelectedChainID, setSelectedTokenAddress, supportedSquidChainsAndTokens])
+    }, [parsedUrl, setSelectedChainID, setSelectedTokenAddress, supportedChainsAndTokens])
 
     // handle submit
     const handleSubmit = () => {

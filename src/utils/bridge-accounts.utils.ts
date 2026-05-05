@@ -2,35 +2,7 @@ import { supportedBridgeTokensDictionary, supportedBridgeChainsDictionary } from
 import { areEvmAddressesEqual } from '@/utils/general.utils'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { isIBAN } from 'validator'
-
-const ALLOWED_PARENT_DOMAINS = ['intersend.io', 'app.intersend.io']
-
-// Helper function to check if the app is running within an allowed iframe
-const isInAllowedFrame = (): boolean => {
-    if (window.location === window.parent.location) return false
-
-    // Check ancestor origins (modern browsers)
-    if (window.location.ancestorOrigins?.length) {
-        return ALLOWED_PARENT_DOMAINS.some((domain) => window.location.ancestorOrigins[0].includes(domain))
-    }
-
-    // Fallback to referrer check
-    return ALLOWED_PARENT_DOMAINS.some((domain) => document.referrer.includes(domain))
-}
-
-export const convertPersonaUrl = (url: string) => {
-    const parsedUrl = new URL(url)
-
-    const templateId = parsedUrl.searchParams.get('inquiry-template-id')
-    const iqtToken = parsedUrl.searchParams.get('fields[iqt_token]')
-    const developerId = parsedUrl.searchParams.get('fields[developer_id]')
-    const referenceId = parsedUrl.searchParams.get('reference-id')
-
-    // Use parent frame origin if in allowed iframe, otherwise use current origin
-    const origin = encodeURIComponent(isInAllowedFrame() ? new URL(document.referrer).origin : window.location.origin)
-
-    return `https://bridge.withpersona.com/widget?environment=production&inquiry-template-id=${templateId}&fields[iqt_token=${iqtToken}&iframe-origin=${origin}&redirect-uri=${origin}&fields[developer_id]=${developerId}&reference-id=${referenceId}`
-}
+import { apiFetch } from '@/utils/api-fetch'
 
 // Re-export from interfaces (defined there to avoid circular dependency)
 export type { BridgeKycStatus } from '@/interfaces/interfaces'
@@ -55,14 +27,9 @@ export function getBridgeChainName(chainId: string): string | undefined {
 
 export async function validateBankAccount(bankAccount: string): Promise<boolean> {
     const bankAccountNumber = bankAccount.replace(/\s/g, '')
-    const response = await fetchWithSentry(`/api/peanut/iban/validate-bank-account-number`, {
+    const response = await apiFetch('/validate-bank-account-number', '/api/peanut/iban/validate-bank-account-number', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            bankAccountNumber,
-        }),
+        body: JSON.stringify({ bankAccountNumber }),
     })
 
     if (response.status !== 200) {
@@ -73,14 +40,9 @@ export async function validateBankAccount(bankAccount: string): Promise<boolean>
 }
 
 export async function validateBic(bic: string): Promise<boolean> {
-    const response = await fetchWithSentry(`/api/peanut/iban/validate-bic`, {
+    const response = await apiFetch('/is-valid-bic', '/api/peanut/iban/validate-bic', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            bic,
-        }),
+        body: JSON.stringify({ bic }),
     })
 
     if (response.status !== 200) {

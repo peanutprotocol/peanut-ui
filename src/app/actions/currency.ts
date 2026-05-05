@@ -1,4 +1,3 @@
-'use server'
 import { getExchangeRate } from './exchange-rate'
 import { AccountType } from '@/interfaces'
 import { mantecaApi } from '@/services/manteca'

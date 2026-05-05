@@ -1,11 +1,9 @@
 import { TRANSACTIONS } from '@/constants/query.consts'
-import { fetchWithSentry } from '@/utils/sentry.utils'
+import { serverFetch } from '@/utils/api-fetch'
 import type { InfiniteData, InfiniteQueryObserverResult, QueryObserverResult } from '@tanstack/react-query'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import Cookies from 'js-cookie'
 import { completeHistoryEntry } from '@/utils/history.utils'
 import type { HistoryEntry } from '@/utils/history.utils'
-import { PEANUT_API_URL } from '@/constants/general.consts'
 
 //TODO: remove and import all from utils everywhere
 export { EHistoryEntryType, EHistoryUserRole } from '@/utils/history.utils'
@@ -62,13 +60,9 @@ export function useTransactionHistory({
         // append targetUsername to the query params if filterMutualTxs is true and username is provided
         if (filterMutualTxs && username) queryParams.append('targetUsername', username)
 
-        const url = `${PEANUT_API_URL}/users/history?${queryParams.toString()}`
-
-        const headers: Record<string, string> = {
-            'Content-Type': 'application/json',
-        }
-        headers['Authorization'] = `Bearer ${Cookies.get('jwt-token')}`
-        const response = await fetchWithSentry(url, { method: 'GET', headers })
+        const response = await serverFetch(`/users/history?${queryParams.toString()}`, {
+            method: 'GET',
+        })
 
         if (!response.ok) {
             throw new Error(`Failed to fetch history: ${response.statusText}`)

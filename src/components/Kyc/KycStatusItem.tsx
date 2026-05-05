@@ -17,6 +17,7 @@ import {
     isKycStatusNotStarted,
     isKycStatusActionRequired,
 } from '@/constants/kyc.consts'
+import useProviderRejectionStatus from '@/hooks/useProviderRejectionStatus'
 
 // kyc history entry type + type guard — used by HomeHistory and history page
 export interface KycHistoryEntry {
@@ -80,6 +81,9 @@ export const KycStatusItem = ({
         [user?.rails]
     )
 
+    // provider rejection status (bridge/manteca)
+    const { hasFixableRejection, hasBlockedRejection } = useProviderRejectionStatus()
+
     const isApproved = isKycStatusApproved(kycStatus)
     const isPending = isKycStatusPending(kycStatus)
     const isRejected = isKycStatusFailed(kycStatus)
@@ -89,6 +93,9 @@ export const KycStatusItem = ({
     const isInitiatedButNotStarted = !!verification && isKycStatusNotStarted(kycStatus)
 
     const subtitle = useMemo(() => {
+        // provider rejection takes priority when sumsub is approved
+        if (isApproved && hasFixableRejection) return 'Action needed'
+        if (isApproved && hasBlockedRejection) return 'Verification issue'
         if (hasBridgeDocsNeeded) return 'Action needed'
         if (isInitiatedButNotStarted) return 'Not completed'
         if (isActionRequired) return 'Action needed'
@@ -96,7 +103,16 @@ export const KycStatusItem = ({
         if (isApproved) return 'Verified'
         if (isRejected) return 'Failed'
         return 'Unknown'
-    }, [hasBridgeDocsNeeded, isInitiatedButNotStarted, isActionRequired, isPending, isApproved, isRejected])
+    }, [
+        hasBridgeDocsNeeded,
+        isInitiatedButNotStarted,
+        isActionRequired,
+        isPending,
+        isApproved,
+        isRejected,
+        hasFixableRejection,
+        hasBlockedRejection,
+    ])
 
     // only hide for bridge's default "not_started" state.
     // if a verification record exists, the user has initiated KYC — show it.
@@ -122,9 +138,13 @@ export const KycStatusItem = ({
                                 <p className="text-sm text-grey-1">{subtitle}</p>
                                 <StatusPill
                                     status={
-                                        hasBridgeDocsNeeded || isInitiatedButNotStarted || isActionRequired || isPending
+                                        hasBridgeDocsNeeded ||
+                                        isInitiatedButNotStarted ||
+                                        isActionRequired ||
+                                        isPending ||
+                                        (isApproved && hasFixableRejection)
                                             ? 'pending'
-                                            : isRejected
+                                            : isRejected || (isApproved && hasBlockedRejection)
                                               ? 'cancelled'
                                               : 'completed'
                                     }

@@ -9,6 +9,7 @@ import {
     getFromLocalStorage,
 } from '@/utils/general.utils'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { addMoneyCountryUrl, withdrawCountryUrl, rewriteMethodPath } from '@/utils/native-routes'
 import { type FC, useEffect, useState, useTransition, useCallback } from 'react'
 import { useUserStore } from '@/redux/hooks'
 import { AccountType, type Account } from '@/interfaces/interfaces'
@@ -167,7 +168,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
             }
 
             if (method.path) {
-                router.push(method.path)
+                router.push(rewriteMethodPath(method.path))
             }
         },
         [flow, user]
@@ -217,18 +218,19 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                 pageTitle={pageTitle}
                 onPrev={onBackClick || defaultBackNavigation}
                 savedAccounts={savedAccounts}
-                onAccountClick={(account, _path) => {
+                onAccountClick={(account, path) => {
                     setSelectedBankAccount(account)
+                    const countryPath = account.details?.countryName || path || ''
                     setSelectedMethod({
                         type: account.type === AccountType.MANTECA ? 'manteca' : 'bridge',
-                        countryPath: account.details.countryName,
+                        countryPath,
                         title: 'To Bank',
                     })
                     if (account.type === AccountType.MANTECA) {
                         // preserve method param if coming from send flow
                         const additionalParams = isBankFromSend ? `&method=${methodParam}` : ''
                         router.push(
-                            `/withdraw/manteca?country=${account.details.countryName}&destination=${account.identifier}&isSavedAccount=true${additionalParams}`
+                            `/withdraw/manteca?country=${encodeURIComponent(countryPath)}&destination=${encodeURIComponent(account.identifier)}&isSavedAccount=true${additionalParams}`
                         )
                     }
                 }}
@@ -345,14 +347,17 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
 
                     // default behaviour: navigate to country page
                     const queryParams = isBankFromSend ? `?method=${methodParam}` : ''
-                    const countryPath = `${baseRoute}/${country.path}${queryParams}`
+                    const countryUrl =
+                        flow === 'withdraw'
+                            ? withdrawCountryUrl(country.path, queryParams)
+                            : addMoneyCountryUrl(country.path)
                     if (flow === 'add' && user) {
-                        saveRecentMethod(user.user.userId, country, countryPath)
+                        saveRecentMethod(user.user.userId, country, countryUrl)
                     }
 
                     // use transition for smoother navigation, keeps ui responsive during route change
                     startTransition(() => {
-                        router.push(countryPath)
+                        router.push(countryUrl)
                     })
                 }}
                 onCryptoClick={() => {

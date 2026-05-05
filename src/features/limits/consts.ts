@@ -22,19 +22,6 @@ const derivedQrCountries = countryData
 export type QrCountryId = 'argentina' | 'brazil'
 
 /**
- * get qr-only country with resolved flag url
- * avoids hardcoding flag urls - uses centralized getFlagUrl
- */
-export function getQrCountryWithFlag(id: QrCountryId) {
-    const country = derivedQrCountries.find((c) => c.id === id)
-    if (!country) return null
-    return {
-        ...country,
-        flag: getFlagUrl(country.flagCode),
-    }
-}
-
-/**
  * get all qr-only countries with resolved flag urls
  */
 export function getQrCountriesWithFlags() {

@@ -7,6 +7,8 @@ import { useWebSocket } from '@/hooks/useWebSocket'
 import { useUserStore } from '@/redux/hooks'
 import * as Sentry from '@sentry/nextjs'
 import { useAuth } from '@/context/authContext'
+import { useQueryClient } from '@tanstack/react-query'
+import { TRANSACTIONS } from '@/constants/query.consts'
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
@@ -65,6 +67,7 @@ const HomeHistory = ({
     } = useTransactionHistory({ mode: 'latest', limit: 5, username, filterMutualTxs, enabled: isLoggedIn })
     // check if the username is the same as the current user
     const { fetchBalance } = useWallet()
+    const queryClient = useQueryClient()
     const { triggerHaptic } = useHaptic()
     const { fetchUser } = useAuth()
     const isViewingOwnHistory = useMemo(
@@ -84,8 +87,14 @@ const HomeHistory = ({
                 if (isBalanceAffecting || (entry.type === EHistoryEntryType.REQUEST && isCompleted)) {
                     fetchBalance()
                 }
+                // Any history-entry event invalidates the cached transactions
+                // query, so the Activity widget refetches immediately instead
+                // of waiting up to 30s tanstack staleTime. Covers OFFRAMP /
+                // ONRAMP / SEND_LINK / SEND_LINK_CLAIM / DIRECT_SEND / DEPOSIT
+                // / WITHDRAW / PERK_REWARD / etc — every WS-broadcast event.
+                queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
             },
-            [fetchBalance]
+            [fetchBalance, queryClient]
         ),
         onKycStatusUpdate: useCallback(
             async (newStatus: string) => {
@@ -235,6 +244,7 @@ const HomeHistory = ({
                 cancelled = true
             }
         }
+        return undefined
     }, [historyData, wsHistoryEntries, user, isLoading, isViewingOwnHistory])
 
     const pendingRequests = useMemo(() => {
@@ -246,6 +256,19 @@ const HomeHistory = ({
                 entry.userRole === 'SENDER' &&
                 entry.status === 'NEW'
         )
+    }, [combinedEntries])
+
+    // Memoize per-row drawer projection — `mapTransactionDataForDrawer`
+    // dispatches a strategy + builds derived view-model state per call. Two
+    // .map() sites below render dozens of rows; without this memo each row
+    // recomputes on every parent rerender (websocket tick, hover, etc.).
+    const drawerByUuid = useMemo(() => {
+        const m = new Map<string, ReturnType<typeof mapTransactionDataForDrawer>>()
+        for (const item of combinedEntries) {
+            if (isKycStatusItem(item) || isBadgeHistoryItem(item)) continue
+            if (!m.has(item.uuid)) m.set(item.uuid, mapTransactionDataForDrawer(item))
+        }
+        return m
     }, [combinedEntries])
 
     // show loading state
@@ -332,8 +355,8 @@ const HomeHistory = ({
                     <div className="h-full w-full">
                         {/* map over the latest entries and render transactioncard */}
                         {pendingRequests.map((item, index) => {
-                            // map the raw history entry to the format needed by the ui components
-                            const { transactionDetails, transactionCardType } = mapTransactionDataForDrawer(item)
+                            const { transactionDetails, transactionCardType } =
+                                drawerByUuid.get(item.uuid) ?? mapTransactionDataForDrawer(item)
 
                             // determine card position for styling (first, middle, last, single)
                             const position = getCardPosition(index, pendingRequests.length)
@@ -398,8 +421,8 @@ const HomeHistory = ({
                             return <BadgeStatusItem key={item.uuid} position={position} entry={item} />
                         }
 
-                        // map the raw history entry to the format needed by the ui components
-                        const { transactionDetails, transactionCardType } = mapTransactionDataForDrawer(item)
+                        const { transactionDetails, transactionCardType } =
+                            drawerByUuid.get(item.uuid) ?? mapTransactionDataForDrawer(item)
 
                         // determine card position for styling (first, middle, last, single)
 

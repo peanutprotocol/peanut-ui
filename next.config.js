@@ -35,6 +35,14 @@ let nextConfig = {
     env: {
         NEXT_PUBLIC_GIT_COMMIT_HASH: gitCommitHash,
     },
+
+    // Next.js 16 blocks cross-origin dev requests (HMR, chunk loads) unless
+    // explicitly allowed. Comma-separated list via env so contributors can add
+    // their own tunnel/ngrok hostnames without touching this file.
+    allowedDevOrigins: (process.env.NEXT_ALLOWED_DEV_ORIGINS ?? 'peanut.mucu.dev')
+        .split(',')
+        .map((o) => o.trim())
+        .filter(Boolean),
     images: {
         remotePatterns: [
             {

@@ -28,6 +28,11 @@ export async function PATCH(request: NextRequest) {
         'Api-Key': process.env.PEANUT_API_KEY!,
     } as any
 
+    const authHeader = request.headers.get('authorization')
+    if (authHeader) {
+        headersToPass['authorization'] = authHeader
+    }
+
     const apiResponse = await fetchWithSentry(fullAPIUrl, {
         method: 'PATCH',
         headers: headersToPass,

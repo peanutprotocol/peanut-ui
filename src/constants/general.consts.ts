@@ -1,15 +1,14 @@
-import * as interfaces from '@/interfaces'
-import { CHAIN_DETAILS, TOKEN_DETAILS } from '@squirrel-labs/peanut-sdk'
+import type { IPeanutChainDetails, IPeanutTokenDetail } from '@/interfaces/interfaces'
+import { isCapacitor } from '@/utils/capacitor'
+import chainDetailsJson from '@/constants/chain-details.json'
+import tokenDetailsJson from '@/constants/token-details.json'
 import { mainnet, arbitrum, arbitrumSepolia, polygon, optimism, base, bsc, scroll } from 'viem/chains'
 
-export const peanutWalletIsInPreview = true
+const CHAIN_DETAILS = chainDetailsJson as unknown as Record<string, IPeanutChainDetails>
+const TOKEN_DETAILS = tokenDetailsJson as unknown as IPeanutTokenDetail[]
 
-export const INFURA_API_KEY = process.env.NEXT_PUBLIC_INFURA_API_KEY
-export const ALCHEMY_API_KEY = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY
-
-export const SQUID_INTEGRATOR_ID = process.env.SQUID_INTEGRATOR_ID!
-export const SQUID_INTEGRATOR_ID_WITHOUT_CORAL = process.env.DEFAULT_SQUID_INTEGRATOR_ID!
-export const SQUID_API_URL = process.env.SQUID_API_URL!
+const INFURA_API_KEY = process.env.NEXT_PUBLIC_INFURA_API_KEY
+const ALCHEMY_API_KEY = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY
 
 const infuraUrl = (subdomain: string) => (INFURA_API_KEY ? `https://${subdomain}.infura.io/v3/${INFURA_API_KEY}` : null)
 const alchemyUrl = (subdomain: string) =>
@@ -69,18 +68,6 @@ export const rpcUrls: Record<number, string[]> = {
     ].filter(Boolean) as string[],
 }
 
-export const ipfsProviderArray = [
-    'https://ipfs.io/ipfs/',
-    'https://cloudflare-ipfs.com/ipfs/',
-    'https://dweb.link/ipfs/',
-    'https://cf-ipfs.com/ipfs/',
-    'https://storry.tv/ipfs/',
-    'https://hardbin.com/ipfs/',
-    'https://w3s.link/ipfs/',
-    'https://nftstorage.link/ipfs/',
-    'https://gw3.io/ipfs/',
-]
-
 export const PEANUT_API_URL = (
     process.env.PEANUT_API_URL ||
     process.env.NEXT_PUBLIC_PEANUT_API_URL ||
@@ -93,7 +80,8 @@ export const IS_DEV = process.env.NODE_ENV === 'development'
 export const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://peanut.me'
 // URL for the frontend to call its own Next.js API routes (like /api/health/*)
 export const SELF_URL = IS_DEV ? 'http://localhost:3000' : BASE_URL
-export const next_proxy_url = '/api/proxy'
+// in capacitor (static export), /api/proxy doesn't exist — call backend directly.
+export const next_proxy_url = isCapacitor() ? PEANUT_API_URL : '/api/proxy'
 
 // Git commit hash - injected at build time
 export const GIT_COMMIT_HASH = process.env.NEXT_PUBLIC_GIT_COMMIT_HASH || 'unknown'
@@ -227,11 +215,11 @@ export const supportedMobulaChains = <{ name: string; chainId: string }[]>[
     },
 ]
 
-export const supportedPeanutChains: interfaces.IPeanutChainDetails[] = Object.keys(CHAIN_DETAILS).map(
+export const supportedPeanutChains: IPeanutChainDetails[] = Object.keys(CHAIN_DETAILS).map(
     (key) => CHAIN_DETAILS[key as keyof typeof CHAIN_DETAILS]
 )
 
-export const peanutTokenDetails: interfaces.IPeanutTokenDetail[] = TOKEN_DETAILS
+export const peanutTokenDetails: IPeanutTokenDetail[] = TOKEN_DETAILS
 
 export const nativeCurrencyAddresses: string[] = [
     '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',

@@ -2,7 +2,7 @@ import { createElement } from 'react'
 import * as onchainViews from './Onchain'
 import { InitialClaimLinkView } from './Initial.view'
 import * as _consts from '../Claim.consts'
-import * as interfaces from '@/interfaces'
+import type { RecipientType } from '@/interfaces/interfaces'
 import {
     type IOfframpSuccessScreenProps,
     OfframpType,
@@ -16,7 +16,7 @@ const FlowManager = ({
     step,
     props,
 }: {
-    recipientType: interfaces.RecipientType
+    recipientType: RecipientType
     step: _consts.IClaimScreenState
     props: _consts.IClaimScreenProps & { appliedPromoCode?: string | null }
 }) => {

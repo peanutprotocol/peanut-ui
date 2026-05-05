@@ -2,8 +2,10 @@ import Card from '@/components/Global/Card'
 import { type CardPosition } from '@/components/Global/Card/card.utils'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
+import { getBankAccountCountryCode } from '@/constants/countryCurrencyMapping'
 import { type TransactionDirection } from '@/components/TransactionDetails/TransactionDetailsHeaderCard'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
+import { isCardPaymentEntry } from '@/components/TransactionDetails/transaction-predicates'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import {
     formatNumberForDisplay,
@@ -122,15 +124,40 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     }
 
     let currencyDisplayAmount: string | undefined
-    if (transaction.currency && transaction.currency.code.toUpperCase() !== 'USD') {
+    // Secondary line preference:
+    //   1. Local fiat (e.g. ARS for Manteca off-ramp) via currency.code/amount
+    //   2. Destination token (e.g. ETH for cross-token withdraw) via amount + tokenSymbol
+    // Skip both for USD / USD-pegged stablecoins to avoid `$0.10 / ≈ USDC 0.10` noise.
+    const ccyCode = transaction.currency?.code.toUpperCase()
+    const tokenSymbolUpper = (transaction.tokenSymbol ?? '').toUpperCase()
+    if (transaction.currency && ccyCode && ccyCode !== 'USD' && !isStableCoin(ccyCode)) {
         const formattedCurrencyAmount = formatNumberForDisplay(transaction.currency.amount, { maxDecimals: 2 })
-        currencyDisplayAmount = `≈ ${transaction.currency.code.toUpperCase()} ${formattedCurrencyAmount}`
+        currencyDisplayAmount = `≈ ${ccyCode} ${formattedCurrencyAmount}`
+    } else if (
+        tokenSymbolUpper &&
+        tokenSymbolUpper !== 'USD' &&
+        !isStableCoin(tokenSymbolUpper) &&
+        transaction.tokenAmount
+    ) {
+        const formattedTokenAmount = formatNumberForDisplay(transaction.tokenAmount, { maxDecimals: 6 })
+        currencyDisplayAmount = `≈ ${formattedTokenAmount} ${tokenSymbolUpper}`
     }
+
+    // Spec §4.4: declined card transactions stay in the feed but are visually
+    // de-emphasized so they don't compete with successful items. Scope to
+    // declined SPENDS specifically — refunds also populate cardPayment, but
+    // a failed refund (e.g. processing error) shouldn't be greyed out.
+    const isDeclinedCardSpend =
+        status === 'failed' && isCardPaymentEntry(transaction) && !transaction.extraDataForDrawer?.cardPayment?.isRefund
 
     return (
         <>
             {/* the clickable card */}
-            <Card position={position} onClick={handleClick} className="cursor-pointer">
+            <Card
+                position={position}
+                onClick={handleClick}
+                className={twMerge('cursor-pointer', isDeclinedCardSpend && 'opacity-60')}
+            >
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         {/* txn avatar component handles icon/initials/colors */}
@@ -166,6 +193,10 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                 transactionType={type}
                                 context="card"
                                 size="extra-small"
+                                countryCode={getBankAccountCountryCode(
+                                    transaction.bankAccountDetails,
+                                    transaction.currency?.code
+                                )}
                             />
                         )}
                         <div className="flex flex-col">

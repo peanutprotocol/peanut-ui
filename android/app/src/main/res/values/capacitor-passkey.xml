@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="capacitor_passkey_asset_statements" translatable="false">[{"include":"https://staging.peanut.me/.well-known/assetlinks.json"}]</string>
+</resources>

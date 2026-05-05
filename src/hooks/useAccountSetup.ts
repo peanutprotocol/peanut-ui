@@ -21,7 +21,7 @@ export const useAccountSetup = () => {
     const [error, setError] = useState<string | null>(null)
     const [isProcessing, setIsProcessing] = useState(false)
 
-    const handleRedirect = () => {
+    const handleRedirect = (): boolean => {
         const redirect_uri = searchParams.get('redirect_uri')
         if (redirect_uri) {
             const validRedirectUrl = getValidRedirectUrl(redirect_uri, '/home')
@@ -46,6 +46,7 @@ export const useAccountSetup = () => {
             console.log('[useAccountSetup] No redirect found, going to /home')
             router.push('/home')
         }
+        return false
     }
 
     /**

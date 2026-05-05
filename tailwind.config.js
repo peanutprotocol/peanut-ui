@@ -385,9 +385,16 @@ module.exports = {
                         {},
                 },
                 '.btn svg': {
-                    '@apply fill-inherit first:mr-1.5 last:ml-1.5': {},
+                    '@apply fill-inherit': {},
+                    // Legacy MUI-era icons (no `custom-size` class) keep the auto-icon-18 sizing
+                    // and the auto-margin between icon and text. Modern Lucide icons (added via
+                    // <Icon> which sets `custom-size` automatically) escape both — they manage
+                    // their own size via SVG width/height attrs, and call sites use Tailwind
+                    // `gap-*` for icon/text spacing. Keeping this branch under :not(.custom-size)
+                    // prevents the margin from eating SVG width inside flex wrappers (the bug
+                    // where the home-page action arrows rendered at 10x22 inside size-[22px]).
                     '&:not(.custom-size)': {
-                        '@apply icon-18': {},
+                        '@apply icon-18 first:mr-1.5 last:ml-1.5': {},
                     },
                 },
                 '.btn-transparent-light': {

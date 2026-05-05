@@ -7,6 +7,7 @@ import { isAddress } from 'viem'
 import PublicProfile from '@/components/Profile/components/PublicProfile'
 import { useAuth } from '@/context/authContext'
 import { ValidatedUsernameWrapper } from '@/components/Username/ValidatedUsernameWrapper'
+import { sendUrl } from '@/utils/native-routes'
 
 // kept for backward compatibility with old payment form
 export type PaymentFlow = 'request_pay' | 'external_wallet' | 'direct_pay' | 'withdraw'
@@ -60,7 +61,8 @@ export default function PaymentPage({ recipient }: Props) {
     // handles: /<username>
     const username = recipientIdentifier
     const handleSendClick = () => {
-        router.push(`/send/${username}`)
+        // native app uses query params (static export doesn't support dynamic routes)
+        router.push(sendUrl(username))
     }
 
     return (

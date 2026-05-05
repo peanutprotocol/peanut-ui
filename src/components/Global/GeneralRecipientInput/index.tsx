@@ -1,6 +1,6 @@
 'use client'
 import ValidatedInput, { type InputUpdate } from '@/components/Global/ValidatedInput'
-import * as interfaces from '@/interfaces'
+import type { RecipientType } from '@/interfaces/interfaces'
 import { validateBankAccount } from '@/utils/bridge-accounts.utils'
 import { formatBankAccountDisplay, sanitizeBankAccount } from '@/utils/format.utils'
 import * as Senty from '@sentry/nextjs'
@@ -21,7 +21,7 @@ type GeneralRecipientInputProps = {
 
 export type GeneralRecipientUpdate = {
     recipient: { name: string | undefined; address: string }
-    type: interfaces.RecipientType
+    type: RecipientType
     isValid: boolean
     isChanging: boolean
     errorMessage: string
@@ -36,7 +36,7 @@ const GeneralRecipientInput = ({
     showInfoText = true,
     isWithdrawal = false,
 }: GeneralRecipientInputProps) => {
-    const recipientType = useRef<interfaces.RecipientType>('address')
+    const recipientType = useRef<RecipientType>('address')
     const errorMessage = useRef('')
     const resolvedAddress = useRef('')
 
@@ -44,7 +44,7 @@ const GeneralRecipientInput = ({
         async (recipient: string): Promise<boolean> => {
             try {
                 let isValid = false
-                let type: interfaces.RecipientType = 'address'
+                let type: RecipientType = 'address'
 
                 // trim the input and remove URL prefix if present
                 const trimmedInput = recipient.trim().replace(`${BASE_URL}/`, '')
@@ -63,7 +63,7 @@ const GeneralRecipientInput = ({
 
                         isValid = true
                         resolvedAddress.current = validation.resolvedAddress
-                        type = validation.recipientType.toLowerCase() as interfaces.RecipientType
+                        type = validation.recipientType.toLowerCase() as RecipientType
                     } catch (error: unknown) {
                         errorMessage.current = (error as Error).message
                         // For withdrawal context, failed non-address inputs should be treated as ENS

@@ -10,8 +10,10 @@ import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { KycProcessingModal } from '@/components/Kyc/modals/KycProcessingModal'
 import { KycActionRequiredModal } from '@/components/Kyc/modals/KycActionRequiredModal'
 import { KycFailedModal } from '@/components/Kyc/modals/KycFailedModal'
+import ActionModal from '@/components/Global/ActionModal'
 import { useIdentityVerification, getRegionIntent, type Region } from '@/hooks/useIdentityVerification'
 import useUnifiedKycStatus from '@/hooks/useUnifiedKycStatus'
+import useProviderRejectionStatus from '@/hooks/useProviderRejectionStatus'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { useAuth } from '@/context/authContext'
 import Image from 'next/image'
@@ -51,7 +53,9 @@ const RegionsVerification = () => {
     const router = useRouter()
     const { user } = useAuth()
     const { unlockedRegions, lockedRegions } = useIdentityVerification()
-    const { sumsubStatus, sumsubRejectLabels, sumsubRejectType, sumsubVerificationRegionIntent } = useUnifiedKycStatus()
+    const { sumsubStatus, sumsubRejectLabels, sumsubRejectType, sumsubVerificationRegionIntent, isSumsubApproved } =
+        useUnifiedKycStatus()
+    const { bridge: bridgeRejection, manteca: mantecaRejection, hasAnyRejection } = useProviderRejectionStatus()
     const [selectedRegion, setSelectedRegion] = useState<Region | null>(null)
     // keeps the region display stable during modal close animation
     const displayRegionRef = useRef<Region | null>(null)
@@ -69,9 +73,18 @@ const RegionsVerification = () => {
     )
 
     const clickedRegionIntent = selectedRegion ? getRegionIntent(selectedRegion.path) : undefined
-    const modalVariant = selectedRegion
+    const baseModalVariant = selectedRegion
         ? getModalVariant(sumsubStatus, clickedRegionIntent, sumsubVerificationRegionIntent)
         : null
+
+    // override modal variant when sumsub is approved but a provider rejected the user
+    // determines which provider is relevant based on the clicked region
+    const providerRejectionForRegion = clickedRegionIntent === 'LATAM' ? mantecaRejection : bridgeRejection
+    const hasProviderRejectionForRegion =
+        !!selectedRegion &&
+        isSumsubApproved &&
+        (providerRejectionForRegion.state === 'fixable' || providerRejectionForRegion.state === 'blocked')
+    const modalVariant = hasProviderRejectionForRegion ? ('provider_rejection' as const) : baseModalVariant
 
     const handleFinalKycSuccess = useCallback(() => {
         setSelectedRegion(null)
@@ -173,6 +186,47 @@ const RegionsVerification = () => {
                 rejectLabels={sumsubRejectLabels}
                 rejectType={sumsubRejectType}
                 failureCount={sumsubFailureCount}
+            />
+
+            <ActionModal
+                visible={modalVariant === 'provider_rejection'}
+                onClose={handleModalClose}
+                title={
+                    providerRejectionForRegion.state === 'fixable'
+                        ? 'We need an updated document'
+                        : 'Region unavailable'
+                }
+                description={
+                    providerRejectionForRegion.state === 'fixable'
+                        ? providerRejectionForRegion.userMessage ||
+                          'Please upload a clearer photo of your ID to unlock this region.'
+                        : 'This region is not available for your account. Contact support for help.'
+                }
+                icon="alert"
+                iconContainerClassName="bg-yellow-1"
+                ctas={[
+                    providerRejectionForRegion.state === 'fixable'
+                        ? {
+                              text: 'Upload document',
+                              onClick: () => {
+                                  handleModalClose()
+                                  flow.handleSelfHealResubmit(providerRejectionForRegion.provider)
+                              },
+                              variant: 'purple' as const,
+                              shadowSize: '4' as const,
+                          }
+                        : {
+                              text: 'Contact support',
+                              onClick: () => {
+                                  if (typeof window !== 'undefined' && (window as any).$crisp) {
+                                      ;(window as any).$crisp.push(['do', 'chat:open'])
+                                  }
+                                  handleModalClose()
+                              },
+                              variant: 'purple' as const,
+                              shadowSize: '4' as const,
+                          },
+                ]}
             />
 
             {flow.error && <p className="text-red-500 mt-2 text-sm">{flow.error}</p>}

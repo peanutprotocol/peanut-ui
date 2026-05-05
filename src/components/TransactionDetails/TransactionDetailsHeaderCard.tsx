@@ -14,6 +14,7 @@ import ProgressBar from '../Global/ProgressBar'
 import { useRouter } from 'next/navigation'
 import { twMerge } from 'tailwind-merge'
 import { PEANUTMAN_LOGO } from '@/assets'
+import { profileUrl } from '@/utils/native-routes'
 
 export type TransactionDirection =
     | 'send'
@@ -49,6 +50,7 @@ interface TransactionDetailsHeaderCardProps {
     convertedAmount?: string
     showFullName?: boolean
     fullName?: string
+    countryCode?: string | null
 }
 
 const getTitle = (
@@ -59,23 +61,17 @@ const getTitle = (
 ): React.ReactNode => {
     let titleText = userName
 
-    if (isLinkTransaction && (status === 'pending' || status === 'cancelled' || !userName)) {
-        const displayName = userName
-        switch (direction) {
-            case 'send':
-                titleText = displayName
-                break
-            case 'request_sent':
-                titleText = 'Requested via Link'
-                break
-            case 'receive':
-            case 'request_received':
-                titleText = 'Request via Link'
-                break
-            default:
-                titleText = 'Link Transaction'
-                break
+    // Link transactions short-circuit; userName is already a self-describing
+    // label so the "Sent to ${displayName}" prefix doesn't apply.
+    if (isLinkTransaction) {
+        const completed = status === 'completed'
+        const titleByDirection: Partial<Record<TransactionDirection, string>> = {
+            send: completed ? 'You sent via link' : userName,
+            receive: completed ? 'You received via link' : userName,
+            request_sent: 'Requested via Link',
+            request_received: 'Request via Link',
         }
+        titleText = titleByDirection[direction] ?? userName ?? 'Link Transaction'
     } else {
         const isAddress = isWalletAddress(userName)
         const displayName = isAddress ? printableAddress(userName) : userName
@@ -201,6 +197,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     convertedAmount,
     showFullName,
     fullName,
+    countryCode,
 }) => {
     const router = useRouter()
     const typeForAvatar =
@@ -215,7 +212,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
 
     const handleUserPfpClick = () => {
         if (isAvatarClickable) {
-            router.push(`/${userName}`)
+            router.push(profileUrl(userName))
         }
     }
 
@@ -253,6 +250,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                                 transactionType={typeForAvatar}
                                 context="header"
                                 size="small"
+                                countryCode={countryCode}
                             />
                         )}
                     </div>

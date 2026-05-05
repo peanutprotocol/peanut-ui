@@ -15,13 +15,10 @@ export function calculateSavingsInCents(usdAmount: string | null | undefined): n
 /**
  * Check if QR payment is for Argentina (Manteca only)
  * @param qrType QR code type from URL parameter
- * @param paymentProcessor Payment processor ('MANTECA' | 'SIMPLEFI')
+ * @param paymentProcessor Payment processor ('MANTECA' | null)
  * @returns true if this is a Manteca QR payment in Argentina
  */
-export function isArgentinaMantecaQrPayment(
-    qrType: string | null,
-    paymentProcessor: 'MANTECA' | 'SIMPLEFI' | null
-): boolean {
+export function isArgentinaMantecaQrPayment(qrType: string | null, paymentProcessor: 'MANTECA' | null): boolean {
     if (paymentProcessor !== 'MANTECA') return false
     return qrType === EQrType.MERCADO_PAGO || qrType === EQrType.ARGENTINA_QR3
 }

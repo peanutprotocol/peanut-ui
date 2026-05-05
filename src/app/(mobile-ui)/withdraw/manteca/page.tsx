@@ -14,6 +14,7 @@ import { mantecaApi, type WithdrawPriceLock } from '@/services/manteca'
 import { useCurrency } from '@/hooks/useCurrency'
 import { loadingStateContext } from '@/context'
 import { countryData } from '@/components/AddMoney/consts'
+import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import Image from 'next/image'
 import { formatAmount, formatNumberForDisplay } from '@/utils/general.utils'
 import {
@@ -34,6 +35,7 @@ import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { useQueryClient } from '@tanstack/react-query'
 import { captureException } from '@sentry/nextjs'
 import useKycStatus from '@/hooks/useKycStatus'
+import useProviderRejectionStatus from '@/hooks/useProviderRejectionStatus'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
@@ -56,6 +58,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
 import { getLimitsWarningCardProps, isBrUserEligibleForLimitIncrease } from '@/features/limits/utils'
+import { withdrawCountryUrl } from '@/utils/native-routes'
 import { useSumsubActionFlow } from '@/hooks/useSumsubActionFlow'
 import { initiateIncreaseLimits } from '@/app/actions/increase-limits'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
@@ -84,13 +87,14 @@ export default function MantecaWithdrawFlow() {
     const [priceLock, setPriceLock] = useState<WithdrawPriceLock | null>(null)
     const [isLockingPrice, setIsLockingPrice] = useState(false)
     const router = useRouter()
-    const { sendMoney, balance } = useWallet()
+    const { sendMoney, spendableBalance: balance } = useWallet()
     const { signTransferUserOp } = useSignUserOp()
     const { isLoading, loadingState, setLoadingState } = useContext(loadingStateContext)
     const { user } = useAuth()
     const { setIsSupportModalOpen, openSupportWithMessage } = useModalsContext()
     const queryClient = useQueryClient()
-    const { isUserMantecaKycApproved } = useKycStatus()
+    const { isUserMantecaKycApproved, isUserSumsubKycApproved } = useKycStatus()
+    const { manteca: mantecaRejection } = useProviderRejectionStatus()
     const { hasPendingTransactions } = usePendingTransactions()
 
     // inline sumsub kyc flow for manteca users who need LATAM verification
@@ -99,6 +103,7 @@ export default function MantecaWithdrawFlow() {
     const sumsubFlow = useMultiPhaseKycFlow({})
     const [showKycModal, setShowKycModal] = useState(false)
     const [isRedirectingToOnboarding, setIsRedirectingToOnboarding] = useState(false)
+
     // Get method and country from URL parameters
     const selectedMethodType = searchParams.get('method') // mercadopago, pix, bank-transfer, etc.
     const countryFromUrl = searchParams.get('country') // argentina, brazil, etc.
@@ -530,10 +535,32 @@ export default function MantecaWithdrawFlow() {
                 visible={showKycModal}
                 onClose={() => setShowKycModal(false)}
                 onVerify={async () => {
-                    await sumsubFlow.handleInitiateKyc('LATAM')
+                    if (mantecaRejection.state === 'blocked') {
+                        // blocked users cannot self-heal — route to support
+                        if (typeof window !== 'undefined' && (window as any).$crisp) {
+                            ;(window as any).$crisp.push(['do', 'chat:open'])
+                        }
+                        setShowKycModal(false)
+                        return
+                    }
+                    const hasRejection = mantecaRejection.state === 'fixable'
+                    if (hasRejection) {
+                        await sumsubFlow.handleSelfHealResubmit('MANTECA')
+                    } else {
+                        await sumsubFlow.handleInitiateKyc('LATAM', undefined, true)
+                    }
                     setShowKycModal(false)
                 }}
                 isLoading={sumsubFlow.isLoading}
+                variant={
+                    mantecaRejection.state === 'fixable' || mantecaRejection.state === 'blocked'
+                        ? 'provider_rejection'
+                        : isUserSumsubKycApproved
+                          ? 'cross_region'
+                          : 'default'
+                }
+                providerMessage={mantecaRejection.userMessage ?? undefined}
+                regionName={selectedCountry?.title}
             />
             <SumsubKycModals flow={sumsubFlow} />
             <SumsubKycWrapper
@@ -561,7 +588,7 @@ export default function MantecaWithdrawFlow() {
                     } else {
                         router.back()
                         setTimeout(() => {
-                            router.replace(`/withdraw/${selectedCountry?.path}`)
+                            router.replace(withdrawCountryUrl(selectedCountry?.path || ''))
                         }, 100)
                     }
                 }}
@@ -642,7 +669,7 @@ export default function MantecaWithdrawFlow() {
                         <div className="flex items-center space-x-3">
                             <div className="relative h-12 w-12">
                                 <Image
-                                    src={`https://flagcdn.com/w160/${countryFlagCode}.png`}
+                                    src={getFlagUrl(countryFlagCode)}
                                     alt={`flag`}
                                     width={48}
                                     height={48}
@@ -745,7 +772,9 @@ export default function MantecaWithdrawFlow() {
                                   : 'Review'}
                         </Button>
 
-                        {errorMessage && <ErrorAlert description={errorMessage} />}
+                        {(errorMessage || sumsubFlow.error) && (
+                            <ErrorAlert description={(errorMessage || sumsubFlow.error)!} />
+                        )}
                     </div>
                 </div>
             )}
@@ -756,7 +785,7 @@ export default function MantecaWithdrawFlow() {
                         <div className="flex items-center space-x-3">
                             <div className="relative h-12 w-12">
                                 <Image
-                                    src={`https://flagcdn.com/w160/${countryFlagCode}.png`}
+                                    src={getFlagUrl(countryFlagCode)}
                                     alt={`flag`}
                                     width={48}
                                     height={48}
@@ -802,7 +831,9 @@ export default function MantecaWithdrawFlow() {
                     >
                         {isLoading ? loadingState : 'Withdraw'}
                     </Button>
-                    {errorMessage && <ErrorAlert description={errorMessage} />}
+                    {(errorMessage || sumsubFlow.error) && (
+                        <ErrorAlert description={(errorMessage || sumsubFlow.error)!} />
+                    )}
                 </div>
             )}
         </div>

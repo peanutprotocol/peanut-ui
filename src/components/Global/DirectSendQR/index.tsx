@@ -9,18 +9,18 @@ import QRBottomDrawer from '@/components/Global/QRBottomDrawer'
 // 50KB bundle cost is worth it for better UX on primary flow
 import QRScanner from '@/components/Global/QRScanner'
 import { useAuth } from '@/context/authContext'
-import { hitUserMetric } from '@/utils/metrics.utils'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import * as Sentry from '@sentry/nextjs'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useMemo, useState, type ChangeEvent } from 'react'
 import { twMerge } from 'tailwind-merge'
-import { Icon, type IconName } from '../Icons/Icon'
+import { type IconName } from '../Icons/Icon'
 import { EQrType, NAME_BY_QR_TYPE, parseEip681, recognizeQr } from './utils'
 import { pixKeyToBRCode } from '@/utils/pix.utils'
 import { useHaptic } from 'use-haptic'
 import { useModalsContext } from '@/context/ModalsContext'
+import { openExternalUrl } from '@/utils/capacitor'
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL!
 
@@ -60,9 +60,7 @@ function NotSupportedContent({ setModalContent, qrType }: ModalContentProps) {
             <Button
                 onClick={() => {
                     setModalContent(EModalType.WILL_BE_NOTIFIED)
-                    if (user?.user.userId) {
-                        hitUserMetric(user.user.userId, 'qr-notify-me', { qrType })
-                    }
+                    posthog.capture(ANALYTICS_EVENTS.QR_NOTIFY_ME_CLICKED, { qr_type: qrType })
                 }}
                 className="mt-4 w-full"
                 shadowType="primary"
@@ -132,7 +130,7 @@ function ExternalUrlContent({ redirectTo, setIsModalOpen }: ModalContentProps) {
             <div className="flex items-center justify-center gap-2">
                 <Button
                     onClick={() => {
-                        window.open(redirectTo, '_system')
+                        if (redirectTo) openExternalUrl(redirectTo)
                         setTimeout(() => {
                             setIsModalOpen(false)
                         }, 750)
@@ -226,8 +224,7 @@ export default function DirectSendQr({
             }
             return originalData
         }
-        hitUserMetric(user!.user.userId, 'scan-qr', { qrType, data: getLogData() })
-        posthog.capture(ANALYTICS_EVENTS.QR_SCANNED, { qr_type: qrType })
+        posthog.capture(ANALYTICS_EVENTS.QR_SCANNED, { qr_type: qrType, data: getLogData() })
         setQrType(qrType as EQrType)
         switch (qrType) {
             case EQrType.PEANUT_URL:
@@ -247,9 +244,10 @@ export default function DirectSendQr({
 
                         // Check redirect QR status (single endpoint for speed)
                         try {
-                            const response = await fetch(
-                                `${process.env.NEXT_PUBLIC_PEANUT_API_URL}/qr/${redirectQrCode}`
-                            )
+                            const { serverFetch } = await import('@/utils/api-fetch')
+                            const response = await serverFetch(`/qr/${redirectQrCode}`, {
+                                method: 'GET',
+                            })
                             const data = await response.json()
 
                             if (data.claimed && data.redirectUrl) {
@@ -306,9 +304,6 @@ export default function DirectSendQr({
             case EQrType.MERCADO_PAGO:
             case EQrType.ARGENTINA_QR3:
             case EQrType.PIX:
-            case EQrType.SIMPLEFI_STATIC:
-            case EQrType.SIMPLEFI_DYNAMIC:
-            case EQrType.SIMPLEFI_USER_SPECIFIED:
                 {
                     const timestamp = Date.now()
                     // Casing matters, so send original instead of normalized
@@ -436,7 +431,9 @@ export default function DirectSendQr({
                     className
                 )}
                 disabled={disabled}
-                icon={<Icon name={icon} size={40} className="custom-size" />}
+                icon={icon}
+                iconSize={64}
+                iconContainerClassName="size-16"
             />
 
             <Modal

@@ -102,36 +102,6 @@ export async function withWebAuthnRetry<T>(
 }
 
 /**
- * User-friendly error messages for WebAuthn errors
- *
- * Sources:
- * - W3C WebAuthn spec error definitions: https://www.w3.org/TR/webauthn-3/#sctn-op-make-cred
- * - MDN WebAuthn errors: https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API
- *
- * NotAllowedError can occur even with screen lock enabled due to:
- * 1. User explicitly cancelled the passkey prompt
- * 2. Browser timeout (user didn't respond within ~60s)
- * 3. Private/Incognito mode restrictions (some browsers)
- * 4. iCloud Keychain disabled on iOS (even with Face ID enabled)
- * 5. Credential manager disabled in browser settings
- * 6. Cross-origin iframe context issues
- * 7. Invalid RP ID (domain mismatch)
- * 8. Browser treating rapid attempts as spam/duplicate
- * 9. Platform authenticator locked or unavailable (despite screen lock)
- * 10. Browser extension interference (password managers, etc.)
- */
-const WEBAUTHN_ERROR_MESSAGES: Record<string, string> = {
-    NotAllowedError: 'Passkeys are not enabled on your device. Check your device settings to enable them.',
-    NotReadableError: "There's an issue with your device's passkey settings. Please try again.",
-    UnknownError: 'Unable to create passkey. Please try again.',
-    InvalidStateError: 'A passkey already exists for this device.',
-    NotSupportedError: 'Passkeys are not supported on this device.',
-    SecurityError: 'Security error. Please ensure you are using HTTPS.',
-    AbortError: 'Operation cancelled. Please try again.',
-    TimeoutError: 'Operation timed out. Please try again.',
-}
-
-/**
  * Platform-specific troubleshooting steps for common issues
  *
  * IMPORTANT: These are suggestions based on community reports, not official fixes
@@ -190,57 +160,3 @@ export const PASSKEY_WARNINGS = {
         NotAllowedError: 'Lower end Android devices may require recent security updates for passkeys to work properly.',
     },
 } as const
-
-/**
- * Helper to format steps as text (for inline error messages)
- */
-const formatStepsAsText = (steps: readonly string[]): string => {
-    return `Try these fixes:\n${steps.map((step) => `• ${step}`).join('\n')}`
-}
-
-/**
- * Gets a user-friendly error message with platform-specific guidance
- *
- * @param error - The WebAuthn error
- * @param deviceType - Optional device type from useDeviceType() hook. If not provided, uses basic detection
- * @returns User-friendly error message with platform-specific help if applicable
- *
- * NOTE: This is a utility function that can work both with and without React context
- * Prefer passing deviceType from useDeviceType() hook when available for better detection
- */
-export function getWebAuthnErrorMessage(error: Error, deviceType?: 'ios' | 'android' | 'web'): string {
-    const baseMessage = WEBAUTHN_ERROR_MESSAGES[error.name] || error.message
-
-    // if no deviceType provided, do basic detection (fallback)
-    let platform: 'android' | 'ios' | 'web' = 'web'
-    if (deviceType) {
-        platform = deviceType
-    } else if (typeof navigator !== 'undefined') {
-        const ua = navigator.userAgent
-        if (/android/i.test(ua)) platform = 'android'
-        else if (/iPhone|iPad|iPod/i.test(ua)) platform = 'ios'
-    }
-
-    // add platform-specific help for known issues
-    const steps =
-        platform === 'android' && error.name in PASSKEY_TROUBLESHOOTING_STEPS.android
-            ? PASSKEY_TROUBLESHOOTING_STEPS.android[error.name as keyof typeof PASSKEY_TROUBLESHOOTING_STEPS.android]
-            : platform === 'ios' && error.name in PASSKEY_TROUBLESHOOTING_STEPS.ios
-              ? PASSKEY_TROUBLESHOOTING_STEPS.ios[error.name as keyof typeof PASSKEY_TROUBLESHOOTING_STEPS.ios]
-              : null
-
-    if (steps) {
-        const formattedSteps = formatStepsAsText(steps)
-        // add warning if exists
-        const warning =
-            platform === 'android' &&
-            error.name in PASSKEY_WARNINGS.android &&
-            PASSKEY_WARNINGS.android[error.name as keyof typeof PASSKEY_WARNINGS.android]
-
-        return warning
-            ? `${baseMessage}\n\n${formattedSteps}\n\nNote: ${warning}`
-            : `${baseMessage}\n\n${formattedSteps}`
-    }
-
-    return baseMessage
-}

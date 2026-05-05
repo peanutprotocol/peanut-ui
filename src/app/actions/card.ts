@@ -1,16 +1,12 @@
-'use server'
+// card api calls — works in both web (via proxy) and native (direct backend)
 
-import { PEANUT_API_URL } from '@/constants/general.consts'
-import { fetchWithSentry } from '@/utils/sentry.utils'
-import { getJWTCookie } from '@/utils/cookie-migration.utils'
-
-const API_KEY = process.env.PEANUT_API_KEY
-if (!API_KEY) {
-    throw new Error('PEANUT_API_KEY environment variable is not set')
-}
+import { serverFetch } from '@/utils/api-fetch'
 
 export interface CardInfoResponse {
     hasPurchased: boolean
+    /** True if the user can enter the Rain card flow — either via Pioneer
+     *  purchase or a manual admin grant. Gate downstream states on this. */
+    hasCardAccess: boolean
     chargeStatus?: string
     chargeUuid?: string
     paymentUrl?: string
@@ -43,18 +39,9 @@ export interface CardErrorResponse {
  * Get card pioneer info for the authenticated user
  */
 export const getCardInfo = async (): Promise<{ data?: CardInfoResponse; error?: string }> => {
-    const jwtToken = (await getJWTCookie())?.value
-    if (!jwtToken) {
-        return { error: 'Authentication required' }
-    }
-
     try {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/card`, {
+        const response = await serverFetch('/card', {
             method: 'GET',
-            headers: {
-                Authorization: `Bearer ${jwtToken}`,
-                'api-key': API_KEY,
-            },
         })
 
         if (!response.ok) {
@@ -73,19 +60,9 @@ export const getCardInfo = async (): Promise<{ data?: CardInfoResponse; error?: 
  * Initiate card pioneer purchase
  */
 export const purchaseCard = async (): Promise<{ data?: CardPurchaseResponse; error?: string; errorCode?: string }> => {
-    const jwtToken = (await getJWTCookie())?.value
-    if (!jwtToken) {
-        return { error: 'Authentication required', errorCode: 'NOT_AUTHENTICATED' }
-    }
-
     try {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/card/purchase`, {
+        const response = await serverFetch('/card/purchase', {
             method: 'POST',
-            headers: {
-                Authorization: `Bearer ${jwtToken}`,
-                'api-key': API_KEY,
-                'Content-Type': 'application/json',
-            },
             body: JSON.stringify({}),
         })
 

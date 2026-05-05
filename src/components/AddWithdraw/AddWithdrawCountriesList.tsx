@@ -8,6 +8,8 @@ import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { getColorForUsername } from '@/utils/color.utils'
 import Image, { type StaticImageData } from 'next/image'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import { withdrawBankUrl, rewriteMethodPath } from '@/utils/native-routes'
+import { isCapacitor } from '@/utils/capacitor'
 import EmptyState from '../Global/EmptyStates/EmptyState'
 import { useAuth } from '@/context/authContext'
 import { useMemo, useRef, useState } from 'react'
@@ -21,11 +23,13 @@ import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useAppDispatch } from '@/redux/hooks'
 import { bankFormActions } from '@/redux/slices/bank-form-slice'
 import useKycStatus from '@/hooks/useKycStatus'
+import useProviderRejectionStatus from '@/hooks/useProviderRejectionStatus'
 import KycVerifiedOrReviewModal from '../Global/KycVerifiedOrReviewModal'
 import { ActionListCard } from '@/components/ActionListCard'
 import TokenAndNetworkConfirmationModal from '../Global/TokenAndNetworkConfirmationModal'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
+import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 
 interface AddWithdrawCountriesListProps {
     flow: 'add' | 'withdraw'
@@ -64,12 +68,19 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const formRef = useRef<{ handleSubmit: () => void }>(null)
     const [isSupportedTokensModalOpen, setIsSupportedTokensModalOpen] = useState(false)
 
-    const { isUserKycApproved, isUserBridgeKycUnderReview } = useKycStatus()
+    const { isUserKycApproved, isUserBridgeKycUnderReview, isUserSumsubKycApproved, isUserBridgeKycApproved } =
+        useKycStatus()
+    const { bridge: bridgeRejection } = useProviderRejectionStatus()
     const [showKycStatusModal, setShowKycStatusModal] = useState(false)
 
-    const countryPathParts = Array.isArray(params.country) ? params.country : [params.country]
-    const isBankPage = countryPathParts[countryPathParts.length - 1] === 'bank'
-    const countrySlugFromUrl = isBankPage ? countryPathParts.slice(0, -1).join('-') : countryPathParts.join('-')
+    // read country from path params (web: /add-money/india) or query params (native: /add-money?country=india)
+    const countryFromQuery = searchParams.get('country')
+    const viewFromQuery = searchParams.get('view')
+    const rawCountry = countryFromQuery || params.country
+    const countryPathParts = Array.isArray(rawCountry) ? rawCountry : [rawCountry].filter(Boolean)
+    const isBankPage = viewFromQuery === 'bank' || countryPathParts[countryPathParts.length - 1] === 'bank'
+    const countrySlugFromUrl =
+        isBankPage && !viewFromQuery ? countryPathParts.slice(0, -1).join('-') : countryPathParts.join('-')
 
     const currentCountry = countryData.find(
         (country) => country.type === 'country' && country.path === countrySlugFromUrl
@@ -82,6 +93,22 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         // re-fetch user to ensure we have the latest KYC status
         // (the multi-phase flow may have completed but websocket/state not yet propagated)
         await fetchUser()
+
+        // block users with bridge provider rejection
+        if (bridgeRejection.state === 'fixable') {
+            await sumsubFlow.handleSelfHealResubmit('BRIDGE')
+            return {}
+        }
+        if (bridgeRejection.state === 'blocked') {
+            return { error: 'Bank transfers are not available for your account. Please contact support.' }
+        }
+
+        // JIT bridge enrollment: user is sumsub-approved but no bridge customer yet
+        // show the KYC modal — enrollment happens when user clicks "Start Verification"
+        if (isUserSumsubKycApproved && !isUserBridgeKycApproved && !user?.user.bridgeCustomerId) {
+            setIsKycModalOpen(true)
+            return {}
+        }
 
         // scenario (1): happy path: if the user has already completed kyc, we can add the bank account directly
         // email and name are now collected by sumsub — no need to check them here
@@ -121,7 +148,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
             if (currentCountry) {
                 const queryParams = isBankFromSend ? `?method=${methodParam}` : ''
-                router.push(`/withdraw/${currentCountry.path}/bank${queryParams}`)
+                router.push(withdrawBankUrl(currentCountry.path, queryParams))
             }
             return {}
         }
@@ -141,9 +168,8 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
         if (method.path && method.path.includes('/manteca')) {
             // Manteca methods route directly (has own amount input)
-            const separator = method.path.includes('?') ? '&' : '?'
-            const additionalParams = isBankFromSend ? `${separator}method=${methodParam}` : ''
-            router.push(`${method.path}${additionalParams}`)
+            const extraParams = isBankFromSend ? `method=${methodParam}` : undefined
+            router.push(rewriteMethodPath(method.path, extraParams))
         } else if (method.id.includes('default-bank-withdraw') || method.id.includes('sepa-instant-withdraw')) {
             if (isUserBridgeKycUnderReview) {
                 setShowKycStatusModal(true)
@@ -167,10 +193,9 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             })
             router.push(`/withdraw${methodQueryParam}`)
         } else if (method.path) {
-            // Other methods with paths
-            const separator = method.path.includes('?') ? '&' : '?'
-            const additionalParams = isBankFromSend ? `${separator}method=${methodParam}` : ''
-            router.push(`${method.path}${additionalParams}`)
+            // Other methods with paths — rewrite dynamic routes for native
+            const extraParams = isBankFromSend ? `method=${methodParam}` : undefined
+            router.push(rewriteMethodPath(method.path, extraParams))
         }
     }
 
@@ -186,7 +211,14 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 return
             }
 
-            router.push(method.path)
+            const target = rewriteMethodPath(method.path)
+            // force full navigation in capacitor — router.push to same page with
+            // different query params doesn't trigger useSearchParams re-render in static export
+            if (isCapacitor() && target.startsWith(window.location.pathname)) {
+                window.location.href = target
+            } else {
+                router.push(target)
+            }
         }
     }
 
@@ -264,6 +296,17 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                     onSuccess={handleFormSubmit}
                     initialData={{}}
                     error={null}
+                />
+                <InitiateKycModal
+                    visible={isKycModalOpen}
+                    onClose={() => setIsKycModalOpen(false)}
+                    onVerify={async () => {
+                        await sumsubFlow.handleInitiateKyc('STANDARD', undefined, true)
+                        setIsKycModalOpen(false)
+                    }}
+                    isLoading={sumsubFlow.isLoading}
+                    variant="cross_region"
+                    regionName={currentCountry?.title}
                 />
                 <SumsubKycModals flow={sumsubFlow} />
             </div>

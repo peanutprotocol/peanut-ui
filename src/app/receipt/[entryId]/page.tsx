@@ -38,9 +38,11 @@ function mapTransactionTypeToOGType(transactionType: string): 'send' | 'request'
 function generateReceiptTitle(transaction: TransactionDetails): string {
     const { direction, amount, userName, status, currency, tokenSymbol } = transaction
 
-    // Format amount - use currency if available, otherwise tokenSymbol
+    // Format amount - use currency if available, otherwise tokenSymbol.
+    // Treat USDC/USDT as USD (1:1 peg) — `USDC 0.10` reads identically to
+    // `$0.10` and just clutters the title.
     let formattedAmount: string
-    if (currency && currency.code !== 'USD') {
+    if (currency && currency.code !== 'USD' && !isStableCoin(currency.code)) {
         formattedAmount = `${currency.code} ${formatAmount(currency.amount)}`
     } else if (tokenSymbol && !isStableCoin(tokenSymbol)) {
         formattedAmount = `${formatAmount(Number(amount))} ${tokenSymbol}`

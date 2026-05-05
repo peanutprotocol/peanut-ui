@@ -8,8 +8,8 @@ import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { type ITokenPriceData } from '@/interfaces'
+import type { ChainWithTokens } from '@/interfaces/chain-meta'
 import { formatAmount } from '@/utils/general.utils'
-import { interfaces } from '@squirrel-labs/peanut-sdk'
 import { useRouter } from 'next/navigation'
 import { useContext, useEffect } from 'react'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
@@ -17,11 +17,7 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.co
 
 interface InitialWithdrawViewProps {
     amount: string
-    onReview: (data: {
-        token: ITokenPriceData
-        chain: interfaces.ISquidChain & { networkName: string; tokens: interfaces.ISquidToken[] }
-        address: string
-    }) => void
+    onReview: (data: { token: ITokenPriceData; chain: ChainWithTokens; address: string }) => void
     onBack?: () => void
     isProcessing?: boolean
 }
@@ -32,7 +28,7 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
     const {
         selectedTokenData,
         selectedChainID,
-        supportedSquidChainsAndTokens,
+        supportedChainsAndTokens,
         setSelectedChainID,
         setSelectedTokenAddress,
     } = useContext(tokenSelectorContext)
@@ -49,7 +45,22 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
     } = useWithdrawFlow()
 
     const handleReview = () => {
-        const selectedChainData = supportedSquidChainsAndTokens[selectedChainID]
+        const xchainChainData = supportedChainsAndTokens[selectedChainID]
+        // supportedChainsAndTokens may not list the Peanut wallet chain on
+        // testnets / env-configured chains. Synthesize a minimal entry so the
+        // same-chain (no-bridge) path can proceed.
+        const isPeanutWalletChain = selectedChainID === PEANUT_WALLET_CHAIN.id.toString()
+        const fallbackChainData =
+            isPeanutWalletChain && !xchainChainData
+                ? ({
+                      chainId: PEANUT_WALLET_CHAIN.id.toString(),
+                      networkName: PEANUT_WALLET_CHAIN.name,
+                      chainIconURI: '',
+                      tokens: [],
+                  } satisfies ChainWithTokens)
+                : undefined
+        const selectedChainData = xchainChainData ?? fallbackChainData
+
         if (selectedTokenData && selectedChainData && recipient.address) {
             onReview({
                 token: selectedTokenData,
@@ -61,7 +72,12 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
                 showError: true,
                 errorMessage: 'Withdrawal details are missing',
             })
-            console.error('Token, chain, or address not selected/entered')
+            console.error('Token, chain, or address not selected/entered', {
+                hasToken: !!selectedTokenData,
+                hasChain: !!selectedChainData,
+                hasAddress: !!recipient.address,
+                selectedChainID,
+            })
         }
     }
 
