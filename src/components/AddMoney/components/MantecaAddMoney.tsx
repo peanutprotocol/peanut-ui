@@ -11,6 +11,7 @@ import { mantecaApi } from '@/services/manteca'
 import { parseUnits } from 'viem'
 import { useQueryClient } from '@tanstack/react-query'
 import useKycStatus from '@/hooks/useKycStatus'
+import useProviderRejectionStatus from '@/hooks/useProviderRejectionStatus'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
@@ -65,7 +66,8 @@ const MantecaAddMoney: FC = () => {
     const selectedCountry = useMemo(() => {
         return countryData.find((country) => country.type === 'country' && country.path === selectedCountryPath)
     }, [selectedCountryPath])
-    const { isUserMantecaKycApproved } = useKycStatus()
+    const { isUserMantecaKycApproved, isUserSumsubKycApproved } = useKycStatus()
+    const { manteca: mantecaRejection } = useProviderRejectionStatus()
     const currencyData = useCurrency(selectedCountry?.currency ?? 'ARS')
     const { user } = useAuth()
 
@@ -223,10 +225,32 @@ const MantecaAddMoney: FC = () => {
                     visible={showKycModal}
                     onClose={() => setShowKycModal(false)}
                     onVerify={async () => {
-                        await sumsubFlow.handleInitiateKyc('LATAM')
+                        if (mantecaRejection.state === 'blocked') {
+                            // blocked users cannot self-heal — route to support
+                            if (typeof window !== 'undefined' && (window as any).$crisp) {
+                                ;(window as any).$crisp.push(['do', 'chat:open'])
+                            }
+                            setShowKycModal(false)
+                            return
+                        }
+                        const hasRejection = mantecaRejection.state === 'fixable'
+                        if (hasRejection) {
+                            await sumsubFlow.handleSelfHealResubmit('MANTECA')
+                        } else {
+                            await sumsubFlow.handleInitiateKyc('LATAM', undefined, true)
+                        }
                         setShowKycModal(false)
                     }}
                     isLoading={sumsubFlow.isLoading}
+                    variant={
+                        mantecaRejection.state === 'fixable' || mantecaRejection.state === 'blocked'
+                            ? 'provider_rejection'
+                            : isUserSumsubKycApproved
+                              ? 'cross_region'
+                              : 'default'
+                    }
+                    providerMessage={mantecaRejection.userMessage ?? undefined}
+                    regionName={selectedCountry?.title}
                 />
                 <SumsubKycModals flow={sumsubFlow} />
                 <InputAmountStep
@@ -234,7 +258,7 @@ const MantecaAddMoney: FC = () => {
                     setTokenAmount={handleUsdAmountChange}
                     onSubmit={handleAmountSubmit}
                     isLoading={isCreatingDeposit}
-                    error={error}
+                    error={error || sumsubFlow.error}
                     currencyData={currencyData}
                     setCurrencyAmount={handleLocalCurrencyAmountChange}
                     setCurrentDenomination={handleDenominationChange}

@@ -176,7 +176,7 @@ export interface IUserKycVerification {
     providerRawStatus?: string | null
     sumsubApplicantId?: string | null
     rejectLabels?: string[] | null
-    rejectType?: 'RETRY' | 'FINAL' | null
+    rejectType?: 'RETRY' | 'FINAL' | 'PROVIDER_FIXABLE' | 'PROVIDER_FINAL' | null
     metadata?: { regionIntent?: string; [key: string]: unknown } | null
     createdAt: string
     updatedAt: string
