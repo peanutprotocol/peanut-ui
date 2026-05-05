@@ -360,83 +360,6 @@ describe('recognizeQr', () => {
         })
     })
 
-    describe('SIMPLEFI_STATIC', () => {
-        it.each([
-            ['https://www.pagar.simplefi.tech/peanut-test', 'with www'],
-            ['http://www.pagar.simplefi.tech/peanut-test', 'http protocol'],
-            ['http://www.pagar.simplefi.tech/peanut-test?stupid=params', 'with query params'],
-            ['https://pagar.simplefi.tech/peanut-test', 'with static=true param'],
-            ['www.pagar.simplefi.tech/peanut-test', 'without protocol'],
-            ['https://pagar.simplefi.tech/merchant-123', 'with numeric merchant slug'],
-            // New pay.simplefi.tech URLs
-            ['https://pay.simplefi.tech/peanut-test', 'pay subdomain with /static path'],
-            ['https://www.pay.simplefi.tech/peanut-tes', 'pay subdomain with www'],
-            ['http://www.pay.simplefi.tech/peanut-test', 'pay subdomain http protocol'],
-            ['https://pay.simplefi.tech/merchant-123', 'pay subdomain with numeric merchant slug'],
-        ])('should recognize %s (%s)', (data, _description) => {
-            expect(recognizeQr(data)).toBe(EQrType.SIMPLEFI_STATIC)
-        })
-    })
-
-    describe('SIMPLEFI_DYNAMIC', () => {
-        it.each([
-            // Old format with /payment/ (backward compatibility)
-            ['https://pagar.simplefi.tech/1234/payment/5678', 'old format: standard dynamic payment'],
-            ['https://www.pagar.simplefi.tech/merchant-slug/payment/pay-id-123', 'old format: with www'],
-            ['http://pagar.simplefi.tech/abc/payment/def', 'old format: http protocol'],
-            ['pagar.simplefi.tech/merchant/payment/payment-id', 'old format: without protocol'],
-            ['https://pay.simplefi.tech/1234/payment/5678', 'old format: pay subdomain'],
-            ['https://www.pay.simplefi.tech/merchant-slug/payment/pay-id-123', 'old format: pay subdomain with www'],
-            ['http://pay.simplefi.tech/abc/payment/def', 'old format: pay subdomain http protocol'],
-            ['pay.simplefi.tech/merchant/payment/payment-id', 'old format: pay subdomain without protocol'],
-            // New format without /payment/ (current)
-            ['https://pagar.simplefi.tech/1234/5678', 'new format: pagar subdomain'],
-            ['https://www.pagar.simplefi.tech/merchant-slug/pay-id-123', 'new format: pagar with www'],
-            ['http://pagar.simplefi.tech/abc/def', 'new format: pagar http protocol'],
-            ['pagar.simplefi.tech/merchant/payment-id', 'new format: pagar without protocol'],
-            ['https://pay.simplefi.tech/1234/5678', 'new format: pay subdomain'],
-            ['https://www.pay.simplefi.tech/merchant-slug/pay-id-123', 'new format: pay with www'],
-            ['http://pay.simplefi.tech/abc/def', 'new format: pay http protocol'],
-            ['pay.simplefi.tech/merchant/payment-id', 'new format: pay without protocol'],
-        ])('should recognize %s (%s)', (data, _description) => {
-            expect(recognizeQr(data)).toBe(EQrType.SIMPLEFI_DYNAMIC)
-        })
-
-        it.each([
-            ['https://pagar.simplefi.tech/1234/pay/5678/extra', 'too many path segments'],
-            ['https://pagar.simplefi.tech/merchant', 'only one path segment (should be USER_SPECIFIED)'],
-        ])('should NOT recognize %s as SIMPLEFI_DYNAMIC (%s)', (data, _description) => {
-            expect(recognizeQr(data)).not.toBe(EQrType.SIMPLEFI_DYNAMIC)
-        })
-    })
-
-    describe('SIMPLEFI_USER_SPECIFIED', () => {
-        it.each([
-            ['https://pagar.simplefi.tech/peanut-test/user-order', 'basic merchant slug'],
-            ['https://www.pagar.simplefi.tech/merchant/user-order', 'with www'],
-            ['http://pagar.simplefi.tech/shop-name/user-order', 'http protocol'],
-            ['pagar.simplefi.tech/store/user-order', 'without protocol'],
-            ['https://pagar.simplefi.tech/merchant-with-dashes/user-order', 'merchant with dashes'],
-            // New pay.simplefi.tech URLs
-            ['https://pay.simplefi.tech/peanut-test/user-order', 'pay subdomain basic merchant slug'],
-            ['https://www.pay.simplefi.tech/merchant/user-order', 'pay subdomain with www'],
-            ['http://pay.simplefi.tech/shop-name/user-order', 'pay subdomain http protocol'],
-            ['pay.simplefi.tech/store/user-order', 'pay subdomain without protocol'],
-            ['https://pay.simplefi.tech/merchant-with-dashes/user-order', 'pay subdomain merchant with dashes'],
-        ])('should recognize %s (%s)', (data, _description) => {
-            expect(recognizeQr(data)).toBe(EQrType.SIMPLEFI_USER_SPECIFIED)
-        })
-
-        it.each([
-            ['https://other-domain.com/merchant', 'wrong domain'],
-            ['https://simplefi.tech/merchant', 'missing pagar/pay subdomain'],
-            ['https://pagar.simplefi.tech/merchant/123', 'two path segments (should be DYNAMIC)'],
-            ['https://pay.simplefi.tech/merchant/456', 'two path segments on pay subdomain (should be DYNAMIC)'],
-        ])('should NOT recognize %s as SIMPLEFI_USER_SPECIFIED (%s)', (data, _description) => {
-            expect(recognizeQr(data)).not.toBe(EQrType.SIMPLEFI_USER_SPECIFIED)
-        })
-    })
-
     describe('URL (generic)', () => {
         it.each([
             ['https://example.com', 'basic https URL'],
@@ -502,36 +425,6 @@ describe('recognizeQr', () => {
             const mercadoPagoQr =
                 '00020101021143530016com.mercadolibre0129https://mpago.la/pos/8431598450150011307086329925204970053030325802AR5917Universo Aventura6004CABA630485DD'
             expect(recognizeQr(mercadoPagoQr)).toBe(EQrType.MERCADO_PAGO)
-        })
-
-        it('should prioritize SIMPLEFI_STATIC over SIMPLEFI_USER_SPECIFIED', () => {
-            const staticUrl = 'https://pagar.simplefi.tech/merchant'
-            expect(recognizeQr(staticUrl)).toBe(EQrType.SIMPLEFI_STATIC)
-        })
-
-        it('should prioritize SIMPLEFI_DYNAMIC over SIMPLEFI_USER_SPECIFIED', () => {
-            const dynamicUrl = 'https://pagar.simplefi.tech/merchant/payment/123'
-            expect(recognizeQr(dynamicUrl)).toBe(EQrType.SIMPLEFI_DYNAMIC)
-        })
-
-        it('should prioritize SIMPLEFI_STATIC over SIMPLEFI_USER_SPECIFIED for pay.simplefi.tech', () => {
-            const staticUrl = 'https://pay.simplefi.tech/merchant'
-            expect(recognizeQr(staticUrl)).toBe(EQrType.SIMPLEFI_STATIC)
-        })
-
-        it('should prioritize SIMPLEFI_DYNAMIC over SIMPLEFI_USER_SPECIFIED for pay.simplefi.tech', () => {
-            const dynamicUrl = 'https://pay.simplefi.tech/merchant/payment/123'
-            expect(recognizeQr(dynamicUrl)).toBe(EQrType.SIMPLEFI_DYNAMIC)
-        })
-
-        it('should prioritize SIMPLEFI_DYNAMIC (new format) over SIMPLEFI_USER_SPECIFIED for pagar.simplefi.tech', () => {
-            const dynamicUrlNewFormat = 'https://pagar.simplefi.tech/merchant/123'
-            expect(recognizeQr(dynamicUrlNewFormat)).toBe(EQrType.SIMPLEFI_DYNAMIC)
-        })
-
-        it('should prioritize SIMPLEFI_DYNAMIC (new format) over SIMPLEFI_USER_SPECIFIED for pay.simplefi.tech', () => {
-            const dynamicUrlNewFormat = 'https://pay.simplefi.tech/merchant/456'
-            expect(recognizeQr(dynamicUrlNewFormat)).toBe(EQrType.SIMPLEFI_DYNAMIC)
         })
 
         it('should prioritize ENS_NAME over URL for valid ENS domains', () => {

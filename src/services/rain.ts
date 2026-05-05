@@ -4,8 +4,7 @@
  * Client-side service for every Rain card endpoint (overview, apply,
  * activate/lock/cancel, reveal, PIN, limits, physical waitlist,
  * withdrawals, session-key grant). Uses the browser's JWT cookie directly
- * (via `js-cookie`) — matches the pattern in `services/manteca.ts` /
- * `services/simplefi.ts`.
+ * (via `js-cookie`) — matches the pattern in `services/manteca.ts`.
  */
 
 import Cookies from 'js-cookie'

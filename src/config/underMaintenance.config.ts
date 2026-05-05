@@ -13,7 +13,7 @@
  *    - use this when you want to warn users about ongoing maintenance
  *
  * 3. disabledPaymentProviders: array of payment providers to disable
- *    - blocks QR payments for specific providers (e.g., 'MANTECA', 'SIMPLEFI')
+ *    - blocks QR payments for specific providers (e.g., 'MANTECA')
  *    - shows clear error message to users about provider outage
  *    - other providers continue to work normally
  *
@@ -40,7 +40,7 @@
  *
  */
 
-export type PaymentProvider = 'MANTECA' | 'SIMPLEFI'
+export type PaymentProvider = 'MANTECA'
 
 interface MaintenanceConfig {
     enableFullMaintenance: boolean
