@@ -12,6 +12,7 @@ import { useAuth } from '@/context/authContext'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY, useRainCardOverview } from '@/hooks/useRainCardOverview'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { computeCardState, findActiveCard, type CardTopLevelState } from '@/components/Card/cardState.utils'
+import { pollUntilApplyAdvances } from '@/components/Card/cardApply.utils'
 import CardPioneerFlow from '@/components/Card/CardPioneerFlow'
 import AddCardEntryScreen from '@/components/Card/AddCardEntryScreen'
 import ApplicationStatusScreen from '@/components/Card/ApplicationStatusScreen'
@@ -21,7 +22,7 @@ import Loading from '@/components/Global/Loading'
 import { Button } from '@/components/0_Bruddle/Button'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
-import { rainApi } from '@/services/rain'
+import { rainApi, type ApplyForCardResponse } from '@/services/rain'
 import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
 import { useModalsContext } from '@/context/ModalsContext'
 
@@ -87,6 +88,33 @@ const CardPage: FC = () => {
         void queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] })
     }, [queryClient])
 
+    // Routes a non-incomplete apply response to the right next screen. Shared
+    // by the user-initiated apply path and the post-Sumsub poll, since both
+    // need the same main-kyc-required / terms-required / default fan-out.
+    // The `incomplete` branch is caller-specific (open Sumsub vs keep polling)
+    // and stays inline.
+    const advanceFromApplyResponse = useCallback(
+        (res: ApplyForCardResponse) => {
+            // Main applicant is missing a doc Rain requires (e.g. SELFIE
+            // after liveness was added to the level). Open WebSDK at the
+            // MAIN level — Sumsub asks only for the missing step. Same
+            // wrapper handles both action and main-level tokens.
+            if (res.status === 'main-kyc-required' && 'sumsubAccessToken' in res) {
+                setSumsubToken(res.sumsubAccessToken)
+                posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
+                return
+            }
+            if (res.status === 'terms-required' && 'isUsResident' in res) {
+                setPendingTerms({ isUsResident: res.isUsResident })
+                return
+            }
+            // pending / already-applied → state machine routes based on overview.
+            setPendingTerms(null)
+            invalidateOverview()
+        },
+        [invalidateOverview]
+    )
+
     const handleApply = useCallback(
         async (termsAccepted = false, serializedApproval?: string) => {
             setApplyError(null)
@@ -102,22 +130,7 @@ const CardPage: FC = () => {
                     posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
                     return
                 }
-                // Main applicant is missing a doc Rain requires (e.g. SELFIE
-                // after liveness was added to the level). Open WebSDK at the
-                // MAIN level — Sumsub asks only for the missing step. Same
-                // wrapper handles both action and main-level tokens.
-                if (res.status === 'main-kyc-required' && 'sumsubAccessToken' in res) {
-                    setSumsubToken(res.sumsubAccessToken)
-                    posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
-                    return
-                }
-                if (res.status === 'terms-required' && 'isUsResident' in res) {
-                    setPendingTerms({ isUsResident: res.isUsResident })
-                    return
-                }
-                // pending / already-applied → state machine routes based on overview.
-                setPendingTerms(null)
-                invalidateOverview()
+                advanceFromApplyResponse(res)
             } catch (e) {
                 const message = e instanceof Error ? e.message : 'Failed to apply for card'
                 console.error('[card apply] error:', e)
@@ -125,7 +138,7 @@ const CardPage: FC = () => {
                 posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_FAILED, { error_message: message })
             }
         },
-        [invalidateOverview]
+        [advanceFromApplyResponse]
     )
 
     const handleAcceptTerms = useCallback(async () => {
@@ -179,14 +192,47 @@ const CardPage: FC = () => {
     // CARD_SUMSUB_CLOSED and inflate the abandonment number.
     const sumsubCompletedRef = useRef(false)
 
+    // Aborts the post-Sumsub poll on unmount so we don't burn 15 sequential
+    // fetches (and setState on an unmounted component) when an impatient user
+    // navigates away from the pending screen mid-poll.
+    const pollAbortRef = useRef<AbortController | null>(null)
+    useEffect(() => () => pollAbortRef.current?.abort(), [])
+
     const handleSumsubComplete = useCallback(async () => {
         sumsubCompletedRef.current = true
         posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_COMPLETED)
         setSumsubToken(null)
-        // Re-submit now that the user finished the applicant action. Backend
-        // will return terms-required next (since termsAccepted is still false).
-        await handleApply(false)
-    }, [handleApply])
+        setApplyError(null)
+        setIsIssuing(true)
+
+        pollAbortRef.current?.abort()
+        const controller = new AbortController()
+        pollAbortRef.current = controller
+
+        try {
+            const res = await pollUntilApplyAdvances({
+                fetchApply: () => rainApi.applyForCard({ termsAccepted: false }),
+                intervalMs: 1000,
+                timeoutMs: 15000,
+                signal: controller.signal,
+            })
+            if (controller.signal.aborted) return
+            if (!res) {
+                setApplyError('Verification is taking longer than expected. Please try again.')
+                return
+            }
+            posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_SUCCEEDED, { outcome: res.status })
+            advanceFromApplyResponse(res)
+        } catch (e) {
+            if (controller.signal.aborted) return
+            const message = e instanceof Error ? e.message : 'Failed to apply for card'
+            console.error('[card apply] post-sumsub poll error:', e)
+            setApplyError(message)
+            posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_FAILED, { error_message: message })
+        } finally {
+            if (!controller.signal.aborted) setIsIssuing(false)
+        }
+    }, [advanceFromApplyResponse])
 
     const handleSumsubClose = useCallback(() => {
         if (!sumsubCompletedRef.current) {
