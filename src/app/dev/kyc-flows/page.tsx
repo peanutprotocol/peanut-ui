@@ -1,17 +1,21 @@
 import fs from 'fs'
 import path from 'path'
 import { MermaidRenderer } from './MermaidRenderer'
+import { FALLBACK_MARKDOWN } from './fallback-data'
 
-// mono repo path — works from standalone clone (~/Developer/peanut/peanut-ui)
-// and from mono submodule (~/Developer/peanut-mono/peanut-ui)
+// local mono repo paths — tried first for instant local dev
 const MONO_PATHS = [
     path.resolve(process.cwd(), '../../peanut-mono/engineering/projects/kyc-2.0/flow-diagram.md'),
     path.resolve(process.cwd(), '../engineering/projects/kyc-2.0/flow-diagram.md'),
 ]
 
-function findMonoFile(): string | null {
+function findLocalFile(): string | null {
     for (const p of MONO_PATHS) {
-        if (fs.existsSync(p)) return p
+        try {
+            if (fs.existsSync(p)) return p
+        } catch {
+            // fs may not work in all environments
+        }
     }
     return null
 }
@@ -25,7 +29,6 @@ function parseMermaidBlocks(markdown: string): Array<{ title: string; code: stri
     let codeLines: string[] = []
 
     for (const line of lines) {
-        // capture section headers as titles
         if (line.startsWith('## ') || line.startsWith('### ')) {
             currentTitle = line.replace(/^#+\s*/, '').replace(/\*\*/g, '')
         }
@@ -53,29 +56,15 @@ function parseMermaidBlocks(markdown: string): Array<{ title: string; code: stri
 }
 
 export default function KycFlowsPage() {
-    const filePath = findMonoFile()
-
-    if (!filePath) {
-        return (
-            <div style={{ padding: 40, fontFamily: 'system-ui, sans-serif' }}>
-                <h1>KYC Flows — File Not Found</h1>
-                <p style={{ color: '#ef4444' }}>
-                    Could not find <code>engineering/projects/kyc-2.0/flow-diagram.md</code> in mono repo.
-                </p>
-                <p>Searched paths:</p>
-                <ul>
-                    {MONO_PATHS.map((p) => (
-                        <li key={p}>
-                            <code>{p}</code>
-                        </li>
-                    ))}
-                </ul>
-            </div>
-        )
+    // try local mono file first (instant, always fresh)
+    const localPath = findLocalFile()
+    if (localPath) {
+        const markdown = fs.readFileSync(localPath, 'utf-8')
+        const diagrams = parseMermaidBlocks(markdown)
+        return <MermaidRenderer diagrams={diagrams} source={`local: ${localPath}`} />
     }
 
-    const markdown = fs.readFileSync(filePath, 'utf-8')
-    const diagrams = parseMermaidBlocks(markdown)
-
-    return <MermaidRenderer diagrams={diagrams} filePath={filePath} />
+    // fallback: use hardcoded snapshot (for staging/vercel where mono isn't on disk)
+    const diagrams = parseMermaidBlocks(FALLBACK_MARKDOWN)
+    return <MermaidRenderer diagrams={diagrams} source="hardcoded fallback (update fallback-data.ts to refresh)" />
 }
