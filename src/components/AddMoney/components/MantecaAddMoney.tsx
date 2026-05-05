@@ -225,6 +225,14 @@ const MantecaAddMoney: FC = () => {
                     visible={showKycModal}
                     onClose={() => setShowKycModal(false)}
                     onVerify={async () => {
+                        if (mantecaRejection.state === 'blocked') {
+                            // blocked users cannot self-heal — route to support
+                            if (typeof window !== 'undefined' && (window as any).$crisp) {
+                                ;(window as any).$crisp.push(['do', 'chat:open'])
+                            }
+                            setShowKycModal(false)
+                            return
+                        }
                         const hasRejection = mantecaRejection.state === 'fixable'
                         if (hasRejection) {
                             await sumsubFlow.handleSelfHealResubmit('MANTECA')

@@ -83,6 +83,7 @@ export function useQrKycGate(paymentProcessor?: 'MANTECA' | 'SIMPLEFI' | null): 
                 const isFixable =
                     railMeta.selfHealable === true &&
                     mantecaKyc?.rejectType !== 'PROVIDER_FINAL' &&
+                    mantecaKyc?.rejectType !== 'FINAL' &&
                     ((kycMeta.selfHealAttempt as number) || 0) < MAX_SELF_HEAL_ATTEMPTS
                 setKycGateState(
                     isFixable ? QrKycState.PROVIDER_REJECTION_FIXABLE : QrKycState.PROVIDER_REJECTION_BLOCKED
@@ -132,7 +133,7 @@ export function useQrKycGate(paymentProcessor?: 'MANTECA' | 'SIMPLEFI' | null): 
         }
 
         setKycGateState(QrKycState.REQUIRES_IDENTITY_VERIFICATION)
-    }, [user?.user, isFetchingUser, paymentProcessor, fetchUser])
+    }, [user?.user, user?.rails, isFetchingUser, paymentProcessor, fetchUser])
 
     useEffect(() => {
         determineKycGateState()

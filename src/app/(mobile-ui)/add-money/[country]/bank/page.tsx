@@ -72,7 +72,8 @@ export default function OnrampBankPage() {
     // regionIntent is NOT passed here to avoid creating a backend record on mount.
     // intent is passed at call time: handleInitiateKyc('STANDARD')
     const sumsubFlow = useMultiPhaseKycFlow({
-        onKycSuccess: () => {
+        onKycSuccess: async () => {
+            await fetchUser()
             setUrlState({ step: 'inputAmount' })
         },
     })

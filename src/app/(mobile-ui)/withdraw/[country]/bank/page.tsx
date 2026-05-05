@@ -70,7 +70,11 @@ export default function WithdrawBankPage() {
     const { hasPendingTransactions } = usePendingTransactions()
     const { isBridgeSupportedCountry } = useIdentityVerification()
     const { isUserSumsubKycApproved, isUserBridgeKycApproved } = useKycStatus()
-    const sumsubFlow = useMultiPhaseKycFlow({})
+    const sumsubFlow = useMultiPhaseKycFlow({
+        onKycSuccess: async () => {
+            await fetchUser()
+        },
+    })
     const [showKycModal, setShowKycModal] = useState(false)
     const needsBridgeEnrollment = isUserSumsubKycApproved && !isUserBridgeKycApproved && !user?.user.bridgeCustomerId
 
