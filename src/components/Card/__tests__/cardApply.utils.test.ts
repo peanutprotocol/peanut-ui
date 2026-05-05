@@ -69,4 +69,43 @@ describe('pollUntilApplyAdvances', () => {
 
         expect(fetchApply).toHaveBeenCalledTimes(1)
     })
+
+    it('returns null and stops polling once the signal is aborted', async () => {
+        const controller = new AbortController()
+        const fetchApply = jest.fn().mockImplementation(async () => {
+            // abort during the second fetch so we exercise the post-fetch guard
+            if (fetchApply.mock.calls.length === 2) controller.abort()
+            return { status: 'incomplete', sumsubAccessToken: 't' }
+        })
+
+        const result = await pollUntilApplyAdvances({
+            fetchApply,
+            intervalMs: 0,
+            timeoutMs: 10_000,
+            signal: controller.signal,
+            sleep: noSleep,
+        })
+
+        expect(result).toBeNull()
+        // 1: first poll (incomplete) → sleep → check signal (aborted) → return
+        // 2: second poll fired before the post-sleep check sees the abort — no third
+        expect(fetchApply).toHaveBeenCalledTimes(2)
+    })
+
+    it('returns null immediately when signal is already aborted', async () => {
+        const controller = new AbortController()
+        controller.abort()
+        const fetchApply = jest.fn()
+
+        const result = await pollUntilApplyAdvances({
+            fetchApply,
+            intervalMs: 0,
+            timeoutMs: 10_000,
+            signal: controller.signal,
+            sleep: noSleep,
+        })
+
+        expect(result).toBeNull()
+        expect(fetchApply).not.toHaveBeenCalled()
+    })
 })

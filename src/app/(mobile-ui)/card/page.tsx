@@ -192,6 +192,12 @@ const CardPage: FC = () => {
     // CARD_SUMSUB_CLOSED and inflate the abandonment number.
     const sumsubCompletedRef = useRef(false)
 
+    // Aborts the post-Sumsub poll on unmount so we don't burn 15 sequential
+    // fetches (and setState on an unmounted component) when an impatient user
+    // navigates away from the pending screen mid-poll.
+    const pollAbortRef = useRef<AbortController | null>(null)
+    useEffect(() => () => pollAbortRef.current?.abort(), [])
+
     const handleSumsubComplete = useCallback(async () => {
         sumsubCompletedRef.current = true
         posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_COMPLETED)
@@ -199,12 +205,18 @@ const CardPage: FC = () => {
         setApplyError(null)
         setIsIssuing(true)
 
+        pollAbortRef.current?.abort()
+        const controller = new AbortController()
+        pollAbortRef.current = controller
+
         try {
             const res = await pollUntilApplyAdvances({
                 fetchApply: () => rainApi.applyForCard({ termsAccepted: false }),
                 intervalMs: 1000,
                 timeoutMs: 15000,
+                signal: controller.signal,
             })
+            if (controller.signal.aborted) return
             if (!res) {
                 setApplyError('Verification is taking longer than expected. Please try again.')
                 return
@@ -212,12 +224,13 @@ const CardPage: FC = () => {
             posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_SUCCEEDED, { outcome: res.status })
             advanceFromApplyResponse(res)
         } catch (e) {
+            if (controller.signal.aborted) return
             const message = e instanceof Error ? e.message : 'Failed to apply for card'
             console.error('[card apply] post-sumsub poll error:', e)
             setApplyError(message)
             posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_FAILED, { error_message: message })
         } finally {
-            setIsIssuing(false)
+            if (!controller.signal.aborted) setIsIssuing(false)
         }
     }, [advanceFromApplyResponse])
 
