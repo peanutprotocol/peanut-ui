@@ -470,7 +470,7 @@ export default function QRPayPage() {
             if (error instanceof InsufficientSpendableError) {
                 setErrorMessage('Not enough USDC in your wallet or card to cover this payment.')
             } else if (error instanceof SessionKeyGrantRequiredError) {
-                setErrorMessage('Card permission needed to pay from card balance — please try again.')
+                setErrorMessage("One-time card authorization needed. You'll be asked to confirm once.")
             } else if ((error as Error).toString().includes('not allowed')) {
                 setErrorMessage('Please confirm the transaction.')
             } else {
@@ -505,6 +505,12 @@ export default function QRPayPage() {
                           signedUserOp: signedArtifact.signedUserOp.signedUserOp,
                           chainId: signedArtifact.signedUserOp.chainId,
                           entryPointAddress: signedArtifact.signedUserOp.entryPointAddress,
+                          // For mixed: tell backend about the Rain prepare intent
+                          // embedded in the UserOp's batched callData so it can
+                          // reconcile the collateral webhook to QR_PAY in history.
+                          ...(signedArtifact.strategy === 'mixed'
+                              ? { rainPreparationId: signedArtifact.rainPreparationId }
+                              : {}),
                       } as const)
             const qrPayment = await mantecaApi.completeQrPaymentWithSignedTx(requestBody)
             // clear the timer since we got a response
@@ -524,6 +530,11 @@ export default function QRPayPage() {
             // this ensures a consistent reward experience regardless of amount.
 
             setIsSuccess(true)
+            posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_SUCCEEDED, {
+                strategy: signedArtifact.strategy,
+                kind: 'QR_PAY',
+                flow: 'sign-only',
+            })
         } catch (error) {
             // clear the timer on error to prevent race condition
             if (payingStateTimerRef.current) {
@@ -553,16 +564,7 @@ export default function QRPayPage() {
         } finally {
             setLoadingState('Idle')
         }
-    }, [
-        paymentLock?.code,
-        signSpend,
-        balance,
-        rainCardOverview?.balance?.spendingPower,
-        qrCode,
-        currencyAmount,
-        setLoadingState,
-        qrType,
-    ])
+    }, [paymentLock, signSpend, balance, rainCardOverview, qrCode, currencyAmount, setLoadingState, qrType])
 
     const payQR = useCallback(async () => {
         if (paymentProcessor === 'MANTECA') {

@@ -26,3 +26,14 @@ export const rainSpendingPowerToWei = (spendingPowerCents: number | null | undef
     const widenFactor = BigInt(10 ** (PEANUT_WALLET_TOKEN_DECIMALS - 2))
     return BigInt(Math.floor(spendingPowerCents)) * widenFactor
 }
+
+/**
+ * Convert a USDC wei amount (PEANUT_WALLET_TOKEN_DECIMALS, typically 6dp) to
+ * Rain's native cents (2dp). Rounds up so a sub-cent shortfall still
+ * withdraws at least one cent — Rain rejects 0-amount withdrawals.
+ */
+export const usdcWeiToRainCents = (amountWei: bigint): bigint => {
+    if (amountWei <= 0n) return 0n
+    const divisor = 10n ** BigInt(PEANUT_WALLET_TOKEN_DECIMALS - 2)
+    return (amountWei + divisor - 1n) / divisor
+}

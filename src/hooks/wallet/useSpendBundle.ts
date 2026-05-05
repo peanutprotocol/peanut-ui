@@ -19,6 +19,7 @@ import { rainApi, type TransactionIntentKind } from '@/services/rain'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useGrantSessionKey, type GrantSessionKeyError } from './useGrantSessionKey'
+import { usdcWeiToRainCents } from '@/utils/balance.utils'
 
 export type SpendStrategy = 'collateral-only' | 'smart-only' | 'mixed' | 'insufficient'
 
@@ -87,19 +88,9 @@ export class SessionKeyGrantRequiredError extends Error {
     }
 }
 
-/**
- * Rain's `/signatures/withdrawals` API, the EIP-712 `Withdraw` message it
- * signs, and the on-chain `coordinator.withdrawAsset` all take `amount` in
- * **cents** (2 decimals) — Rain's sample V2 code calls the field
- * `amountInCents`. Our internal representation is USDC wei (token decimals,
- * typically 6). Convert at the Rain boundary, rounding up so a sub-cent
- * shortfall still withdraws at least one cent.
- */
-function usdcWeiToRainCents(amountWei: bigint): bigint {
-    if (amountWei <= 0n) return 0n
-    const divisor = 10n ** BigInt(PEANUT_WALLET_TOKEN_DECIMALS - 2)
-    return (amountWei + divisor - 1n) / divisor
-}
+// `usdcWeiToRainCents` lives in @/utils/balance.utils alongside its sibling
+// `rainSpendingPowerToWei` — both convert at the Rain wire boundary (cents,
+// 2dp) ↔ USDC wei (PEANUT_WALLET_TOKEN_DECIMALS).
 
 /**
  * Pure routing helper — decides which bucket(s) a spend will pull from.

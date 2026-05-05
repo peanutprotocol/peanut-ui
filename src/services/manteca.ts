@@ -165,6 +165,11 @@ export const mantecaApi = {
                   >
                   chainId: string
                   entryPointAddress: Address
+                  /** Set when the UserOp embeds a Rain `withdrawAsset` call (mixed
+                   *  strategy). Lets backend stamp the prepared intent with the
+                   *  on-chain tx hash so the collateral webhook reconciles to the
+                   *  right kind in history (vs. an unmatched generic charge). */
+                  rainPreparationId?: string
               }
             | {
                   kind: 'rainWithdrawal'

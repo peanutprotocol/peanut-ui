@@ -38,18 +38,27 @@ export const useSignUserOp = () => {
             calls: { to: Hex; value: bigint; data: Hex }[],
             chainId: string = PEANUT_WALLET_CHAIN.id.toString()
         ): Promise<SignedUserOpData> => {
-            const client = getClientForChain(chainId)
-            if (!client.account) {
-                throw new Error('Smart account not initialized')
-            }
-            const signedUserOp = await signUserOperation(client, {
-                account: client.account,
-                callData: await client.account.encodeCalls(calls),
-            })
-            return {
-                signedUserOp,
-                chainId,
-                entryPointAddress: USER_OP_ENTRY_POINT.address,
+            try {
+                const client = getClientForChain(chainId)
+                if (!client.account) {
+                    throw new Error('Smart account not initialized')
+                }
+                const signedUserOp = await signUserOperation(client, {
+                    account: client.account,
+                    callData: await client.account.encodeCalls(calls),
+                })
+                return {
+                    signedUserOp,
+                    chainId,
+                    entryPointAddress: USER_OP_ENTRY_POINT.address,
+                }
+            } catch (error) {
+                console.error('[useSignUserOp] Error signing calls UserOperation:', error)
+                captureException(error, {
+                    tags: { feature: 'sign-user-op' },
+                    extra: { callCount: calls.length, chainId },
+                })
+                throw error
             }
         },
         [getClientForChain]
