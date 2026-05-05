@@ -1,9 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import { MermaidRenderer } from './MermaidRenderer'
-
-const GITHUB_RAW_URL =
-    'https://raw.githubusercontent.com/peanutprotocol/mono/main/engineering/projects/kyc-2.0/flow-diagram.md'
+import { FALLBACK_MARKDOWN } from './fallback-data'
 
 // local mono repo paths — tried first for instant local dev
 const MONO_PATHS = [
@@ -57,8 +55,8 @@ function parseMermaidBlocks(markdown: string): Array<{ title: string; code: stri
     return diagrams
 }
 
-export default async function KycFlowsPage() {
-    // try local file first (instant, no network)
+export default function KycFlowsPage() {
+    // try local mono file first (instant, always fresh)
     const localPath = findLocalFile()
     if (localPath) {
         const markdown = fs.readFileSync(localPath, 'utf-8')
@@ -66,22 +64,7 @@ export default async function KycFlowsPage() {
         return <MermaidRenderer diagrams={diagrams} source={`local: ${localPath}`} />
     }
 
-    // fallback: fetch from github (for staging/vercel)
-    try {
-        const res = await fetch(GITHUB_RAW_URL, { next: { revalidate: 300 } })
-        if (!res.ok) throw new Error(`${res.status}`)
-        const markdown = await res.text()
-        const diagrams = parseMermaidBlocks(markdown)
-        return <MermaidRenderer diagrams={diagrams} source="github: peanutprotocol/mono (main)" />
-    } catch (err) {
-        return (
-            <div style={{ padding: 40, fontFamily: 'system-ui, sans-serif' }}>
-                <h1>KYC Flows — Failed to Load</h1>
-                <p style={{ color: '#ef4444' }}>
-                    could not read <code>flow-diagram.md</code> from local mono repo or github.
-                </p>
-                <p style={{ color: '#666', fontSize: 14 }}>error: {err instanceof Error ? err.message : 'unknown'}</p>
-            </div>
-        )
-    }
+    // fallback: use hardcoded snapshot (for staging/vercel where mono isn't on disk)
+    const diagrams = parseMermaidBlocks(FALLBACK_MARKDOWN)
+    return <MermaidRenderer diagrams={diagrams} source="hardcoded fallback (update fallback-data.ts to refresh)" />
 }
