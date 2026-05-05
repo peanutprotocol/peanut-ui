@@ -19,11 +19,10 @@ export interface QrKycGateResult {
 
 /**
  * This hook determines the KYC gate state for the QR pay page.
- * It checks the user's KYC status and the country of the QR code to determine the appropriate action.
- * @param paymentProcessor - The payment processor type ('MANTECA' | null)
+ * It checks the user's KYC status to determine the appropriate action.
  * @returns {QrKycGateResult} An object with the KYC gate state and a boolean indicating if the user should be blocked from paying.
  */
-export function useQrKycGate(paymentProcessor?: 'MANTECA' | null): QrKycGateResult {
+export function useQrKycGate(): QrKycGateResult {
     const { user, isFetchingUser, fetchUser } = useAuth()
     const [kycGateState, setKycGateState] = useState<QrKycState>(QrKycState.LOADING)
     const hasRequestedUserFetchRef = useRef(false)
@@ -102,7 +101,7 @@ export function useQrKycGate(paymentProcessor?: 'MANTECA' | null): QrKycGateResu
         }
 
         setKycGateState(QrKycState.REQUIRES_IDENTITY_VERIFICATION)
-    }, [user?.user, isFetchingUser, paymentProcessor, fetchUser])
+    }, [user?.user, isFetchingUser, fetchUser])
 
     useEffect(() => {
         determineKycGateState()

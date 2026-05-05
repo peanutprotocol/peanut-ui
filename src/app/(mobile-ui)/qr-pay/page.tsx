@@ -103,7 +103,7 @@ export default function QRPayPage() {
         return paymentProcessor ? maintenanceConfig.disabledPaymentProviders.includes(paymentProcessor) : false
     }, [paymentProcessor])
 
-    const { shouldBlockPay, kycGateState } = useQrKycGate(paymentProcessor)
+    const { shouldBlockPay, kycGateState } = useQrKycGate()
     const { isUserMantecaKycApproved } = useKycStatus()
     const queryClient = useQueryClient()
     const [isShaking, setIsShaking] = useState(false)
@@ -116,7 +116,6 @@ export default function QRPayPage() {
     const holdStartTimeRef = useRef<number | null>(null)
     const payingStateTimerRef = useRef<NodeJS.Timeout | null>(null)
     const { user } = useAuth()
-    const [shouldRetry, setShouldRetry] = useState(true)
     const { setIsSupportModalOpen, openSupportWithMessage: openSupportForLimits } = useModalsContext()
     const [waitingForMerchantAmount, setWaitingForMerchantAmount] = useState(false)
     const retryCount = useRef(0)
@@ -145,8 +144,6 @@ export default function QRPayPage() {
         setHoldProgress(0)
         setIsShaking(false)
         setShakeIntensity('none')
-        // reset retry state to allow refetching
-        setShouldRetry(true)
         setWaitingForMerchantAmount(false)
         retryCount.current = 0
         // reset perk states
@@ -345,6 +342,7 @@ export default function QRPayPage() {
         isLoading: isLoadingPaymentLock,
         error: paymentLockError,
         failureReason: paymentLockFailureReason,
+        refetch: refetchPaymentLock,
     } = useQuery({
         queryKey: ['manteca-payment-lock', qrCode, timestamp],
         queryFn: async () => {
@@ -917,8 +915,10 @@ export default function QRPayPage() {
                 </Card>
                 <Button
                     onClick={() => {
+                        // Merchant likely entered the amount on their POS between
+                        // scans, so a fresh fetch with the same URL succeeds.
                         setShowOrderNotReadyModal(false)
-                        setShouldRetry(true)
+                        void refetchPaymentLock()
                     }}
                     variant="purple"
                     shadowSize="4"

@@ -4,7 +4,7 @@
  * Uses 'verified-ar' persona so the payment form renders instead of hitting
  * the KYC gate. Falls back to default user if persona isn't available.
  *
- * We can't complete a real payment (needs Manteca/SimpleFi backend), but we
+ * We can't complete a real payment (needs Manteca backend), but we
  * CAN snapshot the entry states:
  *   - Landing on /qr-pay without a QR code → error/redirect
  *   - Landing with a mock QR code → initial UI before payment attempt
