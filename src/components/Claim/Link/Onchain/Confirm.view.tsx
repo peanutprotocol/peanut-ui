@@ -95,7 +95,7 @@ export const ConfirmClaimLinkView = ({
         try {
             let claimTxHash: string | undefined = ''
             if (selectedRoute) {
-                if (underMaintenanceConfig.disableSquidSend) {
+                if (underMaintenanceConfig.disableXchainSend) {
                     // safety net for stale routes — picker normally prevents reaching this view with a route
                     setErrorState({ showError: true, errorMessage: CROSS_CHAIN_DISABLED_MESSAGE })
                     setLoadingState('Idle')

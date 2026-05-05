@@ -327,7 +327,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
 
                 // check if cross-chain claiming is needed
                 if (isXChain) {
-                    if (underMaintenanceConfig.disableSquidSend) {
+                    if (underMaintenanceConfig.disableXchainSend) {
                         // skip throwing through ErrorHandler — surface the friendly maintenance message directly
                         setErrorState({ showError: true, errorMessage: CROSS_CHAIN_DISABLED_MESSAGE })
                         setLoadingState('Idle')

@@ -413,7 +413,11 @@ export default function OnrampBankPage() {
                         if (!needsBridgeEnrollment && bridgeRejection.state === 'fixable') {
                             await sumsubFlow.handleSelfHealResubmit('BRIDGE')
                         } else {
-                            await sumsubFlow.handleInitiateKyc('STANDARD', undefined, needsBridgeEnrollment || undefined)
+                            await sumsubFlow.handleInitiateKyc(
+                                'STANDARD',
+                                undefined,
+                                needsBridgeEnrollment || undefined
+                            )
                         }
                         setShowKycModal(false)
                     }}

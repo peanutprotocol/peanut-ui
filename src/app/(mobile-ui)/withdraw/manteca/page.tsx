@@ -764,7 +764,9 @@ export default function MantecaWithdrawFlow() {
                                   : 'Review'}
                         </Button>
 
-                        {(errorMessage || sumsubFlow.error) && <ErrorAlert description={(errorMessage || sumsubFlow.error)!} />}
+                        {(errorMessage || sumsubFlow.error) && (
+                            <ErrorAlert description={(errorMessage || sumsubFlow.error)!} />
+                        )}
                     </div>
                 </div>
             )}
@@ -821,7 +823,9 @@ export default function MantecaWithdrawFlow() {
                     >
                         {isLoading ? loadingState : 'Withdraw'}
                     </Button>
-                    {(errorMessage || sumsubFlow.error) && <ErrorAlert description={(errorMessage || sumsubFlow.error)!} />}
+                    {(errorMessage || sumsubFlow.error) && (
+                        <ErrorAlert description={(errorMessage || sumsubFlow.error)!} />
+                    )}
                 </div>
             )}
         </div>

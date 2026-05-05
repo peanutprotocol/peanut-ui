@@ -95,6 +95,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             if (hasFixableRejection) {
                 return {
                     icon: 'globe-lock',
+                    iconBg: 'bg-primary-1',
                     title: 'Complete your setup',
                     description:
                         primaryRejection?.userMessage || 'We need an updated document before you can add money.',
@@ -105,6 +106,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             // blocked
             return {
                 icon: 'globe-lock',
+                iconBg: 'bg-primary-1',
                 title: 'Verification issue',
                 description: 'Contact support for help with your verification.',
                 ctaLabel: 'Contact support',

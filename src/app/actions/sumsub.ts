@@ -23,10 +23,7 @@ export const initiateSumsubKyc = async (params?: {
 
         if (!response.ok) {
             return {
-                error:
-                    responseJson.userMessage ||
-                    responseJson.error ||
-                    'Failed to initiate identity verification',
+                error: responseJson.userMessage || responseJson.error || 'Failed to initiate identity verification',
             }
         }
 
@@ -59,20 +56,9 @@ export interface SelfHealResubmissionResponse {
 export const initiateSelfHealResubmission = async (
     provider: 'BRIDGE' | 'MANTECA'
 ): Promise<{ data?: SelfHealResubmissionResponse; error?: string }> => {
-    const jwtToken = (await getJWTCookie())?.value
-
-    if (!jwtToken) {
-        return { error: 'Authentication required' }
-    }
-
     try {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/users/identity/resubmit`, {
+        const response = await serverFetch('/users/identity/resubmit', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${jwtToken}`,
-                'api-key': API_KEY,
-            },
             body: JSON.stringify({ provider }),
         })
 
