@@ -35,7 +35,7 @@ describe('pollUntilApplyAdvances', () => {
         expect(fetchApply).toHaveBeenCalledTimes(1)
     })
 
-    it('returns timeout once the deadline is exceeded', async () => {
+    it('returns null once the deadline is exceeded', async () => {
         const fetchApply = jest.fn().mockResolvedValue({ status: 'incomplete', sumsubAccessToken: 't' })
         let clock = 0
         const tick = (ms: number) => {
@@ -50,8 +50,8 @@ describe('pollUntilApplyAdvances', () => {
             now: () => clock,
         })
 
-        expect(result).toEqual({ status: 'timeout' })
-        // 3 polls at clock 0, 1000, 2000 — the 4th would be past the deadline
+        expect(result).toBeNull()
+        // 3 polls at clock 0, 1000, 2000 — the deadline check fires after sleep #3
         expect(fetchApply).toHaveBeenCalledTimes(3)
     })
 

@@ -1,8 +1,8 @@
 /**
  * Sumsub's auto-review usually settles in well under a second, but sometimes
  * lags. Poll the apply endpoint until backend stops returning `incomplete`,
- * then surface the response. Returns `{ status: 'timeout' }` if the deadline
- * passes without advancement so the caller can show a retry message.
+ * then surface the response. Returns `null` if the deadline passes without
+ * advancement so the caller can show a retry message.
  *
  * Without this, the immediate post-Sumsub re-apply races against Sumsub and
  * dumps the user back on the "Start Secure Verification" interstitial when
@@ -20,12 +20,12 @@ export async function pollUntilApplyAdvances<R extends { status: string }>({
     timeoutMs: number
     sleep?: (ms: number) => Promise<void>
     now?: () => number
-}): Promise<R | { status: 'timeout' }> {
+}): Promise<R | null> {
     const start = now()
     while (true) {
         const res = await fetchApply()
         if (res.status !== 'incomplete') return res
         await sleep(intervalMs)
-        if (now() - start >= timeoutMs) return { status: 'timeout' as const }
+        if (now() - start >= timeoutMs) return null
     }
 }
