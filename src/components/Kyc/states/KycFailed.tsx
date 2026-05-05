@@ -27,7 +27,7 @@ export const KycFailed = ({
     rejectLabels?: string[] | null
     bridgeReason?: string | null
     isSumsub?: boolean
-    rejectType?: 'RETRY' | 'FINAL' | null
+    rejectType?: 'RETRY' | 'FINAL' | 'PROVIDER_FIXABLE' | 'PROVIDER_FINAL' | null
     failureCount?: number
     bridgeKycRejectedAt?: string
     countryCode?: string | null

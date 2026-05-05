@@ -780,10 +780,59 @@ export default function QRPayPage() {
     const needsKycVerification =
         kycGateState === QrKycState.REQUIRES_IDENTITY_VERIFICATION ||
         kycGateState === QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS
+    const hasProviderRejection =
+        kycGateState === QrKycState.PROVIDER_REJECTION_FIXABLE || kycGateState === QrKycState.PROVIDER_REJECTION_BLOCKED
 
     // show loading while KYC state is being determined
     if (isLoadingKycState) {
         return <PeanutLoading />
+    }
+
+    // provider rejection: user is sumsub-approved but manteca rejected
+    if (hasProviderRejection) {
+        const isFixable = kycGateState === QrKycState.PROVIDER_REJECTION_FIXABLE
+        return (
+            <div className="flex min-h-[inherit] flex-col gap-8">
+                <NavHeader title="Pay" />
+                <ActionModal
+                    visible
+                    onClose={() => router.back()}
+                    title={isFixable ? 'We need an updated document' : 'QR payments are not available'}
+                    description={
+                        isFixable
+                            ? 'We need an updated document to enable QR payments. Please upload a clearer photo of your ID.'
+                            : 'QR payments are not available for your account. Contact support for help.'
+                    }
+                    icon={
+                        methodIcon ? (
+                            <Image src={methodIcon} alt="Payment method" width={48} height={48} priority />
+                        ) : undefined
+                    }
+                    ctas={[
+                        isFixable
+                            ? {
+                                  text: 'Upload document',
+                                  onClick: () => {
+                                      saveRedirectUrl()
+                                      router.push('/profile/identity-verification')
+                                  },
+                                  variant: 'purple' as const,
+                                  shadowSize: '4' as const,
+                                  icon: 'upload',
+                              }
+                            : {
+                                  text: 'Contact support',
+                                  onClick: () => {
+                                      if (typeof window !== 'undefined' && (window as any).$crisp) {
+                                          ;(window as any).$crisp.push(['do', 'chat:open'])
+                                      }
+                                  },
+                                  variant: 'stroke' as const,
+                              },
+                    ]}
+                />
+            </div>
+        )
     }
 
     // show KYC screens before any error screens - user needs to verify first
