@@ -296,7 +296,11 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                         if (gate.type === 'fixable_rejection') {
                             await sumsubFlow.handleSelfHealResubmit('BRIDGE')
                         } else {
-                            await sumsubFlow.handleInitiateKyc('STANDARD', undefined, gate.type === 'needs_enrollment' || undefined)
+                            await sumsubFlow.handleInitiateKyc(
+                                'STANDARD',
+                                undefined,
+                                gate.type === 'needs_enrollment' || undefined
+                            )
                         }
                     }}
                     onContactSupport={() => {
@@ -316,7 +320,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                     }
                     providerMessage={
                         gate.type === 'fixable_rejection' || gate.type === 'blocked_rejection'
-                            ? gate.userMessage ?? undefined
+                            ? (gate.userMessage ?? undefined)
                             : undefined
                     }
                     regionName={currentCountry?.title}

@@ -85,8 +85,7 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip }: BridgeTosStepProp
                 icon={error ? ('alert' as IconName) : ('badge' as IconName)}
                 title={error ? 'Could not load terms' : 'Accept Terms of Service'}
                 description={
-                    error ||
-                    'To enable bank transfers, you need to accept our payment partner\'s Terms of Service.'
+                    error || "To enable bank transfers, you need to accept our payment partner's Terms of Service."
                 }
                 ctas={[
                     {

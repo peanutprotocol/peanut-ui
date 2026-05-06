@@ -515,7 +515,11 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                                 if (gate.type === 'fixable_rejection') {
                                     await sumsubFlow.handleSelfHealResubmit('BRIDGE')
                                 } else {
-                                    await sumsubFlow.handleInitiateKyc('STANDARD', undefined, gate.type === 'needs_enrollment' || undefined)
+                                    await sumsubFlow.handleInitiateKyc(
+                                        'STANDARD',
+                                        undefined,
+                                        gate.type === 'needs_enrollment' || undefined
+                                    )
                                 }
                                 setShowKycModal(false)
                             }}
@@ -536,7 +540,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                             }
                             providerMessage={
                                 gate.type === 'fixable_rejection' || gate.type === 'blocked_rejection'
-                                    ? gate.userMessage ?? undefined
+                                    ? (gate.userMessage ?? undefined)
                                     : undefined
                             }
                         />

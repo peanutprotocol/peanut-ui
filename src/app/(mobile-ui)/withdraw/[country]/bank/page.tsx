@@ -457,7 +457,11 @@ export default function WithdrawBankPage() {
                     if (gate.type === 'fixable_rejection') {
                         await sumsubFlow.handleSelfHealResubmit('BRIDGE')
                     } else {
-                        await sumsubFlow.handleInitiateKyc('STANDARD', undefined, gate.type === 'needs_enrollment' || undefined)
+                        await sumsubFlow.handleInitiateKyc(
+                            'STANDARD',
+                            undefined,
+                            gate.type === 'needs_enrollment' || undefined
+                        )
                     }
                 }}
                 onContactSupport={() => {
@@ -465,7 +469,7 @@ export default function WithdrawBankPage() {
                     setIsSupportModalOpen(true)
                 }}
                 isLoading={sumsubFlow.isLoading}
-                    error={sumsubFlow.error}
+                error={sumsubFlow.error}
                 variant={
                     gate.type === 'blocked_rejection'
                         ? 'blocked'
@@ -477,7 +481,7 @@ export default function WithdrawBankPage() {
                 }
                 providerMessage={
                     gate.type === 'fixable_rejection' || gate.type === 'blocked_rejection'
-                        ? gate.userMessage ?? undefined
+                        ? (gate.userMessage ?? undefined)
                         : undefined
                 }
                 regionName={getCountryFromPath(country)?.title}

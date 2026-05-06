@@ -544,7 +544,12 @@ export default function QRPayPage() {
             }
             return mantecaApi.initiateQrPayment({ qrCode, qrType: qrType ?? undefined })
         },
-        enabled: paymentProcessor === 'MANTECA' && !!qrCode && isPaymentProcessorQR(qrCode) && !paymentLock && !shouldBlockPay,
+        enabled:
+            paymentProcessor === 'MANTECA' &&
+            !!qrCode &&
+            isPaymentProcessorQR(qrCode) &&
+            !paymentLock &&
+            !shouldBlockPay,
         retry: (failureCount, error: any) => {
             // Don't retry provider-specific errors
             if (error?.message?.includes('PAYMENT_DESTINATION_DECODING_ERROR')) {
@@ -1146,7 +1151,8 @@ export default function QRPayPage() {
                     ctas={[
                         {
                             text: 'Verify now',
-                            onClick: () => sumsubFlow.handleInitiateKyc('LATAM', undefined, isUserSumsubKycApproved || undefined),
+                            onClick: () =>
+                                sumsubFlow.handleInitiateKyc('LATAM', undefined, isUserSumsubKycApproved || undefined),
                             variant: 'purple',
                             shadowSize: '4',
                             icon: 'check-circle',
@@ -1163,7 +1169,8 @@ export default function QRPayPage() {
                     ctas={[
                         {
                             text: 'Continue verification',
-                            onClick: () => sumsubFlow.handleInitiateKyc('LATAM', undefined, isUserSumsubKycApproved || undefined),
+                            onClick: () =>
+                                sumsubFlow.handleInitiateKyc('LATAM', undefined, isUserSumsubKycApproved || undefined),
                             variant: 'purple',
                             shadowSize: '4',
                             icon: 'check-circle',

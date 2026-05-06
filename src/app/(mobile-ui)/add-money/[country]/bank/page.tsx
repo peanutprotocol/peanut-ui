@@ -404,7 +404,11 @@ export default function OnrampBankPage() {
                         if (gate.type === 'fixable_rejection') {
                             await sumsubFlow.handleSelfHealResubmit('BRIDGE')
                         } else {
-                            await sumsubFlow.handleInitiateKyc('STANDARD', undefined, gate.type === 'needs_enrollment' || undefined)
+                            await sumsubFlow.handleInitiateKyc(
+                                'STANDARD',
+                                undefined,
+                                gate.type === 'needs_enrollment' || undefined
+                            )
                         }
                     }}
                     onContactSupport={() => {
@@ -424,7 +428,7 @@ export default function OnrampBankPage() {
                     }
                     providerMessage={
                         gate.type === 'fixable_rejection' || gate.type === 'blocked_rejection'
-                            ? gate.userMessage ?? undefined
+                            ? (gate.userMessage ?? undefined)
                             : undefined
                     }
                     regionName={selectedCountry?.title}
