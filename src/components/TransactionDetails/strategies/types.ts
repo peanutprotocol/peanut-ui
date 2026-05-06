@@ -1,11 +1,8 @@
-// Per-kind strategy contract for transactionTransformer's pre-globals
-// switch. Each strategy decides direction + card type + counterparty
-// name + a few flags from the row's shape; the post-strategy code in
-// mapTransactionDataForDrawer handles status mapping, reaper override,
-// derived fields (explorer URL, token logos, initials).
-//
-// Strategies are pure functions of HistoryEntry — no DOM, no fetches,
-// no mutable state. Tests import them directly.
+// Per-kind strategy contract. Each strategy decides direction + card type +
+// counterparty name + a few flags from the row's shape;
+// `mapTransactionDataForDrawer` handles status mapping, reaper override, and
+// derived fields (explorer URL, token logos, initials). Strategies are pure
+// functions of HistoryEntry — no IO, no mutable state.
 
 import { type TransactionType as TransactionCardType } from '@/components/TransactionDetails/TransactionCard'
 import { type TransactionDirection } from '@/components/TransactionDetails/TransactionDetailsHeaderCard'

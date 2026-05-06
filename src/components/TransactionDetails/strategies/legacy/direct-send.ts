@@ -20,10 +20,8 @@ export const directSend: TransactionStrategy = (entry: HistoryEntry): Transactio
         fullName: entry.senderAccount?.fullName ?? '',
         showFullName: entry.senderAccount?.showFullName,
         isPeerActuallyUser: true,
-        // Original behaviour: if the sender side has no senderAccount, the
-        // entry was created by an external (non-Peanut) actor, render as a
-        // public-link receive. The legacy switch toggled `isLinkTx` based on
-        // `!entry.senderAccount` regardless of `isPeerActuallyUser`.
+        // No senderAccount → entry was created by an external (non-Peanut)
+        // actor; render as a public-link receive.
         isLinkTx: !entry.senderAccount,
     }
 }

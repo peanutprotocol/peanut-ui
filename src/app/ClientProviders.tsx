@@ -21,9 +21,15 @@ import { PeanutDebug } from '@/context/PeanutDebug'
 
 // Harness bootstrap ships only in harness builds. In prod bundles the dynamic
 // import is in dead code behind `if (false)` and webpack drops the chunk.
+// Note: was `ssr: false`. Discovered 2026-04-30 via the harness fake-spinner
+// audit: `dynamic({ssr: false})` triggers `BAILOUT_TO_CLIENT_SIDE_RENDERING`
+// in Next.js 16 + Turbopack, and the SSR'd HTML in that case has only ~2
+// script tags vs ~95 with ssr:true. ssr:true gives Playwright a fully-streamed
+// page that hydrates more reliably. HarnessBootstrap is `'use client'` and
+// tolerates SSR (it gates internally on window/sessionStorage).
 const HarnessBootstrap = HARNESS_ENABLED
     ? dynamic(() => import('@/context/HarnessBootstrap').then((m) => m.HarnessBootstrap), {
-          ssr: false,
+          ssr: true,
       })
     : null
 

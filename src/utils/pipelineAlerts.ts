@@ -1,12 +1,8 @@
 /**
- * Single entry point for cross-cutting Sentry signals from the
- * FE-side rendering pipeline (transformer, receipt drawer, etc).
- * Mirrors peanut-api-ts/src/utils/pipelineAlerts.ts — same category
- * union and tag schema so dashboards filter consistently across BE/FE.
- *
- * Sentry import is lazy: importing `@sentry/nextjs` at module scope adds
- * weight to non-browser bundles (test runner, SSR). The dynamic import
- * keeps the helper a no-op when Sentry isn't initialised.
+ * Single entry point for cross-cutting Sentry signals from the FE rendering
+ * pipeline. Mirrors peanut-api-ts/src/utils/pipelineAlerts.ts — same category
+ * union and tag schema so dashboards filter consistently across BE/FE. Sentry
+ * import is lazy to keep the helper a no-op in test runner / SSR bundles.
  */
 
 export type PipelineAlertCategory =

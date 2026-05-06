@@ -41,8 +41,7 @@ export const sendLink: TransactionStrategy = (entry: HistoryEntry): TransactionS
     }
     if (entry.userRole === EHistoryUserRole.BOTH) {
         // Sender claimed their own link → cancelled. uiStatus override
-        // matches the pre-strategy switch (set uiStatus='cancelled' before
-        // the global status mapper runs).
+        // bypasses the global status mapper.
         return {
             direction: 'send',
             transactionCardType: 'send',
@@ -52,7 +51,7 @@ export const sendLink: TransactionStrategy = (entry: HistoryEntry): TransactionS
             uiStatus: 'cancelled',
         }
     }
-    // userRole = SENDER_PUBLIC / unknown — public-link claim path
+    // SENDER_PUBLIC / unknown — public-link claim path
     return {
         direction: 'claim_external',
         transactionCardType: 'claim_external',

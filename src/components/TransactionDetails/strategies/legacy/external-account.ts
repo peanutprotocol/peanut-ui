@@ -1,5 +1,5 @@
-// Strategies for entries that withdraw to / deposit from external (non-user)
-// destinations: bank accounts, raw wallet addresses, merchant accounts.
+// Strategies for entries against external (non-user) destinations: bank
+// accounts, raw wallet addresses, merchant accounts.
 
 import { type HistoryEntry } from '@/hooks/useTransactionHistory'
 import { type TransactionStrategy, type TransactionStrategyOutput } from '../types'

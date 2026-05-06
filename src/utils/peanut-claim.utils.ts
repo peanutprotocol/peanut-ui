@@ -1,10 +1,6 @@
-/** Inlined `signWithdrawalMessage` + vault address lookup, replacing the
- *  same-named exports from `@squirrel-labs/peanut-sdk`.
- *
- *  Only the v4.x EIP-712 path (Arb mainnet 42161 + Arb Sepolia 421614)
- *  is supported — older versions and non-Arb chains were dropped in
- *  decomplexify "multi-chain → Arb-only".
- */
+/** Inlined `signWithdrawalMessage` + vault address lookup. Replaces the
+ *  same-named exports from `@squirrel-labs/peanut-sdk`. Supports only the
+ *  v4.x EIP-712 path on Arb mainnet (42161) and Arb Sepolia (421614). */
 
 import { keccak256, encodePacked, toBytes, type Abi } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'

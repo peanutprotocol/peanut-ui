@@ -10,9 +10,6 @@ export const request: TransactionStrategy = (entry: HistoryEntry): TransactionSt
             fullName: entry.recipientAccount?.fullName ?? '',
             showFullName: entry.recipientAccount?.showFullName,
             isPeerActuallyUser: !!entry.recipientAccount?.isUser || !!entry.senderAccount?.isUser,
-            // Mirrors the legacy fall-through: REQUEST × bridge × SENDER
-            // doesn't explicitly set isLinkTx, so it lands on the
-            // post-switch `isLinkTx = !isPeerActuallyUser` line.
             isLinkTx: !(!!entry.recipientAccount?.isUser || !!entry.senderAccount?.isUser),
         }
     }

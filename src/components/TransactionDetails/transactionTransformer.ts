@@ -21,17 +21,11 @@ import { dispatchStrategy } from './strategies/registry'
  */
 
 /**
- * Should the receipt drawer's `bankAccountDetails` row render for this entry?
- *
- * Original gate (pre-decomplexify) only fired for legacy `BRIDGE_OFFRAMP` and
- * `BANK_SEND_LINK_CLAIM × RECIPIENT`. Post-decomplexify, the same flows arrive
- * as `TRANSACTION_INTENT` with `kind ∈ {FIAT_OFFRAMP, CRYPTO_WITHDRAW}`, so the
- * gate must include those too — otherwise the IBAN row disappears and the
- * country-by-IBAN flag fallback in `getBankAccountCountryCode` kicks in,
- * showing an EU flag for an ES IBAN (Hugo's screenshot d on 2026-04-29).
- *
- * Also includes legacy `MANTECA_OFFRAMP` — independent legacy bug, was never
- * plumbed before. Catches Argentina/Brazil rail withdrawals.
+ * Whether the receipt drawer's `bankAccountDetails` row should render. Covers
+ * legacy `BRIDGE_OFFRAMP`, `MANTECA_OFFRAMP`, `BANK_SEND_LINK_CLAIM × RECIPIENT`,
+ * plus the unified `TRANSACTION_INTENT` form (`kind ∈ {FIAT_OFFRAMP, CRYPTO_WITHDRAW}`).
+ * Without these, `getBankAccountCountryCode` falls through to its IBAN-prefix
+ * heuristic and renders the wrong country flag.
  */
 function shouldPlumbBankAccountDetails(entry: HistoryEntry): boolean {
     if (entry.type === EHistoryEntryType.BRIDGE_OFFRAMP) return true
@@ -56,13 +50,9 @@ export type RewardData = {
 export const REWARD_TOKENS: { [key: string]: RewardData } = {}
 
 /**
- * User-facing copy for reaper-failed rows. Keyed by the failReason string
- * the BE reaper writes (`${kindStr.toLowerCase()}_timeout`).
- *
- * Why per-kind: a generic "Transaction failed" is ambiguous ("did funds
- * move?"). These strings make clear the action never happened — no funds
- * moved, no chain TX exists. Don't show a Cancel button; the row is already
- * terminal.
+ * User-facing copy for reaper-failed rows. Keyed by the BE reaper's failReason
+ * string (`${kindStr.toLowerCase()}_timeout`). Per-kind copy makes clear no
+ * funds moved — a generic "Transaction failed" leaves the user wondering.
  */
 const REAPER_FAIL_COPY: Record<string, string> = {
     p2p_send_timeout: "Send didn't complete",
@@ -78,9 +68,8 @@ const REAPER_FAIL_COPY: Record<string, string> = {
 
 /**
  * Map raw `entry.status` to the drawer's StatusPillType. Two regimes:
- * Bridge/bank rails (AWAITING_FUNDS / FUNDS_RECEIVED / PAYMENT_*) and
- * the rest (NEW/PENDING/COMPLETED/...). SEND_LINK with COMPLETED status
- * stays "pending" until claimed (sender-side).
+ * Bridge/bank rails (AWAITING_FUNDS / FUNDS_RECEIVED / PAYMENT_*) and the
+ * rest. Sender-side SEND_LINK COMPLETED stays "pending" until claimed.
  */
 function mapEntryStatusToUiStatus(entry: HistoryEntry, direction: TransactionDirection): StatusPillType {
     const status = entry.status?.toUpperCase()
@@ -117,11 +106,10 @@ function mapEntryStatusToUiStatus(entry: HistoryEntry, direction: TransactionDir
         case 'PENDING':
             return 'pending'
         case 'COMPLETED': {
-            // Send links stay 'pending' for the sender side until the link is
-            // claimed — the BE's intent.status hits COMPLETED on escrow, but
-            // from the sender's UI perspective the link isn't "done" until
-            // claimed. Covers both legacy `EHistoryEntryType.SEND_LINK` rows
-            // and post-decomplexify `TRANSACTION_INTENT × kind=LINK_CREATE`.
+            // Sender side: send-links stay 'pending' until claimed. The BE
+            // intent hits COMPLETED on escrow, but from the sender's
+            // perspective the link isn't done until someone claims it.
+            // Covers both legacy SEND_LINK and TRANSACTION_INTENT × LINK_CREATE.
             const isUnclaimedSendLinkSender =
                 direction !== 'claim_external' &&
                 (entry.type === EHistoryEntryType.SEND_LINK ||
@@ -154,8 +142,8 @@ function mapEntryStatusToUiStatus(entry: HistoryEntry, direction: TransactionDir
 }
 
 /**
- * Derived display fields — explorer URLs, token/chain icons, reward
- * lookup. Computed from `entry` alone; doesn't read the strategy output.
+ * Derived display fields — explorer URLs, token/chain icons, reward lookup.
+ * Computed from `entry` alone; independent of the strategy output.
  */
 function computeDerivedFields(entry: HistoryEntry): {
     explorerUrlWithTx: string | undefined
@@ -170,8 +158,8 @@ function computeDerivedFields(entry: HistoryEntry): {
         | undefined
     rewardData: RewardData | undefined
 } {
-    // For deposits, force the explorer URL to Peanut's wallet chain
-    // (Arbitrum) — the underlying chainId field is the deposit-source chain.
+    // For deposits, the explorer URL must point to Peanut's wallet chain
+    // (Arbitrum) — entry.chainId here is the deposit-source chain.
     const explorerUrlChainID =
         entry.type === EHistoryEntryType.DEPOSIT ? PEANUT_WALLET_CHAIN.id.toString() : entry.chainId
     const baseUrl = getExplorerUrl(explorerUrlChainID)
@@ -244,10 +232,9 @@ export interface TransactionDetails {
         addressExplorerUrl?: string
         originalType: EHistoryEntryType
         originalUserRole: EHistoryUserRole
-        /** Post-M3 transaction-intent kind (P2P_SEND, QR_PAY, CARD_SPEND, …).
-         *  Some predicates need this to disambiguate within TRANSACTION_INTENT
-         *  entries — e.g. QR payments now arrive as TRANSACTION_INTENT + kind=QR_PAY
-         *  rather than a dedicated originalType. */
+        /** Transaction-intent kind (P2P_SEND, QR_PAY, CARD_SPEND, …).
+         *  Predicates use this to disambiguate within TRANSACTION_INTENT entries —
+         *  e.g. QR payments arrive as TRANSACTION_INTENT + kind=QR_PAY. */
         kind?: string
         link?: string
         isLinkTransaction?: boolean
@@ -304,18 +291,17 @@ export interface TransactionDetails {
             final_amount?: string
             exchange_rate?: string
         }
-        /** Card-payment specifics — populated for Rain CARD_SPEND / card-refund
-         *  entries only. Drives the merchant hero, status timeline, decline
-         *  reason, and "Adjusted from $X" settlement note in the drawer. */
+        /** Card-payment specifics — populated only for Rain CARD_SPEND /
+         *  card-refund entries. Drives the merchant hero, status timeline,
+         *  decline reason, and "Adjusted from $X" settlement note. */
         cardPayment?: {
             merchantName: string | null
             merchantCategory: string | null
             merchantCity: string | null
             merchantCountry: string | null
             merchantMcc: string | null
-            /** Rain-enriched brand logo URL when their enrichment identified the
-             *  merchant. Drawer keeps the generic card icon for v1; this is
-             *  plumbed so a future swap doesn't need a backend change. */
+            /** Rain-enriched brand logo URL. Drawer uses the generic card icon
+             *  for v1; plumbed so a future swap is FE-only. */
             merchantLogo: string | null
             merchantId: string | null
             localAmount: string | null
@@ -375,10 +361,9 @@ interface MappedTransactionData {
  * @returns an object containing structured transactiondetails and the transactioncardtype.
  */
 export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransactionData {
-    // initialize variables
-    // Pick the per-kind strategy. Post-strategy code below applies status
-    // mapping, the reaper-failed override, and derived fields (explorer
-    // URL, token logos, initials).
+    // Per-kind strategy decides direction/card-type/peer fields. The code
+    // below layers on status mapping, reaper-failed override, and derived
+    // fields (explorer URL, token logos, initials).
     const out = dispatchStrategy(entry)(entry)
     const direction: TransactionDirection = out.direction
     const transactionCardType: TransactionCardType = out.transactionCardType
@@ -396,13 +381,12 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         isPeerActuallyUser = false
     }
 
-    // Reaper-failed rows (orphaned PENDING intents the BE timed out — see
-    // peanut-api-ts/src/ledger/reaper.ts) get user-friendly copy. Without
-    // this branch the row renders with whatever userName the kind-switch
-    // landed on, which for a P2P_SEND that never confirmed is misleading
-    // ("Sent to alice" implies funds moved). The reaper sets
-    // metadata.failReason to '${kind}_timeout' before transitioning FAILED;
-    // the BE history fetcher surfaces it as `entry.extraData.failReason`.
+    // Reaper-failed rows (orphaned PENDING intents timed out by the BE
+    // reaper — see peanut-api-ts/src/ledger/reaper.ts) get user-friendly
+    // copy. Without this branch a P2P_SEND that never confirmed renders as
+    // "Sent to alice" — implying funds moved when they didn't. The reaper
+    // sets `metadata.failReason='${kind}_timeout'` before FAILED, surfaced
+    // here as `entry.extraData.failReason`.
     const reaperFailReason = entry.extraData?.failReason as string | undefined
     if (entry.status === 'FAILED' && reaperFailReason && reaperFailReason.endsWith('_timeout')) {
         nameForDetails = REAPER_FAIL_COPY[reaperFailReason] ?? 'Transaction did not complete'
@@ -413,7 +397,6 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     // map raw entry.status via the shared helper.
     if (!strategyOverrodeUiStatus) uiStatus = mapEntryStatusToUiStatus(entry, direction)
 
-    // parse the amount from the usdamount string in extradata
     const amount = entry.extraData?.usdAmount
         ? parseFloat(String(entry.extraData.usdAmount).replace(/[^\d.-]/g, ''))
         : 0
@@ -450,18 +433,14 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         isVerified: entry.isVerified && isPeerActuallyUser,
         // only show verification badge if the other person is a peanut user
         date: new Date(entry.timestamp),
-        // Peanut product convention: fees are baked into the displayed exchange
-        // rate, never surfaced as a separate line item. Keep the backend field
-        // populated for ops/debug, but never thread it to the UI. `fee` stays
-        // `undefined` so `rowVisibilityConfig.fee` is always false and the
-        // drawer's fee row never renders. If this rule changes, update
-        // docs/product-conventions.md first.
+        // Peanut convention: fees are baked into the displayed exchange rate,
+        // never surfaced as a separate line item. Keep undefined so the
+        // drawer's fee row never renders.
         fee: undefined,
-        // memo carries free-form user notes from non-card flows (link memos,
-        // request comments). Card spends + Rain refunds suppress this — the
-        // merchant name and any decline reason render inside CardPaymentRows
-        // in the drawer, so a duplicate "Comment" row is just noise. Backend
-        // already sets memo=undefined for card entries, but defend in depth.
+        // Memo carries free-form notes from non-card flows. Suppress for card
+        // spends + Rain refunds — merchant name + decline reason already render
+        // in CardPaymentRows; a duplicate "Comment" row is noise. Defence-in-
+        // depth: backend also sets memo=undefined for card entries.
         memo: (() => {
             if (isTestDeposit) return 'Your peanut wallet is ready to use!'
             const isCardEntry = entry.extraData?.kind === 'CARD_SPEND' || !!entry.extraData?.parentRainTxId
@@ -485,16 +464,11 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             rewardData,
             fulfillmentType: entry.extraData?.fulfillmentType,
             bridgeTransferId: entry.extraData?.bridgeTransferId,
-            // Card-payment specifics — populated only for Rain CARD_SPEND /
-            // card-refund entries. Drawer reads these to render the merchant
-            // hero, status timeline, decline reason, and "Adjusted from $X"
-            // settlement note. Backend source: src/transaction-intent/history.ts.
-            // Build the cardPayment block for any card-shaped intent (CARD_SPEND
-            // kind) and for Rain refunds (parentRainTxId set). Earlier we
-            // guarded on merchantName presence, but that dropped the block for
-            // unknown-merchant spends — losing the de-emphasis-on-failed,
-            // decline-reason rows, and merchant-detail Card. The block falls
-            // back to "Card payment" downstream when merchantName is null.
+            // Build the cardPayment block for any card-shaped intent
+            // (kind=CARD_SPEND) and for Rain refunds (parentRainTxId set).
+            // Don't gate on merchantName — unknown-merchant spends still need
+            // the decline-reason rows and merchant-detail Card; downstream
+            // falls back to "Card payment" when merchantName is null.
             cardPayment:
                 entry.extraData?.kind === 'CARD_SPEND' || entry.extraData?.parentRainTxId
                     ? {
@@ -538,10 +512,9 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         },
         sourceView: 'history',
         points: entry.points,
-        // shouldPlumbBankAccountDetails gates on type/kind/role; also require
-        // identifier + type to be present so getBankAccountLabel doesn't crash
-        // on rows whose recipientAccount payload is incomplete (seen on
-        // mid-flight FIAT_OFFRAMP intents before the BE stamps the account).
+        // Also require identifier + type so getBankAccountLabel doesn't crash
+        // on rows with incomplete recipientAccount payload (mid-flight
+        // FIAT_OFFRAMP intents before the BE stamps the account).
         bankAccountDetails:
             shouldPlumbBankAccountDetails(entry) && entry.recipientAccount?.identifier && entry.recipientAccount?.type
                 ? {

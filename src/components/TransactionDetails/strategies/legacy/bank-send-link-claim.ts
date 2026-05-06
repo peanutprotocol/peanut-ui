@@ -12,7 +12,7 @@ const BANK_CLAIM: TransactionStrategyOutput = {
 export const bankSendLinkClaim: TransactionStrategy = (entry: HistoryEntry): TransactionStrategyOutput => {
     const senderSide = entry.userRole === EHistoryUserRole.SENDER || entry.userRole === EHistoryUserRole.BOTH
     if (senderSide && entry.recipientAccount.isUser) {
-        // Claimed by a peanut user (kyc'd or not). Render as direct send.
+        // Claimed by a Peanut user (KYC'd or not) — render as direct send.
         return {
             direction: 'send',
             transactionCardType: 'send',

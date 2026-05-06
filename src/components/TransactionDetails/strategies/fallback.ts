@@ -6,9 +6,9 @@ import { pipelineAlert } from '@/utils/pipelineAlerts'
 export const intentFallback: TransactionStrategy = (entry: HistoryEntry): TransactionStrategyOutput => {
     const kind = (entry.extraData?.kind as string | undefined) ?? 'OTHER'
 
-    // Card refunds arrive with kind ∈ {OTHER, REFUND} + parentRainTxId set
-    // (provider === RAIN). Scope strictly to these two kinds — guarding only
-    // on parentRainTxId would misroute any future intent carrying the linkage.
+    // Card refunds arrive with kind ∈ {OTHER, REFUND} + parentRainTxId set.
+    // Scope strictly to these two kinds — guarding only on parentRainTxId
+    // would misroute any future intent that carries the linkage.
     if ((kind === 'OTHER' || kind === 'REFUND') && entry.extraData?.parentRainTxId) {
         return cardRefund(entry)
     }

@@ -34,11 +34,10 @@ interface MaskRule {
  * Per-rail rules. Account types come from the BE's `Account.type` field
  * (peanut-api-ts/prisma/schema.prisma `AccountType` enum).
  */
-// Keyed on the uppercased account type. BE sends Prisma `AccountType` enum
-// values (`BANK_IBAN`, `BANK_ACH`, `BANK_CLABE`, ...) — list both the bare
-// name and the BANK_ prefix so display logic works regardless of which
-// shape comes through. Without the BANK_* entries the lookup falls to
-// the 'plain' fallback below, which renders the raw lowercase IBAN.
+// Keyed on uppercased account type. BE sends Prisma `AccountType` values
+// (`BANK_IBAN`, `BANK_ACH`, …); both the bare name and the `BANK_*` form
+// are listed so the lookup matches either shape — without the `BANK_*`
+// entries it would fall through to 'plain' and render a raw lowercase IBAN.
 const MASK_RULES: Record<string, MaskRule> = {
     IBAN: { mode: 'last-4' },
     BANK_IBAN: { mode: 'last-4' },
@@ -81,11 +80,8 @@ export function maskAccountIdentifier(
             return `**** **** **** ${last4}`
         }
         case 'last-4-account-only': {
-            // For US ACH the saved identifier shape is variable — sometimes the
-            // routing number is included, sometimes only the account number.
-            // The conservative move: show the last 4 digits of whatever we
-            // have. If a future BE shape exposes routingNumber separately, a
-            // richer rendering ("Bank · **** 6789") slots in here.
+            // US ACH identifier shape is variable — routing number may or may
+            // not be included. Conservative: show last 4 of whatever we have.
             const cleaned = identifier.replace(/\s+/g, '')
             if (cleaned.length <= 4) return cleaned
             return `**** ${cleaned.slice(-4)}`
@@ -95,12 +91,10 @@ export function maskAccountIdentifier(
             return identifier.slice(0, 29) + '…'
         }
         case 'plain':
-            // BE sometimes ships IBAN-shaped identifiers without a precise
-            // type (`MANTECA_ALIAS` aliasing an IBAN, guest-claim flows, or
-            // legacy rows with type=null). Detect IBAN shape (2 letters
-            // followed by digits) and uppercase + 4-char-group via
-            // formatIban so the receipt drawer doesn't render
-            // `es2700750984...` lowercase. Non-IBAN plain values pass through.
+            // BE sometimes ships IBAN-shaped identifiers without a precise type
+            // (MANTECA_ALIAS aliasing an IBAN, guest-claim flows, type=null
+            // rows). Detect IBAN shape (2 letters + digits) and run formatIban
+            // so the receipt doesn't render a raw lowercase IBAN.
             if (/^[a-zA-Z]{2}\d/.test(identifier)) {
                 return formatIban(identifier)
             }

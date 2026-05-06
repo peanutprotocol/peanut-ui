@@ -1,7 +1,5 @@
-/** UI-friendly error message extractor. Pre-decomplexify this matched
- *  on the Peanut SDK's `SDKStatus` enum codes; with the SDK gone, the
- *  function falls back to substring matching on common wallet / viem /
- *  Peanut API error messages. */
+/** UI-friendly error message extractor. Substring-matches common
+ *  wallet / viem / Peanut API error messages. */
 export const ErrorHandler = (error: any): string => {
     const text = error?.toString?.() ?? ''
     if (text.includes('insufficient funds')) return "You don't have enough funds."

@@ -1,14 +1,9 @@
-// Composite-key registry for the transformer's per-kind strategies.
-//
-// Key shape:
-//   - Legacy EHistoryEntryType cases: just the type ("DIRECT_SEND")
-//   - TRANSACTION_INTENT cases: "TRANSACTION_INTENT:<kind>" so each
-//     intent kind owns its own strategy without nested-switch dispatch.
-//
-// `dispatchStrategy(entry)` returns the matching strategy, or — for
-// TRANSACTION_INTENT entries with an unknown kind — the intent fallback,
-// which routes card refunds to cardRefund and logs the rest via
-// pipelineAlert. Legacy types with no strategy fall to legacyFallback.
+// Composite-key registry for per-kind strategies.
+//   - Legacy EHistoryEntryType cases keyed by the type ("DIRECT_SEND")
+//   - TRANSACTION_INTENT cases keyed by "TRANSACTION_INTENT:<kind>"
+// Unknown intent kinds fall through to `intentFallback` (which routes card
+// refunds and logs the rest via pipelineAlert); unknown legacy types fall
+// through to `legacyFallback`.
 
 import { type HistoryEntry } from '@/hooks/useTransactionHistory'
 import { type TransactionStrategy } from './types'
@@ -33,14 +28,13 @@ import { fiatOfframp } from './intent/fiat-offramp'
 import { qrPay, cardSpend } from './intent/card'
 import { intentFallback, legacyFallback } from './fallback'
 
-// String literal values match the EHistoryEntryType enum (history.utils.ts)
-// and the BE TransactionIntentKind enum. Inlined here so tests that mock
-// `@/hooks/useTransactionHistory` (and thus break the enum re-export) can
-// still load this module — the registry is wired at module-init time.
+// Inlined string literal — matches the EHistoryEntryType / BE
+// TransactionIntentKind values. Kept as a literal so tests that mock
+// `@/hooks/useTransactionHistory` (breaking the enum re-export) can still
+// load this module at init time.
 const TRANSACTION_INTENT = 'TRANSACTION_INTENT'
 
-// Legacy EHistoryEntryType values handled by a strategy. Adding a new legacy
-// type here without a corresponding entry in STRATEGIES is a compile error.
+// Adding a legacy type here without a corresponding STRATEGIES entry is a compile error.
 type LegacyKey =
     | 'DIRECT_SEND'
     | 'SEND_LINK'
@@ -57,9 +51,8 @@ type LegacyKey =
     | 'SIMPLEFI_QR_PAYMENT'
     | 'PERK_REWARD'
 
-// TRANSACTION_INTENT kinds rendered by an explicit strategy. Adding a new
-// BE TransactionIntentKind that should render distinctly requires updating
-// this union AND the STRATEGIES map below — TS guarantees both move together.
+// Adding a TransactionIntentKind here requires a matching STRATEGIES entry —
+// TS guarantees both move together.
 type IntentKind =
     | 'P2P_SEND'
     | 'REQUEST_PAY'

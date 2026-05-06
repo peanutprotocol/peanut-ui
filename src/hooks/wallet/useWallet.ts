@@ -55,10 +55,9 @@ export const useWallet = () => {
     const isAddressReady = !!address && !!userAddress && userAddress.toLowerCase() === address.toLowerCase()
 
     // Dev-only diagnostic: if the gate refuses to fetch balance even though
-    // the user has loaded, log WHY exactly once. This was the silent-$0 bug
-    // shape we hit during the 2026-04-27 card playtest — without this log
-    // the only symptom is "balance shows 0 even though chain has funds",
-    // and you have to read four hooks deep to find which condition failed.
+    // the user has loaded, log WHY exactly once. Without this the only
+    // symptom is "balance shows 0 though chain has funds", and the failing
+    // condition is buried four hooks deep.
     const loggedReasonRef = useRef<string | null>(null)
     useEffect(() => {
         if (process.env.NODE_ENV === 'production') return

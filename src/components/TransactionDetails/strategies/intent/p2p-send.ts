@@ -1,5 +1,4 @@
-// REQUEST_PAY is the post-decomplexify rename of P2P_REQUEST_FULFILL;
-// shares this strategy with P2P_SEND.
+// REQUEST_PAY shares this strategy with P2P_SEND.
 
 import { EHistoryUserRole, type HistoryEntry } from '@/hooks/useTransactionHistory'
 import { type TransactionStrategy, type TransactionStrategyOutput } from '../types'
