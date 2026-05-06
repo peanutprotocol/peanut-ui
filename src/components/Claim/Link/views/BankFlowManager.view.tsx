@@ -159,11 +159,11 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
             const isGuestFlow = bankClaimType === BankClaimType.GuestBankClaim
             if (!isGuestFlow && gate.type !== 'ready') {
                 if (gate.type === 'accept_tos') {
-                    if (guardWithTos()) return
+                    guardWithTos()
                 } else {
                     setShowKycModal(true)
-                    return
                 }
+                return
             }
 
             setLoadingState('Executing transaction')

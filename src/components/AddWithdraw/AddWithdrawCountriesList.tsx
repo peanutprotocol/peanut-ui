@@ -100,11 +100,11 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         // return a non-visible error to prevent the form from treating this as success
         if (gate.type !== 'ready') {
             if (gate.type === 'accept_tos') {
-                if (guardWithTos()) return { error: '__silent__' }
+                guardWithTos()
             } else {
                 setIsKycModalOpen(true)
-                return { error: '__silent__' }
             }
+            return { error: '__silent__' }
         }
 
         // scenario (1): happy path: if the user has already completed kyc, we can add the bank account directly

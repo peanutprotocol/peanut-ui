@@ -60,12 +60,16 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip }: BridgeTosStepProp
     const handleIframeClose = useCallback(
         async (source?: 'manual' | 'completed' | 'tos_accepted') => {
             if (source === 'tos_accepted') {
-                // keep iframe mounted while confirming to prevent the ActionModal from flashing
                 setIsConfirming(true)
                 setShowIframe(false)
-                await confirmBridgeTosAndAwaitRails(fetchUser)
-                setIsConfirming(false)
-                onComplete()
+                try {
+                    await confirmBridgeTosAndAwaitRails(fetchUser)
+                    onComplete()
+                } catch {
+                    setError('Something went wrong confirming your terms. Please try again.')
+                } finally {
+                    setIsConfirming(false)
+                }
             } else {
                 setShowIframe(false)
                 onSkip()

@@ -15,8 +15,10 @@ export const useBridgeTosStatus = () => {
         // bridge can require tos_acceptance as part of additionalRequirements
         // even when rails are in other states (REJECTED, REQUIRES_EXTRA_INFORMATION)
         const hasTosInRequirements = bridgeRails.some((r) => {
-            const reqs = r.metadata?.additionalRequirements as string[] | undefined
-            return reqs?.some((req) => req === 'tos_acceptance' || req === 'tos_v2_acceptance')
+            const reqs = Array.isArray(r.metadata?.additionalRequirements)
+                ? (r.metadata.additionalRequirements as string[])
+                : []
+            return reqs.some((req) => req === 'tos_acceptance' || req === 'tos_v2_acceptance')
         })
 
         const needsBridgeTos = hasRequiresInformation || hasTosInRequirements

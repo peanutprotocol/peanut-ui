@@ -171,11 +171,11 @@ export default function WithdrawBankPage() {
     const handleCreateAndInitiateOfframp = async () => {
         if (gate.type !== 'ready') {
             if (gate.type === 'accept_tos') {
-                if (guardWithTos()) return
+                guardWithTos()
             } else {
                 setShowKycModal(true)
-                return
             }
+            return
         }
 
         setIsLoading(true)

@@ -203,11 +203,11 @@ export default function OnrampBankPage() {
 
         if (gate.type !== 'ready') {
             if (gate.type === 'accept_tos') {
-                if (guardWithTos()) return
+                guardWithTos()
             } else {
                 setShowKycModal(true)
-                return
             }
+            return
         }
 
         posthog.capture(ANALYTICS_EVENTS.DEPOSIT_AMOUNT_ENTERED, {
