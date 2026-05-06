@@ -70,7 +70,9 @@ export type TransactionIntentKind =
     | 'OTHER'
 
 export interface PrepareRainWithdrawalInput {
-    amount: string // native units as decimal string (USDC cents: e.g. "500000" for $5.00 at 6dp)
+    /** Rain cents (2dp), as a decimal string. e.g. `"500"` for $5.00.
+     *  Convert from USDC wei via `usdcWeiToRainCents` at the boundary. */
+    amount: string
     recipientAddress: string
     directTransfer: boolean
     /** User-semantic kind — drives history categorization for the collateral webhook. */
@@ -88,6 +90,10 @@ export interface PrepareRainWithdrawalResponse {
     adminAddress: string
     chainId: string
     tokenAddress: string
+    /** USDC wei (PEANUT_WALLET_TOKEN_DECIMALS, typically 6dp) — NOT cents.
+     *  Rain accepts cents on input but echoes the on-chain wire value here:
+     *  it's what the EIP-712 message and `coordinator.withdrawAsset` sign
+     *  over, and what /submit broadcasts unchanged. Don't re-convert. */
     amount: string
     recipientAddress: string
     directTransfer: boolean
