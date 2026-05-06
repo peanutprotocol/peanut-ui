@@ -29,8 +29,14 @@ export const rainSpendingPowerToWei = (spendingPowerCents: number | null | undef
 
 /**
  * Convert a USDC wei amount (PEANUT_WALLET_TOKEN_DECIMALS, typically 6dp) to
- * Rain's native cents (2dp). Rounds up so a sub-cent shortfall still
- * withdraws at least one cent — Rain rejects 0-amount withdrawals.
+ * cents (2dp), the unit Rain's `/signatures/withdrawals` API takes on its
+ * INPUT side. Rounds up so a sub-cent shortfall still withdraws at least one
+ * cent — Rain rejects 0-amount withdrawals.
+ *
+ * Asymmetry warning: Rain accepts cents on input but RETURNS the signed
+ * amount in USDC wei (it's what the EIP-712 message + on-chain coordinator
+ * sign over). The prepare → /submit roundtrip is cents-in / wei-out. Don't
+ * use this function on values returned from Rain.
  */
 export const usdcWeiToRainCents = (amountWei: bigint): bigint => {
     if (amountWei <= 0n) return 0n

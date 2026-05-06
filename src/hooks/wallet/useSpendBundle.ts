@@ -89,8 +89,11 @@ export class SessionKeyGrantRequiredError extends Error {
 }
 
 // `usdcWeiToRainCents` lives in @/utils/balance.utils alongside its sibling
-// `rainSpendingPowerToWei` — both convert at the Rain wire boundary (cents,
-// 2dp) ↔ USDC wei (PEANUT_WALLET_TOKEN_DECIMALS).
+// `rainSpendingPowerToWei`. Rain's wire convention is asymmetric: cents (2dp)
+// on INPUT to /prepare, USDC wei (PEANUT_WALLET_TOKEN_DECIMALS) on OUTPUT in
+// the signed parameters (what the EIP-712 message + coordinator sign over).
+// `usdcWeiToRainCents` is for the input side only — never call it on amounts
+// returned from Rain.
 
 /**
  * Pure routing helper — decides which bucket(s) a spend will pull from.
