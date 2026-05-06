@@ -305,6 +305,8 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                     setBankDetails(bankDetails)
                     setReceiverFullName(`${bankDetails.firstName} ${bankDetails.lastName}`)
                     setClaimBankFlowStep(ClaimBankFlowStep.BankConfirmClaim)
+                } else {
+                    return { error: 'Failed to process bank account. Please try again.' }
                 }
             } finally {
                 setIsProcessingKycSuccess(false)
