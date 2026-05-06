@@ -72,6 +72,11 @@ export interface CrossChainSourceInfo {
     address: Address
     tokenAddress: Address
     chainId: string
+    /** USDC amount (decimal string) the user is spending. Required for the
+     *  bridge path's 'pay' mode (cross-chain non-stable destinations like ETH);
+     *  Rhino sizes the swap by this. Optional for SDA / 'receive' paths where
+     *  Rhino sizes the swap by destination.tokenAmount. */
+    tokenAmount?: string
 }
 
 export interface CrossChainDestinationInfo {
@@ -401,8 +406,22 @@ async function runBridgePath({
     //     source USDC the user spends; Rhino computes the destination output.
     const isSameChainSwap = sourceRhinoChain === destRhinoChain
     const mode: 'pay' | 'receive' = isSameChainSwap ? 'receive' : 'pay'
+    // 'pay' mode → amount is the source USDC the user spends (Rhino computes
+    // destination output). 'receive' mode → amount is the destination token
+    // the recipient gets (Rhino computes source input). Mixing them up makes
+    // Rhino swap a tiny fraction of the intended size — e.g. passing 0.000417
+    // (the destination ETH estimate) under 'pay' tells Rhino to spend
+    // 0.000417 USDC, not 1 USDC.
+    const quoteAmount = mode === 'pay' ? source.tokenAmount : destination.tokenAmount
+    if (!quoteAmount) {
+        throw new Error(
+            `Cross-chain ${mode === 'pay' ? 'pay' : 'receive'}-mode quote requires ${
+                mode === 'pay' ? 'source.tokenAmount' : 'destination.tokenAmount'
+            }`
+        )
+    }
     const quote: BridgeQuoteResponse = await getBridgeQuote({
-        amount: destination.tokenAmount,
+        amount: quoteAmount,
         tokenIn: 'USDC',
         tokenOut: tokenSymbol,
         chainOut: destRhinoChain,
