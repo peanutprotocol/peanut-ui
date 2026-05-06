@@ -397,31 +397,22 @@ async function runBridgePath({
     // for Rhino (it resolves the address from its bridge config). For cross-
     // token withdraw, tokenIn=USDC, tokenOut=destination token.
     //
-    // Mode selection:
-    //   - Same-chain swap → 'receive' (Rhino accepts it; user-friendly UX
-    //     "merchant gets X")
-    //   - Cross-chain swap → 'pay' (Rhino rejects 'receive' for cross-chain
-    //     swap routes with `InvalidRequest: Receive mode is not supported
-    //     for the selected tokens`). With 'pay', the input amount is the
-    //     source USDC the user spends; Rhino computes the destination output.
+    // We always quote with mode='pay' + source.tokenAmount. The earlier
+    // attempt to use mode='receive' for same-chain swaps (so the UX could
+    // read "merchant gets X") looks correct on paper but Rhino's same-chain
+    // swap-calldata path doesn't actually honor receive-mode in tokenOut
+    // units — staging repro had a $1 USDC → ETH same-chain swap where we
+    // sent amount='0.000417' (ETH) under 'receive' and Rhino swapped only
+    // 0.000422 USDC (it treated the value as USDC). For our flows the user
+    // always knows the source amount they're spending (USD = USDC 1:1), so
+    // 'pay' is the unambiguous semantic in both directions.
     const isSameChainSwap = sourceRhinoChain === destRhinoChain
-    const mode: 'pay' | 'receive' = isSameChainSwap ? 'receive' : 'pay'
-    // 'pay' mode → amount is the source USDC the user spends (Rhino computes
-    // destination output). 'receive' mode → amount is the destination token
-    // the recipient gets (Rhino computes source input). Mixing them up makes
-    // Rhino swap a tiny fraction of the intended size — e.g. passing 0.000417
-    // (the destination ETH estimate) under 'pay' tells Rhino to spend
-    // 0.000417 USDC, not 1 USDC.
-    const quoteAmount = mode === 'pay' ? source.tokenAmount : destination.tokenAmount
-    if (!quoteAmount) {
-        throw new Error(
-            `Cross-chain ${mode === 'pay' ? 'pay' : 'receive'}-mode quote requires ${
-                mode === 'pay' ? 'source.tokenAmount' : 'destination.tokenAmount'
-            }`
-        )
+    const mode: 'pay' | 'receive' = 'pay'
+    if (!source.tokenAmount) {
+        throw new Error('Bridge path requires source.tokenAmount (the USDC amount the user is spending)')
     }
     const quote: BridgeQuoteResponse = await getBridgeQuote({
-        amount: quoteAmount,
+        amount: source.tokenAmount,
         tokenIn: 'USDC',
         tokenOut: tokenSymbol,
         chainOut: destRhinoChain,
