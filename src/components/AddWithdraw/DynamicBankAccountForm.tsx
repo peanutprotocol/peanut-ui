@@ -249,7 +249,8 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                     name: data.name,
                 })
                 if (result.error) {
-                    setSubmissionError(result.error)
+                    // '__silent__' is a sentinel from the gate check — don't show it to the user
+                    if (result.error !== '__silent__') setSubmissionError(result.error)
                     setIsSubmitting(false)
                 } else {
                     // Save form data to Redux after successful submission

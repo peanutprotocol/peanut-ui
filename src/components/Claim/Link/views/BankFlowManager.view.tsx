@@ -32,6 +32,11 @@ import { sendLinksApi } from '@/services/sendLinks'
 import { useSearchParams } from 'next/navigation'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
+import { useBridgeTransferReadiness } from '@/hooks/useBridgeTransferReadiness'
+import { useBridgeTosGuard } from '@/hooks/useBridgeTosGuard'
+import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
+import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
+import { useModalsContext } from '@/context/ModalsContext'
 
 type BankAccountWithId = IBankAccountDetails &
     (
@@ -74,6 +79,10 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
     const { isLoading, setLoadingState } = useContext(loadingStateContext)
     const { claimLink } = useClaimLink()
     const dispatch = useAppDispatch()
+    const { gate } = useBridgeTransferReadiness()
+    const { guardWithTos, showBridgeTos, hideTos } = useBridgeTosGuard()
+    const [showKycModal, setShowKycModal] = useState(false)
+    const { setIsSupportModalOpen } = useModalsContext()
 
     // inline sumsub kyc flow for users who need verification
     // regionIntent is NOT passed here to avoid creating a backend record on mount.
@@ -144,11 +153,20 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
      */
     const handleCreateOfframpAndClaim = async (account: BankAccountWithId) => {
         try {
-            setLoadingState('Executing transaction')
             setError(null)
 
-            // determine user for offramp based on the bank claim type
+            // for logged-in users, check bridge readiness before proceeding
             const isGuestFlow = bankClaimType === BankClaimType.GuestBankClaim
+            if (!isGuestFlow && gate.type !== 'ready') {
+                if (gate.type === 'accept_tos') {
+                    if (guardWithTos()) return
+                } else {
+                    setShowKycModal(true)
+                    return
+                }
+            }
+
+            setLoadingState('Executing transaction')
             const userForOfframp = isGuestFlow
                 ? await getUserById(claimLinkData.sender?.userId ?? claimLinkData.senderAddress)
                 : user?.user
@@ -465,22 +483,64 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
         case ClaimBankFlowStep.BankConfirmClaim:
             if (localBankDetails) {
                 return (
-                    <ConfirmBankClaimView
-                        claimLinkData={claimLinkData}
-                        onConfirm={() => handleCreateOfframpAndClaim(localBankDetails)}
-                        onBack={() => {
-                            setClaimBankFlowStep(
-                                savedAccounts.length > 0
-                                    ? ClaimBankFlowStep.SavedAccountsList
-                                    : ClaimBankFlowStep.BankDetailsForm
-                            )
-                            setError(null)
-                        }}
-                        isProcessing={isLoading}
-                        error={error}
-                        bankDetails={localBankDetails}
-                        fullName={receiverFullName}
-                    />
+                    <>
+                        <ConfirmBankClaimView
+                            claimLinkData={claimLinkData}
+                            onConfirm={() => handleCreateOfframpAndClaim(localBankDetails)}
+                            onBack={() => {
+                                setClaimBankFlowStep(
+                                    savedAccounts.length > 0
+                                        ? ClaimBankFlowStep.SavedAccountsList
+                                        : ClaimBankFlowStep.BankDetailsForm
+                                )
+                                setError(null)
+                            }}
+                            isProcessing={isLoading}
+                            error={error}
+                            bankDetails={localBankDetails}
+                            fullName={receiverFullName}
+                        />
+                        <BridgeTosStep
+                            visible={showBridgeTos}
+                            onComplete={() => {
+                                hideTos()
+                                handleCreateOfframpAndClaim(localBankDetails)
+                            }}
+                            onSkip={hideTos}
+                        />
+                        <InitiateKycModal
+                            visible={showKycModal}
+                            onClose={() => setShowKycModal(false)}
+                            onVerify={async () => {
+                                if (gate.type === 'fixable_rejection') {
+                                    await sumsubFlow.handleSelfHealResubmit('BRIDGE')
+                                } else {
+                                    await sumsubFlow.handleInitiateKyc('STANDARD', undefined, gate.type === 'needs_enrollment' || undefined)
+                                }
+                                setShowKycModal(false)
+                            }}
+                            onContactSupport={() => {
+                                setShowKycModal(false)
+                                setIsSupportModalOpen(true)
+                            }}
+                            isLoading={sumsubFlow.isLoading}
+                            error={sumsubFlow.error}
+                            variant={
+                                gate.type === 'blocked_rejection'
+                                    ? 'blocked'
+                                    : gate.type === 'fixable_rejection'
+                                      ? 'provider_rejection'
+                                      : gate.type === 'needs_enrollment'
+                                        ? 'cross_region'
+                                        : 'default'
+                            }
+                            providerMessage={
+                                gate.type === 'fixable_rejection' || gate.type === 'blocked_rejection'
+                                    ? gate.userMessage ?? undefined
+                                    : undefined
+                            }
+                        />
+                    </>
                 )
             }
             return null

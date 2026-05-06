@@ -10,7 +10,7 @@ import Image, { type StaticImageData } from 'next/image'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import EmptyState from '../Global/EmptyStates/EmptyState'
 import { useAuth } from '@/context/authContext'
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { DynamicBankAccountForm, type IBankAccountDetails } from './DynamicBankAccountForm'
 import { addBankAccount } from '@/app/actions/users'
 import { type AddBankAccountPayload } from '@/app/actions/types/users.types'
@@ -21,13 +21,16 @@ import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useAppDispatch } from '@/redux/hooks'
 import { bankFormActions } from '@/redux/slices/bank-form-slice'
 import useKycStatus from '@/hooks/useKycStatus'
-import useProviderRejectionStatus from '@/hooks/useProviderRejectionStatus'
 import KycVerifiedOrReviewModal from '../Global/KycVerifiedOrReviewModal'
 import { ActionListCard } from '@/components/ActionListCard'
 import TokenAndNetworkConfirmationModal from '../Global/TokenAndNetworkConfirmationModal'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
+import { useBridgeTransferReadiness } from '@/hooks/useBridgeTransferReadiness'
+import { useBridgeTosGuard } from '@/hooks/useBridgeTosGuard'
+import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
+import { useModalsContext } from '@/context/ModalsContext'
 
 interface AddWithdrawCountriesListProps {
     flow: 'add' | 'withdraw'
@@ -66,10 +69,16 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const formRef = useRef<{ handleSubmit: () => void }>(null)
     const [isSupportedTokensModalOpen, setIsSupportedTokensModalOpen] = useState(false)
 
-    const { isUserKycApproved, isUserBridgeKycUnderReview, isUserSumsubKycApproved, isUserBridgeKycApproved } =
-        useKycStatus()
-    const { bridge: bridgeRejection } = useProviderRejectionStatus()
+    const { isUserKycApproved, isUserBridgeKycUnderReview } = useKycStatus()
+    const { gate } = useBridgeTransferReadiness()
+    const { guardWithTos, showBridgeTos, hideTos } = useBridgeTosGuard()
+    const { setIsSupportModalOpen } = useModalsContext()
     const [showKycStatusModal, setShowKycStatusModal] = useState(false)
+
+    // close kyc modal when sumsub sdk opens
+    useEffect(() => {
+        if (sumsubFlow.showWrapper) setIsKycModalOpen(false)
+    }, [sumsubFlow.showWrapper])
 
     const countryPathParts = Array.isArray(params.country) ? params.country : [params.country]
     const isBankPage = countryPathParts[countryPathParts.length - 1] === 'bank'
@@ -87,20 +96,15 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         // (the multi-phase flow may have completed but websocket/state not yet propagated)
         await fetchUser()
 
-        // block users with bridge provider rejection
-        if (bridgeRejection.state === 'fixable') {
-            await sumsubFlow.handleSelfHealResubmit('BRIDGE')
-            return {}
-        }
-        if (bridgeRejection.state === 'blocked') {
-            return { error: 'Bank transfers are not available for your account. Please contact support.' }
-        }
-
-        // JIT bridge enrollment: user is sumsub-approved but no bridge customer yet
-        // show the KYC modal — enrollment happens when user clicks "Start Verification"
-        if (isUserSumsubKycApproved && !isUserBridgeKycApproved && !user?.user.bridgeCustomerId) {
-            setIsKycModalOpen(true)
-            return {}
+        // unified bridge gate: tos → fixable rejection → blocked → enrollment
+        // return a non-visible error to prevent the form from treating this as success
+        if (gate.type !== 'ready') {
+            if (gate.type === 'accept_tos') {
+                if (guardWithTos()) return { error: '__silent__' }
+            } else {
+                setIsKycModalOpen(true)
+                return { error: '__silent__' }
+            }
         }
 
         // scenario (1): happy path: if the user has already completed kyc, we can add the bank account directly
@@ -289,12 +293,41 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                     visible={isKycModalOpen}
                     onClose={() => setIsKycModalOpen(false)}
                     onVerify={async () => {
-                        await sumsubFlow.handleInitiateKyc('STANDARD', undefined, true)
+                        if (gate.type === 'fixable_rejection') {
+                            await sumsubFlow.handleSelfHealResubmit('BRIDGE')
+                        } else {
+                            await sumsubFlow.handleInitiateKyc('STANDARD', undefined, gate.type === 'needs_enrollment' || undefined)
+                        }
+                    }}
+                    onContactSupport={() => {
                         setIsKycModalOpen(false)
+                        setIsSupportModalOpen(true)
                     }}
                     isLoading={sumsubFlow.isLoading}
-                    variant="cross_region"
+                    error={sumsubFlow.error}
+                    variant={
+                        gate.type === 'blocked_rejection'
+                            ? 'blocked'
+                            : gate.type === 'fixable_rejection'
+                              ? 'provider_rejection'
+                              : gate.type === 'needs_enrollment'
+                                ? 'cross_region'
+                                : 'default'
+                    }
+                    providerMessage={
+                        gate.type === 'fixable_rejection' || gate.type === 'blocked_rejection'
+                            ? gate.userMessage ?? undefined
+                            : undefined
+                    }
                     regionName={currentCountry?.title}
+                />
+                <BridgeTosStep
+                    visible={showBridgeTos}
+                    onComplete={() => {
+                        hideTos()
+                        formRef.current?.handleSubmit()
+                    }}
+                    onSkip={hideTos}
                 />
                 <SumsubKycModals flow={sumsubFlow} />
             </div>

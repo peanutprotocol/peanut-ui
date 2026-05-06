@@ -92,7 +92,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         const fetchCurrentStatus = async () => {
             try {
                 const response = await initiateSumsubKyc({ regionIntent })
-                if (response.data?.status && !initiatingRef.current) {
+                if (response.data?.status && !initiatingRef.current && !showWrapperRef.current) {
                     setLiveKycStatus(response.data.status)
                 }
             } catch {

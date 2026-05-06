@@ -55,7 +55,7 @@ const STEPS: Record<Exclude<ActivationStep, 'completed'>, StepConfig> = {
  */
 export default function ActivationCTAs({ activationStep }: ActivationCTAsProps) {
     const router = useRouter()
-    const { setIsQRScannerOpen } = useModalsContext()
+    const { setIsQRScannerOpen, setIsSupportModalOpen } = useModalsContext()
     const { hasFixableRejection, hasBlockedRejection, primaryRejection } = useProviderRejectionStatus()
 
     const lastTrackedStep = useRef<ActivationStep | null>(null)
@@ -117,9 +117,7 @@ export default function ActivationCTAs({ activationStep }: ActivationCTAsProps) 
                     className="mt-2 w-full"
                     onClick={() => {
                         if (hasProviderRejection && hasBlockedRejection && !hasFixableRejection) {
-                            if (typeof window !== 'undefined' && (window as any).$crisp) {
-                                ;(window as any).$crisp.push(['do', 'chat:open'])
-                            }
+                            setIsSupportModalOpen(true)
                         } else if (activationStep === 'outbound' && !hasProviderRejection) {
                             setIsQRScannerOpen(true)
                         } else {

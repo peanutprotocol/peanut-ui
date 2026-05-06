@@ -85,14 +85,17 @@ export default function useProviderRejectionStatus() {
                 let userMessage: string | null = null
                 const reasons = firstRejectedMetadata.rejectionReasons
                 const endorsementIssues = firstRejectedMetadata.endorsementIssues
-                if (Array.isArray(reasons) && reasons.length > 0) {
+
+                if (!isFixable) {
+                    // permanently rejected — generic message regardless of underlying reason
+                    userMessage = "We couldn't verify your identity. Please contact support for assistance."
+                } else if (Array.isArray(reasons) && reasons.length > 0) {
                     // bridge format: { reason: string, developer_reason: string }
                     // manteca format: { task: string, reason: string }
                     const first = reasons[0]
                     userMessage = first?.reason || first?.developer_reason || null
                 } else if (Array.isArray(endorsementIssues) && endorsementIssues.length > 0) {
-                    // bridge endorsement issues: plain strings like 'government_id_verification_failed'
-                    userMessage = `ID verification failed. Please upload a clearer photo.`
+                    userMessage = 'ID verification failed. Please upload a clearer photo.'
                 }
 
                 return {
