@@ -412,7 +412,7 @@ export const mantecaApi = {
                       | 'factoryData'
                   >
                   chainId: string
-                  entryPointAddress: string
+                  entryPointAddress: Address
                   rainPreparationId?: string
               }
             | {
@@ -442,6 +442,7 @@ export const mantecaApi = {
             const response = await serverFetch('/manteca/withdraw/complete-with-signed-tx', {
                 method: 'POST',
                 body: jsonStringify(body),
+                timeoutMs: 120_000, // long-running signed-tx submission, mirrors completeQrPaymentWithSignedTx
             })
 
             const result = await response.json()

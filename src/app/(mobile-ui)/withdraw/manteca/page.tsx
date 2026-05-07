@@ -31,7 +31,6 @@ import ValidatedInput from '@/components/Global/ValidatedInput'
 import AmountInput from '@/components/Global/AmountInput'
 import { formatUnits, parseUnits } from 'viem'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
-import { useAuth } from '@/context/authContext'
 import { useModalsContext } from '@/context/ModalsContext'
 import Select from '@/components/Global/Select'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
@@ -90,11 +89,10 @@ export default function MantecaWithdrawFlow() {
     const [priceLock, setPriceLock] = useState<WithdrawPriceLock | null>(null)
     const [isLockingPrice, setIsLockingPrice] = useState(false)
     const router = useRouter()
-    const { sendMoney, spendableBalance: balance, balance: smartBalance } = useWallet()
+    const { spendableBalance: balance, balance: smartBalance } = useWallet()
     const { signSpend } = useSignSpendBundle()
     const { overview: rainCardOverview } = useRainCardOverview()
     const { isLoading, loadingState, setLoadingState } = useContext(loadingStateContext)
-    const { user } = useAuth()
     const { setIsSupportModalOpen, openSupportWithMessage } = useModalsContext()
     const queryClient = useQueryClient()
     const { isUserMantecaKycApproved, isUserSumsubKycApproved } = useKycStatus()
@@ -327,7 +325,10 @@ export default function MantecaWithdrawFlow() {
                 if (error instanceof InsufficientSpendableError) {
                     setErrorMessage('Not enough USDC in your wallet or card to cover this withdrawal.')
                 } else if (error instanceof SessionKeyGrantRequiredError) {
-                    setErrorMessage("One-time card authorization needed. You'll be asked to confirm once.")
+                    // Grant prompt was attempted inside signSpend and failed.
+                    // Telling the user "you'll be asked" is misleading — they
+                    // may retry and hit the same loop. Give an actionable hint.
+                    setErrorMessage('Card authorization failed. Please try again or contact support.')
                 } else if ((error as Error).toString().includes('not allowed')) {
                     setErrorMessage('Please confirm the transaction.')
                 } else {
