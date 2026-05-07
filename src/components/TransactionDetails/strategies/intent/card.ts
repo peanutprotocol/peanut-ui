@@ -13,7 +13,10 @@ export const cardSpend: TransactionStrategy = (entry: HistoryEntry): Transaction
     const merchantName = (entry.extraData?.merchantName as string | null | undefined) ?? null
     return {
         direction: 'qr_payment',
-        transactionCardType: 'pay',
+        // Rain card-spend gets its own card type so the avatar can render
+        // a credit-card icon. 'pay' is reserved for Manteca QR pays which
+        // render the Mercado Pago / PIX brand mark instead.
+        transactionCardType: 'card_pay',
         nameForDetails: merchantName || 'Card payment',
         isPeerActuallyUser: false,
         isLinkTx: false,

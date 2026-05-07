@@ -339,7 +339,7 @@ const cases: TestCase[] = [
         expect: { direction: 'bank_withdraw', transactionCardType: 'bank_withdraw', userName: 'Bank Account' },
     },
     {
-        name: 'TRANSACTION_INTENT × CARD_SPEND with merchant → qr_payment / pay',
+        name: 'TRANSACTION_INTENT × CARD_SPEND with merchant → qr_payment / card_pay',
         entry: baseEntry({
             type: EHistoryEntryType.TRANSACTION_INTENT,
             userRole: EHistoryUserRole.SENDER,
@@ -348,7 +348,7 @@ const cases: TestCase[] = [
         }),
         expect: {
             direction: 'qr_payment',
-            transactionCardType: 'pay',
+            transactionCardType: 'card_pay',
             userName: 'Acme Coffee',
             cardPaymentDefined: true,
         },
@@ -363,7 +363,7 @@ const cases: TestCase[] = [
         }),
         expect: {
             direction: 'qr_payment',
-            transactionCardType: 'pay',
+            transactionCardType: 'card_pay',
             userName: 'Card payment',
             cardPaymentDefined: true,
         },

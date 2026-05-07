@@ -85,6 +85,13 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
             // iconFillColor = context === 'card' ? AVATAR_TEXT_LIGHT : AVATAR_TEXT_DARK
             // textColor = context === 'card' ? AVATAR_TEXT_LIGHT : AVATAR_TEXT_DARK
             break
+        case 'card_pay':
+            // Rain card spend without a Rain-enriched merchant logo
+            // (TransactionDetailsHeaderCard prefers `avatarUrl` when set,
+            // so a real merchant brand mark wins over this fallback).
+            displayIconName = 'credit-card'
+            displayInitials = undefined
+            break
         case 'send':
         case 'request':
         case 'receive':
