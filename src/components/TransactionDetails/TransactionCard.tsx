@@ -354,6 +354,11 @@ function getActionText(type: TransactionType, status?: StatusPillType): string {
         case 'bank_request_fulfillment':
             actionText = 'Request paid via bank'
             break
+        case 'card_pay':
+            // 'Pay' for card spends — the underlying type literal `card_pay`
+            // is an internal discriminator (see TransactionType comment).
+            actionText = 'Pay'
+            break
     }
     return actionText
 }
