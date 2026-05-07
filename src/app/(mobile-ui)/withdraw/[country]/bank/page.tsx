@@ -33,7 +33,12 @@ import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
-import useKycStatus from '@/hooks/useKycStatus'
+import {
+    useBridgeTransferReadiness,
+    getKycModalVariant,
+    getGateProviderMessage,
+} from '@/hooks/useBridgeTransferReadiness'
+import { useModalsContext } from '@/context/ModalsContext'
 import ExchangeRate from '@/components/ExchangeRate'
 import countryCurrencyMappings, { isNonEuroSepaCountry } from '@/constants/countryCurrencyMapping'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
@@ -69,14 +74,15 @@ export default function WithdrawBankPage() {
     const [balanceErrorMessage, setBalanceErrorMessage] = useState<string | null>(null)
     const { hasPendingTransactions } = usePendingTransactions()
     const { isBridgeSupportedCountry } = useIdentityVerification()
-    const { isUserSumsubKycApproved, isUserBridgeKycApproved } = useKycStatus()
-    const sumsubFlow = useMultiPhaseKycFlow({
-        onKycSuccess: async () => {
-            await fetchUser()
-        },
-    })
+    const { gate } = useBridgeTransferReadiness()
+    const sumsubFlow = useMultiPhaseKycFlow({})
     const [showKycModal, setShowKycModal] = useState(false)
-    const needsBridgeEnrollment = isUserSumsubKycApproved && !isUserBridgeKycApproved && !user?.user.bridgeCustomerId
+    const { setIsSupportModalOpen } = useModalsContext()
+
+    // close kyc modal when sumsub sdk opens
+    useEffect(() => {
+        if (sumsubFlow.showWrapper) setShowKycModal(false)
+    }, [sumsubFlow.showWrapper])
 
     // validate country is supported for bank withdrawals
     useEffect(() => {
@@ -171,12 +177,14 @@ export default function WithdrawBankPage() {
     }
 
     const handleCreateAndInitiateOfframp = async () => {
-        if (needsBridgeEnrollment) {
-            setShowKycModal(true)
+        if (gate.type !== 'ready') {
+            if (gate.type === 'accept_tos') {
+                guardWithTos()
+            } else {
+                setShowKycModal(true)
+            }
             return
         }
-
-        if (guardWithTos()) return
 
         setIsLoading(true)
         setError({ showError: false, errorMessage: '' })
@@ -466,11 +474,24 @@ export default function WithdrawBankPage() {
                 visible={showKycModal}
                 onClose={() => setShowKycModal(false)}
                 onVerify={async () => {
-                    await sumsubFlow.handleInitiateKyc('STANDARD', undefined, true)
+                    if (gate.type === 'fixable_rejection') {
+                        await sumsubFlow.handleSelfHealResubmit('BRIDGE')
+                    } else {
+                        await sumsubFlow.handleInitiateKyc(
+                            'STANDARD',
+                            undefined,
+                            gate.type === 'needs_enrollment' || undefined
+                        )
+                    }
+                }}
+                onContactSupport={() => {
                     setShowKycModal(false)
+                    setIsSupportModalOpen(true)
                 }}
                 isLoading={sumsubFlow.isLoading}
-                variant="cross_region"
+                error={sumsubFlow.error}
+                variant={getKycModalVariant(gate.type)}
+                providerMessage={getGateProviderMessage(gate)}
                 regionName={getCountryFromPath(country)?.title}
             />
             <SumsubKycModals flow={sumsubFlow} />

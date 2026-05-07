@@ -55,7 +55,10 @@ export type IBankAccountDetails = {
 interface DynamicBankAccountFormProps {
     country: string
     countryName?: string
-    onSuccess: (payload: AddBankAccountPayload, rawData: IBankAccountDetails) => Promise<{ error?: string }>
+    onSuccess: (
+        payload: AddBankAccountPayload,
+        rawData: IBankAccountDetails
+    ) => Promise<{ error?: string; silent?: boolean }>
     initialData?: Partial<IBankAccountDetails>
     flow?: 'claim' | 'withdraw'
     actionDetailsProps?: Partial<PeanutActionDetailsCardProps>
@@ -250,7 +253,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                     name: data.name,
                 })
                 if (result.error) {
-                    setSubmissionError(result.error)
+                    if (!result.silent) setSubmissionError(result.error)
                     setIsSubmitting(false)
                 } else {
                     // Save form data to Redux after successful submission
