@@ -339,16 +339,25 @@ export default function WithdrawCryptoPage() {
 
             if (!finalTxHash) throw new Error('Withdrawal returned no transaction identifier')
 
-            // Skip recordPayment when funds moved via Rain collateral — the
-            // charge indexer watches for smart-account-outgoing transfers, but
-            // a coordinator-driven withdraw moves USDC from the collateral proxy
-            // and would leave the Charge unmatched ("failed" in history). The
-            // Rain webhook + TransactionIntent reconciliation is the source of
-            // truth for those flows.
+            // Skip recordPayment when funds moved via Rain collateral on a
+            // SAME-chain withdrawal — the charge indexer watches for
+            // smart-account-outgoing transfers, but a coordinator-driven
+            // withdraw moves USDC from the collateral proxy and would leave
+            // the Charge unmatched ("failed" in history). The Rain webhook +
+            // TransactionIntent reconciliation is the source of truth there.
+            //
+            // Cross-chain withdraws ALWAYS need recordPayment to fire — the
+            // BE validator's cross-chain branch transitions the charge intent
+            // to COMPLETED directly (trusts the source-chain submission since
+            // Rhino owns delivery downstream). Without this call the intent
+            // gets stuck at PENDING because nothing else triggers the
+            // transition for the bridge-path (depositWithId, mode='pay')
+            // flow we use for non-stable destinations.
             const routedThroughCollateral = strategy === 'collateral-only' || strategy === 'mixed'
+            const skipRecordPayment = routedThroughCollateral && !isCrossChainWithdrawal
 
             let payment: Awaited<ReturnType<typeof recordPayment>> | null = null
-            if (!routedThroughCollateral) {
+            if (!skipRecordPayment) {
                 payment = await recordPayment({
                     chargeId: chargeDetails.uuid,
                     chainId: PEANUT_WALLET_CHAIN.id.toString(),
