@@ -23,23 +23,16 @@ function parseCents(value: string | null | undefined): number | null {
     return Number.isFinite(n) ? n : null
 }
 
-/** Whether the transaction's local-currency block represents a real cross-
- *  currency charge that should be surfaced to the user. Normalizes the
- *  currency string and skips USD (the display currency). */
-function hasCrossCurrencyCharge(card: NonNullable<TransactionDetails['extraDataForDrawer']>['cardPayment']): boolean {
-    if (!card) return false
-    const currency = nonBlank(card.localCurrency)
-    if (!currency) return false
-    if (currency.toLowerCase() === 'usd') return false
-    return parseCents(card.localAmount) != null
-}
-
 /**
  * Whether CardPaymentRows would render any visible sub-row for this
  * transaction. The row-config in the receipt uses this to gate the
  * `cardPayment` slot — without it, we'd end up with a "visible" but
  * empty slot, which throws off `shouldHideBorder` and dangles the
  * preceding row's border into empty space.
+ *
+ * Note: cross-currency `Charged in` USED to live here, but the local
+ * fiat amount now flows through the receipt's heading (≈ ARS X) and
+ * exchange-rate row instead — same treatment as Manteca QR pays.
  */
 export function hasCardPaymentRowsContent(transaction: TransactionDetails): boolean {
     const card = transaction.extraDataForDrawer?.cardPayment
@@ -47,7 +40,6 @@ export function hasCardPaymentRowsContent(transaction: TransactionDetails): bool
 
     if (nonBlank(card.merchantCategory)) return true
     if (nonBlank(card.merchantCity) || nonBlank(card.merchantCountry)) return true
-    if (hasCrossCurrencyCharge(card)) return true
     if (card.settlementAdjusted && parseCents(card.authAmount) != null) return true
     if (transaction.status === 'failed' && card.declineReason) return true
     if (card.cancellationReason === 'auto_closed') return true
@@ -96,20 +88,6 @@ export function CardPaymentRows({
             key: 'location',
             label: 'Location',
             value: [cityClean, countryClean].filter(Boolean).join(', '),
-        })
-    }
-
-    // Cross-currency only — suppress when the local currency matches the USD
-    // display currency (everyone's seen "Charged in 150 usd" alongside $1.50
-    // and it's just noise). Normalized + NaN-guarded to avoid stray junk
-    // making it past the rendering predicate.
-    if (hasCrossCurrencyCharge(card)) {
-        const localCents = parseCents(card.localAmount)!
-        const currency = nonBlank(card.localCurrency)!.toUpperCase()
-        subRows.push({
-            key: 'chargedIn',
-            label: 'Charged in',
-            value: `${(localCents / 100).toFixed(2)} ${currency}`,
         })
     }
 
