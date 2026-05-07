@@ -112,7 +112,16 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
 
     const sign = getTransactionSign(transaction)
     let usdAmount = amount
-    if (!isStableCoin(transaction.tokenSymbol ?? 'USDC')) {
+    // `currency.amount` is treated as the USD-equivalent ONLY when it's
+    // actually denominated in USD — that's the cross-token-withdraw case
+    // (amount=ETH destination, currency={USD-equiv, USD}). For local-fiat
+    // currency blocks (ARS / BRL on Manteca QR pays + Rain card spends with
+    // a non-USD merchant) `amount` is already the USD-denominated value and
+    // `currency` just carries the local fiat for the "≈ X" subtext below.
+    // Without the USD guard the activity row would render the ARS amount
+    // formatted as `$X` (e.g. `$40,200` for a $30.24 BOYACA card spend).
+    const currencyCodeForUsdCheck = transaction.currency?.code?.toUpperCase()
+    if (!isStableCoin(transaction.tokenSymbol ?? 'USDC') && currencyCodeForUsdCheck === 'USD') {
         usdAmount = Number(transaction.currency?.amount ?? amount)
     }
 
