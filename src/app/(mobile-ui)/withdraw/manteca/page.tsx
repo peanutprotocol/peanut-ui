@@ -408,10 +408,28 @@ export default function MantecaWithdrawFlow() {
         resetState()
     }, [])
 
-    // todo: temp disabled for local testing — restore before merging
     useEffect(() => {
-        setBalanceErrorMessage(null)
-    }, [usdAmount, balance])
+        // Skip balance check if transaction is being processed
+        // Use hasPendingTransactions to prevent race condition with optimistic updates
+        // isLoading covers the gap between sendMoney completing and API withdraw completing
+        if (hasPendingTransactions || isLoading) {
+            return
+        }
+
+        if (!usdAmount || usdAmount === '0.00' || isNaN(Number(usdAmount)) || balance === undefined) {
+            setBalanceErrorMessage(null)
+            return
+        }
+        const paymentAmount = parseUnits(usdAmount, PEANUT_WALLET_TOKEN_DECIMALS)
+        // only check min amount and balance here - max amount is handled by limits validation
+        if (paymentAmount < parseUnits(MIN_MANTECA_WITHDRAW_AMOUNT.toString(), PEANUT_WALLET_TOKEN_DECIMALS)) {
+            setBalanceErrorMessage(`Withdraw amount must be at least $${MIN_MANTECA_WITHDRAW_AMOUNT}`)
+        } else if (paymentAmount > balance) {
+            setBalanceErrorMessage('Not enough balance to complete withdrawal.')
+        } else {
+            setBalanceErrorMessage(null)
+        }
+    }, [usdAmount, balance, hasPendingTransactions, isLoading])
 
     // Fetch points early to avoid latency penalty - fetch as soon as we have usdAmount
     // Use flowId as uniqueId to prevent cache collisions between different withdrawal flows
@@ -744,9 +762,7 @@ export default function MantecaWithdrawFlow() {
                                   : 'Review'}
                         </Button>
 
-                        {(errorMessage || sumsubFlow.error) && (
-                            <ErrorAlert description={(errorMessage || sumsubFlow.error)!} />
-                        )}
+                        {(errorMessage || sumsubFlow.error) && <ErrorAlert description={(errorMessage || sumsubFlow.error)!} />}
                     </div>
                 </div>
             )}
@@ -803,9 +819,7 @@ export default function MantecaWithdrawFlow() {
                     >
                         {isLoading ? loadingState : 'Withdraw'}
                     </Button>
-                    {(errorMessage || sumsubFlow.error) && (
-                        <ErrorAlert description={(errorMessage || sumsubFlow.error)!} />
-                    )}
+                    {(errorMessage || sumsubFlow.error) && <ErrorAlert description={(errorMessage || sumsubFlow.error)!} />}
                 </div>
             )}
         </div>

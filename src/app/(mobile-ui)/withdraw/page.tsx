@@ -165,13 +165,44 @@ export default function WithdrawPage() {
         }
     }, [])
 
-    // todo: temp disabled for local testing — restore before merging
     const validateAmount = useCallback(
-        (_amountStr: string): boolean => {
-            setError({ showError: false, errorMessage: '' })
-            return true
+        (amountStr: string): boolean => {
+            if (!amountStr) {
+                setError({ showError: false, errorMessage: '' })
+                return true
+            }
+
+            const amount = Number(amountStr)
+            if (!Number.isFinite(amount) || amount <= 0) {
+                setError({ showError: true, errorMessage: 'Please enter a valid number.' })
+                return false
+            }
+
+            // convert the entered token amount to USD
+            const price = selectedTokenData?.price ?? 0 // 0 for safety; will fail below
+            const usdEquivalent = price ? amount * price : amount // if no price assume token pegged 1 USD
+
+            if (usdEquivalent >= minUsdAmount && amount <= maxDecimalAmount) {
+                setError({ showError: false, errorMessage: '' })
+                return true
+            }
+
+            // determine message
+            let message = ''
+            if (usdEquivalent < minUsdAmount) {
+                const minDisplay = minUsdAmount % 1 === 0 ? `$${minUsdAmount}` : `$${minUsdAmount.toFixed(2)}`
+                message = isFromSendFlow
+                    ? `Minimum send amount is ${minDisplay}.`
+                    : `Minimum withdrawal is ${minDisplay}.`
+            } else if (amount > maxDecimalAmount) {
+                message = 'Amount exceeds your wallet balance.'
+            } else {
+                message = 'Please enter a valid amount.'
+            }
+            setError({ showError: true, errorMessage: message })
+            return false
         },
-        [setError]
+        [maxDecimalAmount, setError, selectedTokenData?.price, isFromSendFlow, minUsdAmount]
     )
 
     const handleTokenAmountChange = useCallback(
@@ -265,12 +296,17 @@ export default function WithdrawPage() {
     }
 
     // check if continue button should be disabled
-    // todo: temp disabled for local testing — restore before merging
     const isContinueDisabled = useMemo(() => {
         if (!rawTokenAmount) return true
+
         const numericAmount = parseFloat(rawTokenAmount)
-        return !Number.isFinite(numericAmount) || numericAmount <= 0
-    }, [rawTokenAmount])
+        if (!Number.isFinite(numericAmount) || numericAmount <= 0) return true
+
+        const usdEq = (selectedTokenData?.price ?? 1) * numericAmount
+        if (usdEq < minUsdAmount) return true // below country-specific minimum
+
+        return numericAmount > maxDecimalAmount || error.showError
+    }, [rawTokenAmount, maxDecimalAmount, error.showError, selectedTokenData?.price, minUsdAmount])
 
     if (step === 'inputAmount') {
         // only show limits card for bank/manteca withdrawals, not crypto
