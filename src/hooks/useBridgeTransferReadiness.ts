@@ -52,3 +52,19 @@ export function useBridgeTransferReadiness() {
 
     return { gate }
 }
+
+/** maps gate type to InitiateKycModal variant */
+export function getKycModalVariant(gateType: BridgeGateAction['type']) {
+    if (gateType === 'blocked_rejection') return 'blocked' as const
+    if (gateType === 'fixable_rejection') return 'provider_rejection' as const
+    if (gateType === 'needs_enrollment') return 'cross_region' as const
+    return 'default' as const
+}
+
+/** extracts provider message from gate for InitiateKycModal */
+export function getGateProviderMessage(gate: BridgeGateAction): string | undefined {
+    if (gate.type === 'fixable_rejection' || gate.type === 'blocked_rejection') {
+        return gate.userMessage ?? undefined
+    }
+    return undefined
+}

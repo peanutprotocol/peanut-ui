@@ -32,7 +32,11 @@ import { sendLinksApi } from '@/services/sendLinks'
 import { useSearchParams } from 'next/navigation'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
-import { useBridgeTransferReadiness } from '@/hooks/useBridgeTransferReadiness'
+import {
+    useBridgeTransferReadiness,
+    getKycModalVariant,
+    getGateProviderMessage,
+} from '@/hooks/useBridgeTransferReadiness'
 import { useBridgeTosGuard } from '@/hooks/useBridgeTosGuard'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
@@ -523,7 +527,8 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                                         gate.type === 'needs_enrollment' || undefined
                                     )
                                 }
-                                setShowKycModal(false)
+                                // only close if sdk opened — if it errored, keep modal open to show error
+                                if (sumsubFlow.showWrapper) setShowKycModal(false)
                             }}
                             onContactSupport={() => {
                                 setShowKycModal(false)
@@ -531,20 +536,8 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                             }}
                             isLoading={sumsubFlow.isLoading}
                             error={sumsubFlow.error}
-                            variant={
-                                gate.type === 'blocked_rejection'
-                                    ? 'blocked'
-                                    : gate.type === 'fixable_rejection'
-                                      ? 'provider_rejection'
-                                      : gate.type === 'needs_enrollment'
-                                        ? 'cross_region'
-                                        : 'default'
-                            }
-                            providerMessage={
-                                gate.type === 'fixable_rejection' || gate.type === 'blocked_rejection'
-                                    ? (gate.userMessage ?? undefined)
-                                    : undefined
-                            }
+                            variant={getKycModalVariant(gate.type)}
+                            providerMessage={getGateProviderMessage(gate)}
                         />
                     </>
                 )

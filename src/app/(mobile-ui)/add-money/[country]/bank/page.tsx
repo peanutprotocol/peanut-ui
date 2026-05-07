@@ -10,7 +10,11 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { formatAmount } from '@/utils/general.utils'
 import { countryData } from '@/components/AddMoney/consts'
 import { useAuth } from '@/context/authContext'
-import { useBridgeTransferReadiness } from '@/hooks/useBridgeTransferReadiness'
+import {
+    useBridgeTransferReadiness,
+    getKycModalVariant,
+    getGateProviderMessage,
+} from '@/hooks/useBridgeTransferReadiness'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useCreateOnramp } from '@/hooks/useCreateOnramp'
 import { useRouter, useParams } from 'next/navigation'
@@ -417,20 +421,8 @@ export default function OnrampBankPage() {
                     }}
                     isLoading={sumsubFlow.isLoading}
                     error={sumsubFlow.error}
-                    variant={
-                        gate.type === 'blocked_rejection'
-                            ? 'blocked'
-                            : gate.type === 'fixable_rejection'
-                              ? 'provider_rejection'
-                              : gate.type === 'needs_enrollment'
-                                ? 'cross_region'
-                                : 'default'
-                    }
-                    providerMessage={
-                        gate.type === 'fixable_rejection' || gate.type === 'blocked_rejection'
-                            ? (gate.userMessage ?? undefined)
-                            : undefined
-                    }
+                    variant={getKycModalVariant(gate.type)}
+                    providerMessage={getGateProviderMessage(gate)}
                     regionName={selectedCountry?.title}
                 />
 

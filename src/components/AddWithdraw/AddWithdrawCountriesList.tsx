@@ -27,7 +27,11 @@ import TokenAndNetworkConfirmationModal from '../Global/TokenAndNetworkConfirmat
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
-import { useBridgeTransferReadiness } from '@/hooks/useBridgeTransferReadiness'
+import {
+    useBridgeTransferReadiness,
+    getKycModalVariant,
+    getGateProviderMessage,
+} from '@/hooks/useBridgeTransferReadiness'
 import { useBridgeTosGuard } from '@/hooks/useBridgeTosGuard'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { useModalsContext } from '@/context/ModalsContext'
@@ -91,7 +95,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const handleFormSubmit = async (
         payload: AddBankAccountPayload,
         rawData: IBankAccountDetails
-    ): Promise<{ error?: string }> => {
+    ): Promise<{ error?: string; silent?: boolean }> => {
         // re-fetch user to ensure we have the latest KYC status
         // (the multi-phase flow may have completed but websocket/state not yet propagated)
         await fetchUser()
@@ -104,7 +108,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             } else {
                 setIsKycModalOpen(true)
             }
-            return { error: '__silent__' }
+            return { error: 'gate_blocked', silent: true }
         }
 
         // scenario (1): happy path: if the user has already completed kyc, we can add the bank account directly
@@ -309,20 +313,8 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                     }}
                     isLoading={sumsubFlow.isLoading}
                     error={sumsubFlow.error}
-                    variant={
-                        gate.type === 'blocked_rejection'
-                            ? 'blocked'
-                            : gate.type === 'fixable_rejection'
-                              ? 'provider_rejection'
-                              : gate.type === 'needs_enrollment'
-                                ? 'cross_region'
-                                : 'default'
-                    }
-                    providerMessage={
-                        gate.type === 'fixable_rejection' || gate.type === 'blocked_rejection'
-                            ? (gate.userMessage ?? undefined)
-                            : undefined
-                    }
+                    variant={getKycModalVariant(gate.type)}
+                    providerMessage={getGateProviderMessage(gate)}
                     regionName={currentCountry?.title}
                 />
                 <BridgeTosStep

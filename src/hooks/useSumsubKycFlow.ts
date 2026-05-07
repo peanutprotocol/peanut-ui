@@ -137,7 +137,8 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
 
             // for cross-region: pre-set prevStatusRef to APPROVED so the fetchCurrentStatus
             // effect (which also fires when regionIntent changes) doesn't trigger onKycSuccess
-            // when it sees the existing APPROVED status.
+            // when it sees the existing APPROVED status. save previous value to restore on failure.
+            const savedPrevStatus = prevStatusRef.current
             if (crossRegion) {
                 prevStatusRef.current = 'APPROVED'
             }
@@ -150,6 +151,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 })
 
                 if (response.error) {
+                    if (crossRegion) prevStatusRef.current = savedPrevStatus
                     setError(response.error)
                     return
                 }
@@ -196,6 +198,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     setError('Could not initiate verification. Please try again.')
                 }
             } catch (e: unknown) {
+                if (crossRegion) prevStatusRef.current = savedPrevStatus
                 const message = e instanceof Error ? e.message : 'An unexpected error occurred'
                 setError(message)
             } finally {
