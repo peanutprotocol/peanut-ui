@@ -364,42 +364,84 @@ export const mantecaApi = {
     },
 
     /**
-     * Complete withdraw with signed UserOp (sign-then-broadcast pattern).
-     * This creates the Manteca order FIRST, then broadcasts the transaction.
-     * Prevents funds from being stuck if Manteca fails.
+     * Complete withdraw with a pre-signed transaction.
+     *
+     * Two shapes by `kind` — same discriminated-union shape as the QR-pay
+     * counterpart so a smart-wallet-empty card user can still offramp:
+     *  - 'userOp' (smart-only / mixed): backend broadcasts the signed
+     *    kernel UserOp via the bundler. For mixed, the UserOp's batched
+     *    callData embeds a Rain `withdrawAsset` call so collateral
+     *    materializes into the smart account atomically with the transfer
+     *    to MANTECA. `rainPreparationId` lets backend stamp the prepared
+     *    Rain intent with the on-chain hash so the collateral webhook
+     *    reconciles to OFFRAMP in history.
+     *  - 'rainWithdrawal' (collateral-only): backend submits the signed
+     *    Rain withdrawal via the user's session-key UserOp with
+     *    `directTransfer=true` straight to MANTECA's deposit address.
+     *    One passkey tap (admin EIP-712).
+     *
+     * In all cases, backend creates the Manteca order FIRST so funds
+     * don't leave the user's side if Manteca fails.
      */
-    withdrawWithSignedTx: async (params: {
-        priceLockCode: string
-        amount: string
-        destinationAddress: string
-        currency: string
-        bankCode?: string
-        accountType?: string
-        signedUserOp: Pick<
-            SignUserOperationReturnType,
-            | 'sender'
-            | 'nonce'
-            | 'callData'
-            | 'signature'
-            | 'callGasLimit'
-            | 'verificationGasLimit'
-            | 'preVerificationGas'
-            | 'maxFeePerGas'
-            | 'maxPriorityFeePerGas'
-            | 'paymaster'
-            | 'paymasterData'
-            | 'paymasterVerificationGasLimit'
-            | 'paymasterPostOpGasLimit'
-            | 'factory'
-            | 'factoryData'
-        >
-        chainId: string
-        entryPointAddress: string
-    }): Promise<MantecaWithdrawResponse> => {
+    withdrawWithSignedTx: async (
+        body:
+            | {
+                  kind: 'userOp'
+                  priceLockCode: string
+                  amount: string
+                  destinationAddress: string
+                  currency: string
+                  bankCode?: string
+                  accountType?: string
+                  signedUserOp: Pick<
+                      SignUserOperationReturnType,
+                      | 'sender'
+                      | 'nonce'
+                      | 'callData'
+                      | 'signature'
+                      | 'callGasLimit'
+                      | 'verificationGasLimit'
+                      | 'preVerificationGas'
+                      | 'maxFeePerGas'
+                      | 'maxPriorityFeePerGas'
+                      | 'paymaster'
+                      | 'paymasterData'
+                      | 'paymasterVerificationGasLimit'
+                      | 'paymasterPostOpGasLimit'
+                      | 'factory'
+                      | 'factoryData'
+                  >
+                  chainId: string
+                  entryPointAddress: string
+                  rainPreparationId?: string
+              }
+            | {
+                  kind: 'rainWithdrawal'
+                  priceLockCode: string
+                  amount: string
+                  destinationAddress: string
+                  currency: string
+                  bankCode?: string
+                  accountType?: string
+                  signedRainWithdrawal: {
+                      preparationId: string
+                      amount: string
+                      recipientAddress: Address
+                      directTransfer: boolean
+                      adminSalt: string
+                      adminNonce: string
+                      adminSignature: string
+                      executorSignature: string
+                      executorSalt: string
+                      expiresAt: number
+                  }
+                  chainId: string
+              }
+    ): Promise<MantecaWithdrawResponse> => {
         try {
             const response = await serverFetch('/manteca/withdraw/complete-with-signed-tx', {
                 method: 'POST',
-                body: jsonStringify(params),
+                body: jsonStringify(body),
             })
 
             const result = await response.json()
