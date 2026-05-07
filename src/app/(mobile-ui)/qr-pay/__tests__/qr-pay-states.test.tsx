@@ -156,6 +156,38 @@ jest.mock('@/app/actions/increase-limits', () => ({
     initiateIncreaseLimits: jest.fn(),
 }))
 
+jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
+    useMultiPhaseKycFlow: () => ({
+        isLoading: false,
+        error: null,
+        showWrapper: false,
+        accessToken: null,
+        handleInitiateKyc: jest.fn(),
+        handleSelfHealResubmit: jest.fn(),
+        handleSdkComplete: jest.fn(),
+        handleSdkClose: jest.fn(),
+        refreshToken: jest.fn(),
+        isModalOpen: false,
+        handleModalClose: jest.fn(),
+        modalPhase: null,
+        handleAcceptTerms: jest.fn(),
+        handleSkipTerms: jest.fn(),
+        completeFlow: jest.fn(),
+        tosError: null,
+        isLoadingTos: false,
+        preparingTimedOut: false,
+        preparingStage: null,
+        isMultiLevel: false,
+        showTosIframe: false,
+        tosLink: null,
+        handleTosIframeClose: jest.fn(),
+    }),
+}))
+
+jest.mock('@/components/Kyc/SumsubKycModals', () => ({
+    SumsubKycModals: () => null,
+}))
+
 const mockIsPaymentProcessorQR = jest.fn()
 jest.mock('@/components/Global/DirectSendQR/utils', () => ({
     isPaymentProcessorQR: (...args: any[]) => mockIsPaymentProcessorQR(...args),

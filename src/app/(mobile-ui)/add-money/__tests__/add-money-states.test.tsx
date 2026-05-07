@@ -117,6 +117,31 @@ jest.mock('@/hooks/useKycStatus', () => ({
     default: () => mockUseKycStatus(),
 }))
 
+const mockGate = jest.fn().mockReturnValue({ type: 'ready' })
+jest.mock('@/hooks/useBridgeTransferReadiness', () => ({
+    useBridgeTransferReadiness: () => ({ gate: mockGate() }),
+    getKycModalVariant: () => 'default',
+    getGateProviderMessage: () => undefined,
+}))
+
+jest.mock('@/context/ModalsContext', () => ({
+    useModalsContext: () => ({
+        setIsSupportModalOpen: jest.fn(),
+        setIsQRScannerOpen: jest.fn(),
+        openSupportWithMessage: jest.fn(),
+    }),
+}))
+
+jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
+    useMultiPhaseKycFlow: () => ({
+        isLoading: false,
+        error: null,
+        showWrapper: false,
+        handleInitiateKyc: jest.fn(),
+        handleSelfHealResubmit: jest.fn(),
+    }),
+}))
+
 const mockUseCurrency = jest.fn()
 jest.mock('@/hooks/useCurrency', () => ({
     useCurrency: (...args: any[]) => mockUseCurrency(...args),
@@ -1056,6 +1081,7 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
     beforeEach(() => {
         setParams({ country: 'germany' })
         resetQueryState({ step: 'inputAmount', amount: '' })
+        mockGate.mockReturnValue({ type: 'ready' })
     })
 
     test('inputAmount step shows amount input and Continue button', () => {
@@ -1086,6 +1112,7 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
             isUserKycApproved: false,
             isUserMantecaKycApproved: false,
         })
+        mockGate.mockReturnValue({ type: 'needs_enrollment' })
         resetQueryState({ step: 'inputAmount', amount: '100' })
 
         renderWithProviders(<OnrampBankPage />)
@@ -1219,6 +1246,7 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
     })
 
     test('Bridge TOS guard shows TOS step', async () => {
+        mockGate.mockReturnValue({ type: 'accept_tos' })
         mockUseBridgeTosGuard.mockReturnValue({
             guardWithTos: jest.fn(() => true),
             showBridgeTos: true,
