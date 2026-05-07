@@ -69,6 +69,8 @@ import { useSumsubActionFlow } from '@/hooks/useSumsubActionFlow'
 import { initiateIncreaseLimits } from '@/app/actions/increase-limits'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { useLimits } from '@/hooks/useLimits'
+import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
+import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 
 const MAX_QR_PAYMENT_AMOUNT = '2000'
 const MIN_QR_PAYMENT_AMOUNT = '0.1'
@@ -121,7 +123,8 @@ export default function QRPayPage() {
     }, [paymentProcessor])
 
     const { shouldBlockPay, kycGateState } = useQrKycGate(paymentProcessor)
-    const { isUserMantecaKycApproved } = useKycStatus()
+    const { isUserMantecaKycApproved, isUserSumsubKycApproved } = useKycStatus()
+    const sumsubFlow = useMultiPhaseKycFlow({})
     const queryClient = useQueryClient()
     const [isShaking, setIsShaking] = useState(false)
     const [shakeIntensity, setShakeIntensity] = useState<ShakeIntensity>('none')
@@ -541,7 +544,12 @@ export default function QRPayPage() {
             }
             return mantecaApi.initiateQrPayment({ qrCode, qrType: qrType ?? undefined })
         },
-        enabled: paymentProcessor === 'MANTECA' && !!qrCode && isPaymentProcessorQR(qrCode) && !paymentLock,
+        enabled:
+            paymentProcessor === 'MANTECA' &&
+            !!qrCode &&
+            isPaymentProcessorQR(qrCode) &&
+            !paymentLock &&
+            !shouldBlockPay,
         retry: (failureCount, error: any) => {
             // Don't retry provider-specific errors
             if (error?.message?.includes('PAYMENT_DESTINATION_DECODING_ERROR')) {
@@ -1108,25 +1116,19 @@ export default function QRPayPage() {
                         isFixable
                             ? {
                                   text: 'Upload document',
-                                  onClick: () => {
-                                      saveRedirectUrl()
-                                      router.push('/profile/identity-verification')
-                                  },
+                                  onClick: () => sumsubFlow.handleSelfHealResubmit('MANTECA'),
                                   variant: 'purple' as const,
                                   shadowSize: '4' as const,
                                   icon: 'upload',
                               }
                             : {
                                   text: 'Contact support',
-                                  onClick: () => {
-                                      if (typeof window !== 'undefined' && (window as any).$crisp) {
-                                          ;(window as any).$crisp.push(['do', 'chat:open'])
-                                      }
-                                  },
+                                  onClick: () => setIsSupportModalOpen(true),
                                   variant: 'stroke' as const,
                               },
                     ]}
                 />
+                <SumsubKycModals flow={sumsubFlow} />
             </div>
         )
     }
@@ -1149,10 +1151,8 @@ export default function QRPayPage() {
                     ctas={[
                         {
                             text: 'Verify now',
-                            onClick: () => {
-                                saveRedirectUrl()
-                                router.push('/profile/identity-verification')
-                            },
+                            onClick: () =>
+                                sumsubFlow.handleInitiateKyc('LATAM', undefined, isUserSumsubKycApproved || undefined),
                             variant: 'purple',
                             shadowSize: '4',
                             icon: 'check-circle',
@@ -1169,10 +1169,8 @@ export default function QRPayPage() {
                     ctas={[
                         {
                             text: 'Continue verification',
-                            onClick: () => {
-                                saveRedirectUrl()
-                                router.push('/profile/identity-verification')
-                            },
+                            onClick: () =>
+                                sumsubFlow.handleInitiateKyc('LATAM', undefined, isUserSumsubKycApproved || undefined),
                             variant: 'purple',
                             shadowSize: '4',
                             icon: 'check-circle',
@@ -1187,6 +1185,7 @@ export default function QRPayPage() {
                         },
                     ]}
                 />
+                <SumsubKycModals flow={sumsubFlow} />
             </div>
         )
     }
