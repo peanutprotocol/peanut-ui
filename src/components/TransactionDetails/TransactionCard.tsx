@@ -50,6 +50,10 @@ export type TransactionType =
     | 'claim_external'
     | 'bank_claim'
     | 'pay'
+    // Rain card-spend / card-refund. Distinct from 'pay' (Manteca QR pay)
+    // so the avatar logic can render a credit-card icon instead of the
+    // Mercado Pago / PIX brand mark or the generic wallet fallback.
+    | 'card_pay'
 
 interface TransactionCardProps {
     type: TransactionType
@@ -102,7 +106,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     let displayName = name
     if (isAddress(displayName)) {
         displayName = printableAddress(displayName)
-    } else if (type === 'pay' && displayName.length > 19) {
+    } else if ((type === 'pay' || type === 'card_pay') && displayName.length > 19) {
         displayName = shortenStringLong(displayName, 0, 16)
     }
 
@@ -315,6 +319,7 @@ function getActionIcon(
             iconSize = 8
             break
         case 'pay':
+        case 'card_pay':
             iconName = 'arrow-up-right'
             break
         case 'add':
