@@ -578,16 +578,14 @@ export default function QRPayPage() {
             if (error.message.includes('PAYMENT_DESTINATION_MISSING_AMOUNT')) {
                 setWaitingForMerchantAmount(true)
             } else if (error.message.includes('PAYMENT_DESTINATION_DECODING_ERROR')) {
-                let decodingMessage =
-                    'We could not decode this particular QR code. Please ask the Merchant if they can generate a Mercado Pago QR'
-                if (qrType === EQrType.PIX) {
-                    decodingMessage =
-                        'We could not decode this Pix QR code. Please ask the merchant to generate a new one.'
-                } else if (qrType === EQrType.ARGENTINA_QR3) {
-                    decodingMessage =
-                        'We could not decode this QR Interoperable code. Please ask the merchant to generate a new one.'
-                }
-                setErrorInitiatingPayment(decodingMessage)
+                // Pix has no fallback rail in Brazil — ask the merchant to regenerate.
+                // For Argentina (MERCADO_PAGO and ARGENTINA_QR3), MP is the dominant
+                // rail, so suggesting an MP QR is the most useful fallback.
+                setErrorInitiatingPayment(
+                    qrType === EQrType.PIX
+                        ? 'We could not decode this Pix QR code. Please ask the merchant to generate a new one.'
+                        : 'We could not decode this particular QR code. Please ask the Merchant if they can generate a Mercado Pago QR'
+                )
                 posthog.capture(ANALYTICS_EVENTS.QR_DECODING_ERROR_SHOWN, { qr_type: qrType })
                 setWaitingForMerchantAmount(false)
             } else {
