@@ -4,6 +4,7 @@ import { KYCStatusDrawerItem } from '../KYCStatusDrawerItem'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
 import type { ProviderRejectionInfo } from '@/hooks/useProviderRejectionStatus'
+import { useModalsContext } from '@/context/ModalsContext'
 
 /**
  * shown when a user is sumsub-approved but a provider (bridge/manteca) rejected their documents.
@@ -18,6 +19,7 @@ export const KycProviderRejection = ({
     rejection: ProviderRejectionInfo
     onStartResubmission?: () => void
 }) => {
+    const { setIsSupportModalOpen } = useModalsContext()
     const providerLabel = rejection.provider === 'BRIDGE' ? 'Bank transfers' : 'QR payments'
     const isFixable = rejection.state === 'fixable'
 
@@ -59,15 +61,7 @@ export const KycProviderRejection = ({
                     Upload document
                 </Button>
             ) : (
-                <Button
-                    variant="stroke"
-                    className="w-full"
-                    onClick={() => {
-                        if (typeof window !== 'undefined' && (window as any).$crisp) {
-                            ;(window as any).$crisp.push(['do', 'chat:open'])
-                        }
-                    }}
-                >
+                <Button variant="stroke" className="w-full" onClick={() => setIsSupportModalOpen(true)}>
                     Contact support
                 </Button>
             )}

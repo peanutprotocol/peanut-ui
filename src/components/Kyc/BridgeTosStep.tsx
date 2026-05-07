@@ -1,14 +1,12 @@
 'use client'
 
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import ActionModal from '@/components/Global/ActionModal'
 import IframeWrapper from '@/components/Global/IframeWrapper'
 import { type IconName } from '@/components/Global/Icons/Icon'
-import { getBridgeTosLink, confirmBridgeTos } from '@/app/actions/users'
+import { getBridgeTosLink } from '@/app/actions/users'
 import { useAuth } from '@/context/authContext'
 import { confirmBridgeTosAndAwaitRails } from '@/hooks/useMultiPhaseKycFlow'
-import { isCapacitor } from '@/utils/capacitor'
-import { openExternalUrl } from '@/utils/capacitor'
 
 interface BridgeTosStepProps {
     visible: boolean
@@ -17,40 +15,24 @@ interface BridgeTosStepProps {
 }
 
 // shown immediately after sumsub kyc approval when bridge rails need ToS acceptance.
-// on web: opens bridge ToS in an iframe.
-// on native: opens in system browser, polls for acceptance.
+// displays a prompt, then opens the bridge ToS iframe.
 export const BridgeTosStep = ({ visible, onComplete, onSkip }: BridgeTosStepProps) => {
     const { fetchUser } = useAuth()
     const [showIframe, setShowIframe] = useState(false)
     const [tosLink, setTosLink] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(false)
+    const [isConfirming, setIsConfirming] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    const pollRef = useRef<NodeJS.Timeout | null>(null)
 
-    // stop polling on unmount or when step becomes invisible
+    // reset state when step is hidden
     useEffect(() => {
-        if (!visible && pollRef.current) {
-            clearInterval(pollRef.current)
-            pollRef.current = null
-        }
-        return () => {
-            if (pollRef.current) {
-                clearInterval(pollRef.current)
-                pollRef.current = null
-            }
-        }
-    }, [visible])
-
-    // auto-fetch ToS link when step becomes visible
-    useEffect(() => {
-        if (visible) {
-            handleAcceptTerms()
-        } else {
+        if (!visible) {
             setShowIframe(false)
+            setIsConfirming(false)
             setTosLink(null)
             setError(null)
         }
-    }, [visible]) // eslint-disable-line react-hooks/exhaustive-deps
+    }, [visible])
 
     const handleAcceptTerms = useCallback(async () => {
         setIsLoading(true)
@@ -60,25 +42,9 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip }: BridgeTosStepProp
             const response = await getBridgeTosLink()
 
             if (response.error || !response.data?.tosLink) {
+                // if we can't get the tos link (e.g. bridge customer not created yet),
+                // skip this step — the activity feed will show a reminder later
                 setError(response.error || 'Could not load terms. You can accept them later from your activity feed.')
-                return
-            }
-
-            // in capacitor, open in system browser and poll for acceptance
-            if (isCapacitor()) {
-                openExternalUrl(response.data.tosLink)
-                // poll every 3s to check if user accepted ToS in the browser
-                pollRef.current = setInterval(async () => {
-                    try {
-                        const result = await confirmBridgeTos()
-                        if (result.data?.accepted) {
-                            if (pollRef.current) clearInterval(pollRef.current)
-                            pollRef.current = null
-                            await confirmBridgeTosAndAwaitRails(fetchUser)
-                            onComplete()
-                        }
-                    } catch {}
-                }, 3000)
                 return
             }
 
@@ -89,16 +55,23 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip }: BridgeTosStepProp
         } finally {
             setIsLoading(false)
         }
-    }, [fetchUser, onComplete])
+    }, [])
 
     const handleIframeClose = useCallback(
         async (source?: 'manual' | 'completed' | 'tos_accepted') => {
-            setShowIframe(false)
-
             if (source === 'tos_accepted') {
-                await confirmBridgeTosAndAwaitRails(fetchUser)
-                onComplete()
+                setIsConfirming(true)
+                setShowIframe(false)
+                try {
+                    await confirmBridgeTosAndAwaitRails(fetchUser)
+                    onComplete()
+                } catch {
+                    setError('Something went wrong confirming your terms. Please try again.')
+                } finally {
+                    setIsConfirming(false)
+                }
             } else {
+                setShowIframe(false)
                 onSkip()
             }
         },
@@ -107,65 +80,34 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip }: BridgeTosStepProp
 
     if (!visible) return null
 
-    // in capacitor, show a waiting modal while user accepts ToS in browser
-    if (isCapacitor() && !error) {
-        return (
+    return (
+        <>
+            {/* confirmation modal — hidden when iframe is open or ToS is being confirmed */}
             <ActionModal
-                visible={true}
+                visible={visible && !showIframe && !isConfirming}
                 onClose={onSkip}
-                icon={'check' as IconName}
-                title="Accept Terms of Service"
-                description="We've opened the terms in your browser. Please accept them there, then come back to the app."
+                icon={error ? ('alert' as IconName) : ('badge' as IconName)}
+                title={error ? 'Could not load terms' : 'Accept Terms of Service'}
+                description={
+                    error || "To enable bank transfers, you need to accept our payment partner's Terms of Service."
+                }
                 ctas={[
                     {
-                        text: 'Open again',
-                        onClick: () => tosLink && openExternalUrl(tosLink),
+                        text: isLoading ? 'Loading...' : error ? 'Try again' : 'Accept Terms',
+                        onClick: handleAcceptTerms,
+                        disabled: isLoading,
                         variant: 'purple',
                         className: 'w-full',
                         shadowSize: '4',
                     },
                     {
-                        text: 'Skip for now',
-                        onClick: () => {
-                            if (pollRef.current) clearInterval(pollRef.current)
-                            pollRef.current = null
-                            onSkip()
-                        },
+                        text: 'Not now',
+                        onClick: onSkip,
                         variant: 'transparent' as const,
                         className: 'underline text-sm font-medium w-full h-fit mt-3',
                     },
                 ]}
             />
-        )
-    }
-
-    return (
-        <>
-            {error && !showIframe && (
-                <ActionModal
-                    visible={true}
-                    onClose={onSkip}
-                    icon={'alert' as IconName}
-                    title="Could not load terms"
-                    description={error}
-                    ctas={[
-                        {
-                            text: 'Try again',
-                            onClick: handleAcceptTerms,
-                            disabled: isLoading,
-                            variant: 'purple',
-                            className: 'w-full',
-                            shadowSize: '4',
-                        },
-                        {
-                            text: 'Skip for now',
-                            onClick: onSkip,
-                            variant: 'transparent' as const,
-                            className: 'underline text-sm font-medium w-full h-fit mt-3',
-                        },
-                    ]}
-                />
-            )}
 
             {tosLink && <IframeWrapper src={tosLink} visible={showIframe} onClose={handleIframeClose} skipStartView />}
         </>

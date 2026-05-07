@@ -33,6 +33,15 @@ import { sendLinksApi } from '@/services/sendLinks'
 import { useSearchParams } from 'next/navigation'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
+import {
+    useBridgeTransferReadiness,
+    getKycModalVariant,
+    getGateProviderMessage,
+} from '@/hooks/useBridgeTransferReadiness'
+import { useBridgeTosGuard } from '@/hooks/useBridgeTosGuard'
+import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
+import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
+import { useModalsContext } from '@/context/ModalsContext'
 
 type BankAccountWithId = IBankAccountDetails &
     (
@@ -75,6 +84,10 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
     const { isLoading, setLoadingState } = useContext(loadingStateContext)
     const { claimLink } = useClaimLink()
     const dispatch = useAppDispatch()
+    const { gate } = useBridgeTransferReadiness()
+    const { guardWithTos, showBridgeTos, hideTos } = useBridgeTosGuard()
+    const [showKycModal, setShowKycModal] = useState(false)
+    const { setIsSupportModalOpen } = useModalsContext()
 
     // inline sumsub kyc flow for users who need verification
     // regionIntent is NOT passed here to avoid creating a backend record on mount.
@@ -145,11 +158,20 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
      */
     const handleCreateOfframpAndClaim = async (account: BankAccountWithId) => {
         try {
-            setLoadingState('Executing transaction')
             setError(null)
 
-            // determine user for offramp based on the bank claim type
+            // for logged-in users, check bridge readiness before proceeding
             const isGuestFlow = bankClaimType === BankClaimType.GuestBankClaim
+            if (!isGuestFlow && gate.type !== 'ready') {
+                if (gate.type === 'accept_tos') {
+                    guardWithTos()
+                } else {
+                    setShowKycModal(true)
+                }
+                return
+            }
+
+            setLoadingState('Executing transaction')
             const userForOfframp = isGuestFlow
                 ? await getUserById(claimLinkData.sender?.userId ?? claimLinkData.senderAddress)
                 : user?.user
@@ -288,6 +310,8 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                     setBankDetails(bankDetails)
                     setReceiverFullName(`${bankDetails.firstName} ${bankDetails.lastName}`)
                     setClaimBankFlowStep(ClaimBankFlowStep.BankConfirmClaim)
+                } else {
+                    return { error: 'Failed to process bank account. Please try again.' }
                 }
             } finally {
                 setIsProcessingKycSuccess(false)
@@ -466,22 +490,57 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
         case ClaimBankFlowStep.BankConfirmClaim:
             if (localBankDetails) {
                 return (
-                    <ConfirmBankClaimView
-                        claimLinkData={claimLinkData}
-                        onConfirm={() => handleCreateOfframpAndClaim(localBankDetails)}
-                        onBack={() => {
-                            setClaimBankFlowStep(
-                                savedAccounts.length > 0
-                                    ? ClaimBankFlowStep.SavedAccountsList
-                                    : ClaimBankFlowStep.BankDetailsForm
-                            )
-                            setError(null)
-                        }}
-                        isProcessing={isLoading}
-                        error={error}
-                        bankDetails={localBankDetails}
-                        fullName={receiverFullName}
-                    />
+                    <>
+                        <ConfirmBankClaimView
+                            claimLinkData={claimLinkData}
+                            onConfirm={() => handleCreateOfframpAndClaim(localBankDetails)}
+                            onBack={() => {
+                                setClaimBankFlowStep(
+                                    savedAccounts.length > 0
+                                        ? ClaimBankFlowStep.SavedAccountsList
+                                        : ClaimBankFlowStep.BankDetailsForm
+                                )
+                                setError(null)
+                            }}
+                            isProcessing={isLoading}
+                            error={error}
+                            bankDetails={localBankDetails}
+                            fullName={receiverFullName}
+                        />
+                        <BridgeTosStep
+                            visible={showBridgeTos}
+                            onComplete={() => {
+                                hideTos()
+                                handleCreateOfframpAndClaim(localBankDetails)
+                            }}
+                            onSkip={hideTos}
+                        />
+                        <InitiateKycModal
+                            visible={showKycModal}
+                            onClose={() => setShowKycModal(false)}
+                            onVerify={async () => {
+                                if (gate.type === 'fixable_rejection') {
+                                    await sumsubFlow.handleSelfHealResubmit('BRIDGE')
+                                } else {
+                                    await sumsubFlow.handleInitiateKyc(
+                                        'STANDARD',
+                                        undefined,
+                                        gate.type === 'needs_enrollment' || undefined
+                                    )
+                                }
+                                // only close if sdk opened — if it errored, keep modal open to show error
+                                if (sumsubFlow.showWrapper) setShowKycModal(false)
+                            }}
+                            onContactSupport={() => {
+                                setShowKycModal(false)
+                                setIsSupportModalOpen(true)
+                            }}
+                            isLoading={sumsubFlow.isLoading}
+                            error={sumsubFlow.error}
+                            variant={getKycModalVariant(gate.type)}
+                            providerMessage={getGateProviderMessage(gate)}
+                        />
+                    </>
                 )
             }
             return null
