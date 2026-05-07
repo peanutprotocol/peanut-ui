@@ -11,6 +11,7 @@ import { KycProcessingModal } from '@/components/Kyc/modals/KycProcessingModal'
 import { KycActionRequiredModal } from '@/components/Kyc/modals/KycActionRequiredModal'
 import { KycFailedModal } from '@/components/Kyc/modals/KycFailedModal'
 import ActionModal from '@/components/Global/ActionModal'
+import { useModalsContext } from '@/context/ModalsContext'
 import { useIdentityVerification, getRegionIntent, type Region } from '@/hooks/useIdentityVerification'
 import useUnifiedKycStatus from '@/hooks/useUnifiedKycStatus'
 import useProviderRejectionStatus from '@/hooks/useProviderRejectionStatus'
@@ -56,6 +57,7 @@ const RegionsVerification = () => {
     const { sumsubStatus, sumsubRejectLabels, sumsubRejectType, sumsubVerificationRegionIntent, isSumsubApproved } =
         useUnifiedKycStatus()
     const { bridge: bridgeRejection, manteca: mantecaRejection, hasAnyRejection } = useProviderRejectionStatus()
+    const { setIsSupportModalOpen } = useModalsContext()
     const [selectedRegion, setSelectedRegion] = useState<Region | null>(null)
     // keeps the region display stable during modal close animation
     const displayRegionRef = useRef<Region | null>(null)
@@ -218,10 +220,8 @@ const RegionsVerification = () => {
                         : {
                               text: 'Contact support',
                               onClick: () => {
-                                  if (typeof window !== 'undefined' && (window as any).$crisp) {
-                                      ;(window as any).$crisp.push(['do', 'chat:open'])
-                                  }
                                   handleModalClose()
+                                  setIsSupportModalOpen(true)
                               },
                               variant: 'purple' as const,
                               shadowSize: '4' as const,

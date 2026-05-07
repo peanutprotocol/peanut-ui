@@ -21,19 +21,18 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip }: BridgeTosStepProp
     const [showIframe, setShowIframe] = useState(false)
     const [tosLink, setTosLink] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(false)
+    const [isConfirming, setIsConfirming] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    // auto-fetch ToS link when step becomes visible so the iframe opens directly
-    // (skips the intermediate "Accept Terms" confirmation modal)
+    // reset state when step is hidden
     useEffect(() => {
-        if (visible) {
-            handleAcceptTerms()
-        } else {
+        if (!visible) {
             setShowIframe(false)
+            setIsConfirming(false)
             setTosLink(null)
             setError(null)
         }
-    }, [visible]) // eslint-disable-line react-hooks/exhaustive-deps
+    }, [visible])
 
     const handleAcceptTerms = useCallback(async () => {
         setIsLoading(true)
@@ -60,12 +59,19 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip }: BridgeTosStepProp
 
     const handleIframeClose = useCallback(
         async (source?: 'manual' | 'completed' | 'tos_accepted') => {
-            setShowIframe(false)
-
             if (source === 'tos_accepted') {
-                await confirmBridgeTosAndAwaitRails(fetchUser)
-                onComplete()
+                setIsConfirming(true)
+                setShowIframe(false)
+                try {
+                    await confirmBridgeTosAndAwaitRails(fetchUser)
+                    onComplete()
+                } catch {
+                    setError('Something went wrong confirming your terms. Please try again.')
+                } finally {
+                    setIsConfirming(false)
+                }
             } else {
+                setShowIframe(false)
                 onSkip()
             }
         },
@@ -76,32 +82,32 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip }: BridgeTosStepProp
 
     return (
         <>
-            {/* only show modal on error — normal flow goes straight to iframe */}
-            {error && !showIframe && (
-                <ActionModal
-                    visible={true}
-                    onClose={onSkip}
-                    icon={'alert' as IconName}
-                    title="Could not load terms"
-                    description={error}
-                    ctas={[
-                        {
-                            text: 'Try again',
-                            onClick: handleAcceptTerms,
-                            disabled: isLoading,
-                            variant: 'purple',
-                            className: 'w-full',
-                            shadowSize: '4',
-                        },
-                        {
-                            text: 'Skip for now',
-                            onClick: onSkip,
-                            variant: 'transparent' as const,
-                            className: 'underline text-sm font-medium w-full h-fit mt-3',
-                        },
-                    ]}
-                />
-            )}
+            {/* confirmation modal — hidden when iframe is open or ToS is being confirmed */}
+            <ActionModal
+                visible={visible && !showIframe && !isConfirming}
+                onClose={onSkip}
+                icon={error ? ('alert' as IconName) : ('badge' as IconName)}
+                title={error ? 'Could not load terms' : 'Accept Terms of Service'}
+                description={
+                    error || "To enable bank transfers, you need to accept our payment partner's Terms of Service."
+                }
+                ctas={[
+                    {
+                        text: isLoading ? 'Loading...' : error ? 'Try again' : 'Accept Terms',
+                        onClick: handleAcceptTerms,
+                        disabled: isLoading,
+                        variant: 'purple',
+                        className: 'w-full',
+                        shadowSize: '4',
+                    },
+                    {
+                        text: 'Not now',
+                        onClick: onSkip,
+                        variant: 'transparent' as const,
+                        className: 'underline text-sm font-medium w-full h-fit mt-3',
+                    },
+                ]}
+            />
 
             {tosLink && <IframeWrapper src={tosLink} visible={showIframe} onClose={handleIframeClose} skipStartView />}
         </>
