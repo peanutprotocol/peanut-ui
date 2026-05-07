@@ -10,10 +10,14 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { formatAmount } from '@/utils/general.utils'
 import { countryData } from '@/components/AddMoney/consts'
 import { useAuth } from '@/context/authContext'
-import useKycStatus from '@/hooks/useKycStatus'
-import useProviderRejectionStatus from '@/hooks/useProviderRejectionStatus'
+import {
+    useBridgeTransferReadiness,
+    getKycModalVariant,
+    getGateProviderMessage,
+} from '@/hooks/useBridgeTransferReadiness'
+import { useModalsContext } from '@/context/ModalsContext'
 import { useCreateOnramp } from '@/hooks/useCreateOnramp'
-import { useRouter, useParams, useSearchParams } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import countryCurrencyMappings, { isNonEuroSepaCountry, isUKCountry } from '@/constants/countryCurrencyMapping'
 import { formatUnits } from 'viem'
@@ -35,7 +39,6 @@ import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { addMoneyCountryUrl } from '@/utils/native-routes'
 
 // Step type for URL state
 type BridgeBankStep = 'inputAmount' | 'showDetails'
@@ -43,7 +46,6 @@ type BridgeBankStep = 'inputAmount' | 'showDetails'
 export default function OnrampBankPage() {
     const router = useRouter()
     const params = useParams()
-    const _searchParams = useSearchParams()
 
     // URL state - persisted in query params
     // Example: /add-money/mexico/bank?step=inputAmount&amount=500
@@ -72,14 +74,12 @@ export default function OnrampBankPage() {
     // regionIntent is NOT passed here to avoid creating a backend record on mount.
     // intent is passed at call time: handleInitiateKyc('STANDARD')
     const sumsubFlow = useMultiPhaseKycFlow({
-        onKycSuccess: async () => {
-            await fetchUser()
+        onKycSuccess: () => {
             setUrlState({ step: 'inputAmount' })
         },
     })
 
-    // read country from path params (web) or query params (native/capacitor)
-    const selectedCountryPath = (params.country as string) || _searchParams.get('country') || ''
+    const selectedCountryPath = params.country as string
 
     const selectedCountry = useMemo(() => {
         if (!selectedCountryPath) return null
@@ -98,10 +98,14 @@ export default function OnrampBankPage() {
     // uk-specific check
     const isUK = isUKCountry(selectedCountryPath)
 
-    const { isUserKycApproved, isUserSumsubKycApproved, isUserBridgeKycApproved, isUserBridgeKycUnderReview } =
-        useKycStatus()
-    const { bridge: bridgeRejection } = useProviderRejectionStatus()
+    const { gate } = useBridgeTransferReadiness()
     const { guardWithTos, showBridgeTos, hideTos } = useBridgeTosGuard()
+    const { setIsSupportModalOpen } = useModalsContext()
+
+    // close kyc modal when sumsub sdk opens
+    useEffect(() => {
+        if (sumsubFlow.showWrapper) setShowKycModal(false)
+    }, [sumsubFlow.showWrapper])
 
     useEffect(() => {
         fetchUser()
@@ -198,18 +202,15 @@ export default function OnrampBankPage() {
         }
     }, [rawTokenAmount, validateAmount, setError])
 
-    const needsBridgeEnrollment = isUserSumsubKycApproved && !isUserBridgeKycApproved && !isUserBridgeKycUnderReview
-
     const handleAmountContinue = () => {
         if (!validateAmount(rawTokenAmount)) return
 
-        if (
-            needsBridgeEnrollment ||
-            !isUserKycApproved ||
-            bridgeRejection.state === 'fixable' ||
-            bridgeRejection.state === 'blocked'
-        ) {
-            setShowKycModal(true)
+        if (gate.type !== 'ready') {
+            if (gate.type === 'accept_tos') {
+                guardWithTos()
+            } else {
+                setShowKycModal(true)
+            }
             return
         }
 
@@ -227,11 +228,6 @@ export default function OnrampBankPage() {
                 showError: true,
                 errorMessage: 'Please select a country first.',
             })
-            return
-        }
-
-        if (guardWithTos()) {
-            setShowWarningModal(false)
             return
         }
 
@@ -280,7 +276,7 @@ export default function OnrampBankPage() {
 
     const handleBack = () => {
         if (selectedCountry) {
-            router.push(addMoneyCountryUrl(selectedCountry.path))
+            router.push(`/add-money/${selectedCountry.path}`)
         } else {
             router.push('/add-money')
         }
@@ -409,28 +405,24 @@ export default function OnrampBankPage() {
                     visible={showKycModal}
                     onClose={() => setShowKycModal(false)}
                     onVerify={async () => {
-                        // needsBridgeEnrollment takes priority: user has no bridge customer,
-                        // so rejection state from a stale/deleted customer is irrelevant
-                        if (!needsBridgeEnrollment && bridgeRejection.state === 'fixable') {
+                        if (gate.type === 'fixable_rejection') {
                             await sumsubFlow.handleSelfHealResubmit('BRIDGE')
                         } else {
                             await sumsubFlow.handleInitiateKyc(
                                 'STANDARD',
                                 undefined,
-                                needsBridgeEnrollment || undefined
+                                gate.type === 'needs_enrollment' || undefined
                             )
                         }
+                    }}
+                    onContactSupport={() => {
                         setShowKycModal(false)
+                        setIsSupportModalOpen(true)
                     }}
                     isLoading={sumsubFlow.isLoading}
-                    variant={
-                        needsBridgeEnrollment
-                            ? 'cross_region'
-                            : bridgeRejection.state === 'fixable' || bridgeRejection.state === 'blocked'
-                              ? 'provider_rejection'
-                              : 'default'
-                    }
-                    providerMessage={bridgeRejection.userMessage ?? undefined}
+                    error={sumsubFlow.error}
+                    variant={getKycModalVariant(gate.type)}
+                    providerMessage={getGateProviderMessage(gate)}
                     regionName={selectedCountry?.title}
                 />
 
