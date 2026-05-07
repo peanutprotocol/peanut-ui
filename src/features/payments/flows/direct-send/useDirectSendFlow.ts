@@ -134,7 +134,11 @@ export function useDirectSendFlow() {
 
             // step 2: send money via peanut wallet
             const txResult = await sendMoney(recipient.address, amount, { kind: 'P2P_SEND' })
-            const hash = (txResult.receipt?.transactionHash ?? txResult.userOpHash) as Hash
+            // For the collateral-only strategy useSpendBundle returns only
+            // `txHash` (Rain coordinator submits the on-chain tx; no UserOp
+            // hash + no receipt land here). Fall back to it so users with
+            // card collateral can pay without smart-account balance.
+            const hash = (txResult.receipt?.transactionHash ?? txResult.userOpHash ?? txResult.txHash) as Hash
 
             setTxHash(hash)
 
