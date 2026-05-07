@@ -290,7 +290,11 @@ export function useSemanticRequestFlow() {
                 if (isSameChainSameToken) {
                     // direct payment - same as old flow when isPeanutWallet && same token/chain
                     const txResult = await sendMoney(recipient.resolvedAddress, amount, { kind: 'REQUEST_PAY' })
-                    const hash = (txResult.receipt?.transactionHash ?? txResult.userOpHash) as Hash
+                    // For the collateral-only strategy useSpendBundle returns only
+                    // `txHash` (Rain coordinator submits the on-chain tx). Fall
+                    // back to it so card-collateral users don't get an
+                    // undefined hash here.
+                    const hash = (txResult.receipt?.transactionHash ?? txResult.userOpHash ?? txResult.txHash) as Hash
                     setTxHash(hash)
 
                     // record payment
@@ -475,7 +479,9 @@ export function useSemanticRequestFlow() {
                 const txResult = await sendMoney(charge.requestLink.recipientAddress as Address, charge.tokenAmount, {
                     kind: 'REQUEST_PAY',
                 })
-                hash = (txResult.receipt?.transactionHash ?? txResult.userOpHash) as Hash
+                // collateral-only routes return `txHash` only — see
+                // sibling site at line ~293 for the same fallback.
+                hash = (txResult.receipt?.transactionHash ?? txResult.userOpHash ?? txResult.txHash) as Hash
             } else if (needsRoute && routeTransactions && routeTransactions.length > 0) {
                 // cross-chain or token swap payment via Rhino SDA
                 const txResult = await sendTransactions(
