@@ -88,6 +88,12 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         if (!regionIntent) return
         // skip if handleInitiateKyc is already in progress — it handles status sync itself
         if (initiatingRef.current) return
+        // skip if user already initiated a flow in this session — the SDK or
+        // handleInitiateKyc manages status from here. without this guard,
+        // the async fetch can resolve after initiatingRef is reset but before
+        // showWrapperRef is updated by the batched render, causing a false
+        // APPROVED transition that closes the SDK.
+        if (userInitiatedRef.current) return
 
         const fetchCurrentStatus = async () => {
             try {
