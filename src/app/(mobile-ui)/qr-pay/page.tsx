@@ -579,8 +579,11 @@ export default function QRPayPage() {
                 setWaitingForMerchantAmount(true)
             } else if (error.message.includes('PAYMENT_DESTINATION_DECODING_ERROR')) {
                 setErrorInitiatingPayment(
-                    'We could not decode this particular QR code. Please ask the Merchant if they can generate a Mercado Pago QR'
+                    qrType === EQrType.PIX
+                        ? 'We could not decode this Pix QR code. Please ask the merchant to generate a new one.'
+                        : 'We could not decode this particular QR code. Please ask the Merchant if they can generate a Mercado Pago QR'
                 )
+                posthog.capture(ANALYTICS_EVENTS.QR_DECODING_ERROR_SHOWN, { qr_type: qrType })
                 setWaitingForMerchantAmount(false)
             } else {
                 // Network/timeout errors after all retries exhausted
