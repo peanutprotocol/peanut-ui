@@ -9,6 +9,7 @@ import ProfileMenuItem from './components/ProfileMenuItem'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import useKycStatus from '@/hooks/useKycStatus'
+import { useCardPioneerInfo } from '@/hooks/useCardPioneerInfo'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import Card from '../Global/Card'
 import ShowNameToggle from './components/ShowNameToggle'
@@ -23,6 +24,7 @@ export const Profile = () => {
     const [isInviteFriendsModalOpen, setIsInviteFriendsModalOpen] = useState(false)
     const router = useRouter()
     const { isUserKycApproved } = useKycStatus()
+    const { hasCardAccess } = useCardPioneerInfo()
 
     const logout = async () => {
         await logoutUser()
@@ -47,7 +49,7 @@ export const Profile = () => {
                     />
                     {/* Menu Items - First Group */}
                     <div>
-                        {!underMaintenanceConfig.disableCardPioneers && (
+                        {(!underMaintenanceConfig.disableCardPioneers || hasCardAccess) && (
                             <ProfileMenuItem icon="credit-card" label="Your Card" href="/card" position="first" />
                         )}
                         <ProfileMenuItem icon="achievements" label="Your Badges" href="/badges" position="middle" />

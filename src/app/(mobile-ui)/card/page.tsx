@@ -60,9 +60,19 @@ const CardPage: FC = () => {
     // Card mid-apply before the state machine sees the new state.
     const [isIssuing, setIsIssuing] = useState(false)
 
+    // Maintenance gate: redirect non-access users away during a Pioneer
+    // outage, but let users with hasCardAccess (manual grant or completed
+    // purchase) keep reaching their card. Wait for cardInfo so we don't
+    // bounce them before we know their access state — and bail on fetch
+    // error so the retry UI below stays reachable instead of redirecting
+    // a granted user mid-blip.
     useEffect(() => {
-        if (underMaintenanceConfig.disableCardPioneers) router.replace('/home')
-    }, [router])
+        if (!underMaintenanceConfig.disableCardPioneers) return
+        if (pioneerLoading) return
+        if (pioneerError) return
+        if (cardInfo?.hasCardAccess) return
+        router.replace('/home')
+    }, [router, pioneerLoading, pioneerError, cardInfo?.hasCardAccess])
 
     const state = computeCardState({
         overview,
@@ -258,7 +268,9 @@ const CardPage: FC = () => {
         return ''
     }, [invalidateOverview])
 
-    if (underMaintenanceConfig.disableCardPioneers) return null
+    if (underMaintenanceConfig.disableCardPioneers && !pioneerLoading && !pioneerError && !cardInfo?.hasCardAccess) {
+        return null
+    }
 
     if (state === 'loading') {
         return (
